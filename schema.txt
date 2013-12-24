@@ -1,8 +1,16 @@
-Block (linked list of Lines)
-  Line (can start with a BlockField, linked list of Fields, can end with a BlockField)
-    Field (can point to a Block or a String)
-      *Block
-    BlockField
-      *Line before
-      *Block
-      *Line after
+Block
+  Some metadata
+  Associated Group
+  First Socket
+
+Socket
+  Some metadata
+  Associated Paper Item
+  Contained Block, or next Socket
+
+Special Sockets:
+  NewlineSocket
+  ConnectionSocket
+  IndentSocket
+  BreakSocket
+  BlockEndSocket
