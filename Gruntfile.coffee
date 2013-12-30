@@ -6,8 +6,7 @@ module.exports = (grunt) ->
         sourceMap: true
       build:
         files:
-          'js/ice.js': ['src/ice.coffee']
-          'js/paper.js': ['src/paper.coffee']
+          'js/ice.js': ['src/ice.coffee', 'src/paper.coffee']
           'js/tests.js': ['src/tests.coffee']
     uglify:
       options:
@@ -16,7 +15,6 @@ module.exports = (grunt) ->
       build:
         files:
           'js/ice.min.js': 'js/ice.js'
-          'js/paper.min.js': 'js/paper.js'
           'js/tests.min.js': 'js/tests.js'
 
     concat:

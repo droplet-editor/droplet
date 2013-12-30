@@ -38,11 +38,7 @@ class Block
     # Link the token to the end
     @end = new BlockEndToken this
 
-    # Get a visual representation of us
-    #@paper = new BlockPaper this
-
-    # Preserve our _recompute state
-    #@_recomputeState =
+    @paper = new BlockPaper this
 
   contents: ->
     # The Contents of a block are everything between the start and end.
@@ -121,6 +117,8 @@ class Token
 class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null
+    @paper = new TextTokenPaper this
+    @type = 'text'
 
   toString: -> @value + if @next? then @next.toString() else ''
 
@@ -150,10 +148,22 @@ class BlockEndToken extends Token
     if @next? then @next.recompute state
 
 class NewlineToken extends Token
-  constructor: ->
+  constructor: (@indent) ->
+    @indent ?= ''
     @prev = @next = null
+    @type = 'newline'
 
-  toString: -> '\n' + if @next then @next.toString() else ''
+  toString: -> '\n' + @indent + if @next then @next.toString() else ''
+
+class IndentStartToken extends Token
+  constructor: ->
+    @prev = @Next =  null
+    @type = 'indentStart'
+
+class IndentEndToken extends Token
+  constructor: ->
+    @prev = @Next =  null
+    @type = 'indentEnd'
 
 ###
 # A Socket is a token that a Block can move to.
@@ -214,5 +224,38 @@ lispParse = (str) ->
   head = head.insert new TextToken currentString
   return first
 
+indentParse = (str) ->
+  lines = str.split '\n'
+  indent = 0
+  indentStack = [0]
+  blockStack = []
+  first = head = new TextToken ''
+  for line in lines
+    cindent = line.length - line.trim().length
+
+    if cindent <= indent and blockStack.length > 0
+      head = head.insert blockStack.pop().end
+
+    head = head.insert new NewlineToken()
+    head.indent = line[...cindent]
+
+    if cindent > indent
+      indentStack.push indent
+      indent = cindent
+      head = head.insert new IndentStartToken()
+
+    while indent > cindent
+      indent = indentStack.pop()
+      head = head.insert new IndentEndToken()
+      head = head.insert blockStack.pop().end
+
+    blockStack.push block = new Block []
+    head = head.insert block.start
+
+    head = head.insert new TextToken line[cindent..]
+  
+  return first
+
 window.ICE =
   lispParse: lispParse
+  indentParse: indentParse
