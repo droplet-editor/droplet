@@ -24,19 +24,14 @@ class RecomputeState
 ###
 class Block
   constructor: (contents) ->
-    # Initialize the start
     @start = new BlockStartToken this
+    @end = new BlockEndToken this
 
     # Fill up the linked list with the array of tokens we got.
     head = @start
     for token in contents
-      head.next = token.clone()
-      head.next.previous = head
-      head = head.next
-    head.next = @end
-    
-    # Link the token to the end
-    @end = new BlockEndToken this
+      head = head.insert token.clone()
+    head.insert @end
 
     @paper = new BlockPaper this
 
@@ -93,9 +88,26 @@ class Block
     return this
   
   # TODO This is really only usable for debugging
-  toString: ->
-    string = @start.toString()
-    return string[..string.length-@end.toString().length-1]
+  toString: (state) ->
+    string = @start.toString(state)
+    return string[..string.length-@end.toString(state).length-1]
+
+class Indent
+  constructor: (contents, @depth) ->
+    @start = new IndentStartToken this
+    @end = new IndentEndToken this
+
+    head = @start
+    for block in contents
+      head = head.insert block.clone()
+    head.insert @end
+    
+    @paper = new IndentPaper this
+
+  # TODO This is really only usable for debugging
+  toString: (state) ->
+    string = @start.toString(state)
+    return string[..string.length-@end.toString(state).length-1]
   
 class Token
   constructor: ->
@@ -109,7 +121,7 @@ class Token
   recompute: (state) ->
     if @next? then @next.recompute state
 
-  toString: -> if @next? then @next.toString() else ''
+  toString: (state) -> if @next? then @next.toString(state) else ''
 
 ###
 # Special kinds of tokens
@@ -120,7 +132,8 @@ class TextToken extends Token
     @paper = new TextTokenPaper this
     @type = 'text'
 
-  toString: -> @value + if @next? then @next.toString() else ''
+  toString: (state) ->
+    @value + if @next? then @next.toString(state) else ''
 
 class BlockStartToken extends Token
   constructor: (@block) ->
@@ -148,35 +161,33 @@ class BlockEndToken extends Token
     if @next? then @next.recompute state
 
 class NewlineToken extends Token
-  constructor: (@indent) ->
-    @indent ?= ''
+  constructor: ->
     @prev = @next = null
     @type = 'newline'
 
-  toString: -> '\n' + @indent + if @next then @next.toString() else ''
+  toString: (state) ->
+    '\n' + state.indent + if @next then @next.toString(state) else ''
 
 class IndentStartToken extends Token
-  constructor: ->
-    @prev = @Next =  null
+  constructor: (@indent) ->
+    @prev = @next =  null
     @type = 'indentStart'
 
+  toString: (state) ->
+    state.indent += (' ' for [1..@indent.depth]).join ''
+    if @next then @next.toString(state) else ''
+
 class IndentEndToken extends Token
-  constructor: ->
-    @prev = @Next =  null
+  constructor: (@indent) ->
+    @prev = @next =  null
     @type = 'indentEnd'
 
-###
-# A Socket is a token that a Block can move to.
-###
-class Socket extends Token
-  constructor: (@accepts) ->
-    @value = @prev = @next = null
-    @type = 'socket'
-
-  toString: -> (if @value? then @value.toString() else '') + (if @next? then @next.toString() else '')
+  toString: (state) ->
+    state.indent = state.indent[...-@indent.depth]
+    if @next then @next.toString(state) else ''
 
 ###
-# Example LISP parser
+# Example LISP parser/
 ###
 
 lispParse = (str) ->
@@ -225,35 +236,55 @@ lispParse = (str) ->
   return first
 
 indentParse = (str) ->
+
+  # First, generate an indent AST
   lines = str.split '\n'
-  indent = 0
-  indentStack = [0]
-  blockStack = []
-  first = head = new TextToken ''
+  node = root =
+    parent: null
+    head: null
+    indent: -1
+    children: []
   for line in lines
-    cindent = line.length - line.trim().length
+    indent = line.length - line.trimLeft().length
+    
+    while indent <= node.indent
+      node = node.parent
 
-    if cindent <= indent and blockStack.length > 0
-      head = head.insert blockStack.pop().end
+    new_node =
+      parent: node
+      head: line
+      indent: indent
+      children: []
+    node.children.push new_node
+    node = new_node
 
-    head = head.insert new NewlineToken()
-    head.indent = line[...cindent]
 
-    if cindent > indent
-      indentStack.push indent
-      indent = cindent
-      head = head.insert new IndentStartToken()
+  # Then generate the ICE token list
+  head = first = new TextToken ''
+  (lineate = (_node) ->
+    _block = new Block []
 
-    while indent > cindent
-      indent = indentStack.pop()
-      head = head.insert new IndentEndToken()
-      head = head.insert blockStack.pop().end
+    # Put the text on this line
+    if _node.head?
+      head = head.insert new NewlineToken()
+      head = head.insert _block.start
+      head = head.insert new TextToken _node.head[_node.indent..-1]
 
-    blockStack.push block = new Block []
-    head = head.insert block.start
+    # Recurse
+    if _node.children.length > 0
+      _indent = new Indent [], _node.children[0].indent - _node.indent
+      head = head.insert _indent.start
+      for child in _node.children
+        lineate child
+      head = head.insert _indent.end
+    
+    # End
+    head = head.insert _block.end
+  ) root
 
-    head = head.insert new TextToken line[cindent..]
-  
+  first = first.next.next.next
+
+
   return first
 
 window.ICE =
