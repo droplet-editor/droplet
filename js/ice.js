@@ -1,61 +1,31 @@
 /*
-# A RecomputeState is a vanilla stack
+# A Block is a bunch of tokens that are grouped together.
 */
 
 
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, NewlineToken, PADDING, RecomputeState, TextToken, TextTokenPaper, Token, indentParse, lispParse,
+  var Block, BlockEndToken, BlockPaper, BlockStartToken, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, indentParse, lispParse,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-  RecomputeState = (function() {
-    function RecomputeState() {
-      this.stack = {
-        next: null,
-        data: null
-      };
-    }
-
-    RecomputeState.prototype.first = function() {
-      return this.stack.data;
-    };
-
-    RecomputeState.prototype.push = function(element) {
-      return this.stack = {
-        next: this.stack,
-        data: element
-      };
-    };
-
-    RecomputeState.prototype.pop = function() {
-      var removed;
-      removed = this.stack;
-      this.stack = this.stack.next;
-      return removed;
-    };
-
-    return RecomputeState;
-
-  })();
-
-  /*
-  # A Block is a bunch of tokens that are grouped together.
-  */
-
 
   Block = (function() {
     function Block(contents) {
       var head, token, _i, _len;
       this.start = new BlockStartToken(this);
       this.end = new BlockEndToken(this);
+      this.type = 'block';
       head = this.start;
       for (_i = 0, _len = contents.length; _i < _len; _i++) {
         token = contents[_i];
-        head = head.insert(token.clone());
+        head = head.append(token.clone());
       }
-      head.insert(this.end);
+      head.append(this.end);
       this.paper = new BlockPaper(this);
     }
+
+    Block.prototype.embedded = function() {
+      return this.start.prev.type === 'socketStart';
+    };
 
     Block.prototype.contents = function() {
       var contents, head;
@@ -94,13 +64,26 @@
       if (this.end.next != null) {
         this.end.next.prev = this.start.prev;
       }
-      this.end.next = parent.next;
-      parent.next.prev = this.end;
-      parent.next = this.start;
-      return this.start.prev = parent;
+      this.start.prev = this.end.next = null;
+      if (parent != null) {
+        this.end.next = parent.next;
+        parent.next.prev = this.end;
+        parent.next = this.start;
+        return this.start.prev = parent;
+      }
     };
 
-    Block.prototype.recompute = function(state) {};
+    Block.prototype.findBlock = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'blockStart' && f(head.block)) {
+          return head.block.findBlock(f);
+        }
+        head = head.next;
+      }
+      return this;
+    };
 
     Block.prototype.find = function(f) {
       var head;
@@ -108,6 +91,10 @@
       while (head !== this.end) {
         if (head.type === 'blockStart' && f(head.block)) {
           return head.block.find(f);
+        } else if (head.type === 'indentStart' && f(head.indent)) {
+          return head.indent.find(f);
+        } else if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.find(f);
         }
         head = head.next;
       }
@@ -130,14 +117,19 @@
       this.depth = depth;
       this.start = new IndentStartToken(this);
       this.end = new IndentEndToken(this);
+      this.type = 'indent';
       head = this.start;
       for (_i = 0, _len = contents.length; _i < _len; _i++) {
         block = contents[_i];
-        head = head.insert(block.clone());
+        head = head.append(block.clone());
       }
-      head.insert(this.end);
+      head.append(this.end);
       this.paper = new IndentPaper(this);
     }
+
+    Indent.prototype.embedded = function() {
+      return false;
+    };
 
     Indent.prototype.toString = function(state) {
       var string;
@@ -145,7 +137,78 @@
       return string.slice(0, +(string.length - this.end.toString(state).length - 1) + 1 || 9e9);
     };
 
+    Indent.prototype.find = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'blockStart' && f(head.block)) {
+          return head.block.find(f);
+        } else if (head.type === 'indentStart' && f(head.indent)) {
+          return head.indent.find(f);
+        } else if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.find(f);
+        }
+        head = head.next;
+      }
+      return this;
+    };
+
     return Indent;
+
+  })();
+
+  Socket = (function() {
+    function Socket(content) {
+      this.start = new SocketStartToken(this);
+      this.end = new SocketEndToken(this);
+      if (content != null) {
+        this.start.next = this.content.start;
+        this.end.prev = this.content.end;
+      } else {
+        this.start.next = this.end;
+        this.end.prev = this.start;
+      }
+      this.type = 'socket';
+      this.paper = new SocketPaper(this);
+    }
+
+    Socket.prototype.embedded = function() {
+      return false;
+    };
+
+    Socket.prototype.content = function() {
+      if (this.start.next !== this.end) {
+        return this.start.next.block;
+      } else {
+        return null;
+      }
+    };
+
+    Socket.prototype.find = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'blockStart' && f(head.block)) {
+          return head.block.find(f);
+        } else if (head.type === 'indentStart' && f(head.indent)) {
+          return head.indent.find(f);
+        } else if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.find(f);
+        }
+        head = head.next;
+      }
+      return this;
+    };
+
+    Socket.prototype.toString = function(state) {
+      if (this.content) {
+        return this.content.toString();
+      } else {
+        return '';
+      }
+    };
+
+    return Socket;
 
   })();
 
@@ -154,18 +217,29 @@
       this.prev = this.next = null;
     }
 
-    Token.prototype.insert = function(token) {
-      if (this.next != null) {
-        this.next.prev = token;
-      }
+    Token.prototype.append = function(token) {
       token.prev = this;
       return this.next = token;
     };
 
-    Token.prototype.recompute = function(state) {
+    Token.prototype.insert = function(token) {
       if (this.next != null) {
-        return this.next.recompute(state);
+        token.next = this.next;
+        this.next.prev = token;
       }
+      token.prev = this;
+      this.next = token;
+      return this.next;
+    };
+
+    Token.prototype.remove = function() {
+      if (this.prev != null) {
+        this.prev.next = this.next;
+      }
+      if (this.next != null) {
+        this.next.prev = this.prev;
+      }
+      return this.prev = this.next = null;
     };
 
     Token.prototype.toString = function(state) {
@@ -212,13 +286,6 @@
       this.type = 'blockStart';
     }
 
-    BlockStartToken.prototype.recompute = function(state) {
-      state.push();
-      if (this.next != null) {
-        return this.next.recompute(state);
-      }
-    };
-
     return BlockStartToken;
 
   })(Token);
@@ -231,14 +298,6 @@
       this.prev = this.next = null;
       this.type = 'blockEnd';
     }
-
-    BlockEndToken.prototype.recompute = function() {
-      state.pop();
-      this.block.recompute(state);
-      if (this.next != null) {
-        return this.next.recompute(state);
-      }
-    };
 
     return BlockEndToken;
 
@@ -311,52 +370,82 @@
 
   })(Token);
 
+  SocketStartToken = (function(_super) {
+    __extends(SocketStartToken, _super);
+
+    function SocketStartToken(socket) {
+      this.socket = socket;
+      this.prev = this.next = null;
+      this.type = 'socketStart';
+    }
+
+    return SocketStartToken;
+
+  })(Token);
+
+  SocketEndToken = (function(_super) {
+    __extends(SocketEndToken, _super);
+
+    function SocketEndToken(socket) {
+      this.socket = socket;
+      this.prev = this.next = null;
+      this.type = 'socketEnd';
+    }
+
+    return SocketEndToken;
+
+  })(Token);
+
   /*
   # Example LISP parser/
   */
 
 
   lispParse = function(str) {
-    var block, block_stack, char, currentString, first, head, _i, _len;
+    var block, block_stack, char, currentString, first, head, socket, socket_stack, _i, _len;
     currentString = '';
     first = head = new TextToken('');
     block_stack = [];
+    socket_stack = [];
     for (_i = 0, _len = str.length; _i < _len; _i++) {
       char = str[_i];
       switch (char) {
         case '(':
-          head = head.insert(new TextToken(currentString));
+          head = head.append(new TextToken(currentString));
           block_stack.push(block = new Block([]));
-          head = head.insert(block.start);
-          head = head.insert(new TextToken('('));
+          socket_stack.push(socket = new Socket(block));
+          head = head.append(socket.start);
+          head = head.append(block.start);
+          head = head.append(new TextToken('('));
           currentString = '';
           break;
         case ')':
-          head = head.insert(new TextToken(currentString));
-          head = head.insert(new TextToken(')'));
-          head = head.insert(block_stack.pop().end);
+          head = head.append(new TextToken(currentString));
+          head = head.append(new TextToken(')'));
+          head = head.append(block_stack.pop().end);
+          head = head.append(socket_stack.pop().end);
           currentString = '';
           break;
         case ' ':
-          head = head.insert(new TextToken(currentString));
-          head = head.insert(new TextToken(' '));
+          head = head.append(new TextToken(currentString));
+          head = head.append(new TextToken(' '));
           currentString = '';
           break;
         case '\n':
-          head = head.insert(new TextToken(currentString));
-          head = head.insert(new NewlineToken());
+          head = head.append(new TextToken(currentString));
+          head = head.append(new NewlineToken());
           currentString = '';
           break;
         default:
           currentString += char;
       }
     }
-    head = head.insert(new TextToken(currentString));
+    head = head.append(new TextToken(currentString));
     return first;
   };
 
   indentParse = function(str) {
-    var first, head, indent, line, lineate, lines, new_node, node, root, _i, _len;
+    var block_stack, first, head, indent, line, lineate, lines, new_node, node, root, socket_stack, _i, _len;
     lines = str.split('\n');
     node = root = {
       parent: null,
@@ -380,27 +469,56 @@
       node = new_node;
     }
     head = first = new TextToken('');
+    block_stack = [];
+    socket_stack = [];
     (lineate = function(_node) {
-      var child, _block, _indent, _j, _len1, _ref;
-      _block = new Block([]);
+      var block, char, child, currentString, socket, _indent, _j, _k, _len1, _len2, _ref, _ref1;
       if (_node.head != null) {
-        head = head.insert(new NewlineToken());
-        head = head.insert(_block.start);
-        head = head.insert(new TextToken(_node.head.slice(_node.indent)));
+        head = head.append(new NewlineToken());
+        currentString = '';
+        _ref = _node.head.slice(_node.indent);
+        for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
+          char = _ref[_j];
+          switch (char) {
+            case '(':
+              head = head.append(new TextToken(currentString));
+              block_stack.push(block = new Block([]));
+              socket_stack.push(socket = new Socket(block));
+              head = head.append(socket.start);
+              head = head.append(block.start);
+              head = head.append(new TextToken('('));
+              currentString = '';
+              break;
+            case ')':
+              head = head.append(new TextToken(currentString));
+              head = head.append(new TextToken(')'));
+              head = head.append(block_stack.pop().end);
+              head = head.append(socket_stack.pop().end);
+              currentString = '';
+              break;
+            case ' ':
+              head = head.append(new TextToken(currentString));
+              head = head.append(new TextToken(' '));
+              currentString = '';
+              break;
+            default:
+              currentString += char;
+          }
+        }
+        head = head.append(new TextToken(currentString));
       }
       if (_node.children.length > 0) {
         _indent = new Indent([], _node.children[0].indent - _node.indent);
-        head = head.insert(_indent.start);
-        _ref = _node.children;
-        for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-          child = _ref[_j];
+        head = head.append(_indent.start);
+        _ref1 = _node.children;
+        for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
+          child = _ref1[_k];
           lineate(child);
         }
-        head = head.insert(_indent.end);
+        return head = head.append(_indent.end);
       }
-      return head = head.insert(_block.end);
     })(root);
-    first = first.next.next.next;
+    first = first.next.next.next.next.next;
     return first;
   };
 
@@ -411,7 +529,7 @@
 
   PADDING = 2;
 
-  INDENT = 7;
+  INDENT = 13;
 
   window.RUN_PAPER_TESTS = false;
 
@@ -424,7 +542,7 @@
 
     IcePaper.prototype.draw = function() {};
 
-    IcePaper.prototype.netLeftCenter = function(line, point) {};
+    IcePaper.prototype.setLeftCenter = function(line, point) {};
 
     IcePaper.prototype.translate = function(vector) {};
 
@@ -451,23 +569,31 @@
       # Loop through the children and compute them
       */
 
-      head = this.block.start.next.next;
+      head = this.block.start.next;
+      if (head !== this.block.end) {
+        head = head.next;
+      }
       while (head !== this.block.end) {
         switch (head.type) {
           case 'text':
             element = head.paper.compute(state);
             elements.push(element);
             this.children.push(element);
+            this.group.addChild(element.group);
             head = head.next;
             break;
           case 'blockStart':
             element = head.block.paper.compute(state);
             elements.push(element);
             this.children.push(element);
+            this.group.addChild(element.group);
             head = head.block.end.next;
             break;
           case 'newline':
             state.line += 1;
+            head = head.next;
+            break;
+          default:
             head = head.next;
         }
       }
@@ -495,11 +621,24 @@
 
     IndentPaper.prototype.draw = function() {
       var child, _i, _len, _ref, _results;
+      this.group.addChild(this._dropArea = new paper.Path.Rectangle(new paper.Rectangle(this.point.subtract(0, 5), new paper.Size(100, 10))));
+      this._dropArea.bringToFront();
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
         _results.push(child.draw());
+      }
+      return _results;
+    };
+
+    IndentPaper.prototype.erase = function() {
+      var child, _i, _len, _ref, _results;
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        _results.push(child.erase());
       }
       return _results;
     };
@@ -515,7 +654,10 @@
         this.lines[line] = this.lines[line].unite(element.lines[line]);
       }
       leftCenter = this.lines[line].leftCenter;
-      return this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+      this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+      if (line === this.lineStart) {
+        return this.point = this.lines[line].point;
+      }
     };
 
     IndentPaper.prototype.translate = function(vector) {
@@ -560,7 +702,7 @@
     }
 
     BlockPaper.prototype.compute = function(state) {
-      var axis, bottom, cont, element, elements, head, indent, indents, line, lineGroup, lineStart, _i, _j, _k, _len, _len1, _ref;
+      var axis, bottom, cont, element, elements, head, indent, indents, line, lineGroup, lineStart, _i, _j, _k, _len, _len1, _ref, _ref1;
       this.lines = {};
       elements = [];
       indents = [];
@@ -568,33 +710,52 @@
       this.indentedLines = {};
       this.group = new paper.Group([]);
       this.children = [];
+      this.indentEnds = [];
       /*
       # Loop through the children and compute them
       */
 
       head = this.block.start.next;
       while (head !== this.block.end) {
+        if (head.next == null) {
+          debugger;
+        }
+        console.log(head.type, this.block.contents().indexOf(head));
         switch (head.type) {
           case 'text':
             element = head.paper.compute(state);
             elements.push(element);
             this.children.push(element);
+            this.group.addChild(element.group);
             head = head.next;
             break;
           case 'blockStart':
             element = head.block.paper.compute(state);
             elements.push(element);
             this.children.push(element);
+            this.group.addChild(element.group);
             head = head.block.end.next;
             break;
           case 'indentStart':
             indent = head.indent.paper.compute(state);
             indents.push(indent);
             this.children.push(indent);
+            this.indentEnds[indent.lineEnd] = indent;
+            this.group.addChild(indent.group);
             head = head.indent.end.next;
+            break;
+          case 'socketStart':
+            element = head.socket.paper.compute(state);
+            elements.push(element);
+            this.children.push(element);
+            this.group.addChild(element.group);
+            head = head.socket.end.next;
             break;
           case 'newline':
             state.line += 1;
+            head = head.next;
+            break;
+          default:
             head = head.next;
         }
       }
@@ -602,8 +763,9 @@
       this.lineGroups = {};
       axis = 0;
       bottom = 0;
-      for (line = _i = lineStart, _ref = state.line; lineStart <= _ref ? _i <= _ref : _i >= _ref; line = lineStart <= _ref ? ++_i : --_i) {
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
         this.lineGroups[line] = (lineGroup = []);
+        cont = false;
         for (_j = 0, _len = indents.length; _j < _len; _j++) {
           indent = indents[_j];
           if (line in indent.lines) {
@@ -612,7 +774,9 @@
             }
             this.indentedLines[line] = indent;
             this.lines[line] = new paper.Rectangle(indent.lines[line].point.subtract(INDENT, 0), new paper.Size(INDENT, indent.lines[line].height));
-            this.group.addChild(element.group);
+            if (line === indent.lineEnd) {
+              this.lines[line].height += 10;
+            }
             bottom += indent.lines[line].height;
             cont = true;
           }
@@ -624,7 +788,6 @@
           element = elements[_k];
           if (line in element.lines) {
             lineGroup.push(element);
-            this.group.addChild(element.group);
           }
         }
         this.setLeftCenter(line, new paper.Point(0, axis));
@@ -632,33 +795,70 @@
         this.setLeftCenter(line, new paper.Point(0, axis));
         bottom += this.lines[line].height;
         this.lines[line].selected = true;
-        line += 1;
       }
       return this;
     };
 
     BlockPaper.prototype.draw = function() {
-      var child, line, _i, _j, _len, _ref, _ref1, _ref2, _results;
+      var child, line, _i, _j, _len, _ref, _ref1, _ref2;
+      if (this._container != null) {
+        this._container.remove();
+      }
       this._container = new paper.Path();
       this._container.strokeColor = 'black';
+      this._container.fillColor = 'white';
+      this.group.addChild(this._container);
       for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        this._container.add(this.lines[line].topRight);
-        this._container.add(this.lines[line].bottomRight);
-        this._container.insert(0, this.lines[line].topLeft);
-        this._container.insert(0, this.lines[line].bottomLeft);
+        if (line in this.indentEnds) {
+          this._container.add(this.lines[line].topRight);
+          this._container.add(this.lines[line].bottomRight.add(new paper.Point(0, -10)));
+          this._container.add(this.lines[line].bottomRight.add(new paper.Point(200, -10)));
+          this._container.add(this.lines[line].bottomRight.add(new paper.Point(200, 0)));
+          this._container.insert(0, this.lines[line].topLeft);
+          this._container.insert(0, this.lines[line].bottomLeft);
+        } else {
+          this._container.add(this.lines[line].topRight);
+          this._container.add(this.lines[line].bottomRight);
+          this._container.insert(0, this.lines[line].topLeft);
+          this._container.insert(0, this.lines[line].bottomLeft);
+        }
       }
+      this.group.addChild(this._dropArea = new paper.Path.Rectangle(new paper.Rectangle(this._container.bounds.bottomLeft.subtract(0, 5), new paper.Size(100, 10))));
+      this._dropArea.closed = true;
       this._container.closed = true;
       _ref2 = this.children;
-      _results = [];
       for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
         child = _ref2[_j];
-        _results.push(child.draw());
+        child.draw();
+      }
+      this._dropArea.bringToFront();
+      return this._container.sendToBack();
+    };
+
+    BlockPaper.prototype.erase = function() {
+      var child, _i, _len, _ref, _results;
+      if (this._container != null) {
+        this._container.remove();
+      }
+      if (this._dropArea != null) {
+        this._dropArea.remove();
+      }
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        _results.push(child.erase());
       }
       return _results;
     };
 
     BlockPaper.prototype.setLeftCenter = function(line, point) {
       var element, leftCenter, _i, _len, _ref;
+      if (line in this.indentEnds) {
+        this.indentedLines[line].setLeftCenter(line, point.add(INDENT, -5));
+        this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+        return;
+      }
       if (line in this.indentedLines) {
         this.indentedLines[line].setLeftCenter(line, point.add(INDENT, 0));
         this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
@@ -699,6 +899,83 @@
 
   })(IcePaper);
 
+  SocketPaper = (function(_super) {
+    __extends(SocketPaper, _super);
+
+    function SocketPaper(block) {
+      this.block = block;
+      this.empty = false;
+    }
+
+    SocketPaper.prototype._recopy = function() {
+      var contentPaper, line;
+      contentPaper = this.block.content().paper;
+      for (line in contentPaper.lines) {
+        this.lines[line] = contentPaper.lines[line];
+      }
+      return this.group = contentPaper.group;
+    };
+
+    SocketPaper.prototype.compute = function(state) {
+      var content;
+      this.lines = {};
+      if ((content = this.block.content()) != null) {
+        content.paper.compute(state);
+        this._recopy();
+      } else {
+        this.lines[state.line] = new paper.Rectangle(0, 0, 20, 20);
+        this._line = state.line;
+        this.group = new paper.Group([]);
+      }
+      this.empty = this.block.content != null;
+      return this;
+    };
+
+    SocketPaper.prototype.draw = function() {
+      if (this._container != null) {
+        this._container.remove();
+      }
+      if (this.block.content() != null) {
+        this.block.content().paper.draw();
+        return this.group = this.block.group;
+      } else {
+        this._container = new paper.Path.Rectangle(this.lines[this._line]);
+        this._container.strokeColor = 'black';
+        this._dropArea = this._container.clone();
+        this._dropArea.strokeColor = null;
+        this.group.addChild(this._container);
+        return this.group.addChild(this._dropArea);
+      }
+    };
+
+    SocketPaper.prototype.erase = function() {
+      if (this._container != null) {
+        return this._container.remove();
+      }
+    };
+
+    SocketPaper.prototype.setLeftCenter = function(line, point) {
+      if (this.block.content() != null) {
+        this.block.content().paper.setLeftCenter(line, point);
+        return this.lines[line] = this.block.content().paper.lines[line];
+      } else {
+        return this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+      }
+    };
+
+    SocketPaper.prototype.translate = function(vector) {
+      if (this.block.content() != null) {
+        this.block.content().paper.translate(vector);
+        return this._recopy();
+      } else {
+        return this.lines[this._line].point = this.lines[this._line].point.add(vector);
+      }
+    };
+
+    return SocketPaper;
+
+  })(IcePaper);
+
   TextTokenPaper = (function(_super) {
     __extends(TextTokenPaper, _super);
 
@@ -707,10 +984,14 @@
     }
 
     TextTokenPaper.prototype.compute = function(state) {
+      if (this.text != null) {
+        this.text.remove();
+      }
       this.text = new paper.PointText(new paper.Point(0, 0));
       this.text.content = this.block.value;
       this.text.fillColor = 'black';
       this.text.font = 'Courier New';
+      this.text.fontSize = 18;
       this.group = new paper.Group([this.text]);
       this.lines = {};
       this.lines[state.line] = this.text.bounds;
@@ -719,6 +1000,12 @@
     };
 
     TextTokenPaper.prototype.draw = function() {};
+
+    TextTokenPaper.prototype.erase = function() {
+      if (this.text != null) {
+        return this.text.remove();
+      }
+    };
 
     TextTokenPaper.prototype.setLeftCenter = function(line, point) {
       if (line in this.lines) {
@@ -742,17 +1029,136 @@
 
 
   window.onload = function() {
-    var a;
+    var a, highlight, offset, out, roots, selection, tool;
     if (!window.RUN_PAPER_TESTS) {
       return;
     }
     paper.setup(document.getElementById('canvas'));
-    a = ICE.indentParse('window.onload = ->\n  paper.setup document.getElementById \'canvas\'\n  for i in [1..4]\n    square = paper.Path new paper.Rectangle\n      point: new paper.Point i, i\n      size: new paper.Size i, i\n    paper.view.draw()\n    if i % 2 is 0\n      alert \'even\'\n      if i is nested\n        nesting\n          nesting\n            nesting\n    else\n      alert \'bad\'\n  if done_drawing()\n    alert \'done drawing\'');
+    /*
+    a = ICE.indentParse '''
+    (defun turing (lambda (tuples left right state)
+    ((lambda (tuple)
+        (if (= (car tuple) -1)
+          (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))
+          (if (= (car tuple 1))
+            (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))
+            (turing tuples left right (car (cdr tuple))))))
+      (lookup tuples (car right) state)))
+    '''
+    */
+
+    a = ICE.indentParse('(lambda (x\n  (y)))');
     a.block.paper.compute({
       line: 0
     });
     a.block.paper.draw();
-    return paper.view.draw();
+    paper.view.draw();
+    tool = new paper.Tool();
+    selection = null;
+    highlight = null;
+    offset = new paper.Point(0, 0);
+    event.point = new paper.Point(0, 0);
+    roots = [];
+    tool.onMouseDown = function(event) {
+      var block, found, parent_root, pos, root, _i, _len;
+      block = a.block.findBlock(function(block) {
+        return (block.paper._container.hitTest(event.point)) != null;
+      });
+      parent_root = null;
+      for (_i = 0, _len = roots.length; _i < _len; _i++) {
+        root = roots[_i];
+        if ((root.paper._container.hitTest(event.point)) != null) {
+          block = root;
+        }
+        found = root.findBlock(function(block) {
+          return (block.paper._container.hitTest(event.point)) != null;
+        });
+        if (found !== root) {
+          block = found;
+          parent_root = root;
+        }
+      }
+      if (block === a.block) {
+        selection = null;
+        return;
+      }
+      if ((block.start.prev != null) && block.start.prev.type === 'newline') {
+        block.start.prev.remove();
+      }
+      block._moveTo(null);
+      selection = block.paper;
+      offset = selection.group.position.subtract(event.point);
+      a.block.paper.erase();
+      a.block.paper.compute({
+        line: 0
+      });
+      a.block.paper.draw();
+      if (parent_root != null) {
+        pos = parent_root.paper.group.position;
+        parent_root.paper.erase();
+        parent_root.paper.compute({
+          line: 0
+        });
+        parent_root.paper.draw();
+        parent_root.paper.group.position = pos;
+      }
+      out.innerText = a.block.toString({
+        indent: ''
+      });
+      selection.erase();
+      selection.compute({
+        line: 0
+      });
+      selection.draw();
+      return selection.group.position = event.point.add(offset);
+    };
+    out = document.getElementById('out');
+    tool.onMouseUp = function(event) {
+      if ((highlight != null) && (selection != null)) {
+        if (highlight.type === 'block') {
+          selection.block._moveTo(highlight.end.insert(new NewlineToken()));
+        } else if (highlight.type === 'indent') {
+          selection.block._moveTo(highlight.start.insert(new NewlineToken()));
+        } else if (highlight.type === 'socket') {
+          selection.block._moveTo(highlight.start);
+        }
+        a.block.paper.erase();
+        a.block.paper.compute({
+          line: 0
+        });
+        a.block.paper.draw();
+        out.innerText = a.block.toString({
+          indent: ''
+        });
+      }
+      if ((selection != null) && (highlight == null)) {
+        roots.push(selection.block);
+      }
+      return highlight = selection = null;
+    };
+    return tool.onMouseMove = function(event) {
+      if (selection != null) {
+        selection.group.position = event.point.add(offset);
+        if (highlight != null) {
+          highlight.paper._dropArea.fillColor = null;
+        }
+        highlight = a.block.find(function(block) {
+          return (block.paper._dropArea != null) && block.paper._dropArea.bounds.contains(selection.group.bounds.point) && block.start.prev.type !== 'socketStart';
+        });
+        if (highlight === a.block) {
+          return highlight = null;
+        } else {
+          if (highlight.paper.group != null) {
+            highlight.paper.group.bringToFront();
+          }
+          highlight.paper._dropArea.bringToFront();
+          selection.group.bringToFront();
+          if (highlight !== a.block) {
+            return highlight.paper._dropArea.fillColor = 'red';
+          }
+        }
+      }
+    };
   };
 
 }).call(this);

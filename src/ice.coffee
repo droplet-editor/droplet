@@ -1,39 +1,21 @@
 ###
-# A RecomputeState is a vanilla stack
-###
-class RecomputeState
-  constructor: ->
-    @stack =
-      next: null
-      data: null
-  
-  first: -> @stack.data
-
-  push: (element) ->
-    @stack =
-      next: @stack
-      data: element
-
-  pop: ->
-    removed = @stack
-    @stack = @stack.next
-    return removed
-
-###
 # A Block is a bunch of tokens that are grouped together.
 ###
 class Block
   constructor: (contents) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
+    @type = 'block'
 
     # Fill up the linked list with the array of tokens we got.
     head = @start
     for token in contents
-      head = head.insert token.clone()
-    head.insert @end
+      head = head.append token.clone()
+    head.append @end
 
     @paper = new BlockPaper this
+
+  embedded: -> @start.prev.type is 'socketStart'
 
   contents: ->
     # The Contents of a block are everything between the start and end.
@@ -64,24 +46,36 @@ class Block
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
+    @start.prev = @end.next = null
     
     # Splice ourselves into the requested parent
-    @end.next = parent.next
-    parent.next.prev = @end
+    if parent?
+      @end.next = parent.next
+      parent.next.prev = @end
 
-    parent.next= @start
-    @start.prev = parent
+      parent.next= @start
+      @start.prev = parent
+  
+  findBlock: (f) ->
+    # Find the innermost child fitting function f(x)
+    head = @start.next
+    while head isnt @end
+      # If we found a child block, find in there
+      if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
+        #else head = head.block.end
+      head = head.next
 
-  recompute: (state) ->
-    # This is really visual-only.
+    # Couldn't find any, so we are the innermost child fitting f()
+    return this
   
   find: (f) ->
     # Find the innermost child fitting function f(x)
     head = @start.next
     while head isnt @end
       # If we found a child block, find in there
-      if head.type is 'blockStart' and f head.block
-        return head.block.find f
+      if head.type is 'blockStart' and f(head.block) then return head.block.find f
+      else if head.type is 'indentStart' and f(head.indent) then return head.indent.find f
+      else if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -96,30 +90,94 @@ class Indent
   constructor: (contents, @depth) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
+    @type = 'indent'
 
     head = @start
     for block in contents
-      head = head.insert block.clone()
-    head.insert @end
+      head = head.append block.clone()
+    head.append @end
     
     @paper = new IndentPaper this
+
+  embedded: -> false
 
   # TODO This is really only usable for debugging
   toString: (state) ->
     string = @start.toString(state)
     return string[..string.length-@end.toString(state).length-1]
+
+  find: (f) ->
+    # Find the innermost child fitting function f(x)
+    head = @start.next
+    while head isnt @end
+      # If we found a child block, find in there
+      if head.type is 'blockStart' and f(head.block) then return head.block.find f
+      else if head.type is 'indentStart' and f(head.indent) then return head.indent.find f
+      else if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
+      head = head.next
+
+    # Couldn't find any, so we are the innermost child fitting f()
+    return this
+
+class Socket
+  constructor: (content) ->
+    @start = new SocketStartToken this
+    @end = new SocketEndToken this
+    
+    if content?
+      @start.next = @content.start
+      @end.prev = @content.end
+    else
+      @start.next = @end
+      @end.prev = @start
+
+    @type = 'socket'
+
+    @paper = new SocketPaper this
+  
+  embedded: -> false
+
+  content: ->
+    if @start.next isnt @end
+      return @start.next.block
+    else
+      return null
+
+  find: (f) ->
+    # Find the innermost child fitting function f(x)
+    head = @start.next
+    while head isnt @end
+      # If we found a child block, find in there
+      if head.type is 'blockStart' and f(head.block) then return head.block.find f
+      else if head.type is 'indentStart' and f(head.indent) then return head.indent.find f
+      else if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
+      head = head.next
+
+    # Couldn't find any, so we are the innermost child fitting f()
+    return this
+
+  toString: (state) -> if @content then @content.toString() else ''
   
 class Token
   constructor: ->
     @prev = @next = null
 
-  insert: (token) ->
-    if @next? then @next.prev = token
+  append: (token) ->
     token.prev = this
     @next = token
 
-  recompute: (state) ->
-    if @next? then @next.recompute state
+  insert: (token) ->
+    if @next?
+      token.next = @next
+      @next.prev = token
+    token.prev = this
+    @next = token
+    return @next
+
+  remove: ->
+    if @prev? then @prev.next = @next
+    if @next? then @next.prev = @prev
+    @prev = @next = null
 
   toString: (state) -> if @next? then @next.toString(state) else ''
 
@@ -139,26 +197,11 @@ class BlockStartToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockStart'
-  
-  recompute: (state) ->
-    # Enter the block
-    state.push()
-    if @next? then @next.recompute state
 
 class BlockEndToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockEnd'
-
-  recompute: ->
-    # Exit the block
-    state.pop()
-
-    # Block.recompute is non-recursive
-    @block.recompute state
-
-    # Pass on the linked list
-    if @next? then @next.recompute state
 
 class NewlineToken extends Token
   constructor: ->
@@ -186,6 +229,16 @@ class IndentEndToken extends Token
     state.indent = state.indent[...-@indent.depth]
     if @next then @next.toString(state) else ''
 
+class SocketStartToken extends Token
+  constructor: (@socket) ->
+    @prev = @next = null
+    @type = 'socketStart'
+
+class SocketEndToken extends Token
+  constructor: (@socket) ->
+    @prev = @next = null
+    @type = 'socketEnd'
+
 ###
 # Example LISP parser/
 ###
@@ -194,45 +247,48 @@ lispParse = (str) ->
   currentString = ''
   first = head = new TextToken ''
   block_stack = []
+  socket_stack = []
 
   for char in str
     switch char
       when '('
-        head = head.insert new TextToken currentString
+        head = head.append new TextToken currentString
 
         # Make a new Block
         block_stack.push block = new Block []
-        head = head.insert block.start
+        socket_stack.push socket = new Socket block
+        head = head.append socket.start
+        head = head.append block.start
 
         # Append the paren
-        head = head.insert new TextToken '('
+        head = head.append new TextToken '('
         
         currentString = ''
       when ')'
         # Append the current string
-        head = head.insert new TextToken currentString
-        head = head.insert new TextToken ')'
+        head = head.append new TextToken currentString
+        head = head.append new TextToken ')'
         
         # Pop the Block
-        head = head.insert block_stack.pop().end
-
+        head = head.append block_stack.pop().end
+        head = head.append socket_stack.pop().end
 
         currentString = ''
       when ' '
-        head = head.insert new TextToken currentString
-        head = head.insert new TextToken ' '
+        head = head.append new TextToken currentString
+        head = head.append new TextToken ' '
 
         currentString = ''
 
       when '\n'
-        head = head.insert new TextToken currentString
-        head = head.insert new NewlineToken()
+        head = head.append new TextToken currentString
+        head = head.append new NewlineToken()
 
         currentString = ''
       else
         currentString += char
   
-  head = head.insert new TextToken currentString
+  head = head.append new TextToken currentString
   return first
 
 indentParse = (str) ->
@@ -261,30 +317,66 @@ indentParse = (str) ->
 
   # Then generate the ICE token list
   head = first = new TextToken ''
-  (lineate = (_node) ->
-    _block = new Block []
+  
+  block_stack = []
+  socket_stack = []
+  indent_stack = []
 
+  (lineate = (_node) ->
     # Put the text on this line
     if _node.head?
-      head = head.insert new NewlineToken()
-      head = head.insert _block.start
-      head = head.insert new TextToken _node.head[_node.indent..-1]
+      head = head.append new NewlineToken()
+      
+      currentString = ''
+      for char in _node.head[_node.indent..-1]
+        switch char
+          when '('
+            head = head.append new TextToken currentString
+
+            # Make a new Block
+            block_stack.push block = new Block []
+            socket_stack.push socket = new Socket block
+            indents_stack.push null
+            head = head.append socket.start
+            head = head.append block.start
+
+            # Append the paren
+            head = head.append new TextToken '('
+            
+            currentString = ''
+          when ')'
+            # Append the current string
+            head = head.append new TextToken currentString
+            head = head.append new TextToken ')'
+            
+            # Pop the Block
+            head = head.append block_stack.pop().end
+            head = head.append socket_stack.pop().end
+
+            currentString = ''
+          when ' '
+            head = head.append new TextToken currentString
+            head = head.append new TextToken ' '
+
+            currentString = ''
+          else
+            currentString += char
+      head = head.append new TextToken currentString
 
     # Recurse
     if _node.children.length > 0
       _indent = new Indent [], _node.children[0].indent - _node.indent
-      head = head.insert _indent.start
+      head = head.append _indent.start
+
+      indents_stack.pop()
+      indents_stack.push _indent
+      
       for child in _node.children
         lineate child
-      head = head.insert _indent.end
-    
-    # End
-    head = head.insert _block.end
+      head = head.append _indent.end
   ) root
 
-  first = first.next.next.next
-
-
+  first = first.next.next.next.next.next
   return first
 
 window.ICE =
