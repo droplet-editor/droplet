@@ -292,76 +292,60 @@ lispParse = (str) ->
   return first
 
 indentParse = (str) ->
-
-  # First, generate an indent AST
-  lines = str.split '\n'
-  node = root =
-    parent: null
-    head: null
-    indent: -1
-    children: []
-  for line in lines
-    indent = line.length - line.trimLeft().length
-    
-    while indent <= node.indent
-      node = node.parent
-
-    new_node =
-      parent: node
-      head: line
-      indent: indent
-      children: []
-    node.children.push new_node
-    node = new_node
-
-
   # Then generate the ICE token list
   head = first = new TextToken ''
   
-  block_stack = []
+  blockIndent_stack = []
   socket_stack = []
-  indent_stack = []
+  depth_stack = []
+  notify = []
+  for line in str.split '\n'
+    indent = line.length - line.trimLeft().length
 
-  (lineate = (_node) ->
-    # Put the text on this line
-    if _node.head?
-      head = head.append new NewlineToken()
-      
-      currentString = ''
-      for char in _node.head[_node.indent..-1]
-        switch char
-          when '('
-            head = head.append new TextToken currentString
+    # Push if needed
+    if indent > _.last depth_stack
+      head = head.append (new Indent(indent - _.last(depth_stack))).start
+      blockIndent_stack.push head.indent
+      depth_stack.push indent
 
-            # Make a new Block
-            block_stack.push block = new Block []
-            socket_stack.push socket = new Socket block
-            indents_stack.push null
-            head = head.append socket.start
-            head = head.append block.start
+    # Pop if needed
+    while indent < _.last depth_stack
+      head = head.append blockIndent_stack.pop().end
+      depth_stack.pop()
 
-            # Append the paren
-            head = head.append new TextToken '('
-            
-            currentString = ''
-          when ')'
-            # Append the current string
-            head = head.append new TextToken currentString
-            head = head.append new TextToken ')'
-            
-            # Pop the Block
-            head = head.append block_stack.pop().end
-            head = head.append socket_stack.pop().end
+    switch char
+      when '('
+        head = head.append new TextToken currentString
 
-            currentString = ''
-          when ' '
-            head = head.append new TextToken currentString
-            head = head.append new TextToken ' '
+        # Make a new Block
+        blockIndent_stack.push block = new Block []
+        socket_stack.push socket = new Socket block
+        head = head.append socket.start
+        head = head.append block.start
+        notify.push false
 
-            currentString = ''
-          else
-            currentString += char
-      head = head.append new TextToken currentString
+        # Append the paren
+        head = head.append new TextToken '('
+        
+        currentString = ''
+      when ')'
+        # Append the current string
+        head = head.append new TextToken currentString
+        head = head.append new TextToken ')'
+        
+        # Pop the Block
+        while (head = head.append block_stack.pop().end).type isnt 'blockEnd' then # Hacky loop
+        head = head.append socket_stack.pop().end
+
+        currentString = ''
+      when ' '
+        head = head.append new TextToken currentString
+        head = head.append new TextToken ' '
+
+        currentString = ''
+      else
+        currentString += char
+    head = head.append new TextToken currentString
 
     # Recurse
     if _node.children.length > 0
