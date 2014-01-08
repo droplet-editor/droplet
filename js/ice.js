@@ -4,7 +4,7 @@
 
 
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, indentParse, lispParse,
+  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, indentParse, lispParse,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -445,81 +445,77 @@
   };
 
   indentParse = function(str) {
-    var block_stack, first, head, indent, line, lineate, lines, new_node, node, root, socket_stack, _i, _len;
-    lines = str.split('\n');
-    node = root = {
-      parent: null,
-      head: null,
-      indent: -1,
-      children: []
-    };
-    for (_i = 0, _len = lines.length; _i < _len; _i++) {
-      line = lines[_i];
-      indent = line.length - line.trimLeft().length;
-      while (indent <= node.indent) {
-        node = node.parent;
-      }
-      new_node = {
-        parent: node,
-        head: line,
-        indent: indent,
-        children: []
-      };
-      node.children.push(new_node);
-      node = new_node;
-    }
+    var block, char, currentString, depth_stack, first, head, indent, line, socket, stack, _i, _j, _len, _len1, _ref, _ref1;
     head = first = new TextToken('');
-    block_stack = [];
-    socket_stack = [];
-    (lineate = function(_node) {
-      var block, char, child, currentString, socket, _indent, _j, _k, _len1, _len2, _ref, _ref1;
-      if (_node.head != null) {
-        head = head.append(new NewlineToken());
-        currentString = '';
-        _ref = _node.head.slice(_node.indent);
-        for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
-          char = _ref[_j];
-          switch (char) {
-            case '(':
+    stack = [];
+    depth_stack = [0];
+    _ref = str.split('\n');
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      line = _ref[_i];
+      indent = line.length - line.trimLeft().length;
+      if (indent > _.last(depth_stack)) {
+        head = head.append((new Indent([], indent - _.last(depth_stack))).start);
+        stack.push(head.indent);
+        depth_stack.push(indent);
+      }
+      while (indent < _.last(depth_stack)) {
+        head = head.append(stack.pop().end);
+        depth_stack.pop();
+      }
+      head = head.append(new NewlineToken());
+      currentString = '';
+      _ref1 = line.trimLeft();
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        char = _ref1[_j];
+        switch (char) {
+          case '(':
+            if (currentString.length > 0) {
               head = head.append(new TextToken(currentString));
-              block_stack.push(block = new Block([]));
-              socket_stack.push(socket = new Socket(block));
+            }
+            if (stack.length > 0 && _.last(stack).type === 'block') {
+              stack.push(socket = new Socket(block));
               head = head.append(socket.start);
-              head = head.append(block.start);
-              head = head.append(new TextToken('('));
-              currentString = '';
-              break;
-            case ')':
+            }
+            stack.push(block = new Block([]));
+            head = head.append(block.start);
+            head = head.append(new TextToken('('));
+            currentString = '';
+            break;
+          case ')':
+            if (currentString.length > 0) {
               head = head.append(new TextToken(currentString));
-              head = head.append(new TextToken(')'));
-              head = head.append(block_stack.pop().end);
-              head = head.append(socket_stack.pop().end);
-              currentString = '';
-              break;
-            case ' ':
+            }
+            head = head.append(new TextToken(')'));
+            while (head.type !== 'blockEnd') {
+              head = head.append(stack.pop().end);
+              if (head.type === 'indentEnd') {
+                depth_stack.pop();
+              }
+            }
+            if (stack.length > 0 && _.last(stack).type === 'socket') {
+              head = head.append(stack.pop().end);
+            }
+            currentString = '';
+            break;
+          case ' ':
+            if (currentString.length > 0) {
               head = head.append(new TextToken(currentString));
-              head = head.append(new TextToken(' '));
-              currentString = '';
-              break;
-            default:
-              currentString += char;
-          }
+            }
+            head = head.append(new TextToken(' '));
+            currentString = '';
+            break;
+          default:
+            currentString += char;
         }
+      }
+      if (currentString.length > 0) {
         head = head.append(new TextToken(currentString));
       }
-      if (_node.children.length > 0) {
-        _indent = new Indent([], _node.children[0].indent - _node.indent);
-        head = head.append(_indent.start);
-        _ref1 = _node.children;
-        for (_k = 0, _len2 = _ref1.length; _k < _len2; _k++) {
-          child = _ref1[_k];
-          lineate(child);
-        }
-        return head = head.append(_indent.end);
-      }
-    })(root);
-    first = first.next.next.next.next.next;
-    return first;
+    }
+    while (stack.length > 0) {
+      head = head.append(stack.pop().end);
+    }
+    return first.next.next;
   };
 
   window.ICE = {
@@ -530,6 +526,10 @@
   PADDING = 2;
 
   INDENT = 13;
+
+  MOUTH_BOTTOM = 100;
+
+  DROP_AREA_MAX_WIDTH = 50;
 
   window.RUN_PAPER_TESTS = false;
 
@@ -621,7 +621,7 @@
 
     IndentPaper.prototype.draw = function() {
       var child, _i, _len, _ref, _results;
-      this.group.addChild(this._dropArea = new paper.Path.Rectangle(new paper.Rectangle(this.point.subtract(0, 5), new paper.Size(100, 10))));
+      this.group.addChild(this._dropArea = new paper.Path.Rectangle(new paper.Rectangle(this.point.subtract(0, 5), new paper.Size(DROP_AREA_MAX_WIDTH, 10))));
       this._dropArea.bringToFront();
       _ref = this.children;
       _results = [];
@@ -717,10 +717,6 @@
 
       head = this.block.start.next;
       while (head !== this.block.end) {
-        if (head.next == null) {
-          debugger;
-        }
-        console.log(head.type, this.block.contents().indexOf(head));
         switch (head.type) {
           case 'text':
             element = head.paper.compute(state);
@@ -760,6 +756,7 @@
         }
       }
       this.lineEnd = state.line;
+      this.bounds = {};
       this.lineGroups = {};
       axis = 0;
       bottom = 0;
@@ -773,9 +770,11 @@
               indent.setPosition(new paper.Point(INDENT, bottom));
             }
             this.indentedLines[line] = indent;
-            this.lines[line] = new paper.Rectangle(indent.lines[line].point.subtract(INDENT, 0), new paper.Size(INDENT, indent.lines[line].height));
+            this.bounds[line] = new paper.Rectangle(indent.lines[line].point.subtract(INDENT, 0), new paper.Size(INDENT, indent.lines[line].height));
+            this.lines[line] = indent.lines[line];
             if (line === indent.lineEnd) {
               this.lines[line].height += 10;
+              this.bounds[line].height += 10;
             }
             bottom += indent.lines[line].height;
             cont = true;
@@ -810,20 +809,20 @@
       this.group.addChild(this._container);
       for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
         if (line in this.indentEnds) {
-          this._container.add(this.lines[line].topRight);
-          this._container.add(this.lines[line].bottomRight.add(new paper.Point(0, -10)));
-          this._container.add(this.lines[line].bottomRight.add(new paper.Point(200, -10)));
-          this._container.add(this.lines[line].bottomRight.add(new paper.Point(200, 0)));
-          this._container.insert(0, this.lines[line].topLeft);
-          this._container.insert(0, this.lines[line].bottomLeft);
+          this._container.add(this.bounds[line].topRight);
+          this._container.add(this.bounds[line].bottomRight.add(new paper.Point(0, -10)));
+          this._container.add(this.bounds[line].bottomRight.add(new paper.Point(MOUTH_BOTTOM, -10)));
+          this._container.add(this.bounds[line].bottomRight.add(new paper.Point(MOUTH_BOTTOM, 0)));
+          this._container.insert(0, this.bounds[line].topLeft);
+          this._container.insert(0, this.bounds[line].bottomLeft);
         } else {
-          this._container.add(this.lines[line].topRight);
-          this._container.add(this.lines[line].bottomRight);
-          this._container.insert(0, this.lines[line].topLeft);
-          this._container.insert(0, this.lines[line].bottomLeft);
+          this._container.add(this.bounds[line].topRight);
+          this._container.add(this.bounds[line].bottomRight);
+          this._container.insert(0, this.bounds[line].topLeft);
+          this._container.insert(0, this.bounds[line].bottomLeft);
         }
       }
-      this.group.addChild(this._dropArea = new paper.Path.Rectangle(new paper.Rectangle(this._container.bounds.bottomLeft.subtract(0, 5), new paper.Size(100, 10))));
+      this.group.addChild(this._dropArea = new paper.Path.Rectangle(new paper.Rectangle(this._container.bounds.bottomLeft.subtract(0, 5), new paper.Size(Math.min(DROP_AREA_MAX_WIDTH, this.group.bounds.width), 10))));
       this._dropArea.closed = true;
       this._container.closed = true;
       _ref2 = this.children;
@@ -852,16 +851,24 @@
       return _results;
     };
 
+    BlockPaper.prototype.deferIndent = function(line) {
+      return (line in this.indentedLines) && !(line in this.indentEnds);
+    };
+
     BlockPaper.prototype.setLeftCenter = function(line, point) {
       var element, leftCenter, _i, _len, _ref;
       if (line in this.indentEnds) {
         this.indentedLines[line].setLeftCenter(line, point.add(INDENT, -5));
-        this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+        this.bounds[line].point = point.subtract(0, this.lines[line].height / 2);
+        this.lines[line] = this.indentedLines[line].lines[line];
+        this.lines[line].width = Math.max(this.lines[line].width, MOUTH_BOTTOM);
+        this.lines[line].height += 10;
         return;
       }
       if (line in this.indentedLines) {
         this.indentedLines[line].setLeftCenter(line, point.add(INDENT, 0));
-        this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+        this.bounds[line].point = point.subtract(0, this.lines[line].height / 2);
+        this.lines[line] = this.indentedLines[line].lines[line].clone();
         return;
       }
       this.lines[line] = new paper.Rectangle(point, new paper.Size(PADDING, 0));
@@ -870,12 +877,18 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         element = _ref[_i];
         element.setLeftCenter(line, new paper.Point(this.lines[line].right, point.y));
+        if (element.block.type === 'socket' && element.block.content().paper.deferIndent(line)) {
+          this.bounds[line] = element.block.content().paper.bounds[line].clone();
+          this.lines[line] = element.lines[line].clone();
+          return;
+        }
         this.lines[line] = this.lines[line].unite(element.lines[line]);
       }
       leftCenter = this.lines[line].leftCenter;
       this.lines[line].width += PADDING;
       this.lines[line].height += PADDING * 2;
-      return this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+      this.lines[line].point = point.subtract(0, this.lines[line].height / 2);
+      return this.bounds[line] = this.lines[line].clone();
     };
 
     BlockPaper.prototype.translate = function(vector) {
@@ -885,6 +898,9 @@
       }
       for (line in this.lines) {
         this.lines[line].point = this.lines[line].point.add(vector);
+      }
+      for (line in this.bounds) {
+        this.bounds[line].point = this.bounds[line].point.add(vector);
       }
       _ref = this.children;
       _results = [];
@@ -1034,20 +1050,18 @@
       return;
     }
     paper.setup(document.getElementById('canvas'));
+    a = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state)))');
     /*
     a = ICE.indentParse '''
-    (defun turing (lambda (tuples left right state)
-    ((lambda (tuple)
-        (if (= (car tuple) -1)
-          (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))
-          (if (= (car tuple 1))
-            (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))
-            (turing tuples left right (car (cdr tuple))))))
-      (lookup tuples (car right) state)))
+    (lambda
+      (lambda
+        (x)
+        (y)
+        (z)))
     '''
     */
 
-    a = ICE.indentParse('(lambda (x\n  (y)))');
+    console.log(a);
     a.block.paper.compute({
       line: 0
     });
@@ -1122,6 +1136,7 @@
         } else if (highlight.type === 'socket') {
           selection.block._moveTo(highlight.start);
         }
+        highlight.paper._dropArea.remove();
         a.block.paper.erase();
         a.block.paper.compute({
           line: 0

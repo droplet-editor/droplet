@@ -1,6 +1,8 @@
 # Constants
 PADDING = 2
 INDENT = 13
+MOUTH_BOTTOM = 100
+DROP_AREA_MAX_WIDTH = 50
 window.RUN_PAPER_TESTS = false
 
 class IcePaper
@@ -79,7 +81,7 @@ class IndentPaper extends IcePaper
     return this
   
   draw: ->
-    @group.addChild @_dropArea = new paper.Path.Rectangle new paper.Rectangle @point.subtract(0, 5), new paper.Size(100, 10)
+    @group.addChild @_dropArea = new paper.Path.Rectangle new paper.Rectangle @point.subtract(0, 5), new paper.Size(DROP_AREA_MAX_WIDTH, 10)
     @_dropArea.bringToFront()
 
     for child in @children
@@ -147,8 +149,6 @@ class BlockPaper extends IcePaper
     ###
     head = @block.start.next
     while head isnt @block.end # (vanilla linked-list loop)
-      unless head.next? then debugger
-      console.log head.type, @block.contents().indexOf head
       switch head.type
         when 'text'
           element = head.paper.compute state
@@ -183,6 +183,8 @@ class BlockPaper extends IcePaper
     
     @lineEnd = state.line
 
+    @bounds = {}
+
     @lineGroups = {}
     axis = 0 # The middle of the written line
     bottom = 0 # The bottom of the written line
@@ -198,10 +200,12 @@ class BlockPaper extends IcePaper
           
           @indentedLines[line] = indent
 
-          @lines[line] = new paper.Rectangle indent.lines[line].point.subtract(INDENT, 0), new paper.Size INDENT, indent.lines[line].height
+          @bounds[line] = new paper.Rectangle indent.lines[line].point.subtract(INDENT, 0), new paper.Size INDENT, indent.lines[line].height
+          @lines[line] = indent.lines[line]
           
           if line is indent.lineEnd
             @lines[line].height += 10
+            @bounds[line].height += 10
 
           bottom += indent.lines[line].height
 
@@ -241,28 +245,28 @@ class BlockPaper extends IcePaper
         # Special end-of-mouth case
 
         # Right side
-        @_container.add @lines[line].topRight
-        @_container.add @lines[line].bottomRight.add new paper.Point 0, -10
+        @_container.add @bounds[line].topRight
+        @_container.add @bounds[line].bottomRight.add new paper.Point 0, -10
 
         # Mouth bottom
-        @_container.add @lines[line].bottomRight.add new paper.Point 200, -10
-        @_container.add @lines[line].bottomRight.add new paper.Point 200, 0
+        @_container.add @bounds[line].bottomRight.add new paper.Point MOUTH_BOTTOM, -10
+        @_container.add @bounds[line].bottomRight.add new paper.Point MOUTH_BOTTOM, 0
 
         # Left side
-        @_container.insert 0, @lines[line].topLeft
-        @_container.insert 0, @lines[line].bottomLeft
+        @_container.insert 0, @bounds[line].topLeft
+        @_container.insert 0, @bounds[line].bottomLeft
       else
         # Other cases
       
         # Right side
-        @_container.add @lines[line].topRight
-        @_container.add @lines[line].bottomRight
+        @_container.add @bounds[line].topRight
+        @_container.add @bounds[line].bottomRight
 
         # Left side
-        @_container.insert 0, @lines[line].topLeft
-        @_container.insert 0, @lines[line].bottomLeft
+        @_container.insert 0, @bounds[line].topLeft
+        @_container.insert 0, @bounds[line].bottomLeft
     
-    @group.addChild @_dropArea = new paper.Path.Rectangle new paper.Rectangle @_container.bounds.bottomLeft.subtract(0, 5), new paper.Size 100, 10
+    @group.addChild @_dropArea = new paper.Path.Rectangle new paper.Rectangle @_container.bounds.bottomLeft.subtract(0, 5), new paper.Size Math.min(DROP_AREA_MAX_WIDTH, @group.bounds.width), 10
     @_dropArea.closed = true
     @_container.closed = true
 
@@ -278,15 +282,22 @@ class BlockPaper extends IcePaper
     if @_dropArea? then @_dropArea.remove()
     for child in @children
       child.erase()
+  
+  deferIndent: (line) -> (line of @indentedLines) and not (line of @indentEnds)
 
   setLeftCenter: (line, point) ->
     if line of @indentEnds
       @indentedLines[line].setLeftCenter line, point.add INDENT, -5 # TODO this is hacky and I have no idea why it works.
-      @lines[line].point = point.subtract(0, @lines[line].height / 2)
+      @bounds[line].point = point.subtract(0, @lines[line].height / 2) # TODO "bounds" is a bad misnomer
+      @lines[line] = @indentedLines[line].lines[line]
+      @lines[line].width = Math.max @lines[line].width, MOUTH_BOTTOM
+      @lines[line].height += 10
       return
+    
     if line of @indentedLines
       @indentedLines[line].setLeftCenter line, point.add INDENT, 0
-      @lines[line].point = point.subtract(0, @lines[line].height / 2)
+      @bounds[line].point = point.subtract(0, @lines[line].height / 2)
+      @lines[line] = @indentedLines[line].lines[line].clone()
       return
 
     # Recreate the rectangle for this line
@@ -296,6 +307,10 @@ class BlockPaper extends IcePaper
     for element in @lineGroups[line]
       # Move this element into position
       element.setLeftCenter line, new paper.Point @lines[line].right, point.y
+      if element.block.type is 'socket' and element.block.content().paper.deferIndent line
+        @bounds[line] = element.block.content().paper.bounds[line].clone()
+        @lines[line] = element.lines[line].clone()
+        return
       
       # Update the line
       @lines[line] = @lines[line].unite element.lines[line]
@@ -306,6 +321,8 @@ class BlockPaper extends IcePaper
     @lines[line].height += PADDING * 2
     @lines[line].point = point.subtract(0, @lines[line].height / 2)
 
+    @bounds[line] = @lines[line].clone()
+
   translate: (vector) ->
     # Translate the physical outline
     if @_container? then @_container.translate vector
@@ -313,6 +330,10 @@ class BlockPaper extends IcePaper
     # Translate all our line rectangles
     for line of @lines
       @lines[line].point = @lines[line].point.add vector
+
+    # Bounds too
+    for line of @bounds
+      @bounds[line].point = @bounds[line].point.add vector
     
     # Delegate.
     for child in @children
@@ -426,7 +447,6 @@ window.onload = ->
   paper.setup document.getElementById 'canvas'
 
   # Run a test
-  ###
   a = ICE.indentParse '''
 (defun turing (lambda (tuples left right state)
   ((lambda (tuple)
@@ -439,9 +459,15 @@ window.onload = ->
   '''
   ###
   a = ICE.indentParse '''
-  (lambda (x
-    (y)))
+  (lambda
+    (lambda
+      (x)
+      (y)
+      (z)))
   '''
+  ###
+  
+  console.log a
 
   a.block.paper.compute
     line: 0
@@ -510,6 +536,8 @@ window.onload = ->
         selection.block._moveTo highlight.start.insert new NewlineToken()
       else if highlight.type is 'socket'
         selection.block._moveTo highlight.start
+
+      highlight.paper._dropArea.remove()
 
       # Redraw
       a.block.paper.erase()
