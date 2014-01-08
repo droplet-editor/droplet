@@ -307,7 +307,7 @@ class BlockPaper extends IcePaper
     for element in @lineGroups[line]
       # Move this element into position
       element.setLeftCenter line, new paper.Point @lines[line].right, point.y
-      if element.block.type is 'socket' and element.block.content().paper.deferIndent line
+      if element.block.type is 'socket' and element.block.content()? and element.block.content().paper.deferIndent line
         @bounds[line] = element.block.content().paper.bounds[line].clone()
         @lines[line] = element.lines[line].clone()
         return

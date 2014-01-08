@@ -877,7 +877,7 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         element = _ref[_i];
         element.setLeftCenter(line, new paper.Point(this.lines[line].right, point.y));
-        if (element.block.type === 'socket' && element.block.content().paper.deferIndent(line)) {
+        if (element.block.type === 'socket' && (element.block.content() != null) && element.block.content().paper.deferIndent(line)) {
           this.bounds[line] = element.block.content().paper.bounds[line].clone();
           this.lines[line] = element.lines[line].clone();
           return;
