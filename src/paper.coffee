@@ -527,7 +527,7 @@ window.onload = ->
   
   out = document.getElementById 'out'
   
-  tool.minDistance = 10 # TODO This is a performance hack. See how low you can take this number!
+  #tool.minDistance = 10 # TODO This is a performance hack. See how low you can take this number!
                         # Try pure svg.
 
   tool.onMouseUp = (event) ->
