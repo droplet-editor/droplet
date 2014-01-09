@@ -1,5 +1,5 @@
 # Constants
-PADDING = 2
+PADDING = 5
 INDENT = 13
 MOUTH_BOTTOM = 100
 DROP_AREA_MAX_WIDTH = 50
@@ -505,7 +505,7 @@ window.onload = ->
     selection = block.paper
     
     offset = selection.group.position.subtract event.point
-
+    
     a.block.paper.erase()
     a.block.paper.compute {line: 0}
     a.block.paper.draw()
@@ -517,7 +517,6 @@ window.onload = ->
       parent_root.paper.draw()
       parent_root.paper.group.position = pos
 
-
     out.innerText = a.block.toString {indent: ''}
 
     # Draw the block we're moving
@@ -527,6 +526,9 @@ window.onload = ->
     selection.group.position = event.point.add offset
   
   out = document.getElementById 'out'
+  
+  tool.minDistance = 10 # TODO This is a performance hack. See how low you can take this number!
+                        # Try pure svg.
 
   tool.onMouseUp = (event) ->
     if highlight? and selection?

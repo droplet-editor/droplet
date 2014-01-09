@@ -523,7 +523,7 @@
     indentParse: indentParse
   };
 
-  PADDING = 2;
+  PADDING = 5;
 
   INDENT = 13;
 
@@ -1127,6 +1127,7 @@
       return selection.group.position = event.point.add(offset);
     };
     out = document.getElementById('out');
+    tool.minDistance = 10;
     tool.onMouseUp = function(event) {
       if ((highlight != null) && (selection != null)) {
         if (highlight.type === 'block') {
