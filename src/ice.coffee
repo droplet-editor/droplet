@@ -1,4 +1,11 @@
 ###
+# Copyright (c) 2014 Anthony Bau.
+# MIT License.
+#
+# Tree classes and operations for ICE editor.
+###
+
+###
 # A Block is a bunch of tokens that are grouped together.
 ###
 class Block
@@ -156,7 +163,7 @@ class Socket
     # Couldn't find any, so we are the innermost child fitting f()
     return this
 
-  toString: (state) -> if @content then @content.toString() else ''
+  toString: (state) -> if @content()? then @content().toString({indent:''}) else ''
   
 class Token
   constructor: ->

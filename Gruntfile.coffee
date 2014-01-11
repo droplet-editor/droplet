@@ -18,13 +18,14 @@ module.exports = (grunt) ->
         files:
           'js/ice.min.js': 'js/ice.js'
           'js/tests.min.js': 'js/tests.js'
+          'js/draw.min.js':'js/draw.js'
 
     concat:
       options:
         separator: ';'
       build:
         files:
-          'dist/ice.min.js': ['vendor/*.js', 'js/ice.min.js']
+          'dist/ice.min.js': ['vendor/underscore-min.js', 'js/draw.min.js', 'js/ice.min.js']
           'dist/tests.min.js': ['vendor/qunit.min.js', 'js/tests.min.js']
 
     qunit:

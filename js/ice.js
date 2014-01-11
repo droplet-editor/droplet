@@ -1,4 +1,12 @@
 /*
+# Copyright (c) 2014 Anthony Bau.
+# MIT License.
+#
+# Tree classes and operations for ICE editor.
+*/
+
+
+/*
 # A Block is a bunch of tokens that are grouped together.
 */
 
@@ -201,8 +209,10 @@
     };
 
     Socket.prototype.toString = function(state) {
-      if (this.content) {
-        return this.content.toString();
+      if (this.content() != null) {
+        return this.content().toString({
+          indent: ''
+        });
       } else {
         return '';
       }
@@ -523,6 +533,14 @@
     indentParse: indentParse
   };
 
+  /*
+  # Copyright (c) 2014 Anthony Bau
+  # MIT License
+  #
+  # Rendering classes and functions for ICE editor.
+  */
+
+
   PADDING = 2;
 
   INDENT = 10;
@@ -695,6 +713,7 @@
           this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].y));
           this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].bottom()));
           if (this._lineChildren[line].length > 1) {
+            console.log('there are other people here!');
             this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].bottom()));
             this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y));
           }
@@ -746,7 +765,7 @@
           this._container.push(bit);
         }
       }
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, 50, 10);
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
       _ref2 = this.children;
       _results = [];
       for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
@@ -805,6 +824,7 @@
       this.bounds = {};
       this.lineGroups = {};
       this.group = new draw.Group();
+      this.dropArea = null;
       if ((this._content = this.block.content()) != null) {
         (contentPaper = this._content.paper).compute(state);
         for (line in contentPaper.bounds) {
@@ -905,7 +925,7 @@
 
     IndentPaper.prototype.finish = function() {
       var child, _i, _len, _ref, _results;
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, 50, 10);
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1007,7 +1027,7 @@
     draw._setCTX(ctx = (canvas = document.getElementById('canvas')).getContext('2d'));
     dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d');
     out = document.getElementById('out');
-    tree = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state)))');
+    tree = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state))))');
     redraw = function() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       tree.block.paper.compute({
@@ -1015,7 +1035,7 @@
       });
       tree.block.paper.finish();
       tree.block.paper.draw(ctx);
-      return out.innerText = tree.block.toString({
+      return out.value = tree.block.toString({
         indent: ''
       });
     };
@@ -1065,10 +1085,11 @@
         if (highlight !== tree.block) {
           highlight.paper.dropArea.fill(ctx, '#f00');
         }
-        return dragCanvas.style.webkitTransform = "translate(" + dest.x + "px, " + dest.y + "px)";
+        dragCanvas.style.webkitTransform = "translate(" + dest.x + "px, " + dest.y + "px)";
+        return dragCanvas.style.mozTransform = "translate(" + dest.x + "px, " + dest.y + "px)";
       }
     };
-    return canvas.onmouseup = function(event) {
+    canvas.onmouseup = function(event) {
       if (selection != null) {
         if ((highlight != null) && highlight !== tree.block) {
           switch (highlight.type) {
@@ -1087,6 +1108,15 @@
       }
       dragCtx.clearRect(0, 0, canvas.width, canvas.height);
       return selection = null;
+    };
+    return out.onkeyup = function() {
+      tree = ICE.indentParse(out.value);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      tree.block.paper.compute({
+        line: 0
+      });
+      tree.block.paper.finish();
+      return tree.block.paper.draw(ctx);
     };
   };
 
