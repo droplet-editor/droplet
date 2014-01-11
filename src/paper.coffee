@@ -4,6 +4,7 @@ INDENT = 10
 MOUTH_BOTTOM = 50
 DROP_AREA_MAX_WIDTH = 50
 FONT_SIZE = 20
+EMPTY_INDENT_WIDTH = 50
 
 ###
 # For developers, bits of policy:
@@ -154,8 +155,8 @@ class BlockPaper extends IcePaper
     cursor = point.clone() # The place we want to move this child's boundaries
     
     # This is a hack.
-    #if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      #cursor.add 0, -10 / 3
+    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
+      cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
@@ -197,7 +198,6 @@ class BlockPaper extends IcePaper
       cursor.add child.bounds[line].width, 0
 
     # Add padding
-    #@bounds[line].x -= PADDING
     unless @indented[line]
       @bounds[line].width += PADDING
       @bounds[line].y -= PADDING
@@ -233,6 +233,7 @@ class BlockPaper extends IcePaper
       for bit in @_pathBits[line].right
         @_container.push bit
 
+    @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, 50, 10
     
     # Propagate this event
     for child in @children
@@ -290,19 +291,21 @@ class SocketPaper extends IcePaper
       @lineEnd = contentPaper.lineEnd
 
     else
-      @bounds[state.line] = new draw.Rectangle 0, 0, 20, 20
+      @dropArea = @bounds[state.line] = new draw.Rectangle 0, 0, 20, 20
       @lineStart = @lineEnd = @_line = state.line
       @children = []
       @indented = {}
       @indented[@_line] = false
 
-    @_empty = content?
+      @lineGroups[@_line] = new draw.Group()
+
+    @_empty = not @_content?
 
     # We're done! Return ourselves for chaining
     return this
 
   setLeftCenter: (line, point) ->
-    unless @_empty
+    if @_content?
       # Try to give this task to our content block instead
       @_content.paper.setLeftCenter line, point
       @lineGroups[line].recompute()
@@ -313,7 +316,7 @@ class SocketPaper extends IcePaper
       @lineGroups[line].setPosition new draw.Point point.x, point.y - @bounds[line].height / 2
 
   draw: (ctx) ->
-    unless @empty
+    if @_content?
       # Try to imitate our content block
       @_content.paper.draw ctx
     else
@@ -354,25 +357,42 @@ class IndentPaper extends IcePaper
     @lineEnd = state.line
 
     # Now go through and mimic all the blocks on each line
-    i = 0 # Again, performance reasons
-    for line in [@lineStart..@lineEnd]
-      # If we need to move on to the next block, do so
-      unless line of @children[i].bounds
-        i += 1
-      
-      # Copy the block we're on here
-      @bounds[line] = @children[i].bounds[line]
-      @lineGroups[line] = new draw.Group()
-      @lineGroups[line].push @children[i].lineGroups[line]
-      @_lineBlocks[line] = @children[i]
+    
+    if @children.length > 0
+      i = 0 # Again, performance reasons
+      for line in [@lineStart..@lineEnd]
+        # If we need to move on to the next block, do so
+        until line <= @children[i].lineEnd
+          i += 1
+        
+        # Copy the block we're on here
+        @bounds[line] = @children[i].bounds[line]
+        @lineGroups[line] = new draw.Group()
+        @lineGroups[line].push @children[i].lineGroups[line]
+        @_lineBlocks[line] = @children[i]
+    else
+      # We're an empty indent.
+      @lineGroups[@lineStart] = new draw.Group()
+      @_lineBlocks[@lineStart] = null
+      @bounds[@lineStart] = new draw.Rectangle 0, 0, EMPTY_INDENT_WIDTH, 0
     
     # We're done! Return ourselves for chaining.
     return this
+
+  finish: ->
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, 50, 10
+    for child in @children
+      child.finish()
   
   setLeftCenter: (line, point) ->
     # Delegate right away.
-    @_lineBlocks[line].setLeftCenter line, point
-    @lineGroups[line].recompute()
+    if @_lineBlocks[line]?
+      @_lineBlocks[line].setLeftCenter line, point
+      @lineGroups[line].recompute()
+    else
+      @bounds[@lineStart].clear()
+      @bounds[@lineStart].swallow(point)
+      @bounds[@lineStart].width = EMPTY_INDENT_WIDTH
 
   draw: (ctx) ->
     # Delegate right away.
@@ -427,6 +447,10 @@ window.onload = ->
   # Setup the default measuring context (this is a hack)
   draw._setCTX ctx = (canvas = document.getElementById('canvas')).getContext('2d')
 
+  dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d')
+
+  out = document.getElementById('out')
+
   tree = ICE.indentParse '''
 (defun turing (lambda (tuples left right state)
   ((lambda (tuple)
@@ -439,8 +463,91 @@ window.onload = ->
 '''
   
   # All benchmarked to 1.142 milliseconds. Pretty good!
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  tree.block.paper.compute {line: 0}
-  tree.block.paper.finish()
-  tree.block.paper.draw ctx
+  redraw = ->
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    tree.block.paper.compute {line: 0}
+    tree.block.paper.finish()
+    tree.block.paper.draw ctx
+    out.innerText = tree.block.toString {indent: ''}
 
+  redraw()
+
+  highlight = selection = offset = null
+
+  ###
+  # Here to below will eventually become part of the IceEditor() class
+  ###
+  
+  canvas.onmousedown = (event) ->
+    point = new draw.Point event.pageX, event.pageY
+    
+    # Find the block that was just clicked
+    selection = tree.block.findBlock (block) ->
+      block.paper._container.contains point
+
+    if selection is tree.block then return
+
+    # Remove the newline before, if necessary
+    if selection.start.prev.type is 'newline'
+      selection.start.prev.remove()
+
+    # Remove it from its tree
+    selection._moveTo null
+    
+    # Redraw the root tree (now that selection has been removed)
+    redraw()
+    
+    # Compute the offset of our cursor from the selection position (for drag-and-dro)
+    bounds = selection.paper.bounds[selection.paper.lineStart]
+    offset = point.from new draw.Point bounds.x, bounds.y
+    
+    # Redraw the selection on the drag canvas
+    selection.paper.compute {line: 0}
+    selection.paper.finish()
+    selection.paper.draw dragCtx
+    
+    # Immediately transform the drag canvas
+    canvas.onmousemove event
+    
+    console.log selection.toString {indent: ''}
+    
+  canvas.onmousemove = (event) ->
+    if selection?
+      # Figure out where we want the selection to go
+      point = new draw.Point event.pageX, event.pageY
+      dest = new draw.Point -offset.x + point.x, -offset.y + point.y
+
+      # Redraw the canvas (don't recompute; this is a fast operation)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      tree.block.paper.draw ctx
+      
+      # Find the highlighted area
+      highlight = tree.block.find (block) ->
+        (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
+      
+      if highlight isnt tree.block
+        # Highlight the highlighted area
+        highlight.paper.dropArea.fill(ctx, '#f00')
+      
+      # css-transform the drag canvas to that area
+      dragCanvas.style.webkitTransform = "translate(#{dest.x}px, #{dest.y}px)"
+
+  canvas.onmouseup = (event) ->
+    if selection?
+      if highlight? and highlight isnt tree.block
+        switch highlight.type
+          when 'indent'
+            console.log 'moving into an indent'
+            selection._moveTo highlight.start.insert new NewlineToken()
+          when 'block'
+            selection._moveTo highlight.end.insert new NewlineToken()
+          when 'socket'
+            selection._moveTo highlight.start
+
+        # Redraw the root tree
+        redraw()
+    # Clear the drag canvas
+    dragCtx.clearRect 0, 0, canvas.width, canvas.height
+
+    # Unselect
+    selection = null

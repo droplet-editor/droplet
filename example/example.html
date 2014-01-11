@@ -6,9 +6,25 @@
     <script src="../js/ice.js"></script>
     <script>RUN_PAPER_TESTS=true</script>
     <!--<script src="../dist/ice.min.js"-->
+    <style>
+      canvas {
+        position: absolute;
+        height: 500px;
+        width: 1000px;
+        left: 0;
+        top: 0;
+      }
+      .main {
+        position: relative;
+        height: 500px;
+      }
+    </style>
   </head>
   <body>
-    <canvas id="canvas" width='1000px' height='500px'></canvas>
+    <div class='main'>
+      <canvas id="canvas" width='1000px' height='500px' style='z-index:1'></canvas>
+      <canvas id="drag" width='1000px' height='500px' style='z-index:0'></canvas>
+    </div>
     <pre id="out"></pre>
   </body>
 </html>

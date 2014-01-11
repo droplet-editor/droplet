@@ -4,7 +4,7 @@
 
 
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, indentParse, lispParse,
+  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, indentParse, lispParse,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -533,6 +533,8 @@
 
   FONT_SIZE = 20;
 
+  EMPTY_INDENT_WIDTH = 50;
+
   /*
   # For developers, bits of policy:
   # 1. Calling IcePaper.draw() must ALWAYS render the entire block and all its children.
@@ -673,6 +675,9 @@
     BlockPaper.prototype.setLeftCenter = function(line, point) {
       var child, cursor, i, _bottomModifier, _i, _len, _ref;
       cursor = point.clone();
+      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
+        cursor.add(0, -5);
+      }
       cursor.add(PADDING, 0);
       this.lineGroups[line].empty();
       this._pathBits[line].left.length = 0;
@@ -741,6 +746,7 @@
           this._container.push(bit);
         }
       }
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, 50, 10);
       _ref2 = this.children;
       _results = [];
       for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
@@ -811,18 +817,19 @@
         this.lineStart = contentPaper.lineStart;
         this.lineEnd = contentPaper.lineEnd;
       } else {
-        this.bounds[state.line] = new draw.Rectangle(0, 0, 20, 20);
+        this.dropArea = this.bounds[state.line] = new draw.Rectangle(0, 0, 20, 20);
         this.lineStart = this.lineEnd = this._line = state.line;
         this.children = [];
         this.indented = {};
         this.indented[this._line] = false;
+        this.lineGroups[this._line] = new draw.Group();
       }
-      this._empty = typeof content !== "undefined" && content !== null;
+      this._empty = this._content == null;
       return this;
     };
 
     SocketPaper.prototype.setLeftCenter = function(line, point) {
-      if (!this._empty) {
+      if (this._content != null) {
         this._content.paper.setLeftCenter(line, point);
         return this.lineGroups[line].recompute();
       } else {
@@ -834,7 +841,7 @@
 
     SocketPaper.prototype.draw = function(ctx) {
       var rect;
-      if (!this.empty) {
+      if (this._content != null) {
         return this._content.paper.draw(ctx);
       } else {
         rect = this.bounds[this._line];
@@ -877,22 +884,46 @@
         head = head.next;
       }
       this.lineEnd = state.line;
-      i = 0;
-      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        if (!(line in this.children[i].bounds)) {
-          i += 1;
+      if (this.children.length > 0) {
+        i = 0;
+        for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+          while (!(line <= this.children[i].lineEnd)) {
+            i += 1;
+          }
+          this.bounds[line] = this.children[i].bounds[line];
+          this.lineGroups[line] = new draw.Group();
+          this.lineGroups[line].push(this.children[i].lineGroups[line]);
+          this._lineBlocks[line] = this.children[i];
         }
-        this.bounds[line] = this.children[i].bounds[line];
-        this.lineGroups[line] = new draw.Group();
-        this.lineGroups[line].push(this.children[i].lineGroups[line]);
-        this._lineBlocks[line] = this.children[i];
+      } else {
+        this.lineGroups[this.lineStart] = new draw.Group();
+        this._lineBlocks[this.lineStart] = null;
+        this.bounds[this.lineStart] = new draw.Rectangle(0, 0, EMPTY_INDENT_WIDTH, 0);
       }
       return this;
     };
 
+    IndentPaper.prototype.finish = function() {
+      var child, _i, _len, _ref, _results;
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, 50, 10);
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        _results.push(child.finish());
+      }
+      return _results;
+    };
+
     IndentPaper.prototype.setLeftCenter = function(line, point) {
-      this._lineBlocks[line].setLeftCenter(line, point);
-      return this.lineGroups[line].recompute();
+      if (this._lineBlocks[line] != null) {
+        this._lineBlocks[line].setLeftCenter(line, point);
+        return this.lineGroups[line].recompute();
+      } else {
+        this.bounds[this.lineStart].clear();
+        this.bounds[this.lineStart].swallow(point);
+        return this.bounds[this.lineStart].width = EMPTY_INDENT_WIDTH;
+      }
     };
 
     IndentPaper.prototype.draw = function(ctx) {
@@ -969,18 +1000,94 @@
 
 
   window.onload = function() {
-    var canvas, ctx, tree;
+    var canvas, ctx, dragCanvas, dragCtx, highlight, offset, out, redraw, selection, tree;
     if (!window.RUN_PAPER_TESTS) {
       return;
     }
     draw._setCTX(ctx = (canvas = document.getElementById('canvas')).getContext('2d'));
+    dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d');
+    out = document.getElementById('out');
     tree = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state)))');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    tree.block.paper.compute({
-      line: 0
-    });
-    tree.block.paper.finish();
-    return tree.block.paper.draw(ctx);
+    redraw = function() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      tree.block.paper.compute({
+        line: 0
+      });
+      tree.block.paper.finish();
+      tree.block.paper.draw(ctx);
+      return out.innerText = tree.block.toString({
+        indent: ''
+      });
+    };
+    redraw();
+    highlight = selection = offset = null;
+    /*
+    # Here to below will eventually become part of the IceEditor() class
+    */
+
+    canvas.onmousedown = function(event) {
+      var bounds, point;
+      point = new draw.Point(event.pageX, event.pageY);
+      selection = tree.block.findBlock(function(block) {
+        return block.paper._container.contains(point);
+      });
+      if (selection === tree.block) {
+        return;
+      }
+      if (selection.start.prev.type === 'newline') {
+        selection.start.prev.remove();
+      }
+      selection._moveTo(null);
+      redraw();
+      bounds = selection.paper.bounds[selection.paper.lineStart];
+      offset = point.from(new draw.Point(bounds.x, bounds.y));
+      selection.paper.compute({
+        line: 0
+      });
+      selection.paper.finish();
+      selection.paper.draw(dragCtx);
+      canvas.onmousemove(event);
+      return console.log(selection.toString({
+        indent: ''
+      }));
+    };
+    canvas.onmousemove = function(event) {
+      var dest, point;
+      if (selection != null) {
+        point = new draw.Point(event.pageX, event.pageY);
+        dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        tree.block.paper.draw(ctx);
+        highlight = tree.block.find(function(block) {
+          var _ref;
+          return (((_ref = block.start.prev) != null ? _ref.type : void 0) !== 'socketStart') && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
+        });
+        if (highlight !== tree.block) {
+          highlight.paper.dropArea.fill(ctx, '#f00');
+        }
+        return dragCanvas.style.webkitTransform = "translate(" + dest.x + "px, " + dest.y + "px)";
+      }
+    };
+    return canvas.onmouseup = function(event) {
+      if (selection != null) {
+        if ((highlight != null) && highlight !== tree.block) {
+          switch (highlight.type) {
+            case 'indent':
+              console.log('moving into an indent');
+              selection._moveTo(highlight.start.insert(new NewlineToken()));
+              break;
+            case 'block':
+              selection._moveTo(highlight.end.insert(new NewlineToken()));
+              break;
+            case 'socket':
+              selection._moveTo(highlight.start);
+          }
+          redraw();
+        }
+      }
+      dragCtx.clearRect(0, 0, canvas.width, canvas.height);
+      return selection = null;
+    };
   };
 
 }).call(this);
