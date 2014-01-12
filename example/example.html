@@ -18,6 +18,10 @@
         position: relative;
         height: 500px;
       }
+      textarea {
+        height: 200px;
+        width: 500px;
+      }
     </style>
   </head>
   <body>
@@ -25,7 +29,7 @@
       <canvas id="canvas" width='1000px' height='500px' style='z-index:1'></canvas>
       <canvas id="drag" width='1000px' height='500px' style='z-index:0'></canvas>
     </div>
-    <textarea id="out"></textarea>
+    <textarea id="out" style='z-index:2'></textarea>
     <button id='freeze'>Freeze</button>
   </body>
 </html>

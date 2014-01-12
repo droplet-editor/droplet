@@ -455,7 +455,7 @@
   };
 
   indentParse = function(str) {
-    var block, char, currentString, depth_stack, first, head, indent, line, socket, stack, _i, _j, _len, _len1, _ref, _ref1;
+    var block, char, currentString, depth_stack, first, head, indent, line, popped, socket, stack, _i, _j, _len, _len1, _ref, _ref1;
     head = first = new TextToken('');
     stack = [];
     depth_stack = [0];
@@ -495,9 +495,13 @@
             if (currentString.length > 0) {
               head = head.append(new TextToken(currentString));
             }
-            head = head.append(new TextToken(')'));
-            while (head.type !== 'blockEnd') {
-              head = head.append(stack.pop().end);
+            popped = {};
+            while (popped.type !== 'block') {
+              popped = stack.pop();
+              if (popped.type === 'block') {
+                head = head.append(new TextToken(')'));
+              }
+              head = head.append(popped.end);
               if (head.type === 'indentEnd') {
                 depth_stack.pop();
               }
@@ -691,7 +695,7 @@
     };
 
     BlockPaper.prototype.setLeftCenter = function(line, point) {
-      var child, cursor, i, _bottomModifier, _i, _len, _ref;
+      var child, cursor, i, topPoint, _bottomModifier, _i, _len, _ref;
       cursor = point.clone();
       if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
         cursor.add(0, -5);
@@ -703,6 +707,7 @@
       this.bounds[line].clear();
       this.bounds[line].swallow(point);
       _bottomModifier = 0;
+      topPoint = null;
       _ref = this._lineChildren[line];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         child = _ref[i];
@@ -710,12 +715,19 @@
           this.indented[line] = true;
           cursor.add(INDENT, 0);
           child.setLeftCenter(line, cursor);
-          this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].y));
-          this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].bottom()));
-          if (this._lineChildren[line].length > 1) {
-            console.log('there are other people here!');
-            this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].bottom()));
-            this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y));
+          if (child.bounds[line].height === 0) {
+            this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
+            this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].y + 5));
+            this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y + 5));
+            this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y - 5 - PADDING));
+          } else {
+            this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
+            this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].bottom()));
+            if (line === child.lineEnd) {
+              console.log('wrapping "G" shape');
+              this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].bottom()));
+              this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y));
+            }
           }
           if (child.lineEnd === line) {
             _bottomModifier += INDENT;
@@ -733,15 +745,19 @@
         this.bounds[line].y -= PADDING;
         this.bounds[line].height += PADDING * 2;
       }
+      if (topPoint != null) {
+        console.log(this.bounds[line].y);
+      }
+      if (topPoint != null) {
+        topPoint.y = this.bounds[line].y;
+      }
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].y));
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].bottom() + _bottomModifier));
       if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd !== line) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
         return this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
       } else if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom()));
+        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
         return this.bounds[line].height += 10;
       } else {
@@ -891,6 +907,9 @@
       this.children = [];
       this.lineStart = state.line += 1;
       head = this.block.start.next.next;
+      if (this.block.start.next === this.block.end) {
+        head = this.block.end;
+      }
       while (head !== this.block.end) {
         switch (head.type) {
           case 'blockStart':
@@ -1066,10 +1085,10 @@
       });
       selection.paper.finish();
       selection.paper.draw(dragCtx);
-      canvas.onmousemove(event);
-      return console.log(selection.toString({
+      console.log(selection.toString({
         indent: ''
       }));
+      return canvas.onmousemove(event);
     };
     canvas.onmousemove = function(event) {
       var dest, point;
@@ -1094,7 +1113,6 @@
         if ((highlight != null) && highlight !== tree.block) {
           switch (highlight.type) {
             case 'indent':
-              console.log('moving into an indent');
               selection._moveTo(highlight.start.insert(new NewlineToken()));
               break;
             case 'block':

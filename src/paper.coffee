@@ -131,7 +131,7 @@ class BlockPaper extends IcePaper
       while i < @children.length and line >= @children[i].lineStart and line <= @children[i].lineEnd # Test to see whether this line is within this child's domain
         @_lineChildren[line].push @children[i]
         i += 1
-      
+
       # It's possible for a block to span multiple lines, so we back up to the last block on this line
       # in case it continues
       i -= 1
@@ -164,6 +164,8 @@ class BlockPaper extends IcePaper
     # This is a hack.
     if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
       cursor.add 0, -5
+      #if @_lineChildren[line][0].bounds[line].height is 0
+      #  cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
@@ -175,6 +177,8 @@ class BlockPaper extends IcePaper
 
     _bottomModifier = 0
 
+    topPoint = null
+
     for child, i in @_lineChildren[line]
       if i is 0 and child.block.type is 'indent' # Special case
         @indented[line] = true
@@ -182,16 +186,23 @@ class BlockPaper extends IcePaper
         cursor.add INDENT, 0
 
         child.setLeftCenter line, cursor
-        
-        # Make sure to wrap our path around this indent line (or to the left of it)
-        @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].y
-        @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].bottom()
 
-        if @_lineChildren[line].length > 1 # If there's anyone else here
-          console.log 'there are other people here!'
-          # Also wrap the "G" shape
-          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].bottom()
-          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y
+        # Deal with the special case of an empty indent
+        if child.bounds[line].height is 0
+          # This is hacky.
+          @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
+          @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].y + 5
+          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y + 5
+          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y - 5 - PADDING
+        else
+          # Make sure to wrap our path around this indent line (or to the left of it)
+          @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
+          @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].bottom()
+
+          if line is child.lineEnd #@_lineChildren[line].length > 1 # If there's anyone else here
+            # Also wrap the "G" shape
+            @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].bottom()
+            @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y
 
           # Circumvent the normal "bottom edge", since we need extra space at the bottom
         if child.lineEnd is line
@@ -211,6 +222,10 @@ class BlockPaper extends IcePaper
       @bounds[line].y -= PADDING
       @bounds[line].height += PADDING * 2
     
+    if topPoint? then console.log @bounds[line].y
+
+    if topPoint? then topPoint.y = @bounds[line].y
+    
     # Add the left edge
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].y # top
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
@@ -221,9 +236,9 @@ class BlockPaper extends IcePaper
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
 
     else if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
-      @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom()
+      #@_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
+      #@_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
+      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
 
       @bounds[line].height += 10
@@ -351,6 +366,11 @@ class IndentPaper extends IcePaper
 
     # In an Indent, each line contains exactly one block. So that's all we have to consider.
     head = @block.start.next.next # Note here that we skip over this indent's leading newline
+
+    # This is a hack to deal with empty indents
+    if @block.start.next is @block.end then head = @block.end
+
+    # Loop
     while head isnt @block.end
       switch head.type
         when 'blockStart'
@@ -373,7 +393,7 @@ class IndentPaper extends IcePaper
         # If we need to move on to the next block, do so
         until line <= @children[i].lineEnd
           i += 1
-        
+
         # Copy the block we're on here
         @bounds[line] = @children[i].bounds[line]
         @lineGroups[line] = new draw.Group()
@@ -470,7 +490,7 @@ window.onload = ->
           (turing tuples left right (car (cdr tuple))))))
     (lookup tuples (car right) state))))
 '''
-  
+
   # All benchmarked to 1.142 milliseconds. Pretty good!
   redraw = ->
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -514,11 +534,11 @@ window.onload = ->
     selection.paper.compute {line: 0}
     selection.paper.finish()
     selection.paper.draw dragCtx
+
+    console.log selection.toString indent:''
     
     # Immediately transform the drag canvas
     canvas.onmousemove event
-    
-    console.log selection.toString {indent: ''}
     
   canvas.onmousemove = (event) ->
     if selection?
@@ -547,7 +567,6 @@ window.onload = ->
       if highlight? and highlight isnt tree.block
         switch highlight.type
           when 'indent'
-            console.log 'moving into an indent'
             selection._moveTo highlight.start.insert new NewlineToken()
           when 'block'
             selection._moveTo highlight.end.insert new NewlineToken()

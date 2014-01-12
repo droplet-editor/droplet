@@ -340,12 +340,19 @@ indentParse = (str) ->
         when ')'
           # Append the current string
           if currentString.length > 0 then head = head.append new TextToken currentString
-          head = head.append new TextToken ')'
-          
-          # Pop the Block
-          while head.type isnt 'blockEnd'
-            head = head.append stack.pop().end
+
+          # Pop the indents
+          popped = {}
+          while popped.type isnt 'block'
+            popped = stack.pop()
+            if popped.type is 'block'
+              # Append the paren if necessary
+              head = head.append new TextToken ')'
+            # Append the close-tag
+            head = head.append popped.end
             if head.type is 'indentEnd' then depth_stack.pop()
+          
+          # Pop the blocks
           if stack.length > 0 and _.last(stack).type is 'socket' then head = head.append stack.pop().end
 
           currentString = ''
