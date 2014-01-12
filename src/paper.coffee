@@ -164,8 +164,6 @@ class BlockPaper extends IcePaper
     # This is a hack.
     if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
       cursor.add 0, -5
-      #if @_lineChildren[line][0].bounds[line].height is 0
-      #  cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()

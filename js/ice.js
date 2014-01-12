@@ -724,7 +724,6 @@
             this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
             this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].bottom()));
             if (line === child.lineEnd) {
-              console.log('wrapping "G" shape');
               this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].bottom()));
               this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y));
             }

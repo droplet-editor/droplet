@@ -540,8 +540,6 @@ class BlockPaper extends IcePaper
     # This is a hack.
     if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
       cursor.add 0, -5
-      #if @_lineChildren[line][0].bounds[line].height is 0
-      #  cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
@@ -565,6 +563,7 @@ class BlockPaper extends IcePaper
 
         # Deal with the special case of an empty indent
         if child.bounds[line].height is 0
+          # This is hacky.
           @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
           @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].y + 5
           @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y + 5
@@ -575,7 +574,6 @@ class BlockPaper extends IcePaper
           @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].bottom()
 
           if line is child.lineEnd #@_lineChildren[line].length > 1 # If there's anyone else here
-            console.log 'wrapping "G" shape'
             # Also wrap the "G" shape
             @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].bottom()
             @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y
