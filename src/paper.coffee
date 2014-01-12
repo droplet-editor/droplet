@@ -166,9 +166,8 @@ class BlockPaper extends IcePaper
     # Get ready to iterate through the children at this line
     cursor = point.clone() # The place we want to move this child's boundaries
     
-    # This is a hack.
-    #if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-    #  cursor.add 0, -5
+    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line and @_lineChildren[line][0].bounds[line].height is 0
+      cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
