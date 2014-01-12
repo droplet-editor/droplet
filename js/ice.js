@@ -689,17 +689,21 @@
       _ref = this._lineChildren[line];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
-        height = Math.max(height, child.bounds[line].height);
+        if (child.block.type === 'indent' && line === child.lineEnd) {
+          height = Math.max(height, child.bounds[line].height + 10);
+        } else {
+          height = Math.max(height, child.bounds[line].height);
+        }
+      }
+      if (this.indented[line] || this._lineChildren[line].length > 0 && this._lineChildren[line][0].block.type === 'indent') {
+        height -= 2 * PADDING;
       }
       return height + 2 * PADDING;
     };
 
     BlockPaper.prototype.setLeftCenter = function(line, point) {
-      var child, cursor, i, topPoint, _bottomModifier, _i, _len, _ref;
+      var child, cursor, i, indentChild, topPoint, _bottomModifier, _i, _len, _ref;
       cursor = point.clone();
-      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
-        cursor.add(0, -5);
-      }
       cursor.add(PADDING, 0);
       this.lineGroups[line].empty();
       this._pathBits[line].left.length = 0;
@@ -708,13 +712,19 @@
       this.bounds[line].swallow(point);
       _bottomModifier = 0;
       topPoint = null;
+      indentChild = null;
       _ref = this._lineChildren[line];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         child = _ref[i];
         if (i === 0 && child.block.type === 'indent') {
           this.indented[line] = true;
           cursor.add(INDENT, 0);
-          child.setLeftCenter(line, cursor);
+          indentChild = child;
+          if (child.bounds[line].height === 0) {
+            child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - 5));
+          } else {
+            child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
+          }
           if (child.bounds[line].height === 0) {
             this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
             this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].y + 5));
@@ -743,9 +753,6 @@
         this.bounds[line].width += PADDING;
         this.bounds[line].y -= PADDING;
         this.bounds[line].height += PADDING * 2;
-      }
-      if (topPoint != null) {
-        console.log(this.bounds[line].y);
       }
       if (topPoint != null) {
         topPoint.y = this.bounds[line].y;

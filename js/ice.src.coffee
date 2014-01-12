@@ -529,7 +529,12 @@ class BlockPaper extends IcePaper
     height = 0
     _heightModifier = 0
     for child in @_lineChildren[line]
-      height = Math.max(height, child.bounds[line].height)
+      if child.block.type is 'indent' and line is child.lineEnd
+        height = Math.max(height, child.bounds[line].height + 10)
+      else
+        height = Math.max(height, child.bounds[line].height)
+
+    if @indented[line] or @_lineChildren[line].length > 0 and @_lineChildren[line][0].block.type is 'indent' then height -= 2 * PADDING
 
     return height + 2 * PADDING
 
@@ -538,8 +543,8 @@ class BlockPaper extends IcePaper
     cursor = point.clone() # The place we want to move this child's boundaries
     
     # This is a hack.
-    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      cursor.add 0, -5
+    #if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
+    #  cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
@@ -552,6 +557,10 @@ class BlockPaper extends IcePaper
     _bottomModifier = 0
 
     topPoint = null
+    
+    # TODO improve performance here
+    indentChild = null
+
 
     for child, i in @_lineChildren[line]
       if i is 0 and child.block.type is 'indent' # Special case
@@ -559,7 +568,12 @@ class BlockPaper extends IcePaper
         # Add the indent bit
         cursor.add INDENT, 0
 
-        child.setLeftCenter line, cursor
+        indentChild = child
+
+        if child.bounds[line].height is 0
+          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - 5
+        else
+          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
 
         # Deal with the special case of an empty indent
         if child.bounds[line].height is 0
@@ -585,19 +599,20 @@ class BlockPaper extends IcePaper
       else
         @indented[line] = @indented[line] or (if child.indented? then child.indented[line] else false)
         child.setLeftCenter line, cursor
+      
 
       @lineGroups[line].push child.lineGroups[line]
       @bounds[line].unite child.bounds[line]
       cursor.add child.bounds[line].width, 0
+
 
     # Add padding
     unless @indented[line]
       @bounds[line].width += PADDING
       @bounds[line].y -= PADDING
       @bounds[line].height += PADDING * 2
-    
-    if topPoint? then console.log @bounds[line].y
 
+    
     if topPoint? then topPoint.y = @bounds[line].y
     
     # Add the left edge
