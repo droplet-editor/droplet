@@ -192,8 +192,12 @@ class BlockPaper extends IcePaper
         cursor.add INDENT, 0
 
         indentChild = child
-
-        child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
+        
+        # Super hack
+        if child.bounds[line].height is 0
+          child.setLeftCenter line, cursor
+        else
+          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
 
         # Deal with the special case of an empty indent
         if child.bounds[line].height is 0

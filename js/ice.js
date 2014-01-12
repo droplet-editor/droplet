@@ -704,6 +704,9 @@
     BlockPaper.prototype.setLeftCenter = function(line, point) {
       var child, cursor, i, indentChild, topPoint, _bottomModifier, _i, _len, _ref;
       cursor = point.clone();
+      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line && this._lineChildren[line][0].bounds[line].height === 0) {
+        cursor.add(0, -5);
+      }
       cursor.add(PADDING, 0);
       this.lineGroups[line].empty();
       this._pathBits[line].left.length = 0;
@@ -721,7 +724,7 @@
           cursor.add(INDENT, 0);
           indentChild = child;
           if (child.bounds[line].height === 0) {
-            child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - 5));
+            child.setLeftCenter(line, cursor);
           } else {
             child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
           }
