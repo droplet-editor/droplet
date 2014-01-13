@@ -259,6 +259,8 @@ class BlockPaper extends IcePaper
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y # top
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier #bottom
 
+    unless @_computeHeight(line) is @bounds[line].height then console.log @_computeHeight(line), @bounds[line].height
+
   finish: ->
     @_container = new draw.Path()
 

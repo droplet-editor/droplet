@@ -75,6 +75,13 @@ class Block
     # Couldn't find any, so we are the innermost child fitting f()
     return this
   
+  findSocket: (f) ->
+    head = @start.next
+    while head isnt @end
+      if head.type is 'socketStart' and f(head.socket) then return head.socket.findSocket f
+      head = head.next
+    return null
+  
   find: (f) ->
     # Find the innermost child fitting function f(x)
     head = @start.next
@@ -146,9 +153,17 @@ class Socket
 
   content: ->
     if @start.next isnt @end
-      return @start.next.block
+      if @start.next.type is 'blockStart' then return @start.next.block
+      else return @start.next
     else
       return null
+
+  findSocket: (f) _>
+    head = @start.next
+    while head isnt @end
+      if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
+      head = head.next
+    return this
 
   find: (f) ->
     # Find the innermost child fitting function f(x)
@@ -634,6 +649,8 @@ class BlockPaper extends IcePaper
     else
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y # top
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier #bottom
+
+    unless @_computeHeight(line) is @bounds[line].height then console.log @_computeHeight(line), @bounds[line].height
 
   finish: ->
     @_container = new draw.Path()

@@ -1,7 +1,7 @@
 ###
 # Copyright (c) 2014 Anthony Bau
 # MIT License
-#
+# 
 # Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.
 ###
 
