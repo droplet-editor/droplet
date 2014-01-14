@@ -158,7 +158,7 @@ class Socket
     else
       return null
 
-  findSocket: (f) _>
+  findSocket: (f) ->
     head = @start.next
     while head isnt @end
       if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
@@ -401,7 +401,7 @@ PADDING = 2
 INDENT = 10
 MOUTH_BOTTOM = 50
 DROP_AREA_MAX_WIDTH = 50
-FONT_SIZE = 20
+FONT_SIZE = 15
 EMPTY_INDENT_WIDTH = 50
 
 ###
@@ -446,10 +446,12 @@ class BlockPaper extends IcePaper
     super(block)
     @_lineChildren = {} # The child nodes at each line.
     @indented = {}
+    @indentEnd = {}
 
   compute: (state) ->
     # Record all the indented states, 'cos we want to keep out of there
     @indented = {}
+    @indentEnd = {}
 
     # Start a record of all the place that we want our container path to go
     @_pathBits = {} # Each element will look like so: [[leftEdge], [rightEdge]].
@@ -571,6 +573,8 @@ class BlockPaper extends IcePaper
     _bottomModifier = 0
 
     topPoint = null
+
+    @indented[line] = @indentEnd[line] = false
     
     # TODO improve performance here
     indentChild = null
@@ -579,6 +583,8 @@ class BlockPaper extends IcePaper
     for child, i in @_lineChildren[line]
       if i is 0 and child.block.type is 'indent' # Special case
         @indented[line] = true
+        @indentEnd[line] = line is child.lineEnd
+
         # Add the indent bit
         cursor.add INDENT, 0
 
@@ -613,7 +619,11 @@ class BlockPaper extends IcePaper
 
       else
         @indented[line] = @indented[line] or (if child.indented? then child.indented[line] else false)
-        child.setLeftCenter line, cursor
+        @indentEnd[line] = @indentEnd[line] or (if child.indentEnd? then child.indentEnd[line] else false)
+        if child.indentEnd? and child.indentEnd[line]
+          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
+        else
+          child.setLeftCenter line, cursor
       
 
       @lineGroups[line].push child.lineGroups[line]
@@ -629,7 +639,7 @@ class BlockPaper extends IcePaper
 
     
     if topPoint? then topPoint.y = @bounds[line].y
-    
+
     # Add the left edge
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].y # top
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
@@ -649,8 +659,6 @@ class BlockPaper extends IcePaper
     else
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y # top
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier #bottom
-
-    unless @_computeHeight(line) is @bounds[line].height then console.log @_computeHeight(line), @bounds[line].height
 
   finish: ->
     @_container = new draw.Path()
@@ -709,10 +717,21 @@ class SocketPaper extends IcePaper
       # Then copy all of its properties. By our policy, this will stay current until it calls compute(),
       # Which shouldn't happen unless we recompute as well.
       for line of contentPaper.bounds
-        @bounds[line] = contentPaper.bounds[line]
+        if @_content.type is 'text'
+          @bounds[line] = new draw.NoRectangle()
+          @bounds[line].copy contentPaper.bounds[line]
+
+          # We add padding around text
+          @bounds[line].y -= PADDING
+          @bounds[line].width += 2 * PADDING
+          @bounds[line].height += 2 * PADDING
+        else
+          @bounds[line] = contentPaper.bounds[line]
         @lineGroups[line] = contentPaper.lineGroups[line]
+
       
       @indented = @_content.paper.indented
+      @indentEnd = @_content.paper.indentEnd
 
       @group = contentPaper.group
       @children = [@_content.paper]
@@ -736,8 +755,23 @@ class SocketPaper extends IcePaper
 
   setLeftCenter: (line, point) ->
     if @_content?
-      # Try to give this task to our content block instead
-      @_content.paper.setLeftCenter line, point
+
+      if @_content.type is 'text'
+        line = @_content.paper._line
+
+        @_content.paper.setLeftCenter line, new draw.Point point.x + PADDING, point.y
+
+        @bounds[line] = new draw.NoRectangle()
+        @bounds[line].copy @_content.paper.bounds[line]
+
+        # We add padding around text
+        @bounds[line].y -= PADDING
+        @bounds[line].width += 2 * PADDING
+        @bounds[line].height += 2 * PADDING
+      else
+        # Try to give this task to our content block instead
+        @_content.paper.setLeftCenter line, point
+
       @lineGroups[line].recompute()
     else
       # If that's not possible move our little empty square
@@ -749,6 +783,10 @@ class SocketPaper extends IcePaper
     if @_content?
       # Try to imitate our content block
       @_content.paper.draw ctx
+
+      if @_content.type is 'text'
+        line = @_content.paper._line
+        ctx.strokeRect @bounds[line].x, @bounds[line].y, @bounds[line].width, @bounds[line].height
     else
       # If that's not possible, draw our little empty square
       rect = @bounds[@_line]
@@ -861,7 +899,8 @@ class TextTokenPaper extends IcePaper
     # Return ourselves for chaining
     return this
 
-  draw: (ctx) -> @_text.draw ctx
+  draw: (ctx) ->
+    @_text.draw ctx
   
   setLeftCenter: (line, point) ->
     if line is @_line
@@ -885,7 +924,6 @@ window.onload = ->
   dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d')
 
   out = document.getElementById('out')
-
   tree = ICE.indentParse '''
 (defun turing (lambda (tuples left right state)
   ((lambda (tuple)
@@ -915,6 +953,51 @@ window.onload = ->
   
   canvas.onmousedown = (event) ->
     point = new draw.Point event.pageX, event.pageY
+
+    # First, see if we are trying to focus an empty socket
+    focus = tree.block.findSocket (block) ->
+      block.paper._empty and block.paper.bounds[block.paper._line].contains point
+
+    if focus?
+      
+      # Insert the text token we're editing
+      focus.start.insert text = new TextToken ''
+
+      # Append the hidden input
+      document.body.appendChild input = document.createElement 'input'
+      input.className = 'hidden_input'
+      line = focus.paper._line
+      
+      # Do an immediate redraw
+      redraw()
+    
+      # Bind the update to the input's key handlers
+      input.onkeydown = input.onkeyup =  ->
+        text.value = this.value
+
+        text.paper.compute line: line
+        focus.paper.compute line: line
+        
+        #TODO fix setLeftCenter so this works
+        tree.block.paper.setLeftCenter line, new draw.Point 0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - if tree.block.indentEnd[line] then PADDING else 0
+        tree.block.paper.finish()
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        tree.block.paper.draw ctx
+        ###
+        redraw()
+        ###
+
+        # Draw the typing cursor
+        start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
+        end = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionEnd]).width
+        ctx.strokeRect start, text.paper.bounds[line].y, end - start, 15
+        
+        ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+        ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
+
+      setTimeout (-> input.focus()), 0
+      return
     
     # Find the block that was just clicked
     selection = tree.block.findBlock (block) ->
@@ -940,8 +1023,6 @@ window.onload = ->
     selection.paper.compute {line: 0}
     selection.paper.finish()
     selection.paper.draw dragCtx
-
-    console.log selection.toString indent:''
     
     # Immediately transform the drag canvas
     canvas.onmousemove event
@@ -988,8 +1069,12 @@ window.onload = ->
     selection = null
   
   out.onkeyup = ->
-    tree = ICE.indentParse out.value
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    tree.block.paper.compute {line: 0}
-    tree.block.paper.finish()
-    tree.block.paper.draw ctx
+    try
+      tree = ICE.indentParse out.value
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      tree.block.paper.compute {line: 0}
+      tree.block.paper.finish()
+      tree.block.paper.draw ctx
+    catch e
+      ctx.fillStyle = "#f00"
+      ctx.fillText e.message, 0, 0

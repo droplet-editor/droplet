@@ -93,6 +93,18 @@
       return this;
     };
 
+    Block.prototype.findSocket = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.findSocket(f);
+        }
+        head = head.next;
+      }
+      return null;
+    };
+
     Block.prototype.find = function(f) {
       var head;
       head = this.start.next;
@@ -194,6 +206,18 @@
       } else {
         return null;
       }
+    };
+
+    Socket.prototype.findSocket = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.find(f);
+        }
+        head = head.next;
+      }
+      return this;
     };
 
     Socket.prototype.find = function(f) {
@@ -557,7 +581,7 @@
 
   DROP_AREA_MAX_WIDTH = 50;
 
-  FONT_SIZE = 20;
+  FONT_SIZE = 15;
 
   EMPTY_INDENT_WIDTH = 50;
 
@@ -620,11 +644,13 @@
       BlockPaper.__super__.constructor.call(this, block);
       this._lineChildren = {};
       this.indented = {};
+      this.indentEnd = {};
     }
 
     BlockPaper.prototype.compute = function(state) {
       var axis, head, height, i, indent, line, top, _i, _ref, _ref1;
       this.indented = {};
+      this.indentEnd = {};
       this._pathBits = {};
       this.bounds = {};
       this.lineGroups = {};
@@ -719,12 +745,14 @@
       this.bounds[line].swallow(point);
       _bottomModifier = 0;
       topPoint = null;
+      this.indented[line] = this.indentEnd[line] = false;
       indentChild = null;
       _ref = this._lineChildren[line];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         child = _ref[i];
         if (i === 0 && child.block.type === 'indent') {
           this.indented[line] = true;
+          this.indentEnd[line] = line === child.lineEnd;
           cursor.add(INDENT, 0);
           indentChild = child;
           if (child.bounds[line].height === 0) {
@@ -750,7 +778,12 @@
           }
         } else {
           this.indented[line] = this.indented[line] || (child.indented != null ? child.indented[line] : false);
-          child.setLeftCenter(line, cursor);
+          this.indentEnd[line] = this.indentEnd[line] || (child.indentEnd != null ? child.indentEnd[line] : false);
+          if ((child.indentEnd != null) && child.indentEnd[line]) {
+            child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
+          } else {
+            child.setLeftCenter(line, cursor);
+          }
         }
         this.lineGroups[line].push(child.lineGroups[line]);
         this.bounds[line].unite(child.bounds[line]);
@@ -768,17 +801,14 @@
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].bottom() + _bottomModifier));
       if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd !== line) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
+        return this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
       } else if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
-        this.bounds[line].height += 10;
+        return this.bounds[line].height += 10;
       } else {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
-      }
-      if (this._computeHeight(line) !== this.bounds[line].height) {
-        return console.log(this._computeHeight(line), this.bounds[line].height);
+        return this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
       }
     };
 
@@ -860,10 +890,19 @@
       if ((this._content = this.block.content()) != null) {
         (contentPaper = this._content.paper).compute(state);
         for (line in contentPaper.bounds) {
-          this.bounds[line] = contentPaper.bounds[line];
+          if (this._content.type === 'text') {
+            this.bounds[line] = new draw.NoRectangle();
+            this.bounds[line].copy(contentPaper.bounds[line]);
+            this.bounds[line].y -= PADDING;
+            this.bounds[line].width += 2 * PADDING;
+            this.bounds[line].height += 2 * PADDING;
+          } else {
+            this.bounds[line] = contentPaper.bounds[line];
+          }
           this.lineGroups[line] = contentPaper.lineGroups[line];
         }
         this.indented = this._content.paper.indented;
+        this.indentEnd = this._content.paper.indentEnd;
         this.group = contentPaper.group;
         this.children = [this._content.paper];
         this.lineStart = contentPaper.lineStart;
@@ -882,7 +921,17 @@
 
     SocketPaper.prototype.setLeftCenter = function(line, point) {
       if (this._content != null) {
-        this._content.paper.setLeftCenter(line, point);
+        if (this._content.type === 'text') {
+          line = this._content.paper._line;
+          this._content.paper.setLeftCenter(line, new draw.Point(point.x + PADDING, point.y));
+          this.bounds[line] = new draw.NoRectangle();
+          this.bounds[line].copy(this._content.paper.bounds[line]);
+          this.bounds[line].y -= PADDING;
+          this.bounds[line].width += 2 * PADDING;
+          this.bounds[line].height += 2 * PADDING;
+        } else {
+          this._content.paper.setLeftCenter(line, point);
+        }
         return this.lineGroups[line].recompute();
       } else {
         this.bounds[line].x = point.x;
@@ -892,9 +941,13 @@
     };
 
     SocketPaper.prototype.draw = function(ctx) {
-      var rect;
+      var line, rect;
       if (this._content != null) {
-        return this._content.paper.draw(ctx);
+        this._content.paper.draw(ctx);
+        if (this._content.type === 'text') {
+          line = this._content.paper._line;
+          return ctx.strokeRect(this.bounds[line].x, this.bounds[line].y, this.bounds[line].width, this.bounds[line].height);
+        }
       } else {
         rect = this.bounds[this._line];
         ctx.strokeStyle = '#000';
@@ -1081,8 +1134,45 @@
     */
 
     canvas.onmousedown = function(event) {
-      var bounds, point;
+      var bounds, focus, input, line, point, text;
       point = new draw.Point(event.pageX, event.pageY);
+      focus = tree.block.findSocket(function(block) {
+        return block.paper._empty && block.paper.bounds[block.paper._line].contains(point);
+      });
+      if (focus != null) {
+        focus.start.insert(text = new TextToken(''));
+        document.body.appendChild(input = document.createElement('input'));
+        input.className = 'hidden_input';
+        line = focus.paper._line;
+        redraw();
+        input.onkeydown = input.onkeyup = function() {
+          var end, start;
+          text.value = this.value;
+          text.paper.compute({
+            line: line
+          });
+          focus.paper.compute({
+            line: line
+          });
+          tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - (tree.block.indentEnd[line] ? PADDING : 0)));
+          tree.block.paper.finish();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          tree.block.paper.draw(ctx);
+          /*
+          redraw()
+          */
+
+          start = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionStart)).width;
+          end = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionEnd)).width;
+          ctx.strokeRect(start, text.paper.bounds[line].y, end - start, 15);
+          ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
+          return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
+        };
+        setTimeout((function() {
+          return input.focus();
+        }), 0);
+        return;
+      }
       selection = tree.block.findBlock(function(block) {
         return block.paper._container.contains(point);
       });
@@ -1101,9 +1191,6 @@
       });
       selection.paper.finish();
       selection.paper.draw(dragCtx);
-      console.log(selection.toString({
-        indent: ''
-      }));
       return canvas.onmousemove(event);
     };
     canvas.onmousemove = function(event) {
@@ -1144,13 +1231,20 @@
       return selection = null;
     };
     return out.onkeyup = function() {
-      tree = ICE.indentParse(out.value);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      tree.block.paper.compute({
-        line: 0
-      });
-      tree.block.paper.finish();
-      return tree.block.paper.draw(ctx);
+      var e;
+      try {
+        tree = ICE.indentParse(out.value);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        tree.block.paper.compute({
+          line: 0
+        });
+        tree.block.paper.finish();
+        return tree.block.paper.draw(ctx);
+      } catch (_error) {
+        e = _error;
+        ctx.fillStyle = "#f00";
+        return ctx.fillText(e.message, 0, 0);
+      }
     };
   };
 
