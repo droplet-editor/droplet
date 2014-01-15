@@ -752,7 +752,7 @@
         child = _ref[i];
         if (i === 0 && child.block.type === 'indent') {
           this.indented[line] = true;
-          this.indentEnd[line] = line === child.lineEnd;
+          this.indentEnd[line] = (line === child.lineEnd) || child.indentEnd[line];
           cursor.add(INDENT, 0);
           indentChild = child;
           if (child.bounds[line].height === 0) {
@@ -891,11 +891,13 @@
         (contentPaper = this._content.paper).compute(state);
         for (line in contentPaper.bounds) {
           if (this._content.type === 'text') {
+            this._line = state.line;
             this.bounds[line] = new draw.NoRectangle();
             this.bounds[line].copy(contentPaper.bounds[line]);
             this.bounds[line].y -= PADDING;
             this.bounds[line].width += 2 * PADDING;
             this.bounds[line].height += 2 * PADDING;
+            this.dropArea = this.bounds[line];
           } else {
             this.bounds[line] = contentPaper.bounds[line];
           }
@@ -915,7 +917,7 @@
         this.indented[this._line] = false;
         this.lineGroups[this._line] = new draw.Group();
       }
-      this._empty = this._content == null;
+      this._empty = (this._content == null) || this._content.type === 'text';
       return this;
     };
 
@@ -924,7 +926,6 @@
         if (this._content.type === 'text') {
           line = this._content.paper._line;
           this._content.paper.setLeftCenter(line, new draw.Point(point.x + PADDING, point.y));
-          this.bounds[line] = new draw.NoRectangle();
           this.bounds[line].copy(this._content.paper.bounds[line]);
           this.bounds[line].y -= PADDING;
           this.bounds[line].width += 2 * PADDING;
@@ -972,6 +973,7 @@
       this.bounds = {};
       this.lineGroups = {};
       this._lineBlocks = {};
+      this.indentEnd = {};
       this.group = new draw.Group();
       this.children = [];
       this.lineStart = state.line += 1;
@@ -1000,6 +1002,7 @@
           }
           this.bounds[line] = this.children[i].bounds[line];
           this.lineGroups[line] = new draw.Group();
+          this.indentEnd[line] = this.children[i].indentEnd[line];
           this.lineGroups[line].push(this.children[i].lineGroups[line]);
           this._lineBlocks[line] = this.children[i];
         }
@@ -1108,7 +1111,7 @@
 
 
   window.onload = function() {
-    var canvas, ctx, dragCanvas, dragCtx, highlight, offset, out, redraw, selection, tree;
+    var anchor, canvas, clear, ctx, dragCanvas, dragCtx, focus, head, highlight, input, offset, out, redraw, scrollOffset, selection, tree;
     if (!window.RUN_PAPER_TESTS) {
       return;
     }
@@ -1116,8 +1119,13 @@
     dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d');
     out = document.getElementById('out');
     tree = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state))))');
+    scrollOffset = new draw.Point(0, 0);
+    highlight = selection = offset = input = focus = anchor = head = null;
+    clear = function() {
+      return ctx.clearRect(scrollOffset.x, scrollOffset.y, canvas.width, canvas.height);
+    };
     redraw = function() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      clear();
       tree.block.paper.compute({
         line: 0
       });
@@ -1128,23 +1136,35 @@
       });
     };
     redraw();
-    highlight = selection = offset = null;
     /*
     # Here to below will eventually become part of the IceEditor() class
     */
 
     canvas.onmousedown = function(event) {
-      var bounds, focus, input, line, point, text;
-      point = new draw.Point(event.pageX, event.pageY);
+      var bounds, line, point, text;
+      point = new draw.Point(event.offsetX, event.offsetY);
+      point.translate(scrollOffset);
       focus = tree.block.findSocket(function(block) {
         return block.paper._empty && block.paper.bounds[block.paper._line].contains(point);
       });
       if (focus != null) {
-        focus.start.insert(text = new TextToken(''));
+        if (focus.content() != null) {
+          text = focus.content();
+        } else {
+          focus.start.insert(text = new TextToken(''));
+        }
         document.body.appendChild(input = document.createElement('input'));
         input.className = 'hidden_input';
         line = focus.paper._line;
+        console.log(input);
+        input.value = focus.content().value;
+        console.log(input);
+        anchor = (point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width;
+        setTimeout((function() {
+          return input.setSelectionRange(anchor, anchor);
+        }), 0);
         redraw();
+        console.log(input);
         input.onkeydown = input.onkeyup = function() {
           var end, start;
           text.value = this.value;
@@ -1154,22 +1174,32 @@
           focus.paper.compute({
             line: line
           });
-          tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - (tree.block.indentEnd[line] ? PADDING : 0)));
+          tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - (tree.block.paper.indentEnd[line] ? 0.5 : 0)));
           tree.block.paper.finish();
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          clear();
           tree.block.paper.draw(ctx);
-          /*
-          redraw()
-          */
-
+          out.value = tree.block.toString({
+            indent: ''
+          });
           start = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionStart)).width;
           end = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionEnd)).width;
-          ctx.strokeRect(start, text.paper.bounds[line].y, end - start, 15);
-          ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
-          return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
+          if (start === end) {
+            return ctx.strokeRect(start, text.paper.bounds[line].y, 0, 15);
+          } else {
+            ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
+            return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
+          }
         };
+        input.onkeydown.call(input);
+        input.focus();
         setTimeout((function() {
-          return input.focus();
+          input.focus();
+          return input.onblur = function() {
+            console.log(this, this.parentNode);
+            if (this.parentNode != null) {
+              return this.parentNode.removeChild(this);
+            }
+          };
         }), 0);
         return;
       }
@@ -1194,11 +1224,13 @@
       return canvas.onmousemove(event);
     };
     canvas.onmousemove = function(event) {
-      var dest, point;
+      var bounds, dest, end, line, point, scrollDest, start, text;
       if (selection != null) {
-        point = new draw.Point(event.pageX, event.pageY);
+        point = new draw.Point(event.offsetX, event.offsetY);
+        scrollDest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
+        point.translate(scrollOffset);
         dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        clear();
         tree.block.paper.draw(ctx);
         highlight = tree.block.find(function(block) {
           var _ref;
@@ -1207,8 +1239,25 @@
         if (highlight !== tree.block) {
           highlight.paper.dropArea.fill(ctx, '#f00');
         }
-        dragCanvas.style.webkitTransform = "translate(" + dest.x + "px, " + dest.y + "px)";
-        return dragCanvas.style.mozTransform = "translate(" + dest.x + "px, " + dest.y + "px)";
+        dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+        return dragCanvas.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+      } else if ((focus != null) && (anchor != null)) {
+        text = focus.content();
+        line = text.paper._line;
+        point = new draw.Point(event.offsetX, event.offsetY);
+        point.translate(scrollOffset);
+        head = Math.floor((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
+        bounds = text.paper.bounds[line];
+        ctx.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        text.paper.draw(ctx);
+        start = text.paper.bounds[line].x + ctx.measureText(text.value.slice(0, head)).width;
+        end = text.paper.bounds[line].x + ctx.measureText(text.value.slice(0, anchor)).width;
+        if (start === end) {
+          return ctx.strokeRect(start, text.paper.bounds[line].y, 0, 15);
+        } else {
+          ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
+          return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
+        }
       }
     };
     canvas.onmouseup = function(event) {
@@ -1222,14 +1271,31 @@
               selection._moveTo(highlight.end.insert(new NewlineToken()));
               break;
             case 'socket':
+              if (highlight.content() != null) {
+                highlight.content().remove();
+              }
               selection._moveTo(highlight.start);
           }
           redraw();
         }
+      } else if (focus != null) {
+        input.setSelectionRange(Math.min(anchor, head), Math.max(anchor, head));
+        anchor = head = null;
       }
       dragCtx.clearRect(0, 0, canvas.width, canvas.height);
       return selection = null;
     };
+    canvas.addEventListener('mousewheel', function(event) {
+      if (scrollOffset.y > 0 || event.deltaY > 0) {
+        clear();
+        ctx.translate(0, -event.deltaY);
+        scrollOffset.add(0, event.deltaY);
+        tree.block.paper.draw(ctx);
+        event.preventDefault();
+        return false;
+      }
+      return true;
+    });
     return out.onkeyup = function() {
       var e;
       try {

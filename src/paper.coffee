@@ -192,7 +192,7 @@ class BlockPaper extends IcePaper
     for child, i in @_lineChildren[line]
       if i is 0 and child.block.type is 'indent' # Special case
         @indented[line] = true
-        @indentEnd[line] = line is child.lineEnd
+        @indentEnd[line] = (line is child.lineEnd) or child.indentEnd[line]
 
         # Add the indent bit
         cursor.add INDENT, 0
@@ -233,7 +233,6 @@ class BlockPaper extends IcePaper
           child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
         else
           child.setLeftCenter line, cursor
-      
 
       @lineGroups[line].push child.lineGroups[line]
       @bounds[line].unite child.bounds[line]
@@ -327,6 +326,7 @@ class SocketPaper extends IcePaper
       # Which shouldn't happen unless we recompute as well.
       for line of contentPaper.bounds
         if @_content.type is 'text'
+          @_line = state.line
           @bounds[line] = new draw.NoRectangle()
           @bounds[line].copy contentPaper.bounds[line]
 
@@ -334,6 +334,8 @@ class SocketPaper extends IcePaper
           @bounds[line].y -= PADDING
           @bounds[line].width += 2 * PADDING
           @bounds[line].height += 2 * PADDING
+
+          @dropArea = @bounds[line]
         else
           @bounds[line] = contentPaper.bounds[line]
         @lineGroups[line] = contentPaper.lineGroups[line]
@@ -357,7 +359,7 @@ class SocketPaper extends IcePaper
 
       @lineGroups[@_line] = new draw.Group()
 
-    @_empty = not @_content?
+    @_empty = not @_content? or @_content.type is 'text'
 
     # We're done! Return ourselves for chaining
     return this
@@ -370,7 +372,6 @@ class SocketPaper extends IcePaper
 
         @_content.paper.setLeftCenter line, new draw.Point point.x + PADDING, point.y
 
-        @bounds[line] = new draw.NoRectangle()
         @bounds[line].copy @_content.paper.bounds[line]
 
         # We add padding around text
@@ -411,6 +412,7 @@ class IndentPaper extends IcePaper
     @bounds = {}
     @lineGroups = {}
     @_lineBlocks = {}
+    @indentEnd = {}
     @group = new draw.Group()
     @children = []
     
@@ -450,6 +452,7 @@ class IndentPaper extends IcePaper
         # Copy the block we're on here
         @bounds[line] = @children[i].bounds[line]
         @lineGroups[line] = new draw.Group()
+        @indentEnd[line] = @children[i].indentEnd[line]
         @lineGroups[line].push @children[i].lineGroups[line]
         @_lineBlocks[line] = @children[i]
     else
@@ -543,10 +546,14 @@ window.onload = ->
           (turing tuples left right (car (cdr tuple))))))
     (lookup tuples (car right) state))))
 '''
+  scrollOffset = new draw.Point 0, 0
+  highlight = selection = offset = input = focus = anchor = head = null
 
   # All benchmarked to 1.142 milliseconds. Pretty good!
+  clear = ->
+    ctx.clearRect scrollOffset.x, scrollOffset.y, canvas.width, canvas.height
   redraw = ->
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    clear()
     tree.block.paper.compute {line: 0}
     tree.block.paper.finish()
     tree.block.paper.draw ctx
@@ -554,58 +561,83 @@ window.onload = ->
 
   redraw()
 
-  highlight = selection = offset = null
 
   ###
   # Here to below will eventually become part of the IceEditor() class
   ###
   
   canvas.onmousedown = (event) ->
-    point = new draw.Point event.pageX, event.pageY
+    point = new draw.Point event.offsetX, event.offsetY
+    point.translate scrollOffset
 
     # First, see if we are trying to focus an empty socket
     focus = tree.block.findSocket (block) ->
       block.paper._empty and block.paper.bounds[block.paper._line].contains point
 
     if focus?
-      
       # Insert the text token we're editing
-      focus.start.insert text = new TextToken ''
+      if focus.content()? then text = focus.content()
+      else focus.start.insert text = new TextToken ''
 
       # Append the hidden input
       document.body.appendChild input = document.createElement 'input'
       input.className = 'hidden_input'
       line = focus.paper._line
+      console.log input
+
+      input.value = focus.content().value
+      console.log input
+
+      # Here we have to abuse the fact that we use a monospace font (we could do this in linear time otherwise, but this is neat)
+      anchor = (point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width
+      setTimeout (->input.setSelectionRange anchor, anchor), 0
       
       # Do an immediate redraw
       redraw()
+
+      console.log input
     
       # Bind the update to the input's key handlers
       input.onkeydown = input.onkeyup =  ->
         text.value = this.value
-
+        
+        # Recompute the socket itself
         text.paper.compute line: line
         focus.paper.compute line: line
         
-        #TODO fix setLeftCenter so this works
-        tree.block.paper.setLeftCenter line, new draw.Point 0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - if tree.block.paper.indentEnd[line] then PADDING else 0
+        # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
+        # This is for performance reasons; we don't need to redraw the whole tree.
+        tree.block.paper.setLeftCenter line, new draw.Point 0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - if tree.block.paper.indentEnd[line] then 0.5 else 0 #TODO this is total hack and I don't know why it works...
         tree.block.paper.finish()
         
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        clear()
+        
+        # Do the fast draw operation and toString() operation.
         tree.block.paper.draw ctx
-        ###
-        redraw()
-        ###
+        out.value = tree.block.toString {indent: ''}
 
         # Draw the typing cursor
         start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
         end = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionEnd]).width
-        ctx.strokeRect start, text.paper.bounds[line].y, end - start, 15
-        
-        ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
-        ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
 
-      setTimeout (-> input.focus()), 0
+        if start is end
+          ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
+        else
+          ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+          ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
+
+      input.onkeydown.call input
+
+      input.focus()
+
+      setTimeout (->
+        input.focus()
+        input.onblur = ->
+          # If we blur the input it's all over.
+          console.log this, this.parentNode
+          if this.parentNode? then this.parentNode.removeChild this
+      ), 0
+
       return
     
     # Find the block that was just clicked
@@ -639,11 +671,13 @@ window.onload = ->
   canvas.onmousemove = (event) ->
     if selection?
       # Figure out where we want the selection to go
-      point = new draw.Point event.pageX, event.pageY
+      point = new draw.Point event.offsetX, event.offsetY
+      scrollDest = new draw.Point -offset.x + point.x, -offset.y + point.y
+      point.translate scrollOffset
       dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
       # Redraw the canvas (don't recompute; this is a fast operation)
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      clear()
       tree.block.paper.draw ctx
       
       # Find the highlighted area
@@ -655,8 +689,34 @@ window.onload = ->
         highlight.paper.dropArea.fill(ctx, '#f00')
       
       # css-transform the drag canvas to that area
-      dragCanvas.style.webkitTransform = "translate(#{dest.x}px, #{dest.y}px)"
-      dragCanvas.style.mozTransform = "translate(#{dest.x}px, #{dest.y}px)"
+      dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+      dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+
+    else if focus? and anchor?
+      # Compute the points
+      text = focus.content(); line = text.paper._line
+
+      point = new draw.Point event.offsetX, event.offsetY
+      point.translate scrollOffset
+      head = Math.floor((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
+
+      # Clear the current selection
+      bounds = text.paper.bounds[line]
+      ctx.clearRect bounds.x, bounds.y, bounds.width, bounds.height
+
+      # Redraw the text
+      text.paper.draw ctx
+
+      # Draw the rectangle
+      start = text.paper.bounds[line].x + ctx.measureText(text.value[...head]).width
+      end = text.paper.bounds[line].x + ctx.measureText(text.value[...anchor]).width
+
+      # Either draw the selection or the cursor
+      if start is end
+        ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
+      else
+        ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+        ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
 
   canvas.onmouseup = (event) ->
     if selection?
@@ -667,15 +727,35 @@ window.onload = ->
           when 'block'
             selection._moveTo highlight.end.insert new NewlineToken()
           when 'socket'
+            if highlight.content()? then highlight.content().remove()
             selection._moveTo highlight.start
 
         # Redraw the root tree
         redraw()
+    else if focus?
+      # Make the selection
+      input.setSelectionRange Math.min(anchor, head), Math.max(anchor, head)
+
+      # Stop selecting
+      anchor = head = null
+
     # Clear the drag canvas
     dragCtx.clearRect 0, 0, canvas.width, canvas.height
 
     # Unselect
     selection = null
+
+  canvas.addEventListener 'mousewheel', (event) ->
+    if scrollOffset.y > 0 or event.deltaY > 0
+      clear()
+      ctx.translate 0, -event.deltaY
+      scrollOffset.add 0, event.deltaY
+      tree.block.paper.draw ctx
+
+      event.preventDefault()
+
+      return false
+    return true
   
   out.onkeyup = ->
     try
