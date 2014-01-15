@@ -237,10 +237,10 @@
         ctx.lineTo(point.x, point.y);
       }
       ctx.lineTo(this._points[0].x, this._points[0].y);
-      ctx.stroke();
       if (this.style.fillColor != null) {
-        return ctx.fill();
+        ctx.fill();
       }
+      return ctx.stroke();
     };
 
     return Path;

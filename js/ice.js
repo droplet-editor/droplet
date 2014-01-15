@@ -827,6 +827,8 @@
           this._container.push(bit);
         }
       }
+      this._container.style.strokeColor = '#000';
+      this._container.style.fillColor = '#ddf';
       this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
       _ref2 = this.children;
       _results = [];
@@ -897,6 +899,7 @@
             this.bounds[line].y -= PADDING;
             this.bounds[line].width += 2 * PADDING;
             this.bounds[line].height += 2 * PADDING;
+            this.bounds[line].width = Math.max(this.bounds[line].width, 20);
             this.dropArea = this.bounds[line];
           } else {
             this.bounds[line] = contentPaper.bounds[line];
@@ -930,6 +933,7 @@
           this.bounds[line].y -= PADDING;
           this.bounds[line].width += 2 * PADDING;
           this.bounds[line].height += 2 * PADDING;
+          this.bounds[line].width = Math.max(this.bounds[line].width, 20);
         } else {
           this._content.paper.setLeftCenter(line, point);
         }
@@ -944,14 +948,19 @@
     SocketPaper.prototype.draw = function(ctx) {
       var line, rect;
       if (this._content != null) {
-        this._content.paper.draw(ctx);
         if (this._content.type === 'text') {
           line = this._content.paper._line;
-          return ctx.strokeRect(this.bounds[line].x, this.bounds[line].y, this.bounds[line].width, this.bounds[line].height);
+          ctx.strokeStyle = '#000';
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(this.bounds[line].x, this.bounds[line].y, this.bounds[line].width, this.bounds[line].height);
+          ctx.strokeRect(this.bounds[line].x, this.bounds[line].y, this.bounds[line].width, this.bounds[line].height);
         }
+        return this._content.paper.draw(ctx);
       } else {
         rect = this.bounds[this._line];
         ctx.strokeStyle = '#000';
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         return ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
       }
     };
@@ -1111,13 +1120,14 @@
 
 
   window.onload = function() {
-    var anchor, canvas, clear, ctx, dragCanvas, dragCtx, focus, head, highlight, input, offset, out, redraw, scrollOffset, selection, tree;
+    var anchor, canvas, clear, ctx, div, dragCanvas, dragCtx, focus, head, highlight, input, offset, out, redraw, scrollOffset, selection, tree;
     if (!window.RUN_PAPER_TESTS) {
       return;
     }
     draw._setCTX(ctx = (canvas = document.getElementById('canvas')).getContext('2d'));
     dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d');
     out = document.getElementById('out');
+    div = document.getElementsByClassName('trackArea')[0];
     tree = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state))))');
     scrollOffset = new draw.Point(0, 0);
     highlight = selection = offset = input = focus = anchor = head = null;
@@ -1140,8 +1150,8 @@
     # Here to below will eventually become part of the IceEditor() class
     */
 
-    canvas.onmousedown = function(event) {
-      var bounds, line, point, text;
+    div.onmousedown = function(event) {
+      var bounds, line, point, start, text;
       point = new draw.Point(event.offsetX, event.offsetY);
       point.translate(scrollOffset);
       focus = tree.block.findSocket(function(block) {
@@ -1153,20 +1163,17 @@
         } else {
           focus.start.insert(text = new TextToken(''));
         }
+        if (input != null) {
+          input.parentNode.removeChild(input);
+        }
         document.body.appendChild(input = document.createElement('input'));
         input.className = 'hidden_input';
         line = focus.paper._line;
-        console.log(input);
         input.value = focus.content().value;
-        console.log(input);
-        anchor = (point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width;
-        setTimeout((function() {
-          return input.setSelectionRange(anchor, anchor);
-        }), 0);
+        anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
         redraw();
-        console.log(input);
         input.onkeydown = input.onkeyup = function() {
-          var end, start;
+          var end, old_bounds;
           text.value = this.value;
           text.paper.compute({
             line: line
@@ -1174,7 +1181,11 @@
           focus.paper.compute({
             line: line
           });
-          tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - (tree.block.paper.indentEnd[line] ? 0.5 : 0)));
+          old_bounds = tree.block.paper.bounds[line].y;
+          tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2));
+          if (tree.block.paper.bounds[line].y !== old_bounds) {
+            tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - 1));
+          }
           tree.block.paper.finish();
           clear();
           tree.block.paper.draw(ctx);
@@ -1190,16 +1201,10 @@
             return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
           }
         };
-        input.onkeydown.call(input);
-        input.focus();
         setTimeout((function() {
           input.focus();
-          return input.onblur = function() {
-            console.log(this, this.parentNode);
-            if (this.parentNode != null) {
-              return this.parentNode.removeChild(this);
-            }
-          };
+          input.setSelectionRange(anchor, anchor);
+          return input.onkeydown.call(input);
         }), 0);
         return;
       }
@@ -1221,9 +1226,9 @@
       });
       selection.paper.finish();
       selection.paper.draw(dragCtx);
-      return canvas.onmousemove(event);
+      return div.onmousemove(event);
     };
-    canvas.onmousemove = function(event) {
+    div.onmousemove = function(event) {
       var bounds, dest, end, line, point, scrollDest, start, text;
       if (selection != null) {
         point = new draw.Point(event.offsetX, event.offsetY);
@@ -1246,7 +1251,7 @@
         line = text.paper._line;
         point = new draw.Point(event.offsetX, event.offsetY);
         point.translate(scrollOffset);
-        head = Math.floor((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
+        head = Math.round((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
         bounds = text.paper.bounds[line];
         ctx.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
         text.paper.draw(ctx);
@@ -1260,7 +1265,7 @@
         }
       }
     };
-    canvas.onmouseup = function(event) {
+    div.onmouseup = function(event) {
       if (selection != null) {
         if ((highlight != null) && highlight !== tree.block) {
           switch (highlight.type) {
@@ -1279,13 +1284,14 @@
           redraw();
         }
       } else if (focus != null) {
+        console.log(anchor, head);
         input.setSelectionRange(Math.min(anchor, head), Math.max(anchor, head));
         anchor = head = null;
       }
       dragCtx.clearRect(0, 0, canvas.width, canvas.height);
       return selection = null;
     };
-    canvas.addEventListener('mousewheel', function(event) {
+    div.addEventListener('mousewheel', function(event) {
       if (scrollOffset.y > 0 || event.deltaY > 0) {
         clear();
         ctx.translate(0, -event.deltaY);

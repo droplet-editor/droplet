@@ -140,8 +140,10 @@ exports.Path = class Path
     for point in @_points
       ctx.lineTo point.x, point.y
     ctx.lineTo @_points[0].x, @_points[0].y
-    ctx.stroke()
+
+    # Fill and stroke
     if @style.fillColor? then ctx.fill()
+    ctx.stroke()
 
 _CTX = null #Hacky, hacky, hacky
 
