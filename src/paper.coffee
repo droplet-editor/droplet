@@ -6,7 +6,7 @@
 ###
 
 # Constants
-PADDING = 2
+PADDING = 3
 INDENT = 10
 MOUTH_BOTTOM = 50
 DROP_AREA_MAX_WIDTH = 50
@@ -333,6 +333,7 @@ class SocketPaper extends IcePaper
           # We add padding around text
           @bounds[line].y -= PADDING
           @bounds[line].width += 2 * PADDING
+          @bounds[line].x -= PADDING
           @bounds[line].height += 2 * PADDING
 
           # If our width is less than 20px we extend ourselves
@@ -380,6 +381,7 @@ class SocketPaper extends IcePaper
         # We add padding around text
         @bounds[line].y -= PADDING
         @bounds[line].width += 2 * PADDING
+        @bounds[line].x -= PADDING
         @bounds[line].height += 2 * PADDING
 
         # If our width is less than 20px we extend ourselves

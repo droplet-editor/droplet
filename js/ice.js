@@ -573,7 +573,7 @@
   */
 
 
-  PADDING = 2;
+  PADDING = 3;
 
   INDENT = 10;
 
@@ -894,6 +894,7 @@
             this.bounds[line].copy(contentPaper.bounds[line]);
             this.bounds[line].y -= PADDING;
             this.bounds[line].width += 2 * PADDING;
+            this.bounds[line].x -= PADDING;
             this.bounds[line].height += 2 * PADDING;
             this.bounds[line].width = Math.max(this.bounds[line].width, 20);
             this.dropArea = this.bounds[line];
@@ -928,6 +929,7 @@
           this.bounds[line].copy(this._content.paper.bounds[line]);
           this.bounds[line].y -= PADDING;
           this.bounds[line].width += 2 * PADDING;
+          this.bounds[line].x -= PADDING;
           this.bounds[line].height += 2 * PADDING;
           this.bounds[line].width = Math.max(this.bounds[line].width, 20);
         } else {
