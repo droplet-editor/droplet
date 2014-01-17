@@ -413,6 +413,7 @@ EMPTY_INDENT_WIDTH = 50
 
 # Test flag
 window.RUN_PAPER_TESTS = false
+window.PERFORMANCE_TEST = false
 
 class IcePaper
   constructor: (@block) ->
@@ -1107,7 +1108,7 @@ window.onload = ->
 
       
       # Redraw if we must
-      if highlight isnt old_highlight
+      if highlight isnt old_highlight or window.PERFORMANCE_TEST
         clear()
         tree.block.paper.draw ctx
         

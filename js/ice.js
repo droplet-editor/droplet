@@ -594,6 +594,8 @@
 
   window.RUN_PAPER_TESTS = false;
 
+  window.PERFORMANCE_TEST = false;
+
   IcePaper = (function() {
     function IcePaper(block) {
       this.block = block;
@@ -1260,7 +1262,7 @@
           var _ref;
           return (((_ref = block.start.prev) != null ? _ref.type : void 0) !== 'socketStart') && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
         });
-        if (highlight !== old_highlight) {
+        if (highlight !== old_highlight || window.PERFORMANCE_TEST) {
           clear();
           tree.block.paper.draw(ctx);
           if (highlight !== tree.block) {
