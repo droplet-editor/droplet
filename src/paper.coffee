@@ -595,7 +595,10 @@ window.onload = ->
   ###
   
   div.onmousedown = (event) ->
-    point = new draw.Point event.offsetX, event.offsetY
+    if event.offsetX?
+      point = new draw.Point event.offsetX, event.offsetY
+    else
+      point = new draw.Point event.layerX, event.layerY
     point.translate scrollOffset
 
     # First, see if we are trying to focus an empty socket
@@ -695,26 +698,35 @@ window.onload = ->
   div.onmousemove = (event) ->
     if selection?
       # Figure out where we want the selection to go
-      point = new draw.Point event.offsetX, event.offsetY
+      if event.offsetX?
+        point = new draw.Point event.offsetX, event.offsetY
+      else
+        point = new draw.Point event.layerX, event.layerY
       scrollDest = new draw.Point -offset.x + point.x, -offset.y + point.y
       point.translate scrollOffset
       dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
       # Redraw the canvas (don't recompute; this is a fast operation)
-      clear()
-      tree.block.paper.draw ctx
-      
+      old_highlight = highlight
+
       # Find the highlighted area
       highlight = tree.block.find (block) ->
         (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
+
       
-      if highlight isnt tree.block
-        # Highlight the highlighted area
-        highlight.paper.dropArea.fill(ctx, '#fff')
+      # Redraw if we must
+      if highlight isnt old_highlight
+        clear()
+        tree.block.paper.draw ctx
+        
+        if highlight isnt tree.block
+          # Highlight the highlighted area
+          highlight.paper.dropArea.fill(ctx, '#fff')
       
       # css-transform the drag canvas to that area
       dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-      dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+      dragCanvas.style.mozTransform = "translate3d(#{scrollDest.x}px, #{scrollDest.y}px, 0)"
+      dragCanvas.style.transform = "translate3d(#{scrollDest.x}px, #{scrollDest.y}px, 0)"
 
     else if focus? and anchor?
       # Compute the points

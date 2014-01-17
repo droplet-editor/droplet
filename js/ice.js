@@ -1163,7 +1163,11 @@
 
     div.onmousedown = function(event) {
       var bounds, line, point, start, text;
-      point = new draw.Point(event.offsetX, event.offsetY);
+      if (event.offsetX != null) {
+        point = new draw.Point(event.offsetX, event.offsetY);
+      } else {
+        point = new draw.Point(event.layerX, event.layerY);
+      }
       point.translate(scrollOffset);
       focus = tree.block.findSocket(function(block) {
         return block.paper._empty && block.paper.bounds[block.paper._line].contains(point);
@@ -1241,23 +1245,31 @@
       return div.onmousemove(event);
     };
     div.onmousemove = function(event) {
-      var bounds, dest, end, line, point, scrollDest, start, text;
+      var bounds, dest, end, line, old_highlight, point, scrollDest, start, text;
       if (selection != null) {
-        point = new draw.Point(event.offsetX, event.offsetY);
+        if (event.offsetX != null) {
+          point = new draw.Point(event.offsetX, event.offsetY);
+        } else {
+          point = new draw.Point(event.layerX, event.layerY);
+        }
         scrollDest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
         point.translate(scrollOffset);
         dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
-        clear();
-        tree.block.paper.draw(ctx);
+        old_highlight = highlight;
         highlight = tree.block.find(function(block) {
           var _ref;
           return (((_ref = block.start.prev) != null ? _ref.type : void 0) !== 'socketStart') && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
         });
-        if (highlight !== tree.block) {
-          highlight.paper.dropArea.fill(ctx, '#fff');
+        if (highlight !== old_highlight) {
+          clear();
+          tree.block.paper.draw(ctx);
+          if (highlight !== tree.block) {
+            highlight.paper.dropArea.fill(ctx, '#fff');
+          }
         }
         dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
-        return dragCanvas.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+        dragCanvas.style.mozTransform = "translate3d(" + scrollDest.x + "px, " + scrollDest.y + "px, 0)";
+        return dragCanvas.style.transform = "translate3d(" + scrollDest.x + "px, " + scrollDest.y + "px, 0)";
       } else if ((focus != null) && (anchor != null)) {
         text = focus.content();
         line = text.paper._line;
