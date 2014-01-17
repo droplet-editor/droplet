@@ -140,7 +140,7 @@ exports.Path = class Path
     last_point = @_points[0]
     for point in @_points
       # EXPERIMENTAL
-      ctx.lineTo point.x, last_point.y
+      ctx.lineTo last_point.x, point.y
       ctx.lineTo point.x, point.y
       last_point = point
       #ctx.lineTo point.x, point.y # DEFAULT

@@ -235,7 +235,7 @@
       _ref = this._points;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         point = _ref[_i];
-        ctx.lineTo(point.x, last_point.y);
+        ctx.lineTo(last_point.x, point.y);
         ctx.lineTo(point.x, point.y);
         last_point = point;
       }
