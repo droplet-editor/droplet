@@ -223,7 +223,7 @@
     };
 
     Path.prototype.draw = function(ctx) {
-      var point, _i, _len, _ref;
+      var last_point, point, _i, _len, _ref;
       this._clearCache();
       ctx.strokeStyle = this.style.strokeColor;
       if (this.style.fillColor != null) {
@@ -231,10 +231,13 @@
       }
       ctx.beginPath();
       ctx.moveTo(this._points[0].x, this._points[0].y);
+      last_point = this._points[0];
       _ref = this._points;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         point = _ref[_i];
+        ctx.lineTo(point.x, last_point.y);
         ctx.lineTo(point.x, point.y);
+        last_point = point;
       }
       ctx.lineTo(this._points[0].x, this._points[0].y);
       if (this.style.fillColor != null) {

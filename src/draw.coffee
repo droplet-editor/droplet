@@ -137,8 +137,13 @@ exports.Path = class Path
     if @style.fillColor? then ctx.fillStyle = @style.fillColor
     ctx.beginPath()
     ctx.moveTo @_points[0].x, @_points[0].y
+    last_point = @_points[0]
     for point in @_points
+      # EXPERIMENTAL
+      ctx.lineTo point.x, last_point.y
       ctx.lineTo point.x, point.y
+      last_point = point
+      #ctx.lineTo point.x, point.y # DEFAULT
     ctx.lineTo @_points[0].x, @_points[0].y
 
     # Fill and stroke

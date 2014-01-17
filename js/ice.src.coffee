@@ -5,14 +5,17 @@
 # Tree classes and operations for ICE editor.
 ###
 
+exports = {}
+
 ###
 # A Block is a bunch of tokens that are grouped together.
 ###
-class Block
+exports.Block = class Block
   constructor: (contents) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
     @type = 'block'
+    @color = '#ddf'
 
     # Fill up the linked list with the array of tokens we got.
     head = @start
@@ -100,7 +103,7 @@ class Block
     string = @start.toString(state)
     return string[..string.length-@end.toString(state).length-1]
 
-class Indent
+exports.Indent = class Indent
   constructor: (contents, @depth) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
@@ -133,7 +136,7 @@ class Indent
     # Couldn't find any, so we are the innermost child fitting f()
     return this
 
-class Socket
+exports.Socket = class Socket
   constructor: (content) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
@@ -180,7 +183,7 @@ class Socket
 
   toString: (state) -> if @content()? then @content().toString({indent:''}) else ''
   
-class Token
+exports.Token = class Token
   constructor: ->
     @prev = @next = null
 
@@ -206,7 +209,7 @@ class Token
 ###
 # Special kinds of tokens
 ###
-class TextToken extends Token
+exports.TextToken = class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null
     @paper = new TextTokenPaper this
@@ -215,17 +218,17 @@ class TextToken extends Token
   toString: (state) ->
     @value + if @next? then @next.toString(state) else ''
 
-class BlockStartToken extends Token
+exports.BlockStartToken = class BlockStartToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockStart'
 
-class BlockEndToken extends Token
+exports.BlockEndToken = class BlockEndToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockEnd'
 
-class NewlineToken extends Token
+exports.NewlineToken = class NewlineToken extends Token
   constructor: ->
     @prev = @next = null
     @type = 'newline'
@@ -233,7 +236,7 @@ class NewlineToken extends Token
   toString: (state) ->
     '\n' + state.indent + if @next then @next.toString(state) else ''
 
-class IndentStartToken extends Token
+exports.IndentStartToken = class IndentStartToken extends Token
   constructor: (@indent) ->
     @prev = @next =  null
     @type = 'indentStart'
@@ -242,7 +245,7 @@ class IndentStartToken extends Token
     state.indent += (' ' for [1..@indent.depth]).join ''
     if @next then @next.toString(state) else ''
 
-class IndentEndToken extends Token
+exports.IndentEndToken = class IndentEndToken extends Token
   constructor: (@indent) ->
     @prev = @next =  null
     @type = 'indentEnd'
@@ -251,12 +254,12 @@ class IndentEndToken extends Token
     state.indent = state.indent[...-@indent.depth]
     if @next then @next.toString(state) else ''
 
-class SocketStartToken extends Token
+exports.SocketStartToken = class SocketStartToken extends Token
   constructor: (@socket) ->
     @prev = @next = null
     @type = 'socketStart'
 
-class SocketEndToken extends Token
+exports.SocketEndToken = class SocketEndToken extends Token
   constructor: (@socket) ->
     @prev = @next = null
     @type = 'socketEnd'
@@ -265,7 +268,7 @@ class SocketEndToken extends Token
 # Example LISP parser/
 ###
 
-lispParse = (str) ->
+exports.lispParse = (str) ->
   currentString = ''
   first = head = new TextToken ''
   block_stack = []
@@ -313,7 +316,7 @@ lispParse = (str) ->
   head = head.append new TextToken currentString
   return first
 
-indentParse = (str) ->
+exports.indentParse = (str) ->
   # Then generate the ICE token list
   head = first = new TextToken ''
   
@@ -385,9 +388,7 @@ indentParse = (str) ->
   
   return first.next.next
 
-window.ICE =
-  lispParse: lispParse
-  indentParse: indentParse
+window.ICE = exports
 
 ###
 # Copyright (c) 2014 Anthony Bau
@@ -589,12 +590,8 @@ class BlockPaper extends IcePaper
         cursor.add INDENT, 0
 
         indentChild = child
-        
-        # Super hack
-        if child.bounds[line].height is 0
-          child.setLeftCenter line, cursor
-        else
-          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
+
+        child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
 
         # Deal with the special case of an empty indent
         if child.bounds[line].height is 0
@@ -671,7 +668,7 @@ class BlockPaper extends IcePaper
 
     # Do some styling
     @_container.style.strokeColor='#000'
-    @_container.style.fillColor='#ddf'
+    @_container.style.fillColor = @block.color
 
     @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
     
@@ -945,7 +942,7 @@ window.onload = ->
   out = document.getElementById('out')
   
   div = document.getElementsByClassName('trackArea')[0]
-
+  ###
   tree = ICE.indentParse '''
 (defun turing (lambda (tuples left right state)
   ((lambda (tuple)
@@ -956,6 +953,17 @@ window.onload = ->
           (turing tuples left right (car (cdr tuple))))))
     (lookup tuples (car right) state))))
 '''
+  ###
+  tree = coffee.parse '''
+    window.onload = ->
+      if document.getElementsByClassName('test').length > 0
+        for [1..10]
+          document.body.appendChild document.createElement 'script'
+        alert 'found a test element'
+      document.getElementsByTagName('button').onclick = ->
+        alert 'somebody clicked a button'
+  '''
+
   scrollOffset = new draw.Point 0, 0
   highlight = selection = offset = input = focus = anchor = head = null
 
@@ -1005,7 +1013,7 @@ window.onload = ->
       redraw()
 
       # Bind the update to the input's key handlers
-      input.onkeydown = input.onkeyup =  ->
+      input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = ->
         text.value = this.value
         
         # Recompute the socket itself
@@ -1040,7 +1048,7 @@ window.onload = ->
       setTimeout (->
         input.focus()
         input.setSelectionRange anchor, anchor
-        input.onkeydown.call input
+        input.dispatchEvent(new CustomEvent('input'))
       ), 0
 
       return
@@ -1049,7 +1057,8 @@ window.onload = ->
     selection = tree.block.findBlock (block) ->
       block.paper._container.contains point
 
-    if selection is tree.block then return
+    if selection is tree.block
+      selection = null; return
 
     # Remove the newline before, if necessary
     if selection.start.prev.type is 'newline'
@@ -1139,7 +1148,6 @@ window.onload = ->
         redraw()
     else if focus?
       # Make the selection
-      console.log anchor, head
       input.setSelectionRange Math.min(anchor, head), Math.max(anchor, head)
 
       # Stop selecting
@@ -1165,7 +1173,7 @@ window.onload = ->
   
   out.onkeyup = ->
     try
-      tree = ICE.indentParse out.value
+      tree = coffee.parse out.value#ICE.indentParse out.value
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       tree.block.paper.compute {line: 0}
       tree.block.paper.finish()

@@ -5,14 +5,17 @@
 # Tree classes and operations for ICE editor.
 ###
 
+exports = {}
+
 ###
 # A Block is a bunch of tokens that are grouped together.
 ###
-class Block
+exports.Block = class Block
   constructor: (contents) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
     @type = 'block'
+    @color = '#ddf'
 
     # Fill up the linked list with the array of tokens we got.
     head = @start
@@ -100,7 +103,7 @@ class Block
     string = @start.toString(state)
     return string[..string.length-@end.toString(state).length-1]
 
-class Indent
+exports.Indent = class Indent
   constructor: (contents, @depth) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
@@ -133,7 +136,7 @@ class Indent
     # Couldn't find any, so we are the innermost child fitting f()
     return this
 
-class Socket
+exports.Socket = class Socket
   constructor: (content) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
@@ -180,7 +183,7 @@ class Socket
 
   toString: (state) -> if @content()? then @content().toString({indent:''}) else ''
   
-class Token
+exports.Token = class Token
   constructor: ->
     @prev = @next = null
 
@@ -206,7 +209,7 @@ class Token
 ###
 # Special kinds of tokens
 ###
-class TextToken extends Token
+exports.TextToken = class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null
     @paper = new TextTokenPaper this
@@ -215,17 +218,17 @@ class TextToken extends Token
   toString: (state) ->
     @value + if @next? then @next.toString(state) else ''
 
-class BlockStartToken extends Token
+exports.BlockStartToken = class BlockStartToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockStart'
 
-class BlockEndToken extends Token
+exports.BlockEndToken = class BlockEndToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockEnd'
 
-class NewlineToken extends Token
+exports.NewlineToken = class NewlineToken extends Token
   constructor: ->
     @prev = @next = null
     @type = 'newline'
@@ -233,7 +236,7 @@ class NewlineToken extends Token
   toString: (state) ->
     '\n' + state.indent + if @next then @next.toString(state) else ''
 
-class IndentStartToken extends Token
+exports.IndentStartToken = class IndentStartToken extends Token
   constructor: (@indent) ->
     @prev = @next =  null
     @type = 'indentStart'
@@ -242,7 +245,7 @@ class IndentStartToken extends Token
     state.indent += (' ' for [1..@indent.depth]).join ''
     if @next then @next.toString(state) else ''
 
-class IndentEndToken extends Token
+exports.IndentEndToken = class IndentEndToken extends Token
   constructor: (@indent) ->
     @prev = @next =  null
     @type = 'indentEnd'
@@ -251,12 +254,12 @@ class IndentEndToken extends Token
     state.indent = state.indent[...-@indent.depth]
     if @next then @next.toString(state) else ''
 
-class SocketStartToken extends Token
+exports.SocketStartToken = class SocketStartToken extends Token
   constructor: (@socket) ->
     @prev = @next = null
     @type = 'socketStart'
 
-class SocketEndToken extends Token
+exports.SocketEndToken = class SocketEndToken extends Token
   constructor: (@socket) ->
     @prev = @next = null
     @type = 'socketEnd'
@@ -265,7 +268,7 @@ class SocketEndToken extends Token
 # Example LISP parser/
 ###
 
-lispParse = (str) ->
+exports.lispParse = (str) ->
   currentString = ''
   first = head = new TextToken ''
   block_stack = []
@@ -313,7 +316,7 @@ lispParse = (str) ->
   head = head.append new TextToken currentString
   return first
 
-indentParse = (str) ->
+exports.indentParse = (str) ->
   # Then generate the ICE token list
   head = first = new TextToken ''
   
@@ -385,6 +388,4 @@ indentParse = (str) ->
   
   return first.next.next
 
-window.ICE =
-  lispParse: lispParse
-  indentParse: indentParse
+window.ICE = exports

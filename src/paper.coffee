@@ -198,12 +198,8 @@ class BlockPaper extends IcePaper
         cursor.add INDENT, 0
 
         indentChild = child
-        
-        # Super hack
-        if child.bounds[line].height is 0
-          child.setLeftCenter line, cursor
-        else
-          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
+
+        child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
 
         # Deal with the special case of an empty indent
         if child.bounds[line].height is 0
@@ -280,7 +276,7 @@ class BlockPaper extends IcePaper
 
     # Do some styling
     @_container.style.strokeColor='#000'
-    @_container.style.fillColor='#ddf'
+    @_container.style.fillColor = @block.color
 
     @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
     
@@ -554,7 +550,7 @@ window.onload = ->
   out = document.getElementById('out')
   
   div = document.getElementsByClassName('trackArea')[0]
-
+  ###
   tree = ICE.indentParse '''
 (defun turing (lambda (tuples left right state)
   ((lambda (tuple)
@@ -565,6 +561,17 @@ window.onload = ->
           (turing tuples left right (car (cdr tuple))))))
     (lookup tuples (car right) state))))
 '''
+  ###
+  tree = coffee.parse '''
+    window.onload = ->
+      if document.getElementsByClassName('test').length > 0
+        for [1..10]
+          document.body.appendChild document.createElement 'script'
+        alert 'found a test element'
+      document.getElementsByTagName('button').onclick = ->
+        alert 'somebody clicked a button'
+  '''
+
   scrollOffset = new draw.Point 0, 0
   highlight = selection = offset = input = focus = anchor = head = null
 
@@ -614,7 +621,7 @@ window.onload = ->
       redraw()
 
       # Bind the update to the input's key handlers
-      input.onkeydown = input.onkeyup =  ->
+      input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = ->
         text.value = this.value
         
         # Recompute the socket itself
@@ -649,7 +656,7 @@ window.onload = ->
       setTimeout (->
         input.focus()
         input.setSelectionRange anchor, anchor
-        input.onkeydown.call input
+        input.dispatchEvent(new CustomEvent('input'))
       ), 0
 
       return
@@ -658,7 +665,8 @@ window.onload = ->
     selection = tree.block.findBlock (block) ->
       block.paper._container.contains point
 
-    if selection is tree.block then return
+    if selection is tree.block
+      selection = null; return
 
     # Remove the newline before, if necessary
     if selection.start.prev.type is 'newline'
@@ -748,7 +756,6 @@ window.onload = ->
         redraw()
     else if focus?
       # Make the selection
-      console.log anchor, head
       input.setSelectionRange Math.min(anchor, head), Math.max(anchor, head)
 
       # Stop selecting
@@ -774,7 +781,7 @@ window.onload = ->
   
   out.onkeyup = ->
     try
-      tree = ICE.indentParse out.value
+      tree = coffee.parse out.value#ICE.indentParse out.value
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       tree.block.paper.compute {line: 0}
       tree.block.paper.finish()

@@ -10,6 +10,8 @@ module.exports = (grunt) ->
           'js/drawTest.js': ['src/drawTest.coffee']
           'js/ice.js': ['src/ice.coffee', 'src/paper.coffee']
           'js/tests.js': ['src/tests.coffee']
+          'js/coffee.js': ['src/coffee.coffee']
+
     uglify:
       options:
         banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
@@ -25,7 +27,7 @@ module.exports = (grunt) ->
         separator: ';'
       build:
         files:
-          'dist/ice.min.js': ['vendor/underscore-min.js', 'js/draw.min.js', 'js/ice.min.js']
+          'dist/ice.min.js': ['vendor/underscore-min.js', 'vendor/coffee-script.js', 'js/draw.min.js', 'js/ice.min.js']
           'dist/tests.min.js': ['vendor/qunit.min.js', 'js/tests.min.js']
 
     qunit:

@@ -6,22 +6,25 @@
 */
 
 
-/*
-# A Block is a bunch of tokens that are grouped together.
-*/
-
-
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, indentParse, lispParse,
+  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, exports,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  Block = (function() {
+  exports = {};
+
+  /*
+  # A Block is a bunch of tokens that are grouped together.
+  */
+
+
+  exports.Block = Block = (function() {
     function Block(contents) {
       var head, token, _i, _len;
       this.start = new BlockStartToken(this);
       this.end = new BlockEndToken(this);
       this.type = 'block';
+      this.color = '#ddf';
       head = this.start;
       for (_i = 0, _len = contents.length; _i < _len; _i++) {
         token = contents[_i];
@@ -131,7 +134,7 @@
 
   })();
 
-  Indent = (function() {
+  exports.Indent = Indent = (function() {
     function Indent(contents, depth) {
       var block, head, _i, _len;
       this.depth = depth;
@@ -177,7 +180,7 @@
 
   })();
 
-  Socket = (function() {
+  exports.Socket = Socket = (function() {
     function Socket(content) {
       this.start = new SocketStartToken(this);
       this.end = new SocketEndToken(this);
@@ -250,7 +253,7 @@
 
   })();
 
-  Token = (function() {
+  exports.Token = Token = (function() {
     function Token() {
       this.prev = this.next = null;
     }
@@ -297,7 +300,7 @@
   */
 
 
-  TextToken = (function(_super) {
+  exports.TextToken = TextToken = (function(_super) {
     __extends(TextToken, _super);
 
     function TextToken(value) {
@@ -315,7 +318,7 @@
 
   })(Token);
 
-  BlockStartToken = (function(_super) {
+  exports.BlockStartToken = BlockStartToken = (function(_super) {
     __extends(BlockStartToken, _super);
 
     function BlockStartToken(block) {
@@ -328,7 +331,7 @@
 
   })(Token);
 
-  BlockEndToken = (function(_super) {
+  exports.BlockEndToken = BlockEndToken = (function(_super) {
     __extends(BlockEndToken, _super);
 
     function BlockEndToken(block) {
@@ -341,7 +344,7 @@
 
   })(Token);
 
-  NewlineToken = (function(_super) {
+  exports.NewlineToken = NewlineToken = (function(_super) {
     __extends(NewlineToken, _super);
 
     function NewlineToken() {
@@ -357,7 +360,7 @@
 
   })(Token);
 
-  IndentStartToken = (function(_super) {
+  exports.IndentStartToken = IndentStartToken = (function(_super) {
     __extends(IndentStartToken, _super);
 
     function IndentStartToken(indent) {
@@ -386,7 +389,7 @@
 
   })(Token);
 
-  IndentEndToken = (function(_super) {
+  exports.IndentEndToken = IndentEndToken = (function(_super) {
     __extends(IndentEndToken, _super);
 
     function IndentEndToken(indent) {
@@ -408,7 +411,7 @@
 
   })(Token);
 
-  SocketStartToken = (function(_super) {
+  exports.SocketStartToken = SocketStartToken = (function(_super) {
     __extends(SocketStartToken, _super);
 
     function SocketStartToken(socket) {
@@ -421,7 +424,7 @@
 
   })(Token);
 
-  SocketEndToken = (function(_super) {
+  exports.SocketEndToken = SocketEndToken = (function(_super) {
     __extends(SocketEndToken, _super);
 
     function SocketEndToken(socket) {
@@ -439,7 +442,7 @@
   */
 
 
-  lispParse = function(str) {
+  exports.lispParse = function(str) {
     var block, block_stack, char, currentString, first, head, socket, socket_stack, _i, _len;
     currentString = '';
     first = head = new TextToken('');
@@ -482,7 +485,7 @@
     return first;
   };
 
-  indentParse = function(str) {
+  exports.indentParse = function(str) {
     var block, char, currentString, depth_stack, first, head, indent, line, popped, socket, stack, _i, _j, _len, _len1, _ref, _ref1;
     head = first = new TextToken('');
     stack = [];
@@ -560,10 +563,7 @@
     return first.next.next;
   };
 
-  window.ICE = {
-    lispParse: lispParse,
-    indentParse: indentParse
-  };
+  window.ICE = exports;
 
   /*
   # Copyright (c) 2014 Anthony Bau
@@ -755,11 +755,7 @@
           this.indentEnd[line] = (line === child.lineEnd) || child.indentEnd[line];
           cursor.add(INDENT, 0);
           indentChild = child;
-          if (child.bounds[line].height === 0) {
-            child.setLeftCenter(line, cursor);
-          } else {
-            child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
-          }
+          child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
           if (child.bounds[line].height === 0) {
             this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
             this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].y + 5));
@@ -828,7 +824,7 @@
         }
       }
       this._container.style.strokeColor = '#000';
-      this._container.style.fillColor = '#ddf';
+      this._container.style.fillColor = this.block.color;
       this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
       _ref2 = this.children;
       _results = [];
@@ -1128,7 +1124,20 @@
     dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d');
     out = document.getElementById('out');
     div = document.getElementsByClassName('trackArea')[0];
-    tree = ICE.indentParse('(defun turing (lambda (tuples left right state)\n  ((lambda (tuple)\n      (if (= (car tuple) -1)\n        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))\n        (if (= (car tuple 1))\n          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))\n          (turing tuples left right (car (cdr tuple))))))\n    (lookup tuples (car right) state))))');
+    /*
+    tree = ICE.indentParse '''
+    (defun turing (lambda (tuples left right state)
+    ((lambda (tuple)
+        (if (= (car tuple) -1)
+          (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))
+          (if (= (car tuple 1))
+            (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))
+            (turing tuples left right (car (cdr tuple))))))
+      (lookup tuples (car right) state))))
+    '''
+    */
+
+    tree = coffee.parse('window.onload = ->\n  if document.getElementsByClassName(\'test\').length > 0\n    for [1..10]\n      document.body.appendChild document.createElement \'script\'\n    alert \'found a test element\'\n  document.getElementsByTagName(\'button\').onclick = ->\n    alert \'somebody clicked a button\'');
     scrollOffset = new draw.Point(0, 0);
     highlight = selection = offset = input = focus = anchor = head = null;
     clear = function() {
@@ -1172,7 +1181,7 @@
         input.value = focus.content().value;
         anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
         redraw();
-        input.onkeydown = input.onkeyup = function() {
+        input.addEventListener('input', input.onkeydown = input.onkeyup = input.onkeypress = function() {
           var end, old_bounds;
           text.value = this.value;
           text.paper.compute({
@@ -1200,11 +1209,11 @@
             ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
             return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
           }
-        };
+        });
         setTimeout((function() {
           input.focus();
           input.setSelectionRange(anchor, anchor);
-          return input.onkeydown.call(input);
+          return input.dispatchEvent(new CustomEvent('input'));
         }), 0);
         return;
       }
@@ -1212,6 +1221,7 @@
         return block.paper._container.contains(point);
       });
       if (selection === tree.block) {
+        selection = null;
         return;
       }
       if (selection.start.prev.type === 'newline') {
@@ -1284,7 +1294,6 @@
           redraw();
         }
       } else if (focus != null) {
-        console.log(anchor, head);
         input.setSelectionRange(Math.min(anchor, head), Math.max(anchor, head));
         anchor = head = null;
       }
@@ -1305,7 +1314,7 @@
     return out.onkeyup = function() {
       var e;
       try {
-        tree = ICE.indentParse(out.value);
+        tree = coffee.parse(out.value);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         tree.block.paper.compute({
           line: 0
