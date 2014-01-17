@@ -1252,7 +1252,7 @@
           return (((_ref = block.start.prev) != null ? _ref.type : void 0) !== 'socketStart') && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
         });
         if (highlight !== tree.block) {
-          highlight.paper.dropArea.fill(ctx, '#f00');
+          highlight.paper.dropArea.fill(ctx, '#fff');
         }
         dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
         return dragCanvas.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";

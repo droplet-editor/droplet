@@ -1100,7 +1100,7 @@ window.onload = ->
       
       if highlight isnt tree.block
         # Highlight the highlighted area
-        highlight.paper.dropArea.fill(ctx, '#f00')
+        highlight.paper.dropArea.fill(ctx, '#fff')
       
       # css-transform the drag canvas to that area
       dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
