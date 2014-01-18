@@ -199,6 +199,98 @@ exports.Indent = class Indent
     # Couldn't find any, so we are the innermost child fitting f()
     return this
 
+exports.Segment = class Segment
+  constructor: (contents) ->
+    @start = new SegmentStartToken this
+    @end = new SegmentEndToken this
+    @type = 'indent'
+    
+    head = @start
+    for block in contents
+      head = head.append block.clone()
+    head.append @end
+    
+    @paper = new IndentPaper this
+
+  clone: ->
+    clone = new Indent [], @depth
+    head = @start.next
+    cursor = clone.start
+    while head isnt @end
+      switch head.type
+        when 'blockStart'
+          block_clone = head.block.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.block.end
+        when 'socketStart'
+          block_clone = head.socket.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.socket.end
+        when 'indentStart'
+          block_clone = head.indent.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.indent.end
+        else
+          cursor = cursor.append head.clone()
+      head = head.next
+    cursor.append clone.end
+
+    return clone
+
+  embedded: -> false
+
+  _moveTo: (parent) ->
+    # Unsplice ourselves
+    if @start.prev? then @start.prev.next = @end.next
+    if @end.next? then @end.next.prev = @start.prev
+    @start.prev = @end.next = null
+    
+    # Splice ourselves into the requested parent
+    if parent?
+      @end.next = parent.next
+      parent.next.prev = @end
+
+      parent.next= @start
+      @start.prev = parent
+  
+  findBlock: (f) ->
+    # Find the innermost child fitting function f(x)
+    head = @start.next
+    while head isnt @end
+      # If we found a child block, find in there
+      if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
+        #else head = head.block.end
+      head = head.next
+
+    # Couldn't find any, so we are the innermost child fitting f()
+    return null
+  
+  findSocket: (f) ->
+    head = @start.next
+    while head isnt @end
+      if head.type is 'socketStart' and f(head.socket) then return head.socket.findSocket f
+      head = head.next
+    return null
+  
+  find: (f) ->
+    # Find the innermost child fitting function f(x)
+    head = @start.next
+    while head isnt @end
+      # If we found a child block, find in there
+      if head.type is 'blockStart' and f(head.block) then return head.block.find f
+      else if head.type is 'indentStart' and f(head.indent) then return head.indent.find f
+      else if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
+      head = head.next
+
+    # Couldn't find any, so we are the innermost child fitting f()
+    return null
+
 exports.Socket = class Socket
   constructor: (content) ->
     @start = new SocketStartToken this
@@ -345,6 +437,16 @@ exports.SocketEndToken = class SocketEndToken extends Token
   constructor: (@socket) ->
     @prev = @next = null
     @type = 'socketEnd'
+
+exports.SegmentStartToken = class SegmentEndToken extends Token
+  constructor: (@segment) ->
+    @prev = @next = null
+    @type = 'segmentStart'
+
+exports.SegmentEndToken = class SegmentEndToken extends Token
+  constructor: (@segment) ->
+    @prev = @next = null
+    @type = 'segmentEnd'
 
 ###
 # Example LISP parser/

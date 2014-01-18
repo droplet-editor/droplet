@@ -538,6 +538,90 @@ class IndentPaper extends IcePaper
 
   setPosition: (point) -> @translate point.from @point
 
+class SegmentPaper extends IcePaper
+  constructor: (block) ->
+    super(block)
+    @_lineBlocks = {} # Which block occupies each line?
+
+  compute: (state) ->
+    @bounds = {}
+    @lineGroups = {}
+    @_lineBlocks = {}
+    @indentEnd = {}
+    @group = new draw.Group()
+    @children = []
+    
+    # We need to record our starting line
+    @lineStart = state.line += 1
+
+    # In a Segment, each line contains exactly one block. So that's all we have to consider.
+    head = @block.start.next
+
+    # This is a hack to deal with empty indents
+    if @block.start.next is @block.end then head = @block.end
+
+    # Loop
+    while head isnt @block.end
+      switch head.type
+        when 'blockStart'
+          @children.push head.block.paper.compute state
+          @group.push head.block.paper.group
+          head = head.block.end
+
+        when 'newline'
+          state.line += 1
+
+      head = head.next
+    
+    @lineEnd = state.line
+
+    # Now go through and mimic all the blocks on each line
+    
+    i = 0 # Again, performance reasons
+    for line in [@lineStart..@lineEnd]
+      # If we need to move on to the next block, do so
+      until line <= @children[i].lineEnd
+        i += 1
+
+      # Copy the block we're on here
+      @bounds[line] = @children[i].bounds[line]
+      @lineGroups[line] = new draw.Group()
+      @indentEnd[line] = @children[i].indentEnd[line]
+      @lineGroups[line].push @children[i].lineGroups[line]
+      @_lineBlocks[line] = @children[i]
+    
+    # We're done! Return ourselves for chaining.
+    return this
+
+  finish: ->
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    for child in @children
+      child.finish()
+  
+  setLeftCenter: (line, point) ->
+    # Delegate right away.
+    if @_lineBlocks[line]?
+      @_lineBlocks[line].setLeftCenter line, point
+      @lineGroups[line].recompute()
+    else
+      @bounds[@lineStart].clear()
+      @bounds[@lineStart].swallow(point)
+      @bounds[@lineStart].width = EMPTY_INDENT_WIDTH
+
+  draw: (ctx) ->
+    # Delegate right away.
+    for child in @children
+      child.draw ctx
+
+  translate: (vector) ->
+    @point.add vector
+
+    # Delegate right away.
+    for child in @children
+      child.translate vector
+
+  setPosition: (point) -> @translate point.from @point
+
 class TextTokenPaper extends IcePaper
   constructor: (block) ->
     super(block)
@@ -602,6 +686,7 @@ window.onload = ->
   # All benchmarked to 1.142 milliseconds. Pretty good!
   clear = ->
     ctx.clearRect scrollOffset.x, scrollOffset.y, canvas.width, canvas.height
+
   redraw = ->
     clear()
     tree.block.paper.compute {line: 0}
@@ -609,8 +694,21 @@ window.onload = ->
     tree.block.paper.draw ctx
     out.value = tree.block.toString {indent: ''}
 
-  redraw()
+    for block in floating_blocks
+      block.block.paper.compute line: 0
+      block.block.paper.translate block.position
+      block.block.paper.finish()
+      block.block.paper.draw ctx
 
+  fastDraw = ->
+    clear()
+    tree.block.paper.draw ctx
+
+    for block in floating_blocks
+      block.block.paper.draw ctx
+  
+  floating_blocks = []
+  redraw()
 
   ###
   # Here to below will eventually become part of the IceEditor() class
@@ -665,10 +763,8 @@ window.onload = ->
           tree.block.paper.setLeftCenter line, new draw.Point 0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - 1
         tree.block.paper.finish()
         
-        clear()
-        
         # Do the fast draw operation and toString() operation.
-        tree.block.paper.draw ctx
+        fastDraw()
         out.value = tree.block.toString {indent: ''}
 
         # Draw the typing cursor
@@ -697,25 +793,32 @@ window.onload = ->
     cloneLater = false
 
     if selection is tree.block
-      # See if we matched any palette blocks
-      point.add PALETTE_WIDTH, 0
-      point.add -scrollOffset.x, -scrollOffset.y
-
-      for block in palette_blocks
-        if block.paper._container.contains point
-          # We're grabbing this block
-          selection = block
-
-          # Actually, we are copying from the palette
-          cloneLater = true
+      selection = null
+      for block, i in floating_blocks
+        if block.block.findBlock((block) -> block.paper._container.contains point).paper._container.contains point
+          floating_blocks.splice i, 1
+          selection = block.block
           break
         else selection = null
-      
-      # If we haven't found any palette match, return
-      if selection is tree.block or selection is null then selection = null; return
+
+      unless selection?
+        # See if we matched any palette blocks
+        point.add PALETTE_WIDTH, 0
+        point.add -scrollOffset.x, -scrollOffset.y
+
+        for block in palette_blocks
+          if block.paper._container.contains point
+            # We're grabbing this block
+            selection = block
+
+            # Actually, we are copying from the palette
+            cloneLater = true
+            break
+          else selection = null
+      unless selection? then return
 
     # Remove the newline before, if necessary
-    if selection.start.prev.type is 'newline'
+    if selection.start.prev? and selection.start.prev.type is 'newline'
       selection.start.prev.remove()
 
     # Compute the offset of our cursor from the selection position (for drag-and-drop)
@@ -751,7 +854,6 @@ window.onload = ->
       point.translate scrollOffset
       dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
-      # Redraw the canvas (don't recompute; this is a fast operation)
       old_highlight = highlight
 
       # Find the highlighted area
@@ -760,8 +862,7 @@ window.onload = ->
       
       # Redraw if we must
       if highlight isnt old_highlight or window.PERFORMANCE_TEST
-        clear()
-        tree.block.paper.draw ctx
+        fastDraw()
         
         if highlight isnt tree.block
           # Highlight the highlighted area
@@ -812,6 +913,26 @@ window.onload = ->
 
         # Redraw the root tree
         redraw()
+      else
+        # Determine the place we want to draw the thing
+        if event.offsetX?
+          point = new draw.Point event.offsetX, event.offsetY
+        else
+          point = new draw.Point event.layerX, event.layerY
+        point.add -PALETTE_WIDTH, 0
+        point.translate scrollOffset
+
+        dest = new draw.Point -offset.x + point.x, -offset.y + point.y
+
+        # Draw the selection on the back canvas
+        selection.paper.compute line: 0
+        selection.paper.translate dest
+        selection.paper.finish()
+        selection.paper.draw ctx
+
+        # Push this to the set of floating blocks
+        floating_blocks.push block: selection, position: dest
+
     else if focus?
       # Make the selection
       input.setSelectionRange Math.min(anchor, head), Math.max(anchor, head)

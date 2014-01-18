@@ -7,7 +7,7 @@
 
 
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, PALETTE_WHITESPACE, PALETTE_WIDTH, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, exports,
+  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, PALETTE_WHITESPACE, PALETTE_WIDTH, Segment, SegmentEndToken, SegmentPaper, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, exports,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -252,6 +252,122 @@
     };
 
     return Indent;
+
+  })();
+
+  exports.Segment = Segment = (function() {
+    function Segment(contents) {
+      var block, head, _i, _len;
+      this.start = new SegmentStartToken(this);
+      this.end = new SegmentEndToken(this);
+      this.type = 'indent';
+      head = this.start;
+      for (_i = 0, _len = contents.length; _i < _len; _i++) {
+        block = contents[_i];
+        head = head.append(block.clone());
+      }
+      head.append(this.end);
+      this.paper = new IndentPaper(this);
+    }
+
+    Segment.prototype.clone = function() {
+      var block_clone, clone, cursor, head;
+      clone = new Indent([], this.depth);
+      head = this.start.next;
+      cursor = clone.start;
+      while (head !== this.end) {
+        switch (head.type) {
+          case 'blockStart':
+            block_clone = head.block.clone();
+            block_clone.start.prev = cursor;
+            cursor.next = block_clone.start;
+            cursor = block_clone.end;
+            head = head.block.end;
+            break;
+          case 'socketStart':
+            block_clone = head.socket.clone();
+            block_clone.start.prev = cursor;
+            cursor.next = block_clone.start;
+            cursor = block_clone.end;
+            head = head.socket.end;
+            break;
+          case 'indentStart':
+            block_clone = head.indent.clone();
+            block_clone.start.prev = cursor;
+            cursor.next = block_clone.start;
+            cursor = block_clone.end;
+            head = head.indent.end;
+            break;
+          default:
+            cursor = cursor.append(head.clone());
+        }
+        head = head.next;
+      }
+      cursor.append(clone.end);
+      return clone;
+    };
+
+    Segment.prototype.embedded = function() {
+      return false;
+    };
+
+    Segment.prototype._moveTo = function(parent) {
+      if (this.start.prev != null) {
+        this.start.prev.next = this.end.next;
+      }
+      if (this.end.next != null) {
+        this.end.next.prev = this.start.prev;
+      }
+      this.start.prev = this.end.next = null;
+      if (parent != null) {
+        this.end.next = parent.next;
+        parent.next.prev = this.end;
+        parent.next = this.start;
+        return this.start.prev = parent;
+      }
+    };
+
+    Segment.prototype.findBlock = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'blockStart' && f(head.block)) {
+          return head.block.findBlock(f);
+        }
+        head = head.next;
+      }
+      return null;
+    };
+
+    Segment.prototype.findSocket = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.findSocket(f);
+        }
+        head = head.next;
+      }
+      return null;
+    };
+
+    Segment.prototype.find = function(f) {
+      var head;
+      head = this.start.next;
+      while (head !== this.end) {
+        if (head.type === 'blockStart' && f(head.block)) {
+          return head.block.find(f);
+        } else if (head.type === 'indentStart' && f(head.indent)) {
+          return head.indent.find(f);
+        } else if (head.type === 'socketStart' && f(head.socket)) {
+          return head.socket.find(f);
+        }
+        head = head.next;
+      }
+      return null;
+    };
+
+    return Segment;
 
   })();
 
@@ -532,6 +648,32 @@
     }
 
     return SocketEndToken;
+
+  })(Token);
+
+  exports.SegmentStartToken = SegmentEndToken = (function(_super) {
+    __extends(SegmentEndToken, _super);
+
+    function SegmentEndToken(segment) {
+      this.segment = segment;
+      this.prev = this.next = null;
+      this.type = 'segmentStart';
+    }
+
+    return SegmentEndToken;
+
+  })(Token);
+
+  exports.SegmentEndToken = SegmentEndToken = (function(_super) {
+    __extends(SegmentEndToken, _super);
+
+    function SegmentEndToken(segment) {
+      this.segment = segment;
+      this.prev = this.next = null;
+      this.type = 'segmentEnd';
+    }
+
+    return SegmentEndToken;
 
   })(Token);
 
@@ -1213,6 +1355,108 @@
 
   })(IcePaper);
 
+  SegmentPaper = (function(_super) {
+    __extends(SegmentPaper, _super);
+
+    function SegmentPaper(block) {
+      SegmentPaper.__super__.constructor.call(this, block);
+      this._lineBlocks = {};
+    }
+
+    SegmentPaper.prototype.compute = function(state) {
+      var head, i, line, _i, _ref, _ref1;
+      this.bounds = {};
+      this.lineGroups = {};
+      this._lineBlocks = {};
+      this.indentEnd = {};
+      this.group = new draw.Group();
+      this.children = [];
+      this.lineStart = state.line += 1;
+      head = this.block.start.next;
+      if (this.block.start.next === this.block.end) {
+        head = this.block.end;
+      }
+      while (head !== this.block.end) {
+        switch (head.type) {
+          case 'blockStart':
+            this.children.push(head.block.paper.compute(state));
+            this.group.push(head.block.paper.group);
+            head = head.block.end;
+            break;
+          case 'newline':
+            state.line += 1;
+        }
+        head = head.next;
+      }
+      this.lineEnd = state.line;
+      i = 0;
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        while (!(line <= this.children[i].lineEnd)) {
+          i += 1;
+        }
+        this.bounds[line] = this.children[i].bounds[line];
+        this.lineGroups[line] = new draw.Group();
+        this.indentEnd[line] = this.children[i].indentEnd[line];
+        this.lineGroups[line].push(this.children[i].lineGroups[line]);
+        this._lineBlocks[line] = this.children[i];
+      }
+      return this;
+    };
+
+    SegmentPaper.prototype.finish = function() {
+      var child, _i, _len, _ref, _results;
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        _results.push(child.finish());
+      }
+      return _results;
+    };
+
+    SegmentPaper.prototype.setLeftCenter = function(line, point) {
+      if (this._lineBlocks[line] != null) {
+        this._lineBlocks[line].setLeftCenter(line, point);
+        return this.lineGroups[line].recompute();
+      } else {
+        this.bounds[this.lineStart].clear();
+        this.bounds[this.lineStart].swallow(point);
+        return this.bounds[this.lineStart].width = EMPTY_INDENT_WIDTH;
+      }
+    };
+
+    SegmentPaper.prototype.draw = function(ctx) {
+      var child, _i, _len, _ref, _results;
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        _results.push(child.draw(ctx));
+      }
+      return _results;
+    };
+
+    SegmentPaper.prototype.translate = function(vector) {
+      var child, _i, _len, _ref, _results;
+      this.point.add(vector);
+      _ref = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        _results.push(child.translate(vector));
+      }
+      return _results;
+    };
+
+    SegmentPaper.prototype.setPosition = function(point) {
+      return this.translate(point.from(this.point));
+    };
+
+    return SegmentPaper;
+
+  })(IcePaper);
+
   TextTokenPaper = (function(_super) {
     __extends(TextTokenPaper, _super);
 
@@ -1256,7 +1500,7 @@
 
 
   window.onload = function() {
-    var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, focus, head, highlight, input, offset, out, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len, _results;
+    var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, offset, out, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len, _results;
     if (!window.RUN_PAPER_TESTS) {
       return;
     }
@@ -1272,23 +1516,47 @@
       return ctx.clearRect(scrollOffset.x, scrollOffset.y, canvas.width, canvas.height);
     };
     redraw = function() {
+      var block, _i, _len, _results;
       clear();
       tree.block.paper.compute({
         line: 0
       });
       tree.block.paper.finish();
       tree.block.paper.draw(ctx);
-      return out.value = tree.block.toString({
+      out.value = tree.block.toString({
         indent: ''
       });
+      _results = [];
+      for (_i = 0, _len = floating_blocks.length; _i < _len; _i++) {
+        block = floating_blocks[_i];
+        block.block.paper.compute({
+          line: 0
+        });
+        block.block.paper.translate(block.position);
+        block.block.paper.finish();
+        _results.push(block.block.paper.draw(ctx));
+      }
+      return _results;
     };
+    fastDraw = function() {
+      var block, _i, _len, _results;
+      clear();
+      tree.block.paper.draw(ctx);
+      _results = [];
+      for (_i = 0, _len = floating_blocks.length; _i < _len; _i++) {
+        block = floating_blocks[_i];
+        _results.push(block.block.paper.draw(ctx));
+      }
+      return _results;
+    };
+    floating_blocks = [];
     redraw();
     /*
     # Here to below will eventually become part of the IceEditor() class
     */
 
     div.addEventListener('touchstart', div.onmousedown = function(event) {
-      var block, bounds, cloneLater, line, point, start, text, _i, _len;
+      var block, bounds, cloneLater, i, line, point, start, text, _i, _j, _len, _len1;
       if (event.offsetX != null) {
         point = new draw.Point(event.offsetX, event.offsetY);
       } else {
@@ -1329,8 +1597,7 @@
             tree.block.paper.setLeftCenter(line, new draw.Point(0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - 1));
           }
           tree.block.paper.finish();
-          clear();
-          tree.block.paper.draw(ctx);
+          fastDraw();
           out.value = tree.block.toString({
             indent: ''
           });
@@ -1355,24 +1622,38 @@
       });
       cloneLater = false;
       if (selection === tree.block) {
-        point.add(PALETTE_WIDTH, 0);
-        point.add(-scrollOffset.x, -scrollOffset.y);
-        for (_i = 0, _len = palette_blocks.length; _i < _len; _i++) {
-          block = palette_blocks[_i];
-          if (block.paper._container.contains(point)) {
-            selection = block;
-            cloneLater = true;
+        selection = null;
+        for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
+          block = floating_blocks[i];
+          if (block.block.findBlock(function(block) {
+            return block.paper._container.contains(point);
+          }).paper._container.contains(point)) {
+            floating_blocks.splice(i, 1);
+            selection = block.block;
             break;
           } else {
             selection = null;
           }
         }
-        if (selection === tree.block || selection === null) {
-          selection = null;
+        if (selection == null) {
+          point.add(PALETTE_WIDTH, 0);
+          point.add(-scrollOffset.x, -scrollOffset.y);
+          for (_j = 0, _len1 = palette_blocks.length; _j < _len1; _j++) {
+            block = palette_blocks[_j];
+            if (block.paper._container.contains(point)) {
+              selection = block;
+              cloneLater = true;
+              break;
+            } else {
+              selection = null;
+            }
+          }
+        }
+        if (selection == null) {
           return;
         }
       }
-      if (selection.start.prev.type === 'newline') {
+      if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
         selection.start.prev.remove();
       }
       bounds = selection.paper.bounds[selection.paper.lineStart];
@@ -1408,8 +1689,7 @@
           return (((_ref = block.start.prev) != null ? _ref.type : void 0) !== 'socketStart') && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
         });
         if (highlight !== old_highlight || window.PERFORMANCE_TEST) {
-          clear();
-          tree.block.paper.draw(ctx);
+          fastDraw();
           if (highlight !== tree.block) {
             highlight.paper.dropArea.fill(ctx, '#fff');
           }
@@ -1436,6 +1716,7 @@
       }
     });
     div.addEventListener('touchend', div.onmouseup = function(event) {
+      var dest, point;
       if (selection != null) {
         if ((highlight != null) && highlight !== tree.block) {
           switch (highlight.type) {
@@ -1452,6 +1733,25 @@
               selection._moveTo(highlight.start);
           }
           redraw();
+        } else {
+          if (event.offsetX != null) {
+            point = new draw.Point(event.offsetX, event.offsetY);
+          } else {
+            point = new draw.Point(event.layerX, event.layerY);
+          }
+          point.add(-PALETTE_WIDTH, 0);
+          point.translate(scrollOffset);
+          dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
+          selection.paper.compute({
+            line: 0
+          });
+          selection.paper.translate(dest);
+          selection.paper.finish();
+          selection.paper.draw(ctx);
+          floating_blocks.push({
+            block: selection,
+            position: dest
+          });
         }
       } else if (focus != null) {
         input.setSelectionRange(Math.min(anchor, head), Math.max(anchor, head));
