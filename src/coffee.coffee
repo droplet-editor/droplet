@@ -273,8 +273,9 @@ exports.execute = execute = (text, markup) ->
       #debugString += line[lastMark..-1] #DEBUG
 
     #console.log #debugString #DEBUG
-
-  return first.next.next
+  first = first.next.next
+  first.prev = null
+  return first
 
 exports.parse = parse = (text) ->
   markup = exports.mark CoffeeScript.nodes(text).expressions, text

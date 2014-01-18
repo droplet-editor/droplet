@@ -313,7 +313,9 @@
         head = head.append(new ICE.TextToken(line.slice(lastMark)));
       }
     }
-    return first.next.next;
+    first = first.next.next;
+    first.prev = null;
+    return first;
   };
 
   exports.parse = parse = function(text) {

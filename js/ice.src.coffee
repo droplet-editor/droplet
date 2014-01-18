@@ -99,7 +99,11 @@ exports.Block = class Block
       while first? and first.type is 'segmentStart' then first = first.prev
 
       if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
+        console.log 'removing first', first, last
         first.remove()
+      else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
+        console.log 'removing last'
+        last.remove()
 
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next

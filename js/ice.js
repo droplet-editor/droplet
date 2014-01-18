@@ -122,7 +122,11 @@
           first = first.prev;
         }
         if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
+          console.log('removing first', first, last);
           first.remove();
+        } else if ((last != null) && last.type === 'newline' && ((first == null) || first.type === 'newline')) {
+          console.log('removing last');
+          last.remove();
         }
       }
       if (this.start.prev != null) {
