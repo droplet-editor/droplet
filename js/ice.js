@@ -118,7 +118,7 @@
           last = last.next;
         }
         first = this.start.prev;
-        while (typeof first === "function" ? first(first.type === 'segmentStart') : void 0) {
+        while ((first != null) && first.type === 'segmentStart') {
           first = first.prev;
         }
         if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {

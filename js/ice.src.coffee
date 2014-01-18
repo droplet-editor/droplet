@@ -96,7 +96,7 @@ exports.Block = class Block
       while last? and last.type is 'segmentEnd' then last = last.next
 
       first = @start.prev
-      while first? first.type is 'segmentStart' then first = first.prev
+      while first? and first.type is 'segmentStart' then first = first.prev
 
       if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
         first.remove()
