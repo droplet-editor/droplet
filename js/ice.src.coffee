@@ -1500,14 +1500,17 @@ window.onload = ->
 
         dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
-        # Draw the selection on the back canvas
-        selection.paper.compute line: 0
-        selection.paper.translate dest
-        selection.paper.finish()
-        selection.paper.draw ctx
+        console.log dest.x
 
-        # Push this to the set of floating blocks
-        floating_blocks.push block: selection, position: dest
+        if dest.x > 0 # If we drop in the palette we delete the element
+          # Draw the selection on the back canvas
+          selection.paper.compute line: 0
+          selection.paper.translate dest
+          selection.paper.finish()
+          selection.paper.draw ctx
+
+          # Push this to the set of floating blocks
+          floating_blocks.push block: selection, position: dest
 
     else if focus?
       # Make the selection

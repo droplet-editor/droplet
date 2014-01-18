@@ -1742,16 +1742,19 @@
           point.add(-PALETTE_WIDTH, 0);
           point.translate(scrollOffset);
           dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
-          selection.paper.compute({
-            line: 0
-          });
-          selection.paper.translate(dest);
-          selection.paper.finish();
-          selection.paper.draw(ctx);
-          floating_blocks.push({
-            block: selection,
-            position: dest
-          });
+          console.log(dest.x);
+          if (dest.x > 0) {
+            selection.paper.compute({
+              line: 0
+            });
+            selection.paper.translate(dest);
+            selection.paper.finish();
+            selection.paper.draw(ctx);
+            floating_blocks.push({
+              block: selection,
+              position: dest
+            });
+          }
         }
       } else if (focus != null) {
         input.setSelectionRange(Math.min(anchor, head), Math.max(anchor, head));
