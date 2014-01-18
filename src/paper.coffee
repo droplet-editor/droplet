@@ -961,10 +961,7 @@ window.onload = ->
   out.onkeyup = ->
     try
       tree = coffee.parse out.value#ICE.indentParse out.value
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      tree.block.paper.compute {line: 0}
-      tree.block.paper.finish()
-      tree.block.paper.draw ctx
+      redraw()
     catch e
       ctx.fillStyle = "#f00"
       ctx.fillText e.message, 0, 0

@@ -1775,12 +1775,7 @@
       var e;
       try {
         tree = coffee.parse(out.value);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        tree.block.paper.compute({
-          line: 0
-        });
-        tree.block.paper.finish();
-        return tree.block.paper.draw(ctx);
+        return redraw();
       } catch (_error) {
         e = _error;
         ctx.fillStyle = "#f00";
