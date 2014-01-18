@@ -770,6 +770,8 @@ window.onload = ->
       dragCanvas.style.mozTransform = "translate3d(#{scrollDest.x}px, #{scrollDest.y}px, 0)"
       dragCanvas.style.transform = "translate3d(#{scrollDest.x}px, #{scrollDest.y}px, 0)"
 
+      event.preventDefault()
+
     else if focus? and anchor?
       # Compute the points
       text = focus.content(); line = text.paper._line

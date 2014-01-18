@@ -1415,7 +1415,8 @@
         }
         dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
         dragCanvas.style.mozTransform = "translate3d(" + scrollDest.x + "px, " + scrollDest.y + "px, 0)";
-        return dragCanvas.style.transform = "translate3d(" + scrollDest.x + "px, " + scrollDest.y + "px, 0)";
+        dragCanvas.style.transform = "translate3d(" + scrollDest.x + "px, " + scrollDest.y + "px, 0)";
+        return event.preventDefault();
       } else if ((focus != null) && (anchor != null)) {
         text = focus.content();
         line = text.paper._line;
