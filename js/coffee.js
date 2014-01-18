@@ -20,11 +20,24 @@
 
   exports = {};
 
-  exports.mark = function(node, text) {
-    var addMarkup, getBounds, id, mark, markup;
-    id = 0;
-    markup = [];
+  exports.mark = function(nodes, text) {
+    var addMarkup, getBounds, id, mark, markup, node, rootSegment, _i, _len;
+    id = 1;
+    rootSegment = new ICE.Segment([]);
     text = text.split('\n');
+    markup = [
+      {
+        token: rootSegment.start,
+        position: [0, 0],
+        id: 0,
+        start: true
+      }, {
+        token: rootSegment.end,
+        position: [text.length - 1, text[text.length - 1].length + 1],
+        id: 0,
+        start: false
+      }
+    ];
     addMarkup = function(block, node) {
       var bounds;
       bounds = getBounds(node);
@@ -49,7 +62,7 @@
           start = node.locationData;
           end = getBounds(node.expressions[node.expressions.length - 1]).end;
           return {
-            start: [start.first_line - 1, -1],
+            start: [start.first_line - 1, text[start.first_line - 1].length],
             end: end
           };
         case 'If':
@@ -59,8 +72,8 @@
             end = [node.locationData.last_line, node.locationData.last_column + 1];
           }
           if (text[end[0]].slice(0, end[1]).trimLeft().length === 0) {
-            end[1] = -1;
             end[0] -= 1;
+            end[1] = text[end[0]].length;
           }
           return {
             start: [node.locationData.first_line, node.locationData.first_column],
@@ -69,8 +82,8 @@
         default:
           end = [node.locationData.last_line, node.locationData.last_column + 1];
           if (text[end[0]].slice(0, end[1]).trimLeft().length === 0) {
-            end[1] = -1;
             end[0] -= 1;
+            end[1] = text[end[0]].length;
           }
           return {
             start: [node.locationData.first_line, node.locationData.first_column],
@@ -198,7 +211,10 @@
           }
       }
     };
-    mark(node);
+    for (_i = 0, _len = nodes.length; _i < _len; _i++) {
+      node = nodes[_i];
+      mark(node);
+    }
     return markup;
   };
 
@@ -222,28 +238,35 @@
       lastMark = 0;
       if (marks[i] != null) {
         marks[i].sort(function(a, b) {
-          if (a.position[1] < 0) {
-            return 1;
-          } else if (b.position[1] < 0) {
-            return -1;
-          } else if (a.position[1] !== b.position[1]) {
-            return a.position[1] - b.position[1];
+          if (a.position[1] !== b.position[1]) {
+            if (a.position[1] > b.position[1]) {
+              return 1;
+            } else {
+              return -1;
+            }
           } else if (a.start && b.start) {
-            return a.id - b.id;
+            if (a.id > b.id) {
+              return 1;
+            } else {
+              return -1;
+            }
           } else if ((!a.start) && (!b.start)) {
-            return b.id - a.id;
-          } else if (a.start) {
-            return 1;
+            if (b.id > a.id) {
+              return 1;
+            } else {
+              return -1;
+            }
           } else {
-            return -1;
+            if (a.start && (!b.start)) {
+              return 1;
+            } else {
+              return -1;
+            }
           }
         });
         _ref = marks[i];
         for (_k = 0, _len2 = _ref.length; _k < _len2; _k++) {
           _mark = _ref[_k];
-          if (_mark.position[1] < 0) {
-            _mark.position[1] = line.length;
-          }
           str = line.slice(lastMark, _mark.position[1]);
           if (lastMark === 0) {
             str = str.trimLeft();
@@ -295,7 +318,7 @@
 
   exports.parse = parse = function(text) {
     var markup;
-    markup = exports.mark(CoffeeScript.nodes(text).expressions[0], text);
+    markup = exports.mark(CoffeeScript.nodes(text).expressions, text);
     return execute(text, markup);
   };
 

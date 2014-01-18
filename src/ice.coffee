@@ -85,6 +85,11 @@ exports.Block = class Block
     return contents
   
   _moveTo: (parent) ->
+    # Check for empty segments
+    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+      @start.prev.remove()
+      @end.next.remove()
+
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
@@ -210,10 +215,10 @@ exports.Segment = class Segment
       head = head.append block.clone()
     head.append @end
     
-    @paper = new IndentPaper this
+    @paper = new SegmentPaper this
 
   clone: ->
-    clone = new Indent [], @depth
+    clone = new Segment []
     head = @start.next
     cursor = clone.start
     while head isnt @end
@@ -246,6 +251,11 @@ exports.Segment = class Segment
   embedded: -> false
 
   _moveTo: (parent) ->
+    # Check for empty segments
+    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+      @start.prev.remove()
+      @end.next.remove()
+
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
@@ -265,7 +275,6 @@ exports.Segment = class Segment
     while head isnt @end
       # If we found a child block, find in there
       if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
-        #else head = head.block.end
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -290,6 +299,8 @@ exports.Segment = class Segment
 
     # Couldn't find any, so we are the innermost child fitting f()
     return null
+  
+  toString: -> @start.toString indent: ''
 
 exports.Socket = class Socket
   constructor: (content) ->
@@ -325,9 +336,13 @@ exports.Socket = class Socket
   embedded: -> false
 
   content: ->
+    unwrap = (el) ->
+      switch el.type
+        when 'blockStart' then return el.block
+        when 'segmentStart' then return unwrap el.next
+        else return el
     if @start.next isnt @end
-      if @start.next.type is 'blockStart' then return @start.next.block
-      else return @start.next
+      return unwrap @start.next
     else
       return null
 
@@ -438,7 +453,7 @@ exports.SocketEndToken = class SocketEndToken extends Token
     @prev = @next = null
     @type = 'socketEnd'
 
-exports.SegmentStartToken = class SegmentEndToken extends Token
+exports.SegmentStartToken = class SegmentStartToken extends Token
   constructor: (@segment) ->
     @prev = @next = null
     @type = 'segmentStart'

@@ -16,18 +16,31 @@ colors =
 
 exports = {}
 
-exports.mark = (node, text) ->
+exports.mark = (nodes, text) ->
 
-  id = 0
-  markup = []
+  id = 1
+  rootSegment = new ICE.Segment []
 
   text = text.split('\n')
 
-  addMarkup = (block, node) ->
-    #console.log block.type, id
+  markup = [
+    {
+      token: rootSegment.start
+      position: [0, 0]
+      id: 0
+      start: true
+    }
+    {
+      token: rootSegment.end
+      position: [text.length - 1, text[text.length - 1].length+1]
+      id: 0
+      start: false
+    }
+  ]
 
+  addMarkup = (block, node) ->
     bounds = getBounds node
-    
+
     markup.push
       token: block.start
       position: bounds.start
@@ -50,7 +63,7 @@ exports.mark = (node, text) ->
         end = getBounds(node.expressions[node.expressions.length - 1]).end
 
         return {
-          start: [start.first_line - 1, -1]
+          start: [start.first_line - 1, text[start.first_line - 1].length]
           end: end
         }
 
@@ -61,7 +74,7 @@ exports.mark = (node, text) ->
           end = [node.locationData.last_line, node.locationData.last_column + 1]
       
         if text[end[0]][...end[1]].trimLeft().length is 0
-          end[1] = -1; end[0]-= 1
+          end[0] -= 1; end[1] = text[end[0]].length
 
         return {
           start: [node.locationData.first_line, node.locationData.first_column]
@@ -72,7 +85,7 @@ exports.mark = (node, text) ->
         end = [node.locationData.last_line, node.locationData.last_column + 1]
 
         if text[end[0]][...end[1]].trimLeft().length is 0
-          end[1] = -1; end[0]-= 1
+          end[0] -= 1; end[1] = text[end[0]].length
 
         return {
           start: [node.locationData.first_line, node.locationData.first_column]
@@ -183,7 +196,8 @@ exports.mark = (node, text) ->
 
         if node.body? then mark node.body.unwrap()
 
-  mark node
+  for node in nodes
+    mark node
   
   return markup
 
@@ -215,17 +229,17 @@ exports.execute = execute = (text, markup) ->
     if marks[i]?
 
       marks[i].sort (a, b) ->
-        if a.position[1] < 0 then 1
-        else if b.position[1] < 0 then -1
-        else unless a.position[1] is b.position[1] then a.position[1] - b.position[1]
-        else if a.start and b.start then a.id - b.id
-        else if (not a.start) and (not b.start) then b.id - a.id
-        else if a.start then 1
-        else -1
+        unless a.position[1] is b.position[1]
+          if a.position[1] > b.position[1] then 1 else -1
+        else if a.start and b.start
+          if a.id > b.id then 1 else -1
+        else if (not a.start) and (not b.start)
+          if b.id > a.id then 1 else -1
+        else
+          if a.start and (not b.start) then 1
+          else -1
 
       for _mark in marks[i]
-        if _mark.position[1] < 0 then _mark.position[1] = line.length
-
         str = line[lastMark..._mark.position[1]]
         if lastMark is 0 then str = str.trimLeft()
 
@@ -263,7 +277,7 @@ exports.execute = execute = (text, markup) ->
   return first.next.next
 
 exports.parse = parse = (text) ->
-  markup = exports.mark CoffeeScript.nodes(text).expressions[0], text
+  markup = exports.mark CoffeeScript.nodes(text).expressions, text
   return execute text, markup
 
 window.coffee = exports

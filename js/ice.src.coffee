@@ -85,6 +85,11 @@ exports.Block = class Block
     return contents
   
   _moveTo: (parent) ->
+    # Check for empty segments
+    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+      @start.prev.remove()
+      @end.next.remove()
+
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
@@ -210,10 +215,10 @@ exports.Segment = class Segment
       head = head.append block.clone()
     head.append @end
     
-    @paper = new IndentPaper this
+    @paper = new SegmentPaper this
 
   clone: ->
-    clone = new Indent [], @depth
+    clone = new Segment []
     head = @start.next
     cursor = clone.start
     while head isnt @end
@@ -246,6 +251,11 @@ exports.Segment = class Segment
   embedded: -> false
 
   _moveTo: (parent) ->
+    # Check for empty segments
+    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+      @start.prev.remove()
+      @end.next.remove()
+
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
@@ -265,7 +275,6 @@ exports.Segment = class Segment
     while head isnt @end
       # If we found a child block, find in there
       if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
-        #else head = head.block.end
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -290,6 +299,8 @@ exports.Segment = class Segment
 
     # Couldn't find any, so we are the innermost child fitting f()
     return null
+  
+  toString: -> @start.toString indent: ''
 
 exports.Socket = class Socket
   constructor: (content) ->
@@ -325,9 +336,13 @@ exports.Socket = class Socket
   embedded: -> false
 
   content: ->
+    unwrap = (el) ->
+      switch el.type
+        when 'blockStart' then return el.block
+        when 'segmentStart' then return unwrap el.next
+        else return el
     if @start.next isnt @end
-      if @start.next.type is 'blockStart' then return @start.next.block
-      else return @start.next
+      return unwrap @start.next
     else
       return null
 
@@ -438,7 +453,7 @@ exports.SocketEndToken = class SocketEndToken extends Token
     @prev = @next = null
     @type = 'socketEnd'
 
-exports.SegmentStartToken = class SegmentEndToken extends Token
+exports.SegmentStartToken = class SegmentStartToken extends Token
   constructor: (@segment) ->
     @prev = @next = null
     @type = 'segmentStart'
@@ -1137,10 +1152,13 @@ class SegmentPaper extends IcePaper
     if @block.start.next is @block.end then head = @block.end
 
     # Loop
+    running_height = 0
     while head isnt @block.end
       switch head.type
         when 'blockStart'
           @children.push head.block.paper.compute state
+          head.block.paper.translate new draw.Point 0, running_height
+          running_height = head.block.paper.bounds[head.block.paper.lineEnd].bottom()
           @group.push head.block.paper.group
           head = head.block.end
 
@@ -1265,10 +1283,10 @@ window.onload = ->
 
   redraw = ->
     clear()
-    tree.block.paper.compute {line: 0}
-    tree.block.paper.finish()
-    tree.block.paper.draw ctx
-    out.value = tree.block.toString {indent: ''}
+    tree.segment.paper.compute {line: 0}
+    tree.segment.paper.finish()
+    tree.segment.paper.draw ctx
+    out.value = tree.segment.toString {indent: ''}
 
     for block in floating_blocks
       block.block.paper.compute line: 0
@@ -1278,7 +1296,7 @@ window.onload = ->
 
   fastDraw = ->
     clear()
-    tree.block.paper.draw ctx
+    tree.segment.paper.draw ctx
 
     for block in floating_blocks
       block.block.paper.draw ctx
@@ -1299,7 +1317,7 @@ window.onload = ->
     point.translate scrollOffset
 
     # First, see if we are trying to focus an empty socket
-    focus = tree.block.findSocket (block) ->
+    focus = tree.segment.findSocket (block) ->
       block.paper._empty and block.paper.bounds[block.paper._line].contains point
 
     if focus?
@@ -1332,16 +1350,16 @@ window.onload = ->
         
         # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
         # This is for performance reasons; we don't need to redraw the whole tree.
-        old_bounds = tree.block.paper.bounds[line].y
-        tree.block.paper.setLeftCenter line, new draw.Point 0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2
-        if tree.block.paper.bounds[line].y isnt old_bounds
+        old_bounds = tree.segment.paper.bounds[line].y
+        tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2
+        if tree.segment.paper.bounds[line].y isnt old_bounds
           # This is totally hacky patch for a bug whose source I don't know.
-          tree.block.paper.setLeftCenter line, new draw.Point 0, tree.block.paper.bounds[line].y + tree.block.paper.bounds[line].height / 2 - 1
-        tree.block.paper.finish()
+          tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1
+        tree.segment.paper.finish()
         
         # Do the fast draw operation and toString() operation.
         fastDraw()
-        out.value = tree.block.toString {indent: ''}
+        out.value = tree.segment.toString {indent: ''}
 
         # Draw the typing cursor
         start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
@@ -1362,16 +1380,16 @@ window.onload = ->
       return
     
     # Find the block that was just clicked
-    selection = tree.block.findBlock (block) ->
+    selection = tree.segment.findBlock (block) ->
       block.paper._container.contains point
     
     # We aren't copying from the palette
     cloneLater = false
 
-    if selection is tree.block
+    unless selection?
       selection = null
       for block, i in floating_blocks
-        if block.block.findBlock((block) -> block.paper._container.contains point).paper._container.contains point
+        if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
           floating_blocks.splice i, 1
           selection = block.block
           break
@@ -1383,7 +1401,9 @@ window.onload = ->
         point.add -scrollOffset.x, -scrollOffset.y
 
         for block in palette_blocks
-          if block.paper._container.contains point
+          console.log 'checking', block
+          if block.findBlock((x) -> x.paper._container.contains point)?
+            console.log 'FOUND IT'
             # We're grabbing this block
             selection = block
 
@@ -1404,6 +1424,8 @@ window.onload = ->
     # Remove it from its tree
     if cloneLater then selection = selection.clone()
     else selection._moveTo null
+
+    console.log selection, selection.toString()
     
     # Redraw the root tree (now that selection has been removed)
     redraw()
@@ -1433,14 +1455,14 @@ window.onload = ->
       old_highlight = highlight
 
       # Find the highlighted area
-      highlight = tree.block.find (block) ->
+      highlight = tree.segment.find (block) ->
         (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
       
       # Redraw if we must
       if highlight isnt old_highlight or window.PERFORMANCE_TEST
         fastDraw()
         
-        if highlight isnt tree.block
+        if highlight?
           # Highlight the highlighted area
           highlight.paper.dropArea.fill(ctx, '#fff')
       
@@ -1477,7 +1499,7 @@ window.onload = ->
 
   div.addEventListener 'touchend', div.onmouseup = (event) ->
     if selection?
-      if highlight? and highlight isnt tree.block
+      if highlight? and highlight isnt tree.segment
         switch highlight.type
           when 'indent'
             selection._moveTo highlight.start.insert new NewlineToken()
@@ -1499,8 +1521,6 @@ window.onload = ->
         point.translate scrollOffset
 
         dest = new draw.Point -offset.x + point.x, -offset.y + point.y
-
-        console.log dest.x
 
         if dest.x > 0 # If we drop in the palette we delete the element
           # Draw the selection on the back canvas
@@ -1527,10 +1547,9 @@ window.onload = ->
 
   div.addEventListener 'mousewheel', (event) ->
     if scrollOffset.y > 0 or event.deltaY > 0
-      clear()
       ctx.translate 0, -event.deltaY
       scrollOffset.add 0, event.deltaY
-      tree.block.paper.draw ctx
+      fastDraw()
 
       event.preventDefault()
 
@@ -1549,20 +1568,20 @@ window.onload = ->
   palette_blocks = [
     (coffee.parse '''
       a = b
-    ''').block
+    ''').segment
     
     (coffee.parse '''
       alert 'hi'
-    ''').block
+    ''').segment
 
     (coffee.parse '''
       for i in [1..10]
         alert 'good'
-    ''').block
+    ''').segment
 
     (coffee.parse '''
       return 0
-    ''').block
+    ''').segment
   ]
   
   running_height = 0
@@ -1573,5 +1592,6 @@ window.onload = ->
     block.paper.translate new draw.Point 0, running_height
 
     block.paper.finish()
-    running_height += block.paper._container.bounds().height + PALETTE_WHITESPACE
+    running_height = block.paper.bounds[block.paper.lineEnd].bottom() + PALETTE_WHITESPACE
+
     block.paper.draw paletteCtx
