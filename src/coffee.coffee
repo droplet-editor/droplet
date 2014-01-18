@@ -1,8 +1,18 @@
+# Theme: Primaria
 colors =
-  BLUE: '#37f'
-  YELLOW: '#fb5'
-  GREEN: '#3f7'
-  RED: '#f03'
+  COMMAND: '#37f'
+  CONTROL: '#fb5'
+  VALUE: '#3f7'
+  RETURN: '#f03'
+
+###
+# Theme: Exoniana
+colors =
+  COMMAND: '#c33'
+  CONTROL: '#DAA520'
+  VALUE: '#f00'
+  RETURN: '#fff'
+###
 
 exports = {}
 
@@ -80,7 +90,7 @@ exports.mark = (node, text) ->
 
       when 'Op'
         block = new ICE.Block []
-        block.color=colors.GREEN
+        block.color=colors.VALUE
         addMarkup block, node
 
         mark node.first
@@ -95,7 +105,7 @@ exports.mark = (node, text) ->
       
       when 'Call'
         block = new ICE.Block []
-        block.color=colors.BLUE
+        block.color=colors.COMMAND
         addMarkup block, node
 
         for arg in node.args
@@ -103,7 +113,7 @@ exports.mark = (node, text) ->
 
       when 'Code'
         block = new ICE.Block []
-        block.color = colors.GREEN
+        block.color = colors.VALUE
         addMarkup block, node
 
         for param in node.params
@@ -116,7 +126,7 @@ exports.mark = (node, text) ->
 
       when 'Assign'
         block = new ICE.Block []
-        block.color = colors.BLUE
+        block.color = colors.COMMAND
         addMarkup block, node
 
         mark node.variable
@@ -124,7 +134,7 @@ exports.mark = (node, text) ->
 
       when 'For'
         block = new ICE.Block []
-        block.color = colors.YELLOW
+        block.color = colors.CONTROL
         addMarkup block, node
 
         if node.index? then mark node.index
@@ -136,7 +146,7 @@ exports.mark = (node, text) ->
 
       when 'Range'
         block = new ICE.Block []
-        block.color = colors.GREEN
+        block.color = colors.VALUE
         addMarkup block, node
         
         mark node.from
@@ -144,7 +154,7 @@ exports.mark = (node, text) ->
 
       when 'If'
         block = new ICE.Block []
-        block.color = colors.YELLOW
+        block.color = colors.CONTROL
         addMarkup block, node
 
         mark node.condition
@@ -153,7 +163,7 @@ exports.mark = (node, text) ->
 
       when 'Arr'
         block = new ICE.Block []
-        block.color = colors.GREEN
+        block.color = colors.VALUE
         addMarkup block, node
         
         for object in node.objects
@@ -161,14 +171,14 @@ exports.mark = (node, text) ->
 
       when 'Return'
         block = new ICE.Block []
-        block.color = colors.RED
+        block.color = colors.RETURN
         addMarkup block, node
 
         if node.expression? then mark node.expression
 
       when 'Parens'
         block = new ICE.Block []
-        block.color = colors.GREEN
+        block.color = colors.VALUE
         addMarkup block, node
 
         if node.body? then mark node.body.unwrap()

@@ -2,11 +2,21 @@
   var colors, execute, exports, parse;
 
   colors = {
-    BLUE: '#37f',
-    YELLOW: '#fb5',
-    GREEN: '#3f7',
-    RED: '#f03'
+    COMMAND: '#37f',
+    CONTROL: '#fb5',
+    VALUE: '#3f7',
+    RETURN: '#f03'
   };
+
+  /*
+  # Theme: Exoniana
+  colors =
+    COMMAND: '#c33'
+    CONTROL: '#DAA520'
+    VALUE: '#f00'
+    RETURN: '#fff'
+  */
+
 
   exports = {};
 
@@ -84,7 +94,7 @@
           break;
         case 'Op':
           block = new ICE.Block([]);
-          block.color = colors.GREEN;
+          block.color = colors.VALUE;
           addMarkup(block, node);
           mark(node.first);
           if (node.second != null) {
@@ -98,7 +108,7 @@
           return addMarkup(socket, node);
         case 'Call':
           block = new ICE.Block([]);
-          block.color = colors.BLUE;
+          block.color = colors.COMMAND;
           addMarkup(block, node);
           _ref1 = node.args;
           _results1 = [];
@@ -110,7 +120,7 @@
           break;
         case 'Code':
           block = new ICE.Block([]);
-          block.color = colors.GREEN;
+          block.color = colors.VALUE;
           addMarkup(block, node);
           _ref2 = node.params;
           for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
@@ -122,13 +132,13 @@
           return mark(node.name);
         case 'Assign':
           block = new ICE.Block([]);
-          block.color = colors.BLUE;
+          block.color = colors.COMMAND;
           addMarkup(block, node);
           mark(node.variable);
           return mark(node.value);
         case 'For':
           block = new ICE.Block([]);
-          block.color = colors.YELLOW;
+          block.color = colors.CONTROL;
           addMarkup(block, node);
           if (node.index != null) {
             mark(node.index);
@@ -145,13 +155,13 @@
           return mark(node.body);
         case 'Range':
           block = new ICE.Block([]);
-          block.color = colors.GREEN;
+          block.color = colors.VALUE;
           addMarkup(block, node);
           mark(node.from);
           return mark(node.to);
         case 'If':
           block = new ICE.Block([]);
-          block.color = colors.YELLOW;
+          block.color = colors.CONTROL;
           addMarkup(block, node);
           mark(node.condition);
           mark(node.body);
@@ -161,7 +171,7 @@
           break;
         case 'Arr':
           block = new ICE.Block([]);
-          block.color = colors.GREEN;
+          block.color = colors.VALUE;
           addMarkup(block, node);
           _ref3 = node.objects;
           _results2 = [];
@@ -173,7 +183,7 @@
           break;
         case 'Return':
           block = new ICE.Block([]);
-          block.color = colors.RED;
+          block.color = colors.RETURN;
           addMarkup(block, node);
           if (node.expression != null) {
             return mark(node.expression);
@@ -181,7 +191,7 @@
           break;
         case 'Parens':
           block = new ICE.Block([]);
-          block.color = colors.GREEN;
+          block.color = colors.VALUE;
           addMarkup(block, node);
           if (node.body != null) {
             return mark(node.body.unwrap());
