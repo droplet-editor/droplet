@@ -768,15 +768,9 @@ window.onload = ->
           highlight.paper.dropArea.fill(ctx, '#fff')
       
       # css-transform the drag canvas to that area
-      ###
       dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
       dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
       dragCanvas.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-      ###
-      
-      # Try for GPU bug?
-      dragCanvas.style.top = PALETTE_WIDTH + scrollDest.x
-      dragCanvas.style.left = scrollDest.y
 
       event.preventDefault()
 
