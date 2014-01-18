@@ -1287,7 +1287,7 @@
     # Here to below will eventually become part of the IceEditor() class
     */
 
-    div.onmousedown = function(event) {
+    div.addEventListener('touchstart', div.onmousedown = function(event) {
       var block, bounds, cloneLater, line, point, start, text, _i, _len;
       if (event.offsetX != null) {
         point = new draw.Point(event.offsetX, event.offsetY);
@@ -1388,8 +1388,8 @@
       selection.paper.finish();
       selection.paper.draw(dragCtx);
       return div.onmousemove(event);
-    };
-    div.onmousemove = function(event) {
+    });
+    div.addEventListener('touchmove', div.onmousemove = function(event) {
       var bounds, dest, end, line, old_highlight, point, scrollDest, start, text;
       if (event.offsetX != null) {
         point = new draw.Point(event.offsetX, event.offsetY);
@@ -1432,8 +1432,8 @@
           return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
         }
       }
-    };
-    div.onmouseup = function(event) {
+    });
+    div.addEventListener('touchend', div.onmouseup = function(event) {
       if (selection != null) {
         if ((highlight != null) && highlight !== tree.block) {
           switch (highlight.type) {
@@ -1457,7 +1457,7 @@
       }
       dragCtx.clearRect(0, 0, canvas.width, canvas.height);
       return selection = null;
-    };
+    });
     div.addEventListener('mousewheel', function(event) {
       if (scrollOffset.y > 0 || event.deltaY > 0) {
         clear();

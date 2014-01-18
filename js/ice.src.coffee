@@ -1090,7 +1090,7 @@ window.onload = ->
   # Here to below will eventually become part of the IceEditor() class
   ###
   
-  div.onmousedown = (event) ->
+  div.addEventListener 'touchstart', div.onmousedown = (event) ->
     if event.offsetX?
       point = new draw.Point event.offsetX, event.offsetY
     else
@@ -1209,7 +1209,7 @@ window.onload = ->
     # Immediately transform the drag canvas
     div.onmousemove event
     
-  div.onmousemove = (event) ->
+  div.addEventListener 'touchmove', div.onmousemove = (event) ->
     # Determine where the point is on the canvas
     if event.offsetX?
       point = new draw.Point event.offsetX, event.offsetY
@@ -1268,7 +1268,7 @@ window.onload = ->
         ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
         ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
 
-  div.onmouseup = (event) ->
+  div.addEventListener 'touchend', div.onmouseup = (event) ->
     if selection?
       if highlight? and highlight isnt tree.block
         switch highlight.type

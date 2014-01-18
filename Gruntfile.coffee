@@ -7,7 +7,6 @@ module.exports = (grunt) ->
       build:
         files:
           'js/draw.js': ['src/draw.coffee']
-          'js/drawTest.js': ['src/drawTest.coffee']
           'js/ice.js': ['src/ice.coffee', 'src/paper.coffee']
           'js/tests.js': ['src/tests.coffee']
           'js/coffee.js': ['src/coffee.coffee']
