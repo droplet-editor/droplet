@@ -4,7 +4,8 @@
   colors = {
     BLUE: '#37f',
     YELLOW: '#fb5',
-    GREEN: '#3f7'
+    GREEN: '#3f7',
+    RED: '#f03'
   };
 
   exports = {};
@@ -16,7 +17,6 @@
     text = text.split('\n');
     addMarkup = function(block, node) {
       var bounds;
-      console.log(block.type, id);
       bounds = getBounds(node);
       markup.push({
         token: block.start,
@@ -34,7 +34,6 @@
     };
     getBounds = function(node) {
       var end, start;
-      console.log(node.constructor.name);
       switch (node.constructor.name) {
         case 'Block':
           start = node.locationData;
@@ -171,6 +170,22 @@
             _results2.push(mark(object));
           }
           return _results2;
+          break;
+        case 'Return':
+          block = new ICE.Block([]);
+          block.color = colors.RED;
+          addMarkup(block, node);
+          if (node.expression != null) {
+            return mark(node.expression);
+          }
+          break;
+        case 'Parens':
+          block = new ICE.Block([]);
+          block.color = colors.GREEN;
+          addMarkup(block, node);
+          if (node.body != null) {
+            return mark(node.body.unwrap());
+          }
       }
     };
     mark(node);
@@ -178,7 +193,7 @@
   };
 
   exports.execute = execute = function(text, markup) {
-    var debugString, first, head, i, id, lastMark, line, marks, stack, str, _i, _j, _k, _len, _len1, _len2, _mark, _ref, _socket;
+    var first, head, i, id, lastMark, line, marks, stack, str, _i, _j, _k, _len, _len1, _len2, _mark, _ref, _socket;
     id = 0;
     marks = {};
     for (_i = 0, _len = markup.length; _i < _len; _i++) {
@@ -193,7 +208,6 @@
     stack = [];
     for (i = _j = 0, _len1 = text.length; _j < _len1; i = ++_j) {
       line = text[i];
-      debugString = '';
       head = head.append(new ICE.NewlineToken());
       lastMark = 0;
       if (marks[i] != null) {
@@ -226,10 +240,8 @@
           }
           if (str.length !== 0) {
             head = head.append(new ICE.TextToken(str));
-            debugString += str;
           }
           if (stack.length > 0 && stack[stack.length - 1].block.type === 'block' && _mark.token.type === 'blockStart') {
-            debugString += "<socketStart (implied)>";
             stack.push({
               block: (_socket = new ICE.Socket()),
               implied: true
@@ -258,19 +270,15 @@
               stack.pop();
           }
           head = head.append(_mark.token);
-          debugString += '<' + _mark.token.type + ' ' + _mark.id + '>';
           if (stack.length > 0 && (stack[stack.length - 1].implied != null)) {
             head = head.append(stack.pop().block.end);
-            debugString += '<socketEnd (implied)>';
           }
           lastMark = _mark.position[1];
         }
       }
       if (!(lastMark > line.length - 1)) {
         head = head.append(new ICE.TextToken(line.slice(lastMark)));
-        debugString += line.slice(lastMark);
       }
-      console.log(debugString);
     }
     return first.next.next;
   };

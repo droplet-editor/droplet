@@ -64,7 +64,7 @@ exports.Rectangle = class Rectangle
       @height = Math.max(@bottom(), rectangle.bottom()) - (@y = Math.min @y, rectangle.y)
 
   swallow: (point) ->
-    unless @x and @y? then @copy new Rectangle point.x, point.y, 0, 0
+    unless @x? and @y? then @copy new Rectangle point.x, point.y, 0, 0
     else
       @width = Math.max(@right(), point.x) - (@x = Math.min @x, point.x)
       @height = Math.max(@bottom(), point.y) - (@y = Math.min @y, point.y)
@@ -103,10 +103,14 @@ exports.Path = class Path
       @_bounds.swallow point
   
   push: (point) ->
+    if @_points.length > 0
+      @_points.push new draw.Point @_points[@_points.length - 1].x, point.y #EXPERIMENTAL
     @_points.push point
     @_bounds.swallow point
 
   unshift: (point) ->
+    if @_points.length > 0
+      @_points.unshift new draw.Point point.x, @_points[0].y #EXPERIMENTAL
     @_points.unshift point
     @_bounds.swallow point
 
@@ -114,7 +118,7 @@ exports.Path = class Path
     @_clearCache()
 
     # "Ray" to the left
-    dest = new Point @_bounds.x - 1, point.y
+    dest = new Point @_bounds.x - 10, point.y
     
     # Count intersections
     count = 0
@@ -137,13 +141,8 @@ exports.Path = class Path
     if @style.fillColor? then ctx.fillStyle = @style.fillColor
     ctx.beginPath()
     ctx.moveTo @_points[0].x, @_points[0].y
-    last_point = @_points[0]
     for point in @_points
-      # EXPERIMENTAL
-      ctx.lineTo last_point.x, point.y
-      ctx.lineTo point.x, point.y
-      last_point = point
-      #ctx.lineTo point.x, point.y # DEFAULT
+      ctx.lineTo point.x, point.y # DEFAULT
     ctx.lineTo @_points[0].x, @_points[0].y
 
     # Fill and stroke

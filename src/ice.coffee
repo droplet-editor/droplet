@@ -37,6 +37,38 @@ exports.Block = class Block
     contents.push @end
     return contents
   
+  clone: ->
+    clone = new Block []
+    clone.color = @color
+    head = @start.next
+    cursor = clone.start
+    while head isnt @end
+      switch head.type
+        when 'blockStart'
+          block_clone = head.block.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.block.end
+        when 'socketStart'
+          block_clone = head.socket.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.socket.end
+        when 'indentStart'
+          block_clone = head.indent.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.indent.end
+        else
+          cursor = cursor.append head.clone()
+      head = head.next
+    cursor.append clone.end
+
+    return clone
+  
   lines: ->
     # The Lines of a block are the \n-separated lists of tokens between the start and end.
     contents = []
@@ -108,13 +140,44 @@ exports.Indent = class Indent
     @start = new IndentStartToken this
     @end = new IndentEndToken this
     @type = 'indent'
-
+    
     head = @start
     for block in contents
       head = head.append block.clone()
     head.append @end
     
     @paper = new IndentPaper this
+
+  clone: ->
+    clone = new Indent [], @depth
+    head = @start.next
+    cursor = clone.start
+    while head isnt @end
+      switch head.type
+        when 'blockStart'
+          block_clone = head.block.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.block.end
+        when 'socketStart'
+          block_clone = head.socket.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.socket.end
+        when 'indentStart'
+          block_clone = head.indent.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.indent.end
+        else
+          cursor = cursor.append head.clone()
+      head = head.next
+    cursor.append clone.end
+
+    return clone
 
   embedded: -> false
 
@@ -141,9 +204,22 @@ exports.Socket = class Socket
     @start = new SocketStartToken this
     @end = new SocketEndToken this
     
-    if content?
-      @start.next = @content.start
-      @end.prev = @content.end
+    if content? and content.start?
+      
+      @start.next = content.start
+      content.start.prev = @start
+
+      @end.prev = content.end
+      content.end.next = @end
+
+    else if content?
+
+      @start.next = content
+      content.prev = @start
+
+      @end.prev = content
+      content.next = @end
+
     else
       @start.next = @end
       @end.prev = @start
@@ -151,6 +227,8 @@ exports.Socket = class Socket
     @type = 'socket'
 
     @paper = new SocketPaper this
+
+  clone: -> if @content()? then new Socket @content().clone() else new Socket()
   
   embedded: -> false
 
@@ -215,6 +293,8 @@ exports.TextToken = class TextToken extends Token
     @paper = new TextTokenPaper this
     @type = 'text'
 
+  clone: -> new TextToken @value
+
   toString: (state) ->
     @value + if @next? then @next.toString(state) else ''
 
@@ -232,6 +312,8 @@ exports.NewlineToken = class NewlineToken extends Token
   constructor: ->
     @prev = @next = null
     @type = 'newline'
+
+  clone: -> new NewlineToken()
 
   toString: (state) ->
     '\n' + state.indent + if @next then @next.toString(state) else ''

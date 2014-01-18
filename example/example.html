@@ -15,14 +15,26 @@
       */
       canvas {
         position: absolute;
+      }
+      #canvas, #drag {
         height: 500px;
         width: 1000px;
-        left: 0;
+        left: 300;
         top: 0;
+      }
+      #palette {
+        width: 300px;
+        top: 0;
+        left: 0;
+      }
+      #palette, #canvas {
+        border: 1px solid #000;
+        background-color:#EEE;
       }
       .main {
         position: relative;
         height: 500px;
+        width: 1300px;
         overflow: hidden;
         border: 1px solid #000;
         -webkit-touch-callout: none;
@@ -51,6 +63,7 @@
   </head>
   <body>
     <div class='main'>
+      <canvas id="palette" width='300px' height='500px' style='z-index:0'></canvas>
       <canvas id="canvas" width='1000px' height='500px' style='z-index:0'></canvas>
       <canvas id="drag" width='1000px' height='500px' style='z-index:1'></canvas>
       <div class='trackArea' style='z-index:2'></div>

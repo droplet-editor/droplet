@@ -115,7 +115,7 @@
     };
 
     Rectangle.prototype.swallow = function(point) {
-      if (!(this.x && (this.y != null))) {
+      if (!((this.x != null) && (this.y != null))) {
         return this.copy(new Rectangle(point.x, point.y, 0, 0));
       } else {
         this.width = Math.max(this.right(), point.x) - (this.x = Math.min(this.x, point.x));
@@ -186,11 +186,17 @@
     };
 
     Path.prototype.push = function(point) {
+      if (this._points.length > 0) {
+        this._points.push(new draw.Point(this._points[this._points.length - 1].x, point.y));
+      }
       this._points.push(point);
       return this._bounds.swallow(point);
     };
 
     Path.prototype.unshift = function(point) {
+      if (this._points.length > 0) {
+        this._points.unshift(new draw.Point(point.x, this._points[0].y));
+      }
       this._points.unshift(point);
       return this._bounds.swallow(point);
     };
@@ -198,7 +204,7 @@
     Path.prototype.contains = function(point) {
       var count, dest, end, last, _i, _len, _ref;
       this._clearCache();
-      dest = new Point(this._bounds.x - 1, point.y);
+      dest = new Point(this._bounds.x - 10, point.y);
       count = 0;
       last = this._points[this._points.length - 1];
       _ref = this._points;
@@ -223,7 +229,7 @@
     };
 
     Path.prototype.draw = function(ctx) {
-      var last_point, point, _i, _len, _ref;
+      var point, _i, _len, _ref;
       this._clearCache();
       ctx.strokeStyle = this.style.strokeColor;
       if (this.style.fillColor != null) {
@@ -231,13 +237,10 @@
       }
       ctx.beginPath();
       ctx.moveTo(this._points[0].x, this._points[0].y);
-      last_point = this._points[0];
       _ref = this._points;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         point = _ref[_i];
-        ctx.lineTo(last_point.x, point.y);
         ctx.lineTo(point.x, point.y);
-        last_point = point;
       }
       ctx.lineTo(this._points[0].x, this._points[0].y);
       if (this.style.fillColor != null) {

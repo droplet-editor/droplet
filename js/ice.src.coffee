@@ -37,6 +37,38 @@ exports.Block = class Block
     contents.push @end
     return contents
   
+  clone: ->
+    clone = new Block []
+    clone.color = @color
+    head = @start.next
+    cursor = clone.start
+    while head isnt @end
+      switch head.type
+        when 'blockStart'
+          block_clone = head.block.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.block.end
+        when 'socketStart'
+          block_clone = head.socket.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.socket.end
+        when 'indentStart'
+          block_clone = head.indent.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.indent.end
+        else
+          cursor = cursor.append head.clone()
+      head = head.next
+    cursor.append clone.end
+
+    return clone
+  
   lines: ->
     # The Lines of a block are the \n-separated lists of tokens between the start and end.
     contents = []
@@ -108,13 +140,44 @@ exports.Indent = class Indent
     @start = new IndentStartToken this
     @end = new IndentEndToken this
     @type = 'indent'
-
+    
     head = @start
     for block in contents
       head = head.append block.clone()
     head.append @end
     
     @paper = new IndentPaper this
+
+  clone: ->
+    clone = new Indent [], @depth
+    head = @start.next
+    cursor = clone.start
+    while head isnt @end
+      switch head.type
+        when 'blockStart'
+          block_clone = head.block.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.block.end
+        when 'socketStart'
+          block_clone = head.socket.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.socket.end
+        when 'indentStart'
+          block_clone = head.indent.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.indent.end
+        else
+          cursor = cursor.append head.clone()
+      head = head.next
+    cursor.append clone.end
+
+    return clone
 
   embedded: -> false
 
@@ -141,9 +204,22 @@ exports.Socket = class Socket
     @start = new SocketStartToken this
     @end = new SocketEndToken this
     
-    if content?
-      @start.next = @content.start
-      @end.prev = @content.end
+    if content? and content.start?
+      
+      @start.next = content.start
+      content.start.prev = @start
+
+      @end.prev = content.end
+      content.end.next = @end
+
+    else if content?
+
+      @start.next = content
+      content.prev = @start
+
+      @end.prev = content
+      content.next = @end
+
     else
       @start.next = @end
       @end.prev = @start
@@ -151,6 +227,8 @@ exports.Socket = class Socket
     @type = 'socket'
 
     @paper = new SocketPaper this
+
+  clone: -> if @content()? then new Socket @content().clone() else new Socket()
   
   embedded: -> false
 
@@ -215,6 +293,8 @@ exports.TextToken = class TextToken extends Token
     @paper = new TextTokenPaper this
     @type = 'text'
 
+  clone: -> new TextToken @value
+
   toString: (state) ->
     @value + if @next? then @next.toString(state) else ''
 
@@ -232,6 +312,8 @@ exports.NewlineToken = class NewlineToken extends Token
   constructor: ->
     @prev = @next = null
     @type = 'newline'
+
+  clone: -> new NewlineToken()
 
   toString: (state) ->
     '\n' + state.indent + if @next then @next.toString(state) else ''
@@ -404,6 +486,8 @@ MOUTH_BOTTOM = 50
 DROP_AREA_MAX_WIDTH = 50
 FONT_SIZE = 15
 EMPTY_INDENT_WIDTH = 50
+PALETTE_WIDTH = 300
+PALETTE_WHITESPACE = 10
 
 ###
 # For developers, bits of policy:
@@ -598,15 +682,16 @@ class BlockPaper extends IcePaper
         if child.bounds[line].height is 0
           # This is hacky.
           @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
-          @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].y + 5
-          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y + 5
-          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y - 5 - PADDING
+          @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].y + 10
+          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y + 10
+          if @_lineChildren[line].length > 1
+            @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y - 5 - PADDING
         else
           # Make sure to wrap our path around this indent line (or to the left of it)
           @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
           @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].bottom()
 
-          if line is child.lineEnd #@_lineChildren[line].length > 1 # If there's anyone else here
+          if line is child.lineEnd and @_lineChildren[line].length > 1 # If there's anyone else here
             # Also wrap the "G" shape
             @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].bottom()
             @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y
@@ -647,8 +732,6 @@ class BlockPaper extends IcePaper
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
 
     else if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      #@_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
-      #@_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
 
@@ -691,6 +774,12 @@ class BlockPaper extends IcePaper
     for line of @bounds
       @lineGroups[line].translate vector
       @bounds[line].translate vector
+    
+    for line, bit of @_pathBits
+      for point in bit.left
+        point.translate vector
+      for point in bit.right
+        point.translate vector
 
     for child in @children
       child.translate vector
@@ -809,6 +898,29 @@ class SocketPaper extends IcePaper
       ctx.fillStyle = '#fff'
       ctx.fillRect rect.x, rect.y, rect.width, rect.height
       ctx.strokeRect rect.x, rect.y, rect.width, rect.height
+
+  translate: (vector) ->
+    # Try to delegate
+    if @_content?
+      @_content.paper.translate vector
+      
+      # Manage things if they are text
+      if @_content.type is 'text'
+        line = @_content.paper._line
+
+        @bounds[line].copy @_content.paper.bounds[line]
+
+        # We add padding around text
+        @bounds[line].y -= PADDING
+        @bounds[line].width += 2 * PADDING
+        @bounds[line].x -= PADDING
+        @bounds[line].height += 2 * PADDING
+
+        # If our width is less than 20px we extend ourselves
+        @bounds[line].width = Math.max(@bounds[line].width, 20)
+    else
+      @bounds[@_line].translate vector
+
 
 class IndentPaper extends IcePaper
   constructor: (block) ->
@@ -942,21 +1054,12 @@ window.onload = ->
 
   dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d')
 
+  paletteCtx = (paletteCanvas = document.getElementById('palette')).getContext('2d')
+
   out = document.getElementById('out')
   
   div = document.getElementsByClassName('trackArea')[0]
-  ###
-  tree = ICE.indentParse '''
-(defun turing (lambda (tuples left right state)
-  ((lambda (tuple)
-      (if (= (car tuple) -1)
-        (turing tuples (cons (car (cdr tuple) left) (cdr right) (car (cdr (cdr tuple)))))
-        (if (= (car tuple 1))
-          (turing tuples (cdr left) (cons (car (cdr tuple)) right) (car (cdr (cdr tuple))))
-          (turing tuples left right (car (cdr tuple))))))
-    (lookup tuples (car right) state))))
-'''
-  ###
+
   tree = coffee.parse '''
     window.onload = ->
       if document.getElementsByClassName('test').length > 0
@@ -992,6 +1095,7 @@ window.onload = ->
       point = new draw.Point event.offsetX, event.offsetY
     else
       point = new draw.Point event.layerX, event.layerY
+    point.add -PALETTE_WIDTH, 0
     point.translate scrollOffset
 
     # First, see if we are trying to focus an empty socket
@@ -1062,23 +1166,40 @@ window.onload = ->
     # Find the block that was just clicked
     selection = tree.block.findBlock (block) ->
       block.paper._container.contains point
+    
+    # We aren't copying from the palette
+    cloneLater = false
 
     if selection is tree.block
-      selection = null; return
+      # See if we matched any palette blocks
+      point.add 300, 0
+      for block in palette_blocks
+        if block.paper._container.contains point
+          # We're grabbing this block
+          selection = block
+
+          # Actually, we are copying from the palette
+          cloneLater = true
+          break
+        else selection = null
+      
+      # If we haven't found any palette match, return
+      if selection is tree.block or selection is null then selection = null; return
 
     # Remove the newline before, if necessary
     if selection.start.prev.type is 'newline'
       selection.start.prev.remove()
 
+    # Compute the offset of our cursor from the selection position (for drag-and-drop)
+    bounds = selection.paper.bounds[selection.paper.lineStart]
+    offset = point.from new draw.Point bounds.x, bounds.y
+
     # Remove it from its tree
-    selection._moveTo null
+    if cloneLater then selection = selection.clone()
+    else selection._moveTo null
     
     # Redraw the root tree (now that selection has been removed)
     redraw()
-    
-    # Compute the offset of our cursor from the selection position (for drag-and-dro)
-    bounds = selection.paper.bounds[selection.paper.lineStart]
-    offset = point.from new draw.Point bounds.x, bounds.y
     
     # Redraw the selection on the drag canvas
     selection.paper.compute {line: 0}
@@ -1089,12 +1210,15 @@ window.onload = ->
     div.onmousemove event
     
   div.onmousemove = (event) ->
+    # Determine where the point is on the canvas
+    if event.offsetX?
+      point = new draw.Point event.offsetX, event.offsetY
+    else
+      point = new draw.Point event.layerX, event.layerY
+    point.add -PALETTE_WIDTH, 0
+
     if selection?
       # Figure out where we want the selection to go
-      if event.offsetX?
-        point = new draw.Point event.offsetX, event.offsetY
-      else
-        point = new draw.Point event.layerX, event.layerY
       scrollDest = new draw.Point -offset.x + point.x, -offset.y + point.y
       point.translate scrollOffset
       dest = new draw.Point -offset.x + point.x, -offset.y + point.y
@@ -1105,7 +1229,6 @@ window.onload = ->
       # Find the highlighted area
       highlight = tree.block.find (block) ->
         (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
-
       
       # Redraw if we must
       if highlight isnt old_highlight or window.PERFORMANCE_TEST
@@ -1125,8 +1248,6 @@ window.onload = ->
       # Compute the points
       text = focus.content(); line = text.paper._line
 
-      point = new draw.Point event.offsetX, event.offsetY
-      point.translate scrollOffset
       head = Math.round((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
 
       # Clear the current selection
@@ -1196,3 +1317,34 @@ window.onload = ->
     catch e
       ctx.fillStyle = "#f00"
       ctx.fillText e.message, 0, 0
+  
+  # This palette for testing only
+  palette_blocks = [
+    (coffee.parse '''
+      a = b
+    ''').block
+    
+    (coffee.parse '''
+      alert 'hi'
+    ''').block
+
+    (coffee.parse '''
+      for i in [1..10]
+        alert 'good'
+    ''').block
+
+    (coffee.parse '''
+      return 0
+    ''').block
+  ]
+  
+  running_height = 0
+  for block in palette_blocks
+    block.paper.compute line: 0
+
+    # Translate into position
+    block.paper.translate new draw.Point 0, running_height
+
+    block.paper.finish()
+    running_height += block.paper._container.bounds().height + PALETTE_WHITESPACE
+    block.paper.draw paletteCtx

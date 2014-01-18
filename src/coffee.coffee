@@ -2,6 +2,7 @@ colors =
   BLUE: '#37f'
   YELLOW: '#fb5'
   GREEN: '#3f7'
+  RED: '#f03'
 
 exports = {}
 
@@ -13,7 +14,7 @@ exports.mark = (node, text) ->
   text = text.split('\n')
 
   addMarkup = (block, node) ->
-    console.log block.type, id
+    #console.log block.type, id
 
     bounds = getBounds node
     
@@ -32,7 +33,7 @@ exports.mark = (node, text) ->
     id += 1
 
   getBounds = (node) ->
-    console.log node.constructor.name
+    #console.log node.constructor.name
     switch node.constructor.name
       when 'Block'
         start = node.locationData
@@ -157,6 +158,21 @@ exports.mark = (node, text) ->
         
         for object in node.objects
           mark object
+
+      when 'Return'
+        block = new ICE.Block []
+        block.color = colors.RED
+        addMarkup block, node
+
+        if node.expression? then mark node.expression
+
+      when 'Parens'
+        block = new ICE.Block []
+        block.color = colors.GREEN
+        addMarkup block, node
+
+        if node.body? then mark node.body.unwrap()
+
   mark node
   
   return markup
@@ -179,7 +195,7 @@ exports.execute = execute = (text, markup) ->
   stack = []
 
   for line, i in text
-    debugString = '' #DEBUG
+    #debugString = '' #DEBUG
 
     # Append the newline token
     head = head.append new ICE.NewlineToken()
@@ -205,10 +221,10 @@ exports.execute = execute = (text, markup) ->
 
         unless str.length is 0
           head = head.append new ICE.TextToken str
-          debugString += str #DEBUG
+          #debugString += str #DEBUG
         
         if stack.length > 0 and stack[stack.length-1].block.type is 'block' and _mark.token.type is 'blockStart'
-          debugString += "<socketStart (implied)>" #DEBUG
+          #debugString += "<socketStart (implied)>" #DEBUG
           stack.push block: (_socket = new ICE.Socket()), implied: true
           head = head.append _socket.start
 
@@ -219,20 +235,20 @@ exports.execute = execute = (text, markup) ->
           when 'blockEnd', 'socketEnd', 'indentEnd' then stack.pop()
 
         head = head.append _mark.token
-        debugString += '<' + _mark.token.type + ' ' + _mark.id + '>' #DEBUG
+        #debugString += '<' + _mark.token.type + ' ' + _mark.id + '>' #DEBUG
 
         if stack.length > 0 and stack[stack.length - 1].implied?
           head = head.append stack.pop().block.end
-          debugString += '<socketEnd (implied)>' #DEBUG
+          #debugString += '<socketEnd (implied)>' #DEBUG
 
         lastMark = _mark.position[1]
 
     # Insert the last string on this line.
     unless lastMark > line.length - 1
       head = head.append new ICE.TextToken line[lastMark..-1]
-      debugString += line[lastMark..-1] #DEBUG
+      #debugString += line[lastMark..-1] #DEBUG
 
-    console.log debugString #DEBUG
+    #console.log #debugString #DEBUG
 
   return first.next.next
 
