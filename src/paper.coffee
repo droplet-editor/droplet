@@ -698,7 +698,9 @@ window.onload = ->
 
     if selection is tree.block
       # See if we matched any palette blocks
-      point.add 300, 0
+      point.add PALETTE_WIDTH, 0
+      point.add -scrollOffset.x, -scrollOffset.y
+
       for block in palette_blocks
         if block.paper._container.contains point
           # We're grabbing this block

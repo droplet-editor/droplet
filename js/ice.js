@@ -1355,7 +1355,8 @@
       });
       cloneLater = false;
       if (selection === tree.block) {
-        point.add(300, 0);
+        point.add(PALETTE_WIDTH, 0);
+        point.add(-scrollOffset.x, -scrollOffset.y);
         for (_i = 0, _len = palette_blocks.length; _i < _len; _i++) {
           block = palette_blocks[_i];
           if (block.paper._container.contains(point)) {
