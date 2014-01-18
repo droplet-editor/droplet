@@ -136,9 +136,9 @@ exports.Block = class Block
     return this
   
   # TODO This is really only usable for debugging
-  toString: (state) ->
-    string = @start.toString(state)
-    return string[..string.length-@end.toString(state).length-1]
+  toString: ->
+    string = @start.toString indent: ''
+    return string[..string.length-@end.toString(indent: '').length-1]
 
 exports.Indent = class Indent
   constructor: (contents, @depth) ->
@@ -366,7 +366,7 @@ exports.Socket = class Socket
     # Couldn't find any, so we are the innermost child fitting f()
     return this
 
-  toString: (state) -> if @content()? then @content().toString({indent:''}) else ''
+  toString: -> if @content()? then @content().toString({indent:''}) else ''
   
 exports.Token = class Token
   constructor: ->

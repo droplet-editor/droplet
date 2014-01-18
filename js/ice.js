@@ -166,10 +166,14 @@
       return this;
     };
 
-    Block.prototype.toString = function(state) {
+    Block.prototype.toString = function() {
       var string;
-      string = this.start.toString(state);
-      return string.slice(0, +(string.length - this.end.toString(state).length - 1) + 1 || 9e9);
+      string = this.start.toString({
+        indent: ''
+      });
+      return string.slice(0, +(string.length - this.end.toString({
+        indent: ''
+      }).length - 1) + 1 || 9e9);
     };
 
     return Block;
@@ -466,7 +470,7 @@
       return this;
     };
 
-    Socket.prototype.toString = function(state) {
+    Socket.prototype.toString = function() {
       if (this.content() != null) {
         return this.content().toString({
           indent: ''
