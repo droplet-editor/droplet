@@ -810,9 +810,7 @@ window.onload = ->
         point.add -scrollOffset.x, -scrollOffset.y
 
         for block in palette_blocks
-          console.log 'checking', block
           if block.findBlock((x) -> x.paper._container.contains point)?
-            console.log 'FOUND IT'
             # We're grabbing this block
             selection = block
 
@@ -834,8 +832,6 @@ window.onload = ->
     if cloneLater then selection = selection.clone()
     else selection._moveTo null
 
-    console.log selection, selection.toString()
-    
     # Redraw the root tree (now that selection has been removed)
     redraw()
     

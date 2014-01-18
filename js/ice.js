@@ -107,9 +107,23 @@
     };
 
     Block.prototype._moveTo = function(parent) {
-      if ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
+      var first, last;
+      while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.remove();
         this.end.next.remove();
+      }
+      if ((this.end.next != null) && (this.start.prev != null)) {
+        last = this.end.next;
+        while ((last != null) && last.type === 'segmentEnd') {
+          last = last.next;
+        }
+        first = this.start.prev;
+        while (typeof first === "function" ? first(first.type === 'segmentStart') : void 0) {
+          first = first.prev;
+        }
+        if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
+          first.remove();
+        }
       }
       if (this.start.prev != null) {
         this.start.prev.next = this.end.next;
@@ -1668,11 +1682,9 @@
           point.add(-scrollOffset.x, -scrollOffset.y);
           for (_j = 0, _len1 = palette_blocks.length; _j < _len1; _j++) {
             block = palette_blocks[_j];
-            console.log('checking', block);
             if (block.findBlock(function(x) {
               return x.paper._container.contains(point);
             }) != null) {
-              console.log('FOUND IT');
               selection = block;
               cloneLater = true;
               break;
@@ -1695,7 +1707,6 @@
       } else {
         selection._moveTo(null);
       }
-      console.log(selection, selection.toString());
       redraw();
       selection.paper.compute({
         line: 0

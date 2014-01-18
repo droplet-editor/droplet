@@ -86,9 +86,20 @@ exports.Block = class Block
   
   _moveTo: (parent) ->
     # Check for empty segments
-    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+    while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.remove()
       @end.next.remove()
+
+    # Don't leave empty lines behind
+    if @end.next? and @start.prev?
+      last = @end.next
+      while last? and last.type is 'segmentEnd' then last = last.next
+
+      first = @start.prev
+      while first? first.type is 'segmentStart' then first = first.prev
+
+      if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
+        first.remove()
 
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
@@ -1401,9 +1412,7 @@ window.onload = ->
         point.add -scrollOffset.x, -scrollOffset.y
 
         for block in palette_blocks
-          console.log 'checking', block
           if block.findBlock((x) -> x.paper._container.contains point)?
-            console.log 'FOUND IT'
             # We're grabbing this block
             selection = block
 
@@ -1425,8 +1434,6 @@ window.onload = ->
     if cloneLater then selection = selection.clone()
     else selection._moveTo null
 
-    console.log selection, selection.toString()
-    
     # Redraw the root tree (now that selection has been removed)
     redraw()
     
