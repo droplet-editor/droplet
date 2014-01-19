@@ -776,9 +776,6 @@ class BlockPaper extends IcePaper
   setLeftCenter: (line, point) ->
     # Get ready to iterate through the children at this line
     cursor = point.clone() # The place we want to move this child's boundaries
-    
-    #if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line and @_lineChildren[line][0].bounds[line].height is 0
-    #  cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
@@ -1116,9 +1113,7 @@ class IndentPaper extends IcePaper
     return this
 
   finish: ->
-    console.log @bounds[@lineStart]
     @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
-    console.log @dropArea
     for child in @children
       child.finish()
   
@@ -1266,348 +1261,380 @@ class TextTokenPaper extends IcePaper
   translate: (vector) ->
     @_text.translate vector
 
-###
-# Tests
-###
-window.onload = ->
-  # Check the test flag
-  if not window.RUN_PAPER_TESTS then return
-  
-  # Setup the default measuring context (this is a hack)
-  draw._setCTX ctx = (canvas = document.getElementById('canvas')).getContext('2d')
+out = null
 
-  dragCtx = (dragCanvas = document.getElementById('drag')).getContext('2d')
+exports.Editor = class Editor
+  constructor: (el) ->
+    # Create all the necessary canvases
+    console.log el.offsetHeight, el.offsetWidth
+    
+    canvas = document.createElement 'canvas'; canvas.className = 'canvas'
+    canvas.height = el.offsetHeight
+    canvas.width = el.offsetWidth - PALETTE_WIDTH
 
-  paletteCtx = (paletteCanvas = document.getElementById('palette')).getContext('2d')
+    paletteCanvas = document.createElement 'canvas'; paletteCanvas.className = 'palette'
+    paletteCanvas.height = el.offsetHeight
+    paletteCanvas.width = PALETTE_WIDTH
+    
+    dragCanvas = document.createElement 'canvas'; dragCanvas.className = 'drag'
+    dragCanvas.height = el.offsetHeight
+    dragCanvas.width = el.offsetWidth - PALETTE_WIDTH
 
-  out = document.getElementById('out')
-  
-  div = document.getElementsByClassName('trackArea')[0]
+    dragImage = document.createElement 'image'; dragImage.className = 'drag_image'
+    el.appendChild dragImage
 
-  tree = coffee.parse '''
-    window.onload = ->
-      if document.getElementsByClassName('test').length > 0
-        for [1..10]
-          document.body.appendChild document.createElement 'script'
-        alert 'found a test element'
-      document.getElementsByTagName('button').onclick = ->
-        alert 'somebody clicked a button'
-  '''
+    # Create the tracking div
+    div = document.createElement 'div'; div.className = 'trackArea'
+    
+    # Append them all
+    el.appendChild canvas
+    el.appendChild dragCanvas
+    el.appendChild paletteCanvas
+    el.appendChild div
+    
+    # Get contexts
+    ctx = canvas.getContext '2d'
+    dragCtx = dragCanvas.getContext '2d'
+    paletteCtx = paletteCanvas.getContext '2d'
+    
+    # Do a hack for text measurement
+    draw._setCTX ctx
 
-  scrollOffset = new draw.Point 0, 0
-  highlight = selection = offset = input = focus = anchor = head = null
+    tree = coffee.parse '''
+      window.onload = ->
+        if document.getElementsByClassName('test').length > 0
+          for [1..10]
+            document.body.appendChild document.createElement 'script'
+          alert 'found a test element'
+        document.getElementsByTagName('button').onclick = ->
+          alert 'somebody clicked a button'
+    '''
 
-  # All benchmarked to 1.142 milliseconds. Pretty good!
-  clear = ->
-    ctx.clearRect scrollOffset.x, scrollOffset.y, canvas.width, canvas.height
+    scrollOffset = new draw.Point 0, 0
+    highlight = selection = offset = input = focus = anchor = head = null
 
-  redraw = ->
-    clear()
-    tree.segment.paper.compute {line: 0}
-    tree.segment.paper.finish()
-    tree.segment.paper.draw ctx
-    out.value = tree.segment.toString {indent: ''}
+    # All benchmarked to 1.142 milliseconds. Pretty good!
+    clear = ->
+      ctx.clearRect scrollOffset.x, scrollOffset.y, canvas.width, canvas.height
 
-    for block in floating_blocks
-      block.block.paper.compute line: 0
-      block.block.paper.translate block.position
-      block.block.paper.finish()
-      block.block.paper.draw ctx
+    redraw = ->
+      clear()
+      tree.segment.paper.compute {line: 0}
+      tree.segment.paper.finish()
+      tree.segment.paper.draw ctx
+      out.value = tree.segment.toString {indent: ''}
 
-  fastDraw = ->
-    clear()
-    tree.segment.paper.draw ctx
+      for block in floating_blocks
+        block.block.paper.compute line: 0
+        block.block.paper.translate block.position
+        block.block.paper.finish()
+        block.block.paper.draw ctx
 
-    for block in floating_blocks
-      block.block.paper.draw ctx
-  
-  floating_blocks = []
-  redraw()
+    fastDraw = ->
+      clear()
+      tree.segment.paper.draw ctx
 
-  ###
-  # Here to below will eventually become part of the IceEditor() class
-  ###
-  
-  div.addEventListener 'touchstart', div.onmousedown = (event) ->
-    if event.offsetX?
-      point = new draw.Point event.offsetX, event.offsetY
-    else
-      point = new draw.Point event.layerX, event.layerY
-    point.add -PALETTE_WIDTH, 0
-    point.translate scrollOffset
+      for block in floating_blocks
+        block.block.paper.draw ctx
+    
+    floating_blocks = []
+    redraw()
 
-    # First, see if we are trying to focus an empty socket
-    focus = tree.segment.findSocket (block) ->
-      block.paper._empty and block.paper.bounds[block.paper._line].contains point
+    ###
+    # Here to below will eventually become part of the IceEditor() class
+    ###
+    
+    div.addEventListener 'touchstart', div.onmousedown = (event) ->
+      if event.offsetX?
+        point = new draw.Point event.offsetX, event.offsetY
+      else
+        point = new draw.Point event.layerX, event.layerY
+      point.add -PALETTE_WIDTH, 0
+      point.translate scrollOffset
 
-    if focus?
-      # Insert the text token we're editing
-      if focus.content()? then text = focus.content()
-      else focus.start.insert text = new TextToken ''
+      # First, see if we are trying to focus an empty socket
+      focus = tree.segment.findSocket (block) ->
+        block.paper._empty and block.paper.bounds[block.paper._line].contains point
 
-      if input? then input.parentNode.removeChild input
+      if focus?
+        # Insert the text token we're editing
+        if focus.content()? then text = focus.content()
+        else focus.start.insert text = new TextToken ''
 
-      # Append the hidden input
-      document.body.appendChild input = document.createElement 'input'
-      input.className = 'hidden_input'
-      line = focus.paper._line
+        if input? then input.parentNode.removeChild input
+
+        # Append the hidden input
+        document.body.appendChild input = document.createElement 'input'
+        input.className = 'hidden_input'
+        line = focus.paper._line
+        
+        input.value = focus.content().value
+
+        # Here we have to abuse the fact that we use a monospace font (we could do this in linear time otherwise, but this is neat)
+        anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
+        
+        # Do an immediate redraw
+        redraw()
+
+        # Bind the update to the input's key handlers
+        input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = ->
+          text.value = this.value
+          
+          # Recompute the socket itself
+          text.paper.compute line: line
+          focus.paper.compute line: line
+          
+          # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
+          # This is for performance reasons; we don't need to redraw the whole tree.
+          old_bounds = tree.segment.paper.bounds[line].y
+          tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2
+          if tree.segment.paper.bounds[line].y isnt old_bounds
+            # This is totally hacky patch for a bug whose source I don't know.
+            tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1
+          tree.segment.paper.finish()
+          
+          # Do the fast draw operation and toString() operation.
+          fastDraw()
+          out.value = tree.segment.toString {indent: ''}
+
+          # Draw the typing cursor
+          start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
+          end = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionEnd]).width
+
+          if start is end
+            ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
+          else
+            ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+            ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
+
+        setTimeout (->
+          input.focus()
+          input.setSelectionRange anchor, anchor
+          input.dispatchEvent(new CustomEvent('input'))
+        ), 0
+
+        return
       
-      input.value = focus.content().value
-
-      # Here we have to abuse the fact that we use a monospace font (we could do this in linear time otherwise, but this is neat)
-      anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
+      # Find the block that was just clicked
+      selection = tree.segment.findBlock (block) ->
+        block.paper._container.contains point
       
-      # Do an immediate redraw
+      # We aren't copying from the palette
+      cloneLater = false
+
+      unless selection?
+        selection = null
+        for block, i in floating_blocks
+          if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
+            floating_blocks.splice i, 1
+            selection = block.block
+            break
+          else selection = null
+
+        unless selection?
+          # See if we matched any palette blocks
+          point.add PALETTE_WIDTH, 0
+          point.add -scrollOffset.x, -scrollOffset.y
+
+          for block in palette_blocks
+            if block.findBlock((x) -> x.paper._container.contains point)?
+              # We're grabbing this block
+              selection = block
+
+              # Actually, we are copying from the palette
+              cloneLater = true
+              break
+            else selection = null
+        unless selection? then return
+
+      # Remove the newline before, if necessary
+      if selection.start.prev? and selection.start.prev.type is 'newline'
+        selection.start.prev.remove()
+
+      # Compute the offset of our cursor from the selection position (for drag-and-drop)
+      bounds = selection.paper.bounds[selection.paper.lineStart]
+      offset = point.from new draw.Point bounds.x, bounds.y
+
+      # Remove it from its tree
+      if cloneLater then selection = selection.clone()
+      else selection._moveTo null
+
+      # Redraw the root tree (now that selection has been removed)
       redraw()
+      
+      # Redraw the selection on the drag canvas
+      selection.paper.compute {line: 0}
+      selection.paper.finish()
+      selection.paper.draw dragCtx
 
-      # Bind the update to the input's key handlers
-      input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = ->
-        text.value = this.value
-        
-        # Recompute the socket itself
-        text.paper.compute line: line
-        focus.paper.compute line: line
-        
-        # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
-        # This is for performance reasons; we don't need to redraw the whole tree.
-        old_bounds = tree.segment.paper.bounds[line].y
-        tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2
-        if tree.segment.paper.bounds[line].y isnt old_bounds
-          # This is totally hacky patch for a bug whose source I don't know.
-          tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1
-        tree.segment.paper.finish()
-        
-        # Do the fast draw operation and toString() operation.
-        fastDraw()
-        out.value = tree.segment.toString {indent: ''}
+      # Put the drag canvas into an image
+      dragImage.src = dragCanvas.toDataURL("image/png")
+      
+      # Immediately transform the drag canvas
+      div.onmousemove event
+      
+    div.addEventListener 'touchmove', div.onmousemove = (event) ->
+      # Determine where the point is on the canvas
+      if event.offsetX?
+        point = new draw.Point event.offsetX, event.offsetY
+      else
+        point = new draw.Point event.layerX, event.layerY
+      point.add -PALETTE_WIDTH, 0
 
-        # Draw the typing cursor
-        start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
-        end = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionEnd]).width
+      if selection?
+        # Figure out where we want the selection to go
+        scrollDest = new draw.Point -offset.x + point.x, -offset.y + point.y
+        point.translate scrollOffset
+        dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
+        old_highlight = highlight
+
+        # Find the highlighted area
+        highlight = tree.segment.find (block) ->
+          (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
+        
+        # Redraw if we must
+        if highlight isnt old_highlight or window.PERFORMANCE_TEST
+          fastDraw()
+          
+          if highlight?
+            # Highlight the highlighted area
+            highlight.paper.dropArea.fill(ctx, '#fff')
+        
+        # css-transform the drag canvas to that area
+        dragImage.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+        dragImage.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+        dragImage.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+
+        event.preventDefault()
+
+      else if focus? and anchor?
+        # Compute the points
+        text = focus.content(); line = text.paper._line
+
+        head = Math.round((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
+
+        # Clear the current selection
+        bounds = text.paper.bounds[line]
+        ctx.clearRect bounds.x, bounds.y, bounds.width, bounds.height
+
+        # Redraw the text
+        text.paper.draw ctx
+
+        # Draw the rectangle
+        start = text.paper.bounds[line].x + ctx.measureText(text.value[...head]).width
+        end = text.paper.bounds[line].x + ctx.measureText(text.value[...anchor]).width
+
+        # Either draw the selection or the cursor
         if start is end
           ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
         else
           ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
           ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
 
-      setTimeout (->
-        input.focus()
-        input.setSelectionRange anchor, anchor
-        input.dispatchEvent(new CustomEvent('input'))
-      ), 0
+    div.addEventListener 'touchend', div.onmouseup = (event) ->
+      if selection?
+        if highlight? and highlight isnt tree.segment
+          switch highlight.type
+            when 'indent'
+              selection._moveTo highlight.start.insert new NewlineToken()
+            when 'block'
+              selection._moveTo highlight.end.insert new NewlineToken()
+            when 'socket'
+              if highlight.content()? then highlight.content().remove()
+              selection._moveTo highlight.start
 
-      return
-    
-    # Find the block that was just clicked
-    selection = tree.segment.findBlock (block) ->
-      block.paper._container.contains point
-    
-    # We aren't copying from the palette
-    cloneLater = false
-
-    unless selection?
-      selection = null
-      for block, i in floating_blocks
-        if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
-          floating_blocks.splice i, 1
-          selection = block.block
-          break
-        else selection = null
-
-      unless selection?
-        # See if we matched any palette blocks
-        point.add PALETTE_WIDTH, 0
-        point.add -scrollOffset.x, -scrollOffset.y
-
-        for block in palette_blocks
-          if block.findBlock((x) -> x.paper._container.contains point)?
-            # We're grabbing this block
-            selection = block
-
-            # Actually, we are copying from the palette
-            cloneLater = true
-            break
-          else selection = null
-      unless selection? then return
-
-    # Remove the newline before, if necessary
-    if selection.start.prev? and selection.start.prev.type is 'newline'
-      selection.start.prev.remove()
-
-    # Compute the offset of our cursor from the selection position (for drag-and-drop)
-    bounds = selection.paper.bounds[selection.paper.lineStart]
-    offset = point.from new draw.Point bounds.x, bounds.y
-
-    # Remove it from its tree
-    if cloneLater then selection = selection.clone()
-    else selection._moveTo null
-
-    # Redraw the root tree (now that selection has been removed)
-    redraw()
-    
-    # Redraw the selection on the drag canvas
-    selection.paper.compute {line: 0}
-    selection.paper.finish()
-    selection.paper.draw dragCtx
-    
-    # Immediately transform the drag canvas
-    div.onmousemove event
-    
-  div.addEventListener 'touchmove', div.onmousemove = (event) ->
-    # Determine where the point is on the canvas
-    if event.offsetX?
-      point = new draw.Point event.offsetX, event.offsetY
-    else
-      point = new draw.Point event.layerX, event.layerY
-    point.add -PALETTE_WIDTH, 0
-
-    if selection?
-      # Figure out where we want the selection to go
-      scrollDest = new draw.Point -offset.x + point.x, -offset.y + point.y
-      point.translate scrollOffset
-      dest = new draw.Point -offset.x + point.x, -offset.y + point.y
-
-      old_highlight = highlight
-
-      # Find the highlighted area
-      highlight = tree.segment.find (block) ->
-        (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
-      
-      # Redraw if we must
-      if highlight isnt old_highlight or window.PERFORMANCE_TEST
-        fastDraw()
-        
-        if highlight?
-          # Highlight the highlighted area
-          highlight.paper.dropArea.fill(ctx, '#fff')
-      
-      # css-transform the drag canvas to that area
-      dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-      dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-      dragCanvas.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-
-      event.preventDefault()
-
-    else if focus? and anchor?
-      # Compute the points
-      text = focus.content(); line = text.paper._line
-
-      head = Math.round((point.x - text.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
-
-      # Clear the current selection
-      bounds = text.paper.bounds[line]
-      ctx.clearRect bounds.x, bounds.y, bounds.width, bounds.height
-
-      # Redraw the text
-      text.paper.draw ctx
-
-      # Draw the rectangle
-      start = text.paper.bounds[line].x + ctx.measureText(text.value[...head]).width
-      end = text.paper.bounds[line].x + ctx.measureText(text.value[...anchor]).width
-
-      # Either draw the selection or the cursor
-      if start is end
-        ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
-      else
-        ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
-        ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
-
-  div.addEventListener 'touchend', div.onmouseup = (event) ->
-    if selection?
-      if highlight? and highlight isnt tree.segment
-        switch highlight.type
-          when 'indent'
-            selection._moveTo highlight.start.insert new NewlineToken()
-          when 'block'
-            selection._moveTo highlight.end.insert new NewlineToken()
-          when 'socket'
-            if highlight.content()? then highlight.content().remove()
-            selection._moveTo highlight.start
-
-        # Redraw the root tree
-        redraw()
-      else
-        # Determine the place we want to draw the thing
-        if event.offsetX?
-          point = new draw.Point event.offsetX, event.offsetY
+          # Redraw the root tree
+          redraw()
         else
-          point = new draw.Point event.layerX, event.layerY
-        point.add -PALETTE_WIDTH, 0
-        point.translate scrollOffset
+          # Determine the place we want to draw the thing
+          if event.offsetX?
+            point = new draw.Point event.offsetX, event.offsetY
+          else
+            point = new draw.Point event.layerX, event.layerY
+          point.add -PALETTE_WIDTH, 0
+          point.translate scrollOffset
 
-        dest = new draw.Point -offset.x + point.x, -offset.y + point.y
+          dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
-        if dest.x > 0 # If we drop in the palette we delete the element
-          # Draw the selection on the back canvas
-          selection.paper.compute line: 0
-          selection.paper.translate dest
-          selection.paper.finish()
-          selection.paper.draw ctx
+          if dest.x > 0 # If we drop in the palette we delete the element
+            # Draw the selection on the back canvas
+            selection.paper.compute line: 0
+            selection.paper.translate dest
+            selection.paper.finish()
+            selection.paper.draw ctx
 
-          # Push this to the set of floating blocks
-          floating_blocks.push block: selection, position: dest
+            # Push this to the set of floating blocks
+            floating_blocks.push block: selection, position: dest
 
-    else if focus?
-      # Make the selection
-      input.setSelectionRange Math.min(anchor, head), Math.max(anchor, head)
+      else if focus?
+        # Make the selection
+        input.setSelectionRange Math.min(anchor, head), Math.max(anchor, head)
 
-      # Stop selecting
-      anchor = head = null
+        # Stop selecting
+        anchor = head = null
 
-    # Clear the drag canvas
-    dragCtx.clearRect 0, 0, canvas.width, canvas.height
+      # Clear the drag canvas
+      dragCtx.clearRect 0, 0, canvas.width, canvas.height
 
-    # Unselect
-    selection = null
+      dragImage.src = dragCanvas.toDataURL("image/png")
 
-  div.addEventListener 'mousewheel', (event) ->
-    if scrollOffset.y > 0 or event.deltaY > 0
-      ctx.translate 0, -event.deltaY
-      scrollOffset.add 0, event.deltaY
-      fastDraw()
+      # Unselect
+      selection = null
 
-      event.preventDefault()
+    div.addEventListener 'mousewheel', (event) ->
+      if scrollOffset.y > 0 or event.deltaY > 0
+        ctx.translate 0, -event.deltaY
+        scrollOffset.add 0, event.deltaY
+        fastDraw()
 
-      return false
-    return true
-  
-  out.onkeyup = ->
-    try
-      tree = coffee.parse out.value#ICE.indentParse out.value
-      redraw()
-    catch e
-      ctx.fillStyle = "#f00"
-      ctx.fillText e.message, 0, 0
-  
-  # This palette for testing only
-  palette_blocks = [
-    (coffee.parse '''
-      a = b
-    ''').segment
+        event.preventDefault()
+
+        return false
+      return true
     
-    (coffee.parse '''
-      alert 'hi'
-    ''').segment
+    out.onkeyup = ->
+      try
+        tree = coffee.parse out.value#ICE.indentParse out.value
+        redraw()
+      catch e
+        ctx.fillStyle = "#f00"
+        ctx.fillText e.message, 0, 0
+    
+    # This palette for testing only
+    palette_blocks = [
+      (coffee.parse '''
+        a = b
+      ''').segment
+      
+      (coffee.parse '''
+        alert 'hi'
+      ''').segment
 
-    (coffee.parse '''
-      for i in [1..10]
-        alert 'good'
-    ''').segment
+      (coffee.parse '''
+        for i in [1..10]
+          alert 'good'
+      ''').segment
 
-    (coffee.parse '''
-      return 0
-    ''').segment
-  ]
+      (coffee.parse '''
+        return 0
+      ''').segment
+    ]
+    
+    running_height = 0
+    for block in palette_blocks
+      block.paper.compute line: 0
+
+      # Translate into position
+      block.paper.translate new draw.Point 0, running_height
+
+      block.paper.finish()
+      running_height = block.paper.bounds[block.paper.lineEnd].bottom() + PALETTE_WHITESPACE
+
+      block.paper.draw paletteCtx
+
+window.onload = ->
+  unless window.RUN_PAPER_TESTS then return
   
-  running_height = 0
-  for block in palette_blocks
-    block.paper.compute line: 0
-
-    # Translate into position
-    block.paper.translate new draw.Point 0, running_height
-
-    block.paper.finish()
-    running_height = block.paper.bounds[block.paper.lineEnd].bottom() + PALETTE_WHITESPACE
-
-    block.paper.draw paletteCtx
+  out = document.getElementById 'out'
+  new Editor document.getElementById 'editor'

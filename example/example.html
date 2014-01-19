@@ -9,43 +9,34 @@
     <script>RUN_PAPER_TESTS=true</script>
     <!--<script src="../dist/ice.min.js"-->
     <style>
-      /*
-      * {
-        border: 0; margin: 0;
-      }
-      */
-      canvas {
+      /* Icy */
+      .palette, .canvas {
         position: absolute;
       }
-      #canvas, #drag {
-        height: 500px;
-        width: 1000px;
+      .canvas {
         left: 300;
         top: 0;
       }
-      #palette {
+      .drag_image {
+        position: absolute;
+        left: 300;
+        top: 0;
+        z-index: 2;
+      }
+      .drag {
+        /* Hidden canvas */
+        top: -9999;
+        left: -9999;
+      }
+      .palette {
         width: 300px;
         top: 0;
         left: 0;
       }
-      #palette, #canvas {
+      .palette, .canvas {
         border: 1px solid #000;
         background-color:#EEE;
-      }
-      .main {
-        position: relative;
-        height: 500px;
-        width: 1300px;
-        overflow: hidden;
-        border: 1px solid #000;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-        cursor: default;
-      }
-      textarea {
-        height: 200px;
-        width: 500px;
+        z-index: 1;
       }
       .hidden_input {
         position: absolute;
@@ -55,21 +46,30 @@
         -webkit-user-select: none;
         user-select: none;
       }
+      #editor {
+        position: relative;
+        height: 500px;
+        width: 1300px;
+        /*user-select: none;*/
+      }
       .trackArea {
         position: absolute;
+        top: 0; left: 0;
         width: 100%;
         height: 100%;
+        z-index: 3;
+      }
+      /* specific */
+      #out {
+        height: 200px;
+        width: 500px;
       }
     </style>
   </head>
   <body>
-    <div class='main'>
-      <canvas id="palette" width='300px' height='500px' style='z-index:0'></canvas>
-      <canvas id="canvas" width='1000px' height='500px' style='z-index:0'></canvas>
-      <canvas id="drag" width='1000px' height='500px' style='z-index:1'></canvas>
-      <div class='trackArea' style='z-index:2'></div>
+    <div id='editor'>
     </div>
-    <textarea id="out" style='z-index:2'></textarea>
+    <textarea id="out"></textarea>
     <button id='freeze'>Freeze</button>
   </body>
 </html>
