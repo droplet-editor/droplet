@@ -10,23 +10,15 @@
     <!--<script src="../dist/ice.min.js"-->
     <style>
       /* Icy */
-      .palette, .canvas {
+      .palette, .drag, .canvas {
         position: absolute;
       }
-      .canvas {
+      .canvas, .drag {
         left: 300;
         top: 0;
-      }
-      .drag_image {
-        position: absolute;
-        left: 300;
-        top: 0;
-        z-index: 2;
       }
       .drag {
-        /* Hidden canvas */
-        top: -9999;
-        left: -9999;
+        z-index: 2
       }
       .palette {
         width: 300px;

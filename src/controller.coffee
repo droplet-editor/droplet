@@ -17,9 +17,6 @@ exports.Editor = class Editor
     dragCanvas.height = el.offsetHeight
     dragCanvas.width = el.offsetWidth - PALETTE_WIDTH
 
-    dragImage = document.createElement 'image'; dragImage.className = 'drag_image'
-    el.appendChild dragImage
-
     # Create the tracking div
     div = document.createElement 'div'; div.className = 'trackArea'
     
@@ -203,9 +200,6 @@ exports.Editor = class Editor
       selection.paper.compute {line: 0}
       selection.paper.finish()
       selection.paper.draw dragCtx
-
-      # Put the drag canvas into an image
-      dragImage.src = dragCanvas.toDataURL("image/png")
       
       # Immediately transform the drag canvas
       div.onmousemove event
@@ -239,9 +233,9 @@ exports.Editor = class Editor
             highlight.paper.dropArea.fill(ctx, '#fff')
         
         # css-transform the drag canvas to that area
-        dragImage.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-        dragImage.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
-        dragImage.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+        dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+        dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+        dragCanvas.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
 
         event.preventDefault()
 
@@ -313,8 +307,6 @@ exports.Editor = class Editor
 
       # Clear the drag canvas
       dragCtx.clearRect 0, 0, canvas.width, canvas.height
-
-      dragImage.src = dragCanvas.toDataURL("image/png")
 
       # Unselect
       selection = null

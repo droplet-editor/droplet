@@ -1544,7 +1544,7 @@
 
   exports.Editor = Editor = (function() {
     function Editor(el) {
-      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, dragImage, fastDraw, floating_blocks, focus, head, highlight, input, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len;
+      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len;
       console.log(el.offsetHeight, el.offsetWidth);
       canvas = document.createElement('canvas');
       canvas.className = 'canvas';
@@ -1558,9 +1558,6 @@
       dragCanvas.className = 'drag';
       dragCanvas.height = el.offsetHeight;
       dragCanvas.width = el.offsetWidth - PALETTE_WIDTH;
-      dragImage = document.createElement('image');
-      dragImage.className = 'drag_image';
-      el.appendChild(dragImage);
       div = document.createElement('div');
       div.className = 'trackArea';
       el.appendChild(canvas);
@@ -1733,7 +1730,6 @@
         });
         selection.paper.finish();
         selection.paper.draw(dragCtx);
-        dragImage.src = dragCanvas.toDataURL("image/png");
         return div.onmousemove(event);
       });
       div.addEventListener('touchmove', div.onmousemove = function(event) {
@@ -1759,9 +1755,9 @@
               highlight.paper.dropArea.fill(ctx, '#fff');
             }
           }
-          dragImage.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
-          dragImage.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
-          dragImage.style.transform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+          dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+          dragCanvas.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+          dragCanvas.style.transform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
           return event.preventDefault();
         } else if ((focus != null) && (anchor != null)) {
           text = focus.content();
@@ -1825,7 +1821,6 @@
           anchor = head = null;
         }
         dragCtx.clearRect(0, 0, canvas.width, canvas.height);
-        dragImage.src = dragCanvas.toDataURL("image/png");
         return selection = null;
       });
       div.addEventListener('mousewheel', function(event) {
