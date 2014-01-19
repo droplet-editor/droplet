@@ -1023,9 +1023,6 @@
     BlockPaper.prototype.setLeftCenter = function(line, point) {
       var child, cursor, i, indentChild, topPoint, _bottomModifier, _i, _len, _ref;
       cursor = point.clone();
-      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line && this._lineChildren[line][0].bounds[line].height === 0) {
-        cursor.add(0, -5);
-      }
       cursor.add(PADDING, 0);
       this.lineGroups[line].empty();
       this._pathBits[line].left.length = 0;
@@ -1346,7 +1343,9 @@
 
     IndentPaper.prototype.finish = function() {
       var child, _i, _len, _ref, _results;
+      console.log(this.bounds[this.lineStart]);
       this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
+      console.log(this.dropArea);
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1381,6 +1380,9 @@
     IndentPaper.prototype.translate = function(vector) {
       var child, _i, _len, _ref, _results;
       this.point.add(vector);
+      if (this.bounds[this.lineStart].height === 0) {
+        this.bounds[this.lineStart].translate(vector);
+      }
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {

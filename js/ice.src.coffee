@@ -777,8 +777,8 @@ class BlockPaper extends IcePaper
     # Get ready to iterate through the children at this line
     cursor = point.clone() # The place we want to move this child's boundaries
     
-    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line and @_lineChildren[line][0].bounds[line].height is 0
-      cursor.add 0, -5
+    #if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line and @_lineChildren[line][0].bounds[line].height is 0
+    #  cursor.add 0, -5
 
     cursor.add PADDING, 0
     @lineGroups[line].empty()
@@ -1116,7 +1116,9 @@ class IndentPaper extends IcePaper
     return this
 
   finish: ->
+    console.log @bounds[@lineStart]
     @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    console.log @dropArea
     for child in @children
       child.finish()
   
@@ -1137,8 +1139,11 @@ class IndentPaper extends IcePaper
 
   translate: (vector) ->
     @point.add vector
+    
+    # If we are empty, we are responsible for translating ourselves
+    if @bounds[@lineStart].height is 0 then @bounds[@lineStart].translate vector
 
-    # Delegate right away.
+    # Otherwise, delegate right away.
     for child in @children
       child.translate vector
 
