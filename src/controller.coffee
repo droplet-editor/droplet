@@ -89,8 +89,9 @@ exports.Editor = class Editor
         block.block.paper.draw ctx
       
       if lassoSegment?
-        (lassoBounds = lassoSegment.paper.getBounds()).stroke ctx, '#000'
-        lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
+        unless lassoSegment is selection
+          (lassoBounds = lassoSegment.paper.getBounds()).stroke ctx, '#000'
+          lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
     
     # Just redraw (no recompute)
     fastDraw = ->
@@ -101,8 +102,9 @@ exports.Editor = class Editor
         block.block.paper.draw ctx
 
       if lassoSegment?
-        lassoBounds.stroke ctx, '#000'
-        lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
+        unless lassoSegment is selection
+          lassoBounds.stroke ctx, '#000'
+          lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
     
     redraw()
 
@@ -184,6 +186,10 @@ exports.Editor = class Editor
         if lassoSegment? and lassoBounds.contains point
           selection = lassoSegment
         else
+          # Immediately unlasso
+          if lassoSegment?
+            lassoSegment.remove()
+            lassoSegment = null
           # Find the block that was just clicked
           selection = tree.segment.findBlock (block) ->
             block.paper._container.contains point
@@ -241,6 +247,11 @@ exports.Editor = class Editor
           selection.paper.compute {line: 0}
           selection.paper.finish()
           selection.paper.draw dragCtx
+
+          if selection is lassoSegment
+            lassoSegment.paper.prepBounds()
+            (lassoBounds = lassoSegment.paper.getBounds()).stroke dragCtx, '#000'
+            lassoBounds.fill dragCtx, 'rgba(0, 0, 256, 0.3)'
           
           # Immediately transform the drag canvas
           div.onmousemove event
@@ -252,7 +263,9 @@ exports.Editor = class Editor
           dragCanvas.style.webkitTransform = "translate(0px, 0px)"
           dragCanvas.style.mozTransform = "translate(0px, 0px)"
           dragCanvas.style.transform = "translate(0px, 0px)"
-      lassoSegment = null
+
+      # Immediate redraw
+      redraw()
       
     div.addEventListener 'touchmove', div.onmousemove = (event) ->
       # Determine where the point is on the canvas

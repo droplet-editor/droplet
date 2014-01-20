@@ -1703,8 +1703,10 @@
           block.block.paper.draw(ctx);
         }
         if (lassoSegment != null) {
-          (lassoBounds = lassoSegment.paper.getBounds()).stroke(ctx, '#000');
-          return lassoBounds.fill(ctx, 'rgba(0, 0, 256, 0.3)');
+          if (lassoSegment !== selection) {
+            (lassoBounds = lassoSegment.paper.getBounds()).stroke(ctx, '#000');
+            return lassoBounds.fill(ctx, 'rgba(0, 0, 256, 0.3)');
+          }
         }
       };
       fastDraw = function() {
@@ -1716,8 +1718,10 @@
           block.block.paper.draw(ctx);
         }
         if (lassoSegment != null) {
-          lassoBounds.stroke(ctx, '#000');
-          return lassoBounds.fill(ctx, 'rgba(0, 0, 256, 0.3)');
+          if (lassoSegment !== selection) {
+            lassoBounds.stroke(ctx, '#000');
+            return lassoBounds.fill(ctx, 'rgba(0, 0, 256, 0.3)');
+          }
         }
       };
       redraw();
@@ -1789,6 +1793,10 @@
           if ((lassoSegment != null) && lassoBounds.contains(point)) {
             selection = lassoSegment;
           } else {
+            if (lassoSegment != null) {
+              lassoSegment.remove();
+              lassoSegment = null;
+            }
             selection = tree.segment.findBlock(function(block) {
               return block.paper._container.contains(point);
             });
@@ -1850,6 +1858,11 @@
             });
             selection.paper.finish();
             selection.paper.draw(dragCtx);
+            if (selection === lassoSegment) {
+              lassoSegment.paper.prepBounds();
+              (lassoBounds = lassoSegment.paper.getBounds()).stroke(dragCtx, '#000');
+              lassoBounds.fill(dragCtx, 'rgba(0, 0, 256, 0.3)');
+            }
             div.onmousemove(event);
           } else {
             lassoAnchor = lassoHead = point;
@@ -1858,7 +1871,7 @@
             dragCanvas.style.transform = "translate(0px, 0px)";
           }
         }
-        return lassoSegment = null;
+        return redraw();
       });
       div.addEventListener('touchmove', div.onmousemove = function(event) {
         var bounds, corner, dest, end, line, old_highlight, point, scrollDest, size, start, text;
