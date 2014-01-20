@@ -204,7 +204,7 @@ exports.Indent = class Indent
   # TODO This is really only usable for debugging
   toString: (state) ->
     string = @start.toString(state)
-    return string[..string.length-@end.toString(state).length-1]
+    return string[...string.length-@end.toString(state).length-1]
 
   find: (f) ->
     # Find the innermost child fitting function f(x)
@@ -267,9 +267,24 @@ exports.Segment = class Segment
 
   _moveTo: (parent) ->
     # Check for empty segments
-    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+    while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.remove()
       @end.next.remove()
+
+    # Don't leave empty lines behind
+    if @end.next? and @start.prev?
+      last = @end.next
+      while last? and last.type is 'segmentEnd' then last = last.next
+
+      first = @start.prev
+      while first? and first.type is 'segmentStart' then first = first.prev
+
+      if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
+        console.log 'removing first', first, last
+        first.remove()
+      else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
+        console.log 'removing last'
+        last.remove()
 
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
@@ -315,7 +330,9 @@ exports.Segment = class Segment
     # Couldn't find any, so we are the innermost child fitting f()
     return null
   
-  toString: -> @start.toString indent: ''
+  toString: ->
+    start = @start.toString(indent: '')
+    return start[...start.length-@end.toString(indent: '').length]
 
 exports.Socket = class Socket
   constructor: (content) ->
@@ -856,15 +873,20 @@ class BlockPaper extends IcePaper
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
 
     # Add the right edge
-    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd isnt line # If we're inside this indent
+    if @indented[line] and not (@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
 
     else if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
+      if @_lineChildren[line].length > 1
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
+      else
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom()
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
 
       @bounds[line].height += 10
+
     else
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y # top
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier #bottom
@@ -1181,7 +1203,7 @@ class SegmentPaper extends IcePaper
           state.line += 1
 
       head = head.next
-    
+
     @lineEnd = state.line
 
     # Now go through and mimic all the blocks on each line
@@ -1201,6 +1223,69 @@ class SegmentPaper extends IcePaper
     
     # We're done! Return ourselves for chaining.
     return this
+  
+  prepBounds: ->
+    @bounds = {}
+    @lineGroups = {}
+    @_lineBlocks = {}
+    @indentEnd = {}
+    @group = new draw.Group()
+    @children = []
+    
+    # We need to record our starting line
+    @lineStart = Infinity
+    @lineEnd = 0
+
+    # In a Segment, each line contains exactly one block. So that's all we have to consider.
+    head = @block.start.next
+
+    # This is a hack to deal with empty indents
+    if @block.start.next is @block.end then head = @block.end
+
+    # Loop
+    running_height = 0
+    while head isnt @block.end
+      switch head.type
+        when 'blockStart'
+          @children.push head.block.paper
+          @lineStart = Math.min @lineStart, head.block.paper.lineStart
+          @lineEnd = Math.max @lineEnd, head.block.paper.lineEnd
+          head = head.block.end
+
+      head = head.next
+
+    # Now go through and mimic all the blocks on each line
+    
+    i = 0 # Again, performance reasons
+    for line in [@lineStart..@lineEnd]
+      # If we need to move on to the next block, do so
+      until line <= @children[i].lineEnd
+        i += 1
+
+      # Copy the block we're on here
+      @bounds[line] = @children[i].bounds[line]
+    
+    # We're done! Return ourselves for chaining.
+    return this
+
+  getBounds: ->
+    # In a Segment, each line contains exactly one block. So that's all we have to consider.
+    head = @block.start.next
+
+    # This is a hack to deal with empty indents
+    if @block.start.next is @block.end then head = @block.end
+
+    bounds = new draw.NoRectangle()
+
+    # Loop
+    while head isnt @block.end
+      switch head.type
+        when 'blockStart'
+          bounds.unite head.block.paper._container.bounds()
+
+      head = head.next
+
+    return bounds
 
   finish: ->
     @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
@@ -1242,7 +1327,7 @@ class TextTokenPaper extends IcePaper
     @lineGroups = {}
     @bounds = {}
 
-    @lineGroups[@_line] = new draw.Group()
+    @group = @lineGroups[@_line] = new draw.Group()
     @lineGroups[@_line].push @_text = new draw.Text(new draw.Point(0, 0), @block.value)
     @bounds[@_line] = @_text.bounds()
     
@@ -1266,8 +1351,6 @@ out = null
 exports.Editor = class Editor
   constructor: (el) ->
     # Create all the necessary canvases
-    console.log el.offsetHeight, el.offsetWidth
-    
     canvas = document.createElement 'canvas'; canvas.className = 'canvas'
     canvas.height = el.offsetHeight
     canvas.width = el.offsetWidth - PALETTE_WIDTH
@@ -1307,13 +1390,37 @@ exports.Editor = class Editor
           alert 'somebody clicked a button'
     '''
 
-    scrollOffset = new draw.Point 0, 0
-    highlight = selection = offset = input = focus = anchor = head = null
+    ###
+    # Dragging
+    ###
+    scrollOffset = new draw.Point 0, 0 # How far have we scrolled down?
+    highlight = null # Highlighted drop area
+    selection = null # Selected (dragged) text
+    offset = null # Dragging offset
 
-    # All benchmarked to 1.142 milliseconds. Pretty good!
+    ###
+    # Hidden input hack
+    ###
+    input = null # Hidden html input for text input
+    focus = null # Focused segment that we are modifying
+    anchor = head = null # Selected text
+    
+    ###
+    # Lasso select
+    ####
+    lassoAnchor = null # These will be draw.Points.
+    lassoHead = null
+    lassoSegment = null # This will be an ICE.Segment
+    lassoBounds = null
+
+    # "Root" blocks, floating in space
+    floating_blocks = []
+    
+    # Clear the main canvas
     clear = ->
       ctx.clearRect scrollOffset.x, scrollOffset.y, canvas.width, canvas.height
 
+    # Recompute and redraw. Benchmarked to around 1.142 mils.
     redraw = ->
       clear()
       tree.segment.paper.compute {line: 0}
@@ -1321,20 +1428,30 @@ exports.Editor = class Editor
       tree.segment.paper.draw ctx
       out.value = tree.segment.toString {indent: ''}
 
+      if lassoSegment? then lassoSegment.paper.prepBounds()
+
       for block in floating_blocks
         block.block.paper.compute line: 0
         block.block.paper.translate block.position
         block.block.paper.finish()
         block.block.paper.draw ctx
-
+      
+      if lassoSegment?
+        (lassoBounds = lassoSegment.paper.getBounds()).stroke ctx, '#000'
+        lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
+    
+    # Just redraw (no recompute)
     fastDraw = ->
       clear()
       tree.segment.paper.draw ctx
 
       for block in floating_blocks
         block.block.paper.draw ctx
+
+      if lassoSegment?
+        lassoBounds.stroke ctx, '#000'
+        lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
     
-    floating_blocks = []
     redraw()
 
     ###
@@ -1410,62 +1527,84 @@ exports.Editor = class Editor
           input.dispatchEvent(new CustomEvent('input'))
         ), 0
 
-        return
-      
-      # Find the block that was just clicked
-      selection = tree.segment.findBlock (block) ->
-        block.paper._container.contains point
-      
-      # We aren't copying from the palette
-      cloneLater = false
-
-      unless selection?
-        selection = null
-        for block, i in floating_blocks
-          if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
-            floating_blocks.splice i, 1
-            selection = block.block
-            break
-          else selection = null
+      else
+        # See if we picked up the lasso
+        if lassoBounds? and lassoBounds.contains point
+          console.log 'selected'
+          selection = lassoSegment
+        else
+          # Find the block that was just clicked
+          selection = tree.segment.findBlock (block) ->
+            block.paper._container.contains point
+          
+        # We aren't copying from the palette
+        cloneLater = false
 
         unless selection?
-          # See if we matched any palette blocks
-          point.add PALETTE_WIDTH, 0
-          point.add -scrollOffset.x, -scrollOffset.y
-
-          for block in palette_blocks
-            if block.findBlock((x) -> x.paper._container.contains point)?
-              # We're grabbing this block
-              selection = block
-
-              # Actually, we are copying from the palette
-              cloneLater = true
+          console.log 'unless'
+          selection = null
+          for block, i in floating_blocks
+            if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
+              floating_blocks.splice i, 1
+              selection = block.block
               break
             else selection = null
-        unless selection? then return
 
-      # Remove the newline before, if necessary
-      if selection.start.prev? and selection.start.prev.type is 'newline'
-        selection.start.prev.remove()
+          unless selection?
+            # See if we matched any palette blocks
+            shiftedPoint = new draw.Point point.x + PALETTE_WIDTH, point.y
+            shiftedPoint.add -scrollOffset.x, -scrollOffset.y
 
-      # Compute the offset of our cursor from the selection position (for drag-and-drop)
-      bounds = selection.paper.bounds[selection.paper.lineStart]
-      offset = point.from new draw.Point bounds.x, bounds.y
+            for block in palette_blocks
+              if block.findBlock((x) -> x.paper._container.contains shiftedPoint)?
+                # We're grabbing this block
+                selection = block
 
-      # Remove it from its tree
-      if cloneLater then selection = selection.clone()
-      else selection._moveTo null
+                # Actually, we are copying from the palette
+                cloneLater = true
+                break
+              else selection = null
 
-      # Redraw the root tree (now that selection has been removed)
-      redraw()
-      
-      # Redraw the selection on the drag canvas
-      selection.paper.compute {line: 0}
-      selection.paper.finish()
-      selection.paper.draw dragCtx
-      
-      # Immediately transform the drag canvas
-      div.onmousemove event
+        if selection?
+          console.log 'selection follows.'
+          console.log selection
+          ### 
+          # We've now found the selected text, move it as necessary.
+          ###
+
+          # Remove the newline before, if necessary
+          if selection.start.prev? and selection.start.prev.type is 'newline'
+            selection.start.prev.remove()
+
+          # Compute the offset of our cursor from the selection position (for drag-and-drop)
+          bounds = selection.paper.bounds[selection.paper.lineStart]
+
+          if cloneLater then offset = shiftedPoint.from new draw.Point bounds.x, bounds.y
+          else offset = point.from new draw.Point bounds.x, bounds.y
+
+          # Remove it from its tree
+          if cloneLater then selection = selection.clone()
+          else selection._moveTo null
+
+          # Redraw the root tree (now that selection has been removed)
+          redraw()
+          
+          # Redraw the selection on the drag canvas
+          selection.paper.compute {line: 0}
+          selection.paper.finish()
+          selection.paper.draw dragCtx
+          
+          # Immediately transform the drag canvas
+          div.onmousemove event
+        else
+          # We haven't clicked on anything. So do a lasso select.
+          lassoAnchor = lassoHead = point
+          
+          # Move the drag canvas into position 0, 0
+          dragCanvas.style.webkitTransform = "translate(0px, 0px)"
+          dragCanvas.style.mozTransform = "translate(0px, 0px)"
+          dragCanvas.style.transform = "translate(0px, 0px)"
+      lassoSegment = null
       
     div.addEventListener 'touchmove', div.onmousemove = (event) ->
       # Determine where the point is on the canvas
@@ -1525,6 +1664,20 @@ exports.Editor = class Editor
         else
           ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
           ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
+      else if lassoAnchor?
+        dragCtx.clearRect 0 ,0, dragCanvas.width, dragCanvas.height
+        dragCtx.strokeStyle = '#00f'
+        
+        # Remember the lassoHead
+        lassoHead = point
+
+        corner =
+          x: Math.min lassoAnchor.x, point.x
+          y: Math.min lassoAnchor.y, point.y
+        size =
+          width: Math.abs lassoAnchor.x - point.x
+          height: Math.abs lassoAnchor.y - point.y
+        dragCtx.strokeRect corner.x, corner.y, size.width, size.height
 
     div.addEventListener 'touchend', div.onmouseup = (event) ->
       if selection?
@@ -1568,11 +1721,60 @@ exports.Editor = class Editor
         # Stop selecting
         anchor = head = null
 
+      else if lassoAnchor?
+        corner =
+          x: Math.min lassoAnchor.x, lassoHead.x
+          y: Math.min lassoAnchor.y, lassoHead.y
+        size =
+          width: Math.abs lassoAnchor.x - lassoHead.x
+          height: Math.abs lassoAnchor.y - lassoHead.y
+
+        lassoRect = new draw.Rectangle corner.x, corner.y, size.width, size.height
+
+        # Find the first lassoed element
+        # Code structure -- does this belong in ice.coffee? TODO
+        
+        # Find first
+        firstLassoed = null
+        head = tree.segment.start
+        stop = false
+        while head isnt tree.segment.end and not stop
+          switch head.type
+            when 'blockStart'
+              if head.block.paper._container.intersects lassoRect
+                firstLassoed = head.block
+                stop = true
+          head = head.next
+        
+        # Find last
+        lastLassoed = null
+        head = tree.segment.end
+        stop = false
+        while head isnt tree.segment.start and not stop
+          switch head.type
+            when 'blockEnd'
+              if head.block.paper._container.intersects lassoRect
+                lastLassoed = head.block
+                stop = true
+          head = head.prev
+
+        if firstLassoed? and lastLassoed?
+          lassoSegment = new Segment []
+
+          firstLassoed.start.prev.insert lassoSegment.start
+          lastLassoed.end.insert lassoSegment.end
+
       # Clear the drag canvas
       dragCtx.clearRect 0, 0, canvas.width, canvas.height
 
       # Unselect
       selection = null
+
+      # Unlasso
+      lassoAnchor = null
+
+      # Full redraw for cleanliness
+      redraw()
 
     div.addEventListener 'mousewheel', (event) ->
       if scrollOffset.y > 0 or event.deltaY > 0

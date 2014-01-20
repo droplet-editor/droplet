@@ -258,7 +258,7 @@
     Indent.prototype.toString = function(state) {
       var string;
       string = this.start.toString(state);
-      return string.slice(0, +(string.length - this.end.toString(state).length - 1) + 1 || 9e9);
+      return string.slice(0, string.length - this.end.toString(state).length - 1);
     };
 
     Indent.prototype.find = function(f) {
@@ -338,9 +338,27 @@
     };
 
     Segment.prototype._moveTo = function(parent) {
-      if ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
+      var first, last;
+      while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.remove();
         this.end.next.remove();
+      }
+      if ((this.end.next != null) && (this.start.prev != null)) {
+        last = this.end.next;
+        while ((last != null) && last.type === 'segmentEnd') {
+          last = last.next;
+        }
+        first = this.start.prev;
+        while ((first != null) && first.type === 'segmentStart') {
+          first = first.prev;
+        }
+        if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
+          console.log('removing first', first, last);
+          first.remove();
+        } else if ((last != null) && last.type === 'newline' && ((first == null) || first.type === 'newline')) {
+          console.log('removing last');
+          last.remove();
+        }
       }
       if (this.start.prev != null) {
         this.start.prev.next = this.end.next;
@@ -398,9 +416,13 @@
     };
 
     Segment.prototype.toString = function() {
-      return this.start.toString({
+      var start;
+      start = this.start.toString({
         indent: ''
       });
+      return start.slice(0, start.length - this.end.toString({
+        indent: ''
+      }).length);
     };
 
     return Segment;
@@ -1083,12 +1105,17 @@
       }
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].y));
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].bottom() + _bottomModifier));
-      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd !== line) {
+      if (this.indented[line] && !(this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line)) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
         return this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
       } else if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
+        if (this._lineChildren[line].length > 1) {
+          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
+          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
+        } else {
+          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom()));
+          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
+        }
         return this.bounds[line].height += 10;
       } else {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
@@ -1449,6 +1476,58 @@
       return this;
     };
 
+    SegmentPaper.prototype.prepBounds = function() {
+      var head, i, line, running_height, _i, _ref, _ref1;
+      this.bounds = {};
+      this.lineGroups = {};
+      this._lineBlocks = {};
+      this.indentEnd = {};
+      this.group = new draw.Group();
+      this.children = [];
+      this.lineStart = Infinity;
+      this.lineEnd = 0;
+      head = this.block.start.next;
+      if (this.block.start.next === this.block.end) {
+        head = this.block.end;
+      }
+      running_height = 0;
+      while (head !== this.block.end) {
+        switch (head.type) {
+          case 'blockStart':
+            this.children.push(head.block.paper);
+            this.lineStart = Math.min(this.lineStart, head.block.paper.lineStart);
+            this.lineEnd = Math.max(this.lineEnd, head.block.paper.lineEnd);
+            head = head.block.end;
+        }
+        head = head.next;
+      }
+      i = 0;
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        while (!(line <= this.children[i].lineEnd)) {
+          i += 1;
+        }
+        this.bounds[line] = this.children[i].bounds[line];
+      }
+      return this;
+    };
+
+    SegmentPaper.prototype.getBounds = function() {
+      var bounds, head;
+      head = this.block.start.next;
+      if (this.block.start.next === this.block.end) {
+        head = this.block.end;
+      }
+      bounds = new draw.NoRectangle();
+      while (head !== this.block.end) {
+        switch (head.type) {
+          case 'blockStart':
+            bounds.unite(head.block.paper._container.bounds());
+        }
+        head = head.next;
+      }
+      return bounds;
+    };
+
     SegmentPaper.prototype.finish = function() {
       var child, _i, _len, _ref, _results;
       this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
@@ -1515,7 +1594,7 @@
       this.lineStart = this.lineEnd = this._line = state.line;
       this.lineGroups = {};
       this.bounds = {};
-      this.lineGroups[this._line] = new draw.Group();
+      this.group = this.lineGroups[this._line] = new draw.Group();
       this.lineGroups[this._line].push(this._text = new draw.Text(new draw.Point(0, 0), this.block.value));
       this.bounds[this._line] = this._text.bounds();
       return this;
@@ -1544,8 +1623,7 @@
 
   exports.Editor = Editor = (function() {
     function Editor(el) {
-      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len;
-      console.log(el.offsetHeight, el.offsetWidth);
+      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len;
       canvas = document.createElement('canvas');
       canvas.className = 'canvas';
       canvas.height = el.offsetHeight;
@@ -1569,13 +1647,35 @@
       paletteCtx = paletteCanvas.getContext('2d');
       draw._setCTX(ctx);
       tree = coffee.parse('window.onload = ->\n  if document.getElementsByClassName(\'test\').length > 0\n    for [1..10]\n      document.body.appendChild document.createElement \'script\'\n    alert \'found a test element\'\n  document.getElementsByTagName(\'button\').onclick = ->\n    alert \'somebody clicked a button\'');
+      /*
+      # Dragging
+      */
+
       scrollOffset = new draw.Point(0, 0);
-      highlight = selection = offset = input = focus = anchor = head = null;
+      highlight = null;
+      selection = null;
+      offset = null;
+      /*
+      # Hidden input hack
+      */
+
+      input = null;
+      focus = null;
+      anchor = head = null;
+      /*
+      # Lasso select
+      */
+
+      lassoAnchor = null;
+      lassoHead = null;
+      lassoSegment = null;
+      lassoBounds = null;
+      floating_blocks = [];
       clear = function() {
         return ctx.clearRect(scrollOffset.x, scrollOffset.y, canvas.width, canvas.height);
       };
       redraw = function() {
-        var block, _i, _len, _results;
+        var block, _i, _len;
         clear();
         tree.segment.paper.compute({
           line: 0
@@ -1585,7 +1685,9 @@
         out.value = tree.segment.toString({
           indent: ''
         });
-        _results = [];
+        if (lassoSegment != null) {
+          lassoSegment.paper.prepBounds();
+        }
         for (_i = 0, _len = floating_blocks.length; _i < _len; _i++) {
           block = floating_blocks[_i];
           block.block.paper.compute({
@@ -1593,29 +1695,33 @@
           });
           block.block.paper.translate(block.position);
           block.block.paper.finish();
-          _results.push(block.block.paper.draw(ctx));
+          block.block.paper.draw(ctx);
         }
-        return _results;
+        if (lassoSegment != null) {
+          (lassoBounds = lassoSegment.paper.getBounds()).stroke(ctx, '#000');
+          return lassoBounds.fill(ctx, 'rgba(0, 0, 256, 0.3)');
+        }
       };
       fastDraw = function() {
-        var block, _i, _len, _results;
+        var block, _i, _len;
         clear();
         tree.segment.paper.draw(ctx);
-        _results = [];
         for (_i = 0, _len = floating_blocks.length; _i < _len; _i++) {
           block = floating_blocks[_i];
-          _results.push(block.block.paper.draw(ctx));
+          block.block.paper.draw(ctx);
         }
-        return _results;
+        if (lassoSegment != null) {
+          lassoBounds.stroke(ctx, '#000');
+          return lassoBounds.fill(ctx, 'rgba(0, 0, 256, 0.3)');
+        }
       };
-      floating_blocks = [];
       redraw();
       /*
       # Here to below will eventually become part of the IceEditor() class
       */
 
       div.addEventListener('touchstart', div.onmousedown = function(event) {
-        var block, bounds, cloneLater, i, line, point, start, text, _i, _j, _len, _len1;
+        var block, bounds, cloneLater, i, line, point, shiftedPoint, start, text, _i, _j, _len, _len1;
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
         } else {
@@ -1674,66 +1780,87 @@
             input.setSelectionRange(anchor, anchor);
             return input.dispatchEvent(new CustomEvent('input'));
           }), 0);
-          return;
-        }
-        selection = tree.segment.findBlock(function(block) {
-          return block.paper._container.contains(point);
-        });
-        cloneLater = false;
-        if (selection == null) {
-          selection = null;
-          for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
-            block = floating_blocks[i];
-            if (block.block.findBlock(function(x) {
-              return x.paper._container.contains(point);
-            }).paper._container.contains(point)) {
-              floating_blocks.splice(i, 1);
-              selection = block.block;
-              break;
-            } else {
-              selection = null;
-            }
+        } else {
+          if ((lassoBounds != null) && lassoBounds.contains(point)) {
+            console.log('selected');
+            selection = lassoSegment;
+          } else {
+            selection = tree.segment.findBlock(function(block) {
+              return block.paper._container.contains(point);
+            });
           }
+          cloneLater = false;
           if (selection == null) {
-            point.add(PALETTE_WIDTH, 0);
-            point.add(-scrollOffset.x, -scrollOffset.y);
-            for (_j = 0, _len1 = palette_blocks.length; _j < _len1; _j++) {
-              block = palette_blocks[_j];
-              if (block.findBlock(function(x) {
+            console.log('unless');
+            selection = null;
+            for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
+              block = floating_blocks[i];
+              if (block.block.findBlock(function(x) {
                 return x.paper._container.contains(point);
-              }) != null) {
-                selection = block;
-                cloneLater = true;
+              }).paper._container.contains(point)) {
+                floating_blocks.splice(i, 1);
+                selection = block.block;
                 break;
               } else {
                 selection = null;
               }
             }
+            if (selection == null) {
+              shiftedPoint = new draw.Point(point.x + PALETTE_WIDTH, point.y);
+              shiftedPoint.add(-scrollOffset.x, -scrollOffset.y);
+              for (_j = 0, _len1 = palette_blocks.length; _j < _len1; _j++) {
+                block = palette_blocks[_j];
+                if (block.findBlock(function(x) {
+                  return x.paper._container.contains(shiftedPoint);
+                }) != null) {
+                  selection = block;
+                  cloneLater = true;
+                  break;
+                } else {
+                  selection = null;
+                }
+              }
+            }
           }
-          if (selection == null) {
-            return;
+          if (selection != null) {
+            console.log('selection follows.');
+            console.log(selection);
+            /* 
+            # We've now found the selected text, move it as necessary.
+            */
+
+            if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
+              selection.start.prev.remove();
+            }
+            bounds = selection.paper.bounds[selection.paper.lineStart];
+            if (cloneLater) {
+              offset = shiftedPoint.from(new draw.Point(bounds.x, bounds.y));
+            } else {
+              offset = point.from(new draw.Point(bounds.x, bounds.y));
+            }
+            if (cloneLater) {
+              selection = selection.clone();
+            } else {
+              selection._moveTo(null);
+            }
+            redraw();
+            selection.paper.compute({
+              line: 0
+            });
+            selection.paper.finish();
+            selection.paper.draw(dragCtx);
+            div.onmousemove(event);
+          } else {
+            lassoAnchor = lassoHead = point;
+            dragCanvas.style.webkitTransform = "translate(0px, 0px)";
+            dragCanvas.style.mozTransform = "translate(0px, 0px)";
+            dragCanvas.style.transform = "translate(0px, 0px)";
           }
         }
-        if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
-          selection.start.prev.remove();
-        }
-        bounds = selection.paper.bounds[selection.paper.lineStart];
-        offset = point.from(new draw.Point(bounds.x, bounds.y));
-        if (cloneLater) {
-          selection = selection.clone();
-        } else {
-          selection._moveTo(null);
-        }
-        redraw();
-        selection.paper.compute({
-          line: 0
-        });
-        selection.paper.finish();
-        selection.paper.draw(dragCtx);
-        return div.onmousemove(event);
+        return lassoSegment = null;
       });
       div.addEventListener('touchmove', div.onmousemove = function(event) {
-        var bounds, dest, end, line, old_highlight, point, scrollDest, start, text;
+        var bounds, corner, dest, end, line, old_highlight, point, scrollDest, size, start, text;
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
         } else {
@@ -1774,10 +1901,23 @@
             ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
             return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
           }
+        } else if (lassoAnchor != null) {
+          dragCtx.clearRect(0, 0, dragCanvas.width, dragCanvas.height);
+          dragCtx.strokeStyle = '#00f';
+          lassoHead = point;
+          corner = {
+            x: Math.min(lassoAnchor.x, point.x),
+            y: Math.min(lassoAnchor.y, point.y)
+          };
+          size = {
+            width: Math.abs(lassoAnchor.x - point.x),
+            height: Math.abs(lassoAnchor.y - point.y)
+          };
+          return dragCtx.strokeRect(corner.x, corner.y, size.width, size.height);
         }
       });
       div.addEventListener('touchend', div.onmouseup = function(event) {
-        var dest, point;
+        var corner, dest, firstLassoed, lassoRect, lastLassoed, point, size, stop;
         if (selection != null) {
           if ((highlight != null) && highlight !== tree.segment) {
             switch (highlight.type) {
@@ -1819,9 +1959,52 @@
         } else if (focus != null) {
           input.setSelectionRange(Math.min(anchor, head), Math.max(anchor, head));
           anchor = head = null;
+        } else if (lassoAnchor != null) {
+          corner = {
+            x: Math.min(lassoAnchor.x, lassoHead.x),
+            y: Math.min(lassoAnchor.y, lassoHead.y)
+          };
+          size = {
+            width: Math.abs(lassoAnchor.x - lassoHead.x),
+            height: Math.abs(lassoAnchor.y - lassoHead.y)
+          };
+          lassoRect = new draw.Rectangle(corner.x, corner.y, size.width, size.height);
+          firstLassoed = null;
+          head = tree.segment.start;
+          stop = false;
+          while (head !== tree.segment.end && !stop) {
+            switch (head.type) {
+              case 'blockStart':
+                if (head.block.paper._container.intersects(lassoRect)) {
+                  firstLassoed = head.block;
+                  stop = true;
+                }
+            }
+            head = head.next;
+          }
+          lastLassoed = null;
+          head = tree.segment.end;
+          stop = false;
+          while (head !== tree.segment.start && !stop) {
+            switch (head.type) {
+              case 'blockEnd':
+                if (head.block.paper._container.intersects(lassoRect)) {
+                  lastLassoed = head.block;
+                  stop = true;
+                }
+            }
+            head = head.prev;
+          }
+          if ((firstLassoed != null) && (lastLassoed != null)) {
+            lassoSegment = new Segment([]);
+            firstLassoed.start.prev.insert(lassoSegment.start);
+            lastLassoed.end.insert(lassoSegment.end);
+          }
         }
         dragCtx.clearRect(0, 0, canvas.width, canvas.height);
-        return selection = null;
+        selection = null;
+        lassoAnchor = null;
+        return redraw();
       });
       div.addEventListener('mousewheel', function(event) {
         if (scrollOffset.y > 0 || event.deltaY > 0) {

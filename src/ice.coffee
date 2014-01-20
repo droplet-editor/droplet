@@ -204,7 +204,7 @@ exports.Indent = class Indent
   # TODO This is really only usable for debugging
   toString: (state) ->
     string = @start.toString(state)
-    return string[..string.length-@end.toString(state).length-1]
+    return string[...string.length-@end.toString(state).length-1]
 
   find: (f) ->
     # Find the innermost child fitting function f(x)
@@ -267,9 +267,24 @@ exports.Segment = class Segment
 
   _moveTo: (parent) ->
     # Check for empty segments
-    if @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+    while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.remove()
       @end.next.remove()
+
+    # Don't leave empty lines behind
+    if @end.next? and @start.prev?
+      last = @end.next
+      while last? and last.type is 'segmentEnd' then last = last.next
+
+      first = @start.prev
+      while first? and first.type is 'segmentStart' then first = first.prev
+
+      if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
+        console.log 'removing first', first, last
+        first.remove()
+      else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
+        console.log 'removing last'
+        last.remove()
 
     # Unsplice ourselves
     if @start.prev? then @start.prev.next = @end.next
@@ -315,7 +330,9 @@ exports.Segment = class Segment
     # Couldn't find any, so we are the innermost child fitting f()
     return null
   
-  toString: -> @start.toString indent: ''
+  toString: ->
+    start = @start.toString(indent: '')
+    return start[...start.length-@end.toString(indent: '').length]
 
 exports.Socket = class Socket
   constructor: (content) ->

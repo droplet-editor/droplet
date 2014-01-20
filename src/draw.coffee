@@ -69,10 +69,18 @@ exports.Rectangle = class Rectangle
       @width = Math.max(@right(), point.x) - (@x = Math.min @x, point.x)
       @height = Math.max(@bottom(), point.y) - (@y = Math.min @y, point.y)
 
-  overlap: (rectangle) -> @x? and @y? and not ((rectangle.x) < @x or (rectangle.y < y) or (rectangle.right() > @right()) or (rectangle.bottom() > @bottom()))
+  overlap: (rectangle) -> @x? and @y? and not ((rectangle.right()) < @x or (rectangle.bottom() < @y) or (rectangle.x > @right()) or (rectangle.y > @bottom()))
 
   translate: (vector) ->
     @x += vector.x; @y += vector.y
+
+  stroke: (ctx, style) ->
+    ctx.strokeStyle = style
+    ctx.strokeRect @x, @y, @width, @height
+
+  fill: (ctx, style) ->
+    ctx.fillStyle = style
+    ctx.fillRect @x, @y, @width, @height
 
 exports.NoRectangle = class NoRectangle extends Rectangle
   constructor: -> super(null, null, 0, 0)
@@ -128,6 +136,34 @@ exports.Path = class Path
       last = end
 
     return count % 2 is 1
+  
+  intersects: (rectangle) ->
+    @_clearCache()
+    
+    if not rectangle.overlap @_bounds then return false
+    else
+      # Try intersections
+      last = @_points[@_points.length - 1]
+      rectSides = [
+        new draw.Point rectangle.x, rectangle.y
+        new draw.Point rectangle.right(), rectangle.y
+        new draw.Point rectangle.right(), rectangle.bottom()
+        new draw.Point rectangle.x, rectangle.bottom()
+      ]
+      for end in @_points
+        lastSide = rectSides[rectSides.length - 1]
+        for side in rectSides
+          if _intersects(last, end, lastSide, side) then return true
+          lastSide = side
+        last = end
+
+      # Try containment
+      if rectangle.contains @_points[0] then return true
+
+      if @contains rectSides[0] then return true
+      
+      # No luck
+      return false
 
   bounds: -> @_clearCache(); @_bounds
 
@@ -194,6 +230,7 @@ exports.Group = class Group
   recompute: ->
     @_bounds.clear()
     for child in @children
+      if child.recompute? then child.recompute()
       @_bounds.unite child.bounds()
 
   translate: (vector) ->

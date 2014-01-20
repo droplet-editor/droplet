@@ -250,15 +250,20 @@ class BlockPaper extends IcePaper
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
 
     # Add the right edge
-    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd isnt line # If we're inside this indent
+    if @indented[line] and not (@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
 
     else if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
+      if @_lineChildren[line].length > 1
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
+      else
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom()
+        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
 
       @bounds[line].height += 10
+
     else
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y # top
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier #bottom
@@ -575,7 +580,7 @@ class SegmentPaper extends IcePaper
           state.line += 1
 
       head = head.next
-    
+
     @lineEnd = state.line
 
     # Now go through and mimic all the blocks on each line
@@ -595,6 +600,69 @@ class SegmentPaper extends IcePaper
     
     # We're done! Return ourselves for chaining.
     return this
+  
+  prepBounds: ->
+    @bounds = {}
+    @lineGroups = {}
+    @_lineBlocks = {}
+    @indentEnd = {}
+    @group = new draw.Group()
+    @children = []
+    
+    # We need to record our starting line
+    @lineStart = Infinity
+    @lineEnd = 0
+
+    # In a Segment, each line contains exactly one block. So that's all we have to consider.
+    head = @block.start.next
+
+    # This is a hack to deal with empty indents
+    if @block.start.next is @block.end then head = @block.end
+
+    # Loop
+    running_height = 0
+    while head isnt @block.end
+      switch head.type
+        when 'blockStart'
+          @children.push head.block.paper
+          @lineStart = Math.min @lineStart, head.block.paper.lineStart
+          @lineEnd = Math.max @lineEnd, head.block.paper.lineEnd
+          head = head.block.end
+
+      head = head.next
+
+    # Now go through and mimic all the blocks on each line
+    
+    i = 0 # Again, performance reasons
+    for line in [@lineStart..@lineEnd]
+      # If we need to move on to the next block, do so
+      until line <= @children[i].lineEnd
+        i += 1
+
+      # Copy the block we're on here
+      @bounds[line] = @children[i].bounds[line]
+    
+    # We're done! Return ourselves for chaining.
+    return this
+
+  getBounds: ->
+    # In a Segment, each line contains exactly one block. So that's all we have to consider.
+    head = @block.start.next
+
+    # This is a hack to deal with empty indents
+    if @block.start.next is @block.end then head = @block.end
+
+    bounds = new draw.NoRectangle()
+
+    # Loop
+    while head isnt @block.end
+      switch head.type
+        when 'blockStart'
+          bounds.unite head.block.paper._container.bounds()
+
+      head = head.next
+
+    return bounds
 
   finish: ->
     @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
@@ -636,7 +704,7 @@ class TextTokenPaper extends IcePaper
     @lineGroups = {}
     @bounds = {}
 
-    @lineGroups[@_line] = new draw.Group()
+    @group = @lineGroups[@_line] = new draw.Group()
     @lineGroups[@_line].push @_text = new draw.Text(new draw.Point(0, 0), @block.value)
     @bounds[@_line] = @_text.bounds()
     

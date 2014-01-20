@@ -124,12 +124,22 @@
     };
 
     Rectangle.prototype.overlap = function(rectangle) {
-      return (this.x != null) && (this.y != null) && !(rectangle.x < this.x || (rectangle.y < y) || (rectangle.right() > this.right()) || (rectangle.bottom() > this.bottom()));
+      return (this.x != null) && (this.y != null) && !((rectangle.right()) < this.x || (rectangle.bottom() < this.y) || (rectangle.x > this.right()) || (rectangle.y > this.bottom()));
     };
 
     Rectangle.prototype.translate = function(vector) {
       this.x += vector.x;
       return this.y += vector.y;
+    };
+
+    Rectangle.prototype.stroke = function(ctx, style) {
+      ctx.strokeStyle = style;
+      return ctx.strokeRect(this.x, this.y, this.width, this.height);
+    };
+
+    Rectangle.prototype.fill = function(ctx, style) {
+      ctx.fillStyle = style;
+      return ctx.fillRect(this.x, this.y, this.width, this.height);
     };
 
     return Rectangle;
@@ -216,6 +226,37 @@
         last = end;
       }
       return count % 2 === 1;
+    };
+
+    Path.prototype.intersects = function(rectangle) {
+      var end, last, lastSide, rectSides, side, _i, _j, _len, _len1, _ref;
+      this._clearCache();
+      if (!rectangle.overlap(this._bounds)) {
+        return false;
+      } else {
+        last = this._points[this._points.length - 1];
+        rectSides = [new draw.Point(rectangle.x, rectangle.y), new draw.Point(rectangle.right(), rectangle.y), new draw.Point(rectangle.right(), rectangle.bottom()), new draw.Point(rectangle.x, rectangle.bottom())];
+        _ref = this._points;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          end = _ref[_i];
+          lastSide = rectSides[rectSides.length - 1];
+          for (_j = 0, _len1 = rectSides.length; _j < _len1; _j++) {
+            side = rectSides[_j];
+            if (_intersects(last, end, lastSide, side)) {
+              return true;
+            }
+            lastSide = side;
+          }
+          last = end;
+        }
+        if (rectangle.contains(this._points[0])) {
+          return true;
+        }
+        if (this.contains(rectSides[0])) {
+          return true;
+        }
+        return false;
+      }
     };
 
     Path.prototype.bounds = function() {
@@ -330,6 +371,9 @@
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
+        if (child.recompute != null) {
+          child.recompute();
+        }
         _results.push(this._bounds.unite(child.bounds()));
       }
       return _results;
