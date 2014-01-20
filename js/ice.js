@@ -109,6 +109,7 @@
     Block.prototype._moveTo = function(parent) {
       var first, last;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
+        console.log('removing a segment');
         this.start.prev.segment.remove();
       }
       if ((this.end.next != null) && (this.start.prev != null)) {
@@ -121,10 +122,8 @@
           first = first.prev;
         }
         if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
-          console.log('removing first', first, last);
           first.remove();
         } else if ((last != null) && last.type === 'newline' && ((first == null) || first.type === 'newline')) {
-          console.log('removing last');
           last.remove();
         }
       }
@@ -358,10 +357,8 @@
           first = first.prev;
         }
         if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
-          console.log('removing first', first, last);
           first.remove();
         } else if ((last != null) && last.type === 'newline' && ((first == null) || first.type === 'newline')) {
-          console.log('removing last');
           last.remove();
         }
       }
@@ -2009,20 +2006,21 @@
                 case 'blockStart':
                   stack.push(head.block);
                   break;
+                case 'segmentStart':
+                  stack.push(head.segment);
+                  break;
                 case 'blockEnd':
-                  console.log((function() {
-                    var _i, _len, _results;
-                    _results = [];
-                    for (_i = 0, _len = stack.length; _i < _len; _i++) {
-                      el = stack[_i];
-                      _results.push(el.toString());
-                    }
-                    return _results;
-                  })());
                   if (stack.length > 0) {
                     stack.pop();
                   } else {
                     firstLassoed = head.block;
+                  }
+                  break;
+                case 'segmentEnd':
+                  if (stack.length > 0) {
+                    stack.pop();
+                  } else {
+                    firstLassoed = head.segment;
                   }
               }
               head = head.next;
@@ -2031,6 +2029,8 @@
             lassoSegment = new Segment([]);
             firstLassoed.start.prev.insert(lassoSegment.start);
             lastLassoed.end.insert(lassoSegment.end);
+            console.log(tree.segment.toString(), '\nlassoSegment:\n', lassoSegment.toString());
+            debugger;
           }
         }
         dragCtx.clearRect(0, 0, canvas.width, canvas.height);

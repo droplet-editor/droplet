@@ -421,12 +421,20 @@ exports.Editor = class Editor
             switch head.type
               when 'blockStart'
                 stack.push head.block
+              when 'segmentStart'
+                stack.push head.segment
               when 'blockEnd'
                 if stack.length > 0
                   stack.pop()
                 else
                   # We have an end-tag without its start tag, so append that
                   firstLassoed = head.block
+              when 'segmentEnd'
+                if stack.length > 0
+                  stack.pop()
+                else
+                  # We have an end-tag without its start tag, so append that
+                  firstLassoed = head.segment
             head = head.next
         
           # We have a start-tag without its end-tag, so append that as well
@@ -436,6 +444,9 @@ exports.Editor = class Editor
 
           firstLassoed.start.prev.insert lassoSegment.start
           lastLassoed.end.insert lassoSegment.end
+
+          console.log tree.segment.toString(), '\nlassoSegment:\n', lassoSegment.toString()
+          debugger
 
       # Clear the drag canvas
       dragCtx.clearRect 0, 0, canvas.width, canvas.height

@@ -87,6 +87,7 @@ exports.Block = class Block
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+      console.log 'removing a segment'
       @start.prev.segment.remove()
 
     # Don't leave empty lines behind
@@ -98,10 +99,8 @@ exports.Block = class Block
       while first? and first.type is 'segmentStart' then first = first.prev
 
       if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
-        console.log 'removing first', first, last
         first.remove()
       else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
-        console.log 'removing last'
         last.remove()
 
     # Unsplice ourselves
@@ -283,10 +282,8 @@ exports.Segment = class Segment
       while first? and first.type is 'segmentStart' then first = first.prev
 
       if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
-        console.log 'removing first', first, last
         first.remove()
       else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
-        console.log 'removing last'
         last.remove()
 
     # Unsplice ourselves
@@ -309,8 +306,6 @@ exports.Segment = class Segment
       # If we found a child block, find in there
       if head.type is 'blockStart' and f(head.block)
         return head.block.findBlock f
-      #else if head.type is 'blockStart'
-      #  console.log 'turned down', head.block.toString()
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -1775,13 +1770,20 @@ exports.Editor = class Editor
             switch head.type
               when 'blockStart'
                 stack.push head.block
+              when 'segmentStart'
+                stack.push head.segment
               when 'blockEnd'
-                console.log (el.toString() for el in stack)
                 if stack.length > 0
                   stack.pop()
                 else
                   # We have an end-tag without its start tag, so append that
                   firstLassoed = head.block
+              when 'segmentEnd'
+                if stack.length > 0
+                  stack.pop()
+                else
+                  # We have an end-tag without its start tag, so append that
+                  firstLassoed = head.segment
             head = head.next
         
           # We have a start-tag without its end-tag, so append that as well
@@ -1791,6 +1793,9 @@ exports.Editor = class Editor
 
           firstLassoed.start.prev.insert lassoSegment.start
           lastLassoed.end.insert lassoSegment.end
+
+          console.log tree.segment.toString(), '\nlassoSegment:\n', lassoSegment.toString()
+          debugger
 
       # Clear the drag canvas
       dragCtx.clearRect 0, 0, canvas.width, canvas.height
