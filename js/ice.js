@@ -1931,7 +1931,7 @@
         }
       });
       div.addEventListener('touchend', div.onmouseup = function(event) {
-        var corner, dest, firstLassoed, lassoRect, lastLassoed, point, size, stop;
+        var corner, dest, firstLassoed, lassoRect, lastLassoed, point, size, stack;
         if (selection != null) {
           if ((highlight != null) && highlight !== tree.segment) {
             switch (highlight.type) {
@@ -1985,31 +1985,49 @@
           lassoRect = new draw.Rectangle(corner.x, corner.y, size.width, size.height);
           firstLassoed = null;
           head = tree.segment.start;
-          stop = false;
-          while (head !== tree.segment.end && !stop) {
-            switch (head.type) {
-              case 'blockStart':
-                if (head.block.paper._container.intersects(lassoRect)) {
-                  firstLassoed = head.block;
-                  stop = true;
-                }
+          while (head !== tree.segment.end) {
+            if (head.type === 'blockStart' && head.block.paper._container.intersects(lassoRect)) {
+              firstLassoed = head.block;
+              break;
             }
             head = head.next;
           }
           lastLassoed = null;
           head = tree.segment.end;
-          stop = false;
-          while (head !== tree.segment.start && !stop) {
-            switch (head.type) {
-              case 'blockEnd':
-                if (head.block.paper._container.intersects(lassoRect)) {
-                  lastLassoed = head.block;
-                  stop = true;
-                }
+          while (head !== tree.segment.start) {
+            if (head.type === 'blockEnd' && head.block.paper._container.intersects(lassoRect)) {
+              lastLassoed = head.block;
+              break;
             }
             head = head.prev;
           }
           if ((firstLassoed != null) && (lastLassoed != null)) {
+            stack = [firstLassoed];
+            head = firstLassoed.start.next;
+            while (head !== lastLassoed.end) {
+              switch (head.type) {
+                case 'blockStart':
+                  stack.push(head.block);
+                  break;
+                case 'blockEnd':
+                  console.log((function() {
+                    var _i, _len, _results;
+                    _results = [];
+                    for (_i = 0, _len = stack.length; _i < _len; _i++) {
+                      el = stack[_i];
+                      _results.push(el.toString());
+                    }
+                    return _results;
+                  })());
+                  if (stack.length > 0) {
+                    stack.pop();
+                  } else {
+                    firstLassoed = head.block;
+                  }
+              }
+              head = head.next;
+            }
+            lastLassoed = stack[0];
             lassoSegment = new Segment([]);
             firstLassoed.start.prev.insert(lassoSegment.start);
             lastLassoed.end.insert(lassoSegment.end);

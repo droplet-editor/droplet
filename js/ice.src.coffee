@@ -1752,28 +1752,41 @@ exports.Editor = class Editor
         # Find first
         firstLassoed = null
         head = tree.segment.start
-        stop = false
-        while head isnt tree.segment.end and not stop
-          switch head.type
-            when 'blockStart'
-              if head.block.paper._container.intersects lassoRect
-                firstLassoed = head.block
-                stop = true
+        while head isnt tree.segment.end
+          if head.type is 'blockStart' and head.block.paper._container.intersects lassoRect
+            firstLassoed = head.block
+            break
           head = head.next
         
         # Find last
         lastLassoed = null
         head = tree.segment.end
-        stop = false
-        while head isnt tree.segment.start and not stop
-          switch head.type
-            when 'blockEnd'
-              if head.block.paper._container.intersects lassoRect
-                lastLassoed = head.block
-                stop = true
+        while head isnt tree.segment.start
+          if head.type is 'blockEnd' and head.block.paper._container.intersects lassoRect
+            lastLassoed = head.block
+            break
           head = head.prev
 
         if firstLassoed? and lastLassoed?
+          # First, validate the selection
+          stack = [firstLassoed]
+          head = firstLassoed.start.next
+          while head isnt lastLassoed.end
+            switch head.type
+              when 'blockStart'
+                stack.push head.block
+              when 'blockEnd'
+                console.log (el.toString() for el in stack)
+                if stack.length > 0
+                  stack.pop()
+                else
+                  # We have an end-tag without its start tag, so append that
+                  firstLassoed = head.block
+            head = head.next
+        
+          # We have a start-tag without its end-tag, so append that as well
+          lastLassoed = stack[0]
+
           lassoSegment = new Segment []
 
           firstLassoed.start.prev.insert lassoSegment.start
