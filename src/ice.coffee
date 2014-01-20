@@ -87,8 +87,7 @@ exports.Block = class Block
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
-      @start.prev.remove()
-      @end.next.remove()
+      @start.prev.segment.remove()
 
     # Don't leave empty lines behind
     if @end.next? and @start.prev?
@@ -124,7 +123,6 @@ exports.Block = class Block
     while head isnt @end
       # If we found a child block, find in there
       if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
-        #else head = head.block.end
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -265,11 +263,16 @@ exports.Segment = class Segment
 
   embedded: -> false
 
+  remove: ->
+    @start.remove()
+    @end.remove()
+    @start.next = @end
+    @end.prev = @start
+
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
-      @start.prev.remove()
-      @end.next.remove()
+      @start.prev.segment.remove()
 
     # Don't leave empty lines behind
     if @end.next? and @start.prev?
@@ -304,7 +307,10 @@ exports.Segment = class Segment
     head = @start.next
     while head isnt @end
       # If we found a child block, find in there
-      if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
+      if head.type is 'blockStart' and f(head.block)
+        return head.block.findBlock f
+      #else if head.type is 'blockStart'
+      #  console.log 'turned down', head.block.toString()
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()

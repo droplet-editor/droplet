@@ -181,8 +181,7 @@ exports.Editor = class Editor
 
       else
         # See if we picked up the lasso
-        if lassoBounds? and lassoBounds.contains point
-          console.log 'selected'
+        if lassoSegment? and lassoBounds.contains point
           selection = lassoSegment
         else
           # Find the block that was just clicked
@@ -193,7 +192,6 @@ exports.Editor = class Editor
         cloneLater = false
 
         unless selection?
-          console.log 'unless'
           selection = null
           for block, i in floating_blocks
             if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
@@ -218,8 +216,6 @@ exports.Editor = class Editor
               else selection = null
 
         if selection?
-          console.log 'selection follows.'
-          console.log selection
           ### 
           # We've now found the selected text, move it as necessary.
           ###

@@ -87,8 +87,7 @@ exports.Block = class Block
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
-      @start.prev.remove()
-      @end.next.remove()
+      @start.prev.segment.remove()
 
     # Don't leave empty lines behind
     if @end.next? and @start.prev?
@@ -124,7 +123,6 @@ exports.Block = class Block
     while head isnt @end
       # If we found a child block, find in there
       if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
-        #else head = head.block.end
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -265,11 +263,16 @@ exports.Segment = class Segment
 
   embedded: -> false
 
+  remove: ->
+    @start.remove()
+    @end.remove()
+    @start.next = @end
+    @end.prev = @start
+
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
-      @start.prev.remove()
-      @end.next.remove()
+      @start.prev.segment.remove()
 
     # Don't leave empty lines behind
     if @end.next? and @start.prev?
@@ -304,7 +307,10 @@ exports.Segment = class Segment
     head = @start.next
     while head isnt @end
       # If we found a child block, find in there
-      if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
+      if head.type is 'blockStart' and f(head.block)
+        return head.block.findBlock f
+      #else if head.type is 'blockStart'
+      #  console.log 'turned down', head.block.toString()
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
@@ -1529,8 +1535,7 @@ exports.Editor = class Editor
 
       else
         # See if we picked up the lasso
-        if lassoBounds? and lassoBounds.contains point
-          console.log 'selected'
+        if lassoSegment? and lassoBounds.contains point
           selection = lassoSegment
         else
           # Find the block that was just clicked
@@ -1541,7 +1546,6 @@ exports.Editor = class Editor
         cloneLater = false
 
         unless selection?
-          console.log 'unless'
           selection = null
           for block, i in floating_blocks
             if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
@@ -1566,8 +1570,6 @@ exports.Editor = class Editor
               else selection = null
 
         if selection?
-          console.log 'selection follows.'
-          console.log selection
           ### 
           # We've now found the selected text, move it as necessary.
           ###

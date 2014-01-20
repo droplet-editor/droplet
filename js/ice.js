@@ -109,8 +109,7 @@
     Block.prototype._moveTo = function(parent) {
       var first, last;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
-        this.start.prev.remove();
-        this.end.next.remove();
+        this.start.prev.segment.remove();
       }
       if ((this.end.next != null) && (this.start.prev != null)) {
         last = this.end.next;
@@ -337,11 +336,17 @@
       return false;
     };
 
+    Segment.prototype.remove = function() {
+      this.start.remove();
+      this.end.remove();
+      this.start.next = this.end;
+      return this.end.prev = this.start;
+    };
+
     Segment.prototype._moveTo = function(parent) {
       var first, last;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
-        this.start.prev.remove();
-        this.end.next.remove();
+        this.start.prev.segment.remove();
       }
       if ((this.end.next != null) && (this.start.prev != null)) {
         last = this.end.next;
@@ -1781,8 +1786,7 @@
             return input.dispatchEvent(new CustomEvent('input'));
           }), 0);
         } else {
-          if ((lassoBounds != null) && lassoBounds.contains(point)) {
-            console.log('selected');
+          if ((lassoSegment != null) && lassoBounds.contains(point)) {
             selection = lassoSegment;
           } else {
             selection = tree.segment.findBlock(function(block) {
@@ -1791,7 +1795,6 @@
           }
           cloneLater = false;
           if (selection == null) {
-            console.log('unless');
             selection = null;
             for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
               block = floating_blocks[i];
@@ -1823,8 +1826,6 @@
             }
           }
           if (selection != null) {
-            console.log('selection follows.');
-            console.log(selection);
             /* 
             # We've now found the selected text, move it as necessary.
             */
