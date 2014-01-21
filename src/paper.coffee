@@ -14,6 +14,8 @@ FONT_SIZE = 15
 EMPTY_INDENT_WIDTH = 50
 PALETTE_WIDTH = 300
 PALETTE_WHITESPACE = 10
+MIN_INDENT_DROP_WIDTH = 20
+EMPTY_SEGMENT_DROP_WIDTH = 100
 
 ###
 # For developers, bits of policy:
@@ -512,7 +514,7 @@ class IndentPaper extends IcePaper
     return this
 
   finish: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, Math.max(@bounds[@lineStart].width, MIN_INDENT_DROP_WIDTH), 10
     for child in @children
       child.finish()
   
@@ -584,6 +586,11 @@ class SegmentPaper extends IcePaper
     @lineEnd = state.line
 
     # Now go through and mimic all the blocks on each line
+    
+    # If we're empty, then return immediately.
+    if @children.length is 0
+      @bounds[state.line] = new draw.Rectangle 0, 0, 0, 0
+      return this
     
     i = 0 # Again, performance reasons
     for line in [@lineStart..@lineEnd]
@@ -665,7 +672,11 @@ class SegmentPaper extends IcePaper
     return bounds
 
   finish: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, Math.max(@bounds[@lineStart].width, MIN_INDENT_DROP_WIDTH), 10
+    # For empty files, this should be a bit easier.
+    if @bounds[@lineStart].width is 0
+      @dropArea.width = EMPTY_SEGMENT_DROP_WIDTH
+
     for child in @children
       child.finish()
   

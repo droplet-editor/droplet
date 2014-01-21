@@ -329,7 +329,8 @@ exports.Segment = class Segment
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return null
+    if f(this) then return this
+    else return null
   
   toString: ->
     start = @start.toString(indent: '')
@@ -638,6 +639,8 @@ FONT_SIZE = 15
 EMPTY_INDENT_WIDTH = 50
 PALETTE_WIDTH = 300
 PALETTE_WHITESPACE = 10
+MIN_INDENT_DROP_WIDTH = 20
+EMPTY_SEGMENT_DROP_WIDTH = 100
 
 ###
 # For developers, bits of policy:
@@ -1136,7 +1139,7 @@ class IndentPaper extends IcePaper
     return this
 
   finish: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, Math.max(@bounds[@lineStart].width, MIN_INDENT_DROP_WIDTH), 10
     for child in @children
       child.finish()
   
@@ -1208,6 +1211,11 @@ class SegmentPaper extends IcePaper
     @lineEnd = state.line
 
     # Now go through and mimic all the blocks on each line
+    
+    # If we're empty, then return immediately.
+    if @children.length is 0
+      @bounds[state.line] = new draw.Rectangle 0, 0, 0, 0
+      return this
     
     i = 0 # Again, performance reasons
     for line in [@lineStart..@lineEnd]
@@ -1289,7 +1297,11 @@ class SegmentPaper extends IcePaper
     return bounds
 
   finish: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, Math.max(@bounds[@lineStart].width, MIN_INDENT_DROP_WIDTH), 10
+    # For empty files, this should be a bit easier.
+    if @bounds[@lineStart].width is 0
+      @dropArea.width = EMPTY_SEGMENT_DROP_WIDTH
+
     for child in @children
       child.finish()
   
@@ -1691,7 +1703,7 @@ exports.Editor = class Editor
 
     div.addEventListener 'touchend', div.onmouseup = (event) ->
       if selection?
-        if highlight? and highlight isnt tree.segment
+        if highlight?
           switch highlight.type
             when 'indent'
               selection._moveTo highlight.start.insert new NewlineToken()
@@ -1700,6 +1712,9 @@ exports.Editor = class Editor
             when 'socket'
               if highlight.content()? then highlight.content().remove()
               selection._moveTo highlight.start
+
+          if highlight is tree.segment # We inserted it in the root.
+            selection._moveTo highlight.start
 
           # Redraw the root tree
           redraw()
@@ -1772,6 +1787,8 @@ exports.Editor = class Editor
                 stack.push head.block
               when 'segmentStart'
                 stack.push head.segment
+              when 'indentStart'
+                stack.push head.indent
               when 'blockEnd'
                 if stack.length > 0
                   stack.pop()
@@ -1784,18 +1801,57 @@ exports.Editor = class Editor
                 else
                   # We have an end-tag without its start tag, so append that
                   firstLassoed = head.segment
+              when 'indentEnd'
+                if stack.length > 0
+                  stack.pop()
+                else
+                  console.log head.indent, stack
+                  # We have an end-tag without its start tag, so append that
+                  firstLassoed = head.indent
+
+                  # We can't just drag an indent, so find the surrounding block
+                  #
+                  # TODO the following is untested
+                  _head = head.indent.start
+                  _stack = []
+                  while _head isnt null
+                    if _head.type is 'blockEnd' then _stack.push _head.block
+                    else if _head.type is 'blockStart'
+                      console.log _head.block.toString(), stack
+                      if _stack.length > 0
+                        _stack.pop()
+                      else
+                        stack.unshift _head.block
+                        firstLassoed = _head.block
+                        break
+                    _head = _head.prev
+
             head = head.next
         
           # We have a start-tag without its end-tag, so append that as well
+          if stack[0].type is 'indent'
+            # We can't just drag an indent, so find the surrounding block
+            head = stack[0].end
+            _stack = []
+            while head isnt null
+              if head.type is 'blockStart' then console.log 'discards', head.block.toString(); _stack.push head.block
+              else if head.type is 'blockEnd'
+                console.log head.block.toString(), stack
+                if _stack.length > 0
+                  _stack.pop()
+                else
+                  unless head.block in stack
+                    firstLassoed = head.block
+                  stack[0] = head.block
+                  break
+              head = head.next
+
           lastLassoed = stack[0]
 
           lassoSegment = new Segment []
 
           firstLassoed.start.prev.insert lassoSegment.start
           lastLassoed.end.insert lassoSegment.end
-
-          console.log tree.segment.toString(), '\nlassoSegment:\n', lassoSegment.toString()
-          debugger
 
       # Clear the drag canvas
       dragCtx.clearRect 0, 0, canvas.width, canvas.height

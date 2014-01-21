@@ -7,9 +7,10 @@
 
 
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, Editor, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MOUTH_BOTTOM, NewlineToken, PADDING, PALETTE_WHITESPACE, PALETTE_WIDTH, Segment, SegmentEndToken, SegmentPaper, SegmentStartToken, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, exports, out,
+  var Block, BlockEndToken, BlockPaper, BlockStartToken, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, EMPTY_SEGMENT_DROP_WIDTH, Editor, FONT_SIZE, INDENT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MIN_INDENT_DROP_WIDTH, MOUTH_BOTTOM, NewlineToken, PADDING, PALETTE_WHITESPACE, PALETTE_WIDTH, Segment, SegmentEndToken, SegmentPaper, SegmentStartToken, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, exports, out,
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   exports = {};
 
@@ -414,7 +415,11 @@
         }
         head = head.next;
       }
-      return null;
+      if (f(this)) {
+        return this;
+      } else {
+        return null;
+      }
     };
 
     Segment.prototype.toString = function() {
@@ -896,6 +901,10 @@
 
   PALETTE_WHITESPACE = 10;
 
+  MIN_INDENT_DROP_WIDTH = 20;
+
+  EMPTY_SEGMENT_DROP_WIDTH = 100;
+
   /*
   # For developers, bits of policy:
   # 1. Calling IcePaper.draw() must ALWAYS render the entire block and all its children.
@@ -1372,7 +1381,7 @@
 
     IndentPaper.prototype.finish = function() {
       var child, _i, _len, _ref, _results;
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, Math.max(this.bounds[this.lineStart].width, MIN_INDENT_DROP_WIDTH), 10);
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1464,6 +1473,10 @@
         head = head.next;
       }
       this.lineEnd = state.line;
+      if (this.children.length === 0) {
+        this.bounds[state.line] = new draw.Rectangle(0, 0, 0, 0);
+        return this;
+      }
       i = 0;
       for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
         while (!(line <= this.children[i].lineEnd)) {
@@ -1532,7 +1545,10 @@
 
     SegmentPaper.prototype.finish = function() {
       var child, _i, _len, _ref, _results;
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, Math.max(this.bounds[this.lineStart].width, MIN_INDENT_DROP_WIDTH), 10);
+      if (this.bounds[this.lineStart].width === 0) {
+        this.dropArea.width = EMPTY_SEGMENT_DROP_WIDTH;
+      }
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1928,9 +1944,9 @@
         }
       });
       div.addEventListener('touchend', div.onmouseup = function(event) {
-        var corner, dest, firstLassoed, lassoRect, lastLassoed, point, size, stack;
+        var corner, dest, firstLassoed, lassoRect, lastLassoed, point, size, stack, _head, _ref, _stack;
         if (selection != null) {
-          if ((highlight != null) && highlight !== tree.segment) {
+          if (highlight != null) {
             switch (highlight.type) {
               case 'indent':
                 selection._moveTo(highlight.start.insert(new NewlineToken()));
@@ -1943,6 +1959,9 @@
                   highlight.content().remove();
                 }
                 selection._moveTo(highlight.start);
+            }
+            if (highlight === tree.segment) {
+              selection._moveTo(highlight.start);
             }
             redraw();
           } else {
@@ -2009,6 +2028,9 @@
                 case 'segmentStart':
                   stack.push(head.segment);
                   break;
+                case 'indentStart':
+                  stack.push(head.indent);
+                  break;
                 case 'blockEnd':
                   if (stack.length > 0) {
                     stack.pop();
@@ -2022,15 +2044,60 @@
                   } else {
                     firstLassoed = head.segment;
                   }
+                  break;
+                case 'indentEnd':
+                  if (stack.length > 0) {
+                    stack.pop();
+                  } else {
+                    console.log(head.indent, stack);
+                    firstLassoed = head.indent;
+                    _head = head.indent.start;
+                    _stack = [];
+                    while (_head !== null) {
+                      if (_head.type === 'blockEnd') {
+                        _stack.push(_head.block);
+                      } else if (_head.type === 'blockStart') {
+                        console.log(_head.block.toString(), stack);
+                        if (_stack.length > 0) {
+                          _stack.pop();
+                        } else {
+                          stack.unshift(_head.block);
+                          firstLassoed = _head.block;
+                          break;
+                        }
+                      }
+                      _head = _head.prev;
+                    }
+                  }
               }
               head = head.next;
+            }
+            if (stack[0].type === 'indent') {
+              head = stack[0].end;
+              _stack = [];
+              while (head !== null) {
+                if (head.type === 'blockStart') {
+                  console.log('discards', head.block.toString());
+                  _stack.push(head.block);
+                } else if (head.type === 'blockEnd') {
+                  console.log(head.block.toString(), stack);
+                  if (_stack.length > 0) {
+                    _stack.pop();
+                  } else {
+                    if (_ref = head.block, __indexOf.call(stack, _ref) < 0) {
+                      firstLassoed = head.block;
+                    }
+                    stack[0] = head.block;
+                    break;
+                  }
+                }
+                head = head.next;
+              }
             }
             lastLassoed = stack[0];
             lassoSegment = new Segment([]);
             firstLassoed.start.prev.insert(lassoSegment.start);
             lastLassoed.end.insert(lassoSegment.end);
-            console.log(tree.segment.toString(), '\nlassoSegment:\n', lassoSegment.toString());
-            debugger;
           }
         }
         dragCtx.clearRect(0, 0, canvas.width, canvas.height);

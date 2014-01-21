@@ -329,7 +329,8 @@ exports.Segment = class Segment
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return null
+    if f(this) then return this
+    else return null
   
   toString: ->
     start = @start.toString(indent: '')
