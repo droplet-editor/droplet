@@ -1810,7 +1810,9 @@
             selection = lassoSegment;
           } else {
             if (lassoSegment != null) {
-              lassoSegment.remove();
+              if (lassoSegment.start.prev != null) {
+                lassoSegment.remove();
+              }
               lassoSegment = null;
             }
             selection = tree.segment.findBlock(function(block) {

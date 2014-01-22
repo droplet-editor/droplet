@@ -220,7 +220,7 @@ exports.Segment = class Segment
   constructor: (contents) ->
     @start = new SegmentStartToken this
     @end = new SegmentEndToken this
-    @type = 'indent'
+    @type = 'segment'
     
     head = @start
     for block in contents

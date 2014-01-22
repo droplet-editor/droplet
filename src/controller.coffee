@@ -188,7 +188,8 @@ exports.Editor = class Editor
         else
           # Immediately unlasso
           if lassoSegment?
-            lassoSegment.remove()
+            if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
+              lassoSegment.remove()
             lassoSegment = null
           # Find the block that was just clicked
           selection = tree.segment.findBlock (block) ->
@@ -444,7 +445,6 @@ exports.Editor = class Editor
                 if stack.length > 0
                   stack.pop()
                 else
-                  console.log head.indent, stack
                   # We have an end-tag without its start tag, so append that
                   firstLassoed = head.indent
 
