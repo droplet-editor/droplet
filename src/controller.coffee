@@ -189,6 +189,7 @@ exports.Editor = class Editor
           # Immediately unlasso
           if lassoSegment?
             if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
+              console.log lassoSegment.start.prev
               lassoSegment.remove()
             lassoSegment = null
           # Find the block that was just clicked
@@ -201,7 +202,7 @@ exports.Editor = class Editor
         unless selection?
           selection = null
           for block, i in floating_blocks
-            if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
+            if block.block.findBlock((x) -> x.paper._container.contains point)?
               floating_blocks.splice i, 1
               selection = block.block
               break

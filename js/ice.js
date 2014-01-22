@@ -152,7 +152,11 @@
         }
         head = head.next;
       }
-      return this;
+      if (f(this)) {
+        return this;
+      } else {
+        return null;
+      }
     };
 
     Block.prototype.findSocket = function(f) {
@@ -180,7 +184,11 @@
         }
         head = head.next;
       }
-      return this;
+      if (f(this)) {
+        return this;
+      } else {
+        return null;
+      }
     };
 
     Block.prototype.toString = function() {
@@ -273,7 +281,11 @@
         }
         head = head.next;
       }
-      return this;
+      if (f(this)) {
+        return this;
+      } else {
+        return null;
+      }
     };
 
     return Indent;
@@ -285,7 +297,7 @@
       var block, head, _i, _len;
       this.start = new SegmentStartToken(this);
       this.end = new SegmentEndToken(this);
-      this.type = 'indent';
+      this.type = 'segment';
       head = this.start;
       for (_i = 0, _len = contents.length; _i < _len; _i++) {
         block = contents[_i];
@@ -498,7 +510,11 @@
         }
         head = head.next;
       }
-      return this;
+      if (f(this)) {
+        return this;
+      } else {
+        return null;
+      }
     };
 
     Socket.prototype.find = function(f) {
@@ -514,7 +530,11 @@
         }
         head = head.next;
       }
-      return this;
+      if (f(this)) {
+        return this;
+      } else {
+        return null;
+      }
     };
 
     Socket.prototype.toString = function() {
@@ -1811,6 +1831,7 @@
           } else {
             if (lassoSegment != null) {
               if (lassoSegment.start.prev != null) {
+                console.log(lassoSegment.start.prev);
                 lassoSegment.remove();
               }
               lassoSegment = null;
@@ -1826,7 +1847,7 @@
               block = floating_blocks[i];
               if (block.block.findBlock(function(x) {
                 return x.paper._container.contains(point);
-              }).paper._container.contains(point)) {
+              }) != null) {
                 floating_blocks.splice(i, 1);
                 selection = block.block;
                 break;
@@ -2054,7 +2075,6 @@
                   if (stack.length > 0) {
                     stack.pop();
                   } else {
-                    console.log(head.indent, stack);
                     firstLassoed = head.indent;
                     _head = head.indent.start;
                     _stack = [];

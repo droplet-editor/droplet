@@ -125,7 +125,8 @@ exports.Block = class Block
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
   
   findSocket: (f) ->
     head = @start.next
@@ -145,7 +146,8 @@ exports.Block = class Block
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
   
   # TODO This is really only usable for debugging
   toString: ->
@@ -214,7 +216,8 @@ exports.Indent = class Indent
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
 
 exports.Segment = class Segment
   constructor: (contents) ->
@@ -385,7 +388,9 @@ exports.Socket = class Socket
     while head isnt @end
       if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
       head = head.next
-    return this
+
+    if f this then return this
+    else return null
 
   find: (f) ->
     # Find the innermost child fitting function f(x)
@@ -398,7 +403,8 @@ exports.Socket = class Socket
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
 
   toString: -> if @content()? then @content().toString({indent:''}) else ''
   

@@ -125,7 +125,8 @@ exports.Block = class Block
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
   
   findSocket: (f) ->
     head = @start.next
@@ -145,7 +146,8 @@ exports.Block = class Block
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
   
   # TODO This is really only usable for debugging
   toString: ->
@@ -214,13 +216,14 @@ exports.Indent = class Indent
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
 
 exports.Segment = class Segment
   constructor: (contents) ->
     @start = new SegmentStartToken this
     @end = new SegmentEndToken this
-    @type = 'indent'
+    @type = 'segment'
     
     head = @start
     for block in contents
@@ -385,7 +388,9 @@ exports.Socket = class Socket
     while head isnt @end
       if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
       head = head.next
-    return this
+
+    if f this then return this
+    else return null
 
   find: (f) ->
     # Find the innermost child fitting function f(x)
@@ -398,7 +403,8 @@ exports.Socket = class Socket
       head = head.next
 
     # Couldn't find any, so we are the innermost child fitting f()
-    return this
+    if f this then return this
+    else return null
 
   toString: -> if @content()? then @content().toString({indent:''}) else ''
   
@@ -1554,6 +1560,7 @@ exports.Editor = class Editor
           # Immediately unlasso
           if lassoSegment?
             if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
+              console.log lassoSegment.start.prev
               lassoSegment.remove()
             lassoSegment = null
           # Find the block that was just clicked
@@ -1566,7 +1573,7 @@ exports.Editor = class Editor
         unless selection?
           selection = null
           for block, i in floating_blocks
-            if block.block.findBlock((x) -> x.paper._container.contains point).paper._container.contains point
+            if block.block.findBlock((x) -> x.paper._container.contains point)?
               floating_blocks.splice i, 1
               selection = block.block
               break
@@ -1810,7 +1817,6 @@ exports.Editor = class Editor
                 if stack.length > 0
                   stack.pop()
                 else
-                  console.log head.indent, stack
                   # We have an end-tag without its start tag, so append that
                   firstLassoed = head.indent
 
