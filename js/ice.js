@@ -914,7 +914,7 @@
   */
 
 
-  PADDING = 3;
+  PADDING = 5;
 
   INDENT = 10;
 
@@ -1145,6 +1145,13 @@
       }
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].y));
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].bottom() + _bottomModifier));
+      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineStart === line) {
+        child = this._lineChildren[line][0];
+        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 10, this.bounds[line].y));
+        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 10, this.bounds[line].y + 5));
+        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 30, this.bounds[line].y + 5));
+        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 30, this.bounds[line].y));
+      }
       if (this.indentEnd[line] && this._lineChildren[line].length > 1) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
         return this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
@@ -1169,6 +1176,11 @@
     BlockPaper.prototype.finish = function() {
       var bit, child, line, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results;
       this._container = new draw.Path();
+      if (!this.block.inSocket()) {
+        this._container.push(new draw.Point(this.bounds[this.lineStart].x + 10, this.bounds[this.lineStart].y));
+        this._container.push(new draw.Point(this.bounds[this.lineStart].x + 10, this.bounds[this.lineStart].y + 5));
+        this._container.push(new draw.Point(this.bounds[this.lineStart].x + 30, this.bounds[this.lineStart].y + 5));
+      }
       for (line in this._pathBits) {
         _ref = this._pathBits[line].left;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -1180,6 +1192,11 @@
           bit = _ref1[_j];
           this._container.push(bit);
         }
+      }
+      if (!this.block.inSocket()) {
+        this._container.unshift(new draw.Point(this.bounds[this.lineEnd].x + 10, this.bounds[this.lineEnd].bottom() + 5));
+        this._container.unshift(new draw.Point(this.bounds[this.lineEnd].x + 30, this.bounds[this.lineEnd].bottom() + 5));
+        this._container.unshift(new draw.Point(this.bounds[this.lineEnd].x + 30, this.bounds[this.lineEnd].bottom()));
       }
       this._container.style.strokeColor = '#000';
       this._container.style.fillColor = this.block.color;

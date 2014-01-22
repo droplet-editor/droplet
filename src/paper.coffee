@@ -6,7 +6,7 @@
 ###
 
 # Constants
-PADDING = 3
+PADDING = 5
 INDENT = 10
 MOUTH_BOTTOM = 50
 DROP_AREA_MAX_WIDTH = 50
@@ -250,8 +250,17 @@ class BlockPaper extends IcePaper
     # Add the left edge
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].y # top
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
-
+    
     # Add the right edge
+
+    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineStart is line
+      # Add the tab at the top of an indent if necessary
+      child = @_lineChildren[line][0]
+      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 10, @bounds[line].y
+      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 10, @bounds[line].y + 5
+      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 30, @bounds[line].y + 5
+      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 30, @bounds[line].y
+
     if @indentEnd[line] and @_lineChildren[line].length > 1
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
@@ -277,12 +286,22 @@ class BlockPaper extends IcePaper
   finish: ->
     @_container = new draw.Path()
 
+    unless @block.inSocket()
+      @_container.push new draw.Point @bounds[@lineStart].x + 10, @bounds[@lineStart].y
+      @_container.push new draw.Point @bounds[@lineStart].x + 10, @bounds[@lineStart].y + 5
+      @_container.push new draw.Point @bounds[@lineStart].x + 30, @bounds[@lineStart].y + 5
+
     # Assemble our path from the recorded @_pathBits
     for line of @_pathBits
       for bit in @_pathBits[line].left
         @_container.unshift bit
       for bit in @_pathBits[line].right
         @_container.push bit
+
+    unless @block.inSocket()
+      @_container.unshift new draw.Point @bounds[@lineEnd].x + 10, @bounds[@lineEnd].bottom() + 5
+      @_container.unshift new draw.Point @bounds[@lineEnd].x + 30, @bounds[@lineEnd].bottom() + 5
+      @_container.unshift new draw.Point @bounds[@lineEnd].x + 30, @bounds[@lineEnd].bottom()
 
     # Do some styling
     @_container.style.strokeColor='#000'
