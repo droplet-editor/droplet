@@ -379,6 +379,7 @@ exports.Editor = class Editor
 
             # Push this to the set of floating blocks
             floating_blocks.push block: selection, position: dest
+          else lassoSegment = null # Unlasso if we just deleted the lasso.
 
       else if focus?
         # Make the selection
