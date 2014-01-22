@@ -2010,6 +2010,8 @@
                 block: selection,
                 position: dest
               });
+            } else {
+              lassoSegment = null;
             }
           }
         } else if (focus != null) {
