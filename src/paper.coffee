@@ -252,7 +252,11 @@ class BlockPaper extends IcePaper
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
 
     # Add the right edge
-    if @indented[line] and not (@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
+    if @indentEnd[line] and @_lineChildren[line].length > 1
+      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
+      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
+
+    else if @indented[line] and not(@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
 

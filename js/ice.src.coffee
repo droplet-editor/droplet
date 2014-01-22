@@ -877,7 +877,11 @@ class BlockPaper extends IcePaper
     @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
 
     # Add the right edge
-    if @indented[line] and not (@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
+    if @indentEnd[line] and @_lineChildren[line].length > 1
+      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
+      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
+
+    else if @indented[line] and not(@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
 
@@ -1817,7 +1821,6 @@ exports.Editor = class Editor
                   while _head isnt null
                     if _head.type is 'blockEnd' then _stack.push _head.block
                     else if _head.type is 'blockStart'
-                      console.log _head.block.toString(), stack
                       if _stack.length > 0
                         _stack.pop()
                       else

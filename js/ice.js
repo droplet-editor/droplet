@@ -1116,7 +1116,10 @@
       }
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].y));
       this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].bottom() + _bottomModifier));
-      if (this.indented[line] && !(this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line)) {
+      if (this.indentEnd[line] && this._lineChildren[line].length > 1) {
+        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
+        return this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
+      } else if (this.indented[line] && !(this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line)) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
         return this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
       } else if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
@@ -2057,7 +2060,6 @@
                       if (_head.type === 'blockEnd') {
                         _stack.push(_head.block);
                       } else if (_head.type === 'blockStart') {
-                        console.log(_head.block.toString(), stack);
                         if (_stack.length > 0) {
                           _stack.pop();
                         } else {
