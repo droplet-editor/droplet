@@ -1766,7 +1766,7 @@
       */
 
       div.addEventListener('touchstart', div.onmousedown = function(event) {
-        var block, bounds, cloneLater, i, line, point, shiftedPoint, start, text, _i, _j, _len, _len1;
+        var block, bounds, cloneLater, i, lassosegment, line, point, shiftedPoint, start, text, _i, _j, _len, _len1;
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
         } else {
@@ -1829,12 +1829,12 @@
           if ((lassoSegment != null) && lassoBounds.contains(point)) {
             selection = lassoSegment;
           } else {
-            if (lassoSegment != null) {
-              if (lassoSegment.start.prev != null) {
-                console.log(lassoSegment.start.prev);
-                lassoSegment.remove();
+            if (typeof lassosegment !== "undefined" && lassosegment !== null) {
+              if (lassosegment.start.prev != null) {
+                console.log(lassosegment.start.prev);
+                lassosegment.remove();
               }
-              lassoSegment = null;
+              lassosegment = null;
             }
             selection = tree.segment.findBlock(function(block) {
               return block.paper._container.contains(point);
@@ -2010,6 +2010,8 @@
                 block: selection,
                 position: dest
               });
+            } else {
+              lassoSegment = null;
             }
           }
         } else if (focus != null) {
