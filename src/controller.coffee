@@ -187,11 +187,11 @@ exports.Editor = class Editor
           selection = lassoSegment
         else
           # Immediately unlasso
-          if lassosegment?
-            if lassosegment.start.prev? # this will mean that lassosegment is not a root segment
-              console.log lassosegment.start.prev
-              lassosegment.remove()
-            lassosegment = null
+          if lassoSegment?
+            if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
+              console.log lassoSegment.start.prev
+              lassoSegment.remove()
+            lassoSegment = null
           # Find the block that was just clicked
           selection = tree.segment.findBlock (block) ->
             block.paper._container.contains point
@@ -379,9 +379,6 @@ exports.Editor = class Editor
 
             # Push this to the set of floating blocks
             floating_blocks.push block: selection, position: dest
-          else
-            # Otherwise, if we have selected the thing we just dropped, unselect it.
-            lassoSegment = null
 
       else if focus?
         # Make the selection
