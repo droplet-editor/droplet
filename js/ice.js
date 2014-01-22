@@ -89,6 +89,15 @@
       return clone;
     };
 
+    Block.prototype.inSocket = function() {
+      var head;
+      head = this.start.prev;
+      while ((head != null) && head.type === 'segmentStart') {
+        head = head.prev;
+      }
+      return (head != null) && head.type === 'socketStart';
+    };
+
     Block.prototype.lines = function() {
       var contents, currentLine, head;
       contents = [];
@@ -1927,7 +1936,7 @@
           old_highlight = highlight;
           highlight = tree.segment.find(function(block) {
             var _ref;
-            return (((_ref = block.start.prev) != null ? _ref.type : void 0) !== 'socketStart') && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
+            return (!((_ref = typeof block.inSocket === "function" ? block.inSocket() : void 0) != null ? _ref : false)) && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
           });
           if (highlight !== old_highlight || window.PERFORMANCE_TEST) {
             fastDraw();

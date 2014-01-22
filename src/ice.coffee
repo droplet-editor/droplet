@@ -69,6 +69,11 @@ exports.Block = class Block
 
     return clone
   
+  inSocket: ->
+    head = @start.prev
+    while head? and head.type is 'segmentStart' then head = head.prev
+    return head? and head.type is 'socketStart'
+  
   lines: ->
     # The Lines of a block are the \n-separated lists of tokens between the start and end.
     contents = []

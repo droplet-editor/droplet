@@ -287,7 +287,7 @@ exports.Editor = class Editor
 
         # Find the highlighted area
         highlight = tree.segment.find (block) ->
-          (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
+          (not (block.inSocket?() ? false)) and block.paper.dropArea? and block.paper.dropArea.contains dest
         
         # Redraw if we must
         if highlight isnt old_highlight or window.PERFORMANCE_TEST

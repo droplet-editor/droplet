@@ -69,6 +69,11 @@ exports.Block = class Block
 
     return clone
   
+  inSocket: ->
+    head = @start.prev
+    while head? and head.type is 'segmentStart' then head = head.prev
+    return head? and head.type is 'socketStart'
+  
   lines: ->
     # The Lines of a block are the \n-separated lists of tokens between the start and end.
     contents = []
@@ -1658,7 +1663,7 @@ exports.Editor = class Editor
 
         # Find the highlighted area
         highlight = tree.segment.find (block) ->
-          (block.start.prev?.type  isnt 'socketStart') and block.paper.dropArea? and block.paper.dropArea.contains dest
+          (not (block.inSocket?() ? false)) and block.paper.dropArea? and block.paper.dropArea.contains dest
         
         # Redraw if we must
         if highlight isnt old_highlight or window.PERFORMANCE_TEST
