@@ -189,7 +189,6 @@ exports.Editor = class Editor
           # Immediately unlasso
           if lassoSegment?
             if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
-              console.log lassoSegment.start.prev
               lassoSegment.remove()
             lassoSegment = null
           # Find the block that was just clicked

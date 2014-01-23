@@ -131,9 +131,9 @@
         while ((first != null) && first.type === 'segmentStart') {
           first = first.prev;
         }
-        if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
+        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd')) {
           first.remove();
-        } else if ((last != null) && last.type === 'newline' && ((first == null) || first.type === 'newline')) {
+        } else if ((last != null) && (last.type === 'newline') && ((first == null) || first.type === 'newline')) {
           last.remove();
         }
       }
@@ -367,6 +367,7 @@
     Segment.prototype._moveTo = function(parent) {
       var first, last;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
+        console.log('removing a segment');
         this.start.prev.segment.remove();
       }
       if ((this.end.next != null) && (this.start.prev != null)) {
@@ -378,9 +379,9 @@
         while ((first != null) && first.type === 'segmentStart') {
           first = first.prev;
         }
-        if ((first != null) && first.type === 'newline' && ((last == null) || last.type === 'newline')) {
+        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd')) {
           first.remove();
-        } else if ((last != null) && last.type === 'newline' && ((first == null) || first.type === 'newline')) {
+        } else if ((last != null) && (last.type === 'newline') && ((first == null) || first.type === 'newline')) {
           last.remove();
         }
       }
@@ -1857,7 +1858,6 @@
           } else {
             if (lassoSegment != null) {
               if (lassoSegment.start.prev != null) {
-                console.log(lassoSegment.start.prev);
                 lassoSegment.remove();
               }
               lassoSegment = null;

@@ -103,9 +103,9 @@ exports.Block = class Block
       first = @start.prev
       while first? and first.type is 'segmentStart' then first = first.prev
 
-      if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
+      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
         first.remove()
-      else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
+      else if last? and (last.type is 'newline') and ((not first?) or first.type is 'newline')
         last.remove()
 
     # Unsplice ourselves
@@ -279,6 +279,7 @@ exports.Segment = class Segment
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
+      console.log 'removing a segment'
       @start.prev.segment.remove()
 
     # Don't leave empty lines behind
@@ -289,9 +290,9 @@ exports.Segment = class Segment
       first = @start.prev
       while first? and first.type is 'segmentStart' then first = first.prev
 
-      if first? and first.type is 'newline' and ((not last?) or last.type is 'newline')
+      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
         first.remove()
-      else if last? and last.type is 'newline' and ((not first?) or first.type is 'newline')
+      else if last? and (last.type is 'newline') and ((not first?) or first.type is 'newline')
         last.remove()
 
     # Unsplice ourselves
