@@ -1793,7 +1793,7 @@
       */
 
       div.addEventListener('touchstart', div.onmousedown = function(event) {
-        var block, bounds, cloneLater, i, line, point, shiftedPoint, start, text, _i, _j, _len, _len1;
+        var block, bounds, cloneLater, i, line, pickedLasso, point, shiftedPoint, start, text, _i, _j, _len, _len1;
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
         } else {
@@ -1801,10 +1801,62 @@
         }
         point.add(-PALETTE_WIDTH, 0);
         point.translate(scrollOffset);
-        focus = tree.segment.findSocket(function(block) {
-          return block.paper._empty && block.paper.bounds[block.paper._line].contains(point);
-        });
-        if (focus != null) {
+        pickedLasso = false;
+        if ((lassoSegment != null) && lassoBounds.contains(point)) {
+          selection = lassoSegment;
+          pickedLasso = true;
+        }
+        if (!pickedLasso) {
+          focus = tree.segment.findSocket(function(block) {
+            return block.paper._empty && block.paper.bounds[block.paper._line].contains(point);
+          });
+          if (focus == null) {
+            if (lassoSegment != null) {
+              if (lassoSegment.start.prev != null) {
+                lassoSegment.remove();
+              }
+              lassoSegment = null;
+            }
+            selection = tree.segment.findBlock(function(block) {
+              return block.paper._container.contains(point);
+            });
+            cloneLater = false;
+            if (selection == null) {
+              selection = null;
+              for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
+                block = floating_blocks[i];
+                if (block.block.findBlock(function(x) {
+                  return x.paper._container.contains(point);
+                }) != null) {
+                  floating_blocks.splice(i, 1);
+                  selection = block.block;
+                  break;
+                } else {
+                  selection = null;
+                }
+              }
+              if (selection == null) {
+                shiftedPoint = new draw.Point(point.x + PALETTE_WIDTH, point.y);
+                shiftedPoint.add(-scrollOffset.x, -scrollOffset.y);
+                for (_j = 0, _len1 = palette_blocks.length; _j < _len1; _j++) {
+                  block = palette_blocks[_j];
+                  if (block.findBlock(function(x) {
+                    return x.paper._container.contains(shiftedPoint);
+                  }) != null) {
+                    selection = block;
+                    cloneLater = true;
+                    break;
+                  } else {
+                    selection = null;
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          focus = null;
+        }
+        if ((focus != null) && !pickedLasso) {
           if (focus.content() != null) {
             text = focus.content();
           } else {
@@ -1852,89 +1904,42 @@
             input.setSelectionRange(anchor, anchor);
             return input.dispatchEvent(new CustomEvent('input'));
           }), 0);
-        } else {
-          if ((lassoSegment != null) && lassoBounds.contains(point)) {
-            selection = lassoSegment;
-          } else {
-            if (lassoSegment != null) {
-              if (lassoSegment.start.prev != null) {
-                lassoSegment.remove();
-              }
-              lassoSegment = null;
-            }
-            selection = tree.segment.findBlock(function(block) {
-              return block.paper._container.contains(point);
-            });
-          }
-          cloneLater = false;
-          if (selection == null) {
-            selection = null;
-            for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
-              block = floating_blocks[i];
-              if (block.block.findBlock(function(x) {
-                return x.paper._container.contains(point);
-              }) != null) {
-                floating_blocks.splice(i, 1);
-                selection = block.block;
-                break;
-              } else {
-                selection = null;
-              }
-            }
-            if (selection == null) {
-              shiftedPoint = new draw.Point(point.x + PALETTE_WIDTH, point.y);
-              shiftedPoint.add(-scrollOffset.x, -scrollOffset.y);
-              for (_j = 0, _len1 = palette_blocks.length; _j < _len1; _j++) {
-                block = palette_blocks[_j];
-                if (block.findBlock(function(x) {
-                  return x.paper._container.contains(shiftedPoint);
-                }) != null) {
-                  selection = block;
-                  cloneLater = true;
-                  break;
-                } else {
-                  selection = null;
-                }
-              }
-            }
-          }
-          if (selection != null) {
-            /* 
-            # We've now found the selected text, move it as necessary.
-            */
+        } else if (selection != null) {
+          /* 
+          # We've now found the selected text, move it as necessary.
+          */
 
-            if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
-              selection.start.prev.remove();
-            }
-            bounds = selection.paper.bounds[selection.paper.lineStart];
-            if (cloneLater) {
-              offset = shiftedPoint.from(new draw.Point(bounds.x, bounds.y));
-            } else {
-              offset = point.from(new draw.Point(bounds.x, bounds.y));
-            }
-            if (cloneLater) {
-              selection = selection.clone();
-            } else {
-              selection._moveTo(null);
-            }
-            redraw();
-            selection.paper.compute({
-              line: 0
-            });
-            selection.paper.finish();
-            selection.paper.draw(dragCtx);
-            if (selection === lassoSegment) {
-              lassoSegment.paper.prepBounds();
-              (lassoBounds = lassoSegment.paper.getBounds()).stroke(dragCtx, '#000');
-              lassoBounds.fill(dragCtx, 'rgba(0, 0, 256, 0.3)');
-            }
-            div.onmousemove(event);
-          } else {
-            lassoAnchor = lassoHead = point;
-            dragCanvas.style.webkitTransform = "translate(0px, 0px)";
-            dragCanvas.style.mozTransform = "translate(0px, 0px)";
-            dragCanvas.style.transform = "translate(0px, 0px)";
+          if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
+            selection.start.prev.remove();
           }
+          bounds = selection.paper.bounds[selection.paper.lineStart];
+          if (cloneLater) {
+            offset = shiftedPoint.from(new draw.Point(bounds.x, bounds.y));
+          } else {
+            offset = point.from(new draw.Point(bounds.x, bounds.y));
+          }
+          if (cloneLater) {
+            selection = selection.clone();
+          } else {
+            selection._moveTo(null);
+          }
+          redraw();
+          selection.paper.compute({
+            line: 0
+          });
+          selection.paper.finish();
+          selection.paper.draw(dragCtx);
+          if (selection === lassoSegment) {
+            lassoSegment.paper.prepBounds();
+            (lassoBounds = lassoSegment.paper.getBounds()).stroke(dragCtx, '#000');
+            lassoBounds.fill(dragCtx, 'rgba(0, 0, 256, 0.3)');
+          }
+          div.onmousemove(event);
+        } else {
+          lassoAnchor = lassoHead = point;
+          dragCanvas.style.webkitTransform = "translate(0px, 0px)";
+          dragCanvas.style.mozTransform = "translate(0px, 0px)";
+          dragCanvas.style.transform = "translate(0px, 0px)";
         }
         return redraw();
       });
@@ -2014,6 +2019,7 @@
             }
             if (highlight === tree.segment) {
               selection._moveTo(highlight.start);
+              selection.end.insert(new NewlineToken());
             }
             redraw();
           } else {

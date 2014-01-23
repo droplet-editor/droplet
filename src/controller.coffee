@@ -119,12 +119,59 @@ exports.Editor = class Editor
         point = new draw.Point event.layerX, event.layerY
       point.add -PALETTE_WIDTH, 0
       point.translate scrollOffset
+      
+      # Hit test the blocks and the lasso
+      pickedLasso = false # This flag tells us to pass over the focus hit test
+      if lassoSegment? and lassoBounds.contains point
+        # See if we picked up the lasso
+        selection = lassoSegment
+        pickedLasso = true
 
       # First, see if we are trying to focus an empty socket
-      focus = tree.segment.findSocket (block) ->
-        block.paper._empty and block.paper.bounds[block.paper._line].contains point
+      unless pickedLasso
+        focus = tree.segment.findSocket (block) ->
+          block.paper._empty and block.paper.bounds[block.paper._line].contains point
 
-      if focus?
+        unless focus?
+          # Immediately unlasso
+          if lassoSegment?
+            if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
+              lassoSegment.remove()
+            lassoSegment = null
+
+          # Find the block that was just clicked
+          selection = tree.segment.findBlock (block) ->
+            block.paper._container.contains point
+          
+          # We aren't copying from the palette
+          cloneLater = false
+
+          unless selection?
+            selection = null
+            for block, i in floating_blocks
+              if block.block.findBlock((x) -> x.paper._container.contains point)?
+                floating_blocks.splice i, 1
+                selection = block.block
+                break
+              else selection = null
+
+            unless selection?
+              # See if we matched any palette blocks
+              shiftedPoint = new draw.Point point.x + PALETTE_WIDTH, point.y
+              shiftedPoint.add -scrollOffset.x, -scrollOffset.y
+
+              for block in palette_blocks
+                if block.findBlock((x) -> x.paper._container.contains shiftedPoint)?
+                  # We're grabbing this block
+                  selection = block
+
+                  # Actually, we are copying from the palette
+                  cloneLater = true
+                  break
+                else selection = null
+      else focus = null
+
+      if focus? and not pickedLasso
         # Insert the text token we're editing
         if focus.content()? then text = focus.content()
         else focus.start.insert text = new TextToken ''
@@ -181,89 +228,48 @@ exports.Editor = class Editor
           input.dispatchEvent(new CustomEvent('input'))
         ), 0
 
+      else if selection?
+        ### 
+        # We've now found the selected text, move it as necessary.
+        ###
+
+        # Remove the newline before, if necessary
+        if selection.start.prev? and selection.start.prev.type is 'newline'
+          selection.start.prev.remove()
+
+        # Compute the offset of our cursor from the selection position (for drag-and-drop)
+        bounds = selection.paper.bounds[selection.paper.lineStart]
+
+        if cloneLater then offset = shiftedPoint.from new draw.Point bounds.x, bounds.y
+        else offset = point.from new draw.Point bounds.x, bounds.y
+
+        # Remove it from its tree
+        if cloneLater then selection = selection.clone()
+        else selection._moveTo null
+
+        # Redraw the root tree (now that selection has been removed)
+        redraw()
+        
+        # Redraw the selection on the drag canvas
+        selection.paper.compute {line: 0}
+        selection.paper.finish()
+        selection.paper.draw dragCtx
+
+        if selection is lassoSegment
+          lassoSegment.paper.prepBounds()
+          (lassoBounds = lassoSegment.paper.getBounds()).stroke dragCtx, '#000'
+          lassoBounds.fill dragCtx, 'rgba(0, 0, 256, 0.3)'
+        
+        # Immediately transform the drag canvas
+        div.onmousemove event
       else
-        # See if we picked up the lasso
-        if lassoSegment? and lassoBounds.contains point
-          selection = lassoSegment
-        else
-          # Immediately unlasso
-          if lassoSegment?
-            if lassoSegment.start.prev? # This will mean that lassoSegment is not a root segment
-              lassoSegment.remove()
-            lassoSegment = null
-          # Find the block that was just clicked
-          selection = tree.segment.findBlock (block) ->
-            block.paper._container.contains point
-          
-        # We aren't copying from the palette
-        cloneLater = false
-
-        unless selection?
-          selection = null
-          for block, i in floating_blocks
-            if block.block.findBlock((x) -> x.paper._container.contains point)?
-              floating_blocks.splice i, 1
-              selection = block.block
-              break
-            else selection = null
-
-          unless selection?
-            # See if we matched any palette blocks
-            shiftedPoint = new draw.Point point.x + PALETTE_WIDTH, point.y
-            shiftedPoint.add -scrollOffset.x, -scrollOffset.y
-
-            for block in palette_blocks
-              if block.findBlock((x) -> x.paper._container.contains shiftedPoint)?
-                # We're grabbing this block
-                selection = block
-
-                # Actually, we are copying from the palette
-                cloneLater = true
-                break
-              else selection = null
-
-        if selection?
-          ### 
-          # We've now found the selected text, move it as necessary.
-          ###
-
-          # Remove the newline before, if necessary
-          if selection.start.prev? and selection.start.prev.type is 'newline'
-            selection.start.prev.remove()
-
-          # Compute the offset of our cursor from the selection position (for drag-and-drop)
-          bounds = selection.paper.bounds[selection.paper.lineStart]
-
-          if cloneLater then offset = shiftedPoint.from new draw.Point bounds.x, bounds.y
-          else offset = point.from new draw.Point bounds.x, bounds.y
-
-          # Remove it from its tree
-          if cloneLater then selection = selection.clone()
-          else selection._moveTo null
-
-          # Redraw the root tree (now that selection has been removed)
-          redraw()
-          
-          # Redraw the selection on the drag canvas
-          selection.paper.compute {line: 0}
-          selection.paper.finish()
-          selection.paper.draw dragCtx
-
-          if selection is lassoSegment
-            lassoSegment.paper.prepBounds()
-            (lassoBounds = lassoSegment.paper.getBounds()).stroke dragCtx, '#000'
-            lassoBounds.fill dragCtx, 'rgba(0, 0, 256, 0.3)'
-          
-          # Immediately transform the drag canvas
-          div.onmousemove event
-        else
-          # We haven't clicked on anything. So do a lasso select.
-          lassoAnchor = lassoHead = point
-          
-          # Move the drag canvas into position 0, 0
-          dragCanvas.style.webkitTransform = "translate(0px, 0px)"
-          dragCanvas.style.mozTransform = "translate(0px, 0px)"
-          dragCanvas.style.transform = "translate(0px, 0px)"
+        # We haven't clicked on anything. So do a lasso select.
+        lassoAnchor = lassoHead = point
+        
+        # Move the drag canvas into position 0, 0
+        dragCanvas.style.webkitTransform = "translate(0px, 0px)"
+        dragCanvas.style.mozTransform = "translate(0px, 0px)"
+        dragCanvas.style.transform = "translate(0px, 0px)"
 
       # Immediate redraw
       redraw()
@@ -355,6 +361,7 @@ exports.Editor = class Editor
 
           if highlight is tree.segment # We inserted it in the root.
             selection._moveTo highlight.start
+            selection.end.insert new NewlineToken()
 
           # Redraw the root tree
           redraw()
