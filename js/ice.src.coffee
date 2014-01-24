@@ -1488,6 +1488,11 @@ exports.Editor = class Editor
         unless lassoSegment is selection
           (lassoBounds = lassoSegment.paper.getBounds()).stroke ctx, '#000'
           lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
+
+    reparse = ->
+      try
+        tree = coffee.parse tree.segment.toString()
+      redraw()
     
     # Just redraw (no recompute)
     fastDraw = ->
@@ -1517,14 +1522,36 @@ exports.Editor = class Editor
       point.translate scrollOffset
       
       # Hit test the blocks and the lasso
-      pickedLasso = false # This flag tells us to pass over the focus hit test
+      pickedLasso = handInsert = false # This flag tells us to pass over the focus hit test
       if lassoSegment? and lassoBounds.contains point
         # See if we picked up the lasso
         selection = lassoSegment
         pickedLasso = true
+      
+      # See if we clicked an insertable drop area
+      unless pickedLasso
+        clicked = tree.segment.find (block) ->
+          ((block.type in ['indent', 'block']) and not (block.inSocket?() ? false)) and block.paper.dropArea? and block.paper.dropArea.contains point
+
+        if clicked?
+          # Assemble the handwritten block
+          newBlock = new Block []
+          newSocket = new Socket []
+          newBlock.start.insert newSocket.start
+          newBlock.end.prev.insert newSocket.end
+
+          if clicked.type is 'indent'
+            newBlock._moveTo clicked.start.insert new NewlineToken()
+          else if clicked.type is 'block'
+            newBlock._moveTo clicked.end.insert new NewlineToken()
+
+          focus = newSocket
+          handInsert = true
+
+          redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
 
       # First, see if we are trying to focus an empty socket
-      unless pickedLasso
+      if not pickedLasso and not handInsert
         focus = tree.segment.findSocket (block) ->
           block.paper._empty and block.paper.bounds[block.paper._line].contains point
 
@@ -1565,7 +1592,7 @@ exports.Editor = class Editor
                   cloneLater = true
                   break
                 else selection = null
-      else focus = null
+      else unless handInsert then focus = null
 
       if focus? and not pickedLasso
         # Insert the text token we're editing
@@ -1659,6 +1686,7 @@ exports.Editor = class Editor
         # Immediately transform the drag canvas
         div.onmousemove event
       else
+        console.log 'doing a lasso select', pickedLasso, handInsert
         # We haven't clicked on anything. So do a lasso select.
         lassoAnchor = lassoHead = point
         
@@ -1735,13 +1763,16 @@ exports.Editor = class Editor
         # Remember the lassoHead
         lassoHead = point
 
+        point.translate scrollOffset
+
         corner =
           x: Math.min lassoAnchor.x, point.x
           y: Math.min lassoAnchor.y, point.y
         size =
           width: Math.abs lassoAnchor.x - point.x
           height: Math.abs lassoAnchor.y - point.y
-        dragCtx.strokeRect corner.x, corner.y, size.width, size.height
+
+        dragCtx.strokeRect corner.x - scrollOffset.x, corner.y - scrollOffset.y, size.width, size.height
 
     div.addEventListener 'touchend', div.onmouseup = (event) ->
       if selection?
@@ -1905,7 +1936,8 @@ exports.Editor = class Editor
       lassoAnchor = null
 
       # Full redraw for cleanliness
-      redraw()
+      #reparse() # TODO make reparse work correctly
+      unless focus? then redraw()
 
     div.addEventListener 'mousewheel', (event) ->
       if scrollOffset.y > 0 or event.deltaY > 0

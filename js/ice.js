@@ -1691,7 +1691,7 @@
 
   exports.Editor = Editor = (function() {
     function Editor(el) {
-      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, running_height, scrollOffset, selection, tree, _i, _len;
+      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, reparse, running_height, scrollOffset, selection, tree, _i, _len;
       canvas = document.createElement('canvas');
       canvas.className = 'canvas';
       canvas.height = el.offsetHeight;
@@ -1772,6 +1772,12 @@
           }
         }
       };
+      reparse = function() {
+        try {
+          tree = coffee.parse(tree.segment.toString());
+        } catch (_error) {}
+        return redraw();
+      };
       fastDraw = function() {
         var block, _i, _len;
         clear();
@@ -1793,7 +1799,7 @@
       */
 
       div.addEventListener('touchstart', div.onmousedown = function(event) {
-        var block, bounds, cloneLater, i, line, pickedLasso, point, shiftedPoint, start, text, _i, _j, _len, _len1;
+        var block, bounds, clicked, cloneLater, handInsert, i, line, newBlock, newSocket, pickedLasso, point, shiftedPoint, start, text, _i, _j, _len, _len1;
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
         } else {
@@ -1801,12 +1807,32 @@
         }
         point.add(-PALETTE_WIDTH, 0);
         point.translate(scrollOffset);
-        pickedLasso = false;
+        pickedLasso = handInsert = false;
         if ((lassoSegment != null) && lassoBounds.contains(point)) {
           selection = lassoSegment;
           pickedLasso = true;
         }
         if (!pickedLasso) {
+          clicked = tree.segment.find(function(block) {
+            var _ref, _ref1;
+            return (((_ref = block.type) === 'indent' || _ref === 'block') && !((_ref1 = typeof block.inSocket === "function" ? block.inSocket() : void 0) != null ? _ref1 : false)) && (block.paper.dropArea != null) && block.paper.dropArea.contains(point);
+          });
+          if (clicked != null) {
+            newBlock = new Block([]);
+            newSocket = new Socket([]);
+            newBlock.start.insert(newSocket.start);
+            newBlock.end.prev.insert(newSocket.end);
+            if (clicked.type === 'indent') {
+              newBlock._moveTo(clicked.start.insert(new NewlineToken()));
+            } else if (clicked.type === 'block') {
+              newBlock._moveTo(clicked.end.insert(new NewlineToken()));
+            }
+            focus = newSocket;
+            handInsert = true;
+            redraw();
+          }
+        }
+        if (!pickedLasso && !handInsert) {
           focus = tree.segment.findSocket(function(block) {
             return block.paper._empty && block.paper.bounds[block.paper._line].contains(point);
           });
@@ -1853,7 +1879,7 @@
               }
             }
           }
-        } else {
+        } else if (!handInsert) {
           focus = null;
         }
         if ((focus != null) && !pickedLasso) {
@@ -1936,6 +1962,7 @@
           }
           div.onmousemove(event);
         } else {
+          console.log('doing a lasso select', pickedLasso, handInsert);
           lassoAnchor = lassoHead = point;
           dragCanvas.style.webkitTransform = "translate(0px, 0px)";
           dragCanvas.style.mozTransform = "translate(0px, 0px)";
@@ -1989,6 +2016,7 @@
           dragCtx.clearRect(0, 0, dragCanvas.width, dragCanvas.height);
           dragCtx.strokeStyle = '#00f';
           lassoHead = point;
+          point.translate(scrollOffset);
           corner = {
             x: Math.min(lassoAnchor.x, point.x),
             y: Math.min(lassoAnchor.y, point.y)
@@ -1997,7 +2025,7 @@
             width: Math.abs(lassoAnchor.x - point.x),
             height: Math.abs(lassoAnchor.y - point.y)
           };
-          return dragCtx.strokeRect(corner.x, corner.y, size.width, size.height);
+          return dragCtx.strokeRect(corner.x - scrollOffset.x, corner.y - scrollOffset.y, size.width, size.height);
         }
       });
       div.addEventListener('touchend', div.onmouseup = function(event) {
@@ -2161,7 +2189,9 @@
         dragCtx.clearRect(0, 0, canvas.width, canvas.height);
         selection = null;
         lassoAnchor = null;
-        return redraw();
+        if (focus == null) {
+          return redraw();
+        }
       });
       div.addEventListener('mousewheel', function(event) {
         if (scrollOffset.y > 0 || event.deltaY > 0) {
