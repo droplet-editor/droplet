@@ -1828,18 +1828,23 @@
           if (_removed) {
             return;
           }
-          if (event.type === 'keydown' && event.keyCode === 13) {
-            newBlock = new Block([]);
-            newSocket = new Socket([]);
-            newBlock.start.insert(newSocket.start);
-            newBlock.end.prev.insert(newSocket.end);
-            newBlock._moveTo(focus.end.next.insert(new NewlineToken()));
-            focus = newSocket;
-            redraw();
-            redraw();
-            setFocus(newSocket);
-            _removed = true;
-            return;
+          console.log(focus.handwritten);
+          if (focus.handwritten && event.type === 'keydown') {
+            switch (event.keyCode) {
+              case 13:
+                newBlock = new Block([]);
+                newSocket = new Socket([]);
+                newSocket.handwritten = true;
+                newBlock.start.insert(newSocket.start);
+                newBlock.end.prev.insert(newSocket.end);
+                newBlock._moveTo(focus.end.next.insert(new NewlineToken()));
+                focus = newSocket;
+                redraw();
+                redraw();
+                setFocus(newSocket);
+                _removed = true;
+                return;
+            }
           }
           text.value = this.value;
           text.paper.compute({
@@ -1900,6 +1905,7 @@
           if (clicked != null) {
             newBlock = new Block([]);
             newSocket = new Socket([]);
+            newSocket.handwritten = true;
             newBlock.start.insert(newSocket.start);
             newBlock.end.prev.insert(newSocket.end);
             if (clicked.type === 'indent') {
@@ -2003,7 +2009,7 @@
           dragCanvas.style.webkitTransform = "translate(0px, 0px)";
           dragCanvas.style.mozTransform = "translate(0px, 0px)";
           dragCanvas.style.transform = "translate(0px, 0px)";
-          document.body.style.opacity = 1 - Math.random() * 1e-20;
+          document.body.style.opacity = 1 - Math.random() * 1e-10;
         }
         return redraw();
       });
@@ -2033,6 +2039,7 @@
           dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
           dragCanvas.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
           dragCanvas.style.transform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
+          document.body.style.opacity = 1 - Math.random() * 1e-10;
           return event.preventDefault();
         } else if ((focus != null) && (anchor != null)) {
           text = focus.content();

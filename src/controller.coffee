@@ -143,22 +143,28 @@ exports.Editor = class Editor
       # Bind the update to the input's key handlers
       input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = (event) ->
         if _removed then return # Hack to deal with inputs changing on the fly
+        
+        console.log focus.handwritten
 
-        if event.type is 'keydown' and event.keyCode is 13
-          newBlock = new Block []
-          newSocket = new Socket []
-          newBlock.start.insert newSocket.start
-          newBlock.end.prev.insert newSocket.end
+        if focus.handwritten and event.type is 'keydown'
+          switch event.keyCode
+            when 13
+              # Create a new handwritten line below this
+              newBlock = new Block []
+              newSocket = new Socket []
+              newSocket.handwritten = true
+              newBlock.start.insert newSocket.start
+              newBlock.end.prev.insert newSocket.end
 
-          newBlock._moveTo focus.end.next.insert new NewlineToken() # NOTICE: This should be guaranteed to be the surrounding block
+              newBlock._moveTo focus.end.next.insert new NewlineToken() # NOTICE: This should be guaranteed to be the surrounding block
 
-          focus = newSocket
+              focus = newSocket
 
-          redraw(); redraw() #TODO this double-redraw is hacky. It's necessary for the sockets to ascertain their own lines correctly
+              redraw(); redraw() #TODO this double-redraw is hacky. It's necessary for the sockets to ascertain their own lines correctly
 
-          setFocus newSocket
-          _removed = true
-          return
+              setFocus newSocket
+              _removed = true
+              return
 
         text.value = this.value
         
@@ -226,6 +232,7 @@ exports.Editor = class Editor
           # Assemble the handwritten block
           newBlock = new Block []
           newSocket = new Socket []
+          newSocket.handwritten = true
           newBlock.start.insert newSocket.start
           newBlock.end.prev.insert newSocket.end
 
@@ -335,7 +342,7 @@ exports.Editor = class Editor
         dragCanvas.style.transform = "translate(0px, 0px)"
 
         # Change body opacity to force rerender
-        document.body.style.opacity = 1 - Math.random() * 1e-20
+        document.body.style.opacity = 1 - Math.random() * 1e-10
 
       # Immediate redraw
       redraw()
@@ -372,6 +379,8 @@ exports.Editor = class Editor
         dragCanvas.style.webkitTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
         dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
         dragCanvas.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
+
+        document.body.style.opacity = 1 - Math.random() * 1e-10
 
         event.preventDefault()
 
