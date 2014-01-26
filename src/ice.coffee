@@ -372,6 +372,9 @@ exports.Socket = class Socket
 
     @type = 'socket'
 
+    @handwritten = false # A handwritten socket is a special kind of socket that doesn't accept blocks
+                         # Its controller instance also has special key bindings
+
     @paper = new SocketPaper this
 
   clone: -> if @content()? then new Socket @content().clone() else new Socket()

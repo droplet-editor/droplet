@@ -477,6 +477,7 @@
         this.end.prev = this.start;
       }
       this.type = 'socket';
+      this.handwritten = false;
       this.paper = new SocketPaper(this);
     }
 
@@ -1155,7 +1156,8 @@
       }
       if (this.indentEnd[line] && this._lineChildren[line].length > 1) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
-        return this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
+        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
+        return this.bounds[line].height += 10;
       } else if (this.indented[line] && !(this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line)) {
         this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
         return this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
@@ -1687,11 +1689,19 @@
 
   })(IcePaper);
 
+  /*
+  # Controller (user-interaction) code for ICE editor.
+  #
+  # Copyright (c) 2014 Anthony Bau
+  # MIT License
+  */
+
+
   out = null;
 
   exports.Editor = Editor = (function() {
     function Editor(el) {
-      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, reparse, running_height, scrollOffset, selection, tree, _i, _len;
+      var anchor, block, canvas, clear, ctx, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, reparse, running_height, scrollOffset, selection, setFocus, tree, _i, _len;
       canvas = document.createElement('canvas');
       canvas.className = 'canvas';
       canvas.height = el.offsetHeight;
@@ -1793,13 +1803,83 @@
           }
         }
       };
+      setFocus = function(focus, point) {
+        var line, start, text, _removed;
+        console.log('setting');
+        if (focus.content() != null) {
+          text = focus.content();
+        } else {
+          focus.start.insert(text = new TextToken(''));
+        }
+        if (input != null) {
+          input.parentNode.removeChild(input);
+        }
+        _removed = false;
+        document.body.appendChild(input = document.createElement('input'));
+        input.className = 'hidden_input';
+        line = focus.paper._line;
+        input.value = focus.content().value;
+        if (point != null) {
+          anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
+        }
+        redraw();
+        input.addEventListener('input', input.onkeydown = input.onkeyup = input.onkeypress = function(event) {
+          var end, newBlock, newSocket, old_bounds;
+          if (_removed) {
+            return;
+          }
+          if (event.type === 'keydown' && event.keyCode === 13) {
+            newBlock = new Block([]);
+            newSocket = new Socket([]);
+            newBlock.start.insert(newSocket.start);
+            newBlock.end.prev.insert(newSocket.end);
+            newBlock._moveTo(focus.end.next.insert(new NewlineToken()));
+            focus = newSocket;
+            redraw();
+            redraw();
+            setFocus(newSocket);
+            _removed = true;
+            return;
+          }
+          text.value = this.value;
+          text.paper.compute({
+            line: line
+          });
+          focus.paper.compute({
+            line: line
+          });
+          old_bounds = tree.segment.paper.bounds[line].y;
+          tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2));
+          if (tree.segment.paper.bounds[line].y !== old_bounds) {
+            tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1));
+          }
+          tree.segment.paper.finish();
+          fastDraw();
+          out.value = tree.segment.toString({
+            indent: ''
+          });
+          start = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionStart)).width;
+          end = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionEnd)).width;
+          if (start === end) {
+            return ctx.strokeRect(start, text.paper.bounds[line].y, 0, 15);
+          } else {
+            ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
+            return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
+          }
+        });
+        return setTimeout((function() {
+          input.focus();
+          input.setSelectionRange(anchor, anchor);
+          return input.dispatchEvent(new CustomEvent('input'));
+        }), 0);
+      };
       redraw();
       /*
       # Here to below will eventually become part of the IceEditor() class
       */
 
       div.addEventListener('touchstart', div.onmousedown = function(event) {
-        var block, bounds, clicked, cloneLater, handInsert, i, line, newBlock, newSocket, pickedLasso, point, shiftedPoint, start, text, _i, _j, _len, _len1;
+        var block, bounds, clicked, cloneLater, handInsert, i, newBlock, newSocket, pickedLasso, point, shiftedPoint, _i, _j, _len, _len1;
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
         } else {
@@ -1843,24 +1923,25 @@
               }
               lassoSegment = null;
             }
-            selection = tree.segment.findBlock(function(block) {
-              return block.paper._container.contains(point);
-            });
-            cloneLater = false;
-            if (selection == null) {
-              selection = null;
-              for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
-                block = floating_blocks[i];
-                if (block.block.findBlock(function(x) {
-                  return x.paper._container.contains(point);
-                }) != null) {
-                  floating_blocks.splice(i, 1);
-                  selection = block.block;
-                  break;
-                } else {
-                  selection = null;
-                }
+            for (i = _i = 0, _len = floating_blocks.length; _i < _len; i = ++_i) {
+              block = floating_blocks[i];
+              if (block.block.findBlock(function(x) {
+                return x.paper._container.contains(point);
+              }) != null) {
+                floating_blocks.splice(i, 1);
+                selection = block.block;
+                break;
+              } else {
+                selection = null;
               }
+            }
+            console.log('found selection', selection);
+            if (selection == null) {
+              console.log('looking for block inside tree');
+              selection = tree.segment.findBlock(function(block) {
+                return block.paper._container.contains(point);
+              });
+              cloneLater = false;
               if (selection == null) {
                 shiftedPoint = new draw.Point(point.x + PALETTE_WIDTH, point.y);
                 shiftedPoint.add(-scrollOffset.x, -scrollOffset.y);
@@ -1883,58 +1964,13 @@
           focus = null;
         }
         if ((focus != null) && !pickedLasso) {
-          if (focus.content() != null) {
-            text = focus.content();
-          } else {
-            focus.start.insert(text = new TextToken(''));
-          }
-          if (input != null) {
-            input.parentNode.removeChild(input);
-          }
-          document.body.appendChild(input = document.createElement('input'));
-          input.className = 'hidden_input';
-          line = focus.paper._line;
-          input.value = focus.content().value;
-          anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width);
-          redraw();
-          input.addEventListener('input', input.onkeydown = input.onkeyup = input.onkeypress = function() {
-            var end, old_bounds;
-            text.value = this.value;
-            text.paper.compute({
-              line: line
-            });
-            focus.paper.compute({
-              line: line
-            });
-            old_bounds = tree.segment.paper.bounds[line].y;
-            tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2));
-            if (tree.segment.paper.bounds[line].y !== old_bounds) {
-              tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1));
-            }
-            tree.segment.paper.finish();
-            fastDraw();
-            out.value = tree.segment.toString({
-              indent: ''
-            });
-            start = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionStart)).width;
-            end = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionEnd)).width;
-            if (start === end) {
-              return ctx.strokeRect(start, text.paper.bounds[line].y, 0, 15);
-            } else {
-              ctx.fillStyle = 'rgba(0, 0, 256, 0.3)';
-              return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
-            }
-          });
-          setTimeout((function() {
-            input.focus();
-            input.setSelectionRange(anchor, anchor);
-            return input.dispatchEvent(new CustomEvent('input'));
-          }), 0);
+          setFocus(focus, point);
         } else if (selection != null) {
           /* 
           # We've now found the selected text, move it as necessary.
           */
 
+          console.log('selection exists');
           if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
             selection.start.prev.remove();
           }
@@ -1967,6 +2003,7 @@
           dragCanvas.style.webkitTransform = "translate(0px, 0px)";
           dragCanvas.style.mozTransform = "translate(0px, 0px)";
           dragCanvas.style.transform = "translate(0px, 0px)";
+          document.body.style.opacity = 1 - Math.random() * 1e-20;
         }
         return redraw();
       });

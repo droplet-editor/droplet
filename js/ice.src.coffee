@@ -372,6 +372,9 @@ exports.Socket = class Socket
 
     @type = 'socket'
 
+    @handwritten = false # A handwritten socket is a special kind of socket that doesn't accept blocks
+                         # Its controller instance also has special key bindings
+
     @paper = new SocketPaper this
 
   clone: -> if @content()? then new Socket @content().clone() else new Socket()
@@ -902,6 +905,8 @@ class BlockPaper extends IcePaper
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
 
+      @bounds[line].height += 10
+
     else if @indented[line] and not(@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
       @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
@@ -1394,6 +1399,13 @@ class TextTokenPaper extends IcePaper
   translate: (vector) ->
     @_text.translate vector
 
+###
+# Controller (user-interaction) code for ICE editor.
+#
+# Copyright (c) 2014 Anthony Bau
+# MIT License
+###
+
 out = null
 
 exports.Editor = class Editor
@@ -1506,6 +1518,84 @@ exports.Editor = class Editor
         unless lassoSegment is selection
           lassoBounds.stroke ctx, '#000'
           lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
+
+    setFocus = (focus, point) ->
+      console.log 'setting'
+      # Insert the text token we're editing
+      if focus.content()? then text = focus.content()
+      else focus.start.insert text = new TextToken ''
+
+      if input? then input.parentNode.removeChild input
+      _removed = false
+
+      # Append the hidden input
+      document.body.appendChild input = document.createElement 'input'
+      input.className = 'hidden_input'
+      line = focus.paper._line
+      
+      input.value = focus.content().value
+
+      # Here we have to abuse the fact that we use a monospace font (we could do this in linear time otherwise, but this is neat)
+      if point? then anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
+      
+      # Do an immediate redraw
+      redraw()
+
+      # Bind the update to the input's key handlers
+      input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = (event) ->
+        if _removed then return # Hack to deal with inputs changing on the fly
+
+        if event.type is 'keydown' and event.keyCode is 13
+          newBlock = new Block []
+          newSocket = new Socket []
+          newBlock.start.insert newSocket.start
+          newBlock.end.prev.insert newSocket.end
+
+          newBlock._moveTo focus.end.next.insert new NewlineToken() # NOTICE: This should be guaranteed to be the surrounding block
+
+          focus = newSocket
+
+          redraw(); redraw() #TODO this double-redraw is hacky. It's necessary for the sockets to ascertain their own lines correctly
+
+          setFocus newSocket
+          _removed = true
+          return
+
+        text.value = this.value
+        
+        # Recompute the socket itself
+        text.paper.compute line: line
+        focus.paper.compute line: line
+        
+        # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
+        # This is for performance reasons; we don't need to redraw the whole tree.
+        old_bounds = tree.segment.paper.bounds[line].y
+        tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2
+        if tree.segment.paper.bounds[line].y isnt old_bounds
+          # This is totally hacky patch for a bug whose source I don't know.
+          tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1
+        tree.segment.paper.finish()
+        
+        # Do the fast draw operation and toString() operation.
+        fastDraw()
+        out.value = tree.segment.toString {indent: ''}
+
+        # Draw the typing cursor
+        start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
+        end = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionEnd]).width
+
+        if start is end
+          ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
+        else
+          ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+          ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
+
+      setTimeout (->
+        input.focus()
+        input.setSelectionRange anchor, anchor
+        input.dispatchEvent(new CustomEvent('input'))
+      ), 0
+
     
     redraw()
 
@@ -1562,21 +1652,24 @@ exports.Editor = class Editor
               lassoSegment.remove()
             lassoSegment = null
 
-          # Find the block that was just clicked
-          selection = tree.segment.findBlock (block) ->
-            block.paper._container.contains point
-          
-          # We aren't copying from the palette
-          cloneLater = false
+          # See if we clicked any floating blocks
+          for block, i in floating_blocks
+            if block.block.findBlock((x) -> x.paper._container.contains point)?
+              floating_blocks.splice i, 1
+              selection = block.block
+              break
+            else selection = null
 
+          console.log 'found selection', selection
+        
           unless selection?
-            selection = null
-            for block, i in floating_blocks
-              if block.block.findBlock((x) -> x.paper._container.contains point)?
-                floating_blocks.splice i, 1
-                selection = block.block
-                break
-              else selection = null
+            console.log 'looking for block inside tree'
+            # Find the block that was just clicked
+            selection = tree.segment.findBlock (block) ->
+              block.paper._container.contains point
+            
+            # We aren't copying from the palette
+            cloneLater = false
 
             unless selection?
               # See if we matched any palette blocks
@@ -1595,66 +1688,13 @@ exports.Editor = class Editor
       else unless handInsert then focus = null
 
       if focus? and not pickedLasso
-        # Insert the text token we're editing
-        if focus.content()? then text = focus.content()
-        else focus.start.insert text = new TextToken ''
-
-        if input? then input.parentNode.removeChild input
-
-        # Append the hidden input
-        document.body.appendChild input = document.createElement 'input'
-        input.className = 'hidden_input'
-        line = focus.paper._line
-        
-        input.value = focus.content().value
-
-        # Here we have to abuse the fact that we use a monospace font (we could do this in linear time otherwise, but this is neat)
-        anchor = head = Math.round((start = point.x - focus.paper.bounds[focus.paper._line].x) / ctx.measureText(' ').width)
-        
-        # Do an immediate redraw
-        redraw()
-
-        # Bind the update to the input's key handlers
-        input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = ->
-          text.value = this.value
-          
-          # Recompute the socket itself
-          text.paper.compute line: line
-          focus.paper.compute line: line
-          
-          # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
-          # This is for performance reasons; we don't need to redraw the whole tree.
-          old_bounds = tree.segment.paper.bounds[line].y
-          tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2
-          if tree.segment.paper.bounds[line].y isnt old_bounds
-            # This is totally hacky patch for a bug whose source I don't know.
-            tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1
-          tree.segment.paper.finish()
-          
-          # Do the fast draw operation and toString() operation.
-          fastDraw()
-          out.value = tree.segment.toString {indent: ''}
-
-          # Draw the typing cursor
-          start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
-          end = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionEnd]).width
-
-          if start is end
-            ctx.strokeRect start, text.paper.bounds[line].y, 0, 15
-          else
-            ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
-            ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
-
-        setTimeout (->
-          input.focus()
-          input.setSelectionRange anchor, anchor
-          input.dispatchEvent(new CustomEvent('input'))
-        ), 0
+        setFocus focus, point
 
       else if selection?
         ### 
         # We've now found the selected text, move it as necessary.
         ###
+        console.log 'selection exists'
 
         # Remove the newline before, if necessary
         if selection.start.prev? and selection.start.prev.type is 'newline'
@@ -1694,6 +1734,9 @@ exports.Editor = class Editor
         dragCanvas.style.webkitTransform = "translate(0px, 0px)"
         dragCanvas.style.mozTransform = "translate(0px, 0px)"
         dragCanvas.style.transform = "translate(0px, 0px)"
+
+        # Change body opacity to force rerender
+        document.body.style.opacity = 1 - Math.random() * 1e-20
 
       # Immediate redraw
       redraw()
