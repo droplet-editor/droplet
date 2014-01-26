@@ -1743,7 +1743,7 @@ exports.Editor = class Editor
         dragCanvas.style.transform = "translate(0px, 0px)"
 
         # Change body opacity to force rerender
-        document.body.style.opacity = 1 - Math.random() * 1e-10
+        document.body.style.opacity = 1 - Math.random() * 1e-6
 
       # Immediate redraw
       redraw()
@@ -1781,7 +1781,7 @@ exports.Editor = class Editor
         dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
         dragCanvas.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
 
-        document.body.style.opacity = 1 - Math.random() * 1e-10
+        document.body.style.opacity = 1 - Math.random() * 1e-6
 
         event.preventDefault()
 

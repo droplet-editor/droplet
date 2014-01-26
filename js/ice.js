@@ -2009,7 +2009,7 @@
           dragCanvas.style.webkitTransform = "translate(0px, 0px)";
           dragCanvas.style.mozTransform = "translate(0px, 0px)";
           dragCanvas.style.transform = "translate(0px, 0px)";
-          document.body.style.opacity = 1 - Math.random() * 1e-10;
+          document.body.style.opacity = 1 - Math.random() * 1e-6;
         }
         return redraw();
       });
@@ -2039,7 +2039,7 @@
           dragCanvas.style.webkitTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
           dragCanvas.style.mozTransform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
           dragCanvas.style.transform = "translate(" + scrollDest.x + "px, " + scrollDest.y + "px)";
-          document.body.style.opacity = 1 - Math.random() * 1e-10;
+          document.body.style.opacity = 1 - Math.random() * 1e-6;
           return event.preventDefault();
         } else if ((focus != null) && (anchor != null)) {
           text = focus.content();
