@@ -5,6 +5,8 @@
 # MIT License
 ###
 
+INDENT_SPACES = 2
+
 out = null
 
 exports.Editor = class Editor
@@ -56,6 +58,10 @@ exports.Editor = class Editor
     highlight = null # Highlighted drop area
     selection = null # Selected (dragged) text
     offset = null # Dragging offset
+    
+    # Where is our cursor?
+    selectedBlock = null
+    cursorToken = null
 
     ###
     # Hidden input hack
@@ -118,8 +124,17 @@ exports.Editor = class Editor
           lassoBounds.stroke ctx, '#000'
           lassoBounds.fill ctx, 'rgba(0, 0, 256, 0.3)'
 
-    setFocus = (focus, point) ->
-      console.log 'setting'
+    setFocus = (new_focus, point) ->
+
+      focus = new_focus
+
+      # Set the selected block
+      head = focus.start.prev
+      while head.type isnt 'blockStart'
+        head = head.prev
+      if selectedBlock? then selectedBlock.selected = false
+      (selectedBlock = head.block).selected = true
+
       # Insert the text token we're editing
       if focus.content()? then text = focus.content()
       else focus.start.insert text = new TextToken ''
@@ -144,27 +159,73 @@ exports.Editor = class Editor
       input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = (event) ->
         if _removed then return # Hack to deal with inputs changing on the fly
         
-        console.log focus.handwritten
-
         if focus.handwritten and event.type is 'keydown'
           switch event.keyCode
             when 13
-              # Create a new handwritten line below this
+
+              # Assemble the handwritten block
               newBlock = new Block []
               newSocket = new Socket []
               newSocket.handwritten = true
               newBlock.start.insert newSocket.start
               newBlock.end.prev.insert newSocket.end
-
-              newBlock._moveTo focus.end.next.insert new NewlineToken() # NOTICE: This should be guaranteed to be the surrounding block
-
+              
+              newBlock._moveTo selectedBlock.end.insert new NewlineToken()
+              
               focus = newSocket
+              handInsert = true
 
-              redraw(); redraw() #TODO this double-redraw is hacky. It's necessary for the sockets to ascertain their own lines correctly
+              selectedBlock.selected = false
+              (selectedBlock = newBlock).selected = true
+              cursorToken = selectedBlock.start
 
-              setFocus newSocket
-              _removed = true
-              return
+              redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
+
+              setFocus focus
+            when 8
+              if input.value.length is 0
+                _removed = true
+
+                head = cursorToken.prev
+                while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+                  head = head.prev
+
+                cursorToken = head
+                input.blur()
+                
+                selectedBlock._moveTo null
+                input = focus = null
+
+                if head?
+                  (selectedBlock = head.block).selected = true
+
+                redraw()
+            when 9
+              # Find an indent we want to get into
+              head = focus.start.prev.prev
+              while head isnt null and head.type isnt 'blockEnd' and head.type isnt 'blockStart'
+                head = head.prev
+              # Now we've found the previous block, whether it is a wrapper block or a previous one.
+              # If it is a previous one, we want to indent under it.
+              # Otherwise, we fail.
+              if head.type is 'blockStart' # Wrapper block
+                return
+              else
+                # If there is already an indent last in the block, move into it
+                if head.prev.type is 'indentEnd'
+                  focus.start.prev.block._moveTo head.prev.prev.insert new NewlineToken()
+                else
+                  # Insert an indent here.
+                  newIndent = new Indent [], INDENT_SPACES
+                  head.prev.insert newIndent.start
+                  head.prev.insert newIndent.end
+
+                  focus.start.prev.block._moveTo newIndent.start.insert new NewlineToken()
+                
+              redraw(); redraw() # TODO this is bad. redraw should be idempotent.
+
+              event.preventDefault()
+              return false
 
         text.value = this.value
         
@@ -207,8 +268,80 @@ exports.Editor = class Editor
     ###
     # Here to below will eventually become part of the IceEditor() class
     ###
+
+    document.body.addEventListener 'keydown', (event) ->
+      if event.target isnt input and event.target.tagName in ['INPUT', 'TEXTAREA'] then return
+
+      if event.keyCode is 13 and not focus?
+        # Assemble the handwritten block
+        newBlock = new Block []
+        newSocket = new Socket []
+        newSocket.handwritten = true
+        newBlock.start.insert newSocket.start
+        newBlock.end.prev.insert newSocket.end
+        
+        newBlock._moveTo selectedBlock.end.insert new NewlineToken()
+
+        focus = newSocket
+        handInsert = true
+
+        selectedBlock.selected = false
+        (selectedBlock = newBlock).selected = true
+        cursorToken = selectedBlock.start
+
+        redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
+
+        setFocus focus
+      else if event.keyCode is 38 and selectedBlock?
+        head = cursorToken.prev
+        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+          head = head.prev
+        
+        cursorToken = head
+
+        if head?
+          selectedBlock.selected = false
+          (selectedBlock = head.block).selected = true
+
+        redraw()
+
+        event.preventDefault()
+
+      else if event.keyCode is 40 and selectedBlock?
+        head = cursorToken.next
+        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+          head = head.next
+        
+        cursorToken = head
+
+        if head?
+          selectedBlock.selected = false
+          (selectedBlock = head.block).selected = true
+
+        redraw()
+
+        event.preventDefault()
+
+      else if event.keyCode is 8 and selectedBlock? and not focus?
+
+        head = cursorToken.prev
+        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+          head = head.prev
+        
+        cursorToken = head
+
+        selectedBlock._moveTo null
+
+        if head?
+          (selectedBlock = head.block).selected = true
+
+        redraw()
+
     
     div.addEventListener 'touchstart', div.onmousedown = (event) ->
+      
+      if selectedBlock? then selectedBlock.selected = false
+
       if event.offsetX?
         point = new draw.Point event.offsetX, event.offsetY
       else
@@ -224,6 +357,7 @@ exports.Editor = class Editor
         pickedLasso = true
       
       # See if we clicked an insertable drop area
+      ###
       unless pickedLasso
         clicked = tree.segment.find (block) ->
           ((block.type in ['indent', 'block']) and not (block.inSocket?() ? false)) and block.paper.dropArea? and block.paper.dropArea.contains point
@@ -245,6 +379,7 @@ exports.Editor = class Editor
           handInsert = true
 
           redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
+      ###
 
       # First, see if we are trying to focus an empty socket
       if not pickedLasso and not handInsert
@@ -266,10 +401,7 @@ exports.Editor = class Editor
               break
             else selection = null
 
-          console.log 'found selection', selection
-        
           unless selection?
-            console.log 'looking for block inside tree'
             # Find the block that was just clicked
             selection = tree.segment.findBlock (block) ->
               block.paper._container.contains point
@@ -300,7 +432,10 @@ exports.Editor = class Editor
         ### 
         # We've now found the selected text, move it as necessary.
         ###
-        console.log 'selection exists'
+        if selection.type is 'block'
+          selectedBlock = selection
+          selectedBlock.selected = true
+          cursorToken = selectedBlock.start
 
         # Remove the newline before, if necessary
         if selection.start.prev? and selection.start.prev.type is 'newline'
@@ -332,7 +467,6 @@ exports.Editor = class Editor
         # Immediately transform the drag canvas
         div.onmousemove event
       else
-        console.log 'doing a lasso select', pickedLasso, handInsert
         # We haven't clicked on anything. So do a lasso select.
         lassoAnchor = lassoHead = point
         
@@ -342,7 +476,7 @@ exports.Editor = class Editor
         dragCanvas.style.transform = "translate(0px, 0px)"
 
         # Change body opacity to force rerender
-        document.body.style.opacity = 1 - Math.random() * 1e-10
+        document.body.style.opacity = 1 - Math.random() * 1e-6
 
       # Immediate redraw
       redraw()
@@ -380,7 +514,7 @@ exports.Editor = class Editor
         dragCanvas.style.mozTransform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
         dragCanvas.style.transform = "translate(#{scrollDest.x}px, #{scrollDest.y}px)"
 
-        document.body.style.opacity = 1 - Math.random() * 1e-10
+        document.body.style.opacity = 1 - Math.random() * 1e-6
 
         event.preventDefault()
 
@@ -558,9 +692,8 @@ exports.Editor = class Editor
             head = stack[0].end
             _stack = []
             while head isnt null
-              if head.type is 'blockStart' then console.log 'discards', head.block.toString(); _stack.push head.block
+              if head.type is 'blockStart' then _stack.push head.block
               else if head.type is 'blockEnd'
-                console.log head.block.toString(), stack
                 if _stack.length > 0
                   _stack.pop()
                 else

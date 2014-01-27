@@ -17,6 +17,8 @@ exports.Block = class Block
     @type = 'block'
     @color = '#ddf'
 
+    @selected = false # Are we the selected block?
+
     # Fill up the linked list with the array of tokens we got.
     head = @start
     for token in contents

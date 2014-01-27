@@ -306,7 +306,7 @@ class BlockPaper extends IcePaper
       @_container.unshift new draw.Point @bounds[@lineEnd].x + 30, @bounds[@lineEnd].bottom()
 
     # Do some styling
-    @_container.style.strokeColor='#000'
+    @_container.style.strokeColor = if @block.selected then '#FFF' else '#000'
     @_container.style.fillColor = @block.color
 
     @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
