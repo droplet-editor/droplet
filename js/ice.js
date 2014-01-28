@@ -1205,6 +1205,7 @@
       this._container.style.strokeColor = this.block.selected ? '#FFF' : '#000';
       this._container.style.fillColor = this.block.color;
       this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
+      this.topCursorArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
       _ref2 = this.children;
       _results = [];
       for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
@@ -1704,7 +1705,7 @@
 
   exports.Editor = Editor = (function() {
     function Editor(el) {
-      var anchor, block, canvas, clear, ctx, cursorToken, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, reparse, running_height, scrollOffset, selectedBlock, selection, setFocus, tree, _i, _len;
+      var anchor, block, canvas, clear, ctx, cursorToken, div, dragCanvas, dragCtx, fastDraw, floating_blocks, focus, head, highlight, input, lassoAnchor, lassoBounds, lassoHead, lassoSegment, offset, paletteCanvas, paletteCtx, palette_blocks, redraw, reparse, running_height, scrollOffset, selection, setFocus, tree, _i, _len;
       canvas = document.createElement('canvas');
       canvas.className = 'canvas';
       canvas.height = el.offsetHeight;
@@ -1736,7 +1737,6 @@
       highlight = null;
       selection = null;
       offset = null;
-      selectedBlock = null;
       cursorToken = null;
       /*
       # Hidden input hack
@@ -1780,6 +1780,13 @@
           block.block.paper.finish();
           block.block.paper.draw(ctx);
         }
+        if (cursorToken != null) {
+          if (cursorToken === cursorToken.block.start) {
+            cursorToken.block.paper.topCursorArea.fill(ctx, '#fff');
+          } else {
+            cursorToken.block.paper.dropArea.fill(ctx, '#fff');
+          }
+        }
         if (lassoSegment != null) {
           if (lassoSegment !== selection) {
             (lassoBounds = lassoSegment.paper.getBounds()).stroke(ctx, '#000');
@@ -1810,15 +1817,17 @@
       };
       setFocus = function(new_focus, point) {
         var line, start, text, _removed;
+        if (new_focus === null) {
+          return;
+        }
         focus = new_focus;
         head = focus.start.prev;
         while (head.type !== 'blockStart') {
           head = head.prev;
         }
-        if (selectedBlock != null) {
-          selectedBlock.selected = false;
+        if (cursorToken != null) {
+          cursorToken.block.selected = false;
         }
-        (selectedBlock = head.block).selected = true;
         if (focus.content() != null) {
           text = focus.content();
         } else {
@@ -1841,7 +1850,7 @@
           if (_removed) {
             return;
           }
-          if (focus.handwritten && event.type === 'keydown') {
+          if ((focus != null) && focus.handwritten && event.type === 'keydown') {
             switch (event.keyCode) {
               case 13:
                 newBlock = new Block([]);
@@ -1849,12 +1858,10 @@
                 newSocket.handwritten = true;
                 newBlock.start.insert(newSocket.start);
                 newBlock.end.prev.insert(newSocket.end);
-                newBlock._moveTo(selectedBlock.end.insert(new NewlineToken()));
+                newBlock._moveTo(cursorToken.block.end.insert(new NewlineToken()));
                 focus = newSocket;
                 handInsert = true;
-                selectedBlock.selected = false;
-                (selectedBlock = newBlock).selected = true;
-                cursorToken = selectedBlock.start;
+                cursorToken = newBlock.end;
                 redraw();
                 setFocus(focus);
                 break;
@@ -1862,16 +1869,13 @@
                 if (input.value.length === 0) {
                   _removed = true;
                   head = cursorToken.prev;
-                  while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === selectedBlock) {
+                  while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === cursorToken.block) {
                     head = head.prev;
                   }
                   cursorToken = head;
                   input.blur();
-                  selectedBlock._moveTo(null);
+                  focus.start.prev.block._moveTo(null);
                   input = focus = null;
-                  if (head != null) {
-                    (selectedBlock = head.block).selected = true;
-                  }
                   redraw();
                 }
                 break;
@@ -1893,18 +1897,19 @@
                   }
                 }
                 redraw();
-                redraw();
                 event.preventDefault();
                 return false;
             }
           }
           text.value = this.value;
-          text.paper.compute({
-            line: line
-          });
-          focus.paper.compute({
-            line: line
-          });
+          if (focus != null) {
+            text.paper.compute({
+              line: line
+            });
+            focus.paper.compute({
+              line: line
+            });
+          }
           old_bounds = tree.segment.paper.bounds[line].y;
           tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2));
           if (tree.segment.paper.bounds[line].y !== old_bounds) {
@@ -1946,55 +1951,58 @@
           newSocket.handwritten = true;
           newBlock.start.insert(newSocket.start);
           newBlock.end.prev.insert(newSocket.end);
-          newBlock._moveTo(selectedBlock.end.insert(new NewlineToken()));
+          if (cursorToken === cursorToken.block.start) {
+            console.log('moving to start', cursorToken.toString({
+              indent: ''
+            }));
+            newBlock._moveTo(cursorToken.prev);
+            newBlock.end.insert(new NewlineToken());
+            console.log(tree.segment.toString());
+          } else {
+            console.log('moving to end');
+            newBlock._moveTo(cursorToken.block.end.insert(new NewlineToken()));
+          }
           focus = newSocket;
           handInsert = true;
-          selectedBlock.selected = false;
-          (selectedBlock = newBlock).selected = true;
-          cursorToken = selectedBlock.start;
+          cursorToken = newBlock.end;
           redraw();
           return setFocus(focus);
-        } else if (event.keyCode === 38 && (selectedBlock != null)) {
+        } else if (event.keyCode === 38 && (cursorToken != null)) {
           head = cursorToken.prev;
-          while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === selectedBlock) {
+          while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === cursorToken.block) {
             head = head.prev;
           }
-          cursorToken = head;
-          if (head != null) {
-            selectedBlock.selected = false;
-            (selectedBlock = head.block).selected = true;
+          if (focus != null) {
+            setFocus(focus = null);
           }
+          cursorToken = head;
           redraw();
           return event.preventDefault();
-        } else if (event.keyCode === 40 && (selectedBlock != null)) {
+        } else if (event.keyCode === 40 && (cursorToken != null)) {
           head = cursorToken.next;
-          while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === selectedBlock) {
+          while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === cursorToken.block) {
             head = head.next;
           }
-          cursorToken = head;
-          if (head != null) {
-            selectedBlock.selected = false;
-            (selectedBlock = head.block).selected = true;
+          if (focus != null) {
+            setFocus(focus = null);
           }
+          cursorToken = head;
           redraw();
           return event.preventDefault();
-        } else if (event.keyCode === 8 && (selectedBlock != null) && (focus == null)) {
+        } else if (event.keyCode === 8 && (cursorToken != null) && (focus == null)) {
           head = cursorToken.prev;
-          while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === selectedBlock) {
+          while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === cursorToken.block) {
             head = head.prev;
           }
           cursorToken = head;
-          selectedBlock._moveTo(null);
-          if (head != null) {
-            (selectedBlock = head.block).selected = true;
-          }
+          cursorToken.block._moveTo(null);
           return redraw();
         }
       });
       div.addEventListener('touchstart', div.onmousedown = function(event) {
         var block, bounds, cloneLater, handInsert, i, pickedLasso, point, shiftedPoint, _i, _j, _len, _len1;
-        if (selectedBlock != null) {
-          selectedBlock.selected = false;
+        if (cursorToken != null) {
+          cursorToken.block.selected = false;
         }
         if (event.offsetX != null) {
           point = new draw.Point(event.offsetX, event.offsetY);
@@ -2089,9 +2097,7 @@
           */
 
           if (selection.type === 'block') {
-            selectedBlock = selection;
-            selectedBlock.selected = true;
-            cursorToken = selectedBlock.start;
+            cursorToken = selection.start;
           }
           if ((selection.start.prev != null) && selection.start.prev.type === 'newline') {
             selection.start.prev.remove();

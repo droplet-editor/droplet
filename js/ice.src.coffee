@@ -952,6 +952,7 @@ class BlockPaper extends IcePaper
     @_container.style.fillColor = @block.color
 
     @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
+    @topCursorArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
     
     # Propagate this event
     for child in @children
@@ -1463,7 +1464,6 @@ exports.Editor = class Editor
     offset = null # Dragging offset
     
     # Where is our cursor?
-    selectedBlock = null
     cursorToken = null
 
     ###
@@ -1504,6 +1504,12 @@ exports.Editor = class Editor
         block.block.paper.finish()
         block.block.paper.draw ctx
       
+      if cursorToken?
+        if cursorToken is cursorToken.block.start
+          cursorToken.block.paper.topCursorArea.fill ctx, '#fff'
+        else
+          cursorToken.block.paper.dropArea.fill ctx, '#fff'
+      
       if lassoSegment?
         unless lassoSegment is selection
           (lassoBounds = lassoSegment.paper.getBounds()).stroke ctx, '#000'
@@ -1529,14 +1535,15 @@ exports.Editor = class Editor
 
     setFocus = (new_focus, point) ->
 
+      if new_focus is null then return
+
       focus = new_focus
 
       # Set the selected block
       head = focus.start.prev
       while head.type isnt 'blockStart'
         head = head.prev
-      if selectedBlock? then selectedBlock.selected = false
-      (selectedBlock = head.block).selected = true
+      if cursorToken? then cursorToken.block.selected = false
 
       # Insert the text token we're editing
       if focus.content()? then text = focus.content()
@@ -1562,7 +1569,7 @@ exports.Editor = class Editor
       input.addEventListener 'input',  input.onkeydown = input.onkeyup = input.onkeypress = (event) ->
         if _removed then return # Hack to deal with inputs changing on the fly
         
-        if focus.handwritten and event.type is 'keydown'
+        if focus? and focus.handwritten and event.type is 'keydown'
           switch event.keyCode
             when 13
 
@@ -1573,14 +1580,12 @@ exports.Editor = class Editor
               newBlock.start.insert newSocket.start
               newBlock.end.prev.insert newSocket.end
               
-              newBlock._moveTo selectedBlock.end.insert new NewlineToken()
+              newBlock._moveTo cursorToken.block.end.insert new NewlineToken()
               
               focus = newSocket
               handInsert = true
 
-              selectedBlock.selected = false
-              (selectedBlock = newBlock).selected = true
-              cursorToken = selectedBlock.start
+              cursorToken = newBlock.end
 
               redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
 
@@ -1590,17 +1595,14 @@ exports.Editor = class Editor
                 _removed = true
 
                 head = cursorToken.prev
-                while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+                while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is cursorToken.block
                   head = head.prev
 
                 cursorToken = head
                 input.blur()
                 
-                selectedBlock._moveTo null
+                focus.start.prev.block._moveTo null #GUARANTTEE
                 input = focus = null
-
-                if head?
-                  (selectedBlock = head.block).selected = true
 
                 redraw()
             when 9
@@ -1625,7 +1627,7 @@ exports.Editor = class Editor
 
                   focus.start.prev.block._moveTo newIndent.start.insert new NewlineToken()
                 
-              redraw(); redraw() # TODO this is bad. redraw should be idempotent.
+              redraw()#; redraw() # TODO this is bad. redraw should be idempotent.
 
               event.preventDefault()
               return false
@@ -1633,8 +1635,9 @@ exports.Editor = class Editor
         text.value = this.value
         
         # Recompute the socket itself
-        text.paper.compute line: line
-        focus.paper.compute line: line
+        if focus?
+          text.paper.compute line: line
+          focus.paper.compute line: line
         
         # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
         # This is for performance reasons; we don't need to redraw the whole tree.
@@ -1683,67 +1686,65 @@ exports.Editor = class Editor
         newBlock.start.insert newSocket.start
         newBlock.end.prev.insert newSocket.end
         
-        newBlock._moveTo selectedBlock.end.insert new NewlineToken()
+        if cursorToken is cursorToken.block.start
+          console.log 'moving to start', cursorToken.toString indent: ''
+          newBlock._moveTo cursorToken.prev
+          newBlock.end.insert new NewlineToken()
+          console.log tree.segment.toString()
+        else
+          console.log 'moving to end'
+          newBlock._moveTo cursorToken.block.end.insert new NewlineToken()
 
         focus = newSocket
         handInsert = true
 
-        selectedBlock.selected = false
-        (selectedBlock = newBlock).selected = true
-        cursorToken = selectedBlock.start
+        cursorToken = newBlock.end
 
         redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
 
         setFocus focus
-      else if event.keyCode is 38 and selectedBlock?
+      else if event.keyCode is 38 and cursorToken?
         head = cursorToken.prev
-        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is cursorToken.block
           head = head.prev
+
+        if focus? then setFocus focus = null
         
         cursorToken = head
-
-        if head?
-          selectedBlock.selected = false
-          (selectedBlock = head.block).selected = true
 
         redraw()
 
         event.preventDefault()
 
-      else if event.keyCode is 40 and selectedBlock?
+      else if event.keyCode is 40 and cursorToken?
         head = cursorToken.next
-        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is cursorToken.block
           head = head.next
         
+        if focus? then setFocus focus = null
+        
         cursorToken = head
-
-        if head?
-          selectedBlock.selected = false
-          (selectedBlock = head.block).selected = true
 
         redraw()
 
         event.preventDefault()
 
-      else if event.keyCode is 8 and selectedBlock? and not focus?
+      else if event.keyCode is 8 and cursorToken? and not focus?
 
         head = cursorToken.prev
-        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is selectedBlock
+        while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is cursorToken.block
           head = head.prev
         
         cursorToken = head
 
-        selectedBlock._moveTo null
-
-        if head?
-          (selectedBlock = head.block).selected = true
+        cursorToken.block._moveTo null
 
         redraw()
 
     
     div.addEventListener 'touchstart', div.onmousedown = (event) ->
       
-      if selectedBlock? then selectedBlock.selected = false
+      if cursorToken? then cursorToken.block.selected = false
 
       if event.offsetX?
         point = new draw.Point event.offsetX, event.offsetY
@@ -1836,9 +1837,7 @@ exports.Editor = class Editor
         # We've now found the selected text, move it as necessary.
         ###
         if selection.type is 'block'
-          selectedBlock = selection
-          selectedBlock.selected = true
-          cursorToken = selectedBlock.start
+          cursorToken = selection.start
 
         # Remove the newline before, if necessary
         if selection.start.prev? and selection.start.prev.type is 'newline'

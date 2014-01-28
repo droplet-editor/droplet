@@ -1,11 +1,20 @@
+/*
+colors =
+  COMMAND: '#37f'
+  CONTROL: '#fb5'
+  VALUE: '#3f7'
+  RETURN: '#f03'
+*/
+
+
 (function() {
   var colors, execute, exports, parse;
 
   colors = {
-    COMMAND: '#37f',
-    CONTROL: '#fb5',
-    VALUE: '#3f7',
-    RETURN: '#f03'
+    COMMAND: '#268bd2',
+    CONTROL: '#daa520',
+    VALUE: '#26cf3c',
+    RETURN: '#dc322f'
   };
 
   /*

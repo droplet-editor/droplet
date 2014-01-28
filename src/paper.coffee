@@ -310,6 +310,7 @@ class BlockPaper extends IcePaper
     @_container.style.fillColor = @block.color
 
     @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
+    @topCursorArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
     
     # Propagate this event
     for child in @children
