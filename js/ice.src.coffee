@@ -1522,6 +1522,7 @@ exports.Editor = class Editor
     
     # Just redraw (no recompute)
     fastDraw = ->
+      console.log 'fast draw occurred'
       clear()
       tree.segment.paper.draw ctx
 
@@ -1536,6 +1537,8 @@ exports.Editor = class Editor
     setFocus = (new_focus, point) ->
 
       if new_focus is null then return
+
+      redraw()
 
       focus = new_focus
 
@@ -1582,14 +1585,13 @@ exports.Editor = class Editor
               
               newBlock._moveTo cursorToken.block.end.insert new NewlineToken()
               
-              focus = newSocket
               handInsert = true
 
               cursorToken = newBlock.end
 
-              redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
+              #redraw() # Immediate redraw hack to trigger focus drawing correctly... TODO
 
-              setFocus focus
+              setFocus newSocket
             when 8
               if input.value.length is 0
                 _removed = true
@@ -1639,6 +1641,7 @@ exports.Editor = class Editor
           text.paper.compute line: line
           focus.paper.compute line: line
         
+        ###
         # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
         # This is for performance reasons; we don't need to redraw the whole tree.
         old_bounds = tree.segment.paper.bounds[line].y
@@ -1651,6 +1654,8 @@ exports.Editor = class Editor
         # Do the fast draw operation and toString() operation.
         fastDraw()
         out.value = tree.segment.toString {indent: ''}
+        ###
+        redraw()
 
         # Draw the typing cursor
         start = text.paper.bounds[line].x + ctx.measureText(this.value[...this.selectionStart]).width
@@ -1662,12 +1667,13 @@ exports.Editor = class Editor
           ctx.fillStyle = 'rgba(0, 0, 256, 0.3)'
           ctx.fillRect start, text.paper.bounds[line].y, end - start, 15
 
+      redraw()
+
       setTimeout (->
         input.focus()
         input.setSelectionRange anchor, anchor
         input.dispatchEvent(new CustomEvent('input'))
       ), 0
-
     
     redraw()
 

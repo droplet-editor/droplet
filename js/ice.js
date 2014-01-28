@@ -1802,6 +1802,7 @@
       };
       fastDraw = function() {
         var block, _i, _len;
+        console.log('fast draw occurred');
         clear();
         tree.segment.paper.draw(ctx);
         for (_i = 0, _len = floating_blocks.length; _i < _len; _i++) {
@@ -1820,6 +1821,7 @@
         if (new_focus === null) {
           return;
         }
+        redraw();
         focus = new_focus;
         head = focus.start.prev;
         while (head.type !== 'blockStart') {
@@ -1846,7 +1848,7 @@
         }
         redraw();
         input.addEventListener('input', input.onkeydown = input.onkeyup = input.onkeypress = function(event) {
-          var end, handInsert, newBlock, newIndent, newSocket, old_bounds;
+          var end, handInsert, newBlock, newIndent, newSocket;
           if (_removed) {
             return;
           }
@@ -1859,11 +1861,9 @@
                 newBlock.start.insert(newSocket.start);
                 newBlock.end.prev.insert(newSocket.end);
                 newBlock._moveTo(cursorToken.block.end.insert(new NewlineToken()));
-                focus = newSocket;
                 handInsert = true;
                 cursorToken = newBlock.end;
-                redraw();
-                setFocus(focus);
+                setFocus(newSocket);
                 break;
               case 8:
                 if (input.value.length === 0) {
@@ -1910,16 +1910,22 @@
               line: line
             });
           }
-          old_bounds = tree.segment.paper.bounds[line].y;
-          tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2));
-          if (tree.segment.paper.bounds[line].y !== old_bounds) {
-            tree.segment.paper.setLeftCenter(line, new draw.Point(0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1));
-          }
-          tree.segment.paper.finish();
-          fastDraw();
-          out.value = tree.segment.toString({
-            indent: ''
-          });
+          /*
+          # Ask the root to recompute the line that we're on (automatically shift everything to the right of us)
+          # This is for performance reasons; we don't need to redraw the whole tree.
+          old_bounds = tree.segment.paper.bounds[line].y
+          tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2
+          if tree.segment.paper.bounds[line].y isnt old_bounds
+            # This is totally hacky patch for a bug whose source I don't know.
+            tree.segment.paper.setLeftCenter line, new draw.Point 0, tree.segment.paper.bounds[line].y + tree.segment.paper.bounds[line].height / 2 - 1
+          tree.segment.paper.finish()
+          
+          # Do the fast draw operation and toString() operation.
+          fastDraw()
+          out.value = tree.segment.toString {indent: ''}
+          */
+
+          redraw();
           start = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionStart)).width;
           end = text.paper.bounds[line].x + ctx.measureText(this.value.slice(0, this.selectionEnd)).width;
           if (start === end) {
@@ -1929,6 +1935,7 @@
             return ctx.fillRect(start, text.paper.bounds[line].y, end - start, 15);
           }
         });
+        redraw();
         return setTimeout((function() {
           input.focus();
           input.setSelectionRange(anchor, anchor);
