@@ -1997,12 +1997,13 @@
           redraw();
           return event.preventDefault();
         } else if (event.keyCode === 8 && (cursorToken != null) && (focus == null)) {
-          head = cursorToken.prev;
+          head = cursorToken.block.start.prev;
           while (head !== null && head.type !== 'blockStart' && head.type !== 'blockEnd' || head.block === cursorToken.block) {
             head = head.prev;
           }
-          cursorToken = head;
+          console.log('new head will be', window.HEADLOG = head.block.toString());
           cursorToken.block._moveTo(null);
+          cursorToken = head;
           return redraw();
         }
       });

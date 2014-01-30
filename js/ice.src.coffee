@@ -1737,13 +1737,15 @@ exports.Editor = class Editor
 
       else if event.keyCode is 8 and cursorToken? and not focus?
 
-        head = cursorToken.prev
+        head = cursorToken.block.start.prev
         while head isnt null and head.type isnt 'blockStart' and head.type isnt 'blockEnd' or head.block is cursorToken.block
           head = head.prev
-        
-        cursorToken = head
+
+        console.log 'new head will be', window.HEADLOG = head.block.toString()
 
         cursorToken.block._moveTo null
+        
+        cursorToken = head
 
         redraw()
 
