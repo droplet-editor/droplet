@@ -121,10 +121,17 @@ exports.Editor = class Editor
       if @lassoSegment?
         # Ask the lasso segment to recompute its bounds
         @lassoSegment.paper.prepBounds()
+
+        # Get those compute bounds
+        @_lassoBounds = @lassoSegment.paper.getBounds()
+
+        for float in @floatingBlocks
+          if @lassoSegment is float.block
+            @_lassoBounds.translate float.position
         
         # Unless we're already drawing it on the drag canvas, draw the lasso segment borders on the main canvas
         unless @lassoSegment is @selection
-          (@_lassoBounds = @lassoSegment.paper.getBounds()).stroke mainCtx, '#000'
+          @_lassoBounds.stroke mainCtx, '#000'
           @_lassoBounds.fill mainCtx, 'rgba(0, 0, 256, 0.3)'
 
       for float in @floatingBlocks
@@ -187,7 +194,7 @@ exports.Editor = class Editor
         @redraw()
         setTextInputFocus newSocket
 
-      else if @cursor.prev.type is 'newline'
+      else if @cursor.prev.type is 'newline' or @cursor.prev.type is 'segmentStart'
         newBlock._moveTo @cursor.prev
         newBlock.end.insert new NewlineToken()
 
@@ -413,7 +420,16 @@ exports.Editor = class Editor
         
         # If there is already a selection, remove it.
         if @lassoSegment?
-          @lassoSegment.remove()
+
+          # First, check to see if the block is floating
+          flag = false
+          for float in @floatingBlocks
+            if float.block is @lassoSegment
+              flag = true
+              break
+
+          unless flag # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+            @lassoSegment.remove()
 
           @lassoSegment = null
           @redraw()

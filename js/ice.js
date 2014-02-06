@@ -1909,7 +1909,7 @@
         return mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, main.width, main.height);
       };
       this.redraw = function() {
-        var float, paper, _j, _len1, _ref1, _results;
+        var float, paper, _j, _k, _len1, _len2, _ref1, _ref2, _results;
         _this.clear();
         _this.tree.paper.compute({
           line: 0
@@ -1918,15 +1918,23 @@
         _this.tree.paper.draw(mainCtx);
         if (_this.lassoSegment != null) {
           _this.lassoSegment.paper.prepBounds();
+          _this._lassoBounds = _this.lassoSegment.paper.getBounds();
+          _ref1 = _this.floatingBlocks;
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            float = _ref1[_j];
+            if (_this.lassoSegment === float.block) {
+              _this._lassoBounds.translate(float.position);
+            }
+          }
           if (_this.lassoSegment !== _this.selection) {
-            (_this._lassoBounds = _this.lassoSegment.paper.getBounds()).stroke(mainCtx, '#000');
+            _this._lassoBounds.stroke(mainCtx, '#000');
             _this._lassoBounds.fill(mainCtx, 'rgba(0, 0, 256, 0.3)');
           }
         }
-        _ref1 = _this.floatingBlocks;
+        _ref2 = _this.floatingBlocks;
         _results = [];
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          float = _ref1[_j];
+        for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+          float = _ref2[_k];
           paper = float.block.paper;
           paper.compute({
             line: 0
@@ -1981,7 +1989,7 @@
           newBlock._moveTo(_this.cursor.prev.insert(new NewlineToken()));
           _this.redraw();
           return setTextInputFocus(newSocket);
-        } else if (_this.cursor.prev.type === 'newline') {
+        } else if (_this.cursor.prev.type === 'newline' || _this.cursor.prev.type === 'segmentStart') {
           newBlock._moveTo(_this.cursor.prev);
           newBlock.end.insert(new NewlineToken());
           _this.redraw();
@@ -2256,7 +2264,7 @@
       */
 
       track.addEventListener('mousedown', function(event) {
-        var fixedDest, float, i, point, rect, selectionInPalette, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+        var fixedDest, flag, float, i, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
         point = getPointFromEvent(event);
         _this.selection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
         if (_this.selection == null) {
@@ -2265,7 +2273,18 @@
           */
 
           if (_this.lassoSegment != null) {
-            _this.lassoSegment.remove();
+            flag = false;
+            _ref6 = _this.floatingBlocks;
+            for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+              float = _ref6[_k];
+              if (float.block === _this.lassoSegment) {
+                flag = true;
+                break;
+              }
+            }
+            if (!flag) {
+              _this.lassoSegment.remove();
+            }
             _this.lassoSegment = null;
             _this.redraw();
           }
@@ -2289,7 +2308,7 @@
           */
 
           selectionInPalette = false;
-          if (_ref6 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref6) >= 0) {
+          if (_ref7 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref7) >= 0) {
             point.add(PALETTE_WIDTH, 0);
             selectionInPalette = true;
           }
@@ -2298,9 +2317,9 @@
           if (selectionInPalette) {
             _this.selection = _this.selection.clone();
           }
-          _ref7 = _this.floatingBlocks;
-          for (i = _k = 0, _len2 = _ref7.length; _k < _len2; i = ++_k) {
-            float = _ref7[i];
+          _ref8 = _this.floatingBlocks;
+          for (i = _l = 0, _len3 = _ref8.length; _l < _len3; i = ++_l) {
+            float = _ref8[i];
             if (float.block === _this.selection) {
               _this.floatingBlocks.splice(i, 1);
               break;
