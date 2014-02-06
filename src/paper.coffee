@@ -5,6 +5,10 @@
 # Rendering classes and functions for ICE editor.
 ###
 
+###
+# TODO Trigger rewrite this coming weekend.
+###
+
 # Constants
 PADDING = 5
 INDENT = 10
@@ -16,6 +20,7 @@ PALETTE_WIDTH = 300
 PALETTE_WHITESPACE = 10
 MIN_INDENT_DROP_WIDTH = 20
 EMPTY_SEGMENT_DROP_WIDTH = 100
+DEFAULT_CURSOR_WIDTH = 100
 
 ###
 # For developers, bits of policy:
@@ -477,6 +482,46 @@ class SocketPaper extends IcePaper
     else
       @bounds[@_line].translate vector
 
+class CursorTokenPaper extends IcePaper
+  constructor: (block) ->
+    super(block)
+    @_rect = new draw.NoRectangle()
+
+  compute: (state) ->
+    @lineStart = @lineEnd = state.line
+    this
+  
+  setRect: (rect) ->
+    @_rect = rect
+    @useTop = false
+    #@_rect.copy new draw.Rectangle rect.x, rect.bottom() - 5, rect.width, 10
+
+  setRectTop: (rect) ->
+    @_rect = rect
+    @useTop = true
+    
+  finish: ->
+
+  draw: (ctx) ->
+    # TODO The following hack should be dealt with by the parent indent.
+    setTimeout (=>
+      ctx.strokeStyle = '#000'
+      ctx.fillStyle = '#FFF'
+      y = if @useTop then @_rect.y else @_rect.bottom()
+
+      ctx.beginPath()
+      ctx.moveTo @_rect.x, y
+      ctx.lineTo @_rect.x - 5, y + 5
+      ctx.lineTo @_rect.x - 5, y - 5
+      ctx.lineTo @_rect.x, y
+      ctx.lineTo @_rect.x + @_rect.width, y
+      ctx.lineTo @_rect.x + @_rect.width + 5, y - 5
+      ctx.lineTo @_rect.x + @_rect.width + 5, y + 5
+      ctx.lineTo @_rect.x + @_rect.width, y
+
+      ctx.stroke()
+      ctx.fill()
+    ), 0
 
 class IndentPaper extends IcePaper
   constructor: (block) ->
@@ -495,7 +540,9 @@ class IndentPaper extends IcePaper
     @lineStart = state.line += 1
 
     # In an Indent, each line contains exactly one block. So that's all we have to consider.
-    head = @block.start.next.next # Note here that we skip over this indent's leading newline
+    head = @block.start.next
+    if head.type is 'cursor' then head = head.next
+    if head.type is 'newline' then head = head.next
 
     # This is a hack to deal with empty indents
     if @block.start.next is @block.end then head = @block.end
@@ -507,6 +554,10 @@ class IndentPaper extends IcePaper
           @children.push head.block.paper.compute state
           @group.push head.block.paper.group
           head = head.block.end
+
+        when 'cursor'
+          @children.push head.paper.compute state
+          @group.push head.paper.group
 
         when 'newline'
           state.line += 1
@@ -524,12 +575,26 @@ class IndentPaper extends IcePaper
         until line <= @children[i].lineEnd
           i += 1
 
+        setCursor = false
+        # If we need to draw the cursor before this block, do so
+        if @children[i]? and @children[i].block.type is 'cursor'
+          setCursor = true
+          i += 1
+
         # Copy the block we're on here
         @bounds[line] = @children[i].bounds[line]
         @lineGroups[line] = new draw.Group()
         @indentEnd[line] = @children[i].indentEnd[line]
         @lineGroups[line].push @children[i].lineGroups[line]
         @_lineBlocks[line] = @children[i]
+
+        if setCursor
+          @children[i-1].setRectTop @bounds[line]
+      
+        # If we need to draw the cursor after this block, do so.
+        else if @children[i+1]? and @children[i+1].block.type is 'cursor'
+          @children[i+1].setRect @bounds[line]
+
     else
       # We're an empty indent.
       @lineGroups[@lineStart] = new draw.Group()
@@ -603,6 +668,19 @@ class SegmentPaper extends IcePaper
           running_height = head.block.paper.bounds[head.block.paper.lineEnd].bottom()
           @group.push head.block.paper.group
           head = head.block.end
+        
+        when 'cursor'
+          @children.push head.paper.compute state
+          if @children.length > 2
+            head.paper.setRect new draw.Rectangle 0,
+              running_height,
+              @children[@children.length-2].
+                bounds[@children[@children.length-2].lineEnd].
+                width,
+              0
+          else
+            head.paper.setRect new draw.Rectangle 0, running_height, DEFAULT_CURSOR_WIDTH, 0
+          @group.push head.paper.group
 
         when 'newline'
           state.line += 1
@@ -621,7 +699,7 @@ class SegmentPaper extends IcePaper
     i = 0 # Again, performance reasons
     for line in [@lineStart..@lineEnd]
       # If we need to move on to the next block, do so
-      until line <= @children[i].lineEnd
+      until line <= @children[i].lineEnd and @children[i].block.type isnt 'cursor'
         i += 1
 
       # Copy the block we're on here

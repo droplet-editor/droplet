@@ -228,7 +228,7 @@ colors =
   };
 
   exports.execute = execute = function(text, markup) {
-    var first, head, i, id, lastMark, line, marks, stack, str, _i, _j, _k, _len, _len1, _len2, _mark, _ref, _socket;
+    var first, head, i, id, lastMark, line, marks, newBlock, newSocket, stack, str, _i, _j, _k, _len, _len1, _len2, _mark, _ref, _socket;
     id = 0;
     marks = {};
     for (_i = 0, _len = markup.length; _i < _len; _i++) {
@@ -244,6 +244,16 @@ colors =
     for (i = _j = 0, _len1 = text.length; _j < _len1; i = ++_j) {
       line = text[i];
       head = head.append(new ICE.NewlineToken());
+      if (line.trimLeft().length === 0) {
+        newBlock = new ICE.Block([]);
+        newSocket = new ICE.Socket([]);
+        newSocket.handwritten = true;
+        newBlock.start.insert(newSocket.start);
+        newBlock.end.insertBefore(newSocket.end);
+        head.append(newBlock.start);
+        head = newBlock.end;
+        continue;
+      }
       lastMark = 0;
       if (marks[i] != null) {
         marks[i].sort(function(a, b) {

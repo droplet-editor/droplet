@@ -65,7 +65,7 @@ exports.Block = class Block
           cursor = block_clone.end
           head = head.indent.end
         else
-          cursor = cursor.append head.clone()
+          unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
       head = head.next
     cursor.append clone.end
 
@@ -94,16 +94,15 @@ exports.Block = class Block
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
-      console.log 'removing a segment'
       @start.prev.segment.remove()
 
     # Don't leave empty lines behind
     if @end.next? and @start.prev?
       last = @end.next
-      while last? and last.type is 'segmentEnd' then last = last.next
+      while last? and (last.type is 'segmentEnd' or last.type is 'cursor') then last = last.next
 
       first = @start.prev
-      while first? and first.type is 'segmentStart' then first = first.prev
+      while first? and (first.type is 'segmentStart' or first.type is 'cursor') then first = first.prev
 
       if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
         first.remove()
@@ -199,7 +198,7 @@ exports.Indent = class Indent
           cursor = block_clone.end
           head = head.indent.end
         else
-          cursor = cursor.append head.clone()
+          unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
       head = head.next
     cursor.append clone.end
 
@@ -264,7 +263,7 @@ exports.Segment = class Segment
           cursor = block_clone.end
           head = head.indent.end
         else
-          cursor = cursor.append head.clone()
+          unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
       head = head.next
     cursor.append clone.end
 
@@ -281,16 +280,15 @@ exports.Segment = class Segment
   _moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
-      console.log 'removing a segment'
       @start.prev.segment.remove()
 
     # Don't leave empty lines behind
     if @end.next? and @start.prev?
       last = @end.next
-      while last? and last.type is 'segmentEnd' then last = last.next
+      while last? and (last.type is 'segmentEnd' or last.type is 'cursor') then last = last.next
 
       first = @start.prev
-      while first? and first.type is 'segmentStart' then first = first.prev
+      while first? and (first.type is 'segmentStart' or first.type is 'cursor') then first = first.prev
 
       if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
         first.remove()
@@ -434,6 +432,16 @@ exports.Token = class Token
     token.prev = this
     @next = token
     return @next
+  
+  insertBefore: (token) ->
+    if @prev?
+      token.prev = @prev
+      @prev.next = token
+
+    token.next = this
+    @prev = token
+
+    return @prev
 
   remove: ->
     if @prev? then @prev.next = @next
@@ -445,6 +453,13 @@ exports.Token = class Token
 ###
 # Special kinds of tokens
 ###
+
+exports.CursorToken = class CursorToken extends Token
+  constructor: ->
+    @prev = @next = null
+    @paper = new CursorTokenPaper this
+    @type = 'cursor'
+
 exports.TextToken = class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null

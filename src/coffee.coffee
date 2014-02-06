@@ -231,6 +231,17 @@ exports.execute = execute = (text, markup) ->
 
     # Append the newline token
     head = head.append new ICE.NewlineToken()
+
+    if line.trimLeft().length is 0
+      newBlock = new ICE.Block []; newSocket = new ICE.Socket []
+      newSocket.handwritten = true
+
+      newBlock.start.insert newSocket.start
+      newBlock.end.insertBefore newSocket.end
+
+      head.append newBlock.start
+      head = newBlock.end
+      continue
     
     # Insert necessary markup on this line
     lastMark = 0
