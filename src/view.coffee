@@ -82,20 +82,26 @@ class IceView
     return line
   
   # SECOND PASS: compute dimensions on each line
-  computeDimensions: ->
+  computeDimensions: -> # A block's dimensions on each line is strictly a function of its children, so this function has no arguments.
     # Event propagate
     for child in @children then child.computeDimensions()
-
-    for
 
     return @dimensions
   
   # THIRD PASS: compute bounding boxes on each line
-  computeBoundingBoxes: ->
+  computeBoundingBox: (line, state) -> # (line) and (state) are given by the calling parent and signify restrictions on the position of the line (e.g. padding, etc).
     # Event propagate
-    for child in @children then child.computeBoundingBoxes
+    for child in @lineChildren[line] then child.computeBoundingBox line, state # In an instance of this function, you will want to change (state) as you move along @lineChildren[line], to adjust for padding and such.
+
+    return @bounds[line] = new draw.NoRectangle() # Should actually equal something
+
+  # Convenience function: computeBoundingBoxes. Normally only called on root or floating block.
+  computeBoundingBoxes: ->
+    for line in [@lineStart..@lineEnd]
+      computeBoundingBox line, new BoundingBoxState()
 
     return @bounds
+
 
   # FOURTH PASS: join "path bits" into a path
   computePath: ->
