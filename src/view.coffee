@@ -113,7 +113,6 @@ class IceView
   
   # THIRD PASS: compute bounding boxes on each line
   computeBoundingBox: (line, state) -> # (line) and (state) are given by the calling parent and signify restrictions on the position of the line (e.g. padding, etc).
-    console.log 'delegated to super from type', @block.type
     # Event propagate
     for child in @lineChildren[line] then child.computeBoundingBox line, state # In an instance of this function, you will want to change (state) as you move along @lineChildren[line], to adjust for padding and such.
 
@@ -124,7 +123,7 @@ class IceView
     cursor = new draw.Point 0, 0
     for line in [@lineStart..@lineEnd]
       @computeBoundingBox line, new BoundingBoxState cursor
-      cursor.y += @dimensions[line]
+      cursor.y += @dimensions[line].height
 
     return @bounds
 
@@ -161,8 +160,6 @@ class BlockView extends IceView
 
       for child in @lineChildren[line]
 
-        console.log line, child, child.dimensions[line]
-
         if child.block.type is 'indent'
           # The width of a block on a line is the sum of the widths of the child blocks, plus padding.
           width += child.dimensions[line].width + INDENT_SPACING
@@ -194,13 +191,13 @@ class BlockView extends IceView
     # Accept the bounds given by our parent.
     @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
 
-    console.log line, @bounds[line]
-
     for child in @lineChildren[line]
       # Special case for indented things; always jam them together.
-      if child.indented[line]
+      if child.indented[line] or child.block.type is 'indent'
         # Add the padding on the left of this
         cursor += INDENT_SPACING
+        
+        console.log state.y
 
         child.computeBoundingBox line, new BoundingBoxState new draw.Point cursor,
           state.y # Position the child at the top of the line.
@@ -215,7 +212,7 @@ class BlockView extends IceView
       cursor += child.dimensions[line].width
 
     # Compute the path waypoints
-    if @lineChildren[line].length is 0 or not @lineChildren[line][0].indented[line]
+    if @lineChildren[line].length >  0 and not (@lineChildren[line][0].indented[line] or @lineChildren[line][0].block.type is 'indent')
       ###
       # Normally, we just enclose everything within these bounds
       ###
@@ -232,15 +229,19 @@ class BlockView extends IceView
       # There is, however, the special case when a child on this line is indented, or is an indent.
       ###
 
-      if @lineChildren[line][0].indentEndsOn[line]
+      if @lineChildren[line][0].indentEndsOn[line] or line is @lineChildren[line][0].lineEnd
         ###
         # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
         ###
 
         # We name this for conveniency
-        indentedChild = @lineChildren[line][0]
+        indentChild = @lineChildren[line][0]
+
+        console.log indentChild
 
         if @lineChildren[line].length is 1
+          console.log indentChild.bounds[line]
+
           @pathWaypoints[line] = new PathWaypoint [
             # The line down the left of the child
             new draw.Point @bounds[line].x, @bounds[line].y
@@ -301,20 +302,17 @@ class BlockView extends IceView
 
     @path = new draw.Path []
 
-    console.log @pathWaypoints
-
     for line, waypoint of @pathWaypoints
       for point in waypoint.left
         @path.unshift point
       for point in waypoint.right
         @path.push point
 
-    console.log @path
-
     @path.style.fillColor = @block.color
     @path.style.strokeColor = '#000'
     
   draw: (ctx) ->
+    if @path._points.length is 0 then debugger
     @path.draw ctx
 
     super
@@ -337,8 +335,6 @@ class TextView extends IceView
     @dimensions[@lineStart] = new draw.Size @textElement.bounds().width,
       @textElement.bounds().height
 
-    console.log @dimensions
-
     return @dimesions
   
   computeBoundingBox: (line, state) ->
@@ -357,9 +353,11 @@ class IndentView extends IceView
 
   computeChildren: (line) ->
     super
-    console.log @lineStart, @lineEnd
 
+    # Skip over the leading newline required by every indent
     @lineStart += 1
+
+    return @lineEnd
 
   computeDimensions: ->
     super
@@ -377,6 +375,8 @@ class IndentView extends IceView
   computeBoundingBox: (line, state) ->
     cursorX = state.x
     cursorY = state.y
+
+    @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
 
     for child in @lineChildren[line]
       child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
