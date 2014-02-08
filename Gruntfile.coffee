@@ -8,6 +8,8 @@ module.exports = (grunt) ->
         files:
           'js/draw.js': ['src/draw.coffee']
           'js/ice.js': ['src/ice.coffee', 'src/paper.coffee', 'src/controller.coffee']
+          'js/ice_new.js': ['src/model.coffee', 'src/view.coffee']
+          'js/view_tests.js': ['src/view_tests.coffee']
           'js/tests.js': ['src/tests.coffee']
           'js/coffee.js': ['src/coffee.coffee']
           #'js/controller_new.js': ['src/controller_new.coffee']

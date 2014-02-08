@@ -39,6 +39,9 @@ exports.Point = class Point
 
   clear: -> @x = @y = 0
 
+exports.Size = class Size
+  constructor: (@width, @height) ->
+
 exports.Rectangle = class Rectangle
   constructor: (@x, @y, @width, @height) ->
   
