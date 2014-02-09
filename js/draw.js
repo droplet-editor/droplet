@@ -206,17 +206,21 @@
     };
 
     Path.prototype.push = function(point) {
-      if (this._points.length > 0) {
-        this._points.push(new draw.Point(this._points[this._points.length - 1].x, point.y));
-      }
+      /*
+      if @_points.length > 0
+        @_points.push new draw.Point @_points[@_points.length - 1].x, point.y #EXPERIMENTAL
+      */
+
       this._points.push(point);
       return this._bounds.swallow(point);
     };
 
     Path.prototype.unshift = function(point) {
-      if (this._points.length > 0) {
-        this._points.unshift(new draw.Point(point.x, this._points[0].y));
-      }
+      /*
+      if @_points.length > 0
+        @_points.unshift new draw.Point point.x, @_points[0].y #EXPERIMENTAL
+      */
+
       this._points.unshift(point);
       return this._bounds.swallow(point);
     };

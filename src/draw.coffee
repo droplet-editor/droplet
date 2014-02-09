@@ -114,14 +114,18 @@ exports.Path = class Path
       @_bounds.swallow point
   
   push: (point) ->
+    ###
     if @_points.length > 0
       @_points.push new draw.Point @_points[@_points.length - 1].x, point.y #EXPERIMENTAL
+    ###
     @_points.push point
     @_bounds.swallow point
 
   unshift: (point) ->
+    ###
     if @_points.length > 0
       @_points.unshift new draw.Point point.x, @_points[0].y #EXPERIMENTAL
+    ###
     @_points.unshift point
     @_bounds.swallow point
 
