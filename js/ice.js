@@ -937,6 +937,14 @@
   window.ICE = exports;
 
   /*
+  # ICE Editor View
+  # 
+  # Copyright (c) Anthony Bau 2014
+  # MIT License
+  */
+
+
+  /*
   # Magic constants
   */
 
@@ -1599,6 +1607,14 @@
 
   })(IceView);
 
+  /*
+  # ICE Editor Controller
+  #
+  # Copyright (c) 2014 Anthony Bau
+  # MIT License
+  */
+
+
   INDENT_SPACES = 2;
 
   INPUT_LINE_HEIGHT = 15;
@@ -1789,7 +1805,11 @@
         newBlock.start.insert(newSocket.start);
         newBlock.end.prev.insert(newSocket.end);
         if (_this.cursor.next.type === 'newline' || _this.cursor.next.type === 'indentEnd' || _this.cursor.next.type === 'segmentEnd') {
-          moveBlockTo(newBlock, _this.cursor.prev.insert(new NewlineToken()));
+          if (_this.cursor.next.type === 'indentEnd' && _this.cursor.prev.type === 'newline') {
+            moveBlockTo(newBlock, _this.cursor.prev);
+          } else {
+            moveBlockTo(newBlock, _this.cursor.prev.insert(new NewlineToken()));
+          }
           _this.redraw();
           return setTextInputFocus(newSocket);
         } else if (_this.cursor.prev.type === 'newline' || _this.cursor.prev.type === 'segmentStart') {
@@ -1808,21 +1828,11 @@
         return token.insertBefore(_this.cursor);
       };
       deleteFromCursor = function() {
-        var head, _ref1;
+        var head;
         head = _this.cursor.prev;
-        console.log(head, head.toString({
-          indent: ''
-        }));
         while (head !== null && head.type !== 'indentStart' && head.type !== 'blockEnd') {
-          console.log(head, (_ref1 = head.block) != null ? typeof _ref1.toString === "function" ? _ref1.toString() : void 0 : void 0);
           head = head.prev;
-          console.log(head.toString({
-            indent: ''
-          }));
         }
-        console.log(head.toString({
-          indent: ''
-        }));
         if (head.type === 'blockEnd') {
           moveBlockTo(head.block, null);
           return _this.redraw();
@@ -2099,7 +2109,6 @@
 
           setTextInputFocus(_this.selection);
           return setTimeout((function() {
-            console.log('setting anchor', _this.focus);
             setTextInputAnchor(point);
             redrawTextInput();
             textInputSelecting = true;

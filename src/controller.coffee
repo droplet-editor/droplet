@@ -1,3 +1,10 @@
+###
+# ICE Editor Controller
+#
+# Copyright (c) 2014 Anthony Bau
+# MIT License
+###
+
 INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
@@ -191,13 +198,18 @@ exports.Editor = class Editor
       
       # Move it to where the cursor should be
       if @cursor.next.type is 'newline' or @cursor.next.type is 'indentEnd' or @cursor.next.type is 'segmentEnd'
-        moveBlockTo newBlock, @cursor.prev.insert new NewlineToken()
+        if @cursor.next.type is 'indentEnd' and @cursor.prev.type is 'newline'
+          moveBlockTo newBlock, @cursor.prev
+        else
+          moveBlockTo newBlock, @cursor.prev.insert new NewlineToken()
 
         @redraw()
         setTextInputFocus newSocket
 
       else if @cursor.prev.type is 'newline' or @cursor.prev.type is 'segmentStart'
+
         moveBlockTo newBlock, @cursor.prev
+
         newBlock.end.insert new NewlineToken()
 
         @redraw()
@@ -221,12 +233,8 @@ exports.Editor = class Editor
     deleteFromCursor = =>
       # Seek the block that we want to delete (i.e. the block that ends first before the cursor, if such thing exists)
       head = @cursor.prev
-      console.log head, head.toString indent:''
       while head isnt null and head.type isnt 'indentStart' and head.type isnt 'blockEnd'
-        console.log head, head.block?.toString?()
-        head = head.prev; console.log head.toString indent:''
-
-      console.log head.toString indent:''
+        head = head.prev
 
       # Delete that block and redraw
       if head.type is 'blockEnd' then moveBlockTo head.block, null; @redraw()
@@ -450,8 +458,6 @@ exports.Editor = class Editor
         # We must set a timeout for the following, because until
         # A render has passed, the hidden input is not actually focused.
         setTimeout (=>
-          console.log 'setting anchor', @focus
-
           setTextInputAnchor point
           redrawTextInput()
           

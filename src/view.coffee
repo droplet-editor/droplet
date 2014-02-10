@@ -1,4 +1,12 @@
 ###
+# ICE Editor View
+# 
+# Copyright (c) Anthony Bau 2014
+# MIT License
+###
+
+
+###
 # Magic constants
 ###
 PADDING = 5
