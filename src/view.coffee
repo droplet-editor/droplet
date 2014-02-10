@@ -5,10 +5,13 @@ PADDING = 5
 INDENT_SPACING = 10
 TOUNGE_HEIGHT = 10
 FONT_HEIGHT = 15
-EMPTY_SOCKET_DIMENSIONS = FONT_HEIGHT + PADDING * 2
+EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * 2
+EMPTY_SOCKET_WIDTH = 20
+EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2
+EMPTY_INDENT_WIDTH = 50
 TAB_WIDTH = 15
 TAB_HEIGHT = 5
-TAB_OFFSET = 5
+TAB_OFFSET = 10
 
 class BoundingBoxState
   constructor: (point) ->
@@ -30,6 +33,8 @@ class IceView
 
     @dimensions = {} # Bounding box on each line, computed in SECOND PASS (int:draw.Size)
 
+    @cursors = []
+
     @indented = {}
 
     @indentEndsOn = {}
@@ -42,6 +47,18 @@ class IceView
 
   # FIRST PASS: generate @lineChildren and @children
   computeChildren: (line) -> # (line) is the starting line
+
+    # Re-init all variables to blank.
+    @children = []
+    @lineStart = @lineEnd = null
+    @lineChildren = {}
+    @dimensions = {}
+    @indented = {}
+    @indentEndsOn = {}
+    @indentStartsOn = {}
+    @pathWaypoints = {}
+    @bounds = {}
+    @cursors = []
 
     # Record the starting line
     @lineStart = line
@@ -111,7 +128,23 @@ class IceView
 
           head = head.socket.end
 
-        when 'text', 'cursor'
+        when 'segmentStart'
+          # Act analagously for segments
+          line = head.segment.view.computeChildren line
+
+          @children.push head.segment.view
+
+          for occupiedLine in [head.segment.view.lineStart..head.segment.view.lineEnd]
+            @lineChildren[occupiedLine] ?= []
+
+            @lineChildren[occupiedLine].push head.segment.view
+
+            @indented[occupiedLine] ||= head.segment.view.indented[occupiedLine]
+            @indentEndsOn[occupiedLine] ||= head.segment.view.indentEndsOn[occupiedLine]
+
+          head = head.segment.end
+
+        when 'text'
           # Act analagously for text and cursor
           head.view.computeChildren line
           
@@ -119,6 +152,11 @@ class IceView
           @children.push head.view
           
           @lineChildren[line] ?= []; @lineChildren[line].push head.view
+
+        when 'cursor'
+          @cursors.push
+            token: head
+            line: line
 
         when 'newline'
           line += 1
@@ -128,6 +166,10 @@ class IceView
     
     # Record the last line
     @lineEnd = line
+
+    # Default any empty lines to having children []
+    for l in [@lineStart..@lineEnd]
+      @lineChildren[l] ?= []
 
     return line
   
@@ -153,25 +195,67 @@ class IceView
       cursor.y += @dimensions[line].height
 
     return @bounds
+  
+  # Getter function, which must be called after computeBoundingBoxes
+  getBounds: ->
+    bound = new draw.NoRectangle()
 
+    for line in [@lineStart..@lineEnd]
+      bound.unite @bounds[line]
+
+    return bound
+  
   # FOURTH PASS: join "path bits" into a path
   computePath: ->
     # Event propagate
     for child in @children then child.computePath()
 
     return @bounds
+  
 
   # FIFTH PASS: draw
-  draw: (ctx) ->
+  drawPath: (ctx) ->
     # Event propagate
-    for child in @children then child.draw ctx
+    for child in @children then child.drawPath ctx
+
+  # SIXTH Pass: draw cursor
+  drawCursor: (ctx) ->
+    for child in @children then child.drawCursor ctx
+
+    for cursor in @cursors
+      if cursor.token.prev.type is 'newline' or cursor.token.prev.type is 'segmentStart'
+        yCoordinate = @bounds[cursor.line].y
+      else
+        yCoordinate = @bounds[cursor.line].bottom()
+
+      ctx.fillStyle = '#000'
+      ctx.strokeSTyle = '#000'
+      ctx.beginPath()
+
+      if @bounds[cursor.line].x >= 5
+        ctx.moveTo @bounds[cursor.line].x, yCoordinate
+        ctx.lineTo @bounds[cursor.line].x - 5, yCoordinate - 5
+        ctx.lineTo @bounds[cursor.line].x - 5, yCoordinate + 5
+      else
+        ctx.moveTo @bounds[cursor.line].x, yCoordinate
+        ctx.lineTo @bounds[cursor.line].x + 5, yCoordinate - 5
+        ctx.lineTo @bounds[cursor.line].x + 5, yCoordinate + 5
+
+      ctx.stroke()
+      ctx.fill()
+
+  draw: (ctx) ->
+    @drawPath ctx
+    @drawCursor ctx
 
   # Convenience function: compute
   compute: (line = 0) ->
     @computeChildren line
     @computeDimensions(); @computeBoundingBoxes(); @computePath()
 
-  finish: -> # Deprecated.
+  translate: (point) ->
+    for line, bound of @bounds then bound.translate point
+    for child in @children then child.translate point
 
 class BlockView extends IceView
   constructor: (block) ->
@@ -220,12 +304,10 @@ class BlockView extends IceView
 
     for child in @lineChildren[line]
       # Special case for indented things; always jam them together.
-      if child.indented[line] or child.block.type is 'indent'
+      if child.block.type is 'indent'
         # Add the padding on the left of this
         cursor += INDENT_SPACING
         
-        console.log state.y
-
         child.computeBoundingBox line, new BoundingBoxState new draw.Point cursor,
           state.y # Position the child at the top of the line.
       
@@ -256,7 +338,7 @@ class BlockView extends IceView
       # There is, however, the special case when a child on this line is indented, or is an indent.
       ###
 
-      if @lineChildren[line][0].indentEndsOn[line] or line is @lineChildren[line][0].lineEnd
+      if line is @lineChildren[line][0].lineEnd and @lineChildren[line][0].block.type is 'indent'
         ###
         # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
         ###
@@ -264,19 +346,17 @@ class BlockView extends IceView
         # We name this for conveniency
         indentChild = @lineChildren[line][0]
 
-        console.log indentChild
+        paddingLeft = if @lineChildren[line][0].block.type is 'indent' then INDENT_SPACING else PADDING
 
         if @lineChildren[line].length is 1
-          console.log indentChild.bounds[line]
-
           @pathWaypoints[line] = new PathWaypoint [
             # The line down the left of the child
             new draw.Point @bounds[line].x, @bounds[line].y
             new draw.Point @bounds[line].x, @bounds[line].bottom()
           ], [
             # The box to the left of the child
-            new draw.Point @bounds[line].x + INDENT_SPACING, @bounds[line].y
-            new draw.Point @bounds[line].x + INDENT_SPACING, indentChild.bounds[line].bottom()
+            new draw.Point @bounds[line].x + paddingLeft, @bounds[line].y
+            new draw.Point @bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()
             
             # The 'tounge' underneath the child
             new draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()
@@ -295,8 +375,8 @@ class BlockView extends IceView
             new draw.Point @bounds[line].x, @bounds[line].bottom()
           ], [
             # The box to the left of the child
-            new draw.Point @bounds[line].x + INDENT_SPACING, @bounds[line].y
-            new draw.Point @bounds[line].x + INDENT_SPACING, indentChild.bounds[line].bottom()
+            new draw.Point @bounds[line].x + paddingLeft, @bounds[line].y
+            new draw.Point @bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()
             
             # The 'tounge' underneath the child
             new draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()
@@ -326,13 +406,15 @@ class BlockView extends IceView
 
   computePath: ->
     super
-
+    
     @path = new draw.Path()
+    @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
     
     # Add the top tab (if applicable)
     unless (@block.inSocket() ? false)
       @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET, @bounds[@lineStart].y
-      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH / 2, @bounds[@lineStart].y + TAB_HEIGHT
+      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineStart].y + TAB_HEIGHT
+      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineStart].y + TAB_HEIGHT
       @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH, @bounds[@lineStart].y
 
     for line, waypoint of @pathWaypoints
@@ -347,7 +429,8 @@ class BlockView extends IceView
 
         # Now actually add the top tab
         @path.push entryPoint
-        @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH / 2, @bounds[line].y + TAB_HEIGHT
+        @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[line].y + TAB_HEIGHT
+        @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH / 8, @bounds[line].y + TAB_HEIGHT
         @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET, @bounds[line].y
 
       for point in waypoint.left
@@ -367,15 +450,21 @@ class BlockView extends IceView
     # Add the bottom tab (if applicable)
     unless (@block.inSocket() ? false)
       @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET, @bounds[@lineEnd].bottom()
-      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH / 2, @bounds[@lineEnd].bottom() + TAB_HEIGHT
+      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
+      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
       @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH, @bounds[@lineEnd].bottom()
 
     @path.style.fillColor = @block.color
     @path.style.strokeColor = '#000'
     
-  draw: (ctx) ->
+  drawPath: (ctx) ->
     if @path._points.length is 0 then debugger
     @path.draw ctx
+
+    super
+
+  translate: (point) ->
+    @path.translate point
 
     super
 
@@ -400,14 +489,22 @@ class TextView extends IceView
     return @dimesions
   
   computeBoundingBox: (line, state) ->
-    # Move the text element to where we want it to go
     if line is @lineStart
+      # Accept the bounds our parent gave us
+      @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
+
+      # Move the text element to where we want it to go
       @textElement.setPosition new draw.Point state.x, state.y
   
   computePath: -> # Do nothing
 
-  draw: (ctx) ->
+  drawPath: (ctx) ->
     @textElement.draw ctx
+
+  translate: (point) ->
+    @textElement.translate point
+
+    super
 
 class IndentView extends IceView
   constructor: (block) ->
@@ -424,13 +521,17 @@ class IndentView extends IceView
   computeDimensions: ->
     super
     
-    for line in [@lineStart..@lineEnd]
+    # If an indent is empty, then this first condition will fail.
+    if @lineEnd >= @lineStart then for line in [@lineStart..@lineEnd]
       height = width = 0
 
       for child in @lineChildren[line]
         # Indents undertake no padding.
         width += child.dimensions[line].width
         height = Math.max height, child.dimensions[line].height
+
+      height = Math.max height, EMPTY_INDENT_HEIGHT
+      width = Math.max width, EMPTY_INDENT_WIDTH
       
       @dimensions[line] = new draw.Size width, height
     
@@ -445,6 +546,11 @@ class IndentView extends IceView
       child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
       
       cursorX += child.dimensions[line].width
+
+  computePath: ->
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+
+    super
 
 class SocketView extends IceView
   constructor: (block) -> super block
@@ -463,8 +569,11 @@ class SocketView extends IceView
         # If we contain some text, then we add padding around it.
         @dimensions[content.view.lineStart] = new draw.Size content.view.dimensions[content.view.lineStart].width + 2 * PADDING,
           content.view.dimensions[content.view.lineStart].height + 2 * PADDING
+        
+        # Don't allow ourselves to get smaller than an empty socket, though>
+        @dimensions[content.view.lineStart].width = Math.max @dimensions[content.view.lineStart].width, EMPTY_SOCKET_WIDTH
     else
-      @dimensions[@lineStart] = new draw.Size EMPTY_SOCKET_DIMENSIONS, EMPTY_SOCKET_DIMENSIONS
+      @dimensions[@lineStart] = new draw.Size EMPTY_SOCKET_WIDTH, EMPTY_SOCKET_HEIGHT
 
     return @dimensions
   
@@ -486,7 +595,13 @@ class SocketView extends IceView
       # Mimick the block
       @lineChildren[line][0].computeBoundingBox line, state
 
-  draw: (ctx) ->
+  computePath: ->
+    unless @block.content()?.type is 'block'
+      (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
+
+    super
+
+  drawPath: (ctx) ->
     if not @block.content()? or @block.content().type is 'text'
       # If we are empty, then draw our unit rectangle. If we have text inside, then draw the wrapping rectangle.
       @bounds[@lineStart].stroke ctx, '#000'
@@ -525,3 +640,10 @@ class SegmentView extends IceView
       child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
       
       cursorX += child.dimensions[line].width
+
+class CursorView extends IceView
+  constructor: (block) -> super block
+
+  computeChildren: (line) ->
+    # A cursor cannot contain anything
+    @lineStart = @lineEnd = line

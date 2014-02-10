@@ -7,7 +7,7 @@
 
 
 (function() {
-  var Block, BlockEndToken, BlockPaper, BlockStartToken, CursorToken, CursorTokenPaper, DEFAULT_CURSOR_WIDTH, DROP_AREA_MAX_WIDTH, EMPTY_INDENT_WIDTH, EMPTY_SEGMENT_DROP_WIDTH, Editor, FONT_SIZE, INDENT, INDENT_SPACES, INPUT_LINE_HEIGHT, IcePaper, Indent, IndentEndToken, IndentPaper, IndentStartToken, MIN_INDENT_DROP_WIDTH, MOUTH_BOTTOM, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WHITESPACE, PALETTE_WIDTH, Segment, SegmentEndToken, SegmentPaper, SegmentStartToken, Socket, SocketEndToken, SocketPaper, SocketStartToken, TextToken, TextTokenPaper, Token, exports,
+  var Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -33,7 +33,7 @@
         head = head.append(token.clone());
       }
       head.append(this.end);
-      this.paper = new BlockPaper(this);
+      this.view = new BlockView(this);
     }
 
     Block.prototype.embedded = function() {
@@ -120,7 +120,7 @@
     };
 
     Block.prototype._moveTo = function(parent) {
-      var first, last;
+      var first, last, _ref;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.segment.remove();
       }
@@ -133,7 +133,7 @@
         while ((first != null) && (first.type === 'segmentStart' || first.type === 'cursor')) {
           first = first.prev;
         }
-        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd')) {
+        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd') && !(((_ref = first.prev) != null ? _ref.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
           first.remove();
         } else if ((last != null) && (last.type === 'newline') && ((first == null) || first.type === 'newline')) {
           last.remove();
@@ -229,7 +229,7 @@
         head = head.append(block.clone());
       }
       head.append(this.end);
-      this.paper = new IndentPaper(this);
+      this.view = new IndentView(this);
     }
 
     Indent.prototype.clone = function() {
@@ -317,7 +317,7 @@
         head = head.append(block.clone());
       }
       head.append(this.end);
-      this.paper = new SegmentPaper(this);
+      this.view = new SegmentView(this);
     }
 
     Segment.prototype.clone = function() {
@@ -371,7 +371,7 @@
     };
 
     Segment.prototype._moveTo = function(parent) {
-      var first, last;
+      var first, last, _ref;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.segment.remove();
       }
@@ -384,7 +384,7 @@
         while ((first != null) && (first.type === 'segmentStart' || first.type === 'cursor')) {
           first = first.prev;
         }
-        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd')) {
+        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd') && !(((_ref = first.prev) != null ? _ref.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
           first.remove();
         } else if ((last != null) && (last.type === 'newline') && ((first == null) || first.type === 'newline')) {
           last.remove();
@@ -483,7 +483,7 @@
       }
       this.type = 'socket';
       this.handwritten = false;
-      this.paper = new SocketPaper(this);
+      this.view = new SocketView(this);
     }
 
     Socket.prototype.clone = function() {
@@ -629,7 +629,7 @@
 
     function CursorToken() {
       this.prev = this.next = null;
-      this.paper = new CursorTokenPaper(this);
+      this.view = new CursorView(this);
       this.type = 'cursor';
     }
 
@@ -643,7 +643,7 @@
     function TextToken(value) {
       this.value = value;
       this.prev = this.next = null;
-      this.paper = new TextTokenPaper(this);
+      this.view = new TextView(this);
       this.type = 'text';
     }
 
@@ -937,872 +937,667 @@
   window.ICE = exports;
 
   /*
-  # Copyright (c) 2014 Anthony Bau
-  # MIT License
-  #
-  # Rendering classes and functions for ICE editor.
-  */
-
-
-  /*
-  # TODO Trigger rewrite this coming weekend.
+  # Magic constants
   */
 
 
   PADDING = 5;
 
-  INDENT = 10;
+  INDENT_SPACING = 10;
 
-  MOUTH_BOTTOM = 50;
+  TOUNGE_HEIGHT = 10;
 
-  DROP_AREA_MAX_WIDTH = 50;
+  FONT_HEIGHT = 15;
 
-  FONT_SIZE = 15;
+  EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * 2;
+
+  EMPTY_SOCKET_WIDTH = 20;
+
+  EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2;
 
   EMPTY_INDENT_WIDTH = 50;
 
-  PALETTE_WIDTH = 300;
+  TAB_WIDTH = 15;
 
-  PALETTE_WHITESPACE = 10;
+  TAB_HEIGHT = 5;
 
-  MIN_INDENT_DROP_WIDTH = 20;
+  TAB_OFFSET = 10;
 
-  EMPTY_SEGMENT_DROP_WIDTH = 100;
-
-  DEFAULT_CURSOR_WIDTH = 100;
-
-  /*
-  # For developers, bits of policy:
-  # 1. Calling IcePaper.draw() must ALWAYS render the entire block and all its children.
-  # 2. ONLY IcePaper.compute() may modify the pointer value of @lineGroups or @bounds. Use copy() and clear().
-  */
-
-
-  window.RUN_PAPER_TESTS = false;
-
-  window.PERFORMANCE_TEST = false;
-
-  IcePaper = (function() {
-    function IcePaper(block) {
-      this.block = block;
-      this.point = new draw.Point(0, 0);
-      this.group = new draw.Group();
-      this.bounds = {};
-      this.lineGroups = {};
-      this.children = [];
-      this.lineStart = this.lineEnd = 0;
+  BoundingBoxState = (function() {
+    function BoundingBoxState(point) {
+      this.x = point.x;
+      this.y = point.y;
     }
 
-    IcePaper.prototype.compute = function(state) {
-      return this;
-    };
-
-    IcePaper.prototype.finish = function() {
-      var child, _i, _len, _ref, _results;
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.finish());
-      }
-      return _results;
-    };
-
-    IcePaper.prototype.draw = function() {};
-
-    IcePaper.prototype.setLeftCenter = function(line, point) {};
-
-    IcePaper.prototype.translate = function(vector) {
-      this.point.translate(vector);
-      return this.group.translate(vector);
-    };
-
-    IcePaper.prototype.position = function(point) {
-      return this.translate(this.point.from(point));
-    };
-
-    return IcePaper;
+    return BoundingBoxState;
 
   })();
 
-  BlockPaper = (function(_super) {
-    __extends(BlockPaper, _super);
-
-    function BlockPaper(block) {
-      BlockPaper.__super__.constructor.call(this, block);
-      this._lineChildren = {};
-      this.indented = {};
-      this.indentEnd = {};
+  PathWaypoint = (function() {
+    function PathWaypoint(left, right) {
+      this.left = left;
+      this.right = right;
     }
 
-    BlockPaper.prototype.compute = function(state) {
-      var axis, head, height, i, indent, line, top, _i, _ref, _ref1;
-      this.indented = {};
-      this.indentEnd = {};
-      this._pathBits = {};
-      this.bounds = {};
-      this.lineGroups = {};
+    return PathWaypoint;
+
+  })();
+
+  IceView = (function() {
+    function IceView(block) {
+      this.block = block;
       this.children = [];
-      this.lineStart = state.line;
+      this.lineStart = this.lineEnd = null;
+      this.lineChildren = {};
+      this.dimensions = {};
+      this.cursors = [];
+      this.indented = {};
+      this.indentEndsOn = {};
+      this.indentStartsOn = {};
+      this.pathWaypoints = {};
+      this.bounds = {};
+    }
+
+    IceView.prototype.computeChildren = function(line) {
+      var head, l, occupiedLine, _base, _base1, _base10, _base11, _base2, _base3, _base4, _base5, _base6, _base7, _base8, _base9, _i, _j, _k, _l, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+      this.children = [];
+      this.lineStart = this.lineEnd = null;
+      this.lineChildren = {};
+      this.dimensions = {};
+      this.indented = {};
+      this.indentEndsOn = {};
+      this.indentStartsOn = {};
+      this.pathWaypoints = {};
+      this.bounds = {};
+      this.cursors = [];
+      this.lineStart = line;
       head = this.block.start.next;
       while (head !== this.block.end) {
         switch (head.type) {
-          case 'text':
-            this.children.push(head.paper.compute(state));
-            this.group.push(head.paper.group);
-            break;
           case 'blockStart':
-            this.children.push(head.block.paper.compute(state));
-            this.group.push(head.block.paper.group);
+            line = head.block.view.computeChildren(line);
+            this.children.push(head.block.view);
+            for (occupiedLine = _i = _ref = head.block.view.lineStart, _ref1 = head.block.view.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; occupiedLine = _ref <= _ref1 ? ++_i : --_i) {
+              if ((_base = this.lineChildren)[occupiedLine] == null) {
+                _base[occupiedLine] = [];
+              }
+              this.lineChildren[occupiedLine].push(head.block.view);
+              (_base1 = this.indented)[occupiedLine] || (_base1[occupiedLine] = head.block.view.indented[occupiedLine]);
+              (_base2 = this.indentEndsOn)[occupiedLine] || (_base2[occupiedLine] = head.block.view.indentEndsOn[occupiedLine]);
+            }
             head = head.block.end;
             break;
           case 'indentStart':
-            indent = head.indent.paper.compute(state);
-            this.children.push(indent);
-            this.group.push(indent.group);
+            line = head.indent.view.computeChildren(line);
+            this.children.push(head.indent.view);
+            for (occupiedLine = _j = _ref2 = head.indent.view.lineStart, _ref3 = head.indent.view.lineEnd; _ref2 <= _ref3 ? _j <= _ref3 : _j >= _ref3; occupiedLine = _ref2 <= _ref3 ? ++_j : --_j) {
+              if ((_base3 = this.lineChildren)[occupiedLine] == null) {
+                _base3[occupiedLine] = [];
+              }
+              this.lineChildren[occupiedLine].push(head.indent.view);
+              this.indented[occupiedLine] = true;
+            }
+            this.indentEndsOn[head.indent.view.lineEnd] = true;
+            this.indentStartsOn[head.indent.view.lineStart] = true;
             head = head.indent.end;
             break;
           case 'socketStart':
-            this.children.push(head.socket.paper.compute(state));
-            this.group.push(head.socket.paper.group);
+            line = head.socket.view.computeChildren(line);
+            this.children.push(head.socket.view);
+            for (occupiedLine = _k = _ref4 = head.socket.view.lineStart, _ref5 = head.socket.view.lineEnd; _ref4 <= _ref5 ? _k <= _ref5 : _k >= _ref5; occupiedLine = _ref4 <= _ref5 ? ++_k : --_k) {
+              if ((_base4 = this.lineChildren)[occupiedLine] == null) {
+                _base4[occupiedLine] = [];
+              }
+              this.lineChildren[occupiedLine].push(head.socket.view);
+              (_base5 = this.indented)[occupiedLine] || (_base5[occupiedLine] = head.socket.view.indented[occupiedLine]);
+              (_base6 = this.indentEndsOn)[occupiedLine] || (_base6[occupiedLine] = head.socket.view.indentEndsOn[occupiedLine]);
+            }
             head = head.socket.end;
             break;
+          case 'segmentStart':
+            line = head.segment.view.computeChildren(line);
+            this.children.push(head.segment.view);
+            for (occupiedLine = _l = _ref6 = head.segment.view.lineStart, _ref7 = head.segment.view.lineEnd; _ref6 <= _ref7 ? _l <= _ref7 : _l >= _ref7; occupiedLine = _ref6 <= _ref7 ? ++_l : --_l) {
+              if ((_base7 = this.lineChildren)[occupiedLine] == null) {
+                _base7[occupiedLine] = [];
+              }
+              this.lineChildren[occupiedLine].push(head.segment.view);
+              (_base8 = this.indented)[occupiedLine] || (_base8[occupiedLine] = head.segment.view.indented[occupiedLine]);
+              (_base9 = this.indentEndsOn)[occupiedLine] || (_base9[occupiedLine] = head.segment.view.indentEndsOn[occupiedLine]);
+            }
+            head = head.segment.end;
+            break;
+          case 'text':
+            head.view.computeChildren(line);
+            this.children.push(head.view);
+            if ((_base10 = this.lineChildren)[line] == null) {
+              _base10[line] = [];
+            }
+            this.lineChildren[line].push(head.view);
+            break;
+          case 'cursor':
+            this.cursors.push({
+              token: head,
+              line: line
+            });
+            break;
           case 'newline':
-            state.line += 1;
+            line += 1;
         }
         head = head.next;
       }
-      this.lineEnd = state.line;
-      i = 0;
-      top = 0;
-      axis = 0;
-      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        this._lineChildren[line] = [];
-        this._pathBits[line] = {
-          left: [],
-          right: []
-        };
-        this.lineGroups[line] = new draw.Group();
-        this.bounds[line] = new draw.NoRectangle();
-        while (i < this.children.length && line > this.children[i].lineEnd) {
-          i += 1;
+      this.lineEnd = line;
+      for (l = _m = _ref8 = this.lineStart, _ref9 = this.lineEnd; _ref8 <= _ref9 ? _m <= _ref9 : _m >= _ref9; l = _ref8 <= _ref9 ? ++_m : --_m) {
+        if ((_base11 = this.lineChildren)[l] == null) {
+          _base11[l] = [];
         }
-        while (i < this.children.length && line >= this.children[i].lineStart && line <= this.children[i].lineEnd) {
-          this._lineChildren[line].push(this.children[i]);
-          i += 1;
-        }
-        i -= 1;
-        height = this._computeHeight(line);
-        axis = top + height / 2;
-        this.setLeftCenter(line, new draw.Point(0, axis));
-        top += this.bounds[line].height;
       }
-      return this;
+      return line;
     };
 
-    BlockPaper.prototype._computeHeight = function(line) {
-      var child, height, _heightModifier, _i, _len, _ref;
-      height = 0;
-      _heightModifier = 0;
-      _ref = this._lineChildren[line];
+    IceView.prototype.computeDimensions = function() {
+      var child, _i, _len, _ref;
+      _ref = this.children;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
-        if (child.block.type === 'indent' && line === child.lineEnd) {
-          height = Math.max(height, child.bounds[line].height + 10);
-        } else {
-          height = Math.max(height, child.bounds[line].height);
-        }
+        child.computeDimensions();
       }
-      if (this.indented[line] || this._lineChildren[line].length > 0 && this._lineChildren[line][0].block.type === 'indent') {
-        height -= 2 * PADDING;
-      }
-      return height + 2 * PADDING;
+      return this.dimensions;
     };
 
-    BlockPaper.prototype.setLeftCenter = function(line, point) {
-      var child, cursor, i, indentChild, topPoint, _bottomModifier, _i, _len, _ref;
-      cursor = point.clone();
-      cursor.add(PADDING, 0);
-      this.lineGroups[line].empty();
-      this._pathBits[line].left.length = 0;
-      this._pathBits[line].right.length = 0;
-      this.bounds[line].clear();
-      this.bounds[line].swallow(point);
-      _bottomModifier = 0;
-      topPoint = null;
-      this.indented[line] = this.indentEnd[line] = false;
-      indentChild = null;
-      _ref = this._lineChildren[line];
-      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-        child = _ref[i];
-        if (i === 0 && child.block.type === 'indent') {
-          this.indented[line] = true;
-          this.indentEnd[line] = (line === child.lineEnd) || child.indentEnd[line];
-          cursor.add(INDENT, 0);
-          indentChild = child;
-          child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
-          if (child.bounds[line].height === 0) {
-            this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
-            this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].y + 10));
-            this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y + 10));
-            if (this._lineChildren[line].length > 1) {
-              this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y - 5 - PADDING));
-            }
-          } else {
-            this._pathBits[line].right.push(topPoint = new draw.Point(child.bounds[line].x, child.bounds[line].y));
-            this._pathBits[line].right.push(new draw.Point(child.bounds[line].x, child.bounds[line].bottom()));
-            if (line === child.lineEnd && this._lineChildren[line].length > 1) {
-              this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].bottom()));
-              this._pathBits[line].right.push(new draw.Point(child.bounds[line].right(), child.bounds[line].y));
-            }
-          }
-          if (child.lineEnd === line) {
-            _bottomModifier += INDENT;
-          }
-        } else {
-          this.indented[line] = this.indented[line] || (child.indented != null ? child.indented[line] : false);
-          this.indentEnd[line] = this.indentEnd[line] || (child.indentEnd != null ? child.indentEnd[line] : false);
-          if ((child.indentEnd != null) && child.indentEnd[line]) {
-            child.setLeftCenter(line, new draw.Point(cursor.x, cursor.y - this._computeHeight(line) / 2 + child.bounds[line].height / 2));
-          } else {
-            child.setLeftCenter(line, cursor);
-          }
-        }
-        this.lineGroups[line].push(child.lineGroups[line]);
-        this.bounds[line].unite(child.bounds[line]);
-        cursor.add(child.bounds[line].width, 0);
+    IceView.prototype.computeBoundingBox = function(line, state) {
+      var child, _i, _len, _ref;
+      _ref = this.lineChildren[line];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        child.computeBoundingBox(line, state);
       }
-      if (!this.indented[line]) {
-        this.bounds[line].width += PADDING;
-        this.bounds[line].y -= PADDING;
-        this.bounds[line].height += PADDING * 2;
-      }
-      if (topPoint != null) {
-        topPoint.y = this.bounds[line].y;
-      }
-      this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].y));
-      this._pathBits[line].left.push(new draw.Point(this.bounds[line].x, this.bounds[line].bottom() + _bottomModifier));
-      if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineStart === line) {
-        child = this._lineChildren[line][0];
-        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 10, this.bounds[line].y));
-        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 10, this.bounds[line].y + 5));
-        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 30, this.bounds[line].y + 5));
-        this._pathBits[line].right.unshift(new draw.Point(this.bounds[line].x + INDENT + PADDING + 30, this.bounds[line].y));
-      }
-      if (this.indentEnd[line] && this._lineChildren[line].length > 1) {
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
-        return this.bounds[line].height += 10;
-      } else if (this.indented[line] && !(this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line)) {
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].y));
-        return this._pathBits[line].right.push(new draw.Point(this.bounds[line].x + INDENT + PADDING, this.bounds[line].bottom()));
-      } else if (this._lineChildren[line][0].block.type === 'indent' && this._lineChildren[line][0].lineEnd === line) {
-        if (this._lineChildren[line].length > 1) {
-          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
-          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
-        } else {
-          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom()));
-          this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
-        }
-        return this.bounds[line].height += 10;
-      } else {
-        this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].y));
-        return this._pathBits[line].right.push(new draw.Point(this.bounds[line].right(), this.bounds[line].bottom() + _bottomModifier));
-      }
+      return this.bounds[line] = new draw.NoRectangle();
     };
 
-    BlockPaper.prototype.finish = function() {
-      var bit, child, line, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _results;
-      this._container = new draw.Path();
-      if (!this.block.inSocket()) {
-        this._container.push(new draw.Point(this.bounds[this.lineStart].x + 10, this.bounds[this.lineStart].y));
-        this._container.push(new draw.Point(this.bounds[this.lineStart].x + 10, this.bounds[this.lineStart].y + 5));
-        this._container.push(new draw.Point(this.bounds[this.lineStart].x + 30, this.bounds[this.lineStart].y + 5));
+    IceView.prototype.computeBoundingBoxes = function() {
+      var cursor, line, _i, _ref, _ref1;
+      cursor = new draw.Point(0, 0);
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        this.computeBoundingBox(line, new BoundingBoxState(cursor));
+        cursor.y += this.dimensions[line].height;
       }
-      for (line in this._pathBits) {
-        _ref = this._pathBits[line].left;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          bit = _ref[_i];
-          this._container.unshift(bit);
-        }
-        _ref1 = this._pathBits[line].right;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          bit = _ref1[_j];
-          this._container.push(bit);
-        }
-      }
-      if (!this.block.inSocket()) {
-        this._container.unshift(new draw.Point(this.bounds[this.lineEnd].x + 10, this.bounds[this.lineEnd].bottom() + 5));
-        this._container.unshift(new draw.Point(this.bounds[this.lineEnd].x + 30, this.bounds[this.lineEnd].bottom() + 5));
-        this._container.unshift(new draw.Point(this.bounds[this.lineEnd].x + 30, this.bounds[this.lineEnd].bottom()));
-      }
-      this._container.style.strokeColor = this.block.selected ? '#FFF' : '#000';
-      this._container.style.fillColor = this.block.color;
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
-      this.topCursorArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
-      _ref2 = this.children;
-      _results = [];
-      for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-        child = _ref2[_k];
-        _results.push(child.finish());
-      }
-      return _results;
+      return this.bounds;
     };
 
-    BlockPaper.prototype.draw = function(ctx) {
+    IceView.prototype.getBounds = function() {
+      var bound, line, _i, _ref, _ref1;
+      bound = new draw.NoRectangle();
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        bound.unite(this.bounds[line]);
+      }
+      return bound;
+    };
+
+    IceView.prototype.computePath = function() {
+      var child, _i, _len, _ref;
+      _ref = this.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        child.computePath();
+      }
+      return this.bounds;
+    };
+
+    IceView.prototype.drawPath = function(ctx) {
       var child, _i, _len, _ref, _results;
-      this._container.draw(ctx);
       _ref = this.children;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
-        _results.push(child.draw(ctx));
+        _results.push(child.drawPath(ctx));
       }
       return _results;
     };
 
-    BlockPaper.prototype.translate = function(vector) {
-      var bit, child, line, point, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _results;
-      this.point.translate(vector);
-      for (line in this.bounds) {
-        this.lineGroups[line].translate(vector);
-        this.bounds[line].translate(vector);
+    IceView.prototype.drawCursor = function(ctx) {
+      var child, cursor, yCoordinate, _i, _j, _len, _len1, _ref, _ref1, _results;
+      _ref = this.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        child.drawCursor(ctx);
       }
-      _ref = this._pathBits;
-      for (line in _ref) {
-        bit = _ref[line];
-        _ref1 = bit.left;
-        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-          point = _ref1[_i];
-          point.translate(vector);
-        }
-        _ref2 = bit.right;
-        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
-          point = _ref2[_j];
-          point.translate(vector);
-        }
-      }
-      _ref3 = this.children;
+      _ref1 = this.cursors;
       _results = [];
-      for (_k = 0, _len2 = _ref3.length; _k < _len2; _k++) {
-        child = _ref3[_k];
-        _results.push(child.translate(vector));
-      }
-      return _results;
-    };
-
-    return BlockPaper;
-
-  })(IcePaper);
-
-  SocketPaper = (function(_super) {
-    __extends(SocketPaper, _super);
-
-    function SocketPaper(block) {
-      SocketPaper.__super__.constructor.call(this, block);
-      this._empty = false;
-      this._content = null;
-      this._line = 0;
-      this.indented = {};
-      this.children = [];
-    }
-
-    SocketPaper.prototype.compute = function(state) {
-      var contentPaper, line;
-      this.bounds = {};
-      this.lineGroups = {};
-      this.group = new draw.Group();
-      this.dropArea = null;
-      if ((this._content = this.block.content()) != null) {
-        (contentPaper = this._content.paper).compute(state);
-        for (line in contentPaper.bounds) {
-          if (this._content.type === 'text') {
-            this._line = state.line;
-            this.bounds[line] = new draw.NoRectangle();
-            this.bounds[line].copy(contentPaper.bounds[line]);
-            this.bounds[line].y -= PADDING;
-            this.bounds[line].width += 2 * PADDING;
-            this.bounds[line].x -= PADDING;
-            this.bounds[line].height += 2 * PADDING;
-            this.bounds[line].width = Math.max(this.bounds[line].width, 20);
-            this.dropArea = this.bounds[line];
-          } else {
-            this.bounds[line] = contentPaper.bounds[line];
-          }
-          this.lineGroups[line] = contentPaper.lineGroups[line];
-        }
-        this.indented = this._content.paper.indented;
-        this.indentEnd = this._content.paper.indentEnd;
-        this.group = contentPaper.group;
-        this.children = [this._content.paper];
-        this.lineStart = contentPaper.lineStart;
-        this.lineEnd = contentPaper.lineEnd;
-      } else {
-        this.dropArea = this.bounds[state.line] = new draw.Rectangle(0, 0, 20, 20);
-        this.lineStart = this.lineEnd = this._line = state.line;
-        this.children = [];
-        this.indented = {};
-        this.indented[this._line] = false;
-        this.lineGroups[this._line] = new draw.Group();
-      }
-      this._empty = (this._content == null) || this._content.type === 'text';
-      return this;
-    };
-
-    SocketPaper.prototype.setLeftCenter = function(line, point) {
-      if (this._content != null) {
-        if (this._content.type === 'text') {
-          line = this._content.paper._line;
-          this._content.paper.setLeftCenter(line, new draw.Point(point.x + PADDING, point.y));
-          this.bounds[line].copy(this._content.paper.bounds[line]);
-          this.bounds[line].y -= PADDING;
-          this.bounds[line].width += 2 * PADDING;
-          this.bounds[line].x -= PADDING;
-          this.bounds[line].height += 2 * PADDING;
-          this.bounds[line].width = Math.max(this.bounds[line].width, 20);
+      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+        cursor = _ref1[_j];
+        if (cursor.token.prev.type === 'newline' || cursor.token.prev.type === 'segmentStart') {
+          yCoordinate = this.bounds[cursor.line].y;
         } else {
-          this._content.paper.setLeftCenter(line, point);
+          yCoordinate = this.bounds[cursor.line].bottom();
         }
-        return this.lineGroups[line].recompute();
-      } else {
-        this.bounds[line].x = point.x;
-        this.bounds[line].y = point.y - this.bounds[line].height / 2;
-        return this.lineGroups[line].setPosition(new draw.Point(point.x, point.y - this.bounds[line].height / 2));
-      }
-    };
-
-    SocketPaper.prototype.draw = function(ctx) {
-      var line, rect;
-      if (this._content != null) {
-        if (this._content.type === 'text') {
-          line = this._content.paper._line;
-          ctx.strokeStyle = '#000';
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(this.bounds[line].x, this.bounds[line].y, this.bounds[line].width, this.bounds[line].height);
-          ctx.strokeRect(this.bounds[line].x, this.bounds[line].y, this.bounds[line].width, this.bounds[line].height);
-        }
-        return this._content.paper.draw(ctx);
-      } else {
-        rect = this.bounds[this._line];
-        ctx.strokeStyle = '#000';
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-        return ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-      }
-    };
-
-    SocketPaper.prototype.translate = function(vector) {
-      var line;
-      if (this._content != null) {
-        this._content.paper.translate(vector);
-        if (this._content.type === 'text') {
-          line = this._content.paper._line;
-          this.bounds[line].copy(this._content.paper.bounds[line]);
-          this.bounds[line].y -= PADDING;
-          this.bounds[line].width += 2 * PADDING;
-          this.bounds[line].x -= PADDING;
-          this.bounds[line].height += 2 * PADDING;
-          return this.bounds[line].width = Math.max(this.bounds[line].width, 20);
-        }
-      } else {
-        return this.bounds[this._line].translate(vector);
-      }
-    };
-
-    return SocketPaper;
-
-  })(IcePaper);
-
-  CursorTokenPaper = (function(_super) {
-    __extends(CursorTokenPaper, _super);
-
-    function CursorTokenPaper(block) {
-      CursorTokenPaper.__super__.constructor.call(this, block);
-      this._rect = new draw.NoRectangle();
-    }
-
-    CursorTokenPaper.prototype.compute = function(state) {
-      this.lineStart = this.lineEnd = state.line;
-      return this;
-    };
-
-    CursorTokenPaper.prototype.setRect = function(rect) {
-      this._rect = rect;
-      return this.useTop = false;
-    };
-
-    CursorTokenPaper.prototype.setRectTop = function(rect) {
-      this._rect = rect;
-      return this.useTop = true;
-    };
-
-    CursorTokenPaper.prototype.finish = function() {};
-
-    CursorTokenPaper.prototype.draw = function(ctx) {
-      var _this = this;
-      return setTimeout((function() {
-        var y;
-        ctx.strokeStyle = '#000';
-        ctx.fillStyle = '#FFF';
-        y = _this.useTop ? _this._rect.y : _this._rect.bottom();
+        ctx.fillStyle = '#000';
+        ctx.strokeSTyle = '#000';
         ctx.beginPath();
-        ctx.moveTo(_this._rect.x, y);
-        ctx.lineTo(_this._rect.x - 5, y + 5);
-        ctx.lineTo(_this._rect.x - 5, y - 5);
-        ctx.lineTo(_this._rect.x, y);
-        ctx.lineTo(_this._rect.x + _this._rect.width, y);
-        ctx.lineTo(_this._rect.x + _this._rect.width + 5, y - 5);
-        ctx.lineTo(_this._rect.x + _this._rect.width + 5, y + 5);
-        ctx.lineTo(_this._rect.x + _this._rect.width, y);
+        if (this.bounds[cursor.line].x >= 5) {
+          ctx.moveTo(this.bounds[cursor.line].x, yCoordinate);
+          ctx.lineTo(this.bounds[cursor.line].x - 5, yCoordinate - 5);
+          ctx.lineTo(this.bounds[cursor.line].x - 5, yCoordinate + 5);
+        } else {
+          ctx.moveTo(this.bounds[cursor.line].x, yCoordinate);
+          ctx.lineTo(this.bounds[cursor.line].x + 5, yCoordinate - 5);
+          ctx.lineTo(this.bounds[cursor.line].x + 5, yCoordinate + 5);
+        }
         ctx.stroke();
-        return ctx.fill();
-      }), 0);
+        _results.push(ctx.fill());
+      }
+      return _results;
     };
 
-    return CursorTokenPaper;
+    IceView.prototype.draw = function(ctx) {
+      this.drawPath(ctx);
+      return this.drawCursor(ctx);
+    };
 
-  })(IcePaper);
+    IceView.prototype.compute = function(line) {
+      if (line == null) {
+        line = 0;
+      }
+      this.computeChildren(line);
+      this.computeDimensions();
+      this.computeBoundingBoxes();
+      return this.computePath();
+    };
 
-  IndentPaper = (function(_super) {
-    __extends(IndentPaper, _super);
+    IceView.prototype.translate = function(point) {
+      var bound, child, line, _i, _len, _ref, _ref1, _results;
+      _ref = this.bounds;
+      for (line in _ref) {
+        bound = _ref[line];
+        bound.translate(point);
+      }
+      _ref1 = this.children;
+      _results = [];
+      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+        child = _ref1[_i];
+        _results.push(child.translate(point));
+      }
+      return _results;
+    };
 
-    function IndentPaper(block) {
-      IndentPaper.__super__.constructor.call(this, block);
-      this._lineBlocks = {};
+    return IceView;
+
+  })();
+
+  BlockView = (function(_super) {
+    __extends(BlockView, _super);
+
+    function BlockView(block) {
+      BlockView.__super__.constructor.call(this, block);
+      this.path = null;
     }
 
-    IndentPaper.prototype.compute = function(state) {
-      var head, i, line, setCursor, _i, _ref, _ref1;
-      this.bounds = {};
-      this.lineGroups = {};
-      this._lineBlocks = {};
-      this.indentEnd = {};
-      this.group = new draw.Group();
-      this.children = [];
-      this.lineStart = state.line += 1;
-      head = this.block.start.next;
-      if (head.type === 'cursor') {
-        head = head.next;
-      }
-      if (head.type === 'newline') {
-        head = head.next;
-      }
-      if (this.block.start.next === this.block.end) {
-        head = this.block.end;
-      }
-      while (head !== this.block.end) {
-        switch (head.type) {
-          case 'blockStart':
-            this.children.push(head.block.paper.compute(state));
-            this.group.push(head.block.paper.group);
-            head = head.block.end;
-            break;
-          case 'cursor':
-            this.children.push(head.paper.compute(state));
-            this.group.push(head.paper.group);
-            break;
-          case 'newline':
-            state.line += 1;
+    BlockView.prototype.computeDimensions = function() {
+      var child, height, line, width, _i, _j, _len, _ref, _ref1, _ref2, _results;
+      BlockView.__super__.computeDimensions.apply(this, arguments);
+      _results = [];
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        width = PADDING;
+        height = 2 * PADDING;
+        _ref2 = this.lineChildren[line];
+        for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+          child = _ref2[_j];
+          if (child.block.type === 'indent') {
+            width += child.dimensions[line].width + INDENT_SPACING;
+            height = Math.max(height, child.dimensions[line].height + (child.lineEnd === line ? TOUNGE_HEIGHT : 0));
+          } else if (child.indented[line]) {
+            width += child.dimensions[line].width + PADDING;
+            height = Math.max(height, child.dimensions[line].height);
+          } else {
+            width += child.dimensions[line].width + PADDING;
+            height = Math.max(height, child.dimensions[line].height + 2 * PADDING);
+          }
         }
-        head = head.next;
+        _results.push(this.dimensions[line] = new draw.Size(width, height));
       }
-      this.lineEnd = state.line;
-      if (this.children.length > 0) {
-        i = 0;
+      return _results;
+    };
+
+    BlockView.prototype.computeBoundingBox = function(line, state) {
+      var axis, child, cursor, indentChild, paddingLeft, _i, _len, _ref;
+      axis = state.y + this.dimensions[line].height / 2;
+      cursor = state.x;
+      this.bounds[line] = new draw.Rectangle(state.x, state.y, this.dimensions[line].width, this.dimensions[line].height);
+      _ref = this.lineChildren[line];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        if (child.block.type === 'indent') {
+          cursor += INDENT_SPACING;
+          child.computeBoundingBox(line, new BoundingBoxState(new draw.Point(cursor, state.y)));
+        } else {
+          cursor += PADDING;
+          child.computeBoundingBox(line, new BoundingBoxState(new draw.Point(cursor, axis - child.dimensions[line].height / 2)));
+        }
+        cursor += child.dimensions[line].width;
+      }
+      if (this.lineChildren[line].length > 0 && !(this.lineChildren[line][0].indented[line] || this.lineChildren[line][0].block.type === 'indent')) {
+        /*
+        # Normally, we just enclose everything within these bounds
+        */
+
+        return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].bottom())]);
+      } else if (this.lineChildren[line].length > 0) {
+        /*
+        # There is, however, the special case when a child on this line is indented, or is an indent.
+        */
+
+        if (line === this.lineChildren[line][0].lineEnd && this.lineChildren[line][0].block.type === 'indent') {
+          /*
+          # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
+          */
+
+          indentChild = this.lineChildren[line][0];
+          paddingLeft = this.lineChildren[line][0].block.type === 'indent' ? INDENT_SPACING : PADDING;
+          if (this.lineChildren[line].length === 1) {
+            return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].x + paddingLeft, this.bounds[line].y), new draw.Point(this.bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()), new draw.Point(indentChild.bounds[line].right(), indentChild.bounds[line].bottom()), new draw.Point(this.bounds[line].right(), indentChild.bounds[line].bottom()), new draw.Point(this.bounds[line].right(), this.bounds[line].bottom())]);
+          } else {
+            return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].x + paddingLeft, this.bounds[line].y), new draw.Point(this.bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()), new draw.Point(indentChild.bounds[line].right(), indentChild.bounds[line].bottom()), new draw.Point(indentChild.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].bottom())]);
+          }
+        } else {
+          /*
+          # When the child in front of us is indented, we only draw a thin strip
+          # of conainer block to the left of them, with width INDENT_SPACING
+          */
+
+          return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].x + INDENT_SPACING, this.bounds[line].y), new draw.Point(this.bounds[line].x + INDENT_SPACING, this.bounds[line].bottom())]);
+        }
+      }
+    };
+
+    BlockView.prototype.computePath = function() {
+      var entryPoint, line, point, waypoint, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
+      BlockView.__super__.computePath.apply(this, arguments);
+      this.path = new draw.Path();
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
+      if (!((_ref = this.block.inSocket()) != null ? _ref : false)) {
+        this.path.push(new draw.Point(this.bounds[this.lineStart].x + TAB_OFFSET, this.bounds[this.lineStart].y));
+        this.path.push(new draw.Point(this.bounds[this.lineStart].x + TAB_OFFSET + TAB_WIDTH / 8, this.bounds[this.lineStart].y + TAB_HEIGHT));
+        this.path.push(new draw.Point(this.bounds[this.lineStart].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, this.bounds[this.lineStart].y + TAB_HEIGHT));
+        this.path.push(new draw.Point(this.bounds[this.lineStart].x + TAB_OFFSET + TAB_WIDTH, this.bounds[this.lineStart].y));
+      }
+      _ref1 = this.pathWaypoints;
+      for (line in _ref1) {
+        waypoint = _ref1[line];
+        if (this.indentStartsOn[line]) {
+          entryPoint = new draw.Point(this.bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH, this.bounds[line].y);
+          if (this.path._points.length > 0 && entryPoint.y !== this.path._points[this.path._points.length - 1].y) {
+            this.path.push(new draw.Point(this.path._points[this.path._points.length - 1].x, entryPoint.y));
+          }
+          this.path.push(entryPoint);
+          this.path.push(new draw.Point(this.bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH * 7 / 8, this.bounds[line].y + TAB_HEIGHT));
+          this.path.push(new draw.Point(this.bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH / 8, this.bounds[line].y + TAB_HEIGHT));
+          this.path.push(new draw.Point(this.bounds[line].x + INDENT_SPACING + TAB_OFFSET, this.bounds[line].y));
+        }
+        _ref2 = waypoint.left;
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          point = _ref2[_i];
+          if (this.path._points.length > 0 && point.x !== this.path._points[0].x) {
+            this.path.unshift(new draw.Point(point.x, this.path._points[0].y));
+          }
+          this.path.unshift(point);
+        }
+        _ref3 = waypoint.right;
+        for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
+          point = _ref3[_j];
+          if (this.path._points.length > 0 && point.y !== this.path._points[this.path._points.length - 1].y) {
+            this.path.push(new draw.Point(this.path._points[this.path._points.length - 1].x, point.y));
+          }
+          this.path.push(point);
+        }
+      }
+      if (!((_ref4 = this.block.inSocket()) != null ? _ref4 : false)) {
+        this.path.unshift(new draw.Point(this.bounds[this.lineEnd].x + TAB_OFFSET, this.bounds[this.lineEnd].bottom()));
+        this.path.unshift(new draw.Point(this.bounds[this.lineEnd].x + TAB_OFFSET + TAB_WIDTH / 8, this.bounds[this.lineEnd].bottom() + TAB_HEIGHT));
+        this.path.unshift(new draw.Point(this.bounds[this.lineEnd].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, this.bounds[this.lineEnd].bottom() + TAB_HEIGHT));
+        this.path.unshift(new draw.Point(this.bounds[this.lineEnd].x + TAB_OFFSET + TAB_WIDTH, this.bounds[this.lineEnd].bottom()));
+      }
+      this.path.style.fillColor = this.block.color;
+      return this.path.style.strokeColor = '#000';
+    };
+
+    BlockView.prototype.drawPath = function(ctx) {
+      if (this.path._points.length === 0) {
+        debugger;
+      }
+      this.path.draw(ctx);
+      return BlockView.__super__.drawPath.apply(this, arguments);
+    };
+
+    BlockView.prototype.translate = function(point) {
+      this.path.translate(point);
+      return BlockView.__super__.translate.apply(this, arguments);
+    };
+
+    return BlockView;
+
+  })(IceView);
+
+  TextView = (function(_super) {
+    __extends(TextView, _super);
+
+    function TextView(block) {
+      TextView.__super__.constructor.call(this, block);
+      this.textElement = null;
+    }
+
+    TextView.prototype.computeChildren = function(line) {
+      return this.lineStart = this.lineEnd = line;
+    };
+
+    TextView.prototype.computeDimensions = function() {
+      this.textElement = new draw.Text(new draw.Point(0, 0), this.block.value);
+      this.dimensions[this.lineStart] = new draw.Size(this.textElement.bounds().width, this.textElement.bounds().height);
+      return this.dimesions;
+    };
+
+    TextView.prototype.computeBoundingBox = function(line, state) {
+      if (line === this.lineStart) {
+        this.bounds[line] = new draw.Rectangle(state.x, state.y, this.dimensions[line].width, this.dimensions[line].height);
+        return this.textElement.setPosition(new draw.Point(state.x, state.y));
+      }
+    };
+
+    TextView.prototype.computePath = function() {};
+
+    TextView.prototype.drawPath = function(ctx) {
+      return this.textElement.draw(ctx);
+    };
+
+    TextView.prototype.translate = function(point) {
+      this.textElement.translate(point);
+      return TextView.__super__.translate.apply(this, arguments);
+    };
+
+    return TextView;
+
+  })(IceView);
+
+  IndentView = (function(_super) {
+    __extends(IndentView, _super);
+
+    function IndentView(block) {
+      IndentView.__super__.constructor.call(this, block);
+    }
+
+    IndentView.prototype.computeChildren = function(line) {
+      IndentView.__super__.computeChildren.apply(this, arguments);
+      this.lineStart += 1;
+      return this.lineEnd;
+    };
+
+    IndentView.prototype.computeDimensions = function() {
+      var child, height, line, width, _i, _j, _len, _ref, _ref1, _ref2, _results;
+      IndentView.__super__.computeDimensions.apply(this, arguments);
+      if (this.lineEnd >= this.lineStart) {
+        _results = [];
         for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-          while (!(line <= this.children[i].lineEnd)) {
-            i += 1;
+          height = width = 0;
+          _ref2 = this.lineChildren[line];
+          for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+            child = _ref2[_j];
+            width += child.dimensions[line].width;
+            height = Math.max(height, child.dimensions[line].height);
           }
-          setCursor = false;
-          if ((this.children[i] != null) && this.children[i].block.type === 'cursor') {
-            setCursor = true;
-            i += 1;
-          }
-          this.bounds[line] = this.children[i].bounds[line];
-          this.lineGroups[line] = new draw.Group();
-          this.indentEnd[line] = this.children[i].indentEnd[line];
-          this.lineGroups[line].push(this.children[i].lineGroups[line]);
-          this._lineBlocks[line] = this.children[i];
-          if (setCursor) {
-            this.children[i - 1].setRectTop(this.bounds[line]);
-          } else if ((this.children[i + 1] != null) && this.children[i + 1].block.type === 'cursor') {
-            this.children[i + 1].setRect(this.bounds[line]);
-          }
+          height = Math.max(height, EMPTY_INDENT_HEIGHT);
+          width = Math.max(width, EMPTY_INDENT_WIDTH);
+          _results.push(this.dimensions[line] = new draw.Size(width, height));
         }
-      } else {
-        this.lineGroups[this.lineStart] = new draw.Group();
-        this._lineBlocks[this.lineStart] = null;
-        this.bounds[this.lineStart] = new draw.Rectangle(0, 0, EMPTY_INDENT_WIDTH, 0);
+        return _results;
       }
-      return this;
     };
 
-    IndentPaper.prototype.finish = function() {
-      var child, _i, _len, _ref, _results;
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, Math.max(this.bounds[this.lineStart].width, MIN_INDENT_DROP_WIDTH), 10);
-      _ref = this.children;
+    IndentView.prototype.computeBoundingBox = function(line, state) {
+      var child, cursorX, cursorY, _i, _len, _ref, _results;
+      cursorX = state.x;
+      cursorY = state.y;
+      this.bounds[line] = new draw.Rectangle(state.x, state.y, this.dimensions[line].width, this.dimensions[line].height);
+      _ref = this.lineChildren[line];
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
-        _results.push(child.finish());
+        child.computeBoundingBox(line, new BoundingBoxState(new draw.Point(cursorX, cursorY)));
+        _results.push(cursorX += child.dimensions[line].width);
       }
       return _results;
     };
 
-    IndentPaper.prototype.setLeftCenter = function(line, point) {
-      if (this._lineBlocks[line] != null) {
-        this._lineBlocks[line].setLeftCenter(line, point);
-        return this.lineGroups[line].recompute();
-      } else {
-        this.bounds[this.lineStart].clear();
-        this.bounds[this.lineStart].swallow(point);
-        return this.bounds[this.lineStart].width = EMPTY_INDENT_WIDTH;
-      }
+    IndentView.prototype.computePath = function() {
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
+      return IndentView.__super__.computePath.apply(this, arguments);
     };
 
-    IndentPaper.prototype.draw = function(ctx) {
-      var child, _i, _len, _ref, _results;
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.draw(ctx));
-      }
-      return _results;
-    };
+    return IndentView;
 
-    IndentPaper.prototype.translate = function(vector) {
-      var child, _i, _len, _ref, _results;
-      this.point.add(vector);
-      if (this.bounds[this.lineStart].height === 0) {
-        this.bounds[this.lineStart].translate(vector);
-      }
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.translate(vector));
-      }
-      return _results;
-    };
+  })(IceView);
 
-    IndentPaper.prototype.setPosition = function(point) {
-      return this.translate(point.from(this.point));
-    };
+  SocketView = (function(_super) {
+    __extends(SocketView, _super);
 
-    return IndentPaper;
-
-  })(IcePaper);
-
-  SegmentPaper = (function(_super) {
-    __extends(SegmentPaper, _super);
-
-    function SegmentPaper(block) {
-      SegmentPaper.__super__.constructor.call(this, block);
-      this._lineBlocks = {};
+    function SocketView(block) {
+      SocketView.__super__.constructor.call(this, block);
     }
 
-    SegmentPaper.prototype.compute = function(state) {
-      var head, i, line, running_height, _i, _ref, _ref1;
-      this.bounds = {};
-      this.lineGroups = {};
-      this._lineBlocks = {};
-      this.indentEnd = {};
-      this.group = new draw.Group();
-      this.children = [];
-      this.lineStart = state.line += 1;
-      head = this.block.start.next;
-      if (this.block.start.next === this.block.end) {
-        head = this.block.end;
-      }
-      running_height = 0;
-      while (head !== this.block.end) {
-        switch (head.type) {
-          case 'blockStart':
-            this.children.push(head.block.paper.compute(state));
-            head.block.paper.translate(new draw.Point(0, running_height));
-            running_height = head.block.paper.bounds[head.block.paper.lineEnd].bottom();
-            this.group.push(head.block.paper.group);
-            head = head.block.end;
-            break;
-          case 'cursor':
-            this.children.push(head.paper.compute(state));
-            if (this.children.length > 2) {
-              head.paper.setRect(new draw.Rectangle(0, running_height, this.children[this.children.length - 2].bounds[this.children[this.children.length - 2].lineEnd].width, 0));
-            } else {
-              head.paper.setRect(new draw.Rectangle(0, running_height, DEFAULT_CURSOR_WIDTH, 0));
+    SocketView.prototype.computeDimensions = function() {
+      var content, line, value, _ref;
+      SocketView.__super__.computeDimensions.apply(this, arguments);
+      if ((content = this.block.content()) != null) {
+        switch (this.block.content().type) {
+          case 'block':
+            _ref = content.view.dimensions;
+            for (line in _ref) {
+              value = _ref[line];
+              this.dimensions[line] = new draw.Size(value.width, value.height);
             }
-            this.group.push(head.paper.group);
             break;
-          case 'newline':
-            state.line += 1;
+          case 'text':
+            this.dimensions[content.view.lineStart] = new draw.Size(content.view.dimensions[content.view.lineStart].width + 2 * PADDING, content.view.dimensions[content.view.lineStart].height + 2 * PADDING);
+            this.dimensions[content.view.lineStart].width = Math.max(this.dimensions[content.view.lineStart].width, EMPTY_SOCKET_WIDTH);
         }
-        head = head.next;
-      }
-      this.lineEnd = state.line;
-      if (this.children.length === 0) {
-        this.bounds[state.line] = new draw.Rectangle(0, 0, 0, 0);
-        return this;
-      }
-      i = 0;
-      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        while (!(line <= this.children[i].lineEnd && this.children[i].block.type !== 'cursor')) {
-          i += 1;
-        }
-        this.bounds[line] = this.children[i].bounds[line];
-        this.lineGroups[line] = new draw.Group();
-        this.indentEnd[line] = this.children[i].indentEnd[line];
-        this.lineGroups[line].push(this.children[i].lineGroups[line]);
-        this._lineBlocks[line] = this.children[i];
-      }
-      return this;
-    };
-
-    SegmentPaper.prototype.prepBounds = function() {
-      var head, i, line, running_height, _i, _ref, _ref1;
-      this.bounds = {};
-      this.lineGroups = {};
-      this._lineBlocks = {};
-      this.indentEnd = {};
-      this.group = new draw.Group();
-      this.children = [];
-      this.lineStart = Infinity;
-      this.lineEnd = 0;
-      head = this.block.start.next;
-      if (this.block.start.next === this.block.end) {
-        head = this.block.end;
-      }
-      running_height = 0;
-      while (head !== this.block.end) {
-        switch (head.type) {
-          case 'blockStart':
-            this.children.push(head.block.paper);
-            this.lineStart = Math.min(this.lineStart, head.block.paper.lineStart);
-            this.lineEnd = Math.max(this.lineEnd, head.block.paper.lineEnd);
-            head = head.block.end;
-        }
-        head = head.next;
-      }
-      i = 0;
-      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        while (!(line <= this.children[i].lineEnd)) {
-          i += 1;
-        }
-        this.bounds[line] = this.children[i].bounds[line];
-      }
-      return this;
-    };
-
-    SegmentPaper.prototype.getBounds = function() {
-      var bounds, head;
-      head = this.block.start.next;
-      if (this.block.start.next === this.block.end) {
-        head = this.block.end;
-      }
-      bounds = new draw.NoRectangle();
-      while (head !== this.block.end) {
-        switch (head.type) {
-          case 'blockStart':
-            bounds.unite(head.block.paper._container.bounds());
-        }
-        head = head.next;
-      }
-      return bounds;
-    };
-
-    SegmentPaper.prototype.finish = function() {
-      var child, _i, _len, _ref, _results;
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, Math.max(this.bounds[this.lineStart].width, MIN_INDENT_DROP_WIDTH), 10);
-      if (this.bounds[this.lineStart].width === 0) {
-        this.dropArea.width = EMPTY_SEGMENT_DROP_WIDTH;
-      }
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.finish());
-      }
-      return _results;
-    };
-
-    SegmentPaper.prototype.setLeftCenter = function(line, point) {
-      if (this._lineBlocks[line] != null) {
-        this._lineBlocks[line].setLeftCenter(line, point);
-        return this.lineGroups[line].recompute();
       } else {
-        this.bounds[this.lineStart].clear();
-        this.bounds[this.lineStart].swallow(point);
-        return this.bounds[this.lineStart].width = EMPTY_INDENT_WIDTH;
+        this.dimensions[this.lineStart] = new draw.Size(EMPTY_SOCKET_WIDTH, EMPTY_SOCKET_HEIGHT);
+      }
+      return this.dimensions;
+    };
+
+    SocketView.prototype.computeBoundingBox = function(line, state) {
+      this.bounds[line] = new draw.Rectangle(state.x, state.y, this.dimensions[line].width, this.dimensions[line].height);
+      if (this.lineChildren[line].length === 0) {
+
+      } else if (this.lineChildren[line].length > 1) {
+        throw 'Error: more than one child inside a socket';
+      } else if (this.block.content().type === 'text') {
+        return this.lineChildren[line][0].computeBoundingBox(line, new BoundingBoxState(new draw.Point(state.x + PADDING, state.y + PADDING)));
+      } else {
+        return this.lineChildren[line][0].computeBoundingBox(line, state);
       }
     };
 
-    SegmentPaper.prototype.draw = function(ctx) {
-      var child, _i, _len, _ref, _results;
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.draw(ctx));
+    SocketView.prototype.computePath = function() {
+      var _ref;
+      if (((_ref = this.block.content()) != null ? _ref.type : void 0) !== 'block') {
+        (this.dropArea = new draw.Rectangle()).copy(this.bounds[this.lineStart]);
       }
-      return _results;
+      return SocketView.__super__.computePath.apply(this, arguments);
     };
 
-    SegmentPaper.prototype.translate = function(vector) {
-      var child, _i, _len, _ref, _results;
-      this.point.add(vector);
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.translate(vector));
+    SocketView.prototype.drawPath = function(ctx) {
+      if ((this.block.content() == null) || this.block.content().type === 'text') {
+        this.bounds[this.lineStart].stroke(ctx, '#000');
+        this.bounds[this.lineStart].fill(ctx, '#FFF');
       }
-      return _results;
+      return SocketView.__super__.drawPath.apply(this, arguments);
     };
 
-    SegmentPaper.prototype.setPosition = function(point) {
-      return this.translate(point.from(this.point));
-    };
+    return SocketView;
 
-    return SegmentPaper;
+  })(IceView);
 
-  })(IcePaper);
+  SegmentView = (function(_super) {
+    __extends(SegmentView, _super);
 
-  TextTokenPaper = (function(_super) {
-    __extends(TextTokenPaper, _super);
-
-    function TextTokenPaper(block) {
-      TextTokenPaper.__super__.constructor.call(this, block);
-      this._line = 0;
+    function SegmentView(block) {
+      SegmentView.__super__.constructor.call(this, block);
     }
 
-    TextTokenPaper.prototype.compute = function(state) {
-      this.lineStart = this.lineEnd = this._line = state.line;
-      this.lineGroups = {};
-      this.bounds = {};
-      this.group = this.lineGroups[this._line] = new draw.Group();
-      this.lineGroups[this._line].push(this._text = new draw.Text(new draw.Point(0, 0), this.block.value));
-      this.bounds[this._line] = this._text.bounds();
-      return this;
-    };
-
-    TextTokenPaper.prototype.draw = function(ctx) {
-      return this._text.draw(ctx);
-    };
-
-    TextTokenPaper.prototype.setLeftCenter = function(line, point) {
-      if (line === this._line) {
-        this._text.setPosition(new draw.Point(point.x, point.y - this.bounds[this._line].height / 2));
-        return this.lineGroups[this._line].recompute();
+    SegmentView.prototype.computeDimensions = function() {
+      var child, height, line, width, _i, _j, _len, _ref, _ref1, _ref2, _results;
+      SegmentView.__super__.computeDimensions.apply(this, arguments);
+      _results = [];
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        height = width = 0;
+        _ref2 = this.lineChildren[line];
+        for (_j = 0, _len = _ref2.length; _j < _len; _j++) {
+          child = _ref2[_j];
+          width += child.dimensions[line].width;
+          height = Math.max(height, child.dimensions[line].height);
+        }
+        _results.push(this.dimensions[line] = new draw.Size(width, height));
       }
+      return _results;
     };
 
-    TextTokenPaper.prototype.translate = function(vector) {
-      return this._text.translate(vector);
+    SegmentView.prototype.computeBoundingBox = function(line, state) {
+      /*
+      # A Segment can compute its bounds the same way an Indent does.
+      */
+
+      var child, cursorX, cursorY, _i, _len, _ref, _results;
+      cursorX = state.x;
+      cursorY = state.y;
+      this.bounds[line] = new draw.Rectangle(state.x, state.y, this.dimensions[line].width, this.dimensions[line].height);
+      _ref = this.lineChildren[line];
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        child = _ref[_i];
+        child.computeBoundingBox(line, new BoundingBoxState(new draw.Point(cursorX, cursorY)));
+        _results.push(cursorX += child.dimensions[line].width);
+      }
+      return _results;
     };
 
-    return TextTokenPaper;
+    return SegmentView;
 
-  })(IcePaper);
+  })(IceView);
+
+  CursorView = (function(_super) {
+    __extends(CursorView, _super);
+
+    function CursorView(block) {
+      CursorView.__super__.constructor.call(this, block);
+    }
+
+    CursorView.prototype.computeChildren = function(line) {
+      return this.lineStart = this.lineEnd = line;
+    };
+
+    return CursorView;
+
+  })(IceView);
 
   INDENT_SPACES = 2;
 
@@ -1810,9 +1605,21 @@
 
   PALETTE_MARGIN = 10;
 
+  PALETTE_WIDTH = 300;
+
+  exports.IceEditorChangeEvent = IceEditorChangeEvent = (function() {
+    function IceEditorChangeEvent(block, target) {
+      this.block = block;
+      this.target = target;
+    }
+
+    return IceEditorChangeEvent;
+
+  })();
+
   exports.Editor = Editor = (function() {
     function Editor(el, paletteBlocks) {
-      var child, deleteFromCursor, drag, dragCtx, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, mainCtx, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, paletteCtx, redrawTextInput, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
+      var child, deleteFromCursor, drag, dragCtx, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, mainCtx, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, paletteCtx, redrawTextInput, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
         _this = this;
       this.paletteBlocks = paletteBlocks;
       /*
@@ -1909,16 +1716,12 @@
         return mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, main.width, main.height);
       };
       this.redraw = function() {
-        var float, paper, _j, _k, _len1, _len2, _ref1, _ref2, _results;
+        var float, view, _j, _k, _len1, _len2, _ref1, _ref2, _results;
         _this.clear();
-        _this.tree.paper.compute({
-          line: 0
-        });
-        _this.tree.paper.finish();
-        _this.tree.paper.draw(mainCtx);
+        _this.tree.view.compute();
+        _this.tree.view.draw(mainCtx);
         if (_this.lassoSegment != null) {
-          _this.lassoSegment.paper.prepBounds();
-          _this._lassoBounds = _this.lassoSegment.paper.getBounds();
+          _this._lassoBounds = _this.lassoSegment.view.getBounds();
           _ref1 = _this.floatingBlocks;
           for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
             float = _ref1[_j];
@@ -1935,13 +1738,10 @@
         _results = [];
         for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
           float = _ref2[_k];
-          paper = float.block.paper;
-          paper.compute({
-            line: 0
-          });
-          paper.translate(float.position);
-          paper.finish();
-          _results.push(paper.draw(mainCtx));
+          view = float.block.view;
+          view.compute();
+          view.translate(float.position);
+          _results.push(view.draw(mainCtx));
         }
         return _results;
       };
@@ -1950,6 +1750,12 @@
           _this.tree = (coffee.parse(_this.getValue())).segment;
           return _this.redraw();
         } catch (_error) {}
+      };
+      moveBlockTo = function(block, target) {
+        block._moveTo(target);
+        if (_this.onChange != null) {
+          return _this.onChange(new IceEditorChangeEvent(block, target));
+        }
       };
       /*
       # The redrawPalette function ought to be called only once in the current code structure.
@@ -1963,13 +1769,10 @@
         _results = [];
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           paletteBlock = _ref1[_j];
-          paletteBlock.paper.compute({
-            line: 0
-          });
-          paletteBlock.paper.translate(new draw.Point(0, lastBottomEdge));
-          lastBottomEdge = paletteBlock.paper.bounds[paletteBlock.paper.lineEnd].bottom() + PALETTE_MARGIN;
-          paletteBlock.paper.finish();
-          _results.push(paletteBlock.paper.draw(paletteCtx));
+          paletteBlock.view.compute();
+          paletteBlock.view.translate(new draw.Point(0, lastBottomEdge));
+          lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN;
+          _results.push(paletteBlock.view.draw(paletteCtx));
         }
         return _results;
       };
@@ -1986,11 +1789,11 @@
         newBlock.start.insert(newSocket.start);
         newBlock.end.prev.insert(newSocket.end);
         if (_this.cursor.next.type === 'newline' || _this.cursor.next.type === 'indentEnd' || _this.cursor.next.type === 'segmentEnd') {
-          newBlock._moveTo(_this.cursor.prev.insert(new NewlineToken()));
+          moveBlockTo(newBlock, _this.cursor.prev.insert(new NewlineToken()));
           _this.redraw();
           return setTextInputFocus(newSocket);
         } else if (_this.cursor.prev.type === 'newline' || _this.cursor.prev.type === 'segmentStart') {
-          newBlock._moveTo(_this.cursor.prev);
+          moveBlockTo(newBlock, _this.cursor.prev);
           newBlock.end.insert(new NewlineToken());
           _this.redraw();
           return setTextInputFocus(newSocket);
@@ -2021,7 +1824,7 @@
           indent: ''
         }));
         if (head.type === 'blockEnd') {
-          head.block._moveTo(null);
+          moveBlockTo(head.block, null);
           return _this.redraw();
         }
       };
@@ -2104,7 +1907,7 @@
               if (head.type === 'blockStart') {
 
               } else if (head.prev.type === 'indentEnd') {
-                _this.focus.start.prev.block._moveTo(head.prev.prev.insert(new NewlineToken()));
+                moveBlockTo(_this.focus.start.prev.block, head.prev.prev.insert(new NewlineToken()));
                 moveCursorTo(_this.focus.start.prev.block.end);
                 _this.redraw();
                 event.preventDefault();
@@ -2113,7 +1916,7 @@
                 newIndent = new Indent([], INDENT_SPACES);
                 head.prev.insert(newIndent.start);
                 head.prev.insert(newIndent.end);
-                _this.focus.start.prev.block._moveTo(newIndent.start.insert(new NewlineToken()));
+                moveBlockTo(_this.focus.start.prev.block, newIndent.start.insert(new NewlineToken()));
                 moveCursorTo(_this.focus.start.prev.block.end);
                 _this.redraw();
                 event.preventDefault();
@@ -2192,7 +1995,7 @@
         head = root;
         seek = null;
         while (head !== seek) {
-          if (head.type === 'blockStart' && head.block.paper._container.contains(point)) {
+          if (head.type === 'blockStart' && head.block.view.path.contains(point)) {
             seek = head.block.end;
           }
           head = head.next;
@@ -2221,7 +2024,7 @@
         var head;
         head = _this.tree.start;
         while (head !== null) {
-          if (head.type === 'socketStart' && (head.next.type === 'text' || head.next.type === 'socketEnd') && head.socket.paper.bounds[head.socket.paper._line].contains(point)) {
+          if (head.type === 'socketStart' && (head.next.type === 'text' || head.next.type === 'socketEnd') && head.socket.view.bounds[head.socket.view.lineStart].contains(point)) {
             return head.socket;
           }
           head = head.next;
@@ -2312,7 +2115,7 @@
             point.add(PALETTE_WIDTH, 0);
             selectionInPalette = true;
           }
-          rect = _this.selection.paper.bounds[_this.selection.paper.lineStart];
+          rect = _this.selection.view.bounds[_this.selection.view.lineStart];
           offset = point.from(new draw.Point(rect.x, rect.y));
           if (selectionInPalette) {
             _this.selection = _this.selection.clone();
@@ -2325,12 +2128,9 @@
               break;
             }
           }
-          _this.selection._moveTo(null);
-          _this.selection.paper.compute({
-            line: 0
-          });
-          _this.selection.paper.finish();
-          _this.selection.paper.draw(dragCtx);
+          moveBlockTo(_this.selection, null);
+          _this.selection.view.compute();
+          _this.selection.view.draw(dragCtx);
           if (selectionInPalette) {
             fixedDest = new draw.Point(rect.x - PALETTE_WIDTH, rect.y);
           } else {
@@ -2355,13 +2155,13 @@
           old_highlight = highlight;
           highlight = _this.tree.find(function(block) {
             var _ref2;
-            return (!((_ref2 = typeof block.inSocket === "function" ? block.inSocket() : void 0) != null ? _ref2 : false)) && (block.paper.dropArea != null) && block.paper.dropArea.contains(dest);
+            return (!((_ref2 = typeof block.inSocket === "function" ? block.inSocket() : void 0) != null ? _ref2 : false)) && (block.view.dropArea != null) && block.view.dropArea.contains(dest);
           });
           if (old_highlight !== highlight) {
             _this.redraw();
           }
           if (highlight != null) {
-            highlight.paper.dropArea.fill(mainCtx, '#fff');
+            highlight.view.dropArea.fill(mainCtx, '#fff');
           }
           return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
         }
@@ -2378,20 +2178,28 @@
 
             switch (highlight.type) {
               case 'indent':
-                _this.selection._moveTo(highlight.start.insert(new NewlineToken()));
+                head = highlight.end.prev;
+                while (head.type === 'segmentEnd' || head.type === 'segmentStart' || head.type === 'cursor') {
+                  head = head.prev;
+                }
+                if (head.type === 'newline') {
+                  moveBlockTo(_this.selection, highlight.start.next);
+                } else {
+                  moveBlockTo(_this.selection, highlight.start.insert(new NewlineToken()));
+                }
                 break;
               case 'block':
-                _this.selection._moveTo(highlight.end.insert(new NewlineToken()));
+                moveBlockTo(_this.selection, highlight.end.insert(new NewlineToken()));
                 break;
               case 'socket':
                 if (highlight.content() != null) {
                   highlight.content().remove();
                 }
-                _this.selection._moveTo(highlight.start);
+                moveBlockTo(_this.selection, highlight.start);
                 break;
               default:
                 if (highlight === _this.tree) {
-                  _this.selection._moveTo(_this.tree.start);
+                  moveBlockTo(_this.selection, _this.tree.start);
                   _this.selection.end.insert(new NewlineToken());
                 }
             }
@@ -2451,7 +2259,7 @@
           head = _this.tree.start;
           firstLassoed = null;
           while (head !== _this.tree.end) {
-            if (head.type === 'blockStart' && head.block.paper._container.intersects(rect)) {
+            if (head.type === 'blockStart' && head.block.view.path.intersects(rect)) {
               firstLassoed = head;
               break;
             }
@@ -2460,7 +2268,7 @@
           head = _this.tree.end;
           lastLassoed = null;
           while (head !== _this.tree.start) {
-            if (head.type === 'blockEnd' && head.block.paper._container.intersects(rect)) {
+            if (head.type === 'blockEnd' && head.block.view.path.intersects(rect)) {
               lastLassoed = head;
               break;
             }
@@ -2571,13 +2379,13 @@
         var end, start;
         _this.editedText.value = _this.hiddenInput.value;
         _this.redraw();
-        start = _this.editedText.paper.bounds[_editedInputLine].x + mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionStart)).width;
-        end = _this.editedText.paper.bounds[_editedInputLine].x + mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionEnd)).width;
+        start = _this.editedText.view.bounds[_editedInputLine].x + mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionStart)).width;
+        end = _this.editedText.view.bounds[_editedInputLine].x + mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionEnd)).width;
         if (start === end) {
-          return mainCtx.strokeRect(start, _this.editedText.paper.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT);
+          return mainCtx.strokeRect(start, _this.editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT);
         } else {
           mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3';
-          return mainCtx.fillRect(start, _this.editedText.paper.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT);
+          return mainCtx.fillRect(start, _this.editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT);
         }
       };
       setTextInputFocus = function(focus) {
@@ -2586,7 +2394,7 @@
         if (_this.focus === null) {
           return;
         }
-        _editedInputLine = _this.focus.paper._line;
+        _editedInputLine = _this.focus.view.lineStart;
         _this.handwritten = _this.focus.handwritten;
         if (!_this.focus.content()) {
           _this.editedText = new TextToken('');
@@ -2612,11 +2420,11 @@
         }), 0);
       };
       setTextInputHead = function(point) {
-        textInputHead = Math.round((point.x - _this.focus.paper.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
+        textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
         return _this.hiddenInput.setSelectionRange(Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead));
       };
       setTextInputAnchor = function(point) {
-        textInputAnchor = textInputHead = Math.round((point.x - _this.focus.paper.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
+        textInputAnchor = textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
         return _this.hiddenInput.setSelectionRange(textInputAnchor, textInputHead);
       };
       /*
@@ -2680,7 +2488,15 @@
       }
       return _results;
     })());
-    return editor.setValue('for i in [1..10]\n  if i % 2 is 0\n    alert i\n    alert \'bye\'\n  else\n    alert \'fizz\'\n  alert \'buzz\'');
+    editor.setValue('for i in [1..10]\n  if i % 2 is 0\n    alert i\n    alert \'bye\'\n  else\n    alert \'fizz\'\n  alert \'buzz\'');
+    editor.onChange = function() {
+      return document.getElementById('out').innerText = editor.getValue();
+    };
+    return document.getElementById('out').addEventListener('input', function() {
+      try {
+        return editor.setValue(this.value);
+      } catch (_error) {}
+    });
   };
 
 }).call(this);

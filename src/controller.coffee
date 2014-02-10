@@ -1,6 +1,10 @@
 INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
+PALETTE_WIDTH = 300
+
+exports.IceEditorChangeEvent = class IceEditorChangeEvent
+  constructor: (@block, @target) ->
 
 exports.Editor = class Editor
   constructor: (el, @paletteBlocks) ->
@@ -111,19 +115,15 @@ exports.Editor = class Editor
       @clear()
 
       # Compute the root tree
-      @tree.paper.compute line: 0
+      @tree.view.compute()
 
       # Draw it on the main context
-      @tree.paper.finish()
-      @tree.paper.draw mainCtx
+      @tree.view.draw mainCtx
       
       # Alert the lasso segment, if it exists, to recompute its bounds
       if @lassoSegment?
-        # Ask the lasso segment to recompute its bounds
-        @lassoSegment.paper.prepBounds()
-
         # Get those compute bounds
-        @_lassoBounds = @lassoSegment.paper.getBounds()
+        @_lassoBounds = @lassoSegment.view.getBounds()
 
         for float in @floatingBlocks
           if @lassoSegment is float.block
@@ -135,20 +135,23 @@ exports.Editor = class Editor
           @_lassoBounds.fill mainCtx, 'rgba(0, 0, 256, 0.3)'
 
       for float in @floatingBlocks
-        paper = float.block.paper
+        view = float.block.view
         
         # Recompute this floating block's coordinates
-        paper.compute line: 0
-        paper.translate float.position
+        view.compute()
+        view.translate float.position
 
         # Draw it on the main context
-        paper.finish()
-        paper.draw mainCtx
+        view.draw mainCtx
 
     @attemptReparse = =>
       try
         @tree = (coffee.parse @getValue()).segment
         @redraw()
+
+    moveBlockTo = (block, target) =>
+      block._moveTo target
+      if @onChange? then @onChange new IceEditorChangeEvent block, target
     
     ###
     # The redrawPalette function ought to be called only once in the current code structure.
@@ -161,17 +164,16 @@ exports.Editor = class Editor
 
       for paletteBlock in @paletteBlocks
         # Compute the coordinates
-        paletteBlock.paper.compute line: 0
+        paletteBlock.view.compute()
 
         # Translate it into position
-        paletteBlock.paper.translate new draw.Point 0, lastBottomEdge
+        paletteBlock.view.translate new draw.Point 0, lastBottomEdge
 
         # Increment the running height count
-        lastBottomEdge = paletteBlock.paper.bounds[paletteBlock.paper.lineEnd].bottom() + PALETTE_MARGIN # Add margin
+        lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN # Add margin
 
         # Finish and draw the palette block
-        paletteBlock.paper.finish()
-        paletteBlock.paper.draw paletteCtx
+        paletteBlock.view.draw paletteCtx
     
     # (call it right away)
     @redrawPalette()
@@ -189,13 +191,13 @@ exports.Editor = class Editor
       
       # Move it to where the cursor should be
       if @cursor.next.type is 'newline' or @cursor.next.type is 'indentEnd' or @cursor.next.type is 'segmentEnd'
-        newBlock._moveTo @cursor.prev.insert new NewlineToken()
+        moveBlockTo newBlock, @cursor.prev.insert new NewlineToken()
 
         @redraw()
         setTextInputFocus newSocket
 
       else if @cursor.prev.type is 'newline' or @cursor.prev.type is 'segmentStart'
-        newBlock._moveTo @cursor.prev
+        moveBlockTo newBlock, @cursor.prev
         newBlock.end.insert new NewlineToken()
 
         @redraw()
@@ -227,7 +229,7 @@ exports.Editor = class Editor
       console.log head.toString indent:''
 
       # Delete that block and redraw
-      if head.type is 'blockEnd' then head.block._moveTo null; @redraw()
+      if head.type is 'blockEnd' then moveBlockTo head.block, null; @redraw()
     
     ###
     # TODO the following are known not to be able to navigate to the end of an indent.
@@ -297,7 +299,7 @@ exports.Editor = class Editor
           # Otherwise, see if the last child of this block is an indent
           else if head.prev.type is 'indentEnd'
             # Note that it is guaranteed that a handwritten block satisfies @focus.start.prev.block is (the wrapping block)
-            @focus.start.prev.block._moveTo head.prev.prev.insert new NewlineToken() # Move the block we're editing into the indent
+            moveBlockTo @focus.start.prev.block, head.prev.prev.insert new NewlineToken() # Move the block we're editing into the indent
 
             # Move the cursor into its proper position (after this block)
             moveCursorTo @focus.start.prev.block.end
@@ -312,7 +314,7 @@ exports.Editor = class Editor
             head.prev.insert newIndent.start; head.prev.insert newIndent.end
 
             # Move the block we're editing into this new indent
-            @focus.start.prev.block._moveTo newIndent.start.insert new NewlineToken()
+            moveBlockTo @focus.start.prev.block, newIndent.start.insert new NewlineToken()
 
             # Move the cursor into its proper position (after this block)
             moveCursorTo @focus.start.prev.block.end
@@ -358,7 +360,7 @@ exports.Editor = class Editor
     hitTest = (point, root) =>
       head = root; seek = null
       while head isnt seek
-        if head.type is 'blockStart' and head.block.paper._container.contains point
+        if head.type is 'blockStart' and head.block.view.path.contains point
           seek = head.block.end
         head = head.next
       
@@ -376,7 +378,7 @@ exports.Editor = class Editor
       while head isnt null
         if head.type is 'socketStart' and
             (head.next.type is 'text' or head.next.type is 'socketEnd') and
-            head.socket.paper.bounds[head.socket.paper._line].contains point
+            head.socket.view.bounds[head.socket.view.lineStart].contains point
           return head.socket
         head = head.next
 
@@ -471,7 +473,7 @@ exports.Editor = class Editor
         if @selection in @paletteBlocks then point.add PALETTE_WIDTH, 0; selectionInPalette = true
 
         # Compute the offset of the selection position from the mouse
-        rect = @selection.paper.bounds[@selection.paper.lineStart]
+        rect = @selection.view.bounds[@selection.view.lineStart]
         offset = point.from new draw.Point rect.x, rect.y
 
         # If we have clicked something in the palette, the clone first.
@@ -482,12 +484,11 @@ exports.Editor = class Editor
           if float.block is @selection then @floatingBlocks.splice i, 1; break
 
         # Move it to nowhere
-        @selection._moveTo null
+        moveBlockTo @selection, null
 
         # Draw it in the drag canvas
-        @selection.paper.compute line: 0
-        @selection.paper.finish()
-        @selection.paper.draw dragCtx
+        @selection.view.compute()
+        @selection.view.draw dragCtx
 
         # CSS-transform the drag canvas to where it ought to be
         if selectionInPalette
@@ -525,13 +526,13 @@ exports.Editor = class Editor
         old_highlight = highlight
 
         highlight = @tree.find (block) ->
-          (not (block.inSocket?() ? false)) and block.paper.dropArea? and block.paper.dropArea.contains dest
+          (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
 
         # If highlight changed, redraw
         if old_highlight isnt highlight then @redraw()
 
         # Highlight the highlight
-        if highlight? then highlight.paper.dropArea.fill mainCtx, '#fff'
+        if highlight? then highlight.view.dropArea.fill mainCtx, '#fff'
 
         # CSS-transform the drag canvas to where it ought to be
         drag.style.webkitTransform =
@@ -550,24 +551,31 @@ exports.Editor = class Editor
           ###
           switch highlight.type
             when 'indent'
-              # An insert drop signifies that we want to drop the block at the start of the indent
-              @selection._moveTo highlight.start.insert new NewlineToken()
+              head = highlight.end.prev
+              while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
+
+              if head.type is 'newline'
+                # There's already a newline here.
+                moveBlockTo @selection, highlight.start.next
+              else
+                # An insert drop signifies that we want to drop the block at the start of the indent
+                moveBlockTo @selection, highlight.start.insert new NewlineToken()
 
             when 'block'
               # A block drop signifies that we want to drop the block after (the end of) the block.
-              @selection._moveTo highlight.end.insert new NewlineToken()
+              moveBlockTo @selection, highlight.end.insert new NewlineToken()
 
             when 'socket'
               # Remove any previously occupying block or text
               if highlight.content()? then highlight.content().remove()
 
               # Insert
-              @selection._moveTo highlight.start
+              moveBlockTo @selection, highlight.start
             
             else
               if highlight is @tree
                 # We can also drop on the root tree (insert at the start of the program)
-                @selection._moveTo @tree.start
+                moveBlockTo @selection, @tree.start
                 @selection.end.insert new NewlineToken()
 
         else
@@ -650,7 +658,7 @@ exports.Editor = class Editor
         firstLassoed = null
         while head isnt @tree.end
           # A block matches if it intersects the lasso rectangle
-          if head.type is 'blockStart' and head.block.paper._container.intersects rect
+          if head.type is 'blockStart' and head.block.view.path.intersects rect
             firstLassoed = head
             break
           head = head.next
@@ -659,7 +667,7 @@ exports.Editor = class Editor
         head = @tree.end
         lastLassoed = null
         while head isnt @tree.start
-          if head.type is 'blockEnd' and head.block.paper._container.intersects rect
+          if head.type is 'blockEnd' and head.block.view.path.intersects rect
             lastLassoed = head
             break
           head = head.prev
@@ -774,20 +782,20 @@ exports.Editor = class Editor
       @redraw()
       
       # Determine the position (coordinate-wise) of the typing cursor
-      start = @editedText.paper.bounds[_editedInputLine].x +
+      start = @editedText.view.bounds[_editedInputLine].x +
         mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionStart]).width
 
-      end = @editedText.paper.bounds[_editedInputLine].x +
+      end = @editedText.view.bounds[_editedInputLine].x +
         mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionEnd]).width
       
       # Draw the typing cursor itself
       if start is end
         # This is just a line
-        mainCtx.strokeRect start, @editedText.paper.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
+        mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
       else
         # This is the translucent rectangle
         mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3'
-        mainCtx.fillRect start, @editedText.paper.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+        mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
     setTextInputFocus = (focus) =>
       # Literally set the focus
@@ -797,7 +805,7 @@ exports.Editor = class Editor
       if @focus is null then return
       
       # Record the line that the focus is on
-      _editedInputLine = @focus.paper._line
+      _editedInputLine = @focus.view.lineStart
 
       # Flag whether we are editing handwritten
       @handwritten = @focus.handwritten
@@ -830,12 +838,12 @@ exports.Editor = class Editor
       setTimeout (=> @hiddenInput.focus()), 0
 
     setTextInputHead = (point) =>
-      textInputHead = Math.round (point.x - @focus.paper.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
+      textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
 
       @hiddenInput.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
 
     setTextInputAnchor = (point) =>
-      textInputAnchor = textInputHead = Math.round (point.x - @focus.paper.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
+      textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
       @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
     ###
@@ -908,3 +916,11 @@ window.onload = ->
       alert 'fizz'
     alert 'buzz'
   '''
+
+  editor.onChange = ->
+    document.getElementById('out').innerText = editor.getValue()
+
+  document.getElementById('out').addEventListener 'input', ->
+    try
+      editor.setValue this.value
+

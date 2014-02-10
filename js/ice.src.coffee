@@ -25,7 +25,7 @@ exports.Block = class Block
       head = head.append token.clone()
     head.append @end
 
-    @paper = new BlockPaper this
+    @view = new BlockView this
 
   embedded: -> @start.prev.type is 'socketStart'
 
@@ -104,7 +104,7 @@ exports.Block = class Block
       first = @start.prev
       while first? and (first.type is 'segmentStart' or first.type is 'cursor') then first = first.prev
 
-      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
+      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd') and not (first.prev?.type is 'indentStart' and last.type is 'indentEnd')
         first.remove()
       else if last? and (last.type is 'newline') and ((not first?) or first.type is 'newline')
         last.remove()
@@ -171,7 +171,7 @@ exports.Indent = class Indent
       head = head.append block.clone()
     head.append @end
     
-    @paper = new IndentPaper this
+    @view = new IndentView this
 
   clone: ->
     clone = new Indent [], @depth
@@ -236,7 +236,7 @@ exports.Segment = class Segment
       head = head.append block.clone()
     head.append @end
     
-    @paper = new SegmentPaper this
+    @view = new SegmentView this
 
   clone: ->
     clone = new Segment []
@@ -290,7 +290,7 @@ exports.Segment = class Segment
       first = @start.prev
       while first? and (first.type is 'segmentStart' or first.type is 'cursor') then first = first.prev
 
-      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
+      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd') and not (first.prev?.type is 'indentStart' and last.type is 'indentEnd')
         first.remove()
       else if last? and (last.type is 'newline') and ((not first?) or first.type is 'newline')
         last.remove()
@@ -375,7 +375,7 @@ exports.Socket = class Socket
     @handwritten = false # A handwritten socket is a special kind of socket that doesn't accept blocks
                          # Its controller instance also has special key bindings
 
-    @paper = new SocketPaper this
+    @view = new SocketView this
 
   clone: -> if @content()? then new Socket @content().clone() else new Socket()
   
@@ -457,13 +457,13 @@ exports.Token = class Token
 exports.CursorToken = class CursorToken extends Token
   constructor: ->
     @prev = @next = null
-    @paper = new CursorTokenPaper this
+    @view = new CursorView this
     @type = 'cursor'
 
 exports.TextToken = class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null
-    @paper = new TextTokenPaper this
+    @view = new TextView this
     @type = 'text'
 
   clone: -> new TextToken @value
@@ -656,848 +656,662 @@ exports.indentParse = (str) ->
 window.ICE = exports
 
 ###
-# Copyright (c) 2014 Anthony Bau
-# MIT License
-#
-# Rendering classes and functions for ICE editor.
+# Magic constants
 ###
-
-###
-# TODO Trigger rewrite this coming weekend.
-###
-
-# Constants
 PADDING = 5
-INDENT = 10
-MOUTH_BOTTOM = 50
-DROP_AREA_MAX_WIDTH = 50
-FONT_SIZE = 15
+INDENT_SPACING = 10
+TOUNGE_HEIGHT = 10
+FONT_HEIGHT = 15
+EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * 2
+EMPTY_SOCKET_WIDTH = 20
+EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2
 EMPTY_INDENT_WIDTH = 50
-PALETTE_WIDTH = 300
-PALETTE_WHITESPACE = 10
-MIN_INDENT_DROP_WIDTH = 20
-EMPTY_SEGMENT_DROP_WIDTH = 100
-DEFAULT_CURSOR_WIDTH = 100
+TAB_WIDTH = 15
+TAB_HEIGHT = 5
+TAB_OFFSET = 10
 
-###
-# For developers, bits of policy:
-# 1. Calling IcePaper.draw() must ALWAYS render the entire block and all its children.
-# 2. ONLY IcePaper.compute() may modify the pointer value of @lineGroups or @bounds. Use copy() and clear().
-###
+class BoundingBoxState
+  constructor: (point) ->
+    @x = point.x
+    @y = point.y
 
-# Test flag
-window.RUN_PAPER_TESTS = false
-window.PERFORMANCE_TEST = false
+class PathWaypoint
+  constructor: (@left, @right) ->
 
-class IcePaper
+class IceView
+
   constructor: (@block) ->
-    @point = new draw.Point 0, 0 # The top-left corner of this block
-    @group = new draw.Group() # A Group containing all the elements. @group.draw() must draw all the elements.
-    @bounds = {} # The bounding boxes of each state of this block
-    @lineGroups = {} # Groups representing all the manifests at each line.
-    @children = [] # All the child nodes
+    @children = [] # All child blocks, for event delegation. (IceView[])
     
-    @lineStart = @lineEnd = 0 # Start and end lines of this block
+    # Start and end lines
+    @lineStart = @lineEnd = null
 
-  # Recompute this block's line boundaries.
-  compute: (state) -> this # For chaining, return self
+    @lineChildren = {} # Children on each line, computed in FIRST PASS (int:IceView[])
 
-  # Cement position
-  finish: -> for child in @children then child.finish()
+    @dimensions = {} # Bounding box on each line, computed in SECOND PASS (int:draw.Size)
 
-  # Draw this block's visual representation.
-  draw: ->
-  
-  # Set the left center of the boundaries of line to (point)
-  setLeftCenter: (line, point) ->
+    @cursors = []
 
-  # Translate by (vector)
-  translate: (vector) -> @point.translate vector; @group.translate vector
-  
-  # Set position to (point)
-  position: (point) -> @translate @point.from point
-
-class BlockPaper extends IcePaper
-  constructor: (block) ->
-    super(block)
-    @_lineChildren = {} # The child nodes at each line.
     @indented = {}
-    @indentEnd = {}
 
-  compute: (state) ->
-    # Record all the indented states, 'cos we want to keep out of there
-    @indented = {}
-    @indentEnd = {}
+    @indentEndsOn = {}
 
-    # Start a record of all the place that we want our container path to go
-    @_pathBits = {} # Each element will look like so: [[leftEdge], [rightEdge]].
-    
-    # Reset all this stuff
-    @bounds = {}
-    @lineGroups = {}
+    @indentStartsOn = {}
+
+    @pathWaypoints = {} # PathWaypoint[]
+
+    @bounds = {} # Bounding boxes on each line, computed in THIRD PASS (int:draw.Rectangle)
+
+  # FIRST PASS: generate @lineChildren and @children
+  computeChildren: (line) -> # (line) is the starting line
+
+    # Re-init all variables to blank.
     @children = []
+    @lineStart = @lineEnd = null
+    @lineChildren = {}
+    @dimensions = {}
+    @indented = {}
+    @indentEndsOn = {}
+    @indentStartsOn = {}
+    @pathWaypoints = {}
+    @bounds = {}
+    @cursors = []
 
-    # Record our starting line
-    @lineStart = state.line
+    # Record the starting line
+    @lineStart = line
 
-    # Linked-list loop
+    # Linked-list loop through inner tokens
     head = @block.start.next
     while head isnt @block.end
       switch head.type
-        when 'text'
-          @children.push head.paper.compute state
-          @group.push head.paper.group
-        
         when 'blockStart'
-          @children.push head.block.paper.compute state
-          @group.push head.block.paper.group
-          head = head.block.end
-        
-        when 'indentStart'
-          indent = head.indent.paper.compute state
-          @children.push indent
-          @group.push indent.group
+          # Ask this child to compute its children (thus determining its ending line, as well)
+          line = head.block.view.computeChildren line
 
+          # Append to children array
+          @children.push head.block.view
+
+          # Append to line children array
+          for occupiedLine in [head.block.view.lineStart..head.block.view.lineEnd] # (iterate over all blocks which this indent occupies)
+            # (initialize empty array if it doesn't already exist
+            @lineChildren[occupiedLine] ?= []
+
+            # Push to the children on this line
+            @lineChildren[occupiedLine].push head.block.view
+
+            @indented[occupiedLine] ||= head.block.view.indented[occupiedLine]
+            @indentEndsOn[occupiedLine] ||= head.block.view.indentEndsOn[occupiedLine]
+
+          # Skip to the end of this indent
+          head = head.block.end
+
+        when 'indentStart'
+          # Act analagously for indents
+          line = head.indent.view.computeChildren line
+
+          # Append to children array
+          @children.push head.indent.view
+
+          # Append to line children array
+          for occupiedLine in [head.indent.view.lineStart..head.indent.view.lineEnd] # (iterate over all lines which this indent occupies)
+            # (initialize empty array if it doesn't already exist
+            @lineChildren[occupiedLine] ?= []
+
+            # Push to the children on this line
+            @lineChildren[occupiedLine].push head.indent.view
+            
+            # Mark that this line is indented here in this block
+            @indented[occupiedLine] = true
+
+          @indentEndsOn[head.indent.view.lineEnd] = true
+          @indentStartsOn[head.indent.view.lineStart] = true
+
+          # Skip to the end of this indent
           head = head.indent.end
 
         when 'socketStart'
-          @children.push head.socket.paper.compute state
-          @group.push head.socket.paper.group
+          # Act analagously for sockets
+          line = head.socket.view.computeChildren line
+
+          @children.push head.socket.view
+
+          for occupiedLine in [head.socket.view.lineStart..head.socket.view.lineEnd]
+            @lineChildren[occupiedLine] ?= []
+
+            @lineChildren[occupiedLine].push head.socket.view
+
+            @indented[occupiedLine] ||= head.socket.view.indented[occupiedLine]
+            @indentEndsOn[occupiedLine] ||= head.socket.view.indentEndsOn[occupiedLine]
+
           head = head.socket.end
-        
+
+        when 'segmentStart'
+          # Act analagously for segments
+          line = head.segment.view.computeChildren line
+
+          @children.push head.segment.view
+
+          for occupiedLine in [head.segment.view.lineStart..head.segment.view.lineEnd]
+            @lineChildren[occupiedLine] ?= []
+
+            @lineChildren[occupiedLine].push head.segment.view
+
+            @indented[occupiedLine] ||= head.segment.view.indented[occupiedLine]
+            @indentEndsOn[occupiedLine] ||= head.segment.view.indentEndsOn[occupiedLine]
+
+          head = head.segment.end
+
+        when 'text'
+          # Act analagously for text and cursor
+          head.view.computeChildren line
+          
+          # (For text and cursor the token itself is also the manifested thing)
+          @children.push head.view
+          
+          @lineChildren[line] ?= []; @lineChildren[line].push head.view
+
+        when 'cursor'
+          @cursors.push
+            token: head
+            line: line
+
         when 'newline'
-          state.line += 1
-
+          line += 1
+      
+      # Advance our head token (linked-loop list)
       head = head.next
+    
+    # Record the last line
+    @lineEnd = line
 
-    # Record our ending line
-    @lineEnd = state.line
+    # Default any empty lines to having children []
+    for l in [@lineStart..@lineEnd]
+      @lineChildren[l] ?= []
 
-    # Now we've assembled our child nodes; compute the bounding box for each line.
+    return line
+  
+  # SECOND PASS: compute dimensions on each line
+  computeDimensions: -> # A block's dimensions on each line is strictly a function of its children, so this function has no arguments.
+    # Event propagate
+    for child in @children then child.computeDimensions()
 
-    # For speed reasons, we'll want to keep track of our index in @children globally.
-    i = 0
-    # We also need to keep track of the center y-coordinate of the line and the top y-coordinate of the line.
-    top = 0
-    axis = 0
+    return @dimensions
+  
+  # THIRD PASS: compute bounding boxes on each line
+  computeBoundingBox: (line, state) -> # (line) and (state) are given by the calling parent and signify restrictions on the position of the line (e.g. padding, etc).
+    # Event propagate
+    for child in @lineChildren[line] then child.computeBoundingBox line, state # In an instance of this function, you will want to change (state) as you move along @lineChildren[line], to adjust for padding and such.
+
+    return @bounds[line] = new draw.NoRectangle() # Should actually equal something
+
+  # Convenience function: computeBoundingBoxes. Normally only called on root or floating block.
+  computeBoundingBoxes: ->
+    cursor = new draw.Point 0, 0
+    for line in [@lineStart..@lineEnd]
+      @computeBoundingBox line, new BoundingBoxState cursor
+      cursor.y += @dimensions[line].height
+
+    return @bounds
+  
+  # Getter function, which must be called after computeBoundingBoxes
+  getBounds: ->
+    bound = new draw.NoRectangle()
 
     for line in [@lineStart..@lineEnd]
-      # _lineGroups contains all the child blocks that lie on [line]
-      @_lineChildren[line] = []
+      bound.unite @bounds[line]
 
-      # By our policy, it's our responsibility to initialize the @lineGroup, @_pathBits, and @bounds entries
-      @_pathBits[line] =
-        left: []
-        right: []
-      @lineGroups[line] = new draw.Group()
-      @bounds[line] = new draw.NoRectangle()
-
-      # First advance past any blocks that don't fit this line
-      while i < @children.length and line > @children[i].lineEnd
-        i += 1
-      
-      # Then consume any blocks that lie on this line
-      while i < @children.length and line >= @children[i].lineStart and line <= @children[i].lineEnd # Test to see whether this line is within this child's domain
-        @_lineChildren[line].push @children[i]
-        i += 1
-
-      # It's possible for a block to span multiple lines, so we back up to the last block on this line
-      # in case it continues
-      i -= 1
-      
-      # Compute the dimensions for this bounding box
-      height = @_computeHeight line # This will use our @_lineChildren to compute {width, height}
-      axis = top + height / 2
-      
-      # Snap this line into position. This uses our @_lineChildren to generate @lineGroups, @bounds, and @_pathBits
-      @setLeftCenter line, new draw.Point 0, axis
-
-      # Increment (top) to the top of the next line
-      top += @bounds[line].height
-
-    # We're done! Return (this) for chaining.
-    return this
+    return bound
   
-  _computeHeight: (line) ->
-    height = 0
-    _heightModifier = 0
-    for child in @_lineChildren[line]
-      if child.block.type is 'indent' and line is child.lineEnd
-        height = Math.max(height, child.bounds[line].height + 10)
-      else
-        height = Math.max(height, child.bounds[line].height)
-
-    if @indented[line] or @_lineChildren[line].length > 0 and @_lineChildren[line][0].block.type is 'indent' then height -= 2 * PADDING
-
-    return height + 2 * PADDING
-
-  setLeftCenter: (line, point) ->
-    # Get ready to iterate through the children at this line
-    cursor = point.clone() # The place we want to move this child's boundaries
-
-    cursor.add PADDING, 0
-    @lineGroups[line].empty()
-    @_pathBits[line].left.length = 0
-    @_pathBits[line].right.length = 0
-
-    @bounds[line].clear()
-    @bounds[line].swallow point
-
-    _bottomModifier = 0
-
-    topPoint = null
-
-    @indented[line] = @indentEnd[line] = false
-    
-    # TODO improve performance here
-    indentChild = null
-
-
-    for child, i in @_lineChildren[line]
-      if i is 0 and child.block.type is 'indent' # Special case
-        @indented[line] = true
-        @indentEnd[line] = (line is child.lineEnd) or child.indentEnd[line]
-
-        # Add the indent bit
-        cursor.add INDENT, 0
-
-        indentChild = child
-
-        child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
-
-        # Deal with the special case of an empty indent
-        if child.bounds[line].height is 0
-          # This is hacky.
-          @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
-          @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].y + 10
-          @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y + 10
-          if @_lineChildren[line].length > 1
-            @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y - 5 - PADDING
-        else
-          # Make sure to wrap our path around this indent line (or to the left of it)
-          @_pathBits[line].right.push topPoint = new draw.Point child.bounds[line].x, child.bounds[line].y
-          @_pathBits[line].right.push new draw.Point child.bounds[line].x, child.bounds[line].bottom()
-
-          if line is child.lineEnd and @_lineChildren[line].length > 1 # If there's anyone else here
-            # Also wrap the "G" shape
-            @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].bottom()
-            @_pathBits[line].right.push new draw.Point child.bounds[line].right(), child.bounds[line].y
-
-          # Circumvent the normal "bottom edge", since we need extra space at the bottom
-        if child.lineEnd is line
-          _bottomModifier += INDENT
-
-      else
-        @indented[line] = @indented[line] or (if child.indented? then child.indented[line] else false)
-        @indentEnd[line] = @indentEnd[line] or (if child.indentEnd? then child.indentEnd[line] else false)
-        if child.indentEnd? and child.indentEnd[line]
-          child.setLeftCenter line, new draw.Point cursor.x, cursor.y - @_computeHeight(line) / 2 + child.bounds[line].height / 2
-        else
-          child.setLeftCenter line, cursor
-
-      @lineGroups[line].push child.lineGroups[line]
-      @bounds[line].unite child.bounds[line]
-      cursor.add child.bounds[line].width, 0
-
-
-    # Add padding
-    unless @indented[line]
-      @bounds[line].width += PADDING
-      @bounds[line].y -= PADDING
-      @bounds[line].height += PADDING * 2
-
-    
-    if topPoint? then topPoint.y = @bounds[line].y
-
-    # Add the left edge
-    @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].y # top
-    @_pathBits[line].left.push new draw.Point @bounds[line].x, @bounds[line].bottom() + _bottomModifier # bottom
-    
-    # Add the right edge
-
-    if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineStart is line
-      # Add the tab at the top of an indent if necessary
-      child = @_lineChildren[line][0]
-      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 10, @bounds[line].y
-      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 10, @bounds[line].y + 5
-      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 30, @bounds[line].y + 5
-      @_pathBits[line].right.unshift new draw.Point @bounds[line].x + INDENT + PADDING + 30, @bounds[line].y
-
-    if @indentEnd[line] and @_lineChildren[line].length > 1
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
-
-      @bounds[line].height += 10
-
-    else if @indented[line] and not(@_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line) # If we're inside this indent
-      @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].y
-      @_pathBits[line].right.push new draw.Point @bounds[line].x + INDENT + PADDING, @bounds[line].bottom()
-
-    else if @_lineChildren[line][0].block.type is 'indent' and @_lineChildren[line][0].lineEnd is line
-      if @_lineChildren[line].length > 1
-        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y
-        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
-      else
-        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom()
-        @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier
-
-      @bounds[line].height += 10
-
-    else
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].y # top
-      @_pathBits[line].right.push new draw.Point @bounds[line].right(), @bounds[line].bottom() + _bottomModifier #bottom
-
-  finish: ->
-    @_container = new draw.Path()
-
-    unless @block.inSocket()
-      @_container.push new draw.Point @bounds[@lineStart].x + 10, @bounds[@lineStart].y
-      @_container.push new draw.Point @bounds[@lineStart].x + 10, @bounds[@lineStart].y + 5
-      @_container.push new draw.Point @bounds[@lineStart].x + 30, @bounds[@lineStart].y + 5
-
-    # Assemble our path from the recorded @_pathBits
-    for line of @_pathBits
-      for bit in @_pathBits[line].left
-        @_container.unshift bit
-      for bit in @_pathBits[line].right
-        @_container.push bit
-
-    unless @block.inSocket()
-      @_container.unshift new draw.Point @bounds[@lineEnd].x + 10, @bounds[@lineEnd].bottom() + 5
-      @_container.unshift new draw.Point @bounds[@lineEnd].x + 30, @bounds[@lineEnd].bottom() + 5
-      @_container.unshift new draw.Point @bounds[@lineEnd].x + 30, @bounds[@lineEnd].bottom()
-
-    # Do some styling
-    @_container.style.strokeColor = if @block.selected then '#FFF' else '#000'
-    @_container.style.fillColor = @block.color
-
-    @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
-    @topCursorArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
-    
-    # Propagate this event
-    for child in @children
-      child.finish()
-
-  draw: (ctx) ->
-    # Draw
-    @_container.draw ctx
-
-    # And propagate
-    for child in @children
-      child.draw ctx
-
-  translate: (vector) ->
-    @point.translate vector
-    
-    for line of @bounds
-      @lineGroups[line].translate vector
-      @bounds[line].translate vector
-    
-    for line, bit of @_pathBits
-      for point in bit.left
-        point.translate vector
-      for point in bit.right
-        point.translate vector
-
-    for child in @children
-      child.translate vector
-
-class SocketPaper extends IcePaper
-  constructor: (block) ->
-    super(block)
-    @_empty = false # Is this block empty?
-    @_content = null # If not empty, who is filling us?
-    @_line = 0 # What line is this socket on, if empty?
-    @indented = {}
-    @children = []
-
-  compute: (state) ->
-    @bounds = {}
-    @lineGroups = {}
-    @group = new draw.Group()
-    @dropArea = null
-    
-    # Check to see if the tree here has a child
-    if (@_content = @block.content())?
-      # If so, ask it to compute itself
-      (contentPaper = @_content.paper).compute state
-
-      # Then copy all of its properties. By our policy, this will stay current until it calls compute(),
-      # Which shouldn't happen unless we recompute as well.
-      for line of contentPaper.bounds
-        if @_content.type is 'text'
-          @_line = state.line
-          @bounds[line] = new draw.NoRectangle()
-          @bounds[line].copy contentPaper.bounds[line]
-
-          # We add padding around text
-          @bounds[line].y -= PADDING
-          @bounds[line].width += 2 * PADDING
-          @bounds[line].x -= PADDING
-          @bounds[line].height += 2 * PADDING
-
-          # If our width is less than 20px we extend ourselves
-          @bounds[line].width = Math.max(@bounds[line].width, 20)
-
-          @dropArea = @bounds[line]
-        else
-          @bounds[line] = contentPaper.bounds[line]
-        @lineGroups[line] = contentPaper.lineGroups[line]
-
-      
-      @indented = @_content.paper.indented
-      @indentEnd = @_content.paper.indentEnd
-
-      @group = contentPaper.group
-      @children = [@_content.paper]
-
-      @lineStart = contentPaper.lineStart
-      @lineEnd = contentPaper.lineEnd
-
-    else
-      @dropArea = @bounds[state.line] = new draw.Rectangle 0, 0, 20, 20
-      @lineStart = @lineEnd = @_line = state.line
-      @children = []
-      @indented = {}
-      @indented[@_line] = false
-
-      @lineGroups[@_line] = new draw.Group()
-
-    @_empty = not @_content? or @_content.type is 'text'
-
-    # We're done! Return ourselves for chaining
-    return this
-
-  setLeftCenter: (line, point) ->
-    if @_content?
-
-      if @_content.type is 'text'
-        line = @_content.paper._line
-
-        @_content.paper.setLeftCenter line, new draw.Point point.x + PADDING, point.y
-
-        @bounds[line].copy @_content.paper.bounds[line]
-
-        # We add padding around text
-        @bounds[line].y -= PADDING
-        @bounds[line].width += 2 * PADDING
-        @bounds[line].x -= PADDING
-        @bounds[line].height += 2 * PADDING
-
-        # If our width is less than 20px we extend ourselves
-        @bounds[line].width = Math.max(@bounds[line].width, 20)
-      else
-        # Try to give this task to our content block instead
-        @_content.paper.setLeftCenter line, point
-
-      @lineGroups[line].recompute()
-    else
-      # If that's not possible move our little empty square
-      @bounds[line].x = point.x
-      @bounds[line].y = point.y - @bounds[line].height / 2
-      @lineGroups[line].setPosition new draw.Point point.x, point.y - @bounds[line].height / 2
-
-  draw: (ctx) ->
-    if @_content?
-      # Draw the wrapper for input-like content if necessary
-      if @_content.type is 'text'
-        line = @_content.paper._line
-        ctx.strokeStyle = '#000'
-        ctx.fillStyle = '#fff'
-        ctx.fillRect @bounds[line].x, @bounds[line].y, @bounds[line].width, @bounds[line].height
-        ctx.strokeRect @bounds[line].x, @bounds[line].y, @bounds[line].width, @bounds[line].height
-
-      # Try to imitate our content block
-      @_content.paper.draw ctx
-    else
-      # If that's not possible, draw our little empty square
-      rect = @bounds[@_line]
-      ctx.strokeStyle = '#000'
-      ctx.fillStyle = '#fff'
-      ctx.fillRect rect.x, rect.y, rect.width, rect.height
-      ctx.strokeRect rect.x, rect.y, rect.width, rect.height
-
-  translate: (vector) ->
-    # Try to delegate
-    if @_content?
-      @_content.paper.translate vector
-      
-      # Manage things if they are text
-      if @_content.type is 'text'
-        line = @_content.paper._line
-
-        @bounds[line].copy @_content.paper.bounds[line]
-
-        # We add padding around text
-        @bounds[line].y -= PADDING
-        @bounds[line].width += 2 * PADDING
-        @bounds[line].x -= PADDING
-        @bounds[line].height += 2 * PADDING
-
-        # If our width is less than 20px we extend ourselves
-        @bounds[line].width = Math.max(@bounds[line].width, 20)
-    else
-      @bounds[@_line].translate vector
-
-class CursorTokenPaper extends IcePaper
-  constructor: (block) ->
-    super(block)
-    @_rect = new draw.NoRectangle()
-
-  compute: (state) ->
-    @lineStart = @lineEnd = state.line
-    this
+  # FOURTH PASS: join "path bits" into a path
+  computePath: ->
+    # Event propagate
+    for child in @children then child.computePath()
+
+    return @bounds
   
-  setRect: (rect) ->
-    @_rect = rect
-    @useTop = false
-    #@_rect.copy new draw.Rectangle rect.x, rect.bottom() - 5, rect.width, 10
 
-  setRectTop: (rect) ->
-    @_rect = rect
-    @useTop = true
-    
-  finish: ->
+  # FIFTH PASS: draw
+  drawPath: (ctx) ->
+    # Event propagate
+    for child in @children then child.drawPath ctx
 
-  draw: (ctx) ->
-    # TODO The following hack should be dealt with by the parent indent.
-    setTimeout (=>
-      ctx.strokeStyle = '#000'
-      ctx.fillStyle = '#FFF'
-      y = if @useTop then @_rect.y else @_rect.bottom()
+  # SIXTH Pass: draw cursor
+  drawCursor: (ctx) ->
+    for child in @children then child.drawCursor ctx
 
+    for cursor in @cursors
+      if cursor.token.prev.type is 'newline' or cursor.token.prev.type is 'segmentStart'
+        yCoordinate = @bounds[cursor.line].y
+      else
+        yCoordinate = @bounds[cursor.line].bottom()
+
+      ctx.fillStyle = '#000'
+      ctx.strokeSTyle = '#000'
       ctx.beginPath()
-      ctx.moveTo @_rect.x, y
-      ctx.lineTo @_rect.x - 5, y + 5
-      ctx.lineTo @_rect.x - 5, y - 5
-      ctx.lineTo @_rect.x, y
-      ctx.lineTo @_rect.x + @_rect.width, y
-      ctx.lineTo @_rect.x + @_rect.width + 5, y - 5
-      ctx.lineTo @_rect.x + @_rect.width + 5, y + 5
-      ctx.lineTo @_rect.x + @_rect.width, y
+
+      if @bounds[cursor.line].x >= 5
+        ctx.moveTo @bounds[cursor.line].x, yCoordinate
+        ctx.lineTo @bounds[cursor.line].x - 5, yCoordinate - 5
+        ctx.lineTo @bounds[cursor.line].x - 5, yCoordinate + 5
+      else
+        ctx.moveTo @bounds[cursor.line].x, yCoordinate
+        ctx.lineTo @bounds[cursor.line].x + 5, yCoordinate - 5
+        ctx.lineTo @bounds[cursor.line].x + 5, yCoordinate + 5
 
       ctx.stroke()
       ctx.fill()
-    ), 0
-
-class IndentPaper extends IcePaper
-  constructor: (block) ->
-    super(block)
-    @_lineBlocks = {} # Which block occupies each line?
-
-  compute: (state) ->
-    @bounds = {}
-    @lineGroups = {}
-    @_lineBlocks = {}
-    @indentEnd = {}
-    @group = new draw.Group()
-    @children = []
-    
-    # We need to record our starting line
-    @lineStart = state.line += 1
-
-    # In an Indent, each line contains exactly one block. So that's all we have to consider.
-    head = @block.start.next
-    if head.type is 'cursor' then head = head.next
-    if head.type is 'newline' then head = head.next
-
-    # This is a hack to deal with empty indents
-    if @block.start.next is @block.end then head = @block.end
-
-    # Loop
-    while head isnt @block.end
-      switch head.type
-        when 'blockStart'
-          @children.push head.block.paper.compute state
-          @group.push head.block.paper.group
-          head = head.block.end
-
-        when 'cursor'
-          @children.push head.paper.compute state
-          @group.push head.paper.group
-
-        when 'newline'
-          state.line += 1
-
-      head = head.next
-    
-    @lineEnd = state.line
-
-    # Now go through and mimic all the blocks on each line
-    
-    if @children.length > 0
-      i = 0 # Again, performance reasons
-      for line in [@lineStart..@lineEnd]
-        # If we need to move on to the next block, do so
-        until line <= @children[i].lineEnd
-          i += 1
-
-        setCursor = false
-        # If we need to draw the cursor before this block, do so
-        if @children[i]? and @children[i].block.type is 'cursor'
-          setCursor = true
-          i += 1
-
-        # Copy the block we're on here
-        @bounds[line] = @children[i].bounds[line]
-        @lineGroups[line] = new draw.Group()
-        @indentEnd[line] = @children[i].indentEnd[line]
-        @lineGroups[line].push @children[i].lineGroups[line]
-        @_lineBlocks[line] = @children[i]
-
-        if setCursor
-          @children[i-1].setRectTop @bounds[line]
-      
-        # If we need to draw the cursor after this block, do so.
-        else if @children[i+1]? and @children[i+1].block.type is 'cursor'
-          @children[i+1].setRect @bounds[line]
-
-    else
-      # We're an empty indent.
-      @lineGroups[@lineStart] = new draw.Group()
-      @_lineBlocks[@lineStart] = null
-      @bounds[@lineStart] = new draw.Rectangle 0, 0, EMPTY_INDENT_WIDTH, 0
-    
-    # We're done! Return ourselves for chaining.
-    return this
-
-  finish: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, Math.max(@bounds[@lineStart].width, MIN_INDENT_DROP_WIDTH), 10
-    for child in @children
-      child.finish()
-  
-  setLeftCenter: (line, point) ->
-    # Delegate right away.
-    if @_lineBlocks[line]?
-      @_lineBlocks[line].setLeftCenter line, point
-      @lineGroups[line].recompute()
-    else
-      @bounds[@lineStart].clear()
-      @bounds[@lineStart].swallow(point)
-      @bounds[@lineStart].width = EMPTY_INDENT_WIDTH
 
   draw: (ctx) ->
-    # Delegate right away.
-    for child in @children
-      child.draw ctx
+    @drawPath ctx
+    @drawCursor ctx
 
-  translate: (vector) ->
-    @point.add vector
-    
-    # If we are empty, we are responsible for translating ourselves
-    if @bounds[@lineStart].height is 0 then @bounds[@lineStart].translate vector
+  # Convenience function: compute
+  compute: (line = 0) ->
+    @computeChildren line
+    @computeDimensions(); @computeBoundingBoxes(); @computePath()
 
-    # Otherwise, delegate right away.
-    for child in @children
-      child.translate vector
+  translate: (point) ->
+    for line, bound of @bounds then bound.translate point
+    for child in @children then child.translate point
 
-  setPosition: (point) -> @translate point.from @point
-
-class SegmentPaper extends IcePaper
+class BlockView extends IceView
   constructor: (block) ->
-    super(block)
-    @_lineBlocks = {} # Which block occupies each line?
+    super block
+    @path = null
 
-  compute: (state) ->
-    @bounds = {}
-    @lineGroups = {}
-    @_lineBlocks = {}
-    @indentEnd = {}
-    @group = new draw.Group()
-    @children = []
+  computeDimensions: ->
+    # Event propagate, and any other necessary wrappers
+    super
+
+    for line in [@lineStart..@lineEnd]
+      width = PADDING; height = 2 * PADDING
+
+      for child in @lineChildren[line]
+
+        if child.block.type is 'indent'
+          # The width of a block on a line is the sum of the widths of the child blocks, plus padding.
+          width += child.dimensions[line].width + INDENT_SPACING
+
+          # The height of a block on a line is the maximum height of a child block, plus padding.
+          # We add 10 if the indent ends, so as to draw the bottom of the mouth.
+          height = Math.max height, child.dimensions[line].height + (if child.lineEnd is line then TOUNGE_HEIGHT else 0)
+
+        else if child.indented[line]
+          width += child.dimensions[line].width + PADDING
+
+          # The height of a block on a line is the maximum height of a child block. Indented things do not use any padding.
+          height = Math.max height, child.dimensions[line].height
+
+        else
+          width += child.dimensions[line].width + PADDING
+
+          # The height of a block on a line is the maximum height of a child block, plus padding.
+          height = Math.max height, child.dimensions[line].height + 2 * PADDING
+
+      @dimensions[line] = new draw.Size width, height
+
+  computeBoundingBox: (line, state) ->
+
+    # Find the middle of this rectangle
+    axis = state.y + @dimensions[line].height / 2
+    cursor = state.x
     
-    # We need to record our starting line
-    @lineStart = state.line += 1
+    # Accept the bounds given by our parent.
+    @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
 
-    # In a Segment, each line contains exactly one block. So that's all we have to consider.
-    head = @block.start.next
-
-    # This is a hack to deal with empty indents
-    if @block.start.next is @block.end then head = @block.end
-
-    # Loop
-    running_height = 0
-    while head isnt @block.end
-      switch head.type
-        when 'blockStart'
-          @children.push head.block.paper.compute state
-          head.block.paper.translate new draw.Point 0, running_height
-          running_height = head.block.paper.bounds[head.block.paper.lineEnd].bottom()
-          @group.push head.block.paper.group
-          head = head.block.end
+    for child in @lineChildren[line]
+      # Special case for indented things; always jam them together.
+      if child.block.type is 'indent'
+        # Add the padding on the left of this
+        cursor += INDENT_SPACING
         
-        when 'cursor'
-          @children.push head.paper.compute state
-          if @children.length > 2
-            head.paper.setRect new draw.Rectangle 0,
-              running_height,
-              @children[@children.length-2].
-                bounds[@children[@children.length-2].lineEnd].
-                width,
-              0
-          else
-            head.paper.setRect new draw.Rectangle 0, running_height, DEFAULT_CURSOR_WIDTH, 0
-          @group.push head.paper.group
+        child.computeBoundingBox line, new BoundingBoxState new draw.Point cursor,
+          state.y # Position the child at the top of the line.
+      
+      else
+        # Add the padding on the left of this
+        cursor += PADDING
 
-        when 'newline'
-          state.line += 1
+        child.computeBoundingBox line, new BoundingBoxState new draw.Point cursor,
+          axis - child.dimensions[line].height / 2 # Position the child in the middle of the line
 
-      head = head.next
+      cursor += child.dimensions[line].width
 
-    @lineEnd = state.line
+    # Compute the path waypoints
+    if @lineChildren[line].length >  0 and not (@lineChildren[line][0].indented[line] or @lineChildren[line][0].block.type is 'indent')
+      ###
+      # Normally, we just enclose everything within these bounds
+      ###
+      @pathWaypoints[line] = new PathWaypoint [
+        new draw.Point @bounds[line].x, @bounds[line].y
+        new draw.Point @bounds[line].x, @bounds[line].bottom()
+      ], [
+        new draw.Point @bounds[line].right(), @bounds[line].y
+        new draw.Point @bounds[line].right(), @bounds[line].bottom()
+      ]
 
-    # Now go through and mimic all the blocks on each line
+    else if @lineChildren[line].length > 0
+      ###
+      # There is, however, the special case when a child on this line is indented, or is an indent.
+      ###
+
+      if line is @lineChildren[line][0].lineEnd and @lineChildren[line][0].block.type is 'indent'
+        ###
+        # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
+        ###
+
+        # We name this for conveniency
+        indentChild = @lineChildren[line][0]
+
+        paddingLeft = if @lineChildren[line][0].block.type is 'indent' then INDENT_SPACING else PADDING
+
+        if @lineChildren[line].length is 1
+          @pathWaypoints[line] = new PathWaypoint [
+            # The line down the left of the child
+            new draw.Point @bounds[line].x, @bounds[line].y
+            new draw.Point @bounds[line].x, @bounds[line].bottom()
+          ], [
+            # The box to the left of the child
+            new draw.Point @bounds[line].x + paddingLeft, @bounds[line].y
+            new draw.Point @bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()
+            
+            # The 'tounge' underneath the child
+            new draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()
+            
+            # For robustness, make sure that we go all the way to the right here.
+            new draw.Point @bounds[line].right(), indentChild.bounds[line].bottom()
+
+            # Pop down to the bottom, ready for next rectangle.
+            new draw.Point @bounds[line].right(), @bounds[line].bottom()
+          ]
+
+        else
+          @pathWaypoints[line] = new PathWaypoint [
+            # The line down the left of the child
+            new draw.Point @bounds[line].x, @bounds[line].y
+            new draw.Point @bounds[line].x, @bounds[line].bottom()
+          ], [
+            # The box to the left of the child
+            new draw.Point @bounds[line].x + paddingLeft, @bounds[line].y
+            new draw.Point @bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()
+            
+            # The 'tounge' underneath the child
+            new draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()
+
+            # The 'hook' of the G, coming up from the tounge
+            new draw.Point indentChild.bounds[line].right(), @bounds[line].y
+
+            # Finish the box, ready for next rectangle.
+            new draw.Point @bounds[line].right(), @bounds[line].y
+            new draw.Point @bounds[line].right(), @bounds[line].bottom()
+          ]
+
+      else
+        ###
+        # When the child in front of us is indented, we only draw a thin strip
+        # of conainer block to the left of them, with width INDENT_SPACING
+        ###
+        @pathWaypoints[line] = new PathWaypoint [
+          # (Left side)
+          new draw.Point @bounds[line].x, @bounds[line].y
+          new draw.Point @bounds[line].x, @bounds[line].bottom()
+        ], [
+          # (Right side)
+          new draw.Point @bounds[line].x + INDENT_SPACING, @bounds[line].y
+          new draw.Point @bounds[line].x + INDENT_SPACING, @bounds[line].bottom()
+        ]
+
+  computePath: ->
+    super
     
-    # If we're empty, then return immediately.
-    if @children.length is 0
-      @bounds[state.line] = new draw.Rectangle 0, 0, 0, 0
-      return this
+    @path = new draw.Path()
+    @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
     
-    i = 0 # Again, performance reasons
-    for line in [@lineStart..@lineEnd]
-      # If we need to move on to the next block, do so
-      until line <= @children[i].lineEnd and @children[i].block.type isnt 'cursor'
-        i += 1
+    # Add the top tab (if applicable)
+    unless (@block.inSocket() ? false)
+      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET, @bounds[@lineStart].y
+      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineStart].y + TAB_HEIGHT
+      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineStart].y + TAB_HEIGHT
+      @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH, @bounds[@lineStart].y
 
-      # Copy the block we're on here
-      @bounds[line] = @children[i].bounds[line]
-      @lineGroups[line] = new draw.Group()
-      @indentEnd[line] = @children[i].indentEnd[line]
-      @lineGroups[line].push @children[i].lineGroups[line]
-      @_lineBlocks[line] = @children[i]
+    for line, waypoint of @pathWaypoints
+      
+      if @indentStartsOn[line]
+        # Add top tab on an indent, if applicable
+        entryPoint = new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH, @bounds[line].y
+
+        # Keep things rectilinear (except for the tab itself)
+        if @path._points.length > 0 and entryPoint.y isnt @path._points[@path._points.length - 1].y
+          @path.push new draw.Point @path._points[@path._points.length - 1].x, entryPoint.y
+
+        # Now actually add the top tab
+        @path.push entryPoint
+        @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[line].y + TAB_HEIGHT
+        @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH / 8, @bounds[line].y + TAB_HEIGHT
+        @path.push new draw.Point @bounds[line].x + INDENT_SPACING + TAB_OFFSET, @bounds[line].y
+
+      for point in waypoint.left
+        # Keep things rectilinear
+        if @path._points.length > 0 and point.x isnt @path._points[0].x
+          @path.unshift new draw.Point point.x, @path._points[0].y
+
+        @path.unshift point
+
+      for point in waypoint.right
+        # Keep things rectilinear
+        if @path._points.length > 0 and point.y isnt @path._points[@path._points.length - 1].y
+          @path.push new draw.Point @path._points[@path._points.length - 1].x, point.y
+
+        @path.push point
+
+    # Add the bottom tab (if applicable)
+    unless (@block.inSocket() ? false)
+      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET, @bounds[@lineEnd].bottom()
+      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
+      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
+      @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH, @bounds[@lineEnd].bottom()
+
+    @path.style.fillColor = @block.color
+    @path.style.strokeColor = '#000'
     
-    # We're done! Return ourselves for chaining.
-    return this
-  
-  prepBounds: ->
-    @bounds = {}
-    @lineGroups = {}
-    @_lineBlocks = {}
-    @indentEnd = {}
-    @group = new draw.Group()
-    @children = []
-    
-    # We need to record our starting line
-    @lineStart = Infinity
-    @lineEnd = 0
+  drawPath: (ctx) ->
+    if @path._points.length is 0 then debugger
+    @path.draw ctx
 
-    # In a Segment, each line contains exactly one block. So that's all we have to consider.
-    head = @block.start.next
+    super
 
-    # This is a hack to deal with empty indents
-    if @block.start.next is @block.end then head = @block.end
+  translate: (point) ->
+    @path.translate point
 
-    # Loop
-    running_height = 0
-    while head isnt @block.end
-      switch head.type
-        when 'blockStart'
-          @children.push head.block.paper
-          @lineStart = Math.min @lineStart, head.block.paper.lineStart
-          @lineEnd = Math.max @lineEnd, head.block.paper.lineEnd
-          head = head.block.end
+    super
 
-      head = head.next
-
-    # Now go through and mimic all the blocks on each line
-    
-    i = 0 # Again, performance reasons
-    for line in [@lineStart..@lineEnd]
-      # If we need to move on to the next block, do so
-      until line <= @children[i].lineEnd
-        i += 1
-
-      # Copy the block we're on here
-      @bounds[line] = @children[i].bounds[line]
-    
-    # We're done! Return ourselves for chaining.
-    return this
-
-  getBounds: ->
-    # In a Segment, each line contains exactly one block. So that's all we have to consider.
-    head = @block.start.next
-
-    # This is a hack to deal with empty indents
-    if @block.start.next is @block.end then head = @block.end
-
-    bounds = new draw.NoRectangle()
-
-    # Loop
-    while head isnt @block.end
-      switch head.type
-        when 'blockStart'
-          bounds.unite head.block.paper._container.bounds()
-
-      head = head.next
-
-    return bounds
-
-  finish: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, Math.max(@bounds[@lineStart].width, MIN_INDENT_DROP_WIDTH), 10
-    # For empty files, this should be a bit easier.
-    if @bounds[@lineStart].width is 0
-      @dropArea.width = EMPTY_SEGMENT_DROP_WIDTH
-
-    for child in @children
-      child.finish()
-  
-  setLeftCenter: (line, point) ->
-    # Delegate right away.
-    if @_lineBlocks[line]?
-      @_lineBlocks[line].setLeftCenter line, point
-      @lineGroups[line].recompute()
-    else
-      @bounds[@lineStart].clear()
-      @bounds[@lineStart].swallow(point)
-      @bounds[@lineStart].width = EMPTY_INDENT_WIDTH
-
-  draw: (ctx) ->
-    # Delegate right away.
-    for child in @children
-      child.draw ctx
-
-  translate: (vector) ->
-    @point.add vector
-
-    # Delegate right away.
-    for child in @children
-      child.translate vector
-
-  setPosition: (point) -> @translate point.from @point
-
-class TextTokenPaper extends IcePaper
+class TextView extends IceView
   constructor: (block) ->
-    super(block)
-    @_line = 0
-
-  compute: (state) ->
-    # Init everything
-    @lineStart = @lineEnd = @_line = state.line
-    @lineGroups = {}
-    @bounds = {}
-
-    @group = @lineGroups[@_line] = new draw.Group()
-    @lineGroups[@_line].push @_text = new draw.Text(new draw.Point(0, 0), @block.value)
-    @bounds[@_line] = @_text.bounds()
+    super block
+    @textElement = null
     
-    # Return ourselves for chaining
-    return this
+  computeChildren: (line) ->
+    # A text element cannot contain anything
+    @lineStart = @lineEnd = line
 
-  draw: (ctx) ->
-    @_text.draw ctx
+  computeDimensions: ->
+    # Construct a manifest text element for this text token
+    @textElement = new draw.Text new draw.Point(0, 0),
+      @block.value
+    
+    # A text element only occupies one line
+    @dimensions[@lineStart] = new draw.Size @textElement.bounds().width,
+      @textElement.bounds().height
+
+    return @dimesions
   
-  setLeftCenter: (line, point) ->
-    if line is @_line
-      # Again, by policy, our @bounds should be changed automatically
-      @_text.setPosition new draw.Point point.x, point.y - @bounds[@_line].height / 2
-      @lineGroups[@_line].recompute()
+  computeBoundingBox: (line, state) ->
+    if line is @lineStart
+      # Accept the bounds our parent gave us
+      @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
 
-  translate: (vector) ->
-    @_text.translate vector
+      # Move the text element to where we want it to go
+      @textElement.setPosition new draw.Point state.x, state.y
+  
+  computePath: -> # Do nothing
+
+  drawPath: (ctx) ->
+    @textElement.draw ctx
+
+  translate: (point) ->
+    @textElement.translate point
+
+    super
+
+class IndentView extends IceView
+  constructor: (block) ->
+    super block
+
+  computeChildren: (line) ->
+    super
+
+    # Skip over the leading newline required by every indent
+    @lineStart += 1
+
+    return @lineEnd
+
+  computeDimensions: ->
+    super
+    
+    # If an indent is empty, then this first condition will fail.
+    if @lineEnd >= @lineStart then for line in [@lineStart..@lineEnd]
+      height = width = 0
+
+      for child in @lineChildren[line]
+        # Indents undertake no padding.
+        width += child.dimensions[line].width
+        height = Math.max height, child.dimensions[line].height
+
+      height = Math.max height, EMPTY_INDENT_HEIGHT
+      width = Math.max width, EMPTY_INDENT_WIDTH
+      
+      @dimensions[line] = new draw.Size width, height
+    
+  computeBoundingBox: (line, state) ->
+    cursorX = state.x
+    cursorY = state.y
+    
+    # Accept the bounds that our parent gave us
+    @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
+
+    for child in @lineChildren[line]
+      child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
+      
+      cursorX += child.dimensions[line].width
+
+  computePath: ->
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+
+    super
+
+class SocketView extends IceView
+  constructor: (block) -> super block
+
+  computeDimensions: ->
+    super
+    
+    if (content = @block.content())? then switch @block.content().type
+      when 'block'
+        # If we contain a block, then we mimick that block
+        for line, value of content.view.dimensions
+          # (Clone the sizes of the contained block)
+          @dimensions[line] = new draw.Size value.width, value.height
+
+      when 'text'
+        # If we contain some text, then we add padding around it.
+        @dimensions[content.view.lineStart] = new draw.Size content.view.dimensions[content.view.lineStart].width + 2 * PADDING,
+          content.view.dimensions[content.view.lineStart].height + 2 * PADDING
+        
+        # Don't allow ourselves to get smaller than an empty socket, though>
+        @dimensions[content.view.lineStart].width = Math.max @dimensions[content.view.lineStart].width, EMPTY_SOCKET_WIDTH
+    else
+      @dimensions[@lineStart] = new draw.Size EMPTY_SOCKET_WIDTH, EMPTY_SOCKET_HEIGHT
+
+    return @dimensions
+  
+  computeBoundingBox: (line, state) ->
+    # Accept the bounds given by our parent
+    @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
+    
+    if @lineChildren[line].length is 0 then return
+
+    else if @lineChildren[line].length > 1
+      # This is not allowed.
+      throw 'Error: more than one child inside a socket'
+    
+    else if @block.content().type is 'text'
+      # Add padding around the text
+      @lineChildren[line][0].computeBoundingBox line, new BoundingBoxState new draw.Point state.x + PADDING, state.y + PADDING
+
+    else
+      # Mimick the block
+      @lineChildren[line][0].computeBoundingBox line, state
+
+  computePath: ->
+    unless @block.content()?.type is 'block'
+      (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
+
+    super
+
+  drawPath: (ctx) ->
+    if not @block.content()? or @block.content().type is 'text'
+      # If we are empty, then draw our unit rectangle. If we have text inside, then draw the wrapping rectangle.
+      @bounds[@lineStart].stroke ctx, '#000'
+      @bounds[@lineStart].fill ctx, '#FFF'
+    
+    # Event propagate (this deals with block children)
+    super
+
+class SegmentView extends IceView
+  constructor: (block) -> super block
+
+  computeDimensions: ->
+    super
+
+    for line in [@lineStart..@lineEnd]
+      height = width = 0
+
+      for child in @lineChildren[line]
+        # Segments undertake no padding.
+        width += child.dimensions[line].width
+        height = Math.max height, child.dimensions[line].height
+      
+      @dimensions[line] = new draw.Size width, height
+
+  computeBoundingBox: (line, state) ->
+    ###
+    # A Segment can compute its bounds the same way an Indent does.
+    ###
+    cursorX = state.x
+    cursorY = state.y
+
+    # Accept the bounds that our parent gave us
+    @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
+
+    for child in @lineChildren[line]
+      child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
+      
+      cursorX += child.dimensions[line].width
+
+class CursorView extends IceView
+  constructor: (block) -> super block
+
+  computeChildren: (line) ->
+    # A cursor cannot contain anything
+    @lineStart = @lineEnd = line
 
 INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
+PALETTE_WIDTH = 300
+
+exports.IceEditorChangeEvent = class IceEditorChangeEvent
+  constructor: (@block, @target) ->
 
 exports.Editor = class Editor
   constructor: (el, @paletteBlocks) ->
@@ -1608,19 +1422,15 @@ exports.Editor = class Editor
       @clear()
 
       # Compute the root tree
-      @tree.paper.compute line: 0
+      @tree.view.compute()
 
       # Draw it on the main context
-      @tree.paper.finish()
-      @tree.paper.draw mainCtx
+      @tree.view.draw mainCtx
       
       # Alert the lasso segment, if it exists, to recompute its bounds
       if @lassoSegment?
-        # Ask the lasso segment to recompute its bounds
-        @lassoSegment.paper.prepBounds()
-
         # Get those compute bounds
-        @_lassoBounds = @lassoSegment.paper.getBounds()
+        @_lassoBounds = @lassoSegment.view.getBounds()
 
         for float in @floatingBlocks
           if @lassoSegment is float.block
@@ -1632,20 +1442,23 @@ exports.Editor = class Editor
           @_lassoBounds.fill mainCtx, 'rgba(0, 0, 256, 0.3)'
 
       for float in @floatingBlocks
-        paper = float.block.paper
+        view = float.block.view
         
         # Recompute this floating block's coordinates
-        paper.compute line: 0
-        paper.translate float.position
+        view.compute()
+        view.translate float.position
 
         # Draw it on the main context
-        paper.finish()
-        paper.draw mainCtx
+        view.draw mainCtx
 
     @attemptReparse = =>
       try
         @tree = (coffee.parse @getValue()).segment
         @redraw()
+
+    moveBlockTo = (block, target) =>
+      block._moveTo target
+      if @onChange? then @onChange new IceEditorChangeEvent block, target
     
     ###
     # The redrawPalette function ought to be called only once in the current code structure.
@@ -1658,17 +1471,16 @@ exports.Editor = class Editor
 
       for paletteBlock in @paletteBlocks
         # Compute the coordinates
-        paletteBlock.paper.compute line: 0
+        paletteBlock.view.compute()
 
         # Translate it into position
-        paletteBlock.paper.translate new draw.Point 0, lastBottomEdge
+        paletteBlock.view.translate new draw.Point 0, lastBottomEdge
 
         # Increment the running height count
-        lastBottomEdge = paletteBlock.paper.bounds[paletteBlock.paper.lineEnd].bottom() + PALETTE_MARGIN # Add margin
+        lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN # Add margin
 
         # Finish and draw the palette block
-        paletteBlock.paper.finish()
-        paletteBlock.paper.draw paletteCtx
+        paletteBlock.view.draw paletteCtx
     
     # (call it right away)
     @redrawPalette()
@@ -1686,13 +1498,13 @@ exports.Editor = class Editor
       
       # Move it to where the cursor should be
       if @cursor.next.type is 'newline' or @cursor.next.type is 'indentEnd' or @cursor.next.type is 'segmentEnd'
-        newBlock._moveTo @cursor.prev.insert new NewlineToken()
+        moveBlockTo newBlock, @cursor.prev.insert new NewlineToken()
 
         @redraw()
         setTextInputFocus newSocket
 
       else if @cursor.prev.type is 'newline' or @cursor.prev.type is 'segmentStart'
-        newBlock._moveTo @cursor.prev
+        moveBlockTo newBlock, @cursor.prev
         newBlock.end.insert new NewlineToken()
 
         @redraw()
@@ -1724,7 +1536,7 @@ exports.Editor = class Editor
       console.log head.toString indent:''
 
       # Delete that block and redraw
-      if head.type is 'blockEnd' then head.block._moveTo null; @redraw()
+      if head.type is 'blockEnd' then moveBlockTo head.block, null; @redraw()
     
     ###
     # TODO the following are known not to be able to navigate to the end of an indent.
@@ -1794,7 +1606,7 @@ exports.Editor = class Editor
           # Otherwise, see if the last child of this block is an indent
           else if head.prev.type is 'indentEnd'
             # Note that it is guaranteed that a handwritten block satisfies @focus.start.prev.block is (the wrapping block)
-            @focus.start.prev.block._moveTo head.prev.prev.insert new NewlineToken() # Move the block we're editing into the indent
+            moveBlockTo @focus.start.prev.block, head.prev.prev.insert new NewlineToken() # Move the block we're editing into the indent
 
             # Move the cursor into its proper position (after this block)
             moveCursorTo @focus.start.prev.block.end
@@ -1809,7 +1621,7 @@ exports.Editor = class Editor
             head.prev.insert newIndent.start; head.prev.insert newIndent.end
 
             # Move the block we're editing into this new indent
-            @focus.start.prev.block._moveTo newIndent.start.insert new NewlineToken()
+            moveBlockTo @focus.start.prev.block, newIndent.start.insert new NewlineToken()
 
             # Move the cursor into its proper position (after this block)
             moveCursorTo @focus.start.prev.block.end
@@ -1855,7 +1667,7 @@ exports.Editor = class Editor
     hitTest = (point, root) =>
       head = root; seek = null
       while head isnt seek
-        if head.type is 'blockStart' and head.block.paper._container.contains point
+        if head.type is 'blockStart' and head.block.view.path.contains point
           seek = head.block.end
         head = head.next
       
@@ -1873,7 +1685,7 @@ exports.Editor = class Editor
       while head isnt null
         if head.type is 'socketStart' and
             (head.next.type is 'text' or head.next.type is 'socketEnd') and
-            head.socket.paper.bounds[head.socket.paper._line].contains point
+            head.socket.view.bounds[head.socket.view.lineStart].contains point
           return head.socket
         head = head.next
 
@@ -1968,7 +1780,7 @@ exports.Editor = class Editor
         if @selection in @paletteBlocks then point.add PALETTE_WIDTH, 0; selectionInPalette = true
 
         # Compute the offset of the selection position from the mouse
-        rect = @selection.paper.bounds[@selection.paper.lineStart]
+        rect = @selection.view.bounds[@selection.view.lineStart]
         offset = point.from new draw.Point rect.x, rect.y
 
         # If we have clicked something in the palette, the clone first.
@@ -1979,12 +1791,11 @@ exports.Editor = class Editor
           if float.block is @selection then @floatingBlocks.splice i, 1; break
 
         # Move it to nowhere
-        @selection._moveTo null
+        moveBlockTo @selection, null
 
         # Draw it in the drag canvas
-        @selection.paper.compute line: 0
-        @selection.paper.finish()
-        @selection.paper.draw dragCtx
+        @selection.view.compute()
+        @selection.view.draw dragCtx
 
         # CSS-transform the drag canvas to where it ought to be
         if selectionInPalette
@@ -2022,13 +1833,13 @@ exports.Editor = class Editor
         old_highlight = highlight
 
         highlight = @tree.find (block) ->
-          (not (block.inSocket?() ? false)) and block.paper.dropArea? and block.paper.dropArea.contains dest
+          (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
 
         # If highlight changed, redraw
         if old_highlight isnt highlight then @redraw()
 
         # Highlight the highlight
-        if highlight? then highlight.paper.dropArea.fill mainCtx, '#fff'
+        if highlight? then highlight.view.dropArea.fill mainCtx, '#fff'
 
         # CSS-transform the drag canvas to where it ought to be
         drag.style.webkitTransform =
@@ -2047,24 +1858,31 @@ exports.Editor = class Editor
           ###
           switch highlight.type
             when 'indent'
-              # An insert drop signifies that we want to drop the block at the start of the indent
-              @selection._moveTo highlight.start.insert new NewlineToken()
+              head = highlight.end.prev
+              while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
+
+              if head.type is 'newline'
+                # There's already a newline here.
+                moveBlockTo @selection, highlight.start.next
+              else
+                # An insert drop signifies that we want to drop the block at the start of the indent
+                moveBlockTo @selection, highlight.start.insert new NewlineToken()
 
             when 'block'
               # A block drop signifies that we want to drop the block after (the end of) the block.
-              @selection._moveTo highlight.end.insert new NewlineToken()
+              moveBlockTo @selection, highlight.end.insert new NewlineToken()
 
             when 'socket'
               # Remove any previously occupying block or text
               if highlight.content()? then highlight.content().remove()
 
               # Insert
-              @selection._moveTo highlight.start
+              moveBlockTo @selection, highlight.start
             
             else
               if highlight is @tree
                 # We can also drop on the root tree (insert at the start of the program)
-                @selection._moveTo @tree.start
+                moveBlockTo @selection, @tree.start
                 @selection.end.insert new NewlineToken()
 
         else
@@ -2147,7 +1965,7 @@ exports.Editor = class Editor
         firstLassoed = null
         while head isnt @tree.end
           # A block matches if it intersects the lasso rectangle
-          if head.type is 'blockStart' and head.block.paper._container.intersects rect
+          if head.type is 'blockStart' and head.block.view.path.intersects rect
             firstLassoed = head
             break
           head = head.next
@@ -2156,7 +1974,7 @@ exports.Editor = class Editor
         head = @tree.end
         lastLassoed = null
         while head isnt @tree.start
-          if head.type is 'blockEnd' and head.block.paper._container.intersects rect
+          if head.type is 'blockEnd' and head.block.view.path.intersects rect
             lastLassoed = head
             break
           head = head.prev
@@ -2271,20 +2089,20 @@ exports.Editor = class Editor
       @redraw()
       
       # Determine the position (coordinate-wise) of the typing cursor
-      start = @editedText.paper.bounds[_editedInputLine].x +
+      start = @editedText.view.bounds[_editedInputLine].x +
         mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionStart]).width
 
-      end = @editedText.paper.bounds[_editedInputLine].x +
+      end = @editedText.view.bounds[_editedInputLine].x +
         mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionEnd]).width
       
       # Draw the typing cursor itself
       if start is end
         # This is just a line
-        mainCtx.strokeRect start, @editedText.paper.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
+        mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
       else
         # This is the translucent rectangle
         mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3'
-        mainCtx.fillRect start, @editedText.paper.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+        mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
     setTextInputFocus = (focus) =>
       # Literally set the focus
@@ -2294,7 +2112,7 @@ exports.Editor = class Editor
       if @focus is null then return
       
       # Record the line that the focus is on
-      _editedInputLine = @focus.paper._line
+      _editedInputLine = @focus.view.lineStart
 
       # Flag whether we are editing handwritten
       @handwritten = @focus.handwritten
@@ -2327,12 +2145,12 @@ exports.Editor = class Editor
       setTimeout (=> @hiddenInput.focus()), 0
 
     setTextInputHead = (point) =>
-      textInputHead = Math.round (point.x - @focus.paper.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
+      textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
 
       @hiddenInput.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
 
     setTextInputAnchor = (point) =>
-      textInputAnchor = textInputHead = Math.round (point.x - @focus.paper.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
+      textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
       @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
     ###
@@ -2405,3 +2223,11 @@ window.onload = ->
       alert 'fizz'
     alert 'buzz'
   '''
+
+  editor.onChange = ->
+    document.getElementById('out').innerText = editor.getValue()
+
+  document.getElementById('out').addEventListener 'input', ->
+    try
+      editor.setValue this.value
+

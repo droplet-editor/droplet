@@ -25,7 +25,7 @@ exports.Block = class Block
       head = head.append token.clone()
     head.append @end
 
-    @paper = new BlockPaper this
+    @view = new BlockView this
 
   embedded: -> @start.prev.type is 'socketStart'
 
@@ -104,7 +104,7 @@ exports.Block = class Block
       first = @start.prev
       while first? and (first.type is 'segmentStart' or first.type is 'cursor') then first = first.prev
 
-      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
+      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd') and not (first.prev?.type is 'indentStart' and last.type is 'indentEnd')
         first.remove()
       else if last? and (last.type is 'newline') and ((not first?) or first.type is 'newline')
         last.remove()
@@ -171,7 +171,7 @@ exports.Indent = class Indent
       head = head.append block.clone()
     head.append @end
     
-    @paper = new IndentPaper this
+    @view = new IndentView this
 
   clone: ->
     clone = new Indent [], @depth
@@ -236,7 +236,7 @@ exports.Segment = class Segment
       head = head.append block.clone()
     head.append @end
     
-    @paper = new SegmentPaper this
+    @view = new SegmentView this
 
   clone: ->
     clone = new Segment []
@@ -290,7 +290,7 @@ exports.Segment = class Segment
       first = @start.prev
       while first? and (first.type is 'segmentStart' or first.type is 'cursor') then first = first.prev
 
-      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd')
+      if first? and (first.type is 'newline') and ((not last?) or last.type is 'newline' or last.type is 'indentEnd') and not (first.prev?.type is 'indentStart' and last.type is 'indentEnd')
         first.remove()
       else if last? and (last.type is 'newline') and ((not first?) or first.type is 'newline')
         last.remove()
@@ -375,7 +375,7 @@ exports.Socket = class Socket
     @handwritten = false # A handwritten socket is a special kind of socket that doesn't accept blocks
                          # Its controller instance also has special key bindings
 
-    @paper = new SocketPaper this
+    @view = new SocketView this
 
   clone: -> if @content()? then new Socket @content().clone() else new Socket()
   
@@ -457,13 +457,13 @@ exports.Token = class Token
 exports.CursorToken = class CursorToken extends Token
   constructor: ->
     @prev = @next = null
-    @paper = new CursorTokenPaper this
+    @view = new CursorView this
     @type = 'cursor'
 
 exports.TextToken = class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null
-    @paper = new TextTokenPaper this
+    @view = new TextView this
     @type = 'text'
 
   clone: -> new TextToken @value
