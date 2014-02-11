@@ -419,6 +419,10 @@ exports.Editor = class Editor
     track.addEventListener 'mousedown', (event) =>
       # Only capture left-click
       unless event.button is 0 then return
+      
+      # Forcefully blur the hidden input if it is focused, removing
+      # the focus from any sockets
+      @hiddenInput.blur()
 
       point = getPointFromEvent event
 

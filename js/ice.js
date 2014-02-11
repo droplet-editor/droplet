@@ -1727,6 +1727,7 @@
         if (event.button !== 0) {
           return;
         }
+        _this.hiddenInput.blur();
         point = getPointFromEvent(event);
         _this.selection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
         if (_this.selection == null) {
