@@ -1723,7 +1723,7 @@
         }
       };
       track.addEventListener('mousedown', function(event) {
-        var fixedDest, flag, float, i, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
+        var fixedDest, flag, float, head, i, next_head, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
         point = getPointFromEvent(event);
         _this.selection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
         if (_this.selection == null) {
@@ -1754,6 +1754,14 @@
           }), 0);
         } else {
           selectionInPalette = false;
+          head = _this.selection.start;
+          while (head !== _this.selection.end) {
+            next_head = head.next;
+            if (head.type === 'cursor') {
+              head.remove();
+            }
+            head = next_head;
+          }
           if (_ref7 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref7) >= 0) {
             point.add(PALETTE_WIDTH, 0);
             selectionInPalette = true;

@@ -1790,6 +1790,13 @@ exports.Editor = class Editor
 
         # A flag as to whether we are selecting something in the palette
         selectionInPalette = false
+
+        # Check to make sure that the selection doesn't contain a cursor
+        head = @selection.start
+        while head isnt @selection.end
+          next_head = head.next
+          if head.type is 'cursor' then head.remove() # If there is, remove it
+          head = next_head
         
         # If we clicked something in the palette, we need to compute offset etc. with a point that has been computed
         # with offset to the palette.
