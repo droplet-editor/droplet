@@ -1724,6 +1724,9 @@
       };
       track.addEventListener('mousedown', function(event) {
         var fixedDest, flag, float, head, i, next_head, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
+        if (event.which !== 0) {
+          return;
+        }
         point = getPointFromEvent(event);
         _this.selection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
         if (_this.selection == null) {

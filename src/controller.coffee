@@ -417,6 +417,9 @@ exports.Editor = class Editor
         when event.layerX then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
     
     track.addEventListener 'mousedown', (event) =>
+      # Only capture left-click
+      unless event.which is 0 then return
+
       point = getPointFromEvent event
 
       # See what we picked up
