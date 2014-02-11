@@ -1,14 +1,11 @@
-###
 # ICE Editor View
 # 
-# Copyright (c) Anthony Bau 2014
+# Copyright (c) 2014 Anthony Bau.
+#
 # MIT License
-###
 
 
-###
-# Magic constants
-###
+## Magic constants
 PADDING = 5
 INDENT_SPACING = 10
 TOUNGE_HEIGHT = 10
@@ -17,6 +14,7 @@ EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * 2
 EMPTY_SOCKET_WIDTH = 20
 EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2
 EMPTY_INDENT_WIDTH = 50
+MIN_SEGMENT_DROP_AREA_WIDTH = 100
 TAB_WIDTH = 15
 TAB_HEIGHT = 5
 TAB_OFFSET = 10
@@ -29,6 +27,10 @@ class BoundingBoxState
 class PathWaypoint
   constructor: (@left, @right) ->
 
+## IceView
+# This is the base class from which all other View elements (except the CursorView) extend.
+# Code here handles most tree operations that need to be performed (all of which occur in
+# FIRST PASS).
 class IceView
 
   constructor: (@block) ->
@@ -53,7 +55,7 @@ class IceView
 
     @bounds = {} # Bounding boxes on each line, computed in THIRD PASS (int:draw.Rectangle)
 
-  # FIRST PASS: generate @lineChildren and @children
+  # ## FIRST PASS: generate @lineChildren and @children ##
   computeChildren: (line) -> # (line) is the starting line
 
     # Re-init all variables to blank.
@@ -181,39 +183,21 @@ class IceView
 
     return line
   
-  # SECOND PASS: compute dimensions on each line
+  # ## SECOND PASS: compute dimensions on each line ##
   computeDimensions: -> # A block's dimensions on each line is strictly a function of its children, so this function has no arguments.
     # Event propagate
     for child in @children then child.computeDimensions()
 
     return @dimensions
   
-  # THIRD PASS: compute bounding boxes on each line
+  # THIRD PASS: compute bounding boxes on each line ##
   computeBoundingBox: (line, state) -> # (line) and (state) are given by the calling parent and signify restrictions on the position of the line (e.g. padding, etc).
     # Event propagate
     for child in @lineChildren[line] then child.computeBoundingBox line, state # In an instance of this function, you will want to change (state) as you move along @lineChildren[line], to adjust for padding and such.
 
     return @bounds[line] = new draw.NoRectangle() # Should actually equal something
 
-  # Convenience function: computeBoundingBoxes. Normally only called on root or floating block.
-  computeBoundingBoxes: ->
-    cursor = new draw.Point 0, 0
-    for line in [@lineStart..@lineEnd]
-      @computeBoundingBox line, new BoundingBoxState cursor
-      cursor.y += @dimensions[line].height
-
-    return @bounds
-  
-  # Getter function, which must be called after computeBoundingBoxes
-  getBounds: ->
-    bound = new draw.NoRectangle()
-
-    for line in [@lineStart..@lineEnd]
-      bound.unite @bounds[line]
-
-    return bound
-  
-  # FOURTH PASS: join "path bits" into a path
+  # ## FOURTH PASS: join "path bits" into a path ##
   computePath: ->
     # Event propagate
     for child in @children then child.computePath()
@@ -221,12 +205,12 @@ class IceView
     return @bounds
   
 
-  # FIFTH PASS: draw
+  # ## FIFTH PASS: draw ##
   drawPath: (ctx) ->
     # Event propagate
     for child in @children then child.drawPath ctx
 
-  # SIXTH Pass: draw cursor
+  # ## SIXTH Pass: draw cursor ##
   drawCursor: (ctx) ->
     for child in @children then child.drawCursor ctx
 
@@ -253,12 +237,35 @@ class IceView
 
       ctx.stroke()
       ctx.fill()
-
+  
+  # ### Convenience function: full draw ###
   draw: (ctx) ->
     @drawPath ctx
     @drawCursor ctx
 
-  # Convenience function: compute
+  # ###Convenience function: computeBoundingBoxes. ##
+  # Normally called on root
+  computeBoundingBoxes: ->
+    cursor = new draw.Point 0, 0
+    for line in [@lineStart..@lineEnd]
+      @computeBoundingBox line, new BoundingBoxState cursor
+      cursor.y += @dimensions[line].height
+
+    return @bounds
+  
+  # ### getBounds ##
+  # Get the enclosing bounds of this entire element
+  # Must be called after passes
+  getBounds: ->
+    bound = new draw.NoRectangle()
+
+    for line in [@lineStart..@lineEnd]
+      bound.unite @bounds[line]
+
+    return bound
+  
+
+  # ### Convenience function: compute ###
   compute: (line = 0) ->
     @computeChildren line
     @computeDimensions(); @computeBoundingBoxes(); @computePath()
@@ -267,11 +274,18 @@ class IceView
     for line, bound of @bounds then bound.translate point
     for child in @children then child.translate point
 
+# # BlockView
+# The renderer for an ICE.Block(). Most paths and colors
+# in ICE editor stem from here.
 class BlockView extends IceView
   constructor: (block) ->
     super block
     @path = null
 
+  # ## computeDimensions ##
+  # Each line of a block adds padding on all four sides;
+  # besides this height = max(children_heights), and
+  # width = sum(children_widths).
   computeDimensions: ->
     # Event propagate, and any other necessary wrappers
     super
@@ -302,7 +316,13 @@ class BlockView extends IceView
           height = Math.max height, child.dimensions[line].height + 2 * PADDING
 
       @dimensions[line] = new draw.Size width, height
-
+  
+  # ## computeBoundingBox ##
+  # This function is probably the most computation-intensive function in this entire file.
+  # It has has a lot of special cases to deal with indented blocks
+  # inside us -- the tounge, G-shape, and left side of an indent mouth.
+  # It is responsible for aligning block coordinates on each line, and setting up waypoints
+  # to later connect with the container polygon.
   computeBoundingBox: (line, state) ->
 
     # Find the middle of this rectangle
@@ -332,9 +352,7 @@ class BlockView extends IceView
 
     # Compute the path waypoints
     if @lineChildren[line].length >  0 and not (@lineChildren[line][0].indented[line] or @lineChildren[line][0].block.type is 'indent')
-      ###
       # Normally, we just enclose everything within these bounds
-      ###
       @pathWaypoints[line] = new PathWaypoint [
         new draw.Point @bounds[line].x, @bounds[line].y
         new draw.Point @bounds[line].x, @bounds[line].bottom()
@@ -344,14 +362,10 @@ class BlockView extends IceView
       ]
 
     else if @lineChildren[line].length > 0
-      ###
       # There is, however, the special case when a child on this line is indented, or is an indent.
-      ###
 
       if line is @lineChildren[line][0].lineEnd and @lineChildren[line][0].block.type is 'indent'
-        ###
         # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
-        ###
 
         # We name this for conveniency
         indentChild = @lineChildren[line][0]
@@ -400,10 +414,8 @@ class BlockView extends IceView
           ]
 
       else
-        ###
         # When the child in front of us is indented, we only draw a thin strip
         # of conainer block to the left of them, with width INDENT_SPACING
-        ###
         @pathWaypoints[line] = new PathWaypoint [
           # (Left side)
           new draw.Point @bounds[line].x, @bounds[line].y
@@ -414,6 +426,11 @@ class BlockView extends IceView
           new draw.Point @bounds[line].x + INDENT_SPACING, @bounds[line].bottom()
         ]
 
+  # ## computePath ##
+  # Here we connect the pathBits we set up in computeBoundingBox.
+  # Each pathBits contains points for the right edge and points for the left edge,
+  # and we simply extend the ends of our path to consume them on either side.
+  # This function is responsible for keeping paths rectilinear and adding tabs on blocks.
   computePath: ->
     super
     
@@ -467,6 +484,8 @@ class BlockView extends IceView
     @path.style.fillColor = @block.color
     @path.style.strokeColor = '#000'
     
+  # ## drawPath ##
+  # This just executes that path we constructed in computePath
   drawPath: (ctx) ->
     if @path._points.length is 0 then debugger
     @path.draw ctx
@@ -516,10 +535,18 @@ class TextView extends IceView
 
     super
 
+# # IndentView
+# This is the renderer for and indent. It doesn't actually draw anything,
+# but handles some coordinate placement.
 class IndentView extends IceView
   constructor: (block) ->
     super block
 
+  # ## computeChildren ##
+  # We need to override this, because every Indent
+  # starts with a newline. We don't actually want that
+  # newline to be part of our rendering domain, so we
+  # skip it.
   computeChildren: (line) ->
     super
 
@@ -527,11 +554,14 @@ class IndentView extends IceView
     @lineStart += 1
 
     return @lineEnd
-
+  
+  # ## computeDimensions ##
+  # Like BlockView, this has height = max(child_heights),
+  # width = sum(child_widths). An Indent, however, adds no padding.
   computeDimensions: ->
     super
     
-    # If an indent is empty, then this first condition will fail.
+    # If an indent is empty, then we don't actually want to deal with any lines.
     if @lineEnd >= @lineStart then for line in [@lineStart..@lineEnd]
       height = width = 0
 
@@ -545,6 +575,10 @@ class IndentView extends IceView
       
       @dimensions[line] = new draw.Size width, height
     
+  # ## computeBoundingBox ##
+  # Delegate immediately to our children;
+  # since we aren't planning to draw anything,
+  # this function is pretty minimal.
   computeBoundingBox: (line, state) ->
     cursorX = state.x
     cursorY = state.y
@@ -556,15 +590,29 @@ class IndentView extends IceView
       child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
       
       cursorX += child.dimensions[line].width
-
+  
+  # ## computePath ##
+  # We must override this method in order to produce a drop area
+  # for drag-and-drop.
   computePath: ->
     @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
 
     super
 
+# # SocketView
+# The renderer for a socket. When a socket is occupied
+# by a block, it simply delegates all render tasks to the occupying block.
+# However, if it is occupied by text or is empty, it will render itself
+# appropriately. That is this class's responsibility.
 class SocketView extends IceView
   constructor: (block) -> super block
-
+  
+  # ## computeDimensions ##
+  # We add padding around text if that is what
+  # we contain, but not around blocks. If we 
+  # are empty, our dimensions are a default value
+  # specified in the constants at the top of this
+  # file.
   computeDimensions: ->
     super
     
@@ -587,6 +635,12 @@ class SocketView extends IceView
 
     return @dimensions
   
+  # ## computeBoundingBox ##
+  # Again, we delegate to our content
+  # block if it exists. If we have text as content,
+  # we position the text as aligns with our added padding.
+  # If we are empty, we simply accept the bounds our parent give us
+  # and end.
   computeBoundingBox: (line, state) ->
     # Accept the bounds given by our parent
     @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
@@ -602,15 +656,23 @@ class SocketView extends IceView
       @lineChildren[line][0].computeBoundingBox line, new BoundingBoxState new draw.Point state.x + PADDING, state.y + PADDING
 
     else
-      # Mimick the block
+      # Delegate to our content block
       @lineChildren[line][0].computeBoundingBox line, state
-
+  
+  # ## computePath ##
+  # We must override this to produce a drop area.
+  # We have no drop area if we are filled by a block
+  # (as we are not droppable).
   computePath: ->
     unless @block.content()?.type is 'block'
       (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
 
     super
-
+  
+  # ## drawPath ##
+  # If we are empty or contain text,
+  # then we must draw the white rectangle.
+  # Otherwise, simply delegate.
   drawPath: (ctx) ->
     if not @block.content()? or @block.content().type is 'text'
       # If we are empty, then draw our unit rectangle. If we have text inside, then draw the wrapping rectangle.
@@ -620,9 +682,17 @@ class SocketView extends IceView
     # Event propagate (this deals with block children)
     super
 
+# # SegmentView
+# The renderer for a Segment. Segments are meant to
+# be entirely invisible, so this simply delegates to children
+# and manages their y-coordinates as necessary (putting them
+# one after another, if there are multiple children).
 class SegmentView extends IceView
   constructor: (block) -> super block
-
+  
+  # ## computeDimensions ##
+  # Like an Indent, height = max(child_heights),
+  # width = sum(child_widths) for each line.
   computeDimensions: ->
     super
 
@@ -635,11 +705,10 @@ class SegmentView extends IceView
         height = Math.max height, child.dimensions[line].height
       
       @dimensions[line] = new draw.Size width, height
-
+  
+  # ## computeBoundingBox ##
   computeBoundingBox: (line, state) ->
-    ###
     # A Segment can compute its bounds the same way an Indent does.
-    ###
     cursorX = state.x
     cursorY = state.y
 
@@ -650,7 +719,23 @@ class SegmentView extends IceView
       child.computeBoundingBox line, new BoundingBoxState new draw.Point cursorX, cursorY
       
       cursorX += child.dimensions[line].width
+  
+  # ## drawPath ##
+  # We must override this to provide a drop area
+  drawPath: ->
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x,
+      @bounds[@lineStart].y - 5,
+      Math.max(@bounds[@lineStart].width,MIN_SEGMENT_DROP_AREA_WIDTH),
+      10
 
+    super
+
+# # CursorView
+# This class is a bit degenerate;
+# it's mainly used by the controller to determine the position
+# at which a cursor was rendered. The drawing function for a cursor
+# is actually the responsibility of the cursor's parent.
 class CursorView
   constructor: (@block)->
+    # This will be the point at which the cursor was drawn.
     @point = new draw.Point 0, 0

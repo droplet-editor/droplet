@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>draw.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="coffee.html">
+                coffee.coffee
+              </a>
+            
+              
+              <a class="source" href="controller.html">
+                controller.coffee
+              </a>
+            
+              
+              <a class="source" href="draw.html">
+                draw.coffee
+              </a>
+            
+              
+              <a class="source" href="model.html">
+                model.coffee
+              </a>
+            
+              
+              <a class="source" href="view.html">
+                view.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>draw.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <p>Copyright (c) 2014 Anthony Bau
+MIT License</p>
+<p>Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <h1 id="private-convenience-functions">Private (convenience) functions</h1>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <h2 id="_area">_area</h2>
+<p>Signed area of the triangle formed by vectors [ab] and [ac]</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-title">_area</span> = <span class="hljs-params">(a, b, c)</span> -&gt;</span> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <h2 id="_intersects">_intersects</h2>
+<p>Test the intersection of two line segments</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-title">_intersects</span> = <span class="hljs-params">(a, b, c, d)</span> -&gt;</span>
+  ((_area(a, b, c) &gt; <span class="hljs-number">0</span>) != (_area(a, b, d) &gt; <span class="hljs-number">0</span>)) <span class="hljs-keyword">and</span> ((_area(c, d, a) &gt; <span class="hljs-number">0</span>) != (_area(c, d, b) &gt; <span class="hljs-number">0</span>))</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <h1 id="public-functions">Public functions</h1>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-built_in">exports</span> = {}</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <h2 id="point">Point</h2>
+<p>A point knows its x and y coordinate, and can do some vector operations.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Point = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Point</span></span>
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>)</span> -&gt;</span>
+
+  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> Point <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>
+
+  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+    <span class="hljs-property">@x</span> += vector.x; <span class="hljs-property">@y</span> += vector.y
+
+  <span class="hljs-attribute">add</span>: <span class="hljs-function"><span class="hljs-params">(x, y)</span> -&gt;</span> <span class="hljs-property">@x</span> += x; <span class="hljs-property">@y</span> += y
+
+  <span class="hljs-attribute">copy</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+    <span class="hljs-property">@x</span> = point.x; <span class="hljs-property">@y</span> = point.y
+
+  <span class="hljs-attribute">from</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-keyword">new</span> Point <span class="hljs-property">@x</span> - point.x, <span class="hljs-property">@y</span> - point.y
+
+  <span class="hljs-attribute">clear</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@x</span> = <span class="hljs-property">@y</span> = <span class="hljs-number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <h2 id="size">Size</h2>
+<p>A Size knows its width and height.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Size = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Size</span></span>
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>)</span> -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <h2 id="rectangle">Rectangle</h2>
+<p>A Rectangle knows its upper-left corner, width, and height,
+and can do rectangular overlap, polygonal intersection,
+and rectangle or point union (point union is called “swallow”).</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Rectangle = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Rectangle</span></span>
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>)</span> -&gt;</span>
+  
+  <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ((point.x &lt; <span class="hljs-property">@x</span>) <span class="hljs-keyword">or</span> (point.x &gt; <span class="hljs-property">@x</span> + <span class="hljs-property">@width</span>) <span class="hljs-keyword">or</span> (point.y &lt; <span class="hljs-property">@y</span>) <span class="hljs-keyword">or</span> (point.y &gt; <span class="hljs-property">@y</span> + <span class="hljs-property">@height</span>))
+
+  <span class="hljs-attribute">copy</span>: <span class="hljs-function"><span class="hljs-params">(rect)</span> -&gt;</span>
+    <span class="hljs-property">@x</span> = rect.x; <span class="hljs-property">@y</span> = rect.y
+    <span class="hljs-property">@width</span> = rect.width; <span class="hljs-property">@height</span> = rect.height
+
+  <span class="hljs-attribute">clear</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@width</span> = <span class="hljs-property">@height</span> = <span class="hljs-number">0</span>; <span class="hljs-property">@x</span> = <span class="hljs-property">@y</span> = <span class="hljs-literal">null</span>
+
+  <span class="hljs-attribute">bottom</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@y</span> + <span class="hljs-property">@height</span>
+  <span class="hljs-attribute">right</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@x</span> + <span class="hljs-property">@width</span>
+
+  <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
+    ctx.fillStyle = style
+    ctx.fillRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>
+
+  <span class="hljs-attribute">unite</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span>
+    <span class="hljs-keyword">unless</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@copy</span> rectangle
+    <span class="hljs-keyword">else</span>
+      <span class="hljs-property">@width</span> = Math.max(<span class="hljs-property">@right</span>(), rectangle.right()) - (<span class="hljs-property">@x</span> = Math.min <span class="hljs-property">@x</span>, rectangle.x)
+      <span class="hljs-property">@height</span> = Math.max(<span class="hljs-property">@bottom</span>(), rectangle.bottom()) - (<span class="hljs-property">@y</span> = Math.min <span class="hljs-property">@y</span>, rectangle.y)
+
+  <span class="hljs-attribute">swallow</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+    <span class="hljs-keyword">unless</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@copy</span> <span class="hljs-keyword">new</span> Rectangle point.x, point.y, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+    <span class="hljs-keyword">else</span>
+      <span class="hljs-property">@width</span> = Math.max(<span class="hljs-property">@right</span>(), point.x) - (<span class="hljs-property">@x</span> = Math.min <span class="hljs-property">@x</span>, point.x)
+      <span class="hljs-property">@height</span> = Math.max(<span class="hljs-property">@bottom</span>(), point.y) - (<span class="hljs-property">@y</span> = Math.min <span class="hljs-property">@y</span>, point.y)
+
+  <span class="hljs-attribute">overlap</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ((rectangle.right()) &lt; <span class="hljs-property">@x</span> <span class="hljs-keyword">or</span> (rectangle.bottom() &lt; <span class="hljs-property">@y</span>) <span class="hljs-keyword">or</span> (rectangle.x &gt; <span class="hljs-property">@right</span>()) <span class="hljs-keyword">or</span> (rectangle.y &gt; <span class="hljs-property">@bottom</span>()))
+
+  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+    <span class="hljs-property">@x</span> += vector.x; <span class="hljs-property">@y</span> += vector.y
+
+  <span class="hljs-attribute">stroke</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
+    ctx.strokeStyle = style
+    ctx.strokeRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>
+
+  <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
+    ctx.fillStyle = style
+    ctx.fillRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <h2 id="norectangle">NoRectangle</h2>
+<p>NoRectangle is an alternate constructor for Rectangle which starts
+the rectangle as nothing (without even a location). It can gain location and size
+via unite() and swallow().</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.NoRectangle = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NoRectangle</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Rectangle</span></span>
+  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">super</span>(<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <h2 id="path">Path</h2>
+<p>This is called Path, but is forced to be closed so is actually a polygon.
+It can do fast translation and rectangular intersection.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Path = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Path</span></span>
+  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
+    <span class="hljs-property">@_points</span> = []
+    <span class="hljs-property">@_cachedTranslation</span> = <span class="hljs-keyword">new</span> Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+    <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">false</span>
+    <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> NoRectangle()
+
+    <span class="hljs-property">@style</span> = {
+      <span class="hljs-string">'strokeColor'</span>: <span class="hljs-string">'#000'</span>
+      <span class="hljs-string">'fillColor'</span>: <span class="hljs-literal">null</span>
+    }
+  
+  <span class="hljs-attribute">_clearCache</span>:<span class="hljs-function"> -&gt;</span>
+    <span class="hljs-keyword">if</span> <span class="hljs-property">@_cacheFlag</span>
+      <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+        point.translate <span class="hljs-property">@_cachedTranslation</span>
+      <span class="hljs-property">@_bounds</span>.translate <span class="hljs-property">@_cachedTranslation</span>
+      <span class="hljs-property">@_cachedTranslation</span>.clear()
+      <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">false</span>
+  
+  <span class="hljs-attribute">recompute</span>:<span class="hljs-function"> -&gt;</span>
+    <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> NoRectangle()
+    <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+      <span class="hljs-property">@_bounds</span>.swallow point
+  
+  <span class="hljs-attribute">push</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+    <span class="hljs-property">@_points</span>.push point
+    <span class="hljs-property">@_bounds</span>.swallow point
+
+  <span class="hljs-attribute">unshift</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+    <span class="hljs-property">@_points</span>.unshift point
+    <span class="hljs-property">@_bounds</span>.swallow point</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <h3 id="point-containment">Point containment</h3>
+<p>Accomplished with ray-casting</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+    <span class="hljs-property">@_clearCache</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p>“Ray” to the left</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    dest = <span class="hljs-keyword">new</span> Point <span class="hljs-property">@_bounds</span>.x - <span class="hljs-number">10</span>, point.y</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>Count intersections</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    count = <span class="hljs-number">0</span>
+    last = <span class="hljs-property">@_points</span>[<span class="hljs-property">@_points</span>.length - <span class="hljs-number">1</span>]
+    <span class="hljs-keyword">for</span> end <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+      <span class="hljs-keyword">if</span> _intersects(last, end, point, dest) <span class="hljs-keyword">then</span> count += <span class="hljs-number">1</span>
+      last = end
+
+    <span class="hljs-keyword">return</span> count % <span class="hljs-number">2</span> <span class="hljs-keyword">is</span> <span class="hljs-number">1</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <h3 id="rectangular-intersection">Rectangular intersection</h3>
+<p>Succeeds if any edges intersect or either shape is
+entirely within the other.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">intersects</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span>
+    <span class="hljs-property">@_clearCache</span>()
+    
+    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> rectangle.overlap <span class="hljs-property">@_bounds</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+    <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>Try each pair of edges for intersections</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      last = <span class="hljs-property">@_points</span>[<span class="hljs-property">@_points</span>.length - <span class="hljs-number">1</span>]
+      rectSides = [
+        <span class="hljs-keyword">new</span> draw.Point rectangle.x, rectangle.y
+        <span class="hljs-keyword">new</span> draw.Point rectangle.right(), rectangle.y
+        <span class="hljs-keyword">new</span> draw.Point rectangle.right(), rectangle.bottom()
+        <span class="hljs-keyword">new</span> draw.Point rectangle.x, rectangle.bottom()
+      ]
+      <span class="hljs-keyword">for</span> end <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+        lastSide = rectSides[rectSides.length - <span class="hljs-number">1</span>]
+        <span class="hljs-keyword">for</span> side <span class="hljs-keyword">in</span> rectSides
+          <span class="hljs-keyword">if</span> _intersects(last, end, lastSide, side) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
+          lastSide = side
+        last = end</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>Intersections failed; see if we contain the rectangle.
+Note that if we contain the rectangle we must contain all of its vertices,
+so it suffices to test one vertex.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@contains</span> rectSides[<span class="hljs-number">0</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>We don’t contain the rectangle; see if it contains us.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> rectangle.contains <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>No luck</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+
+  <span class="hljs-attribute">bounds</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@_clearCache</span>(); <span class="hljs-property">@_bounds</span>
+
+  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+    <span class="hljs-property">@_cachedTranslation</span>.translate vector
+    <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">true</span>
+
+  <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+    <span class="hljs-property">@_clearCache</span>()
+    ctx.strokeStyle = <span class="hljs-property">@style</span>.strokeColor
+    <span class="hljs-keyword">if</span> <span class="hljs-property">@style</span>.fillColor? <span class="hljs-keyword">then</span> ctx.fillStyle = <span class="hljs-property">@style</span>.fillColor
+    ctx.beginPath()
+    ctx.moveTo <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].x, <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].y
+    <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+      ctx.lineTo point.x, point.y <span class="hljs-comment"># DEFAULT</span>
+    ctx.lineTo <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].x, <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].y</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Fill and stroke</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@style</span>.fillColor? <span class="hljs-keyword">then</span> ctx.fill()
+    ctx.stroke()
+
+_CTX = <span class="hljs-literal">null</span> <span class="hljs-comment">#Hacky, hacky, hacky</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <h2 id="text">Text</h2>
+<p>A Text element. Mainly this exists for computing bounding boxes, which is
+accomplished via ctx.measureText().</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Text = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Text</span></span>
+  <span class="hljs-attribute">_FONT_SIZE</span>: <span class="hljs-number">15</span>
+
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@point</span>, <span class="hljs-property">@value</span>)</span> -&gt;</span>
+    _CTX.font = <span class="hljs-attribute">Text</span>::_FONT_SIZE + <span class="hljs-string">'px Courier New'</span>
+    <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> Rectangle <span class="hljs-property">@point</span>.x, <span class="hljs-property">@point</span>.y, _CTX.measureText(<span class="hljs-property">@value</span>).width, <span class="hljs-attribute">Text</span>::_FONT_SIZE
+   
+  <span class="hljs-attribute">bounds</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@_bounds</span>
+  <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@_bounds</span>.contains point
+   
+  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+    <span class="hljs-property">@point</span>.translate vector
+    <span class="hljs-property">@_bounds</span>.translate vector
+
+  <span class="hljs-attribute">setPosition</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@translate</span> point.from <span class="hljs-property">@point</span>
+  
+  <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+    ctx.textBaseline = <span class="hljs-string">'top'</span>
+    ctx.font = <span class="hljs-attribute">Text</span>::_FONT_SIZE + <span class="hljs-string">'px Courier New'</span>
+    ctx.fillStyle = <span class="hljs-string">'#000'</span>
+    ctx.fillText <span class="hljs-property">@value</span>, <span class="hljs-property">@point</span>.x, <span class="hljs-property">@point</span>.y
+
+<span class="hljs-built_in">exports</span>.<span class="hljs-function"><span class="hljs-title">_setCTX</span> = <span class="hljs-params">(ctx)</span> -&gt;</span> _CTX = ctx
+
+<span class="hljs-built_in">window</span>.draw = <span class="hljs-built_in">exports</span></pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

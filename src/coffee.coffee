@@ -1,26 +1,13 @@
-# Theme: Primaria
-###
-colors =
-  COMMAND: '#37f'
-  CONTROL: '#fb5'
-  VALUE: '#3f7'
-  RETURN: '#f03'
-###
-# Theme: Solaria
+# A rudimentary CoffeeScript parser for ICE Editor.
+# 
+# Created 2014 by Anthony Bau.
+# This software is public domain.
+
 colors =
   COMMAND: '#268bd2'
   CONTROL: '#daa520'
   VALUE: '#26cf3c'
   RETURN: '#dc322f'
-
-###
-# Theme: Exoniana
-colors =
-  COMMAND: '#c33'
-  CONTROL: '#DAA520'
-  VALUE: '#f00'
-  RETURN: '#fff'
-###
 
 exports = {}
 
@@ -64,7 +51,6 @@ exports.mark = (nodes, text) ->
     id += 1
 
   getBounds = (node) ->
-    #console.log node.constructor.name
     switch node.constructor.name
       when 'Block'
         start = node.locationData
@@ -254,8 +240,6 @@ exports.execute = execute = (text, markup) ->
   stack = []
 
   for line, i in text
-    #debugString = '' #DEBUG
-
     # Append the newline token
     head = head.append new ICE.NewlineToken()
 
@@ -291,10 +275,8 @@ exports.execute = execute = (text, markup) ->
 
         unless str.length is 0
           head = head.append new ICE.TextToken str
-          #debugString += str #DEBUG
         
         if stack.length > 0 and stack[stack.length-1].block.type is 'block' and _mark.token.type is 'blockStart'
-          #debugString += "<socketStart (implied)>" #DEBUG
           stack.push block: (_socket = new ICE.Socket()), implied: true
           head = head.append _socket.start
 
@@ -305,20 +287,16 @@ exports.execute = execute = (text, markup) ->
           when 'blockEnd', 'socketEnd', 'indentEnd' then stack.pop()
 
         head = head.append _mark.token
-        #debugString += '<' + _mark.token.type + ' ' + _mark.id + '>' #DEBUG
 
         if stack.length > 0 and stack[stack.length - 1].implied?
           head = head.append stack.pop().block.end
-          #debugString += '<socketEnd (implied)>' #DEBUG
 
         lastMark = _mark.position[1]
 
     # Insert the last string on this line.
     unless lastMark > line.length - 1
       head = head.append new ICE.TextToken line[lastMark..-1]
-      #debugString += line[lastMark..-1] #DEBUG
 
-    #console.log #debugString #DEBUG
   first = first.next.next
   first.prev = null
   return first

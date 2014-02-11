@@ -1,9 +1,8 @@
-###
 # ICE Editor Controller
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2014 Anthony Bau.
+#
 # MIT License
-###
 
 INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
@@ -13,13 +12,17 @@ PALETTE_WIDTH = 300
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->
 
+# #The Editor class
+# This class contains all the controller functions for ICE Editor.
+# Call:
+#   new Editor(DOMElement, palette)
+# to initialize an ICE editor in an element.
+
 exports.Editor = class Editor
   constructor: (el, @paletteBlocks) ->
 
-    ###
-    # Field declaration
+    # ## Field declaration ##
     # (useful to have all in one place)
-    ###
     
     # If we did not recieve palette blocks in the constructor, we have no palette.
     @paletteBlocks ?= []
@@ -29,15 +32,11 @@ exports.Editor = class Editor
     # token stream
     @paletteBlocks = (paletteBlock.clone() for paletteBlock in @paletteBlocks)
 
-    ###
     # MODEL instances (program state)
-    ###
     @tree = null # The root tree
     @floatingBlocks = [] # The other root blocks that are not attached to the root tree
     
-    ###
     # TEXT INPUT interactive fields
-    ###
     @focus = null # The focused empty socket, if such thing exists.
     @editedText = null # The focused textToken, if such thing exists (associated with @focus).
     @handwritten = false # Are we editing a handwritten line?
@@ -51,20 +50,14 @@ exports.Editor = class Editor
 
     _editedInputLine = -1
 
-    ###
     # NORMAL DRAG interactive fields
-    ###
     @selection = null # The currently-dragged set of blocks
 
-    ###
     # LASSO SELECT interactive fields
-    ###
     @lassoSegment = null
     @_lassoBounds = null
 
-    ###
     # CURSOR interactive fields
-    ###
     @cursor = new CursorToken()
 
     # Scroll offset
@@ -73,9 +66,7 @@ exports.Editor = class Editor
     offset = null
     highlight = null
     
-    ###
-    # DOM SETUP
-    ###
+    # ## DOM SETUP ##
 
     # The main canvas
     main = document.createElement 'canvas'; main.className = 'canvas'
@@ -110,13 +101,16 @@ exports.Editor = class Editor
     # The main context will be used for draw.js's text measurements (this is a bit of a hack)
     draw._setCTX mainCtx
 
-    ###
-    # General-purpose methods that call the view.
-    ###
+    # ## Convenience Functions ##
+    # General-purpose methods that call the view (rendering functions)
     
     @clear = =>
       mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, main.width, main.height
-
+    
+    # ## Redraw ##
+    # redraw does three main things: redraws the root tree (@tree)
+    # redraws any floating blocks (@floatingBlocks), and draws the bounding rectangle
+    # of any lassoed segments.
     @redraw = =>
       # Clear the main canvas
       @clear()
@@ -157,13 +151,11 @@ exports.Editor = class Editor
         @redraw()
 
     moveBlockTo = (block, target) =>
-      block._moveTo target
+      block.moveTo target
       if @onChange? then @onChange new IceEditorChangeEvent block, target
     
-    ###
     # The redrawPalette function ought to be called only once in the current code structure.
     # If we want to scroll the palette later on, then this will be called to do so.
-    ###
     @redrawPalette = =>
       # We need to keep track of the bottom edge of the last element,
       # so we know where to put the top of the next one (there will be a margin of PALETTE_MARGIN between them)
@@ -185,9 +177,10 @@ exports.Editor = class Editor
     # (call it right away)
     @redrawPalette()
     
-    ###
-    # Cursor operations
-    ###
+    # ##Cursor operations ##
+    # Functions that manipulate the cursor. The cursor is a normal ICE editor model token
+    # that is rendered specially in the View.
+
     insertHandwrittenBlock = =>
       # Create the new block and socket for a new handwritten line
       newBlock = new Block []; newSocket = new Socket []
@@ -261,9 +254,7 @@ exports.Editor = class Editor
 
       scrollCursorIntoView()
     
-    ###
     # TODO the following are known not to be able to navigate to the end of an indent.
-    ###
     moveCursorUp = =>
       # Seek newline
       head = @cursor.prev.prev
@@ -294,10 +285,8 @@ exports.Editor = class Editor
       else
         moveCursorTo head
     
-    ###
-    # Bind events to the hidden input
-    ###
-    
+    # ## Hidden Input events ##
+
     # For normal text input, we use the "input", "keydownhtml event
     for eventName in ['input', 'keydown', 'keyup', 'keypress']
       @hiddenInput.addEventListener eventName, (event) =>
@@ -355,16 +344,12 @@ exports.Editor = class Editor
         when 40 then setTextInputFocus null; @hiddenInput.blur(); moveCursorDown(); @redraw()
     
     # When we blur the hidden input, also blur the canvas text focus
-    ###
     @hiddenInput.addEventListener 'blur', (event) =>
       console.log 'blurred'
       # If we have actually blurred (as opposed to simply unfocused the browser window)
       if event.target isnt document.activeElement then setTextInputFocus null
-    ###
     
-    ###
     # Bind keyboard shortcut events to the document
-    ###
 
     document.body.addEventListener 'keydown', (event) =>
       # Keyboard shortcuts don't apply if they were executed in a text input area
@@ -383,9 +368,7 @@ exports.Editor = class Editor
       # If we manipulated the root tree, redraw.
       if event.keyCode in [13, 38, 40, 8] then @redraw()
 
-    ###
     # Hit-testing functions
-    ###
 
     hitTest = (point, root) =>
       head = root; seek = null
@@ -422,18 +405,16 @@ exports.Editor = class Editor
         if hitTest(point, block.start)? then return block
       return null
 
-    ###
-    # Mouse events
-    ###
+    # ## The mousedown event ##
+    
+    # ### getPointFromEvent ###
+    # This is a conveneince function, which will contain compatability layers for getting
+    # the offset coordinates of a mouse click point
 
     getPointFromEvent = (event) =>
       switch
         when event.offsetX? then new draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + @scrollOffset.y
         when event.layerX then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
-
-    ###
-    # The mousedown event, which sets fields according to what we have just selected.
-    ###
     
     track.addEventListener 'mousedown', (event) =>
       point = getPointFromEvent event
@@ -446,9 +427,7 @@ exports.Editor = class Editor
         hitTestPalette(point)
       
       if not @selection?
-        ###
         # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
-        ###
         
         # If there is already a selection, remove it.
         if @lassoSegment?
@@ -470,9 +449,7 @@ exports.Editor = class Editor
         @lassoAnchor = point
 
       else if @selection.type is 'socket'
-        ###
         # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
-        ###
         
         # Set the text input up for editing
         setTextInputFocus @selection
@@ -489,9 +466,7 @@ exports.Editor = class Editor
           @selection = null), 0
 
       else
-        ###
         # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)
-        ###
 
         # A flag as to whether we are selecting something in the palette
         selectionInPalette = false
@@ -534,9 +509,7 @@ exports.Editor = class Editor
         # Redraw the main canvas
         @redraw()
 
-    ###
-    # Track mouse events for NORMAL DRAG (only)
-    ###
+    # ## Mouse events for NORMAL DRAG ##
 
     track.addEventListener 'mousemove', (event) =>
       if @selection?
@@ -574,9 +547,7 @@ exports.Editor = class Editor
         dest = new draw.Point -offset.x + point.x, -offset.y + point.y
 
         if highlight?
-          ###
           # Drop areas signify different things depending on the block that they belong to
-          ###
           switch highlight.type
             when 'indent'
               head = highlight.end.prev
@@ -604,7 +575,10 @@ exports.Editor = class Editor
               if highlight is @tree
                 # We can also drop on the root tree (insert at the start of the program)
                 moveBlockTo @selection, @tree.start
-                @selection.end.insert new NewlineToken()
+
+                # Don't insert a newline if it would create an empty line at the end of the file.
+                unless @selection.end.next is @tree.end
+                  @selection.end.insert new NewlineToken()
 
         else
           if point.x > 0
@@ -640,9 +614,7 @@ exports.Editor = class Editor
         # Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.
         @redraw()
 
-    ###
-    # Track mouse events for LASSO SELECT
-    ###
+    # ## Mouse events for LASSO SELECT ##
 
     getRectFromPoints = (a, b) ->
       return new draw.Rectangle(
@@ -676,9 +648,7 @@ exports.Editor = class Editor
         # Get the rectangle we want to test
         rect = getRectFromPoints @lassoAnchor, point
 
-        ###
         # First pass for lasso segment detection: get intersecting blocks.
-        ###
         
         # Find the first matching block
         head = @tree.start
@@ -701,17 +671,13 @@ exports.Editor = class Editor
 
         # Unless we have selected anything, give up.
         if firstLassoed? and lastLassoed?
-          ###
           # Second pass for lasso segment detection: validate the selection and record wrapping blocks as necessary.
-          ###
           
           tokensToInclude = []
 
           head = firstLassoed
           while head isnt lastLassoed
-            ###
             # For each bit of markup, make sure to include both its start token and end token
-            ###
             switch head.type
               when 'blockStart', 'blockEnd'
                 tokensToInclude.push head.block.start
@@ -724,9 +690,7 @@ exports.Editor = class Editor
                 tokensToInclude.push head.segment.end
             head = head.next
 
-          ###
           # Third pass for lasso segment detection: include all necessary tokens demanded by validation
-          ###
 
           # Find the first block in tokensToInclude
           head = @tree.start
@@ -743,7 +707,6 @@ exports.Editor = class Editor
               lastLassoed = head; break
             head = head.prev
 
-          ###
           # Fourth pass for lasso segment detection: make sure that we have selected the wrapping block for any indents
           #
           # Note that this will only occur when we have inserted the indentStart at the beginning or indentEnd at the end
@@ -751,7 +714,6 @@ exports.Editor = class Editor
           # same wrapping block, and nothing outside it (i.e. the wrapping block of the indent wraps the entire selection).
           #
           # So it suffices to select that entire wrapping block.
-          ###
 
           if firstLassoed.type is 'indentStart'
             # Seek the wrapping block for this indent
@@ -797,9 +759,7 @@ exports.Editor = class Editor
         @redraw()
 
 
-    ###
-    # Utility functions for TEXT INPUT
-    ###
+    # ## Utility functions for TEXT INPUT ##
 
     redrawTextInput = =>
       # Change the edited text
@@ -876,9 +836,7 @@ exports.Editor = class Editor
       textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
       @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
-    ###
-    # Track mouse events for TEXT INPUT
-    ###
+    # ## Mouse events for TEXT INPUT ##
 
     track.addEventListener 'mousemove', (event) =>
       if @isEditingText() and textInputSelecting
@@ -895,9 +853,8 @@ exports.Editor = class Editor
       if @isEditingText()
         textInputSelecting = false
 
-    ###
-    # Track events for SCROLLING
-    ###
+    # ## Mouse events for SCROLLING ##
+
     track.addEventListener 'mousewheel', (event) =>
       @clear()
 
@@ -922,7 +879,7 @@ exports.Editor = class Editor
   getValue: -> @tree.toString()
 
 window.onload = ->
-  # Tests
+  # ## Tests ##
   window.editor = new Editor document.getElementById('editor'), (coffee.parse(paletteElement).next.block for paletteElement in [
     '''
     for i in [1..10]

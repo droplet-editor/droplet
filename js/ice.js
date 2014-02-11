@@ -1,23 +1,10 @@
-/*
-# Copyright (c) 2014 Anthony Bau.
-# MIT License.
-#
-# Tree classes and operations for ICE editor.
-*/
-
-
 (function() {
-  var Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
+  var Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   exports = {};
-
-  /*
-  # A Block is a bunch of tokens that are grouped together.
-  */
-
 
   exports.Block = Block = (function() {
     function Block(contents) {
@@ -35,22 +22,6 @@
       head.append(this.end);
       this.view = new BlockView(this);
     }
-
-    Block.prototype.embedded = function() {
-      return this.start.prev.type === 'socketStart';
-    };
-
-    Block.prototype.contents = function() {
-      var contents, head;
-      contents = [];
-      head = this.start;
-      while (head !== this.end) {
-        contents.push(head);
-        head = head.next;
-      }
-      contents.push(this.end);
-      return contents;
-    };
 
     Block.prototype.clone = function() {
       var block_clone, clone, cursor, head;
@@ -101,25 +72,7 @@
       return (head != null) && head.type === 'socketStart';
     };
 
-    Block.prototype.lines = function() {
-      var contents, currentLine, head;
-      contents = [];
-      currentLine = [];
-      head = this.start;
-      while (head !== this.end) {
-        contents.push(head);
-        if (head.type === 'newline') {
-          contents.push(currentLine);
-          currentLine = [];
-        }
-        head = head.next;
-      }
-      currentLine.push(this.end);
-      contents.push(currentLine);
-      return contents;
-    };
-
-    Block.prototype._moveTo = function(parent) {
+    Block.prototype.moveTo = function(parent) {
       var first, last, _ref;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.segment.remove();
@@ -152,34 +105,6 @@
         parent.next = this.start;
         return this.start.prev = parent;
       }
-    };
-
-    Block.prototype.findBlock = function(f) {
-      var head;
-      head = this.start.next;
-      while (head !== this.end) {
-        if (head.type === 'blockStart' && f(head.block)) {
-          return head.block.findBlock(f);
-        }
-        head = head.next;
-      }
-      if (f(this)) {
-        return this;
-      } else {
-        return null;
-      }
-    };
-
-    Block.prototype.findSocket = function(f) {
-      var head;
-      head = this.start.next;
-      while (head !== this.end) {
-        if (head.type === 'socketStart' && f(head.socket)) {
-          return head.socket.findSocket(f);
-        }
-        head = head.next;
-      }
-      return null;
     };
 
     Block.prototype.find = function(f) {
@@ -271,16 +196,6 @@
       return clone;
     };
 
-    Indent.prototype.embedded = function() {
-      return false;
-    };
-
-    Indent.prototype.toString = function(state) {
-      var string;
-      string = this.start.toString(state);
-      return string.slice(0, string.length - this.end.toString(state).length - 1);
-    };
-
     Indent.prototype.find = function(f) {
       var head;
       head = this.start.next;
@@ -299,6 +214,12 @@
       } else {
         return null;
       }
+    };
+
+    Indent.prototype.toString = function(state) {
+      var string;
+      string = this.start.toString(state);
+      return string.slice(0, string.length - this.end.toString(state).length - 1);
     };
 
     return Indent;
@@ -359,10 +280,6 @@
       return clone;
     };
 
-    Segment.prototype.embedded = function() {
-      return false;
-    };
-
     Segment.prototype.remove = function() {
       this.start.remove();
       this.end.remove();
@@ -370,7 +287,7 @@
       return this.end.prev = this.start;
     };
 
-    Segment.prototype._moveTo = function(parent) {
+    Segment.prototype.moveTo = function(parent) {
       var first, last, _ref;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.segment.remove();
@@ -403,30 +320,6 @@
         parent.next = this.start;
         return this.start.prev = parent;
       }
-    };
-
-    Segment.prototype.findBlock = function(f) {
-      var head;
-      head = this.start.next;
-      while (head !== this.end) {
-        if (head.type === 'blockStart' && f(head.block)) {
-          return head.block.findBlock(f);
-        }
-        head = head.next;
-      }
-      return null;
-    };
-
-    Segment.prototype.findSocket = function(f) {
-      var head;
-      head = this.start.next;
-      while (head !== this.end) {
-        if (head.type === 'socketStart' && f(head.socket)) {
-          return head.socket.findSocket(f);
-        }
-        head = head.next;
-      }
-      return null;
     };
 
     Segment.prototype.find = function(f) {
@@ -494,10 +387,6 @@
       }
     };
 
-    Socket.prototype.embedded = function() {
-      return false;
-    };
-
     Socket.prototype.content = function() {
       var unwrap;
       unwrap = function(el) {
@@ -512,22 +401,6 @@
       };
       if (this.start.next !== this.end) {
         return unwrap(this.start.next);
-      } else {
-        return null;
-      }
-    };
-
-    Socket.prototype.findSocket = function(f) {
-      var head;
-      head = this.start.next;
-      while (head !== this.end) {
-        if (head.type === 'socketStart' && f(head.socket)) {
-          return head.socket.find(f);
-        }
-        head = head.next;
-      }
-      if (f(this)) {
-        return this;
       } else {
         return null;
       }
@@ -550,16 +423,6 @@
         return this;
       } else {
         return null;
-      }
-    };
-
-    Socket.prototype.toString = function() {
-      if (this.content() != null) {
-        return this.content().toString({
-          indent: ''
-        });
-      } else {
-        return '';
       }
     };
 
@@ -619,11 +482,6 @@
 
   })();
 
-  /*
-  # Special kinds of tokens
-  */
-
-
   exports.CursorToken = CursorToken = (function(_super) {
     __extends(CursorToken, _super);
 
@@ -632,6 +490,10 @@
       this.view = new CursorView(this);
       this.type = 'cursor';
     }
+
+    CursorToken.prototype.clone = function() {
+      return new CursorToken();
+    };
 
     return CursorToken;
 
@@ -682,77 +544,6 @@
     }
 
     return BlockEndToken;
-
-  })(Token);
-
-  exports.NewlineToken = NewlineToken = (function(_super) {
-    __extends(NewlineToken, _super);
-
-    function NewlineToken() {
-      this.prev = this.next = null;
-      this.type = 'newline';
-    }
-
-    NewlineToken.prototype.clone = function() {
-      return new NewlineToken();
-    };
-
-    NewlineToken.prototype.toString = function(state) {
-      return '\n' + state.indent + (this.next ? this.next.toString(state) : '');
-    };
-
-    return NewlineToken;
-
-  })(Token);
-
-  exports.IndentStartToken = IndentStartToken = (function(_super) {
-    __extends(IndentStartToken, _super);
-
-    function IndentStartToken(indent) {
-      this.indent = indent;
-      this.prev = this.next = null;
-      this.type = 'indentStart';
-    }
-
-    IndentStartToken.prototype.toString = function(state) {
-      state.indent += ((function() {
-        var _i, _ref, _results;
-        _results = [];
-        for (_i = 1, _ref = this.indent.depth; 1 <= _ref ? _i <= _ref : _i >= _ref; 1 <= _ref ? _i++ : _i--) {
-          _results.push(' ');
-        }
-        return _results;
-      }).call(this)).join('');
-      if (this.next) {
-        return this.next.toString(state);
-      } else {
-        return '';
-      }
-    };
-
-    return IndentStartToken;
-
-  })(Token);
-
-  exports.IndentEndToken = IndentEndToken = (function(_super) {
-    __extends(IndentEndToken, _super);
-
-    function IndentEndToken(indent) {
-      this.indent = indent;
-      this.prev = this.next = null;
-      this.type = 'indentEnd';
-    }
-
-    IndentEndToken.prototype.toString = function(state) {
-      state.indent = state.indent.slice(0, -this.indent.depth);
-      if (this.next) {
-        return this.next.toString(state);
-      } else {
-        return '';
-      }
-    };
-
-    return IndentEndToken;
 
   })(Token);
 
@@ -808,146 +599,78 @@
 
   })(Token);
 
-  /*
-  # Example LISP parser/
-  */
+  exports.IndentStartToken = IndentStartToken = (function(_super) {
+    __extends(IndentStartToken, _super);
 
-
-  exports.lispParse = function(str) {
-    var block, block_stack, char, currentString, first, head, socket, socket_stack, _i, _len;
-    currentString = '';
-    first = head = new TextToken('');
-    block_stack = [];
-    socket_stack = [];
-    for (_i = 0, _len = str.length; _i < _len; _i++) {
-      char = str[_i];
-      switch (char) {
-        case '(':
-          head = head.append(new TextToken(currentString));
-          block_stack.push(block = new Block([]));
-          socket_stack.push(socket = new Socket(block));
-          head = head.append(socket.start);
-          head = head.append(block.start);
-          head = head.append(new TextToken('('));
-          currentString = '';
-          break;
-        case ')':
-          head = head.append(new TextToken(currentString));
-          head = head.append(new TextToken(')'));
-          head = head.append(block_stack.pop().end);
-          head = head.append(socket_stack.pop().end);
-          currentString = '';
-          break;
-        case ' ':
-          head = head.append(new TextToken(currentString));
-          head = head.append(new TextToken(' '));
-          currentString = '';
-          break;
-        case '\n':
-          head = head.append(new TextToken(currentString));
-          head = head.append(new NewlineToken());
-          currentString = '';
-          break;
-        default:
-          currentString += char;
-      }
+    function IndentStartToken(indent) {
+      this.indent = indent;
+      this.prev = this.next = null;
+      this.type = 'indentStart';
     }
-    head = head.append(new TextToken(currentString));
-    return first;
-  };
 
-  exports.indentParse = function(str) {
-    var block, char, currentString, depth_stack, first, head, indent, line, popped, socket, stack, _i, _j, _len, _len1, _ref, _ref1;
-    head = first = new TextToken('');
-    stack = [];
-    depth_stack = [0];
-    _ref = str.split('\n');
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      line = _ref[_i];
-      indent = line.length - line.trimLeft().length;
-      if (indent > _.last(depth_stack)) {
-        head = head.append((new Indent([], indent - _.last(depth_stack))).start);
-        stack.push(head.indent);
-        depth_stack.push(indent);
-      }
-      while (indent < _.last(depth_stack)) {
-        head = head.append(stack.pop().end);
-        depth_stack.pop();
-      }
-      head = head.append(new NewlineToken());
-      currentString = '';
-      _ref1 = line.trimLeft();
-      for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-        char = _ref1[_j];
-        switch (char) {
-          case '(':
-            if (currentString.length > 0) {
-              head = head.append(new TextToken(currentString));
-            }
-            if (stack.length > 0 && _.last(stack).type === 'block') {
-              stack.push(socket = new Socket(block));
-              head = head.append(socket.start);
-            }
-            stack.push(block = new Block([]));
-            head = head.append(block.start);
-            head = head.append(new TextToken('('));
-            currentString = '';
-            break;
-          case ')':
-            if (currentString.length > 0) {
-              head = head.append(new TextToken(currentString));
-            }
-            popped = {};
-            while (popped.type !== 'block') {
-              popped = stack.pop();
-              if (popped.type === 'block') {
-                head = head.append(new TextToken(')'));
-              }
-              head = head.append(popped.end);
-              if (head.type === 'indentEnd') {
-                depth_stack.pop();
-              }
-            }
-            if (stack.length > 0 && _.last(stack).type === 'socket') {
-              head = head.append(stack.pop().end);
-            }
-            currentString = '';
-            break;
-          case ' ':
-            if (currentString.length > 0) {
-              head = head.append(new TextToken(currentString));
-            }
-            head = head.append(new TextToken(' '));
-            currentString = '';
-            break;
-          default:
-            currentString += char;
+    IndentStartToken.prototype.toString = function(state) {
+      state.indent += ((function() {
+        var _i, _ref, _results;
+        _results = [];
+        for (_i = 1, _ref = this.indent.depth; 1 <= _ref ? _i <= _ref : _i >= _ref; 1 <= _ref ? _i++ : _i--) {
+          _results.push(' ');
         }
+        return _results;
+      }).call(this)).join('');
+      if (this.next) {
+        return this.next.toString(state);
+      } else {
+        return '';
       }
-      if (currentString.length > 0) {
-        head = head.append(new TextToken(currentString));
+    };
+
+    return IndentStartToken;
+
+  })(Token);
+
+  exports.IndentEndToken = IndentEndToken = (function(_super) {
+    __extends(IndentEndToken, _super);
+
+    function IndentEndToken(indent) {
+      this.indent = indent;
+      this.prev = this.next = null;
+      this.type = 'indentEnd';
+    }
+
+    IndentEndToken.prototype.toString = function(state) {
+      state.indent = state.indent.slice(0, -this.indent.depth);
+      if (this.next) {
+        return this.next.toString(state);
+      } else {
+        return '';
       }
+    };
+
+    return IndentEndToken;
+
+  })(Token);
+
+  exports.NewlineToken = NewlineToken = (function(_super) {
+    __extends(NewlineToken, _super);
+
+    function NewlineToken() {
+      this.prev = this.next = null;
+      this.type = 'newline';
     }
-    while (stack.length > 0) {
-      head = head.append(stack.pop().end);
-    }
-    return first.next.next;
-  };
+
+    NewlineToken.prototype.clone = function() {
+      return new NewlineToken();
+    };
+
+    NewlineToken.prototype.toString = function(state) {
+      return '\n' + state.indent + (this.next ? this.next.toString(state) : '');
+    };
+
+    return NewlineToken;
+
+  })(Token);
 
   window.ICE = exports;
-
-  /*
-  # ICE Editor View
-  # 
-  # Copyright (c) Anthony Bau 2014
-  # MIT License
-  */
-
-
-  /*
-  # Magic constants
-  */
-
 
   PADDING = 5;
 
@@ -964,6 +687,8 @@
   EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2;
 
   EMPTY_INDENT_WIDTH = 50;
+
+  MIN_SEGMENT_DROP_AREA_WIDTH = 100;
 
   TAB_WIDTH = 15;
 
@@ -1123,25 +848,6 @@
       return this.bounds[line] = new draw.NoRectangle();
     };
 
-    IceView.prototype.computeBoundingBoxes = function() {
-      var cursor, line, _i, _ref, _ref1;
-      cursor = new draw.Point(0, 0);
-      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        this.computeBoundingBox(line, new BoundingBoxState(cursor));
-        cursor.y += this.dimensions[line].height;
-      }
-      return this.bounds;
-    };
-
-    IceView.prototype.getBounds = function() {
-      var bound, line, _i, _ref, _ref1;
-      bound = new draw.NoRectangle();
-      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
-        bound.unite(this.bounds[line]);
-      }
-      return bound;
-    };
-
     IceView.prototype.computePath = function() {
       var child, _i, _len, _ref;
       _ref = this.children;
@@ -1201,6 +907,25 @@
     IceView.prototype.draw = function(ctx) {
       this.drawPath(ctx);
       return this.drawCursor(ctx);
+    };
+
+    IceView.prototype.computeBoundingBoxes = function() {
+      var cursor, line, _i, _ref, _ref1;
+      cursor = new draw.Point(0, 0);
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        this.computeBoundingBox(line, new BoundingBoxState(cursor));
+        cursor.y += this.dimensions[line].height;
+      }
+      return this.bounds;
+    };
+
+    IceView.prototype.getBounds = function() {
+      var bound, line, _i, _ref, _ref1;
+      bound = new draw.NoRectangle();
+      for (line = _i = _ref = this.lineStart, _ref1 = this.lineEnd; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; line = _ref <= _ref1 ? ++_i : --_i) {
+        bound.unite(this.bounds[line]);
+      }
+      return bound;
     };
 
     IceView.prototype.compute = function(line) {
@@ -1285,21 +1010,9 @@
         cursor += child.dimensions[line].width;
       }
       if (this.lineChildren[line].length > 0 && !(this.lineChildren[line][0].indented[line] || this.lineChildren[line][0].block.type === 'indent')) {
-        /*
-        # Normally, we just enclose everything within these bounds
-        */
-
         return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].bottom())]);
       } else if (this.lineChildren[line].length > 0) {
-        /*
-        # There is, however, the special case when a child on this line is indented, or is an indent.
-        */
-
         if (line === this.lineChildren[line][0].lineEnd && this.lineChildren[line][0].block.type === 'indent') {
-          /*
-          # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
-          */
-
           indentChild = this.lineChildren[line][0];
           paddingLeft = this.lineChildren[line][0].block.type === 'indent' ? INDENT_SPACING : PADDING;
           if (this.lineChildren[line].length === 1) {
@@ -1308,11 +1021,6 @@
             return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].x + paddingLeft, this.bounds[line].y), new draw.Point(this.bounds[line].x + paddingLeft, indentChild.bounds[line].bottom()), new draw.Point(indentChild.bounds[line].right(), indentChild.bounds[line].bottom()), new draw.Point(indentChild.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].bottom())]);
           }
         } else {
-          /*
-          # When the child in front of us is indented, we only draw a thin strip
-          # of conainer block to the left of them, with width INDENT_SPACING
-          */
-
           return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].x + INDENT_SPACING, this.bounds[line].y), new draw.Point(this.bounds[line].x + INDENT_SPACING, this.bounds[line].bottom())]);
         }
       }
@@ -1571,10 +1279,6 @@
     };
 
     SegmentView.prototype.computeBoundingBox = function(line, state) {
-      /*
-      # A Segment can compute its bounds the same way an Indent does.
-      */
-
       var child, cursorX, cursorY, _i, _len, _ref, _results;
       cursorX = state.x;
       cursorY = state.y;
@@ -1587,6 +1291,11 @@
         _results.push(cursorX += child.dimensions[line].width);
       }
       return _results;
+    };
+
+    SegmentView.prototype.drawPath = function() {
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, Math.max(this.bounds[this.lineStart].width, MIN_SEGMENT_DROP_AREA_WIDTH), 10);
+      return SegmentView.__super__.drawPath.apply(this, arguments);
     };
 
     return SegmentView;
@@ -1602,14 +1311,6 @@
     return CursorView;
 
   })();
-
-  /*
-  # ICE Editor Controller
-  #
-  # Copyright (c) 2014 Anthony Bau
-  # MIT License
-  */
-
 
   INDENT_SPACES = 2;
 
@@ -1634,11 +1335,6 @@
       var child, deleteFromCursor, drag, dragCtx, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, mainCtx, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, paletteCtx, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
         _this = this;
       this.paletteBlocks = paletteBlocks;
-      /*
-      # Field declaration
-      # (useful to have all in one place)
-      */
-
       if (this.paletteBlocks == null) {
         this.paletteBlocks = [];
       }
@@ -1652,16 +1348,8 @@
         }
         return _results;
       }).call(this);
-      /*
-      # MODEL instances (program state)
-      */
-
       this.tree = null;
       this.floatingBlocks = [];
-      /*
-      # TEXT INPUT interactive fields
-      */
-
       this.focus = null;
       this.editedText = null;
       this.handwritten = false;
@@ -1672,29 +1360,13 @@
       textInputAnchor = textInputHead = null;
       textInputSelecting = false;
       _editedInputLine = -1;
-      /*
-      # NORMAL DRAG interactive fields
-      */
-
       this.selection = null;
-      /*
-      # LASSO SELECT interactive fields
-      */
-
       this.lassoSegment = null;
       this._lassoBounds = null;
-      /*
-      # CURSOR interactive fields
-      */
-
       this.cursor = new CursorToken();
       this.scrollOffset = new draw.Point(0, 0);
       offset = null;
       highlight = null;
-      /*
-      # DOM SETUP
-      */
-
       main = document.createElement('canvas');
       main.className = 'canvas';
       main.height = el.offsetHeight;
@@ -1720,10 +1392,6 @@
       dragCtx = drag.getContext('2d');
       paletteCtx = palette.getContext('2d');
       draw._setCTX(mainCtx);
-      /*
-      # General-purpose methods that call the view.
-      */
-
       this.clear = function() {
         return mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, main.width, main.height);
       };
@@ -1764,16 +1432,11 @@
         } catch (_error) {}
       };
       moveBlockTo = function(block, target) {
-        block._moveTo(target);
+        block.moveTo(target);
         if (_this.onChange != null) {
           return _this.onChange(new IceEditorChangeEvent(block, target));
         }
       };
-      /*
-      # The redrawPalette function ought to be called only once in the current code structure.
-      # If we want to scroll the palette later on, then this will be called to do so.
-      */
-
       this.redrawPalette = function() {
         var lastBottomEdge, _j, _len1, _ref1, _results;
         lastBottomEdge = 0;
@@ -1789,10 +1452,6 @@
         return _results;
       };
       this.redrawPalette();
-      /*
-      # Cursor operations
-      */
-
       insertHandwrittenBlock = function() {
         var newBlock, newSocket;
         newBlock = new Block([]);
@@ -1850,10 +1509,6 @@
         }
         return scrollCursorIntoView();
       };
-      /*
-      # TODO the following are known not to be able to navigate to the end of an indent.
-      */
-
       moveCursorUp = function() {
         var head, _ref1;
         head = _this.cursor.prev.prev;
@@ -1884,10 +1539,6 @@
           return moveCursorTo(head);
         }
       };
-      /*
-      # Bind events to the hidden input
-      */
-
       _ref1 = ['input', 'keydown', 'keyup', 'keypress'];
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         eventName = _ref1[_j];
@@ -1958,17 +1609,12 @@
             return _this.redraw();
         }
       });
-      /*
-      @hiddenInput.addEventListener 'blur', (event) =>
-        console.log 'blurred'
-        # If we have actually blurred (as opposed to simply unfocused the browser window)
-        if event.target isnt document.activeElement then setTextInputFocus null
-      */
-
-      /*
-      # Bind keyboard shortcut events to the document
-      */
-
+      this.hiddenInput.addEventListener('blur', function(event) {
+        console.log('blurred');
+        if (event.target !== document.activeElement) {
+          return setTextInputFocus(null);
+        }
+      });
       document.body.addEventListener('keydown', function(event) {
         var head, _ref2, _ref3;
         if ((_ref2 = event.target.tagName) === 'INPUT' || _ref2 === 'TEXTAREA') {
@@ -2008,10 +1654,6 @@
           return _this.redraw();
         }
       });
-      /*
-      # Hit-testing functions
-      */
-
       hitTest = function(point, root) {
         var head, seek;
         head = root;
@@ -2072,10 +1714,6 @@
         }
         return null;
       };
-      /*
-      # Mouse events
-      */
-
       getPointFromEvent = function(event) {
         switch (false) {
           case event.offsetX == null:
@@ -2084,19 +1722,11 @@
             return new draw.Point(event.layerX - PALETTE_WIDTH, event.layerY + _this.scrollOffset.y);
         }
       };
-      /*
-      # The mousedown event, which sets fields according to what we have just selected.
-      */
-
       track.addEventListener('mousedown', function(event) {
         var fixedDest, flag, float, i, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
         point = getPointFromEvent(event);
         _this.selection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
         if (_this.selection == null) {
-          /*
-          # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
-          */
-
           if (_this.lassoSegment != null) {
             flag = false;
             _ref6 = _this.floatingBlocks;
@@ -2115,10 +1745,6 @@
           }
           return _this.lassoAnchor = point;
         } else if (_this.selection.type === 'socket') {
-          /*
-          # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
-          */
-
           setTextInputFocus(_this.selection);
           return setTimeout((function() {
             setTextInputAnchor(point);
@@ -2127,10 +1753,6 @@
             return _this.selection = null;
           }), 0);
         } else {
-          /*
-          # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)
-          */
-
           selectionInPalette = false;
           if (_ref7 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref7) >= 0) {
             point.add(PALETTE_WIDTH, 0);
@@ -2161,10 +1783,6 @@
           return _this.redraw();
         }
       });
-      /*
-      # Track mouse events for NORMAL DRAG (only)
-      */
-
       track.addEventListener('mousemove', function(event) {
         var dest, fixedDest, old_highlight, point;
         if (_this.selection != null) {
@@ -2193,10 +1811,6 @@
           point = getPointFromEvent(event);
           dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
           if (highlight != null) {
-            /*
-            # Drop areas signify different things depending on the block that they belong to
-            */
-
             switch (highlight.type) {
               case 'indent':
                 head = highlight.end.prev;
@@ -2221,7 +1835,9 @@
               default:
                 if (highlight === _this.tree) {
                   moveBlockTo(_this.selection, _this.tree.start);
-                  _this.selection.end.insert(new NewlineToken());
+                  if (_this.selection.end.next !== _this.tree.end) {
+                    _this.selection.end.insert(new NewlineToken());
+                  }
                 }
             }
           } else {
@@ -2249,10 +1865,6 @@
           return _this.redraw();
         }
       });
-      /*
-      # Track mouse events for LASSO SELECT
-      */
-
       getRectFromPoints = function(a, b) {
         return new draw.Rectangle(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(a.x - b.x), Math.abs(a.y - b.y));
       };
@@ -2272,10 +1884,6 @@
         if (_this.lassoAnchor != null) {
           point = getPointFromEvent(event);
           rect = getRectFromPoints(_this.lassoAnchor, point);
-          /*
-          # First pass for lasso segment detection: get intersecting blocks.
-          */
-
           head = _this.tree.start;
           firstLassoed = null;
           while (head !== _this.tree.end) {
@@ -2295,17 +1903,9 @@
             head = head.prev;
           }
           if ((firstLassoed != null) && (lastLassoed != null)) {
-            /*
-            # Second pass for lasso segment detection: validate the selection and record wrapping blocks as necessary.
-            */
-
             tokensToInclude = [];
             head = firstLassoed;
             while (head !== lastLassoed) {
-              /*
-              # For each bit of markup, make sure to include both its start token and end token
-              */
-
               switch (head.type) {
                 case 'blockStart':
                 case 'blockEnd':
@@ -2324,10 +1924,6 @@
               }
               head = head.next;
             }
-            /*
-            # Third pass for lasso segment detection: include all necessary tokens demanded by validation
-            */
-
             head = _this.tree.start;
             while (head !== _this.tree.end) {
               if (__indexOf.call(tokensToInclude, head) >= 0) {
@@ -2345,16 +1941,6 @@
               }
               head = head.prev;
             }
-            /*
-            # Fourth pass for lasso segment detection: make sure that we have selected the wrapping block for any indents
-            #
-            # Note that this will only occur when we have inserted the indentStart at the beginning or indentEnd at the end
-            # in the second and third pass. This in turn will occur ONLY when the user has selected multiple blocks belonging to the
-            # same wrapping block, and nothing outside it (i.e. the wrapping block of the indent wraps the entire selection).
-            #
-            # So it suffices to select that entire wrapping block.
-            */
-
             if (firstLassoed.type === 'indentStart') {
               depth = 0;
               while (depth > 0 || head.type !== 'blockStart') {
@@ -2391,10 +1977,6 @@
           return _this.redraw();
         }
       });
-      /*
-      # Utility functions for TEXT INPUT
-      */
-
       redrawTextInput = function() {
         var end, start;
         _this.editedText.value = _this.hiddenInput.value;
@@ -2450,10 +2032,6 @@
         textInputAnchor = textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
         return _this.hiddenInput.setSelectionRange(textInputAnchor, textInputHead);
       };
-      /*
-      # Track mouse events for TEXT INPUT
-      */
-
       track.addEventListener('mousemove', function(event) {
         var point;
         if (_this.isEditingText() && textInputSelecting) {
@@ -2467,10 +2045,6 @@
           return textInputSelecting = false;
         }
       });
-      /*
-      # Track events for SCROLLING
-      */
-
       track.addEventListener('mousewheel', function(event) {
         _this.clear();
         if (event.wheelDelta > 0) {

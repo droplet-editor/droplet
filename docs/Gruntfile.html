@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Gruntfile.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>Gruntfile.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">module</span>.<span class="hljs-function"><span class="hljs-title">exports</span> = <span class="hljs-params">(grunt)</span> -&gt;</span>
+  grunt.initConfig
+    <span class="hljs-attribute">pkg</span>: grunt.file.readJSON <span class="hljs-string">'package.json'</span>
+    <span class="hljs-attribute">coffee</span>:
+      <span class="hljs-attribute">options</span>:
+        <span class="hljs-attribute">sourceMap</span>: <span class="hljs-literal">true</span>
+      <span class="hljs-attribute">build</span>:
+        <span class="hljs-attribute">files</span>:
+          <span class="hljs-string">'js/draw.js'</span>: [<span class="hljs-string">'src/draw.coffee'</span>]
+          <span class="hljs-string">'js/ice.js'</span>: [<span class="hljs-string">'src/model.coffee'</span>, <span class="hljs-string">'src/view.coffee'</span>, <span class="hljs-string">'src/controller.coffee'</span>]
+          <span class="hljs-string">'js/tests.js'</span>: [<span class="hljs-string">'test/tests.coffee'</span>]
+          <span class="hljs-string">'js/coffee.js'</span>: [<span class="hljs-string">'src/coffee.coffee'</span>]
+
+    <span class="hljs-attribute">uglify</span>:
+      <span class="hljs-attribute">options</span>:
+        <span class="hljs-attribute">banner</span>: <span class="hljs-string">'/*! &lt;%= pkg.name %&gt; &lt;%= grunt.template.today("yyyy-mm-dd") %&gt; */\n'</span>
+        <span class="hljs-attribute">mangle</span>: <span class="hljs-literal">false</span>
+      <span class="hljs-attribute">build</span>:
+        <span class="hljs-attribute">files</span>:
+          <span class="hljs-string">'js/ice.min.js'</span>: <span class="hljs-string">'js/ice.js'</span>
+          <span class="hljs-string">'js/tests.min.js'</span>: <span class="hljs-string">'js/tests.js'</span>
+          <span class="hljs-string">'js/draw.min.js'</span>:<span class="hljs-string">'js/draw.js'</span>
+
+    <span class="hljs-attribute">concat</span>:
+      <span class="hljs-attribute">options</span>:
+        <span class="hljs-attribute">separator</span>: <span class="hljs-string">';'</span>
+      <span class="hljs-attribute">build</span>:
+        <span class="hljs-attribute">files</span>:
+          <span class="hljs-string">'dist/ice.min.js'</span>: [<span class="hljs-string">'vendor/underscore-min.js'</span>, <span class="hljs-string">'vendor/coffee-script.js'</span>, <span class="hljs-string">'js/draw.min.js'</span>, <span class="hljs-string">'js/ice.min.js'</span>]
+          <span class="hljs-string">'dist/tests.min.js'</span>: [<span class="hljs-string">'vendor/qunit.min.js'</span>, <span class="hljs-string">'js/tests.min.js'</span>]
+
+    <span class="hljs-attribute">qunit</span>:
+      <span class="hljs-attribute">all</span>: [<span class="hljs-string">'test/*.html'</span>]
+  
+  grunt.loadNpmTasks <span class="hljs-string">'grunt-banner'</span>
+  grunt.loadNpmTasks <span class="hljs-string">'grunt-contrib-coffee'</span>
+  grunt.loadNpmTasks <span class="hljs-string">'grunt-contrib-uglify'</span>
+  grunt.loadNpmTasks <span class="hljs-string">'grunt-contrib-concat'</span>
+  grunt.loadNpmTasks <span class="hljs-string">'grunt-contrib-qunit'</span>
+
+  grunt.registerTask <span class="hljs-string">'default'</span>, [<span class="hljs-string">'coffee'</span>, <span class="hljs-string">'uglify'</span>, <span class="hljs-string">'concat'</span>]
+  grunt.registerTask <span class="hljs-string">'all'</span>, [<span class="hljs-string">'coffee'</span>, <span class="hljs-string">'uglify'</span>, <span class="hljs-string">'concat'</span>, <span class="hljs-string">'qunit'</span>]
+  grunt.registerTask <span class="hljs-string">'test'</span>, [<span class="hljs-string">'qunit'</span>]</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

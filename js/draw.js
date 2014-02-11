@@ -1,18 +1,5 @@
-/*
-# Copyright (c) 2014 Anthony Bau
-# MIT License
-# 
-# Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.
-*/
-
-
-/*
-# Secret functions
-*/
-
-
 (function() {
-  var Group, NoRectangle, Path, Point, QuadTree, Rectangle, Size, Text, exports, _CTX, _area, _intersects,
+  var NoRectangle, Path, Point, Rectangle, Size, Text, exports, _CTX, _area, _intersects,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -23,11 +10,6 @@
   _intersects = function(a, b, c, d) {
     return ((_area(a, b, c) > 0) !== (_area(a, b, d) > 0)) && ((_area(c, d, a) > 0) !== (_area(c, d, b) > 0));
   };
-
-  /*
-  # Public functions
-  */
-
 
   exports = {};
 
@@ -206,21 +188,11 @@
     };
 
     Path.prototype.push = function(point) {
-      /*
-      if @_points.length > 0
-        @_points.push new draw.Point @_points[@_points.length - 1].x, point.y #EXPERIMENTAL
-      */
-
       this._points.push(point);
       return this._bounds.swallow(point);
     };
 
     Path.prototype.unshift = function(point) {
-      /*
-      if @_points.length > 0
-        @_points.unshift new draw.Point point.x, @_points[0].y #EXPERIMENTAL
-      */
-
       this._points.unshift(point);
       return this._bounds.swallow(point);
     };
@@ -352,167 +324,7 @@
     return _CTX = ctx;
   };
 
-  exports.Group = Group = (function() {
-    function Group() {
-      this.children = [];
-      this._cachedTranslation = new Point(0, 0);
-      this._cacheFlag = false;
-      this._bounds = new NoRectangle();
-    }
-
-    Group.prototype._clearCache = function() {
-      var child, _i, _len, _ref;
-      if (this._cacheFlag) {
-        _ref = this.children;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          child = _ref[_i];
-          child.translate(this._cachedTranslation);
-        }
-        this._cachedTranslation.clear();
-        return this._cacheFlag = false;
-      }
-    };
-
-    Group.prototype.empty = function() {
-      this.children.length = 0;
-      return this._bounds.clear();
-    };
-
-    Group.prototype.recompute = function() {
-      var child, _i, _len, _ref, _results;
-      this._bounds.clear();
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        if (child.recompute != null) {
-          child.recompute();
-        }
-        _results.push(this._bounds.unite(child.bounds()));
-      }
-      return _results;
-    };
-
-    Group.prototype.translate = function(vector) {
-      return this._cachedTranslation.translate(vector);
-    };
-
-    Group.prototype.push = function(child) {
-      this.children.push(child);
-      return this._bounds.unite(child.bounds());
-    };
-
-    Group.prototype.bounds = function() {
-      this._clearCache();
-      return this._bounds;
-    };
-
-    Group.prototype.setPosition = function(point) {
-      return this.translate(point.from(new Point(this.bounds().x, this.bounds.y)));
-    };
-
-    Group.prototype.contains = function(point) {
-      var child, _i, _len, _ref;
-      this._clearCache;
-      _ref = this.children;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        if (child.contains(point)) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    Group.prototype.draw = function(ctx) {
-      var child, _i, _len, _ref, _results;
-      _ref = this.children;
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        child = _ref[_i];
-        _results.push(child.draw(ctx));
-      }
-      return _results;
-    };
-
-    return Group;
-
-  })();
-
-  exports.QuadTree = QuadTree = (function() {
-    function QuadTree(bounds) {
-      this.bounds = bounds;
-      this.children = null;
-      this.contents = [];
-    }
-
-    QuadTree.prototype._split = function() {
-      var child, content, _i, _j, _len, _len1, _ref, _ref1;
-      this.children = [new QuadTree(new Rectangle(this.bounds.x + this.bounds.width / 2, this.bounds.y, this.bounds.height / 2, this.bounds.width / 2)), new QuadTree(new Rectangle(this.bounds.x, this.bounds.y, this.bounds.height / 2, this.bounds.width / 2)), new QuadTree(new Rectangle(this.bounds.x, this.bounds.y + this.bounds.width / 2, this.bounds.height / 2, this.bounds.width / 2)), new QuadTree(new Rectangle(this.bounds.x + this.bounds.width / 2, this.bounds.y + this.bounds.width / 2, this.bounds.height / 2, this.bounds.width / 2))];
-      _ref = this.contents;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        content = _ref[_i];
-        _ref1 = this.children;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          child = _ref1[_j];
-          if (content.rect.overlap(child.bounds)) {
-            child.insert(content);
-          }
-        }
-      }
-      return this.contents = [];
-    };
-
-    QuadTree.prototype.insert = function(obj) {
-      var child, _i, _len, _ref, _results;
-      if (this.children != null) {
-        _ref = this.children;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          child = _ref[_i];
-          if (obj.rect.overlap(child.bounds)) {
-            _results.push(child.insert(obj));
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
-      } else {
-        return this.contents.push(obj);
-      }
-    };
-
-    QuadTree.prototype.find = function(point) {
-      var child, content, _i, _j, _len, _len1, _ref, _ref1;
-      if (this.children != null) {
-        _ref = this.children;
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          child = _ref[_i];
-          if (child.bounds.contains(point)) {
-            return child.find(point);
-          }
-        }
-      } else {
-        _ref1 = this.contents;
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          content = _ref1[_j];
-          if (content.rect.contains(point)) {
-            return content;
-          }
-        }
-      }
-    };
-
-    return QuadTree;
-
-  })();
-
   window.draw = exports;
-
-  /*
-  # Performance strategy (might not be faster): convert paths to images in offscreen canvas once drawn, then translate those instead.
-  */
-
 
 }).call(this);
 

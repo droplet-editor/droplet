@@ -1,0 +1,3102 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>controller.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="coffee.html">
+                coffee.coffee
+              </a>
+            
+              
+              <a class="source" href="controller.html">
+                controller.coffee
+              </a>
+            
+              
+              <a class="source" href="draw.html">
+                draw.coffee
+              </a>
+            
+              
+              <a class="source" href="model.html">
+                model.coffee
+              </a>
+            
+              
+              <a class="source" href="view.html">
+                view.coffee
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>controller.coffee</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              <p>ICE Editor Controller</p>
+<p>Copyright (c) 2014 Anthony Bau.</p>
+<p>MIT License</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+INDENT_SPACES = <span class="hljs-number">2</span>
+INPUT_LINE_HEIGHT = <span class="hljs-number">15</span>
+PALETTE_MARGIN = <span class="hljs-number">10</span>
+PALETTE_WIDTH = <span class="hljs-number">300</span>
+
+<span class="hljs-built_in">exports</span>.IceEditorChangeEvent = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IceEditorChangeEvent</span></span>
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>, <span class="hljs-property">@target</span>)</span> -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <h1 id="the-editor-class">The Editor class</h1>
+<p>This class contains all the controller functions for ICE Editor.
+Call:
+  new Editor(DOMElement, palette)
+to initialize an ICE editor in an element.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-built_in">exports</span>.Editor = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Editor</span></span>
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(el, <span class="hljs-property">@paletteBlocks</span>)</span> -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <h2 id="field-declaration">Field declaration</h2>
+<p>(useful to have all in one place)</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>If we did not recieve palette blocks in the constructor, we have no palette.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@paletteBlocks</span> ?= []</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>We discard the blocks we are fed, preferring to clone them
+To be as unintrusive as possible (also to get blocks unattached to any
+token stream</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@paletteBlocks</span> = (paletteBlock.clone() <span class="hljs-keyword">for</span> paletteBlock <span class="hljs-keyword">in</span> <span class="hljs-property">@paletteBlocks</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>MODEL instances (program state)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@tree</span> = <span class="hljs-literal">null</span> <span class="hljs-comment"># The root tree</span>
+    <span class="hljs-property">@floatingBlocks</span> = [] <span class="hljs-comment"># The other root blocks that are not attached to the root tree</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>TEXT INPUT interactive fields</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@focus</span> = <span class="hljs-literal">null</span> <span class="hljs-comment"># The focused empty socket, if such thing exists.</span>
+    <span class="hljs-property">@editedText</span> = <span class="hljs-literal">null</span> <span class="hljs-comment"># The focused textToken, if such thing exists (associated with @focus).</span>
+    <span class="hljs-property">@handwritten</span> = <span class="hljs-literal">false</span> <span class="hljs-comment"># Are we editing a handwritten line?</span>
+    <span class="hljs-property">@hiddenInput</span> = <span class="hljs-literal">null</span>
+
+    <span class="hljs-property">@isEditingText</span> =<span class="hljs-function"> =&gt;</span> <span class="hljs-property">@hiddenInput</span> <span class="hljs-keyword">is</span> <span class="hljs-built_in">document</span>.activeElement
+
+    textInputAnchor = textInputHead = <span class="hljs-literal">null</span> <span class="hljs-comment"># The selection anchor and head in the input</span>
+
+    textInputSelecting = <span class="hljs-literal">false</span>
+
+    _editedInputLine = -<span class="hljs-number">1</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>NORMAL DRAG interactive fields</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@selection</span> = <span class="hljs-literal">null</span> <span class="hljs-comment"># The currently-dragged set of blocks</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>LASSO SELECT interactive fields</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@lassoSegment</span> = <span class="hljs-literal">null</span>
+    <span class="hljs-property">@_lassoBounds</span> = <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>CURSOR interactive fields</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@cursor</span> = <span class="hljs-keyword">new</span> CursorToken()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <p>Scroll offset</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@scrollOffset</span> = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+
+    offset = <span class="hljs-literal">null</span>
+    highlight = <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <h2 id="dom-setup">DOM SETUP</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <p>The main canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    main = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'canvas'</span>; main.className = <span class="hljs-string">'canvas'</span>
+    main.height = el.offsetHeight
+    main.width = el.offsetWidth - PALETTE_WIDTH</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              <p>The palette canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    palette = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'canvas'</span>; palette.className = <span class="hljs-string">'palette'</span>
+    palette.height = el.offsetHeight
+    palette.width = PALETTE_WIDTH</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>The drag canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    drag = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'canvas'</span>; drag.className = <span class="hljs-string">'drag'</span>
+    drag.height = el.offsetHeight
+    drag.width = el.offsetWidth - PALETTE_WIDTH</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <p>The hidden input</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@hiddenInput</span> = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'input'</span>; <span class="hljs-property">@hiddenInput</span>.className = <span class="hljs-string">'hidden_input'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              <p>The mouse tracking div</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    track = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'div'</span>; track.className = <span class="hljs-string">'trackArea'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>Append the children</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> [main, palette, drag, track, <span class="hljs-property">@hiddenInput</span>]
+      el.appendChild child</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>Get the contexts from each canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    mainCtx = main.getContext <span class="hljs-string">'2d'</span>
+    dragCtx = drag.getContext <span class="hljs-string">'2d'</span>
+    paletteCtx = palette.getContext <span class="hljs-string">'2d'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <p>The main context will be used for draw.js’s text measurements (this is a bit of a hack)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    draw._setCTX mainCtx</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              <h2 id="convenience-functions">Convenience Functions</h2>
+<p>General-purpose methods that call the view (rendering functions)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    
+    <span class="hljs-property">@clear</span> =<span class="hljs-function"> =&gt;</span>
+      mainCtx.clearRect <span class="hljs-property">@scrollOffset</span>.x, <span class="hljs-property">@scrollOffset</span>.y, main.width, main.height</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <h2 id="redraw">Redraw</h2>
+<p>redraw does three main things: redraws the root tree (@tree)
+redraws any floating blocks (@floatingBlocks), and draws the bounding rectangle
+of any lassoed segments.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@redraw</span> =<span class="hljs-function"> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <p>Clear the main canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@clear</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              <p>Compute the root tree</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@tree</span>.view.compute()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <p>Draw it on the main context</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@tree</span>.view.draw mainCtx</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              <p>Alert the lasso segment, if it exists, to recompute its bounds</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoSegment</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <p>Get those compute bounds</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@_lassoBounds</span> = <span class="hljs-property">@lassoSegment</span>.view.getBounds()
+
+        <span class="hljs-keyword">for</span> float <span class="hljs-keyword">in</span> <span class="hljs-property">@floatingBlocks</span>
+          <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoSegment</span> <span class="hljs-keyword">is</span> float.block
+            <span class="hljs-property">@_lassoBounds</span>.translate float.position</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <p>Unless we’re already drawing it on the drag canvas, draw the lasso segment borders on the main canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">unless</span> <span class="hljs-property">@lassoSegment</span> <span class="hljs-keyword">is</span> <span class="hljs-property">@selection</span>
+          <span class="hljs-property">@_lassoBounds</span>.stroke mainCtx, <span class="hljs-string">'#000'</span>
+          <span class="hljs-property">@_lassoBounds</span>.fill mainCtx, <span class="hljs-string">'rgba(0, 0, 256, 0.3)'</span>
+
+      <span class="hljs-keyword">for</span> float <span class="hljs-keyword">in</span> <span class="hljs-property">@floatingBlocks</span>
+        view = float.block.view</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <p>Recompute this floating block’s coordinates</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        view.compute()
+        view.translate float.position</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
+              </div>
+              <p>Draw it on the main context</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        view.draw mainCtx
+
+    <span class="hljs-property">@attemptReparse</span> =<span class="hljs-function"> =&gt;</span>
+      <span class="hljs-keyword">try</span>
+        <span class="hljs-property">@tree</span> = (coffee.parse <span class="hljs-property">@getValue</span>()).segment
+        <span class="hljs-property">@redraw</span>()
+
+    <span class="hljs-function"><span class="hljs-title">moveBlockTo</span> = <span class="hljs-params">(block, target)</span> =&gt;</span>
+      block.moveTo target
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@onChange</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@onChange</span> <span class="hljs-keyword">new</span> IceEditorChangeEvent block, target</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-31">&#182;</a>
+              </div>
+              <p>The redrawPalette function ought to be called only once in the current code structure.
+If we want to scroll the palette later on, then this will be called to do so.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@redrawPalette</span> =<span class="hljs-function"> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-32">&#182;</a>
+              </div>
+              <p>We need to keep track of the bottom edge of the last element,
+so we know where to put the top of the next one (there will be a margin of PALETTE_MARGIN between them)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      lastBottomEdge = <span class="hljs-number">0</span>
+
+      <span class="hljs-keyword">for</span> paletteBlock <span class="hljs-keyword">in</span> <span class="hljs-property">@paletteBlocks</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-33">&#182;</a>
+              </div>
+              <p>Compute the coordinates</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        paletteBlock.view.compute()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-34">&#182;</a>
+              </div>
+              <p>Translate it into position</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        paletteBlock.view.translate <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, lastBottomEdge</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-35">&#182;</a>
+              </div>
+              <p>Increment the running height count</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN <span class="hljs-comment"># Add margin</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-36">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-36">&#182;</a>
+              </div>
+              <p>Finish and draw the palette block</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        paletteBlock.view.draw paletteCtx</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-37">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-37">&#182;</a>
+              </div>
+              <p>(call it right away)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@redrawPalette</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-38">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-38">&#182;</a>
+              </div>
+              <h2 id="cursor-operations">Cursor operations</h2>
+<p>Functions that manipulate the cursor. The cursor is a normal ICE editor model token
+that is rendered specially in the View.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-function"><span class="hljs-title">insertHandwrittenBlock</span> = =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-39">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-39">&#182;</a>
+              </div>
+              <p>Create the new block and socket for a new handwritten line</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      newBlock = <span class="hljs-keyword">new</span> Block []; newSocket = <span class="hljs-keyword">new</span> Socket []
+      newSocket.handwritten = <span class="hljs-literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-40">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-40">&#182;</a>
+              </div>
+              <p>Put the new socket into the new block</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      newBlock.start.insert newSocket.start; newBlock.end.prev.insert newSocket.end</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-41">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-41">&#182;</a>
+              </div>
+              <p>Move it to where the cursor should be</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.next.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> <span class="hljs-property">@cursor</span>.next.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">or</span> <span class="hljs-property">@cursor</span>.next.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.next.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@cursor</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>
+          moveBlockTo newBlock, <span class="hljs-property">@cursor</span>.prev
+        <span class="hljs-keyword">else</span>
+          moveBlockTo newBlock, <span class="hljs-property">@cursor</span>.prev.insert <span class="hljs-keyword">new</span> NewlineToken()
+
+        <span class="hljs-property">@redraw</span>()
+        setTextInputFocus newSocket
+
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> <span class="hljs-property">@cursor</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span>
+
+        moveBlockTo newBlock, <span class="hljs-property">@cursor</span>.prev
+
+        newBlock.end.insert <span class="hljs-keyword">new</span> NewlineToken()
+
+        <span class="hljs-property">@redraw</span>()
+        setTextInputFocus newSocket
+
+      scrollCursorIntoView()
+
+    <span class="hljs-function"><span class="hljs-title">scrollCursorIntoView</span> = =&gt;</span>
+      <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-42">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-42">&#182;</a>
+              </div>
+              <p>If the cursor has scrolled out of view, scroll it back into view.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.view.point.y &lt; <span class="hljs-property">@scrollOffset</span>.y
+        mainCtx.translate <span class="hljs-number">0</span>, <span class="hljs-property">@scrollOffset</span>.y - <span class="hljs-property">@cursor</span>.view.point.y
+        <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-property">@cursor</span>.view.point.y
+
+        <span class="hljs-property">@redraw</span>()
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.view.point.y &gt; (<span class="hljs-property">@scrollOffset</span>.y + main.height)
+        mainCtx.translate <span class="hljs-number">0</span>, (<span class="hljs-property">@scrollOffset</span>.y + main.height) - <span class="hljs-property">@cursor</span>.view.point.y
+        <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-property">@cursor</span>.view.point.y - main.height
+
+        <span class="hljs-property">@redraw</span>()
+
+    <span class="hljs-function"><span class="hljs-title">moveCursorTo</span> = <span class="hljs-params">(token)</span> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-43">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-43">&#182;</a>
+              </div>
+              <p>Splice out</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@cursor</span>.remove()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-44">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-44">&#182;</a>
+              </div>
+              <p>Splice in</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      token.insert <span class="hljs-property">@cursor</span>
+
+      scrollCursorIntoView()
+    
+    <span class="hljs-function"><span class="hljs-title">moveCursorBefore</span> = <span class="hljs-params">(token)</span> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-45">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-45">&#182;</a>
+              </div>
+              <p>Splice out</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@cursor</span>.remove()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-46">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-46">&#182;</a>
+              </div>
+              <p>Splice in</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      token.insertBefore <span class="hljs-property">@cursor</span>
+
+      scrollCursorIntoView()
+
+    <span class="hljs-function"><span class="hljs-title">deleteFromCursor</span> = =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-47">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-47">&#182;</a>
+              </div>
+              <p>Seek the block that we want to delete (i.e. the block that ends first before the cursor, if such thing exists)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@cursor</span>.prev
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'blockEnd'</span>
+        head = head.prev</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-48">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-48">&#182;</a>
+              </div>
+              <p>Delete that block and redraw</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockEnd'</span> <span class="hljs-keyword">then</span> moveBlockTo head.block, <span class="hljs-literal">null</span>; <span class="hljs-property">@redraw</span>()
+
+      scrollCursorIntoView()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-49">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-49">&#182;</a>
+              </div>
+              <p>TODO the following are known not to be able to navigate to the end of an indent.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-function"><span class="hljs-title">moveCursorUp</span> = =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-50">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-50">&#182;</a>
+              </div>
+              <p>Seek newline</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@cursor</span>.prev.prev
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (head.type <span class="hljs-keyword">in</span> [<span class="hljs-string">'newline'</span>, <span class="hljs-string">'indentEnd'</span>, <span class="hljs-string">'segmentStart'</span>])
+        head = head.prev</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-51">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-51">&#182;</a>
+              </div>
+              <p>If head is null, we are at the beginning of the file.
+So, give up.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head <span class="hljs-keyword">is</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
+
+      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>
+        moveCursorBefore head
+      <span class="hljs-keyword">else</span>
+        moveCursorTo head
+
+    <span class="hljs-function"><span class="hljs-title">moveCursorDown</span> = =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-52">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-52">&#182;</a>
+              </div>
+              <p>Seek newline or newline-like character.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@cursor</span>.next.next
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (head.type <span class="hljs-keyword">in</span> [<span class="hljs-string">'newline'</span>, <span class="hljs-string">'indentEnd'</span>, <span class="hljs-string">'segmentEnd'</span>])
+        head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-53">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-53">&#182;</a>
+              </div>
+              <p>If head is null, we are at the end of the file.
+So, give up.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head <span class="hljs-keyword">is</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
+
+      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">or</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span>
+        moveCursorBefore head
+      <span class="hljs-keyword">else</span>
+        moveCursorTo head</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-54">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-54">&#182;</a>
+              </div>
+              <h2 id="hidden-input-events">Hidden Input events</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-55">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-55">&#182;</a>
+              </div>
+              <p>For normal text input, we use the “input”, “keydownhtml event</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> eventName <span class="hljs-keyword">in</span> [<span class="hljs-string">'input'</span>, <span class="hljs-string">'keydown'</span>, <span class="hljs-string">'keyup'</span>, <span class="hljs-string">'keypress'</span>]
+      <span class="hljs-property">@hiddenInput</span>.addEventListener eventName, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-56">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-56">&#182;</a>
+              </div>
+              <p>If we haven’t focused anything, this input does nothing.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">unless</span> <span class="hljs-property">@isEditingText</span>() <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
+
+        redrawTextInput()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-57">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-57">&#182;</a>
+              </div>
+              <p>For keyboard shortcuts, we use the “keydown” html event</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@hiddenInput</span>.addEventListener <span class="hljs-string">'keydown'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-58">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-58">&#182;</a>
+              </div>
+              <p>If we’re not on a handwritten line, return immediately</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">unless</span> <span class="hljs-property">@isEditingText</span>() <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-59">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-59">&#182;</a>
+              </div>
+              <p>Otherwise, see if we want to make a keyboard shortcut.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">switch</span> event.keyCode
+        <span class="hljs-keyword">when</span> <span class="hljs-number">13</span>
+          <span class="hljs-keyword">if</span> <span class="hljs-property">@handwritten</span> <span class="hljs-keyword">then</span> insertHandwrittenBlock()
+          <span class="hljs-keyword">else</span> setTextInputFocus <span class="hljs-literal">null</span>; <span class="hljs-property">@hiddenInput</span>.blur(); <span class="hljs-property">@redraw</span>()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">8</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@handwritten</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@hiddenInput</span>.value.length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
+          deleteFromCursor(); setTextInputFocus <span class="hljs-literal">null</span>; <span class="hljs-property">@hiddenInput</span>.blur()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">9</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@handwritten</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-60">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-60">&#182;</a>
+              </div>
+              <p>Seek the block right before this handwritten block</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          head = <span class="hljs-property">@focus</span>.start.prev.prev
+          head = head.prev <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'blockEnd'</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'blockStart'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-61">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-61">&#182;</a>
+              </div>
+              <p>If we have found a wrapping (parent) block, then we can’t do an indent, so give up.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-62">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-62">&#182;</a>
+              </div>
+              <p>Otherwise, see if the last child of this block is an indent</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-63">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-63">&#182;</a>
+              </div>
+              <p>Note that it is guaranteed that a handwritten block satisfies @focus.start.prev.block is (the wrapping block)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            moveBlockTo <span class="hljs-property">@focus</span>.start.prev.block, head.prev.prev.insert <span class="hljs-keyword">new</span> NewlineToken() <span class="hljs-comment"># Move the block we're editing into the indent</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-64">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-64">&#182;</a>
+              </div>
+              <p>Move the cursor into its proper position (after this block)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            moveCursorTo <span class="hljs-property">@focus</span>.start.prev.block.end
+
+            <span class="hljs-property">@redraw</span>()
+            event.preventDefault(); <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-65">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-65">&#182;</a>
+              </div>
+              <p>We have found a block we want to move into, but there’s no indent here, so create one.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-66">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-66">&#182;</a>
+              </div>
+              <p>Create and insert a new indent</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            newIndent = <span class="hljs-keyword">new</span> Indent [], INDENT_SPACES
+            head.prev.insert newIndent.start; head.prev.insert newIndent.end</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-67">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-67">&#182;</a>
+              </div>
+              <p>Move the block we’re editing into this new indent</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            moveBlockTo <span class="hljs-property">@focus</span>.start.prev.block, newIndent.start.insert <span class="hljs-keyword">new</span> NewlineToken()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-68">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-68">&#182;</a>
+              </div>
+              <p>Move the cursor into its proper position (after this block)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            moveCursorTo <span class="hljs-property">@focus</span>.start.prev.block.end
+
+            <span class="hljs-property">@redraw</span>()
+            event.preventDefault(); <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+        <span class="hljs-keyword">when</span> <span class="hljs-number">38</span> <span class="hljs-keyword">then</span> setTextInputFocus <span class="hljs-literal">null</span>; <span class="hljs-property">@hiddenInput</span>.blur(); moveCursorUp(); <span class="hljs-property">@redraw</span>()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">40</span> <span class="hljs-keyword">then</span> setTextInputFocus <span class="hljs-literal">null</span>; <span class="hljs-property">@hiddenInput</span>.blur(); moveCursorDown(); <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-69">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-69">&#182;</a>
+              </div>
+              <p>When we blur the hidden input, also blur the canvas text focus</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@hiddenInput</span>.addEventListener <span class="hljs-string">'blur'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-built_in">console</span>.log <span class="hljs-string">'blurred'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-70">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-70">&#182;</a>
+              </div>
+              <p>If we have actually blurred (as opposed to simply unfocused the browser window)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> event.target <span class="hljs-keyword">isnt</span> <span class="hljs-built_in">document</span>.activeElement <span class="hljs-keyword">then</span> setTextInputFocus <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-71">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-71">&#182;</a>
+              </div>
+              <p>Bind keyboard shortcut events to the document</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-built_in">document</span>.body.addEventListener <span class="hljs-string">'keydown'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-72">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-72">&#182;</a>
+              </div>
+              <p>Keyboard shortcuts don’t apply if they were executed in a text input area</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> event.target.tagName <span class="hljs-keyword">in</span> [<span class="hljs-string">'INPUT'</span>, <span class="hljs-string">'TEXTAREA'</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
+      
+      <span class="hljs-keyword">switch</span> event.keyCode
+        <span class="hljs-keyword">when</span> <span class="hljs-number">13</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">unless</span> <span class="hljs-property">@isEditingText</span>() <span class="hljs-keyword">then</span> insertHandwrittenBlock()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">38</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>? <span class="hljs-keyword">then</span> moveCursorUp()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">40</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>? <span class="hljs-keyword">then</span> moveCursorDown()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">8</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>? <span class="hljs-keyword">then</span> deleteFromCursor()
+        <span class="hljs-keyword">when</span> <span class="hljs-number">37</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>?
+          head = <span class="hljs-property">@cursor</span>
+          <span class="hljs-keyword">while</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'socketEnd'</span> <span class="hljs-keyword">then</span> head = head.prev
+          setTextInputFocus head.socket</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-73">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-73">&#182;</a>
+              </div>
+              <p>If we manipulated the root tree, redraw.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> event.keyCode <span class="hljs-keyword">in</span> [<span class="hljs-number">13</span>, <span class="hljs-number">38</span>, <span class="hljs-number">40</span>, <span class="hljs-number">8</span>] <span class="hljs-keyword">then</span> <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-74">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-74">&#182;</a>
+              </div>
+              <p>Hit-testing functions</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-function"><span class="hljs-title">hitTest</span> = <span class="hljs-params">(point, root)</span> =&gt;</span>
+      head = root; seek = <span class="hljs-literal">null</span>
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> seek
+        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> head.block.view.path.contains point
+          seek = head.block.end
+        head = head.next
+      
+      <span class="hljs-keyword">if</span> seek? <span class="hljs-keyword">then</span> seek.block <span class="hljs-keyword">else</span> <span class="hljs-literal">null</span>
+
+    <span class="hljs-function"><span class="hljs-title">hitTestRoot</span> = <span class="hljs-params">(point)</span> =&gt;</span> hitTest point, <span class="hljs-property">@tree</span>.start
+    
+    <span class="hljs-function"><span class="hljs-title">hitTestFloating</span> = <span class="hljs-params">(point)</span> =&gt;</span>
+      <span class="hljs-keyword">for</span> float <span class="hljs-keyword">in</span> <span class="hljs-property">@floatingBlocks</span>
+        <span class="hljs-keyword">if</span> hitTest(point, float.block.start) <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> float.block
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>
+    
+    <span class="hljs-function"><span class="hljs-title">hitTestFocus</span> = <span class="hljs-params">(point)</span> =&gt;</span>
+      head = <span class="hljs-property">@tree</span>.start
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-literal">null</span>
+        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span>
+            (head.next.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span> <span class="hljs-keyword">or</span> head.next.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketEnd'</span>) <span class="hljs-keyword">and</span>
+            head.socket.view.bounds[head.socket.view.lineStart].contains point
+          <span class="hljs-keyword">return</span> head.socket
+        head = head.next
+
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>
+    
+    <span class="hljs-function"><span class="hljs-title">hitTestLasso</span> = <span class="hljs-params">(point)</span> =&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoSegment</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@_lassoBounds</span>.contains point <span class="hljs-keyword">then</span> <span class="hljs-property">@lassoSegment</span> <span class="hljs-keyword">else</span> <span class="hljs-literal">null</span>
+
+    <span class="hljs-function"><span class="hljs-title">hitTestPalette</span> = <span class="hljs-params">(point)</span> =&gt;</span>
+      point = <span class="hljs-keyword">new</span> draw.Point point.x + PALETTE_WIDTH, point.y
+      <span class="hljs-keyword">for</span> block <span class="hljs-keyword">in</span> <span class="hljs-property">@paletteBlocks</span>
+        <span class="hljs-keyword">if</span> hitTest(point, block.start)? <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> block
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-75">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-75">&#182;</a>
+              </div>
+              <h2 id="the-mousedown-event">The mousedown event</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-76">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-76">&#182;</a>
+              </div>
+              <h3 id="getpointfromevent">getPointFromEvent</h3>
+<p>This is a conveneince function, which will contain compatability layers for getting
+the offset coordinates of a mouse click point</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-function"><span class="hljs-title">getPointFromEvent</span> = <span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">switch</span>
+        <span class="hljs-keyword">when</span> event.offsetX? <span class="hljs-keyword">then</span> <span class="hljs-keyword">new</span> draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + <span class="hljs-property">@scrollOffset</span>.y
+        <span class="hljs-keyword">when</span> event.layerX <span class="hljs-keyword">then</span> <span class="hljs-keyword">new</span> draw.Point event.layerX - PALETTE_WIDTH, event.layerY + <span class="hljs-property">@scrollOffset</span>.y
+    
+    track.addEventListener <span class="hljs-string">'mousedown'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      point = getPointFromEvent event</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-77">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-77">&#182;</a>
+              </div>
+              <p>See what we picked up</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@selection</span> = hitTestFloating(point) ?
+        hitTestLasso(point) ?
+        hitTestFocus(point) ?
+        hitTestRoot(point) ?
+        hitTestPalette(point)
+      
+      <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@selection</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-78">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-78">&#182;</a>
+              </div>
+              <p>If we haven’t clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-79">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-79">&#182;</a>
+              </div>
+              <p>If there is already a selection, remove it.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoSegment</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-80">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-80">&#182;</a>
+              </div>
+              <p>First, check to see if the block is floating</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          flag = <span class="hljs-literal">false</span>
+          <span class="hljs-keyword">for</span> float <span class="hljs-keyword">in</span> <span class="hljs-property">@floatingBlocks</span>
+            <span class="hljs-keyword">if</span> float.block <span class="hljs-keyword">is</span> <span class="hljs-property">@lassoSegment</span>
+              flag = <span class="hljs-literal">true</span>
+              <span class="hljs-keyword">break</span>
+
+          <span class="hljs-keyword">unless</span> flag <span class="hljs-comment"># Don't remove the segment if it's floating, because it still needs to hold those blocks together</span>
+            <span class="hljs-property">@lassoSegment</span>.remove()
+
+          <span class="hljs-property">@lassoSegment</span> = <span class="hljs-literal">null</span>
+          <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-81">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-81">&#182;</a>
+              </div>
+              <p>Set the lasso anchor</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@lassoAnchor</span> = point
+
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@selection</span>.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socket'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-82">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-82">&#182;</a>
+              </div>
+              <p>If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-83">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-83">&#182;</a>
+              </div>
+              <p>Set the text input up for editing</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        setTextInputFocus <span class="hljs-property">@selection</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-84">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-84">&#182;</a>
+              </div>
+              <p>We must set a timeout for the following, because until
+A render has passed, the hidden input is not actually focused.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        setTimeout (<span class="hljs-function">=&gt;</span>
+          setTextInputAnchor point
+          redrawTextInput()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-85">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-85">&#182;</a>
+              </div>
+              <p>While the mouse is down, we are trying to select text in the input</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          textInputSelecting = <span class="hljs-literal">true</span>
+
+          <span class="hljs-property">@selection</span> = <span class="hljs-literal">null</span>), <span class="hljs-number">0</span>
+
+      <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-86">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-86">&#182;</a>
+              </div>
+              <p>If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-87">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-87">&#182;</a>
+              </div>
+              <p>A flag as to whether we are selecting something in the palette</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        selectionInPalette = <span class="hljs-literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-88">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-88">&#182;</a>
+              </div>
+              <p>If we clicked something in the palette, we need to compute offset etc. with a point that has been computed
+with offset to the palette.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@selection</span> <span class="hljs-keyword">in</span> <span class="hljs-property">@paletteBlocks</span> <span class="hljs-keyword">then</span> point.add PALETTE_WIDTH, <span class="hljs-number">0</span>; selectionInPalette = <span class="hljs-literal">true</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-89">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-89">&#182;</a>
+              </div>
+              <p>Compute the offset of the selection position from the mouse</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        rect = <span class="hljs-property">@selection</span>.view.bounds[<span class="hljs-property">@selection</span>.view.lineStart]
+        offset = point.from <span class="hljs-keyword">new</span> draw.Point rect.x, rect.y</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-90">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-90">&#182;</a>
+              </div>
+              <p>If we have clicked something in the palette, the clone first.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> selectionInPalette <span class="hljs-keyword">then</span> <span class="hljs-property">@selection</span> = <span class="hljs-property">@selection</span>.clone()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-91">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-91">&#182;</a>
+              </div>
+              <p>If we have clicked something floating, then delete it from the list of floating blocks</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">for</span> float, i <span class="hljs-keyword">in</span> <span class="hljs-property">@floatingBlocks</span>
+          <span class="hljs-keyword">if</span> float.block <span class="hljs-keyword">is</span> <span class="hljs-property">@selection</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@floatingBlocks</span>.splice i, <span class="hljs-number">1</span>; <span class="hljs-keyword">break</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-92">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-92">&#182;</a>
+              </div>
+              <p>Move it to nowhere</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        moveBlockTo <span class="hljs-property">@selection</span>, <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-93">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-93">&#182;</a>
+              </div>
+              <p>Draw it in the drag canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@selection</span>.view.compute()
+        <span class="hljs-property">@selection</span>.view.draw dragCtx</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-94">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-94">&#182;</a>
+              </div>
+              <p>CSS-transform the drag canvas to where it ought to be</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> selectionInPalette</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-95">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-95">&#182;</a>
+              </div>
+              <p>If we picked up from the palette, then rect.x is actually relative to the palette</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          fixedDest = <span class="hljs-keyword">new</span> draw.Point rect.x - PALETTE_WIDTH, rect.y
+        <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-96">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-96">&#182;</a>
+              </div>
+              <p>Otherwise, do as we would with mousemove</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          fixedDest = <span class="hljs-keyword">new</span> draw.Point rect.x - <span class="hljs-property">@scrollOffset</span>.x, rect.y - <span class="hljs-property">@scrollOffset</span>.y
+        
+
+        drag.style.webkitTransform =
+          drag.style.mozTransform =
+          drag.style.transform = <span class="hljs-string">"translate(<span class="hljs-subst">#{fixedDest.x}</span>px, <span class="hljs-subst">#{fixedDest.y}</span>px)"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-97">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-97">&#182;</a>
+              </div>
+              <p>Redraw the main canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-98">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-98">&#182;</a>
+              </div>
+              <h2 id="mouse-events-for-normal-drag">Mouse events for NORMAL DRAG</h2>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    track.addEventListener <span class="hljs-string">'mousemove'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@selection</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-99">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-99">&#182;</a>
+              </div>
+              <p>Determine the position of the mouse</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        point = getPointFromEvent event
+
+        point.add -<span class="hljs-property">@scrollOffset</span>.x, -<span class="hljs-property">@scrollOffset</span>.y</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-100">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-100">&#182;</a>
+              </div>
+              <p>First we find the highlighted area</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        fixedDest = <span class="hljs-keyword">new</span> draw.Point -offset.x + point.x, -offset.y + point.y <span class="hljs-comment"># Where do we position things exactly in relation to the canvas?</span>
+
+        point.translate <span class="hljs-property">@scrollOffset</span>
+        dest = <span class="hljs-keyword">new</span> draw.Point -offset.x + point.x, -offset.y + point.y <span class="hljs-comment"># Where do we position things as related to the way we draw the root tree?</span>
+
+        old_highlight = highlight
+
+        highlight = <span class="hljs-property">@tree</span>.find <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
+          (<span class="hljs-keyword">not</span> (block.inSocket?() ? <span class="hljs-literal">false</span>)) <span class="hljs-keyword">and</span> block.view.dropArea? <span class="hljs-keyword">and</span> block.view.dropArea.contains dest</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-101">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-101">&#182;</a>
+              </div>
+              <p>If highlight changed, redraw</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> old_highlight <span class="hljs-keyword">isnt</span> highlight <span class="hljs-keyword">then</span> <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-102">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-102">&#182;</a>
+              </div>
+              <p>Highlight the highlight</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> highlight? <span class="hljs-keyword">then</span> highlight.view.dropArea.fill mainCtx, <span class="hljs-string">'#fff'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-103">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-103">&#182;</a>
+              </div>
+              <p>CSS-transform the drag canvas to where it ought to be</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        drag.style.webkitTransform =
+          drag.style.mozTransform =
+          drag.style.transform = <span class="hljs-string">"translate(<span class="hljs-subst">#{fixedDest.x}</span>px, <span class="hljs-subst">#{fixedDest.y}</span>px)"</span>
+    
+    track.addEventListener <span class="hljs-string">'mouseup'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@selection</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-104">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-104">&#182;</a>
+              </div>
+              <p>Determine the position of the mouse and the place we want to render the block</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        point = getPointFromEvent event
+        dest = <span class="hljs-keyword">new</span> draw.Point -offset.x + point.x, -offset.y + point.y
+
+        <span class="hljs-keyword">if</span> highlight?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-105">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-105">&#182;</a>
+              </div>
+              <p>Drop areas signify different things depending on the block that they belong to</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">switch</span> highlight.type
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'indent'</span>
+              head = highlight.end.prev
+              <span class="hljs-keyword">while</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">or</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">or</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span> <span class="hljs-keyword">then</span> head = head.prev
+
+              <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-106">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-106">&#182;</a>
+              </div>
+              <p>There’s already a newline here.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                moveBlockTo <span class="hljs-property">@selection</span>, highlight.start.next
+              <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-107">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-107">&#182;</a>
+              </div>
+              <p>An insert drop signifies that we want to drop the block at the start of the indent</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                moveBlockTo <span class="hljs-property">@selection</span>, highlight.start.insert <span class="hljs-keyword">new</span> NewlineToken()
+
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'block'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-108">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-108">&#182;</a>
+              </div>
+              <p>A block drop signifies that we want to drop the block after (the end of) the block.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>              moveBlockTo <span class="hljs-property">@selection</span>, highlight.end.insert <span class="hljs-keyword">new</span> NewlineToken()
+
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'socket'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-109">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-109">&#182;</a>
+              </div>
+              <p>Remove any previously occupying block or text</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">if</span> highlight.content()? <span class="hljs-keyword">then</span> highlight.content().remove()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-110">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-110">&#182;</a>
+              </div>
+              <p>Insert</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>              moveBlockTo <span class="hljs-property">@selection</span>, highlight.start
+            
+            <span class="hljs-keyword">else</span>
+              <span class="hljs-keyword">if</span> highlight <span class="hljs-keyword">is</span> <span class="hljs-property">@tree</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-111">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-111">&#182;</a>
+              </div>
+              <p>We can also drop on the root tree (insert at the start of the program)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                moveBlockTo <span class="hljs-property">@selection</span>, <span class="hljs-property">@tree</span>.start</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-112">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-112">&#182;</a>
+              </div>
+              <p>Don’t insert a newline if it would create an empty line at the end of the file.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                <span class="hljs-keyword">unless</span> <span class="hljs-property">@selection</span>.end.next <span class="hljs-keyword">is</span> <span class="hljs-property">@tree</span>.end
+                  <span class="hljs-property">@selection</span>.end.insert <span class="hljs-keyword">new</span> NewlineToken()
+
+        <span class="hljs-keyword">else</span>
+          <span class="hljs-keyword">if</span> point.x &gt; <span class="hljs-number">0</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-113">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-113">&#182;</a>
+              </div>
+              <p>If we have dropped the block in nowhere, append it (and it’s floating position) to @floatingBlocks.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@floatingBlocks</span>.push
+              <span class="hljs-attribute">position</span>: dest
+              <span class="hljs-attribute">block</span>: <span class="hljs-property">@selection</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-114">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-114">&#182;</a>
+              </div>
+              <p>(If we have dropped the block on the palette, delete it. This requires no operations).</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-115">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-115">&#182;</a>
+              </div>
+              <p>CSS-transform the drag canvas back to the origin</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        drag.style.webkitTransform =
+          drag.style.mozTransform =
+          drag.style.transform = <span class="hljs-string">"translate(0px, 0px)"</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-116">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-116">&#182;</a>
+              </div>
+              <p>Clear the drag canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        dragCtx.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-117">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-117">&#182;</a>
+              </div>
+              <p>If we inserted into root, move the cursor to the end of the selection.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> highlight?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-118">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-118">&#182;</a>
+              </div>
+              <p>Seek the next newline after the end of this block,
+which is where we’ll want to move the cursor
+(so that it looks like we put it directly after the block).</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          head = <span class="hljs-property">@selection</span>.end
+          <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">then</span> head = head.next
+          <span class="hljs-keyword">if</span> head <span class="hljs-keyword">is</span> <span class="hljs-property">@tree</span>.end <span class="hljs-keyword">then</span> moveCursorBefore head
+          <span class="hljs-keyword">else</span> moveCursorTo head</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-119">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-119">&#182;</a>
+              </div>
+              <p>Signify that we are no longer in a NORMAL DRAG</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@selection</span> = <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-120">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-120">&#182;</a>
+              </div>
+              <p>Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-121">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-121">&#182;</a>
+              </div>
+              <h2 id="mouse-events-for-lasso-select">Mouse events for LASSO SELECT</h2>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-function"><span class="hljs-title">getRectFromPoints</span> = <span class="hljs-params">(a, b)</span> -&gt;</span>
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> draw.Rectangle(</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-122">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-122">&#182;</a>
+              </div>
+              <p>Take the minimum coordinates for the top-left corner</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        Math.min(a.x, b.x), <span class="hljs-comment">#x</span>
+        Math.min(a.y, b.y), <span class="hljs-comment">#y</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-123">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-123">&#182;</a>
+              </div>
+              <p>Distances are always positive</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        Math.abs(a.x - b.x), <span class="hljs-comment">#width</span>
+        Math.abs(a.y - b.y)) <span class="hljs-comment">#height</span>
+
+    track.addEventListener <span class="hljs-string">'mousemove'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoAnchor</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-124">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-124">&#182;</a>
+              </div>
+              <p>Determine the position of the mouse</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        point = getPointFromEvent event
+        point.add -<span class="hljs-property">@scrollOffset</span>.x, -<span class="hljs-property">@scrollOffset</span>.y <span class="hljs-comment"># (position fixed, as in relation to the drag canvas, on which we will draw it)</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-125">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-125">&#182;</a>
+              </div>
+              <p>Get the rectangle we want to draw</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        rect = getRectFromPoints (<span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@lassoAnchor</span>.x - <span class="hljs-property">@scrollOffset</span>.x, <span class="hljs-property">@lassoAnchor</span>.y - <span class="hljs-property">@scrollOffset</span>.y), point</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-126">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-126">&#182;</a>
+              </div>
+              <p>Clear and redraw the lasso on the drag canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        dragCtx.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height
+        dragCtx.strokeStyle = <span class="hljs-string">'#00f'</span>
+        dragCtx.strokeRect rect.x, rect.y, rect.width, rect.height
+
+    track.addEventListener <span class="hljs-string">'mouseup'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoAnchor</span>?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-127">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-127">&#182;</a>
+              </div>
+              <p>Determine the position of the mouse</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        point = getPointFromEvent event</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-128">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-128">&#182;</a>
+              </div>
+              <p>Get the rectangle we want to test</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        rect = getRectFromPoints <span class="hljs-property">@lassoAnchor</span>, point</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-129">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-129">&#182;</a>
+              </div>
+              <p>First pass for lasso segment detection: get intersecting blocks.</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-130">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-130">&#182;</a>
+              </div>
+              <p>Find the first matching block</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        head = <span class="hljs-property">@tree</span>.start
+        firstLassoed = <span class="hljs-literal">null</span>
+        <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-131">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-131">&#182;</a>
+              </div>
+              <p>A block matches if it intersects the lasso rectangle</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> head.block.view.path.intersects rect
+            firstLassoed = head
+            <span class="hljs-keyword">break</span>
+          head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-132">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-132">&#182;</a>
+              </div>
+              <p>Find the last matching block analagously</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        head = <span class="hljs-property">@tree</span>.end
+        lastLassoed = <span class="hljs-literal">null</span>
+        <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.start
+          <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockEnd'</span> <span class="hljs-keyword">and</span> head.block.view.path.intersects rect
+            lastLassoed = head
+            <span class="hljs-keyword">break</span>
+          head = head.prev</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-133">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-133">&#182;</a>
+              </div>
+              <p>Unless we have selected anything, give up.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> firstLassoed? <span class="hljs-keyword">and</span> lastLassoed?</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-134">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-134">&#182;</a>
+              </div>
+              <p>Second pass for lasso segment detection: validate the selection and record wrapping blocks as necessary.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          
+          tokensToInclude = []
+
+          head = firstLassoed
+          <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> lastLassoed</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-135">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-135">&#182;</a>
+              </div>
+              <p>For each bit of markup, make sure to include both its start token and end token</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">switch</span> head.type
+              <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>, <span class="hljs-string">'blockEnd'</span>
+                tokensToInclude.push head.block.start
+                tokensToInclude.push head.block.end
+              <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>, <span class="hljs-string">'indentEnd'</span>
+                tokensToInclude.push head.indent.start
+                tokensToInclude.push head.indent.end
+              <span class="hljs-keyword">when</span> <span class="hljs-string">'segmentStart'</span>, <span class="hljs-string">'segmentEnd'</span>
+                tokensToInclude.push head.segment.start
+                tokensToInclude.push head.segment.end
+            head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-136">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-136">&#182;</a>
+              </div>
+              <p>Third pass for lasso segment detection: include all necessary tokens demanded by validation</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-137">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-137">&#182;</a>
+              </div>
+              <p>Find the first block in tokensToInclude</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          head = <span class="hljs-property">@tree</span>.start
+          <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end
+            <span class="hljs-keyword">if</span> head <span class="hljs-keyword">in</span> tokensToInclude
+              firstLassoed = head; <span class="hljs-keyword">break</span>
+            head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-138">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-138">&#182;</a>
+              </div>
+              <p>Find the last matching block analagously</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          head = <span class="hljs-property">@tree</span>.end
+          lastLassoed = <span class="hljs-literal">null</span>
+          <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.start
+            <span class="hljs-keyword">if</span> head <span class="hljs-keyword">in</span> tokensToInclude
+              lastLassoed = head; <span class="hljs-keyword">break</span>
+            head = head.prev</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-139">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-139">&#182;</a>
+              </div>
+              <p>Fourth pass for lasso segment detection: make sure that we have selected the wrapping block for any indents</p>
+<p>Note that this will only occur when we have inserted the indentStart at the beginning or indentEnd at the end
+in the second and third pass. This in turn will occur ONLY when the user has selected multiple blocks belonging to the
+same wrapping block, and nothing outside it (i.e. the wrapping block of the indent wraps the entire selection).</p>
+<p>So it suffices to select that entire wrapping block.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+          <span class="hljs-keyword">if</span> firstLassoed.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-140">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-140">&#182;</a>
+              </div>
+              <p>Seek the wrapping block for this indent</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            depth = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">while</span> depth &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">or</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-comment"># We need to find the wrapping block, so we keep track of block depth</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-141">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-141">&#182;</a>
+              </div>
+              <p>Increment block depth</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">if</span> firstLassoed.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> depth -= <span class="hljs-number">1</span>
+              <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> firstLassoed.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockEnd'</span> <span class="hljs-keyword">then</span> depth += <span class="hljs-number">1</span>
+
+              firstLassoed = firstLassoed.prev</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-142">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-142">&#182;</a>
+              </div>
+              <p>Set lastLassoed in accordance.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            lastLassoed = firstLassoed.block.end
+
+          <span class="hljs-keyword">if</span> firstLassoed.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-143">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-143">&#182;</a>
+              </div>
+              <p>Seek the wrapping block for this indent</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            depth = <span class="hljs-number">0</span>
+            <span class="hljs-keyword">while</span> depth &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">or</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'blockEnd'</span> <span class="hljs-comment"># We need to find the wrapping block, so we keep track of block depth</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-144">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-144">&#182;</a>
+              </div>
+              <p>Increment block depth</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">if</span> lastLassoed.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockEnd'</span> <span class="hljs-keyword">then</span> depth -= <span class="hljs-number">1</span>
+              <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> lastLassoed.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> depth += <span class="hljs-number">1</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-145">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-145">&#182;</a>
+              </div>
+              <p>Set firstLassoed in accordance</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            firstLassoed = lastLassoed.block.start</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-146">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-146">&#182;</a>
+              </div>
+              <p>Now, insert the actual lasso segment.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@lassoSegment</span> = <span class="hljs-keyword">new</span> Segment []
+
+          firstLassoed.insertBefore <span class="hljs-property">@lassoSegment</span>.start
+          lastLassoed.insert <span class="hljs-property">@lassoSegment</span>.end
+
+          <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-147">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-147">&#182;</a>
+              </div>
+              <p>Clear the drag canvas</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        dragCtx.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-148">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-148">&#182;</a>
+              </div>
+              <p>If we inserted a lasso segment, move the cursor appropriately</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoSegment</span>? <span class="hljs-keyword">then</span> moveCursorTo <span class="hljs-property">@lassoSegment</span>.end</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-149">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-149">&#182;</a>
+              </div>
+              <p>Flag that we are no longer in a LASSO SELECT.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@lassoAnchor</span> = <span class="hljs-literal">null</span>
+
+        <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-150">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-150">&#182;</a>
+              </div>
+              <h2 id="utility-functions-for-text-input">Utility functions for TEXT INPUT</h2>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-function"><span class="hljs-title">redrawTextInput</span> = =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-151">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-151">&#182;</a>
+              </div>
+              <p>Change the edited text</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@editedText</span>.value = <span class="hljs-property">@hiddenInput</span>.value</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-152">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-152">&#182;</a>
+              </div>
+              <p>Redraw the background (main canvas)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-153">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-153">&#182;</a>
+              </div>
+              <p>Determine the position (coordinate-wise) of the typing cursor</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      start = <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].x +
+        mainCtx.measureText(<span class="hljs-property">@hiddenInput</span>.value[...<span class="hljs-property">@hiddenInput</span>.selectionStart]).width
+
+      end = <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].x +
+        mainCtx.measureText(<span class="hljs-property">@hiddenInput</span>.value[...<span class="hljs-property">@hiddenInput</span>.selectionEnd]).width</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-154">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-154">&#182;</a>
+              </div>
+              <p>Draw the typing cursor itself</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> start <span class="hljs-keyword">is</span> end</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-155">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-155">&#182;</a>
+              </div>
+              <p>This is just a line</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        mainCtx.strokeRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, <span class="hljs-number">0</span>, INPUT_LINE_HEIGHT
+      <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-156">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-156">&#182;</a>
+              </div>
+              <p>This is the translucent rectangle</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        mainCtx.fillStyle = <span class="hljs-string">'rgba(0, 0, 256, 0.3'</span>
+        mainCtx.fillRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+
+    <span class="hljs-function"><span class="hljs-title">setTextInputFocus</span> = <span class="hljs-params">(focus)</span> =&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-157">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-157">&#182;</a>
+              </div>
+              <p>Literally set the focus</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@focus</span> = focus</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-158">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-158">&#182;</a>
+              </div>
+              <p>Fire the onchange handler</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@onChange</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@onChange</span> <span class="hljs-keyword">new</span> IceEditorChangeEvent <span class="hljs-property">@focus</span>, <span class="hljs-property">@focus</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-159">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-159">&#182;</a>
+              </div>
+              <p>If we just removed the focus, then we are done.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span> <span class="hljs-keyword">is</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-160">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-160">&#182;</a>
+              </div>
+              <p>Record the line that the focus is on</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      _editedInputLine = <span class="hljs-property">@focus</span>.view.lineStart</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-161">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-161">&#182;</a>
+              </div>
+              <p>Flag whether we are editing handwritten</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@handwritten</span> = <span class="hljs-property">@focus</span>.handwritten
+      
+      <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@focus</span>.content()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-162">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-162">&#182;</a>
+              </div>
+              <p>If the socket is empty, put a text thing in, setting that to the edited text</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@editedText</span> = <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">''</span>
+        <span class="hljs-property">@focus</span>.start.insert <span class="hljs-property">@editedText</span>
+      
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span>.content().type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-163">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-163">&#182;</a>
+              </div>
+              <p>If the socket is not empty but contains only text, edit that text</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@editedText</span> = <span class="hljs-property">@focus</span>.content()
+
+      <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-164">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-164">&#182;</a>
+              </div>
+              <p>Otherwise, we have an error condition.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">throw</span> <span class="hljs-string">'Cannot edit occupied socket.'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-165">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-165">&#182;</a>
+              </div>
+              <p>Find the wrapping block and move the cursor to</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@focus</span>.end; depth = <span class="hljs-number">0</span>
+      <span class="hljs-keyword">while</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">then</span> head = head.next
+      
+      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">then</span> moveCursorTo head
+      <span class="hljs-keyword">else</span> moveCursorBefore head</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-166">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-166">&#182;</a>
+              </div>
+              <p>Set the contents of the hidden input</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@hiddenInput</span>.value = <span class="hljs-property">@editedText</span>.value</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-167">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-167">&#182;</a>
+              </div>
+              <p>Focus the hidden input</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      setTimeout (<span class="hljs-function">=&gt;</span> <span class="hljs-property">@hiddenInput</span>.focus()), <span class="hljs-number">0</span>
+
+    <span class="hljs-function"><span class="hljs-title">setTextInputHead</span> = <span class="hljs-params">(point)</span> =&gt;</span>
+      textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x) / mainCtx.measureText(<span class="hljs-string">' '</span>).width
+
+      <span class="hljs-property">@hiddenInput</span>.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
+
+    <span class="hljs-function"><span class="hljs-title">setTextInputAnchor</span> = <span class="hljs-params">(point)</span> =&gt;</span>
+      textInputAnchor = textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x) / mainCtx.measureText(<span class="hljs-string">' '</span>).width
+      <span class="hljs-property">@hiddenInput</span>.setSelectionRange textInputAnchor, textInputHead</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-168">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-168">&#182;</a>
+              </div>
+              <h2 id="mouse-events-for-text-input">Mouse events for TEXT INPUT</h2>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    track.addEventListener <span class="hljs-string">'mousemove'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@isEditingText</span>() <span class="hljs-keyword">and</span> textInputSelecting</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-169">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-169">&#182;</a>
+              </div>
+              <p>See where the mouse is</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        point = getPointFromEvent event</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-170">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-170">&#182;</a>
+              </div>
+              <p>Set the input head</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        setTextInputHead point</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-171">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-171">&#182;</a>
+              </div>
+              <p>Redraw</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        redrawTextInput()
+
+    track.addEventListener <span class="hljs-string">'mouseup'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@isEditingText</span>()
+        textInputSelecting = <span class="hljs-literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-172">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-172">&#182;</a>
+              </div>
+              <h2 id="mouse-events-for-scrolling">Mouse events for SCROLLING</h2>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+    track.addEventListener <span class="hljs-string">'mousewheel'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
+      <span class="hljs-property">@clear</span>()
+
+      <span class="hljs-keyword">if</span> event.wheelDelta &gt; <span class="hljs-number">0</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@scrollOffset</span>.y &gt;= <span class="hljs-number">100</span>
+          <span class="hljs-property">@scrollOffset</span>.add <span class="hljs-number">0</span>, -<span class="hljs-number">100</span>
+          mainCtx.translate <span class="hljs-number">0</span>, <span class="hljs-number">100</span>
+        <span class="hljs-keyword">else</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-173">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-173">&#182;</a>
+              </div>
+              <p>If we would go past the top of the file, just scroll to exactly the top of the file.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          mainCtx.translate <span class="hljs-number">0</span>, <span class="hljs-property">@scrollOffset</span>.y
+          <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-number">0</span>
+      <span class="hljs-keyword">else</span>
+        <span class="hljs-property">@scrollOffset</span>.add <span class="hljs-number">0</span>, <span class="hljs-number">100</span>
+        mainCtx.translate <span class="hljs-number">0</span>, -<span class="hljs-number">100</span>
+
+      <span class="hljs-property">@redraw</span>()
+
+  <span class="hljs-attribute">setValue</span>: <span class="hljs-function"><span class="hljs-params">(value)</span> -&gt;</span>
+    <span class="hljs-property">@tree</span> = coffee.parse(value).segment
+    <span class="hljs-property">@redraw</span>()
+
+  <span class="hljs-attribute">getValue</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@tree</span>.toString()
+
+<span class="hljs-built_in">window</span>.<span class="hljs-function"><span class="hljs-title">onload</span> = -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-174">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-174">&#182;</a>
+              </div>
+              <h2 id="tests">Tests</h2>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">window</span>.editor = <span class="hljs-keyword">new</span> Editor <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'editor'</span>), (coffee.parse(paletteElement).next.block <span class="hljs-keyword">for</span> paletteElement <span class="hljs-keyword">in</span> [
+    <span class="hljs-string">'''
+    for i in [1..10]
+      alert 'hello'
+    '''</span>
+    <span class="hljs-string">'''
+    alert 'hello'
+    '''</span>
+    <span class="hljs-string">'''
+    if a is b
+      alert 'hi'
+    else
+      alert 'bye'
+    '''</span>
+    <span class="hljs-string">'''
+    a = b
+    '''</span>
+  ])
+  editor.setValue <span class="hljs-string">'''
+  for i in [1..10]
+    if i % 2 is 0
+      alert i
+      alert 'bye'
+    else
+      alert 'fizz'
+    alert 'buzz'
+  '''</span>
+
+  editor.<span class="hljs-function"><span class="hljs-title">onChange</span> = -&gt;</span>
+    <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'out'</span>).value = editor.getValue()
+
+  <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'out'</span>).addEventListener <span class="hljs-string">'input'</span>,<span class="hljs-function"> -&gt;</span>
+    <span class="hljs-keyword">try</span>
+      editor.setValue <span class="hljs-keyword">this</span>.value</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

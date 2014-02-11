@@ -1,27 +1,25 @@
-###
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 # 
 # Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.
-###
 
-###
-# Secret functions
-###
+## Private (convenience) functions
 
+# ## _area ##
 # Signed area of the triangle formed by vectors [ab] and [ac]
 _area = (a, b, c) -> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
 
+# ## _intersects ##
 # Test the intersection of two line segments
 _intersects = (a, b, c, d) ->
   ((_area(a, b, c) > 0) != (_area(a, b, d) > 0)) and ((_area(c, d, a) > 0) != (_area(c, d, b) > 0))
 
-###
-# Public functions
-###
+## Public functions
 
 exports = {}
 
+# ## Point ##
+# A point knows its x and y coordinate, and can do some vector operations.
 exports.Point = class Point
   constructor: (@x, @y) ->
 
@@ -39,9 +37,15 @@ exports.Point = class Point
 
   clear: -> @x = @y = 0
 
+# ## Size ##
+# A Size knows its width and height.
 exports.Size = class Size
   constructor: (@width, @height) ->
 
+# ## Rectangle ##
+# A Rectangle knows its upper-left corner, width, and height,
+# and can do rectangular overlap, polygonal intersection,
+# and rectangle or point union (point union is called "swallow").
 exports.Rectangle = class Rectangle
   constructor: (@x, @y, @width, @height) ->
   
@@ -85,9 +89,16 @@ exports.Rectangle = class Rectangle
     ctx.fillStyle = style
     ctx.fillRect @x, @y, @width, @height
 
+# ## NoRectangle ##
+# NoRectangle is an alternate constructor for Rectangle which starts
+# the rectangle as nothing (without even a location). It can gain location and size
+# via unite() and swallow().
 exports.NoRectangle = class NoRectangle extends Rectangle
   constructor: -> super(null, null, 0, 0)
 
+# ## Path ##
+# This is called Path, but is forced to be closed so is actually a polygon.
+# It can do fast translation and rectangular intersection.
 exports.Path = class Path
   constructor: ->
     @_points = []
@@ -114,21 +125,15 @@ exports.Path = class Path
       @_bounds.swallow point
   
   push: (point) ->
-    ###
-    if @_points.length > 0
-      @_points.push new draw.Point @_points[@_points.length - 1].x, point.y #EXPERIMENTAL
-    ###
     @_points.push point
     @_bounds.swallow point
 
   unshift: (point) ->
-    ###
-    if @_points.length > 0
-      @_points.unshift new draw.Point point.x, @_points[0].y #EXPERIMENTAL
-    ###
     @_points.unshift point
     @_bounds.swallow point
-
+  
+  # ### Point containment ###
+  # Accomplished with ray-casting
   contains: (point) ->
     @_clearCache()
 
@@ -144,12 +149,15 @@ exports.Path = class Path
 
     return count % 2 is 1
   
+  # ### Rectangular intersection ###
+  # Succeeds if any edges intersect or either shape is
+  # entirely within the other.
   intersects: (rectangle) ->
     @_clearCache()
     
     if not rectangle.overlap @_bounds then return false
     else
-      # Try intersections
+      # Try each pair of edges for intersections
       last = @_points[@_points.length - 1]
       rectSides = [
         new draw.Point rectangle.x, rectangle.y
@@ -164,10 +172,13 @@ exports.Path = class Path
           lastSide = side
         last = end
 
-      # Try containment
-      if rectangle.contains @_points[0] then return true
-
+      # Intersections failed; see if we contain the rectangle.
+      # Note that if we contain the rectangle we must contain all of its vertices,
+      # so it suffices to test one vertex.
       if @contains rectSides[0] then return true
+
+      # We don't contain the rectangle; see if it contains us.
+      if rectangle.contains @_points[0] then return true
       
       # No luck
       return false
@@ -194,6 +205,9 @@ exports.Path = class Path
 
 _CTX = null #Hacky, hacky, hacky
 
+# ## Text ##
+# A Text element. Mainly this exists for computing bounding boxes, which is
+# accomplished via ctx.measureText().
 exports.Text = class Text
   _FONT_SIZE: 15
 
@@ -218,89 +232,4 @@ exports.Text = class Text
 
 exports._setCTX = (ctx) -> _CTX = ctx
 
-exports.Group = class Group
-  constructor: ->
-    @children = []
-    @_cachedTranslation = new Point 0, 0
-    @_cacheFlag = false
-    @_bounds = new NoRectangle()
-
-  _clearCache: ->
-    if @_cacheFlag
-      for child in @children
-        child.translate @_cachedTranslation
-      @_cachedTranslation.clear()
-      @_cacheFlag = false
-
-  empty: -> @children.length = 0; @_bounds.clear()
-
-  recompute: ->
-    @_bounds.clear()
-    for child in @children
-      if child.recompute? then child.recompute()
-      @_bounds.unite child.bounds()
-
-  translate: (vector) ->
-    @_cachedTranslation.translate vector
-
-  push: (child) ->
-    @children.push child
-    @_bounds.unite child.bounds()
-
-  bounds: -> @_clearCache(); @_bounds
-
-  setPosition: (point) ->
-    @translate point.from new Point @bounds().x, @bounds.y
-
-  contains: (point) ->
-    @_clearCache
-    for child in @children
-      if child.contains point
-        return true
-    return false
-  
-  draw: (ctx) ->
-    for child in @children
-      child.draw ctx
-
-exports.QuadTree = class QuadTree
-  # To be used for dropArea and mouse fire events
-  constructor: (@bounds) ->
-    @children = null
-    @contents = []
-
-  _split: ->
-    @children = [
-      new QuadTree new Rectangle @bounds.x + @bounds.width / 2, @bounds.y, @bounds.height / 2, @bounds.width / 2 #I
-      new QuadTree new Rectangle @bounds.x, @bounds.y, @bounds.height / 2, @bounds.width / 2 # II
-      new QuadTree new Rectangle @bounds.x, @bounds.y + @bounds.width / 2, @bounds.height / 2, @bounds.width / 2 #III
-      new QuadTree new Rectangle @bounds.x + @bounds.width / 2, @bounds.y + @bounds.width / 2, @bounds.height / 2, @bounds.width / 2 # IV
-    ]
-    for content in @contents
-      for child in @children
-        if content.rect.overlap child.bounds
-          child.insert content
-    @contents = []
-
-  insert: (obj) ->
-    if @children?
-      for child in @children
-        if obj.rect.overlap child.bounds
-          child.insert obj
-    else
-      @contents.push obj
-
-  find: (point) ->
-    if @children?
-      for child in @children
-        if child.bounds.contains point
-          return child.find point
-    else
-      for content in @contents
-        if content.rect.contains point
-          return content
-
 window.draw = exports
-###
-# Performance strategy (might not be faster): convert paths to images in offscreen canvas once drawn, then translate those instead.
-###

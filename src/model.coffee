@@ -1,15 +1,17 @@
-###
-# Copyright (c) 2014 Anthony Bau.
-# MIT License.
-#
 # Tree classes and operations for ICE editor.
-###
+#
+# Copyright (c) 2014 Anthony Bau.
+#
+# MIT License.
 
 exports = {}
 
-###
-# A Block is a bunch of tokens that are grouped together.
-###
+# # Block
+# The basic data structure in ICE Editor is a linked list. A Block is a group of 
+# two tokens, one start token and one end token. Everything between these tokens
+# is a block's content. Thus "tree" operations are linked-list
+# splices.
+
 exports.Block = class Block
   constructor: (contents) ->
     @start = new BlockStartToken this
@@ -26,19 +28,10 @@ exports.Block = class Block
     head.append @end
 
     @view = new BlockView this
-
-  embedded: -> @start.prev.type is 'socketStart'
-
-  contents: ->
-    # The Contents of a block are everything between the start and end.
-    contents = []
-    head = @start
-    while head isnt @end
-      contents.push head
-      head = head.next
-    contents.push @end
-    return contents
   
+  # ## Clone ##
+  # Cloning produces a new Block entirely independent
+  # of this one (there are no linked-list pointers in common).
   clone: ->
     clone = new Block []
     clone.color = @color
@@ -70,28 +63,21 @@ exports.Block = class Block
     cursor.append clone.end
 
     return clone
-  
+    
+  # ## inSocket ##
+  # Is this block in a Socket? This function is mainly used
+  # by the View to determine whether a block needs tabs or not,
+  # and by the Controller to determine whether a block can be dropped after.
   inSocket: ->
     head = @start.prev
     while head? and head.type is 'segmentStart' then head = head.prev
     return head? and head.type is 'socketStart'
   
-  lines: ->
-    # The Lines of a block are the \n-separated lists of tokens between the start and end.
-    contents = []
-    currentLine = []
-    head = @start
-    while head isnt @end
-      contents.push head
-      if head.type is 'newline'
-        contents.push currentLine
-        currentLine = []
-      head = head.next
-    currentLine.push @end
-    contents.push currentLine
-    return contents
-  
-  _moveTo: (parent) ->
+  # ## moveTo ##
+  # Splice this block out and place it somewhere else.
+  # This will also eliminate any empty lines left behind, and any empty Segments.
+  # Whitespace in general is this function's responsibility.
+  moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.segment.remove()
@@ -122,27 +108,12 @@ exports.Block = class Block
       parent.next= @start
       @start.prev = parent
   
-  findBlock: (f) ->
-    # Find the innermost child fitting function f(x)
-    head = @start.next
-    while head isnt @end
-      # If we found a child block, find in there
-      if head.type is 'blockStart' and f(head.block) then return head.block.findBlock f
-      head = head.next
+  # ## find ##
+  # This one is mainly used for hit-testing during drag-and-drop by the Controller.
+  # It finds the first child fitting f(x) that does not have a child who fits f(x).
 
-    # Couldn't find any, so we are the innermost child fitting f()
-    if f this then return this
-    else return null
-  
-  findSocket: (f) ->
-    head = @start.next
-    while head isnt @end
-      if head.type is 'socketStart' and f(head.socket) then return head.socket.findSocket f
-      head = head.next
-    return null
-  
+  # (todo -- move to Controller?)
   find: (f) ->
-    # Find the innermost child fitting function f(x)
     head = @start.next
     while head isnt @end
       # If we found a child block, find in there
@@ -151,15 +122,24 @@ exports.Block = class Block
       else if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
       head = head.next
 
-    # Couldn't find any, so we are the innermost child fitting f()
+    # Maybe the _we_ are the first child with no fitting children
     if f this then return this
+    
+    # We found no results, so return null.
     else return null
   
-  # TODO This is really only usable for debugging
+  # ## toString ##
+  # This one is mainly used for debugging. The string representation ("compiled code")
+  # for anything between our start and end tokens. This is computed by stringifying
+  # everything, then splicing off everything after the end token.
   toString: ->
     string = @start.toString indent: ''
     return string[..string.length-@end.toString(indent: '').length-1]
 
+# # Indent
+# An Indent, like a Block, consists of two tokens, start and end. An Indent also knows its @depth,
+# which is the number of spaces that it is indented in. When compiling/stringifying, every newline
+# inside an indent will add @depth spaces after it.
 exports.Indent = class Indent
   constructor: (contents, @depth) ->
     @start = new IndentStartToken this
@@ -173,6 +153,9 @@ exports.Indent = class Indent
     
     @view = new IndentView this
 
+  # ## clone ##
+  # Like Block, creates an Indent whose string representation and data structure 
+  # is identical, but shares no linked-list pointers with us.
   clone: ->
     clone = new Indent [], @depth
     head = @start.next
@@ -204,13 +187,11 @@ exports.Indent = class Indent
 
     return clone
 
-  embedded: -> false
+  # ## find ##
+  # This one is mainly used for hit-testing during drag-and-drop by the Controller.
+  # It finds the first child fitting f(x) that does not have a child who fits f(x).
 
-  # TODO This is really only usable for debugging
-  toString: (state) ->
-    string = @start.toString(state)
-    return string[...string.length-@end.toString(state).length-1]
-
+  # (todo -- move to Controller?)
   find: (f) ->
     # Find the innermost child fitting function f(x)
     head = @start.next
@@ -220,11 +201,25 @@ exports.Indent = class Indent
       else if head.type is 'indentStart' and f(head.indent) then return head.indent.find f
       else if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
       head = head.next
-
-    # Couldn't find any, so we are the innermost child fitting f()
+    
+    # Could _we_ be the first fitting element with no fitting children?
     if f this then return this
-    else return null
 
+    # Couldn't find any, so return null.
+    else return null
+  
+  # ## toString ##
+  # This one is mainly used for debugging. Like Block.toString, computes
+  # the compiled code for everything between the two end tokens, by stringifying
+  # the start and splicing of the string representation of the end.
+  toString: (state) ->
+    string = @start.toString(state)
+    return string[...string.length-@end.toString(state).length-1]
+
+# # Segment
+# A Segment is a basically invisible piece of markup, which knows its start and end tokens.
+# In rendering, this is usually passed through unnoticed. It is useful for mass tree operations,
+# for instance the Controller's LASSO SELECT, which will drag multiple blocks at once.
 exports.Segment = class Segment
   constructor: (contents) ->
     @start = new SegmentStartToken this
@@ -237,7 +232,10 @@ exports.Segment = class Segment
     head.append @end
     
     @view = new SegmentView this
-
+  
+  # ## clone ##
+  # Like Block, creates an Segment whose string representation and data structure 
+  # is identical, but shares no linked-list pointers with us.
   clone: ->
     clone = new Segment []
     head = @start.next
@@ -268,16 +266,22 @@ exports.Segment = class Segment
     cursor.append clone.end
 
     return clone
-
-  embedded: -> false
-
+  
+  # ## remove ##
+  # This method is unique to Segments because you would never want to call it
+  # on any other kind of markup. This removes the start and end tokens, thus leaving
+  # the string representation of the data unchanged, but removing this Segment from existence.
   remove: ->
     @start.remove()
     @end.remove()
     @start.next = @end
     @end.prev = @start
 
-  _moveTo: (parent) ->
+  # ## moveTo ##
+  # Splice this segment out and place it somewhere else.
+  # This will also eliminate any empty lines left behind, and any empty Segments.
+  # Whitespace in general is this function's responsibility.
+  moveTo: (parent) ->
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.segment.remove()
@@ -307,26 +311,12 @@ exports.Segment = class Segment
 
       parent.next= @start
       @start.prev = parent
-  
-  findBlock: (f) ->
-    # Find the innermost child fitting function f(x)
-    head = @start.next
-    while head isnt @end
-      # If we found a child block, find in there
-      if head.type is 'blockStart' and f(head.block)
-        return head.block.findBlock f
-      head = head.next
 
-    # Couldn't find any, so we are the innermost child fitting f()
-    return null
-  
-  findSocket: (f) ->
-    head = @start.next
-    while head isnt @end
-      if head.type is 'socketStart' and f(head.socket) then return head.socket.findSocket f
-      head = head.next
-    return null
-  
+  # ## find ##
+  # This one is mainly used for hit-testing during drag-and-drop by the Controller.
+  # It finds the first child fitting f(x) that does not have a child who fits f(x).
+
+  # (todo -- move to Controller?)
   find: (f) ->
     # Find the innermost child fitting function f(x)
     head = @start.next
@@ -341,9 +331,25 @@ exports.Segment = class Segment
     if f(this) then return this
     else return null
   
+  # ## toString ##
+  # This one is actually called often from the Controller, since
+  # Segments serve as the root elements of every tree. As with Blocks and Indents,
+  # this is computed by stringifying the start token (get all code) and splicing off things after
+  # the end token.
   toString: ->
     start = @start.toString(indent: '')
     return start[...start.length-@end.toString(indent: '').length]
+
+# # Socket
+# A Socket is an inline droppable area for a Block, and
+# also a typable area for Text. Like a Block and an Indent,
+# a Socket consists of a start and end token. Sockets may only
+# contain *one* child element, although this may mean multiple tokens,
+# if the child element is a Block, Indent, or Segment.
+#
+# A special type of Socket is a handwritten socket, for whom
+# the @handwritten property will be true, and is handled specially
+# by the Controller.
 
 exports.Socket = class Socket
   constructor: (content) ->
@@ -372,15 +378,20 @@ exports.Socket = class Socket
 
     @type = 'socket'
 
-    @handwritten = false # A handwritten socket is a special kind of socket that doesn't accept blocks
-                         # Its controller instance also has special key bindings
+    # A handwritten socket is a special kind of socket that doesn't accept blocks
+    # Its controller instance also has special key bindings
+    @handwritten = false
 
     @view = new SocketView this
-
+  
+  # ## clone ##
+  # Cloning produces an identical Socket with no shared linked-list pointers.
+  # To produce this clone, we need only delegate to our content block, because
+  # there *may only be one*.
   clone: -> if @content()? then new Socket @content().clone() else new Socket()
   
-  embedded: -> false
-
+  # ## content ##
+  # Get the content block of this Socket
   content: ->
     unwrap = (el) ->
       switch el.type
@@ -392,15 +403,11 @@ exports.Socket = class Socket
     else
       return null
 
-  findSocket: (f) ->
-    head = @start.next
-    while head isnt @end
-      if head.type is 'socketStart' and f(head.socket) then return head.socket.find f
-      head = head.next
+  # ## find ##
+  # This one is mainly used for hit-testing during drag-and-drop by the Controller.
+  # It finds the first child fitting f(x) that does not have a child who fits f(x).
 
-    if f this then return this
-    else return null
-
+  # (todo -- move to Controller?)
   find: (f) ->
     # Find the innermost child fitting function f(x)
     head = @start.next
@@ -414,17 +421,26 @@ exports.Socket = class Socket
     # Couldn't find any, so we are the innermost child fitting f()
     if f this then return this
     else return null
-
-  toString: -> if @content()? then @content().toString({indent:''}) else ''
-  
+ 
+# # Token
+# This is the class from which all ICE Editor tokens descend.
+# It knows basic linked-list operations.
 exports.Token = class Token
   constructor: ->
     @prev = @next = null
-
+  
+  # ## append ##
+  # Splice the linked list starting at (token)
+  # to the end of this token. This disconnects us from
+  # any linked list segment starting at @next, and conjoins us
+  # with that starting at (token).
   append: (token) ->
     token.prev = this
     @next = token
-
+  
+  # ## insert ##
+  # Insert signle token (token) into this linked list
+  # right after us. This retains our linked list order.
   insert: (token) ->
     if @next?
       token.next = @next
@@ -433,6 +449,8 @@ exports.Token = class Token
     @next = token
     return @next
   
+  # ## insertBefore ##
+  # Insert (token) in this linked list before us, as with insert.
   insertBefore: (token) ->
     if @prev?
       token.prev = @prev
@@ -442,24 +460,34 @@ exports.Token = class Token
     @prev = token
 
     return @prev
-
+  
+  # ## remove ##
+  # Splice us out of the linked list
   remove: ->
     if @prev? then @prev.next = @next
     if @next? then @next.prev = @prev
     @prev = @next = null
-
+  
+  # ## toString ##
+  # Converting a Token to a string gets you the compilation of this
+  # and every token after it. 
   toString: (state) -> if @next? then @next.toString(state) else ''
 
-###
-# Special kinds of tokens
-###
+## Special kinds of tokens
 
+# ## CursorToken ##
+# A user's cursor, which the Controller can perform operations at
+# and the View renders as a black triangle
 exports.CursorToken = class CursorToken extends Token
   constructor: ->
     @prev = @next = null
     @view = new CursorView this
     @type = 'cursor'
 
+  clone: -> new CursorToken()
+
+# ## TextToken ##
+# A token representing plain text.
 exports.TextToken = class TextToken extends Token
   constructor: (@value) ->
     @prev = @next = null
@@ -471,6 +499,14 @@ exports.TextToken = class TextToken extends Token
   toString: (state) ->
     @value + if @next? then @next.toString(state) else ''
 
+# ## Markup tokens ##
+# These are the tokens to which we referred earlier when we discussed
+# Blocks, Indents, Segments, and Sockets. They represent the start and end of a piece of markup.
+# They should *never* be instantiated, except by their respective markup classes
+# (Block, Start, Segment, and Indent).
+#
+# When stringifying, they do no operations. Thus they have no responsibility
+# but to identify their type.
 exports.BlockStartToken = class BlockStartToken extends Token
   constructor: (@block) ->
     @prev = @next = null
@@ -480,34 +516,6 @@ exports.BlockEndToken = class BlockEndToken extends Token
   constructor: (@block) ->
     @prev = @next = null
     @type = 'blockEnd'
-
-exports.NewlineToken = class NewlineToken extends Token
-  constructor: ->
-    @prev = @next = null
-    @type = 'newline'
-
-  clone: -> new NewlineToken()
-
-  toString: (state) ->
-    '\n' + state.indent + if @next then @next.toString(state) else ''
-
-exports.IndentStartToken = class IndentStartToken extends Token
-  constructor: (@indent) ->
-    @prev = @next =  null
-    @type = 'indentStart'
-
-  toString: (state) ->
-    state.indent += (' ' for [1..@indent.depth]).join ''
-    if @next then @next.toString(state) else ''
-
-exports.IndentEndToken = class IndentEndToken extends Token
-  constructor: (@indent) ->
-    @prev = @next =  null
-    @type = 'indentEnd'
-
-  toString: (state) ->
-    state.indent = state.indent[...-@indent.depth]
-    if @next then @next.toString(state) else ''
 
 exports.SocketStartToken = class SocketStartToken extends Token
   constructor: (@socket) ->
@@ -529,128 +537,40 @@ exports.SegmentEndToken = class SegmentEndToken extends Token
     @prev = @next = null
     @type = 'segmentEnd'
 
-###
-# Example LISP parser/
-###
+# ## IndentStart and IndentEnd ##
+# These tokens must increment or decrement the number of spaces
+# to insert at each newline. This number is stored and modified in (state),
+# an object passed down whenever a stringification occurs.
+exports.IndentStartToken = class IndentStartToken extends Token
+  constructor: (@indent) ->
+    @prev = @next =  null
+    @type = 'indentStart'
 
-exports.lispParse = (str) ->
-  currentString = ''
-  first = head = new TextToken ''
-  block_stack = []
-  socket_stack = []
+  toString: (state) ->
+    state.indent += (' ' for [1..@indent.depth]).join ''
+    if @next then @next.toString(state) else ''
 
-  for char in str
-    switch char
-      when '('
-        head = head.append new TextToken currentString
+exports.IndentEndToken = class IndentEndToken extends Token
+  constructor: (@indent) ->
+    @prev = @next =  null
+    @type = 'indentEnd'
 
-        # Make a new Block
-        block_stack.push block = new Block []
-        socket_stack.push socket = new Socket block
-        head = head.append socket.start
-        head = head.append block.start
+  toString: (state) ->
+    state.indent = state.indent[...-@indent.depth]
+    if @next then @next.toString(state) else ''
 
-        # Append the paren
-        head = head.append new TextToken '('
-        
-        currentString = ''
-      when ')'
-        # Append the current string
-        head = head.append new TextToken currentString
-        head = head.append new TextToken ')'
-        
-        # Pop the Block
-        head = head.append block_stack.pop().end
-        head = head.append socket_stack.pop().end
 
-        currentString = ''
-      when ' '
-        head = head.append new TextToken currentString
-        head = head.append new TextToken ' '
+# ## NewlineToken ##
+# This token represents a newline. When stringifying, it inserts (state.indent) spaces
+# if necessary.
+exports.NewlineToken = class NewlineToken extends Token
+  constructor: ->
+    @prev = @next = null
+    @type = 'newline'
 
-        currentString = ''
+  clone: -> new NewlineToken()
 
-      when '\n'
-        head = head.append new TextToken currentString
-        head = head.append new NewlineToken()
-
-        currentString = ''
-      else
-        currentString += char
-  
-  head = head.append new TextToken currentString
-  return first
-
-exports.indentParse = (str) ->
-  # Then generate the ICE token list
-  head = first = new TextToken ''
-  
-  stack = []
-  depth_stack = [0]
-  for line in str.split '\n'
-    indent = line.length - line.trimLeft().length
-
-    # Push if needed
-    if indent > _.last depth_stack
-      head = head.append (new Indent([], indent - _.last(depth_stack))).start
-      stack.push head.indent
-      depth_stack.push indent
-
-    # Pop if needed
-    while indent < _.last depth_stack
-      head = head.append stack.pop().end
-      depth_stack.pop()
-
-    head = head.append new NewlineToken()
-    
-    currentString = ''
-    for char in line.trimLeft()
-      switch char
-        when '('
-          if currentString.length > 0 then head = head.append new TextToken currentString
-
-          # Make a new Block
-          if stack.length > 0 and _.last(stack).type is 'block'
-            stack.push socket = new Socket block
-            head = head.append socket.start
-          stack.push block = new Block []
-          head = head.append block.start
-
-          # Append the paren
-          head = head.append new TextToken '('
-          
-          currentString = ''
-        when ')'
-          # Append the current string
-          if currentString.length > 0 then head = head.append new TextToken currentString
-
-          # Pop the indents
-          popped = {}
-          while popped.type isnt 'block'
-            popped = stack.pop()
-            if popped.type is 'block'
-              # Append the paren if necessary
-              head = head.append new TextToken ')'
-            # Append the close-tag
-            head = head.append popped.end
-            if head.type is 'indentEnd' then depth_stack.pop()
-          
-          # Pop the blocks
-          if stack.length > 0 and _.last(stack).type is 'socket' then head = head.append stack.pop().end
-
-          currentString = ''
-        when ' '
-          if currentString.length > 0 then head = head.append new TextToken currentString
-          head = head.append new TextToken ' '
-
-          currentString = ''
-        else
-          currentString += char
-    if currentString.length > 0 then head = head.append new TextToken currentString
-
-  # Empty the stack
-  while stack.length > 0 then head = head.append stack.pop().end
-  
-  return first.next.next
+  toString: (state) ->
+    '\n' + state.indent + if @next then @next.toString(state) else ''
 
 window.ICE = exports
