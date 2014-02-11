@@ -2989,7 +2989,7 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
       <span class="hljs-property">@hiddenInput</span>.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
 
     <span class="hljs-function"><span class="hljs-title">setTextInputAnchor</span> = <span class="hljs-params">(point)</span> =&gt;</span>
-      textInputAnchor = textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x) / mainCtx.measureText(<span class="hljs-string">' '</span>).width
+      textInputAnchor = textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x - PADDING) / mainCtx.measureText(<span class="hljs-string">' '</span>).width
       <span class="hljs-property">@hiddenInput</span>.setSelectionRange textInputAnchor, textInputHead</pre></div></div>
             
         </li>

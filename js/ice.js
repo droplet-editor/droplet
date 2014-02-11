@@ -2041,7 +2041,7 @@
         return _this.hiddenInput.setSelectionRange(Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead));
       };
       setTextInputAnchor = function(point) {
-        textInputAnchor = textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
+        textInputAnchor = textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x - PADDING) / mainCtx.measureText(' ').width);
         return _this.hiddenInput.setSelectionRange(textInputAnchor, textInputHead);
       };
       track.addEventListener('mousemove', function(event) {

@@ -848,7 +848,7 @@ exports.Editor = class Editor
       @hiddenInput.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
 
     setTextInputAnchor = (point) =>
-      textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
+      textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x - PADDING) / mainCtx.measureText(' ').width
       @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
     # ## Mouse events for TEXT INPUT ##
