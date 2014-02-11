@@ -1724,7 +1724,7 @@
       };
       track.addEventListener('mousedown', function(event) {
         var fixedDest, flag, float, head, i, next_head, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
-        if (event.which !== 0) {
+        if (event.button !== 0) {
           return;
         }
         point = getPointFromEvent(event);

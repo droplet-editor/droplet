@@ -418,7 +418,7 @@ exports.Editor = class Editor
     
     track.addEventListener 'mousedown', (event) =>
       # Only capture left-click
-      unless event.which is 0 then return
+      unless event.button is 0 then return
 
       point = getPointFromEvent event
 
