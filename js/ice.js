@@ -1503,6 +1503,9 @@
         while (head !== null && head.type !== 'indentStart' && head.type !== 'blockEnd') {
           head = head.prev;
         }
+        if (head === null) {
+          return;
+        }
         if (head.type === 'blockEnd') {
           moveBlockTo(head.block, null);
           _this.redraw();
@@ -1616,7 +1619,7 @@
         }
       });
       document.body.addEventListener('keydown', function(event) {
-        var head, _ref2, _ref3;
+        var head, _ref2, _ref3, _ref4;
         if ((_ref2 = event.target.tagName) === 'INPUT' || _ref2 === 'TEXTAREA') {
           return;
         }
@@ -1651,7 +1654,10 @@
             }
         }
         if ((_ref3 = event.keyCode) === 13 || _ref3 === 38 || _ref3 === 40 || _ref3 === 8) {
-          return _this.redraw();
+          _this.redraw();
+        }
+        if ((_ref4 = event.keyCode) === 13 || _ref4 === 38 || _ref4 === 40 || _ref4 === 8 || _ref4 === 37) {
+          return event.preventDefault();
         }
       });
       hitTest = function(point, root) {

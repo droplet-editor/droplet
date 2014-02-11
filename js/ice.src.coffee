@@ -1567,6 +1567,9 @@ exports.Editor = class Editor
       head = @cursor.prev
       while head isnt null and head.type isnt 'indentStart' and head.type isnt 'blockEnd'
         head = head.prev
+      
+      # If there is no block before the cursor, give up.
+      if head is null then return
 
       # Delete that block and redraw
       if head.type is 'blockEnd' then moveBlockTo head.block, null; @redraw()
@@ -1686,6 +1689,9 @@ exports.Editor = class Editor
       
       # If we manipulated the root tree, redraw.
       if event.keyCode in [13, 38, 40, 8] then @redraw()
+      
+      # If we caught the keypress, prevent default.
+      if event.keyCode in [13, 38, 40, 8, 37] then event.preventDefault()
 
     # Hit-testing functions
 
