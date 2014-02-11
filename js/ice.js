@@ -1179,6 +1179,7 @@
         } else {
           yCoordinate = this.bounds[cursor.line].bottom();
         }
+        cursor.token.view.point.y = yCoordinate;
         ctx.fillStyle = '#000';
         ctx.strokeSTyle = '#000';
         ctx.beginPath();
@@ -1592,20 +1593,15 @@
 
   })(IceView);
 
-  CursorView = (function(_super) {
-    __extends(CursorView, _super);
-
+  CursorView = (function() {
     function CursorView(block) {
-      CursorView.__super__.constructor.call(this, block);
+      this.block = block;
+      this.point = new draw.Point(0, 0);
     }
-
-    CursorView.prototype.computeChildren = function(line) {
-      return this.lineStart = this.lineEnd = line;
-    };
 
     return CursorView;
 
-  })(IceView);
+  })();
 
   /*
   # ICE Editor Controller
@@ -1635,7 +1631,7 @@
 
   exports.Editor = Editor = (function() {
     function Editor(el, paletteBlocks) {
-      var child, deleteFromCursor, drag, dragCtx, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, mainCtx, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, paletteCtx, redrawTextInput, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
+      var child, deleteFromCursor, drag, dragCtx, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, mainCtx, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, paletteCtx, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
         _this = this;
       this.paletteBlocks = paletteBlocks;
       /*
@@ -1811,21 +1807,36 @@
             moveBlockTo(newBlock, _this.cursor.prev.insert(new NewlineToken()));
           }
           _this.redraw();
-          return setTextInputFocus(newSocket);
+          setTextInputFocus(newSocket);
         } else if (_this.cursor.prev.type === 'newline' || _this.cursor.prev.type === 'segmentStart') {
           moveBlockTo(newBlock, _this.cursor.prev);
           newBlock.end.insert(new NewlineToken());
           _this.redraw();
-          return setTextInputFocus(newSocket);
+          setTextInputFocus(newSocket);
+        }
+        return scrollCursorIntoView();
+      };
+      scrollCursorIntoView = function() {
+        _this.redraw();
+        if (_this.cursor.view.point.y < _this.scrollOffset.y) {
+          mainCtx.translate(0, _this.scrollOffset.y - _this.cursor.view.point.y);
+          _this.scrollOffset.y = _this.cursor.view.point.y;
+          return _this.redraw();
+        } else if (_this.cursor.view.point.y > (_this.scrollOffset.y + main.height)) {
+          mainCtx.translate(0, (_this.scrollOffset.y + main.height) - _this.cursor.view.point.y);
+          _this.scrollOffset.y = _this.cursor.view.point.y - main.height;
+          return _this.redraw();
         }
       };
       moveCursorTo = function(token) {
         _this.cursor.remove();
-        return token.insert(_this.cursor);
+        token.insert(_this.cursor);
+        return scrollCursorIntoView();
       };
       moveCursorBefore = function(token) {
         _this.cursor.remove();
-        return token.insertBefore(_this.cursor);
+        token.insertBefore(_this.cursor);
+        return scrollCursorIntoView();
       };
       deleteFromCursor = function() {
         var head;
@@ -1835,8 +1846,9 @@
         }
         if (head.type === 'blockEnd') {
           moveBlockTo(head.block, null);
-          return _this.redraw();
+          _this.redraw();
         }
+        return scrollCursorIntoView();
       };
       /*
       # TODO the following are known not to be able to navigate to the end of an indent.
@@ -2248,8 +2260,8 @@
         var point, rect;
         if (_this.lassoAnchor != null) {
           point = getPointFromEvent(event);
-          point.translate(_this.scrollOffset);
-          rect = getRectFromPoints(_this.lassoAnchor, point);
+          point.add(-_this.scrollOffset.x, -_this.scrollOffset.y);
+          rect = getRectFromPoints(new draw.Point(_this.lassoAnchor.x - _this.scrollOffset.x, _this.lassoAnchor.y - _this.scrollOffset.y), point);
           dragCtx.clearRect(0, 0, drag.width, drag.height);
           dragCtx.strokeStyle = '#00f';
           return dragCtx.strokeRect(rect.x, rect.y, rect.width, rect.height);
@@ -2259,7 +2271,6 @@
         var depth, firstLassoed, head, lastLassoed, point, rect, tokensToInclude;
         if (_this.lassoAnchor != null) {
           point = getPointFromEvent(event);
-          point.translate(_this.scrollOffset);
           rect = getRectFromPoints(_this.lassoAnchor, point);
           /*
           # First pass for lasso segment detection: get intersecting blocks.
@@ -2400,6 +2411,9 @@
       setTextInputFocus = function(focus) {
         var depth, head;
         _this.focus = focus;
+        if (_this.onChange != null) {
+          _this.onChange(new IceEditorChangeEvent(_this.focus, _this.focus));
+        }
         if (_this.focus === null) {
           return;
         }
@@ -2463,6 +2477,9 @@
           if (_this.scrollOffset.y >= 100) {
             _this.scrollOffset.add(0, -100);
             mainCtx.translate(0, 100);
+          } else {
+            mainCtx.translate(0, _this.scrollOffset.y);
+            _this.scrollOffset.y = 0;
           }
         } else {
           _this.scrollOffset.add(0, 100);
@@ -2499,7 +2516,7 @@
     })());
     editor.setValue('for i in [1..10]\n  if i % 2 is 0\n    alert i\n    alert \'bye\'\n  else\n    alert \'fizz\'\n  alert \'buzz\'');
     editor.onChange = function() {
-      return document.getElementById('out').innerText = editor.getValue();
+      return document.getElementById('out').value = editor.getValue();
     };
     return document.getElementById('out').addEventListener('input', function() {
       try {

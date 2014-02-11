@@ -236,6 +236,8 @@ class IceView
       else
         yCoordinate = @bounds[cursor.line].bottom()
 
+      cursor.token.view.point.y = yCoordinate
+
       ctx.fillStyle = '#000'
       ctx.strokeSTyle = '#000'
       ctx.beginPath()
@@ -649,9 +651,6 @@ class SegmentView extends IceView
       
       cursorX += child.dimensions[line].width
 
-class CursorView extends IceView
-  constructor: (block) -> super block
-
-  computeChildren: (line) ->
-    # A cursor cannot contain anything
-    @lineStart = @lineEnd = line
+class CursorView
+  constructor: (@block)->
+    @point = new draw.Point 0, 0

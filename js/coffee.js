@@ -101,7 +101,7 @@ colors =
       }
     };
     mark = function(node) {
-      var arg, block, expr, indent, object, param, socket, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3, _results, _results1, _results2;
+      var arg, block, end, expr, indent, object, param, property, socket, start, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results, _results1, _results2, _results3;
       switch (node.constructor.name) {
         case 'Block':
           indent = new ICE.Indent([], 2);
@@ -218,6 +218,34 @@ colors =
           if (node.body != null) {
             return mark(node.body.unwrap());
           }
+          break;
+        case 'Obj':
+          block = new ICE.Block([]);
+          block.color = colors.VALUE;
+          addMarkup(block, node);
+          start = getBounds(node.properties[0]);
+          end = getBounds(node.properties[node.properties.length - 1]);
+          indent = new ICE.Indent([]);
+          markup.push({
+            token: indent.start,
+            position: start.start,
+            id: id,
+            start: true
+          });
+          markup.push({
+            token: indent.end,
+            position: end.end,
+            id: id,
+            start: false
+          });
+          id += 1;
+          _ref4 = node.properties;
+          _results3 = [];
+          for (_m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
+            property = _ref4[_m];
+            _results3.push(mark(property));
+          }
+          return _results3;
       }
     };
     for (_i = 0, _len = nodes.length; _i < _len; _i++) {

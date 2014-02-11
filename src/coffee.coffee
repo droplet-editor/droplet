@@ -204,6 +204,33 @@ exports.mark = (nodes, text) ->
 
         if node.body? then mark node.body.unwrap()
 
+      when 'Obj'
+        block = new ICE.Block []
+        block.color = colors.VALUE
+        addMarkup block, node
+
+        start = getBounds node.properties[0]
+        end = getBounds node.properties[node.properties.length - 1]
+
+        indent = new ICE.Indent []
+
+        markup.push
+          token: indent.start
+          position: start.start
+          id: id
+          start: true
+
+        markup.push
+          token: indent.end
+          position: end.end
+          id: id
+          start: false
+
+        id += 1
+
+        for property in node.properties then mark property
+
+
   for node in nodes
     mark node
   

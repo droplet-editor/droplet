@@ -8,8 +8,7 @@ module.exports = (grunt) ->
         files:
           'js/draw.js': ['src/draw.coffee']
           'js/ice.js': ['src/model.coffee', 'src/view.coffee', 'src/controller.coffee']
-          'js/view_tests.js': ['src/view_tests.coffee']
-          'js/tests.js': ['src/tests.coffee']
+          'js/tests.js': ['test/tests.coffee']
           'js/coffee.js': ['src/coffee.coffee']
 
     uglify:

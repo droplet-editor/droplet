@@ -215,6 +215,23 @@ exports.Editor = class Editor
         @redraw()
         setTextInputFocus newSocket
 
+      scrollCursorIntoView()
+
+    scrollCursorIntoView = =>
+      @redraw()
+      
+      # If the cursor has scrolled out of view, scroll it back into view.
+      if @cursor.view.point.y < @scrollOffset.y
+        mainCtx.translate 0, @scrollOffset.y - @cursor.view.point.y
+        @scrollOffset.y = @cursor.view.point.y
+
+        @redraw()
+      else if @cursor.view.point.y > (@scrollOffset.y + main.height)
+        mainCtx.translate 0, (@scrollOffset.y + main.height) - @cursor.view.point.y
+        @scrollOffset.y = @cursor.view.point.y - main.height
+
+        @redraw()
+
     moveCursorTo = (token) =>
       # Splice out
       @cursor.remove()
@@ -222,6 +239,7 @@ exports.Editor = class Editor
       # Splice in
       token.insert @cursor
 
+      scrollCursorIntoView()
     
     moveCursorBefore = (token) =>
       # Splice out
@@ -229,6 +247,8 @@ exports.Editor = class Editor
       
       # Splice in
       token.insertBefore @cursor
+
+      scrollCursorIntoView()
 
     deleteFromCursor = =>
       # Seek the block that we want to delete (i.e. the block that ends first before the cursor, if such thing exists)
@@ -238,6 +258,8 @@ exports.Editor = class Editor
 
       # Delete that block and redraw
       if head.type is 'blockEnd' then moveBlockTo head.block, null; @redraw()
+
+      scrollCursorIntoView()
     
     ###
     # TODO the following are known not to be able to navigate to the end of an indent.
@@ -636,10 +658,10 @@ exports.Editor = class Editor
       if @lassoAnchor?
         # Determine the position of the mouse
         point = getPointFromEvent event
-        point.translate @scrollOffset # (position fixed, as in relation to the drag canvas, on which we will draw it)
+        point.add -@scrollOffset.x, -@scrollOffset.y # (position fixed, as in relation to the drag canvas, on which we will draw it)
 
         # Get the rectangle we want to draw
-        rect = getRectFromPoints @lassoAnchor, point
+        rect = getRectFromPoints (new draw.Point @lassoAnchor.x - @scrollOffset.x, @lassoAnchor.y - @scrollOffset.y), point
 
         # Clear and redraw the lasso on the drag canvas
         dragCtx.clearRect 0, 0, drag.width, drag.height
@@ -650,7 +672,6 @@ exports.Editor = class Editor
       if @lassoAnchor?
         # Determine the position of the mouse
         point = getPointFromEvent event
-        point.translate @scrollOffset
 
         # Get the rectangle we want to test
         rect = getRectFromPoints @lassoAnchor, point
@@ -806,6 +827,9 @@ exports.Editor = class Editor
     setTextInputFocus = (focus) =>
       # Literally set the focus
       @focus = focus
+
+      # Fire the onchange handler
+      if @onChange? then @onChange new IceEditorChangeEvent @focus, @focus
       
       # If we just removed the focus, then we are done.
       if @focus is null then return
@@ -881,6 +905,10 @@ exports.Editor = class Editor
         if @scrollOffset.y >= 100
           @scrollOffset.add 0, -100
           mainCtx.translate 0, 100
+        else
+          # If we would go past the top of the file, just scroll to exactly the top of the file.
+          mainCtx.translate 0, @scrollOffset.y
+          @scrollOffset.y = 0
       else
         @scrollOffset.add 0, 100
         mainCtx.translate 0, -100
@@ -924,7 +952,7 @@ window.onload = ->
   '''
 
   editor.onChange = ->
-    document.getElementById('out').innerText = editor.getValue()
+    document.getElementById('out').value = editor.getValue()
 
   document.getElementById('out').addEventListener 'input', ->
     try
