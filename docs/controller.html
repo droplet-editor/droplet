@@ -1526,6 +1526,21 @@ the offset coordinates of a mouse click point</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-84">&#182;</a>
               </div>
+              <p>Don’t actually drag anything</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@selection</span> = <span class="hljs-literal">null</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-85">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-85">&#182;</a>
+              </div>
               <p>We must set a timeout for the following, because until
 A render has passed, the hidden input is not actually focused.</p>
 
@@ -1538,34 +1553,19 @@ A render has passed, the hidden input is not actually focused.</p>
         </li>
         
         
-        <li id="section-85">
-            <div class="annotation">
-              
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-85">&#182;</a>
-              </div>
-              <p>While the mouse is down, we are trying to select text in the input</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>          textInputSelecting = <span class="hljs-literal">true</span>
-
-          <span class="hljs-property">@selection</span> = <span class="hljs-literal">null</span>), <span class="hljs-number">0</span>
-
-      <span class="hljs-keyword">else</span></pre></div></div>
-            
-        </li>
-        
-        
         <li id="section-86">
             <div class="annotation">
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-86">&#182;</a>
               </div>
-              <p>If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)</p>
+              <p>While the mouse is down, we are trying to select text in the input</p>
 
             </div>
+            
+            <div class="content"><div class='highlight'><pre>          textInputSelecting = <span class="hljs-literal">true</span>), <span class="hljs-number">0</span>
+
+      <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
         
@@ -1576,11 +1576,9 @@ A render has passed, the hidden input is not actually focused.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-87">&#182;</a>
               </div>
-              <p>A flag as to whether we are selecting something in the palette</p>
+              <p>If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)</p>
 
             </div>
-            
-            <div class="content"><div class='highlight'><pre>        selectionInPalette = <span class="hljs-literal">false</span></pre></div></div>
             
         </li>
         
@@ -1590,6 +1588,21 @@ A render has passed, the hidden input is not actually focused.</p>
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-88">&#182;</a>
+              </div>
+              <p>A flag as to whether we are selecting something in the palette</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        selectionInPalette = <span class="hljs-literal">false</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-89">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-89">&#182;</a>
               </div>
               <p>If we clicked something in the palette, we need to compute offset etc. with a point that has been computed
 with offset to the palette.</p>
@@ -1601,11 +1614,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-89">
+        <li id="section-90">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-89">&#182;</a>
+                <a class="pilcrow" href="#section-90">&#182;</a>
               </div>
               <p>Compute the offset of the selection position from the mouse</p>
 
@@ -1617,11 +1630,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-90">
+        <li id="section-91">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-90">&#182;</a>
+                <a class="pilcrow" href="#section-91">&#182;</a>
               </div>
               <p>If we have clicked something in the palette, the clone first.</p>
 
@@ -1632,11 +1645,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-91">
+        <li id="section-92">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-91">&#182;</a>
+                <a class="pilcrow" href="#section-92">&#182;</a>
               </div>
               <p>If we have clicked something floating, then delete it from the list of floating blocks</p>
 
@@ -1648,11 +1661,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-92">
+        <li id="section-93">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-92">&#182;</a>
+                <a class="pilcrow" href="#section-93">&#182;</a>
               </div>
               <p>Move it to nowhere</p>
 
@@ -1663,11 +1676,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-93">
+        <li id="section-94">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-93">&#182;</a>
+                <a class="pilcrow" href="#section-94">&#182;</a>
               </div>
               <p>Draw it in the drag canvas</p>
 
@@ -1679,11 +1692,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-94">
+        <li id="section-95">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-94">&#182;</a>
+                <a class="pilcrow" href="#section-95">&#182;</a>
               </div>
               <p>CSS-transform the drag canvas to where it ought to be</p>
 
@@ -1694,11 +1707,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-95">
+        <li id="section-96">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-95">&#182;</a>
+                <a class="pilcrow" href="#section-96">&#182;</a>
               </div>
               <p>If we picked up from the palette, then rect.x is actually relative to the palette</p>
 
@@ -1710,11 +1723,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-96">
+        <li id="section-97">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-96">&#182;</a>
+                <a class="pilcrow" href="#section-97">&#182;</a>
               </div>
               <p>Otherwise, do as we would with mousemove</p>
 
@@ -1730,11 +1743,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-97">
+        <li id="section-98">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-97">&#182;</a>
+                <a class="pilcrow" href="#section-98">&#182;</a>
               </div>
               <p>Redraw the main canvas</p>
 
@@ -1745,11 +1758,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-98">
+        <li id="section-99">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-98">&#182;</a>
+                <a class="pilcrow" href="#section-99">&#182;</a>
               </div>
               <h2 id="mouse-events-for-normal-drag">Mouse events for NORMAL DRAG</h2>
 
@@ -1762,11 +1775,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-99">
+        <li id="section-100">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-99">&#182;</a>
+                <a class="pilcrow" href="#section-100">&#182;</a>
               </div>
               <p>Determine the position of the mouse</p>
 
@@ -1779,11 +1792,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-100">
+        <li id="section-101">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-100">&#182;</a>
+                <a class="pilcrow" href="#section-101">&#182;</a>
               </div>
               <p>First we find the highlighted area</p>
 
@@ -1802,11 +1815,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-101">
+        <li id="section-102">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-101">&#182;</a>
+                <a class="pilcrow" href="#section-102">&#182;</a>
               </div>
               <p>If highlight changed, redraw</p>
 
@@ -1817,11 +1830,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-102">
+        <li id="section-103">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-102">&#182;</a>
+                <a class="pilcrow" href="#section-103">&#182;</a>
               </div>
               <p>Highlight the highlight</p>
 
@@ -1832,11 +1845,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-103">
+        <li id="section-104">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-103">&#182;</a>
+                <a class="pilcrow" href="#section-104">&#182;</a>
               </div>
               <p>CSS-transform the drag canvas to where it ought to be</p>
 
@@ -1852,11 +1865,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-104">
+        <li id="section-105">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-104">&#182;</a>
+                <a class="pilcrow" href="#section-105">&#182;</a>
               </div>
               <p>Determine the position of the mouse and the place we want to render the block</p>
 
@@ -1870,11 +1883,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-105">
+        <li id="section-106">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-105">&#182;</a>
+                <a class="pilcrow" href="#section-106">&#182;</a>
               </div>
               <p>Drop areas signify different things depending on the block that they belong to</p>
 
@@ -1890,11 +1903,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-106">
+        <li id="section-107">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-106">&#182;</a>
+                <a class="pilcrow" href="#section-107">&#182;</a>
               </div>
               <p>There’s already a newline here.</p>
 
@@ -1906,11 +1919,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-107">
+        <li id="section-108">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-107">&#182;</a>
+                <a class="pilcrow" href="#section-108">&#182;</a>
               </div>
               <p>An insert drop signifies that we want to drop the block at the start of the indent</p>
 
@@ -1923,11 +1936,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-108">
+        <li id="section-109">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-108">&#182;</a>
+                <a class="pilcrow" href="#section-109">&#182;</a>
               </div>
               <p>A block drop signifies that we want to drop the block after (the end of) the block.</p>
 
@@ -1940,11 +1953,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-109">
+        <li id="section-110">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-109">&#182;</a>
+                <a class="pilcrow" href="#section-110">&#182;</a>
               </div>
               <p>Remove any previously occupying block or text</p>
 
@@ -1955,11 +1968,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-110">
+        <li id="section-111">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-110">&#182;</a>
+                <a class="pilcrow" href="#section-111">&#182;</a>
               </div>
               <p>Insert</p>
 
@@ -1973,11 +1986,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-111">
+        <li id="section-112">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-111">&#182;</a>
+                <a class="pilcrow" href="#section-112">&#182;</a>
               </div>
               <p>We can also drop on the root tree (insert at the start of the program)</p>
 
@@ -1988,11 +2001,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-112">
+        <li id="section-113">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-112">&#182;</a>
+                <a class="pilcrow" href="#section-113">&#182;</a>
               </div>
               <p>Don’t insert a newline if it would create an empty line at the end of the file.</p>
 
@@ -2007,11 +2020,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-113">
+        <li id="section-114">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-113">&#182;</a>
+                <a class="pilcrow" href="#section-114">&#182;</a>
               </div>
               <p>If we have dropped the block in nowhere, append it (and it’s floating position) to @floatingBlocks.</p>
 
@@ -2024,11 +2037,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-114">
+        <li id="section-115">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-114">&#182;</a>
+                <a class="pilcrow" href="#section-115">&#182;</a>
               </div>
               <p>(If we have dropped the block on the palette, delete it. This requires no operations).</p>
 
@@ -2037,11 +2050,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-115">
+        <li id="section-116">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-115">&#182;</a>
+                <a class="pilcrow" href="#section-116">&#182;</a>
               </div>
               <p>CSS-transform the drag canvas back to the origin</p>
 
@@ -2054,11 +2067,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-116">
+        <li id="section-117">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-116">&#182;</a>
+                <a class="pilcrow" href="#section-117">&#182;</a>
               </div>
               <p>Clear the drag canvas</p>
 
@@ -2069,11 +2082,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-117">
+        <li id="section-118">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-117">&#182;</a>
+                <a class="pilcrow" href="#section-118">&#182;</a>
               </div>
               <p>If we inserted into root, move the cursor to the end of the selection.</p>
 
@@ -2084,11 +2097,11 @@ with offset to the palette.</p>
         </li>
         
         
-        <li id="section-118">
+        <li id="section-119">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-118">&#182;</a>
+                <a class="pilcrow" href="#section-119">&#182;</a>
               </div>
               <p>Seek the next newline after the end of this block,
 which is where we’ll want to move the cursor
@@ -2104,11 +2117,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-119">
+        <li id="section-120">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-119">&#182;</a>
+                <a class="pilcrow" href="#section-120">&#182;</a>
               </div>
               <p>Signify that we are no longer in a NORMAL DRAG</p>
 
@@ -2119,11 +2132,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-120">
+        <li id="section-121">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-120">&#182;</a>
+                <a class="pilcrow" href="#section-121">&#182;</a>
               </div>
               <p>Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.</p>
 
@@ -2134,11 +2147,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-121">
+        <li id="section-122">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-121">&#182;</a>
+                <a class="pilcrow" href="#section-122">&#182;</a>
               </div>
               <h2 id="mouse-events-for-lasso-select">Mouse events for LASSO SELECT</h2>
 
@@ -2151,11 +2164,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-122">
+        <li id="section-123">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-122">&#182;</a>
+                <a class="pilcrow" href="#section-123">&#182;</a>
               </div>
               <p>Take the minimum coordinates for the top-left corner</p>
 
@@ -2167,11 +2180,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-123">
+        <li id="section-124">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-123">&#182;</a>
+                <a class="pilcrow" href="#section-124">&#182;</a>
               </div>
               <p>Distances are always positive</p>
 
@@ -2186,11 +2199,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-124">
+        <li id="section-125">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-124">&#182;</a>
+                <a class="pilcrow" href="#section-125">&#182;</a>
               </div>
               <p>Determine the position of the mouse</p>
 
@@ -2202,11 +2215,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-125">
+        <li id="section-126">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-125">&#182;</a>
+                <a class="pilcrow" href="#section-126">&#182;</a>
               </div>
               <p>Get the rectangle we want to draw</p>
 
@@ -2217,11 +2230,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-126">
+        <li id="section-127">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-126">&#182;</a>
+                <a class="pilcrow" href="#section-127">&#182;</a>
               </div>
               <p>Clear and redraw the lasso on the drag canvas</p>
 
@@ -2237,11 +2250,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-127">
+        <li id="section-128">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-127">&#182;</a>
+                <a class="pilcrow" href="#section-128">&#182;</a>
               </div>
               <p>Determine the position of the mouse</p>
 
@@ -2252,11 +2265,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-128">
+        <li id="section-129">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-128">&#182;</a>
+                <a class="pilcrow" href="#section-129">&#182;</a>
               </div>
               <p>Get the rectangle we want to test</p>
 
@@ -2267,11 +2280,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-129">
+        <li id="section-130">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-129">&#182;</a>
+                <a class="pilcrow" href="#section-130">&#182;</a>
               </div>
               <p>First pass for lasso segment detection: get intersecting blocks.</p>
 
@@ -2280,11 +2293,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-130">
+        <li id="section-131">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-130">&#182;</a>
+                <a class="pilcrow" href="#section-131">&#182;</a>
               </div>
               <p>Find the first matching block</p>
 
@@ -2297,11 +2310,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-131">
+        <li id="section-132">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-131">&#182;</a>
+                <a class="pilcrow" href="#section-132">&#182;</a>
               </div>
               <p>A block matches if it intersects the lasso rectangle</p>
 
@@ -2315,11 +2328,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-132">
+        <li id="section-133">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-132">&#182;</a>
+                <a class="pilcrow" href="#section-133">&#182;</a>
               </div>
               <p>Find the last matching block analagously</p>
 
@@ -2336,11 +2349,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-133">
+        <li id="section-134">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-133">&#182;</a>
+                <a class="pilcrow" href="#section-134">&#182;</a>
               </div>
               <p>Unless we have selected anything, give up.</p>
 
@@ -2351,11 +2364,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-134">
+        <li id="section-135">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-134">&#182;</a>
+                <a class="pilcrow" href="#section-135">&#182;</a>
               </div>
               <p>Second pass for lasso segment detection: validate the selection and record wrapping blocks as necessary.</p>
 
@@ -2370,11 +2383,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-135">
+        <li id="section-136">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-135">&#182;</a>
+                <a class="pilcrow" href="#section-136">&#182;</a>
               </div>
               <p>For each bit of markup, make sure to include both its start token and end token</p>
 
@@ -2395,11 +2408,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-136">
+        <li id="section-137">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-136">&#182;</a>
+                <a class="pilcrow" href="#section-137">&#182;</a>
               </div>
               <p>Third pass for lasso segment detection: include all necessary tokens demanded by validation</p>
 
@@ -2408,11 +2421,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-137">
+        <li id="section-138">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-137">&#182;</a>
+                <a class="pilcrow" href="#section-138">&#182;</a>
               </div>
               <p>Find the first block in tokensToInclude</p>
 
@@ -2427,11 +2440,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-138">
+        <li id="section-139">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-138">&#182;</a>
+                <a class="pilcrow" href="#section-139">&#182;</a>
               </div>
               <p>Find the last matching block analagously</p>
 
@@ -2447,11 +2460,11 @@ which is where we’ll want to move the cursor
         </li>
         
         
-        <li id="section-139">
+        <li id="section-140">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-139">&#182;</a>
+                <a class="pilcrow" href="#section-140">&#182;</a>
               </div>
               <p>Fourth pass for lasso segment detection: make sure that we have selected the wrapping block for any indents</p>
 <p>Note that this will only occur when we have inserted the indentStart at the beginning or indentEnd at the end
@@ -2467,11 +2480,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-140">
+        <li id="section-141">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-140">&#182;</a>
+                <a class="pilcrow" href="#section-141">&#182;</a>
               </div>
               <p>Seek the wrapping block for this indent</p>
 
@@ -2483,11 +2496,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-141">
+        <li id="section-142">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-141">&#182;</a>
+                <a class="pilcrow" href="#section-142">&#182;</a>
               </div>
               <p>Increment block depth</p>
 
@@ -2501,11 +2514,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-142">
+        <li id="section-143">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-142">&#182;</a>
+                <a class="pilcrow" href="#section-143">&#182;</a>
               </div>
               <p>Set lastLassoed in accordance.</p>
 
@@ -2518,11 +2531,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-143">
+        <li id="section-144">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-143">&#182;</a>
+                <a class="pilcrow" href="#section-144">&#182;</a>
               </div>
               <p>Seek the wrapping block for this indent</p>
 
@@ -2534,11 +2547,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-144">
+        <li id="section-145">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-144">&#182;</a>
+                <a class="pilcrow" href="#section-145">&#182;</a>
               </div>
               <p>Increment block depth</p>
 
@@ -2550,11 +2563,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-145">
+        <li id="section-146">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-145">&#182;</a>
+                <a class="pilcrow" href="#section-146">&#182;</a>
               </div>
               <p>Set firstLassoed in accordance</p>
 
@@ -2565,11 +2578,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-146">
+        <li id="section-147">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-146">&#182;</a>
+                <a class="pilcrow" href="#section-147">&#182;</a>
               </div>
               <p>Now, insert the actual lasso segment.</p>
 
@@ -2585,11 +2598,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-147">
+        <li id="section-148">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-147">&#182;</a>
+                <a class="pilcrow" href="#section-148">&#182;</a>
               </div>
               <p>Clear the drag canvas</p>
 
@@ -2600,11 +2613,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-148">
+        <li id="section-149">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-148">&#182;</a>
+                <a class="pilcrow" href="#section-149">&#182;</a>
               </div>
               <p>If we inserted a lasso segment, move the cursor appropriately</p>
 
@@ -2615,11 +2628,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-149">
+        <li id="section-150">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-149">&#182;</a>
+                <a class="pilcrow" href="#section-150">&#182;</a>
               </div>
               <p>Flag that we are no longer in a LASSO SELECT.</p>
 
@@ -2632,11 +2645,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-150">
+        <li id="section-151">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-150">&#182;</a>
+                <a class="pilcrow" href="#section-151">&#182;</a>
               </div>
               <h2 id="utility-functions-for-text-input">Utility functions for TEXT INPUT</h2>
 
@@ -2648,11 +2661,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-151">
+        <li id="section-152">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-151">&#182;</a>
+                <a class="pilcrow" href="#section-152">&#182;</a>
               </div>
               <p>Change the edited text</p>
 
@@ -2663,11 +2676,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-152">
+        <li id="section-153">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-152">&#182;</a>
+                <a class="pilcrow" href="#section-153">&#182;</a>
               </div>
               <p>Redraw the background (main canvas)</p>
 
@@ -2678,11 +2691,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-153">
+        <li id="section-154">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-153">&#182;</a>
+                <a class="pilcrow" href="#section-154">&#182;</a>
               </div>
               <p>Determine the position (coordinate-wise) of the typing cursor</p>
 
@@ -2697,11 +2710,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-154">
+        <li id="section-155">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-154">&#182;</a>
+                <a class="pilcrow" href="#section-155">&#182;</a>
               </div>
               <p>Draw the typing cursor itself</p>
 
@@ -2712,11 +2725,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-155">
+        <li id="section-156">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-155">&#182;</a>
+                <a class="pilcrow" href="#section-156">&#182;</a>
               </div>
               <p>This is just a line</p>
 
@@ -2728,11 +2741,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-156">
+        <li id="section-157">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-156">&#182;</a>
+                <a class="pilcrow" href="#section-157">&#182;</a>
               </div>
               <p>This is the translucent rectangle</p>
 
@@ -2746,11 +2759,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-157">
+        <li id="section-158">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-157">&#182;</a>
+                <a class="pilcrow" href="#section-158">&#182;</a>
               </div>
               <p>Literally set the focus</p>
 
@@ -2761,11 +2774,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-158">
+        <li id="section-159">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-158">&#182;</a>
+                <a class="pilcrow" href="#section-159">&#182;</a>
               </div>
               <p>Fire the onchange handler</p>
 
@@ -2776,11 +2789,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-159">
+        <li id="section-160">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-159">&#182;</a>
+                <a class="pilcrow" href="#section-160">&#182;</a>
               </div>
               <p>If we just removed the focus, then we are done.</p>
 
@@ -2791,11 +2804,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-160">
+        <li id="section-161">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-160">&#182;</a>
+                <a class="pilcrow" href="#section-161">&#182;</a>
               </div>
               <p>Record the line that the focus is on</p>
 
@@ -2806,11 +2819,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-161">
+        <li id="section-162">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-161">&#182;</a>
+                <a class="pilcrow" href="#section-162">&#182;</a>
               </div>
               <p>Flag whether we are editing handwritten</p>
 
@@ -2823,11 +2836,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-162">
+        <li id="section-163">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-162">&#182;</a>
+                <a class="pilcrow" href="#section-163">&#182;</a>
               </div>
               <p>If the socket is empty, put a text thing in, setting that to the edited text</p>
 
@@ -2841,11 +2854,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-163">
+        <li id="section-164">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-163">&#182;</a>
+                <a class="pilcrow" href="#section-164">&#182;</a>
               </div>
               <p>If the socket is not empty but contains only text, edit that text</p>
 
@@ -2858,11 +2871,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-164">
+        <li id="section-165">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-164">&#182;</a>
+                <a class="pilcrow" href="#section-165">&#182;</a>
               </div>
               <p>Otherwise, we have an error condition.</p>
 
@@ -2873,11 +2886,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-165">
+        <li id="section-166">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-165">&#182;</a>
+                <a class="pilcrow" href="#section-166">&#182;</a>
               </div>
               <p>Find the wrapping block and move the cursor to</p>
 
@@ -2892,11 +2905,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-166">
+        <li id="section-167">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-166">&#182;</a>
+                <a class="pilcrow" href="#section-167">&#182;</a>
               </div>
               <p>Set the contents of the hidden input</p>
 
@@ -2907,11 +2920,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-167">
+        <li id="section-168">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-167">&#182;</a>
+                <a class="pilcrow" href="#section-168">&#182;</a>
               </div>
               <p>Focus the hidden input</p>
 
@@ -2931,11 +2944,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-168">
+        <li id="section-169">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-168">&#182;</a>
+                <a class="pilcrow" href="#section-169">&#182;</a>
               </div>
               <h2 id="mouse-events-for-text-input">Mouse events for TEXT INPUT</h2>
 
@@ -2948,11 +2961,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-169">
+        <li id="section-170">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-169">&#182;</a>
+                <a class="pilcrow" href="#section-170">&#182;</a>
               </div>
               <p>See where the mouse is</p>
 
@@ -2963,11 +2976,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-170">
+        <li id="section-171">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-170">&#182;</a>
+                <a class="pilcrow" href="#section-171">&#182;</a>
               </div>
               <p>Set the input head</p>
 
@@ -2978,11 +2991,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-171">
+        <li id="section-172">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-171">&#182;</a>
+                <a class="pilcrow" href="#section-172">&#182;</a>
               </div>
               <p>Redraw</p>
 
@@ -2997,11 +3010,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-172">
+        <li id="section-173">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-172">&#182;</a>
+                <a class="pilcrow" href="#section-173">&#182;</a>
               </div>
               <h2 id="mouse-events-for-scrolling">Mouse events for SCROLLING</h2>
 
@@ -3020,11 +3033,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-173">
+        <li id="section-174">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-173">&#182;</a>
+                <a class="pilcrow" href="#section-174">&#182;</a>
               </div>
               <p>If we would go past the top of the file, just scroll to exactly the top of the file.</p>
 
@@ -3049,11 +3062,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-174">
+        <li id="section-175">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-174">&#182;</a>
+                <a class="pilcrow" href="#section-175">&#182;</a>
               </div>
               <h2 id="tests">Tests</h2>
 

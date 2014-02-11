@@ -1,12 +1,3 @@
-/*
-colors =
-  COMMAND: '#37f'
-  CONTROL: '#fb5'
-  VALUE: '#3f7'
-  RETURN: '#f03'
-*/
-
-
 (function() {
   var colors, execute, exports, parse;
 
@@ -16,16 +7,6 @@ colors =
     VALUE: '#26cf3c',
     RETURN: '#dc322f'
   };
-
-  /*
-  # Theme: Exoniana
-  colors =
-    COMMAND: '#c33'
-    CONTROL: '#DAA520'
-    VALUE: '#f00'
-    RETURN: '#fff'
-  */
-
 
   exports = {};
 

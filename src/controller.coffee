@@ -453,6 +453,9 @@ exports.Editor = class Editor
         
         # Set the text input up for editing
         setTextInputFocus @selection
+        
+        # Don't actually drag anything
+        @selection = null
 
         # We must set a timeout for the following, because until
         # A render has passed, the hidden input is not actually focused.
@@ -461,9 +464,7 @@ exports.Editor = class Editor
           redrawTextInput()
           
           # While the mouse is down, we are trying to select text in the input
-          textInputSelecting = true
-
-          @selection = null), 0
+          textInputSelecting = true), 0
 
       else
         # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)

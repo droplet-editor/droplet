@@ -235,10 +235,10 @@
           }
           last = end;
         }
-        if (rectangle.contains(this._points[0])) {
+        if (this.contains(rectSides[0])) {
           return true;
         }
-        if (this.contains(rectSides[0])) {
+        if (rectangle.contains(this._points[0])) {
           return true;
         }
         return false;

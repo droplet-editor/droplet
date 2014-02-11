@@ -1746,11 +1746,11 @@
           return _this.lassoAnchor = point;
         } else if (_this.selection.type === 'socket') {
           setTextInputFocus(_this.selection);
+          _this.selection = null;
           return setTimeout((function() {
             setTextInputAnchor(point);
             redrawTextInput();
-            textInputSelecting = true;
-            return _this.selection = null;
+            return textInputSelecting = true;
           }), 0);
         } else {
           selectionInPalette = false;
