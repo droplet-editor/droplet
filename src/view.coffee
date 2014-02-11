@@ -215,6 +215,8 @@ class IceView
     for child in @children then child.drawCursor ctx
 
     for cursor in @cursors
+      # Depending on whether the cursor is positioned at the beginning or the end of the line,
+      # we render it after or before the line it is on.
       if cursor.token.prev.type is 'newline' or cursor.token.prev.type is 'segmentStart'
         yCoordinate = @bounds[cursor.line].y
       else

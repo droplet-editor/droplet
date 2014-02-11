@@ -792,6 +792,8 @@ class IceView
     for child in @children then child.drawCursor ctx
 
     for cursor in @cursors
+      # Depending on whether the cursor is positioned at the beginning or the end of the line,
+      # we render it after or before the line it is on.
       if cursor.token.prev.type is 'newline' or cursor.token.prev.type is 'segmentStart'
         yCoordinate = @bounds[cursor.line].y
       else
@@ -1347,8 +1349,8 @@ exports.Editor = class Editor
     @paletteBlocks ?= []
     
     # We discard the blocks we are fed, preferring to clone them
-    # To be as unintrusive as possible (also to get blocks unattached to any
-    # token stream
+    # to be as unintrusive as possible (also to get blocks unattached to any
+    # token stream)
     @paletteBlocks = (paletteBlock.clone() for paletteBlock in @paletteBlocks)
 
     # MODEL instances (program state)
@@ -1548,8 +1550,15 @@ exports.Editor = class Editor
       # Splice out
       @cursor.remove()
 
+      # Find the newline or end markup after the given token
+      head = token
+      while head.type isnt 'segmentEnd' and head.type isnt 'indentEnd' and head.type isnt 'newline' then head = head.next
+
       # Splice in
-      token.insert @cursor
+      if head.type is 'newline'
+        head.insert @cursor
+      else
+        head.insertBefore @cursor
 
       scrollCursorIntoView()
     
@@ -1921,13 +1930,17 @@ exports.Editor = class Editor
                   @selection.end.insert new NewlineToken()
 
         else
-          if point.x > 0
-            # If we have dropped the block in nowhere, append it (and it's floating position) to @floatingBlocks.
+          # If we have dropped the block in nowhere, append it (and it's floating position) to @floatingBlocks.
+          if dest.x > 0
             @floatingBlocks.push
               position: dest
               block: @selection
           
-          # (If we have dropped the block on the palette, delete it. This requires no operations).
+          # If we have dropped the block on the palette, then delete it.
+          # This normally requires no operations, but if we have selected it as the lassoSegment,
+          # we want to stop drawing its bounding box.
+          else if @selection is @lassoSegment
+            @lassoSegment = null
 
         
         # CSS-transform the drag canvas back to the origin

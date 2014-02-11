@@ -1488,8 +1488,17 @@
         }
       };
       moveCursorTo = function(token) {
+        var head;
         _this.cursor.remove();
-        token.insert(_this.cursor);
+        head = token;
+        while (head.type !== 'segmentEnd' && head.type !== 'indentEnd' && head.type !== 'newline') {
+          head = head.next;
+        }
+        if (head.type === 'newline') {
+          head.insert(_this.cursor);
+        } else {
+          head.insertBefore(_this.cursor);
+        }
         return scrollCursorIntoView();
       };
       moveCursorBefore = function(token) {
@@ -1859,11 +1868,13 @@
                 }
             }
           } else {
-            if (point.x > 0) {
+            if (dest.x > 0) {
               _this.floatingBlocks.push({
                 position: dest,
                 block: _this.selection
               });
+            } else if (_this.selection === _this.lassoSegment) {
+              _this.lassoSegment = null;
             }
           }
           drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(0px, 0px)";
