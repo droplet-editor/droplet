@@ -421,6 +421,8 @@ exports.Socket = class Socket
     # Couldn't find any, so we are the innermost child fitting f()
     if f this then return this
     else return null
+
+  toString: -> @start.toString(indent:'')[..-@end.toString(indent:'').length]
  
 # # Token
 # This is the class from which all ICE Editor tokens descend.
@@ -2293,11 +2295,31 @@ exports.Editor = class Editor
         mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
     setTextInputFocus = (focus) =>
+      console.log 'changing focus', @focus, focus
+
+      # Deal with the previous focus
+      if @focus?
+        try
+          console.log 'trying', @focus.toString()
+          # Attempt to reparse what's in the indent
+          newParse = coffee.parse(@focus.toString()).next
+          console.log 'here now', newParse
+          if newParse.type is 'blockStart'
+            if @focus.handwritten
+              newParse.block.moveTo @focus.start.prev.block.start.prev
+              @focus.start.prev.block.moveTo null
+            else
+              if @focus.content()?.type is 'text' then @focus.content().remove()
+              else if @focus.content()?.type is 'block' then @focus.content().moveTo null
+
+              newParse.block.moveTo @focus.start
+          
+
+        # Fire the onchange handler
+        if @onChange? then @onChange new IceEditorChangeEvent @focus, focus
+
       # Literally set the focus
       @focus = focus
-
-      # Fire the onchange handler
-      if @onChange? then @onChange new IceEditorChangeEvent @focus, @focus
       
       # If we just removed the focus, then we are done.
       if @focus is null then return

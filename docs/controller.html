@@ -3302,7 +3302,8 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
             <div class="content"><div class='highlight'><pre>        mainCtx.fillStyle = <span class="hljs-string">'rgba(0, 0, 256, 0.3'</span>
         mainCtx.fillRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
-    <span class="hljs-function"><span class="hljs-title">setTextInputFocus</span> = <span class="hljs-params">(focus)</span> =&gt;</span></pre></div></div>
+    <span class="hljs-function"><span class="hljs-title">setTextInputFocus</span> = <span class="hljs-params">(focus)</span> =&gt;</span>
+      <span class="hljs-built_in">console</span>.log <span class="hljs-string">'changing focus'</span>, <span class="hljs-property">@focus</span>, focus</pre></div></div>
             
         </li>
         
@@ -3313,11 +3314,13 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-188">&#182;</a>
               </div>
-              <p>Literally set the focus</p>
+              <p>Deal with the previous focus</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@focus</span> = focus</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span>?
+        <span class="hljs-keyword">try</span>
+          <span class="hljs-built_in">console</span>.log <span class="hljs-string">'trying'</span>, <span class="hljs-property">@focus</span>.toString()</pre></div></div>
             
         </li>
         
@@ -3328,11 +3331,21 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-189">&#182;</a>
               </div>
-              <p>Fire the onchange handler</p>
+              <p>Attempt to reparse what’s in the indent</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@onChange</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@onChange</span> <span class="hljs-keyword">new</span> IceEditorChangeEvent <span class="hljs-property">@focus</span>, <span class="hljs-property">@focus</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>          newParse = coffee.parse(<span class="hljs-property">@focus</span>.toString()).next
+          <span class="hljs-built_in">console</span>.log <span class="hljs-string">'here now'</span>, newParse
+          <span class="hljs-keyword">if</span> newParse.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span>
+            <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span>.handwritten
+              newParse.block.moveTo <span class="hljs-property">@focus</span>.start.prev.block.start.prev
+              <span class="hljs-property">@focus</span>.start.prev.block.moveTo <span class="hljs-literal">null</span>
+            <span class="hljs-keyword">else</span>
+              <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span>.content()?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@focus</span>.content().remove()
+              <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span>.content()?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'block'</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@focus</span>.content().moveTo <span class="hljs-literal">null</span>
+
+              newParse.block.moveTo <span class="hljs-property">@focus</span>.start</pre></div></div>
             
         </li>
         
@@ -3343,11 +3356,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-190">&#182;</a>
               </div>
-              <p>If we just removed the focus, then we are done.</p>
+              <p>Fire the onchange handler</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span> <span class="hljs-keyword">is</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@onChange</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@onChange</span> <span class="hljs-keyword">new</span> IceEditorChangeEvent <span class="hljs-property">@focus</span>, focus</pre></div></div>
             
         </li>
         
@@ -3358,11 +3371,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-191">&#182;</a>
               </div>
-              <p>Record the line that the focus is on</p>
+              <p>Literally set the focus</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      _editedInputLine = <span class="hljs-property">@focus</span>.view.lineStart</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@focus</span> = focus</pre></div></div>
             
         </li>
         
@@ -3372,6 +3385,36 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-192">&#182;</a>
+              </div>
+              <p>If we just removed the focus, then we are done.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span> <span class="hljs-keyword">is</span> <span class="hljs-literal">null</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-193">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-193">&#182;</a>
+              </div>
+              <p>Record the line that the focus is on</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      _editedInputLine = <span class="hljs-property">@focus</span>.view.lineStart</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-194">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-194">&#182;</a>
               </div>
               <p>Flag whether we are editing handwritten</p>
 
@@ -3384,11 +3427,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-193">
+        <li id="section-195">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-193">&#182;</a>
+                <a class="pilcrow" href="#section-195">&#182;</a>
               </div>
               <p>If the socket is empty, put a text thing in, setting that to the edited text</p>
 
@@ -3402,11 +3445,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-194">
+        <li id="section-196">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-194">&#182;</a>
+                <a class="pilcrow" href="#section-196">&#182;</a>
               </div>
               <p>If the socket is not empty but contains only text, edit that text</p>
 
@@ -3419,11 +3462,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-195">
+        <li id="section-197">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-195">&#182;</a>
+                <a class="pilcrow" href="#section-197">&#182;</a>
               </div>
               <p>Otherwise, we have an error condition.</p>
 
@@ -3434,11 +3477,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-196">
+        <li id="section-198">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-196">&#182;</a>
+                <a class="pilcrow" href="#section-198">&#182;</a>
               </div>
               <p>Find the wrapping block and move the cursor to</p>
 
@@ -3453,11 +3496,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-197">
+        <li id="section-199">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-197">&#182;</a>
+                <a class="pilcrow" href="#section-199">&#182;</a>
               </div>
               <p>Set the contents of the hidden input</p>
 
@@ -3468,11 +3511,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-198">
+        <li id="section-200">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-198">&#182;</a>
+                <a class="pilcrow" href="#section-200">&#182;</a>
               </div>
               <p>Focus the hidden input</p>
 
@@ -3492,11 +3535,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-199">
+        <li id="section-201">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-199">&#182;</a>
+                <a class="pilcrow" href="#section-201">&#182;</a>
               </div>
               <h2 id="mouse-events-for-text-input">Mouse events for TEXT INPUT</h2>
 
@@ -3509,11 +3552,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-200">
+        <li id="section-202">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-200">&#182;</a>
+                <a class="pilcrow" href="#section-202">&#182;</a>
               </div>
               <p>See where the mouse is</p>
 
@@ -3524,11 +3567,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-201">
+        <li id="section-203">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-201">&#182;</a>
+                <a class="pilcrow" href="#section-203">&#182;</a>
               </div>
               <p>Set the input head</p>
 
@@ -3539,11 +3582,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-202">
+        <li id="section-204">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-202">&#182;</a>
+                <a class="pilcrow" href="#section-204">&#182;</a>
               </div>
               <p>Redraw</p>
 
@@ -3558,11 +3601,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-203">
+        <li id="section-205">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-203">&#182;</a>
+                <a class="pilcrow" href="#section-205">&#182;</a>
               </div>
               <h2 id="mouse-events-for-scrolling">Mouse events for SCROLLING</h2>
 
@@ -3581,11 +3624,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-204">
+        <li id="section-206">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-204">&#182;</a>
+                <a class="pilcrow" href="#section-206">&#182;</a>
               </div>
               <p>If we would go past the top of the file, just scroll to exactly the top of the file.</p>
 
@@ -3610,11 +3653,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         </li>
         
         
-        <li id="section-205">
+        <li id="section-207">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-205">&#182;</a>
+                <a class="pilcrow" href="#section-207">&#182;</a>
               </div>
               <h2 id="tests">Tests</h2>
 

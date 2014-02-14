@@ -421,6 +421,8 @@ exports.Socket = class Socket
     # Couldn't find any, so we are the innermost child fitting f()
     if f this then return this
     else return null
+
+  toString: -> @start.toString(indent:'')[..-@end.toString(indent:'').length]
  
 # # Token
 # This is the class from which all ICE Editor tokens descend.

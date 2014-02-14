@@ -430,6 +430,14 @@
       }
     };
 
+    Socket.prototype.toString = function() {
+      return this.start.toString({
+        indent: ''
+      }).slice(0, +(-this.end.toString({
+        indent: ''
+      }).length) + 1 || 9e9);
+    };
+
     return Socket;
 
   })();
@@ -2202,11 +2210,32 @@
         }
       };
       setTextInputFocus = function(focus) {
-        var depth, head;
-        _this.focus = focus;
-        if (_this.onChange != null) {
-          _this.onChange(new IceEditorChangeEvent(_this.focus, _this.focus));
+        var depth, head, newParse, _ref2, _ref3;
+        console.log('changing focus', _this.focus, focus);
+        if (_this.focus != null) {
+          try {
+            console.log('trying', _this.focus.toString());
+            newParse = coffee.parse(_this.focus.toString()).next;
+            console.log('here now', newParse);
+            if (newParse.type === 'blockStart') {
+              if (_this.focus.handwritten) {
+                newParse.block.moveTo(_this.focus.start.prev.block.start.prev);
+                _this.focus.start.prev.block.moveTo(null);
+              } else {
+                if (((_ref2 = _this.focus.content()) != null ? _ref2.type : void 0) === 'text') {
+                  _this.focus.content().remove();
+                } else if (((_ref3 = _this.focus.content()) != null ? _ref3.type : void 0) === 'block') {
+                  _this.focus.content().moveTo(null);
+                }
+                newParse.block.moveTo(_this.focus.start);
+              }
+            }
+          } catch (_error) {}
+          if (_this.onChange != null) {
+            _this.onChange(new IceEditorChangeEvent(_this.focus, focus));
+          }
         }
+        _this.focus = focus;
         if (_this.focus === null) {
           return;
         }
