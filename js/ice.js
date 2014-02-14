@@ -2067,15 +2067,7 @@
           drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(0px, 0px)";
           dragCtx.clearRect(0, 0, drag.width, drag.height);
           if (highlight != null) {
-            head = _this.selection.end;
-            while (head !== _this.tree.end && head.type !== 'newline') {
-              head = head.next;
-            }
-            if (head === _this.tree.end) {
-              moveCursorBefore(head);
-            } else {
-              moveCursorTo(head);
-            }
+            moveCursorTo(_this.selection.end);
           }
           _this.selection = null;
           return _this.redraw();

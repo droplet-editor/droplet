@@ -2645,10 +2645,7 @@ which is where we’ll want to move the cursor
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          head = <span class="hljs-property">@selection</span>.end
-          <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">then</span> head = head.next
-          <span class="hljs-keyword">if</span> head <span class="hljs-keyword">is</span> <span class="hljs-property">@tree</span>.end <span class="hljs-keyword">then</span> moveCursorBefore head
-          <span class="hljs-keyword">else</span> moveCursorTo head</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          moveCursorTo <span class="hljs-property">@selection</span>.end</pre></div></div>
             
         </li>
         

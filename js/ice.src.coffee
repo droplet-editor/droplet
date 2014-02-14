@@ -2111,10 +2111,7 @@ exports.Editor = class Editor
           # Seek the next newline after the end of this block,
           # which is where we'll want to move the cursor
           # (so that it looks like we put it directly after the block).
-          head = @selection.end
-          while head isnt @tree.end and head.type isnt 'newline' then head = head.next
-          if head is @tree.end then moveCursorBefore head
-          else moveCursorTo head
+          moveCursorTo @selection.end
 
         # Signify that we are no longer in a NORMAL DRAG
         @selection = null
