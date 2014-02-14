@@ -8,6 +8,7 @@ INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
 PALETTE_WIDTH = 300
+MIN_DRAG_DISTANCE = 10
 
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->
@@ -59,6 +60,9 @@ exports.Editor = class Editor
 
     # CURSOR interactive fields
     @cursor = new CursorToken()
+
+    # UNDO STACK
+    @undoStack = []
 
     # Scroll offset
     @scrollOffset = new draw.Point 0, 0
@@ -151,8 +155,71 @@ exports.Editor = class Editor
         @redraw()
 
     moveBlockTo = (block, target) =>
+      parent = block.start.prev
+      while parent? and (parent.type is 'newline' or (parent.type is 'segmentStart' and parent.segment isnt @tree) or parent.type is 'cursor') then parent = parent.prev
+
+      @undoStack.push
+        block: block
+        target: if parent? then (switch parent.type
+          when 'indentStart', 'indentEnd' then parent.indent
+          when 'blockStart', 'blockEnd' then parent.block
+          when 'socketStart', 'socketEnd' then parent.socket
+          when 'segmentStart', 'segmentEnd' then parent.segment
+          else parent) else null
+
       block.moveTo target
       if @onChange? then @onChange new IceEditorChangeEvent block, target
+
+    @undo = =>
+      # If the undo stack is empty, give up.
+      unless @undoStack.length > 0 then return
+
+      operation = lastOperation = target: null
+      
+      until operation.target? or operation.block isnt lastOperation.block
+        # Otherwise, pop from the undo stack
+        operation = @undoStack.pop()
+
+        unless operation? then break
+        
+        # Simulate dropping the block into its target
+        if operation.target? then switch operation.target.type
+          when 'indent'
+            head = operation.target.end.prev
+            while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
+
+            if head.type is 'newline'
+              # There's already a newline here.
+              operation.block.moveTo operation.target.start.next
+            else
+              # An insert drop signifies that we want to drop the block at the start of the indent
+              operation.block.moveTo operation.target.start.insert new NewlineToken()
+
+          when 'block'
+            # A block drop signifies that we want to drop the block after (the end of) the block.
+            operation.block.moveTo operation.target.end.insert new NewlineToken()
+
+          when 'socket'
+            # Remove any previously occupying block or text
+            if operation.target.content()? then operation.target.content().remove()
+
+            # Insert
+            operation.block.moveTo operation.target.start
+          
+          else
+            if operation.target is @tree
+              # We can also drop on the root tree (insert at the start of the program)
+              operation.block.moveTo @tree.start
+
+              # Don't insert a newline if it would create an empty line at the end of the file.
+              unless operation.block.end.next is @tree.end
+                operation.block.end.insert new NewlineToken()
+        else
+          operation.block.moveTo operation.target
+
+      @redraw()
+
+      if @onChange? then @onChange new IceEditorChangeEvent operation.block, operation.target
     
     # The redrawPalette function ought to be called only once in the current code structure.
     # If we want to scroll the palette later on, then this will be called to do so.
@@ -229,12 +296,14 @@ exports.Editor = class Editor
       # Splice out
       @cursor.remove()
 
-      # Find the newline or end markup after the given token
+      # Find the newline or end markup after the given token.
+      # Special case: we can also focus the very start of the tree.
       head = token
-      while head.type isnt 'segmentEnd' and head.type isnt 'indentEnd' and head.type isnt 'newline' then head = head.next
+      unless head is @tree.start
+        while head.type isnt 'segmentEnd' and head.type isnt 'indentEnd' and head.type isnt 'newline' then head = head.next
 
       # Splice in
-      if head.type is 'newline'
+      if head.type is 'newline' or head is @tree.start
         head.insert @cursor
       else
         head.insertBefore @cursor
@@ -280,6 +349,18 @@ exports.Editor = class Editor
       else
         moveCursorTo head
 
+      # Make sure that we're not inside a block only.
+      # This requires finding the immediate parent of the cursor
+      head = @cursor; depth = 0
+      until head.type in ['blockEnd', 'indentEnd', 'segmentEnd'] and depth is 0
+        switch head.type
+          when 'blockStart', 'indentStart', 'segmentStart', 'socketStart' then depth += 1
+          when 'blockEnd', 'indentEnd', 'segmentEnd', 'socketEnd' then depth -= 1
+        head = head.next
+      
+      # If we're in a bad place, then move us further.
+      if head.type is 'blockEnd' then moveCursorUp()
+
     moveCursorDown = =>
       # Seek newline or newline-like character.
       head = @cursor.next.next
@@ -294,6 +375,18 @@ exports.Editor = class Editor
         moveCursorBefore head
       else
         moveCursorTo head
+
+      # Make sure that we're not inside a block only.
+      # This requires finding the immediate parent of the cursor
+      head = @cursor; depth = 0
+      until head.type in ['blockEnd', 'indentEnd', 'segmentEnd'] and depth is 0
+        switch head.type
+          when 'blockStart', 'indentStart', 'segmentStart', 'socketStart' then depth += 1
+          when 'blockEnd', 'indentEnd', 'segmentEnd', 'socketEnd' then depth -= 1
+        head = head.next
+      
+      # If we're in a bad place, then move us further.
+      if head.type is 'blockEnd' then moveCursorDown()
     
     # ## Hidden Input events ##
 
@@ -307,7 +400,8 @@ exports.Editor = class Editor
 
     # For keyboard shortcuts, we use the "keydown" html event
     @hiddenInput.addEventListener 'keydown', (event) =>
-      # If we're not on a handwritten line, return immediately
+      # If we're not actually editing an input, this isn't our responsibility,
+      # so return immediately.
       unless @isEditingText() then return true
 
       # Otherwise, see if we want to make a keyboard shortcut.
@@ -352,10 +446,29 @@ exports.Editor = class Editor
             event.preventDefault(); return false
         when 38 then setTextInputFocus null; @hiddenInput.blur(); moveCursorUp(); @redraw()
         when 40 then setTextInputFocus null; @hiddenInput.blur(); moveCursorDown(); @redraw()
+        when 37 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is 0
+          # Pressing the left-arrow at the leftmost end of a socket brings us to the previous socket
+          head = @focus.start
+          until not head? or head.type is 'socketEnd' and not (head.socket.content()?.type in ['block', 'socket'])
+            head = head.prev
+            
+          # If we have reached the beginning of the file, give up.
+          unless head? then return
+
+          setTextInputFocus head.socket
+        when 39 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is @hiddenInput.value.length
+          # Pressing the left-arrow at the rightmost end of a socket brings us to the next socket
+          head = @focus.end
+          until not head? or not head.type is 'socketStart' and not (head.socket.content()?.type in ['block', 'socket'])
+            head = head.next
+            
+          # If we have reached the end of the file, give up.
+          unless head? then return
+
+          setTextInputFocus head.socket
     
     # When we blur the hidden input, also blur the canvas text focus
     @hiddenInput.addEventListener 'blur', (event) =>
-      console.log 'blurred'
       # If we have actually blurred (as opposed to simply unfocused the browser window)
       if event.target isnt document.activeElement then setTextInputFocus null
     
@@ -372,7 +485,22 @@ exports.Editor = class Editor
         when 8 then if @cursor? then deleteFromCursor()
         when 37 then if @cursor?
           head = @cursor
-          while head.type isnt 'socketEnd' then head = head.prev
+          
+          until not head? or head.type is 'socketEnd' and not (head.socket.content()?.type in ['block', 'socket'])
+            head = head.prev
+          
+          unless head? then return
+
+          setTextInputFocus head.socket
+        when 39 then if @cursor?
+          # Pressing the left-arrow at the rightmost end of a socket brings us to the next socket
+          head = @cursor
+          until not head? or head.type is 'socketStart' and not (head.socket.content()?.type in ['block', 'socket'])
+            head = head.next
+            
+          # If we have reached the beginning of the file, give up.
+          unless head? then return
+
           setTextInputFocus head.socket
       
       # If we manipulated the root tree, redraw.
@@ -440,13 +568,13 @@ exports.Editor = class Editor
       point = getPointFromEvent event
 
       # See what we picked up
-      @selection = hitTestFloating(point) ?
+      @ephemeralSelection = hitTestFloating(point) ?
         hitTestLasso(point) ?
         hitTestFocus(point) ?
         hitTestRoot(point) ?
         hitTestPalette(point)
       
-      if not @selection?
+      if not @ephemeralSelection?
         # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
         
         # If there is already a selection, remove it.
@@ -468,14 +596,14 @@ exports.Editor = class Editor
         # Set the lasso anchor
         @lassoAnchor = point
 
-      else if @selection.type is 'socket'
+      else if @ephemeralSelection.type is 'socket'
         # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
         
         # Set the text input up for editing
-        setTextInputFocus @selection
+        setTextInputFocus @ephemeralSelection
         
         # Don't actually drag anything
-        @selection = null
+        @ephemeralSelection = null
 
         # We must set a timeout for the following, because until
         # A render has passed, the hidden input is not actually focused.
@@ -487,59 +615,75 @@ exports.Editor = class Editor
           textInputSelecting = true), 0
 
       else
-        # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@selection?)
+        # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@ephemeralSelection?)
 
         # A flag as to whether we are selecting something in the palette
         selectionInPalette = false
 
-        # Check to make sure that the selection doesn't contain a cursor
-        head = @selection.start
-        while head isnt @selection.end
-          next_head = head.next
-          if head.type is 'cursor' then head.remove() # If there is, remove it
-          head = next_head
+        @ephemeralPoint = new draw.Point point.x, point.y
         
-        # If we clicked something in the palette, we need to compute offset etc. with a point that has been computed
-        # with offset to the palette.
-        if @selection in @paletteBlocks then point.add PALETTE_WIDTH, 0; selectionInPalette = true
-
-        # Compute the offset of the selection position from the mouse
-        rect = @selection.view.bounds[@selection.view.lineStart]
-        offset = point.from new draw.Point rect.x, rect.y
-
-        # If we have clicked something in the palette, the clone first.
-        if selectionInPalette then @selection = @selection.clone()
-
-        # If we have clicked something floating, then delete it from the list of floating blocks
-        for float, i in @floatingBlocks
-          if float.block is @selection then @floatingBlocks.splice i, 1; break
-
-        # Move it to nowhere
-        moveBlockTo @selection, null
-
-        # Draw it in the drag canvas
-        @selection.view.compute()
-        @selection.view.draw dragCtx
-
-        # CSS-transform the drag canvas to where it ought to be
-        if selectionInPalette
-          # If we picked up from the palette, then rect.x is actually relative to the palette
-          fixedDest = new draw.Point rect.x - PALETTE_WIDTH, rect.y
-        else
-          # Otherwise, do as we would with mousemove
-          fixedDest = new draw.Point rect.x - @scrollOffset.x, rect.y - @scrollOffset.y
-        
-
-        drag.style.webkitTransform =
-          drag.style.mozTransform =
-          drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
-        
-        # Redraw the main canvas
-        @redraw()
+        # Move the cursor to the place we just clicked
+        head = @ephemeralSelection.end
+        while head isnt @tree.end and head.type isnt 'newline' then head = head.next
+        if head is @tree.end then moveCursorBefore head
+        else moveCursorTo head
 
     # ## Mouse events for NORMAL DRAG ##
 
     track.addEventListener 'mousemove', (event) =>
+      if @ephemeralSelection?
+        point = getPointFromEvent event
+        
+        if point.from(@ephemeralPoint).magnitude() > MIN_DRAG_DISTANCE
+
+          # Move the ephemeral selection into the selection position
+          @selection = @ephemeralSelection
+          @ephemeralSelection = null
+
+          # Check to make sure that the selection doesn't contain a cursor
+          head = @selection.start
+          while head isnt @selection.end
+            next_head = head.next
+            if head.type is 'cursor' then head.remove() # If there is, remove it
+            head = next_head
+          
+          # If we clicked something in the palette, we need to compute offset etc. with a point that has been computed
+          # with offset to the palette.
+          if @selection in @paletteBlocks then point.add PALETTE_WIDTH, 0; selectionInPalette = true
+
+          # Compute the offset of the selection position from the mouse
+          rect = @selection.view.bounds[@selection.view.lineStart]
+          offset = @ephemeralPoint.from new draw.Point rect.x, rect.y
+
+          # If we have clicked something in the palette, the clone first.
+          if selectionInPalette then @selection = @selection.clone()
+
+          # If we have clicked something floating, then delete it from the list of floating blocks
+          for float, i in @floatingBlocks
+            if float.block is @selection then @floatingBlocks.splice i, 1; break
+
+          # Move it to nowhere
+          moveBlockTo @selection, null
+
+          # Draw it in the drag canvas
+          @selection.view.compute()
+          @selection.view.draw dragCtx
+
+          # CSS-transform the drag canvas to where it ought to be
+          if selectionInPalette
+            # If we picked up from the palette, then rect.x is actually relative to the palette
+            fixedDest = new draw.Point rect.x - PALETTE_WIDTH, rect.y
+          else
+            # Otherwise, do as we would with mousemove
+            fixedDest = new draw.Point rect.x - @scrollOffset.x, rect.y - @scrollOffset.y
+
+          drag.style.webkitTransform =
+            drag.style.mozTransform =
+            drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
+          
+          # Redraw the main canvas
+          @redraw()
+
       if @selection?
         # Determine the position of the mouse
         point = getPointFromEvent event
@@ -561,7 +705,7 @@ exports.Editor = class Editor
         if old_highlight isnt highlight then @redraw()
 
         # Highlight the highlight
-        if highlight? then highlight.view.dropArea.fill mainCtx, '#fff'
+        if highlight? then highlight.view.dropHighlightReigon.fill mainCtx, '#fff'
 
         # CSS-transform the drag canvas to where it ought to be
         drag.style.webkitTransform =
@@ -569,6 +713,10 @@ exports.Editor = class Editor
           drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
     
     track.addEventListener 'mouseup', (event) =>
+      if @ephemeralSelection?
+        @ephemeralSelection = null
+        @ephemeralPoint = null
+
       if @selection?
         # Determine the position of the mouse and the place we want to render the block
         point = getPointFromEvent event
@@ -946,4 +1094,7 @@ window.onload = ->
   document.getElementById('out').addEventListener 'input', ->
     try
       editor.setValue this.value
+
+  document.getElementById('undo').addEventListener 'click', ->
+    editor.undo()
 

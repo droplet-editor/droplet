@@ -278,9 +278,9 @@ Whitespace in general is this function’s responsibility.</p>
             
             <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> parent?
       <span class="hljs-property">@end</span>.next = parent.next
-      parent.next.prev = <span class="hljs-property">@end</span>
+      <span class="hljs-keyword">if</span> parent.next? <span class="hljs-keyword">then</span> parent.next.prev = <span class="hljs-property">@end</span>
 
-      parent.next= <span class="hljs-property">@start</span>
+      parent.next = <span class="hljs-property">@start</span>
       <span class="hljs-property">@start</span>.prev = parent</pre></div></div>
             
         </li>
@@ -760,7 +760,7 @@ Whitespace in general is this function’s responsibility.</p>
             
             <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> parent?
       <span class="hljs-property">@end</span>.next = parent.next
-      parent.next.prev = <span class="hljs-property">@end</span>
+      <span class="hljs-keyword">if</span> parent.next? <span class="hljs-keyword">then</span> parent.next.prev = <span class="hljs-property">@end</span>
 
       parent.next= <span class="hljs-property">@start</span>
       <span class="hljs-property">@start</span>.prev = parent</pre></div></div>

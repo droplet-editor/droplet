@@ -23,6 +23,10 @@
       return new Point(this.x, this.y);
     };
 
+    Point.prototype.magnitude = function() {
+      return Math.sqrt(this.x * this.x + this.y * this.y);
+    };
+
     Point.prototype.translate = function(vector) {
       this.x += vector.x;
       return this.y += vector.y;

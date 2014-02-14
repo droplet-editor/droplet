@@ -103,9 +103,9 @@ exports.Block = class Block
     # Splice ourselves into the requested parent
     if parent?
       @end.next = parent.next
-      parent.next.prev = @end
+      if parent.next? then parent.next.prev = @end
 
-      parent.next= @start
+      parent.next = @start
       @start.prev = parent
   
   # ## find ##
@@ -307,7 +307,7 @@ exports.Segment = class Segment
     # Splice ourselves into the requested parent
     if parent?
       @end.next = parent.next
-      parent.next.prev = @end
+      if parent.next? then parent.next.prev = @end
 
       parent.next= @start
       @start.prev = parent

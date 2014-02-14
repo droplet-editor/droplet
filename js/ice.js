@@ -1,5 +1,5 @@
 (function() {
-  var Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
+  var Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, DROP_AREA_HEIGHT, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_DRAG_DISTANCE, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -101,7 +101,9 @@
       this.start.prev = this.end.next = null;
       if (parent != null) {
         this.end.next = parent.next;
-        parent.next.prev = this.end;
+        if (parent.next != null) {
+          parent.next.prev = this.end;
+        }
         parent.next = this.start;
         return this.start.prev = parent;
       }
@@ -316,7 +318,9 @@
       this.start.prev = this.end.next = null;
       if (parent != null) {
         this.end.next = parent.next;
-        parent.next.prev = this.end;
+        if (parent.next != null) {
+          parent.next.prev = this.end;
+        }
         parent.next = this.start;
         return this.start.prev = parent;
       }
@@ -690,6 +694,8 @@
 
   MIN_SEGMENT_DROP_AREA_WIDTH = 100;
 
+  DROP_AREA_HEIGHT = 30;
+
   TAB_WIDTH = 15;
 
   TAB_HEIGHT = 5;
@@ -1030,7 +1036,8 @@
       var entryPoint, line, point, waypoint, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
       BlockView.__super__.computePath.apply(this, arguments);
       this.path = new draw.Path();
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - DROP_AREA_HEIGHT / 2, this.bounds[this.lineEnd].width, DROP_AREA_HEIGHT);
+      this.dropHighlightReigon = new draw.Rectangle(this.bounds[this.lineEnd].x, this.bounds[this.lineEnd].bottom() - 5, this.bounds[this.lineEnd].width, 10);
       if (!((_ref = this.block.inSocket()) != null ? _ref : false)) {
         this.path.push(new draw.Point(this.bounds[this.lineStart].x + TAB_OFFSET, this.bounds[this.lineStart].y));
         this.path.push(new draw.Point(this.bounds[this.lineStart].x + TAB_OFFSET + TAB_WIDTH / 8, this.bounds[this.lineStart].y + TAB_HEIGHT));
@@ -1184,7 +1191,8 @@
     };
 
     IndentView.prototype.computePath = function() {
-      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
+      this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - DROP_AREA_HEIGHT / 2, this.bounds[this.lineStart].width, DROP_AREA_HEIGHT);
+      this.dropHighlightReigon = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
       return IndentView.__super__.computePath.apply(this, arguments);
     };
 
@@ -1237,7 +1245,7 @@
     SocketView.prototype.computePath = function() {
       var _ref;
       if (((_ref = this.block.content()) != null ? _ref.type : void 0) !== 'block') {
-        (this.dropArea = new draw.Rectangle()).copy(this.bounds[this.lineStart]);
+        (this.dropHighlightReigon = this.dropArea = new draw.Rectangle()).copy(this.bounds[this.lineStart]);
       }
       return SocketView.__super__.computePath.apply(this, arguments);
     };
@@ -1295,6 +1303,7 @@
 
     SegmentView.prototype.drawPath = function() {
       this.dropArea = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, Math.max(this.bounds[this.lineStart].width, MIN_SEGMENT_DROP_AREA_WIDTH), 10);
+      this.dropHighlightReigon = new draw.Rectangle(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y - 5, this.bounds[this.lineStart].width, 10);
       return SegmentView.__super__.drawPath.apply(this, arguments);
     };
 
@@ -1319,6 +1328,8 @@
   PALETTE_MARGIN = 10;
 
   PALETTE_WIDTH = 300;
+
+  MIN_DRAG_DISTANCE = 10;
 
   exports.IceEditorChangeEvent = IceEditorChangeEvent = (function() {
     function IceEditorChangeEvent(block, target) {
@@ -1364,6 +1375,7 @@
       this.lassoSegment = null;
       this._lassoBounds = null;
       this.cursor = new CursorToken();
+      this.undoStack = [];
       this.scrollOffset = new draw.Point(0, 0);
       offset = null;
       highlight = null;
@@ -1432,9 +1444,87 @@
         } catch (_error) {}
       };
       moveBlockTo = function(block, target) {
+        var parent;
+        parent = block.start.prev;
+        while ((parent != null) && (parent.type === 'newline' || (parent.type === 'segmentStart' && parent.segment !== _this.tree) || parent.type === 'cursor')) {
+          parent = parent.prev;
+        }
+        _this.undoStack.push({
+          block: block,
+          target: parent != null ? ((function() {
+            switch (parent.type) {
+              case 'indentStart':
+              case 'indentEnd':
+                return parent.indent;
+              case 'blockStart':
+              case 'blockEnd':
+                return parent.block;
+              case 'socketStart':
+              case 'socketEnd':
+                return parent.socket;
+              case 'segmentStart':
+              case 'segmentEnd':
+                return parent.segment;
+              default:
+                return parent;
+            }
+          })()) : null
+        });
         block.moveTo(target);
         if (_this.onChange != null) {
           return _this.onChange(new IceEditorChangeEvent(block, target));
+        }
+      };
+      this.undo = function() {
+        var head, lastOperation, operation;
+        if (!(_this.undoStack.length > 0)) {
+          return;
+        }
+        operation = lastOperation = {
+          target: null
+        };
+        while (!((operation.target != null) || operation.block !== lastOperation.block)) {
+          operation = _this.undoStack.pop();
+          if (operation == null) {
+            break;
+          }
+          if (operation.target != null) {
+            switch (operation.target.type) {
+              case 'indent':
+                head = operation.target.end.prev;
+                while (head.type === 'segmentEnd' || head.type === 'segmentStart' || head.type === 'cursor') {
+                  head = head.prev;
+                }
+                if (head.type === 'newline') {
+                  operation.block.moveTo(operation.target.start.next);
+                } else {
+                  operation.block.moveTo(operation.target.start.insert(new NewlineToken()));
+                }
+                break;
+              case 'block':
+                operation.block.moveTo(operation.target.end.insert(new NewlineToken()));
+                break;
+              case 'socket':
+                if (operation.target.content() != null) {
+                  operation.target.content().remove();
+                }
+                operation.block.moveTo(operation.target.start);
+                break;
+              default:
+                if (operation.target === _this.tree) {
+                  operation.block.moveTo(_this.tree.start);
+                  if (operation.block.end.next !== _this.tree.end) {
+                    operation.block.end.insert(new NewlineToken());
+                  }
+                }
+            }
+          } else {
+            operation.block.moveTo(operation.target);
+          }
+        }
+        _this.redraw();
+        if (_this.onChange != null) {
+          return _this.onChange(new IceEditorChangeEvent(operation.block, operation.target));
         }
       };
       this.redrawPalette = function() {
@@ -1491,10 +1581,12 @@
         var head;
         _this.cursor.remove();
         head = token;
-        while (head.type !== 'segmentEnd' && head.type !== 'indentEnd' && head.type !== 'newline') {
-          head = head.next;
+        if (head !== _this.tree.start) {
+          while (head.type !== 'segmentEnd' && head.type !== 'indentEnd' && head.type !== 'newline') {
+            head = head.next;
+          }
         }
-        if (head.type === 'newline') {
+        if (head.type === 'newline' || head === _this.tree.start) {
           head.insert(_this.cursor);
         } else {
           head.insertBefore(_this.cursor);
@@ -1522,7 +1614,7 @@
         return scrollCursorIntoView();
       };
       moveCursorUp = function() {
-        var head, _ref1;
+        var depth, head, _ref1, _ref2;
         head = _this.cursor.prev.prev;
         while (head !== null && !((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd' || _ref1 === 'segmentStart')) {
           head = head.prev;
@@ -1531,13 +1623,34 @@
           return;
         }
         if (head.type === 'indentEnd') {
-          return moveCursorBefore(head);
+          moveCursorBefore(head);
         } else {
-          return moveCursorTo(head);
+          moveCursorTo(head);
+        }
+        head = _this.cursor;
+        depth = 0;
+        while (!(((_ref2 = head.type) === 'blockEnd' || _ref2 === 'indentEnd' || _ref2 === 'segmentEnd') && depth === 0)) {
+          switch (head.type) {
+            case 'blockStart':
+            case 'indentStart':
+            case 'segmentStart':
+            case 'socketStart':
+              depth += 1;
+              break;
+            case 'blockEnd':
+            case 'indentEnd':
+            case 'segmentEnd':
+            case 'socketEnd':
+              depth -= 1;
+          }
+          head = head.next;
+        }
+        if (head.type === 'blockEnd') {
+          return moveCursorUp();
         }
       };
       moveCursorDown = function() {
-        var head, _ref1;
+        var depth, head, _ref1, _ref2;
         head = _this.cursor.next.next;
         while (head !== null && !((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd' || _ref1 === 'segmentEnd')) {
           head = head.next;
@@ -1546,9 +1659,30 @@
           return;
         }
         if (head.type === 'indentEnd' || head.type === 'segmentEnd') {
-          return moveCursorBefore(head);
+          moveCursorBefore(head);
         } else {
-          return moveCursorTo(head);
+          moveCursorTo(head);
+        }
+        head = _this.cursor;
+        depth = 0;
+        while (!(((_ref2 = head.type) === 'blockEnd' || _ref2 === 'indentEnd' || _ref2 === 'segmentEnd') && depth === 0)) {
+          switch (head.type) {
+            case 'blockStart':
+            case 'indentStart':
+            case 'segmentStart':
+            case 'socketStart':
+              depth += 1;
+              break;
+            case 'blockEnd':
+            case 'indentEnd':
+            case 'segmentEnd':
+            case 'socketEnd':
+              depth -= 1;
+          }
+          head = head.next;
+        }
+        if (head.type === 'blockEnd') {
+          return moveCursorDown();
         }
       };
       _ref1 = ['input', 'keydown', 'keyup', 'keypress'];
@@ -1562,7 +1696,7 @@
         });
       }
       this.hiddenInput.addEventListener('keydown', function(event) {
-        var head, newIndent;
+        var head, newIndent, _ref2, _ref3, _ref4, _ref5;
         if (!_this.isEditingText()) {
           return true;
         }
@@ -1619,16 +1753,38 @@
             _this.hiddenInput.blur();
             moveCursorDown();
             return _this.redraw();
+          case 37:
+            if (_this.hiddenInput.selectionStart === _this.hiddenInput.selectionEnd && _this.hiddenInput.selectionStart === 0) {
+              head = _this.focus.start;
+              while (!((head == null) || head.type === 'socketEnd' && !((_ref2 = (_ref3 = head.socket.content()) != null ? _ref3.type : void 0) === 'block' || _ref2 === 'socket'))) {
+                head = head.prev;
+              }
+              if (head == null) {
+                return;
+              }
+              return setTextInputFocus(head.socket);
+            }
+            break;
+          case 39:
+            if (_this.hiddenInput.selectionStart === _this.hiddenInput.selectionEnd && _this.hiddenInput.selectionStart === _this.hiddenInput.value.length) {
+              head = _this.focus.end;
+              while (!((head == null) || !head.type === 'socketStart' && !((_ref4 = (_ref5 = head.socket.content()) != null ? _ref5.type : void 0) === 'block' || _ref4 === 'socket'))) {
+                head = head.next;
+              }
+              if (head == null) {
+                return;
+              }
+              return setTextInputFocus(head.socket);
+            }
         }
       });
       this.hiddenInput.addEventListener('blur', function(event) {
-        console.log('blurred');
         if (event.target !== document.activeElement) {
           return setTextInputFocus(null);
         }
       });
       document.body.addEventListener('keydown', function(event) {
-        var head, _ref2, _ref3, _ref4;
+        var head, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
         if ((_ref2 = event.target.tagName) === 'INPUT' || _ref2 === 'TEXTAREA') {
           return;
         }
@@ -1656,16 +1812,31 @@
           case 37:
             if (_this.cursor != null) {
               head = _this.cursor;
-              while (head.type !== 'socketEnd') {
+              while (!((head == null) || head.type === 'socketEnd' && !((_ref3 = (_ref4 = head.socket.content()) != null ? _ref4.type : void 0) === 'block' || _ref3 === 'socket'))) {
                 head = head.prev;
+              }
+              if (head == null) {
+                return;
+              }
+              setTextInputFocus(head.socket);
+            }
+            break;
+          case 39:
+            if (_this.cursor != null) {
+              head = _this.cursor;
+              while (!((head == null) || head.type === 'socketStart' && !((_ref5 = (_ref6 = head.socket.content()) != null ? _ref6.type : void 0) === 'block' || _ref5 === 'socket'))) {
+                head = head.next;
+              }
+              if (head == null) {
+                return;
               }
               setTextInputFocus(head.socket);
             }
         }
-        if ((_ref3 = event.keyCode) === 13 || _ref3 === 38 || _ref3 === 40 || _ref3 === 8) {
+        if ((_ref7 = event.keyCode) === 13 || _ref7 === 38 || _ref7 === 40 || _ref7 === 8) {
           _this.redraw();
         }
-        if ((_ref4 = event.keyCode) === 13 || _ref4 === 38 || _ref4 === 40 || _ref4 === 8 || _ref4 === 37) {
+        if ((_ref8 = event.keyCode) === 13 || _ref8 === 38 || _ref8 === 40 || _ref8 === 8 || _ref8 === 37) {
           return event.preventDefault();
         }
       });
@@ -1738,14 +1909,14 @@
         }
       };
       track.addEventListener('mousedown', function(event) {
-        var fixedDest, flag, float, head, i, next_head, point, rect, selectionInPalette, _k, _l, _len2, _len3, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
+        var flag, float, head, point, selectionInPalette, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6;
         if (event.button !== 0) {
           return;
         }
         _this.hiddenInput.blur();
         point = getPointFromEvent(event);
-        _this.selection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
-        if (_this.selection == null) {
+        _this.ephemeralSelection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
+        if (_this.ephemeralSelection == null) {
           if (_this.lassoSegment != null) {
             flag = false;
             _ref6 = _this.floatingBlocks;
@@ -1763,9 +1934,9 @@
             _this.redraw();
           }
           return _this.lassoAnchor = point;
-        } else if (_this.selection.type === 'socket') {
-          setTextInputFocus(_this.selection);
-          _this.selection = null;
+        } else if (_this.ephemeralSelection.type === 'socket') {
+          setTextInputFocus(_this.ephemeralSelection);
+          _this.ephemeralSelection = null;
           return setTimeout((function() {
             setTextInputAnchor(point);
             redrawTextInput();
@@ -1773,45 +1944,62 @@
           }), 0);
         } else {
           selectionInPalette = false;
-          head = _this.selection.start;
-          while (head !== _this.selection.end) {
-            next_head = head.next;
-            if (head.type === 'cursor') {
-              head.remove();
-            }
-            head = next_head;
+          _this.ephemeralPoint = new draw.Point(point.x, point.y);
+          head = _this.ephemeralSelection.end;
+          while (head !== _this.tree.end && head.type !== 'newline') {
+            head = head.next;
           }
-          if (_ref7 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref7) >= 0) {
-            point.add(PALETTE_WIDTH, 0);
-            selectionInPalette = true;
-          }
-          rect = _this.selection.view.bounds[_this.selection.view.lineStart];
-          offset = point.from(new draw.Point(rect.x, rect.y));
-          if (selectionInPalette) {
-            _this.selection = _this.selection.clone();
-          }
-          _ref8 = _this.floatingBlocks;
-          for (i = _l = 0, _len3 = _ref8.length; _l < _len3; i = ++_l) {
-            float = _ref8[i];
-            if (float.block === _this.selection) {
-              _this.floatingBlocks.splice(i, 1);
-              break;
-            }
-          }
-          moveBlockTo(_this.selection, null);
-          _this.selection.view.compute();
-          _this.selection.view.draw(dragCtx);
-          if (selectionInPalette) {
-            fixedDest = new draw.Point(rect.x - PALETTE_WIDTH, rect.y);
+          if (head === _this.tree.end) {
+            return moveCursorBefore(head);
           } else {
-            fixedDest = new draw.Point(rect.x - _this.scrollOffset.x, rect.y - _this.scrollOffset.y);
+            return moveCursorTo(head);
           }
-          drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
-          return _this.redraw();
         }
       });
       track.addEventListener('mousemove', function(event) {
-        var dest, fixedDest, old_highlight, point;
+        var dest, fixedDest, float, head, i, next_head, old_highlight, point, rect, selectionInPalette, _k, _len2, _ref2, _ref3;
+        if (_this.ephemeralSelection != null) {
+          point = getPointFromEvent(event);
+          if (point.from(_this.ephemeralPoint).magnitude() > MIN_DRAG_DISTANCE) {
+            _this.selection = _this.ephemeralSelection;
+            _this.ephemeralSelection = null;
+            head = _this.selection.start;
+            while (head !== _this.selection.end) {
+              next_head = head.next;
+              if (head.type === 'cursor') {
+                head.remove();
+              }
+              head = next_head;
+            }
+            if (_ref2 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref2) >= 0) {
+              point.add(PALETTE_WIDTH, 0);
+              selectionInPalette = true;
+            }
+            rect = _this.selection.view.bounds[_this.selection.view.lineStart];
+            offset = _this.ephemeralPoint.from(new draw.Point(rect.x, rect.y));
+            if (selectionInPalette) {
+              _this.selection = _this.selection.clone();
+            }
+            _ref3 = _this.floatingBlocks;
+            for (i = _k = 0, _len2 = _ref3.length; _k < _len2; i = ++_k) {
+              float = _ref3[i];
+              if (float.block === _this.selection) {
+                _this.floatingBlocks.splice(i, 1);
+                break;
+              }
+            }
+            moveBlockTo(_this.selection, null);
+            _this.selection.view.compute();
+            _this.selection.view.draw(dragCtx);
+            if (selectionInPalette) {
+              fixedDest = new draw.Point(rect.x - PALETTE_WIDTH, rect.y);
+            } else {
+              fixedDest = new draw.Point(rect.x - _this.scrollOffset.x, rect.y - _this.scrollOffset.y);
+            }
+            drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
+            _this.redraw();
+          }
+        }
         if (_this.selection != null) {
           point = getPointFromEvent(event);
           point.add(-_this.scrollOffset.x, -_this.scrollOffset.y);
@@ -1820,20 +2008,24 @@
           dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
           old_highlight = highlight;
           highlight = _this.tree.find(function(block) {
-            var _ref2;
-            return (!((_ref2 = typeof block.inSocket === "function" ? block.inSocket() : void 0) != null ? _ref2 : false)) && (block.view.dropArea != null) && block.view.dropArea.contains(dest);
+            var _ref4;
+            return (!((_ref4 = typeof block.inSocket === "function" ? block.inSocket() : void 0) != null ? _ref4 : false)) && (block.view.dropArea != null) && block.view.dropArea.contains(dest);
           });
           if (old_highlight !== highlight) {
             _this.redraw();
           }
           if (highlight != null) {
-            highlight.view.dropArea.fill(mainCtx, '#fff');
+            highlight.view.dropHighlightReigon.fill(mainCtx, '#fff');
           }
           return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
         }
       });
       track.addEventListener('mouseup', function(event) {
         var dest, head, point;
+        if (_this.ephemeralSelection != null) {
+          _this.ephemeralSelection = null;
+          _this.ephemeralPoint = null;
+        }
         if (_this.selection != null) {
           point = getPointFromEvent(event);
           dest = new draw.Point(-offset.x + point.x, -offset.y + point.y);
@@ -2121,10 +2313,13 @@
     editor.onChange = function() {
       return document.getElementById('out').value = editor.getValue();
     };
-    return document.getElementById('out').addEventListener('input', function() {
+    document.getElementById('out').addEventListener('input', function() {
       try {
         return editor.setValue(this.value);
       } catch (_error) {}
+    });
+    return document.getElementById('undo').addEventListener('click', function() {
+      return editor.undo();
     });
   };
 

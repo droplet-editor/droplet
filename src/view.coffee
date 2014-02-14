@@ -15,6 +15,7 @@ EMPTY_SOCKET_WIDTH = 20
 EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2
 EMPTY_INDENT_WIDTH = 50
 MIN_SEGMENT_DROP_AREA_WIDTH = 100
+DROP_AREA_HEIGHT = 30
 TAB_WIDTH = 15
 TAB_HEIGHT = 5
 TAB_OFFSET = 10
@@ -437,7 +438,8 @@ class BlockView extends IceView
     super
     
     @path = new draw.Path()
-    @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
+    @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - DROP_AREA_HEIGHT / 2, @bounds[@lineEnd].width, DROP_AREA_HEIGHT
+    @dropHighlightReigon = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
     
     # Add the top tab (if applicable)
     unless (@block.inSocket() ? false)
@@ -597,7 +599,8 @@ class IndentView extends IceView
   # We must override this method in order to produce a drop area
   # for drag-and-drop.
   computePath: ->
-    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+    @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - DROP_AREA_HEIGHT / 2, @bounds[@lineStart].width, DROP_AREA_HEIGHT
+    @dropHighlightReigon = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
 
     super
 
@@ -667,7 +670,7 @@ class SocketView extends IceView
   # (as we are not droppable).
   computePath: ->
     unless @block.content()?.type is 'block'
-      (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
+      (@dropHighlightReigon = @dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
 
     super
   
@@ -729,6 +732,8 @@ class SegmentView extends IceView
       @bounds[@lineStart].y - 5,
       Math.max(@bounds[@lineStart].width,MIN_SEGMENT_DROP_AREA_WIDTH),
       10
+
+    @dropHighlightReigon = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
 
     super
 

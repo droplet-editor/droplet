@@ -25,6 +25,8 @@ exports.Point = class Point
 
   clone: -> new Point @x, @y
 
+  magnitude: -> Math.sqrt @x * @x + @y * @y
+
   translate: (vector) ->
     @x += vector.x; @y += vector.y
 
