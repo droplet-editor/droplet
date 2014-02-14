@@ -8,7 +8,7 @@ INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
 PALETTE_WIDTH = 300
-MIN_DRAG_DISTANCE = 10
+MIN_DRAG_DISTANCE = 5
 
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->

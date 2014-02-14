@@ -46,6 +46,10 @@ class IceView
 
     @cursors = []
 
+    @dropArea = null
+
+    @highlightArea = null
+
     @indented = {}
 
     @indentEndsOn = {}
@@ -62,6 +66,7 @@ class IceView
     # Re-init all variables to blank.
     @children = []
     @lineStart = @lineEnd = null
+    @dropArea = @highlightArea = null
     @lineChildren = {}
     @dimensions = {}
     @indented = {}

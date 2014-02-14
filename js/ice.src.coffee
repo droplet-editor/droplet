@@ -623,6 +623,10 @@ class IceView
 
     @cursors = []
 
+    @dropArea = null
+
+    @highlightArea = null
+
     @indented = {}
 
     @indentEndsOn = {}
@@ -639,6 +643,7 @@ class IceView
     # Re-init all variables to blank.
     @children = []
     @lineStart = @lineEnd = null
+    @dropArea = @highlightArea = null
     @lineChildren = {}
     @dimensions = {}
     @indented = {}
@@ -1334,7 +1339,7 @@ INDENT_SPACES = 2
 INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
 PALETTE_WIDTH = 300
-MIN_DRAG_DISTANCE = 10
+MIN_DRAG_DISTANCE = 5
 
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->

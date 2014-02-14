@@ -730,6 +730,8 @@
       this.lineChildren = {};
       this.dimensions = {};
       this.cursors = [];
+      this.dropArea = null;
+      this.highlightArea = null;
       this.indented = {};
       this.indentEndsOn = {};
       this.indentStartsOn = {};
@@ -741,6 +743,7 @@
       var head, l, occupiedLine, _base, _base1, _base10, _base11, _base2, _base3, _base4, _base5, _base6, _base7, _base8, _base9, _i, _j, _k, _l, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
       this.children = [];
       this.lineStart = this.lineEnd = null;
+      this.dropArea = this.highlightArea = null;
       this.lineChildren = {};
       this.dimensions = {};
       this.indented = {};
@@ -1329,7 +1332,7 @@
 
   PALETTE_WIDTH = 300;
 
-  MIN_DRAG_DISTANCE = 10;
+  MIN_DRAG_DISTANCE = 5;
 
   exports.IceEditorChangeEvent = IceEditorChangeEvent = (function() {
     function IceEditorChangeEvent(block, target) {
