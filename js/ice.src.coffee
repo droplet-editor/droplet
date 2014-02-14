@@ -1631,7 +1631,10 @@ exports.Editor = class Editor
       # Special case: we can also focus the very start of the tree.
       head = token
       unless head is @tree.start
-        until head.type in ['newline', 'indentEnd', 'segmentEnd'] then head = head.next
+        until (not head?) or head.type in ['newline', 'indentEnd', 'segmentEnd'] then head = head.next
+
+      # If there is no place to put the cursor, give up.
+      unless head? then return
 
       # Splice in
       if head.type is 'newline' or head is @tree.start

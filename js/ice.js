@@ -1585,9 +1585,12 @@
         _this.cursor.remove();
         head = token;
         if (head !== _this.tree.start) {
-          while ((_ref1 = head.type) !== 'newline' && _ref1 !== 'indentEnd' && _ref1 !== 'segmentEnd') {
+          while (!((head == null) || ((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd' || _ref1 === 'segmentEnd'))) {
             head = head.next;
           }
+        }
+        if (head == null) {
+          return;
         }
         if (head.type === 'newline' || head === _this.tree.start) {
           head.insert(_this.cursor);
