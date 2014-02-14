@@ -1980,7 +1980,7 @@ exports.Editor = class Editor
           
           # If we clicked something in the palette, we need to compute offset etc. with a point that has been computed
           # with offset to the palette.
-          if @selection in @paletteBlocks then point.add PALETTE_WIDTH, 0; selectionInPalette = true
+          if @selection in @paletteBlocks then @ephemeralPoint.add PALETTE_WIDTH, 0; selectionInPalette = true
 
           # Compute the offset of the selection position from the mouse
           rect = @selection.view.bounds[@selection.view.lineStart]

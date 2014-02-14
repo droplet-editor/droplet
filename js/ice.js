@@ -1975,7 +1975,7 @@
               head = next_head;
             }
             if (_ref2 = _this.selection, __indexOf.call(_this.paletteBlocks, _ref2) >= 0) {
-              point.add(PALETTE_WIDTH, 0);
+              _this.ephemeralPoint.add(PALETTE_WIDTH, 0);
               selectionInPalette = true;
             }
             rect = _this.selection.view.bounds[_this.selection.view.lineStart];
