@@ -300,7 +300,7 @@ exports.Editor = class Editor
       # Special case: we can also focus the very start of the tree.
       head = token
       unless head is @tree.start
-        while head.type isnt 'segmentEnd' and head.type isnt 'indentEnd' and head.type isnt 'newline' then head = head.next
+        until head.type in ['newline', 'indentEnd', 'segmentEnd'] then head = head.next
 
       # Splice in
       if head.type is 'newline' or head is @tree.start
@@ -623,10 +623,7 @@ exports.Editor = class Editor
         @ephemeralPoint = new draw.Point point.x, point.y
         
         # Move the cursor to the place we just clicked
-        head = @ephemeralSelection.end
-        while head isnt @tree.end and head.type isnt 'newline' then head = head.next
-        if head is @tree.end then moveCursorBefore head
-        else moveCursorTo head
+        moveCursorTo @ephemeralSelection.end
 
     # ## Mouse events for NORMAL DRAG ##
 

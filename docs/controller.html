@@ -1025,7 +1025,7 @@ Special case: we can also focus the very start of the tree.</p>
             
             <div class="content"><div class='highlight'><pre>      head = token
       <span class="hljs-keyword">unless</span> head <span class="hljs-keyword">is</span> <span class="hljs-property">@tree</span>.start
-        <span class="hljs-keyword">while</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">then</span> head = head.next</pre></div></div>
+        <span class="hljs-keyword">until</span> head.type <span class="hljs-keyword">in</span> [<span class="hljs-string">'newline'</span>, <span class="hljs-string">'indentEnd'</span>, <span class="hljs-string">'segmentEnd'</span>] <span class="hljs-keyword">then</span> head = head.next</pre></div></div>
             
         </li>
         
@@ -2081,10 +2081,7 @@ A render has passed, the hidden input is not actually focused.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        head = <span class="hljs-property">@ephemeralSelection</span>.end
-        <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">isnt</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">then</span> head = head.next
-        <span class="hljs-keyword">if</span> head <span class="hljs-keyword">is</span> <span class="hljs-property">@tree</span>.end <span class="hljs-keyword">then</span> moveCursorBefore head
-        <span class="hljs-keyword">else</span> moveCursorTo head</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        moveCursorTo <span class="hljs-property">@ephemeralSelection</span>.end</pre></div></div>
             
         </li>
         

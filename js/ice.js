@@ -1581,11 +1581,11 @@
         }
       };
       moveCursorTo = function(token) {
-        var head;
+        var head, _ref1;
         _this.cursor.remove();
         head = token;
         if (head !== _this.tree.start) {
-          while (head.type !== 'segmentEnd' && head.type !== 'indentEnd' && head.type !== 'newline') {
+          while ((_ref1 = head.type) !== 'newline' && _ref1 !== 'indentEnd' && _ref1 !== 'segmentEnd') {
             head = head.next;
           }
         }
@@ -1912,7 +1912,7 @@
         }
       };
       track.addEventListener('mousedown', function(event) {
-        var flag, float, head, point, selectionInPalette, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6;
+        var flag, float, point, selectionInPalette, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6;
         if (event.button !== 0) {
           return;
         }
@@ -1948,15 +1948,7 @@
         } else {
           selectionInPalette = false;
           _this.ephemeralPoint = new draw.Point(point.x, point.y);
-          head = _this.ephemeralSelection.end;
-          while (head !== _this.tree.end && head.type !== 'newline') {
-            head = head.next;
-          }
-          if (head === _this.tree.end) {
-            return moveCursorBefore(head);
-          } else {
-            return moveCursorTo(head);
-          }
+          return moveCursorTo(_this.ephemeralSelection.end);
         }
       });
       track.addEventListener('mousemove', function(event) {
