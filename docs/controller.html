@@ -1585,12 +1585,12 @@ so return immediately.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-88">&#182;</a>
               </div>
-              <p>Pressing the left-arrow at the rightmost end of a socket brings us to the next socket</p>
+              <p>Pressing right left-arrow at the rightmost end of a socket brings us to the next socket</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>          head = <span class="hljs-property">@focus</span>.end
-          <span class="hljs-keyword">until</span> <span class="hljs-keyword">not</span> head? <span class="hljs-keyword">or</span> <span class="hljs-keyword">not</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (head.socket.content()?.type <span class="hljs-keyword">in</span> [<span class="hljs-string">'block'</span>, <span class="hljs-string">'socket'</span>])
+          <span class="hljs-keyword">until</span> <span class="hljs-keyword">not</span> head? <span class="hljs-keyword">or</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (head.socket.content()?.type <span class="hljs-keyword">in</span> [<span class="hljs-string">'block'</span>, <span class="hljs-string">'socket'</span>])
             head = head.next</pre></div></div>
             
         </li>

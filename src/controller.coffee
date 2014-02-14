@@ -457,9 +457,9 @@ exports.Editor = class Editor
 
           setTextInputFocus head.socket
         when 39 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is @hiddenInput.value.length
-          # Pressing the left-arrow at the rightmost end of a socket brings us to the next socket
+          # Pressing right left-arrow at the rightmost end of a socket brings us to the next socket
           head = @focus.end
-          until not head? or not head.type is 'socketStart' and not (head.socket.content()?.type in ['block', 'socket'])
+          until not head? or head.type is 'socketStart' and not (head.socket.content()?.type in ['block', 'socket'])
             head = head.next
             
           # If we have reached the end of the file, give up.

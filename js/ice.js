@@ -1771,7 +1771,7 @@
           case 39:
             if (_this.hiddenInput.selectionStart === _this.hiddenInput.selectionEnd && _this.hiddenInput.selectionStart === _this.hiddenInput.value.length) {
               head = _this.focus.end;
-              while (!((head == null) || !head.type === 'socketStart' && !((_ref4 = (_ref5 = head.socket.content()) != null ? _ref5.type : void 0) === 'block' || _ref4 === 'socket'))) {
+              while (!((head == null) || head.type === 'socketStart' && !((_ref4 = (_ref5 = head.socket.content()) != null ? _ref5.type : void 0) === 'block' || _ref4 === 'socket'))) {
                 head = head.next;
               }
               if (head == null) {
