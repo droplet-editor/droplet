@@ -1897,7 +1897,7 @@ exports.Editor = class Editor
     hitTestLasso = (point) => if @lassoSegment? and @_lassoBounds.contains point then @lassoSegment else null
 
     hitTestPalette = (point) =>
-      point = new draw.Point point.x + PALETTE_WIDTH, point.y
+      point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y
       for block in @paletteBlocks
         if hitTest(point, block.start)? then return block
       return null
@@ -1972,11 +1972,11 @@ exports.Editor = class Editor
 
       else
         # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@ephemeralSelection?)
-
-        # A flag as to whether we are selecting something in the palette
-        selectionInPalette = false
-
-        @ephemeralPoint = new draw.Point point.x, point.y
+        
+        if @ephemeralSelection in @paletteBlocks
+          @ephemeralPoint = new draw.Point point.x - @scrollOffset.x, point.y - @scrollOffset.y
+        else
+          @ephemeralPoint = new draw.Point point.x, point.y
         
         # Move the cursor to the place we just clicked
         moveCursorTo @ephemeralSelection.end

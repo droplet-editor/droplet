@@ -1915,7 +1915,7 @@
       };
       hitTestPalette = function(point) {
         var block, _k, _len2, _ref2;
-        point = new draw.Point(point.x + PALETTE_WIDTH, point.y);
+        point = new draw.Point(point.x + PALETTE_WIDTH, point.y - _this.scrollOffset.y);
         _ref2 = _this.paletteBlocks;
         for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
           block = _ref2[_k];
@@ -1934,7 +1934,7 @@
         }
       };
       track.addEventListener('mousedown', function(event) {
-        var flag, float, point, selectionInPalette, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6;
+        var flag, float, point, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
         if (event.button !== 0) {
           return;
         }
@@ -1968,8 +1968,11 @@
             return textInputSelecting = true;
           }), 0);
         } else {
-          selectionInPalette = false;
-          _this.ephemeralPoint = new draw.Point(point.x, point.y);
+          if (_ref7 = _this.ephemeralSelection, __indexOf.call(_this.paletteBlocks, _ref7) >= 0) {
+            _this.ephemeralPoint = new draw.Point(point.x - _this.scrollOffset.x, point.y - _this.scrollOffset.y);
+          } else {
+            _this.ephemeralPoint = new draw.Point(point.x, point.y);
+          }
           return moveCursorTo(_this.ephemeralSelection.end);
         }
       });
