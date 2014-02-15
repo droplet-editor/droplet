@@ -10,6 +10,7 @@ module.exports = (grunt) ->
           'js/ice.js': ['src/model.coffee', 'src/view.coffee', 'src/controller.coffee']
           'js/tests.js': ['test/tests.coffee']
           'js/coffee.js': ['src/coffee.coffee']
+          'example/example.js': ['example/example.coffee']
 
     uglify:
       options:

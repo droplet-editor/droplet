@@ -3841,61 +3841,7 @@ animation destination. Along the way we will move the cursor around due to newli
         element.view.textElement.draw <span class="hljs-property">@mainCtx</span>
         element.view.translate <span class="hljs-keyword">new</span> draw.Point -translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE
 
-    tick()
-
-
-<span class="hljs-built_in">window</span>.<span class="hljs-function"><span class="hljs-title">onload</span> = -&gt;</span></pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-214">
-            <div class="annotation">
-              
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-214">&#182;</a>
-              </div>
-              <h2 id="tests">Tests</h2>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">window</span>.editor = <span class="hljs-keyword">new</span> Editor <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'editor'</span>), (coffee.parse(paletteElement).next.block <span class="hljs-keyword">for</span> paletteElement <span class="hljs-keyword">in</span> [
-    <span class="hljs-string">'''
-    for i in [1..10]
-      alert 'hello'
-    '''</span>
-    <span class="hljs-string">'''
-    alert 'hello'
-    '''</span>
-    <span class="hljs-string">'''
-    if a is b
-      alert 'hi'
-    else
-      alert 'bye'
-    '''</span>
-    <span class="hljs-string">'''
-    a = b
-    '''</span>
-  ])
-  editor.setValue <span class="hljs-string">'''
-  for i in [1..10]
-    if i % 2 is 0
-      alert i
-      alert 'bye'
-    else
-      alert 'fizz'
-    alert 'buzz'
-  '''</span>
-
-  editor.<span class="hljs-function"><span class="hljs-title">onChange</span> = -&gt;</span>
-    <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'out'</span>).value = editor.getValue()
-
-  <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'out'</span>).addEventListener <span class="hljs-string">'input'</span>,<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">try</span>
-      editor.setValue <span class="hljs-keyword">this</span>.value
-
-  <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'undo'</span>).addEventListener <span class="hljs-string">'click'</span>,<span class="hljs-function"> -&gt;</span>
-    editor.undo()</pre></div></div>
+    tick()</pre></div></div>
             
         </li>
         

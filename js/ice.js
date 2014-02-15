@@ -2425,32 +2425,6 @@
 
   })();
 
-  window.onload = function() {
-    var paletteElement;
-    window.editor = new Editor(document.getElementById('editor'), (function() {
-      var _i, _len, _ref, _results;
-      _ref = ['for i in [1..10]\n  alert \'hello\'', 'alert \'hello\'', 'if a is b\n  alert \'hi\'\nelse\n  alert \'bye\'', 'a = b'];
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        paletteElement = _ref[_i];
-        _results.push(coffee.parse(paletteElement).next.block);
-      }
-      return _results;
-    })());
-    editor.setValue('for i in [1..10]\n  if i % 2 is 0\n    alert i\n    alert \'bye\'\n  else\n    alert \'fizz\'\n  alert \'buzz\'');
-    editor.onChange = function() {
-      return document.getElementById('out').value = editor.getValue();
-    };
-    document.getElementById('out').addEventListener('input', function() {
-      try {
-        return editor.setValue(this.value);
-      } catch (_error) {}
-    });
-    return document.getElementById('undo').addEventListener('click', function() {
-      return editor.undo();
-    });
-  };
-
 }).call(this);
 
 /*
