@@ -130,7 +130,7 @@
             param = _ref2[_k];
             mark(param);
           }
-          return mark(node.body);
+          return mark(node.body.unwrap());
         case 'Param':
           return mark(node.name);
         case 'Assign':

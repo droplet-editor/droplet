@@ -544,6 +544,24 @@ class TextView extends IceView
 
     super
 
+  # ## computePlaintextTranslationVector ##
+  # The following is a function unique to TextView This will compute the position of the text as if it were
+  # rendered as plaintext; used by the Controller to do the animation for freeze and melt.
+  #
+  # It is passed state and ctx; ctx will remain unchanged and is used for measuring text,
+  # whereas state will be modified (so must be mutable) to be passable to the next text token found after this.
+  #
+  # State has properties:
+  #   - indent (num)
+  #   - x (num)
+  #   - y (num)
+  computePlaintextTranslationVector: (state, ctx) ->
+    point = new draw.Point state.x, state.y
+
+    state.x += ctx.measureText(@block.value).width
+
+    return point.from new draw.Point @bounds[@lineStart].x, @bounds[@lineStart].y
+
 # # IndentView
 # This is the renderer for and indent. It doesn't actually draw anything,
 # but handles some coordinate placement.

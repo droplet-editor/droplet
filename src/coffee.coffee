@@ -126,7 +126,7 @@ exports.mark = (nodes, text) ->
         for param in node.params
           mark param
 
-        mark node.body
+        mark node.body.unwrap()
 
       when 'Param'
         mark node.name

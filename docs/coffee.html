@@ -193,7 +193,7 @@ colors =
         <span class="hljs-keyword">for</span> param <span class="hljs-keyword">in</span> node.params
           mark param
 
-        mark node.body
+        mark node.body.unwrap()
 
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Param'</span>
         mark node.name

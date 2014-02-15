@@ -422,7 +422,7 @@ exports.Socket = class Socket
     if f this then return this
     else return null
 
-  toString: -> @start.toString(indent:'')[..-@end.toString(indent:'').length]
+  toString: -> @start.toString(indent:'')[...-@end.toString(indent:'').length]
  
 # # Token
 # This is the class from which all ICE Editor tokens descend.
@@ -1123,6 +1123,24 @@ class TextView extends IceView
 
     super
 
+  # ## computePlaintextTranslationVector ##
+  # The following is a function unique to TextView This will compute the position of the text as if it were
+  # rendered as plaintext; used by the Controller to do the animation for freeze and melt.
+  #
+  # It is passed state and ctx; ctx will remain unchanged and is used for measuring text,
+  # whereas state will be modified (so must be mutable) to be passable to the next text token found after this.
+  #
+  # State has properties:
+  #   - indent (num)
+  #   - x (num)
+  #   - y (num)
+  computePlaintextTranslationVector: (state, ctx) ->
+    point = new draw.Point state.x, state.y
+
+    state.x += ctx.measureText(@block.value).width
+
+    return point.from new draw.Point @bounds[@lineStart].x, @bounds[@lineStart].y
+
 # # IndentView
 # This is the renderer for and indent. It doesn't actually draw anything,
 # but handles some coordinate placement.
@@ -1342,6 +1360,8 @@ INPUT_LINE_HEIGHT = 15
 PALETTE_MARGIN = 10
 PALETTE_WIDTH = 300
 MIN_DRAG_DISTANCE = 5
+FONT_SIZE = 15
+ANIMATION_FRAME_RATE = 50 # FPS
 
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->
@@ -1431,18 +1451,18 @@ exports.Editor = class Editor
       el.appendChild child
 
     # Get the contexts from each canvas
-    mainCtx = main.getContext '2d'
-    dragCtx = drag.getContext '2d'
-    paletteCtx = palette.getContext '2d'
+    @mainCtx = main.getContext '2d'
+    @dragCtx = drag.getContext '2d'
+    @paletteCtx = palette.getContext '2d'
 
     # The main context will be used for draw.js's text measurements (this is a bit of a hack)
-    draw._setCTX mainCtx
+    draw._setCTX @mainCtx
 
     # ## Convenience Functions ##
     # General-purpose methods that call the view (rendering functions)
     
     @clear = =>
-      mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, main.width, main.height
+      @mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, main.width, main.height
     
     # ## Redraw ##
     # redraw does three main things: redraws the root tree (@tree)
@@ -1456,7 +1476,7 @@ exports.Editor = class Editor
       @tree.view.compute()
 
       # Draw it on the main context
-      @tree.view.draw mainCtx
+      @tree.view.draw @mainCtx
       
       # Alert the lasso segment, if it exists, to recompute its bounds
       if @lassoSegment?
@@ -1469,8 +1489,8 @@ exports.Editor = class Editor
         
         # Unless we're already drawing it on the drag canvas, draw the lasso segment borders on the main canvas
         unless @lassoSegment is @selection
-          @_lassoBounds.stroke mainCtx, '#000'
-          @_lassoBounds.fill mainCtx, 'rgba(0, 0, 256, 0.3)'
+          @_lassoBounds.stroke @mainCtx, '#000'
+          @_lassoBounds.fill @mainCtx, 'rgba(0, 0, 256, 0.3)'
 
       for float in @floatingBlocks
         view = float.block.view
@@ -1480,7 +1500,7 @@ exports.Editor = class Editor
         view.translate float.position
 
         # Draw it on the main context
-        view.draw mainCtx
+        view.draw @mainCtx
 
     @attemptReparse = =>
       try
@@ -1572,7 +1592,7 @@ exports.Editor = class Editor
         lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN # Add margin
 
         # Finish and draw the palette block
-        paletteBlock.view.draw paletteCtx
+        paletteBlock.view.draw @paletteCtx
     
     # (call it right away)
     @redrawPalette()
@@ -1615,12 +1635,12 @@ exports.Editor = class Editor
       
       # If the cursor has scrolled out of view, scroll it back into view.
       if @cursor.view.point.y < @scrollOffset.y
-        mainCtx.translate 0, @scrollOffset.y - @cursor.view.point.y
+        @mainCtx.translate 0, @scrollOffset.y - @cursor.view.point.y
         @scrollOffset.y = @cursor.view.point.y
 
         @redraw()
       else if @cursor.view.point.y > (@scrollOffset.y + main.height)
-        mainCtx.translate 0, (@scrollOffset.y + main.height) - @cursor.view.point.y
+        @mainCtx.translate 0, (@scrollOffset.y + main.height) - @cursor.view.point.y
         @scrollOffset.y = @cursor.view.point.y - main.height
 
         @redraw()
@@ -2000,7 +2020,7 @@ exports.Editor = class Editor
 
           # Draw it in the drag canvas
           @selection.view.compute()
-          @selection.view.draw dragCtx
+          @selection.view.draw @dragCtx
 
           # CSS-transform the drag canvas to where it ought to be
           if selectionInPalette
@@ -2038,7 +2058,7 @@ exports.Editor = class Editor
         if old_highlight isnt highlight then @redraw()
 
         # Highlight the highlight
-        if highlight? then highlight.view.dropHighlightReigon.fill mainCtx, '#fff'
+        if highlight? then highlight.view.dropHighlightReigon.fill @mainCtx, '#fff'
 
         # CSS-transform the drag canvas to where it ought to be
         drag.style.webkitTransform =
@@ -2109,7 +2129,7 @@ exports.Editor = class Editor
           drag.style.transform = "translate(0px, 0px)"
         
         # Clear the drag canvas
-        dragCtx.clearRect 0, 0, drag.width, drag.height
+        @dragCtx.clearRect 0, 0, drag.width, drag.height
 
         # If we inserted into root, move the cursor to the end of the selection.
         if highlight?
@@ -2146,9 +2166,9 @@ exports.Editor = class Editor
         rect = getRectFromPoints (new draw.Point @lassoAnchor.x - @scrollOffset.x, @lassoAnchor.y - @scrollOffset.y), point
 
         # Clear and redraw the lasso on the drag canvas
-        dragCtx.clearRect 0, 0, drag.width, drag.height
-        dragCtx.strokeStyle = '#00f'
-        dragCtx.strokeRect rect.x, rect.y, rect.width, rect.height
+        @dragCtx.clearRect 0, 0, drag.width, drag.height
+        @dragCtx.strokeStyle = '#00f'
+        @dragCtx.strokeRect rect.x, rect.y, rect.width, rect.height
 
     track.addEventListener 'mouseup', (event) =>
       if @lassoAnchor?
@@ -2258,7 +2278,7 @@ exports.Editor = class Editor
           @redraw()
         
         # Clear the drag canvas
-        dragCtx.clearRect 0, 0, drag.width, drag.height
+        @dragCtx.clearRect 0, 0, drag.width, drag.height
 
         # If we inserted a lasso segment, move the cursor appropriately
         if @lassoSegment? then moveCursorTo @lassoSegment.end
@@ -2280,19 +2300,19 @@ exports.Editor = class Editor
       
       # Determine the position (coordinate-wise) of the typing cursor
       start = @editedText.view.bounds[_editedInputLine].x +
-        mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionStart]).width
+        @mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionStart]).width
 
       end = @editedText.view.bounds[_editedInputLine].x +
-        mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionEnd]).width
+        @mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionEnd]).width
       
       # Draw the typing cursor itself
       if start is end
         # This is just a line
-        mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
+        @mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
       else
         # This is the translucent rectangle
-        mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3'
-        mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+        @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3'
+        @mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
     setTextInputFocus = (focus) =>
       console.log 'changing focus', @focus, focus
@@ -2358,12 +2378,12 @@ exports.Editor = class Editor
       setTimeout (=> @hiddenInput.focus()), 0
 
     setTextInputHead = (point) =>
-      textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width
+      textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / @mainCtx.measureText(' ').width
 
       @hiddenInput.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
 
     setTextInputAnchor = (point) =>
-      textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x - PADDING) / mainCtx.measureText(' ').width
+      textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x - PADDING) / @mainCtx.measureText(' ').width
       @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
     # ## Mouse events for TEXT INPUT ##
@@ -2391,14 +2411,14 @@ exports.Editor = class Editor
       if event.wheelDelta > 0
         if @scrollOffset.y >= 100
           @scrollOffset.add 0, -100
-          mainCtx.translate 0, 100
+          @mainCtx.translate 0, 100
         else
           # If we would go past the top of the file, just scroll to exactly the top of the file.
-          mainCtx.translate 0, @scrollOffset.y
+          @mainCtx.translate 0, @scrollOffset.y
           @scrollOffset.y = 0
       else
         @scrollOffset.add 0, 100
-        mainCtx.translate 0, -100
+        @mainCtx.translate 0, -100
 
       @redraw()
 
@@ -2407,6 +2427,114 @@ exports.Editor = class Editor
     @redraw()
 
   getValue: -> @tree.toString()
+  
+  # ## performMeltAnimation ##
+  # This will animate all the text elements from their current position to a position
+  # that imitates plaintext.
+  performMeltAnimation: ->
+    @redraw()
+
+    # First, we will need to get all the text elements which we will be animating.
+    # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
+    # animation destination. Along the way we will move the cursor around due to newlines and indents.
+    textElements = []
+    translationVectors = []
+    head = @tree.start
+    # Set up the state which we will pass to 
+    state =
+      x: 0
+      y: 0
+      indent: 0
+    while head isnt @tree.end
+      if head.type is 'text'
+        translationVectors.push head.view.computePlaintextTranslationVector state, @mainCtx
+        textElements.push head
+      else if head.type is 'newline'
+        state.y += FONT_SIZE
+        state.x = state.indent * @mainCtx.measureText(' ').width
+      else if head.type is 'indentStart'
+        state.indent += head.indent.depth
+      else if head.type is 'indentEnd'
+        state.indent -= head.indent.depth
+
+      head = head.next
+
+    # We have now obtained the destination position for the animation; now we animate.
+    count = 0
+
+    tick = =>
+      console.log 'ticking'
+      count += 1
+      
+      if count < ANIMATION_FRAME_RATE
+        setTimeout tick, 1000 / ANIMATION_FRAME_RATE
+
+      @clear()
+      
+      @mainCtx.globalAlpha = 1 - count / ANIMATION_FRAME_RATE
+
+      @tree.view.draw @mainCtx
+
+      @mainCtx.globalAlpha = 1
+      
+      for element, i in textElements
+        element.view.textElement.draw @mainCtx
+        element.view.translate new draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
+
+    tick()
+  
+  performFreezeAnimation: ->
+    @redraw()
+    # First, we will need to get all the text elements which we will be animating.
+    # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
+    # animation destination. Along the way we will move the cursor around due to newlines and indents.
+    textElements = []
+    translationVectors = []
+    head = @tree.start
+    
+    # Set up the state which we will pass to 
+    state =
+      x: 0
+      y: 0
+      indent: 0
+    while head isnt @tree.end
+      if head.type is 'text'
+        translationVectors.push head.view.computePlaintextTranslationVector state, @mainCtx
+        head.view.translate translationVectors[translationVectors.length - 1]
+        textElements.push head
+      else if head.type is 'newline'
+        state.y += FONT_SIZE
+        state.x = state.indent * @mainCtx.measureText(' ').width
+      else if head.type is 'indentStart'
+        state.indent += head.indent.depth
+      else if head.type is 'indentEnd'
+        state.indent -= head.indent.depth
+
+      head = head.next
+
+    # We have now obtained the destination position for the animation; now we animate.
+    count = 0
+
+    tick = =>
+      count += 1
+      
+      if count <= ANIMATION_FRAME_RATE
+        setTimeout tick, 1000 / ANIMATION_FRAME_RATE
+
+      @clear()
+      
+      @mainCtx.globalAlpha = count / ANIMATION_FRAME_RATE
+
+      @tree.view.draw @mainCtx
+
+      @mainCtx.globalAlpha = 1
+      
+      for element, i in textElements
+        element.view.textElement.draw @mainCtx
+        element.view.translate new draw.Point -translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE
+
+    tick()
+
 
 window.onload = ->
   # ## Tests ##

@@ -75,6 +75,8 @@ INPUT_LINE_HEIGHT = <span class="hljs-number">15</span>
 PALETTE_MARGIN = <span class="hljs-number">10</span>
 PALETTE_WIDTH = <span class="hljs-number">300</span>
 MIN_DRAG_DISTANCE = <span class="hljs-number">5</span>
+FONT_SIZE = <span class="hljs-number">15</span>
+ANIMATION_FRAME_RATE = <span class="hljs-number">50</span> <span class="hljs-comment"># FPS</span>
 
 <span class="hljs-built_in">exports</span>.IceEditorChangeEvent = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IceEditorChangeEvent</span></span>
   <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>, <span class="hljs-property">@target</span>)</span> -&gt;</span></pre></div></div>
@@ -390,9 +392,9 @@ token stream)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    mainCtx = main.getContext <span class="hljs-string">'2d'</span>
-    dragCtx = drag.getContext <span class="hljs-string">'2d'</span>
-    paletteCtx = palette.getContext <span class="hljs-string">'2d'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@mainCtx</span> = main.getContext <span class="hljs-string">'2d'</span>
+    <span class="hljs-property">@dragCtx</span> = drag.getContext <span class="hljs-string">'2d'</span>
+    <span class="hljs-property">@paletteCtx</span> = palette.getContext <span class="hljs-string">'2d'</span></pre></div></div>
             
         </li>
         
@@ -407,7 +409,7 @@ token stream)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    draw._setCTX mainCtx</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    draw._setCTX <span class="hljs-property">@mainCtx</span></pre></div></div>
             
         </li>
         
@@ -425,7 +427,7 @@ token stream)</p>
             
             <div class="content"><div class='highlight'><pre>    
     <span class="hljs-property">@clear</span> =<span class="hljs-function"> =&gt;</span>
-      mainCtx.clearRect <span class="hljs-property">@scrollOffset</span>.x, <span class="hljs-property">@scrollOffset</span>.y, main.width, main.height</pre></div></div>
+      <span class="hljs-property">@mainCtx</span>.clearRect <span class="hljs-property">@scrollOffset</span>.x, <span class="hljs-property">@scrollOffset</span>.y, main.width, main.height</pre></div></div>
             
         </li>
         
@@ -488,7 +490,7 @@ of any lassoed segments.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@tree</span>.view.draw mainCtx</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@tree</span>.view.draw <span class="hljs-property">@mainCtx</span></pre></div></div>
             
         </li>
         
@@ -538,8 +540,8 @@ of any lassoed segments.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">unless</span> <span class="hljs-property">@lassoSegment</span> <span class="hljs-keyword">is</span> <span class="hljs-property">@selection</span>
-          <span class="hljs-property">@_lassoBounds</span>.stroke mainCtx, <span class="hljs-string">'#000'</span>
-          <span class="hljs-property">@_lassoBounds</span>.fill mainCtx, <span class="hljs-string">'rgba(0, 0, 256, 0.3)'</span>
+          <span class="hljs-property">@_lassoBounds</span>.stroke <span class="hljs-property">@mainCtx</span>, <span class="hljs-string">'#000'</span>
+          <span class="hljs-property">@_lassoBounds</span>.fill <span class="hljs-property">@mainCtx</span>, <span class="hljs-string">'rgba(0, 0, 256, 0.3)'</span>
 
       <span class="hljs-keyword">for</span> float <span class="hljs-keyword">in</span> <span class="hljs-property">@floatingBlocks</span>
         view = float.block.view</pre></div></div>
@@ -573,7 +575,7 @@ of any lassoed segments.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        view.draw mainCtx
+            <div class="content"><div class='highlight'><pre>        view.draw <span class="hljs-property">@mainCtx</span>
 
     <span class="hljs-property">@attemptReparse</span> =<span class="hljs-function"> =&gt;</span>
       <span class="hljs-keyword">try</span>
@@ -866,7 +868,7 @@ so we know where to put the top of the next one (there will be a margin of PALET
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        paletteBlock.view.draw paletteCtx</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        paletteBlock.view.draw <span class="hljs-property">@paletteCtx</span></pre></div></div>
             
         </li>
         
@@ -982,12 +984,12 @@ that is rendered specially in the View.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.view.point.y &lt; <span class="hljs-property">@scrollOffset</span>.y
-        mainCtx.translate <span class="hljs-number">0</span>, <span class="hljs-property">@scrollOffset</span>.y - <span class="hljs-property">@cursor</span>.view.point.y
+        <span class="hljs-property">@mainCtx</span>.translate <span class="hljs-number">0</span>, <span class="hljs-property">@scrollOffset</span>.y - <span class="hljs-property">@cursor</span>.view.point.y
         <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-property">@cursor</span>.view.point.y
 
         <span class="hljs-property">@redraw</span>()
       <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@cursor</span>.view.point.y &gt; (<span class="hljs-property">@scrollOffset</span>.y + main.height)
-        mainCtx.translate <span class="hljs-number">0</span>, (<span class="hljs-property">@scrollOffset</span>.y + main.height) - <span class="hljs-property">@cursor</span>.view.point.y
+        <span class="hljs-property">@mainCtx</span>.translate <span class="hljs-number">0</span>, (<span class="hljs-property">@scrollOffset</span>.y + main.height) - <span class="hljs-property">@cursor</span>.view.point.y
         <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-property">@cursor</span>.view.point.y - main.height
 
         <span class="hljs-property">@redraw</span>()
@@ -2245,7 +2247,7 @@ with offset to the palette.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@selection</span>.view.compute()
-          <span class="hljs-property">@selection</span>.view.draw dragCtx</pre></div></div>
+          <span class="hljs-property">@selection</span>.view.draw <span class="hljs-property">@dragCtx</span></pre></div></div>
             
         </li>
         
@@ -2382,7 +2384,7 @@ with offset to the palette.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> highlight? <span class="hljs-keyword">then</span> highlight.view.dropHighlightReigon.fill mainCtx, <span class="hljs-string">'#fff'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> highlight? <span class="hljs-keyword">then</span> highlight.view.dropHighlightReigon.fill <span class="hljs-property">@mainCtx</span>, <span class="hljs-string">'#fff'</span></pre></div></div>
             
         </li>
         
@@ -2628,7 +2630,7 @@ we want to stop drawing its bounding box.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        dragCtx.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@dragCtx</span>.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height</pre></div></div>
             
         </li>
         
@@ -2788,9 +2790,9 @@ which is where we’ll want to move the cursor
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        dragCtx.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height
-        dragCtx.strokeStyle = <span class="hljs-string">'#00f'</span>
-        dragCtx.strokeRect rect.x, rect.y, rect.width, rect.height
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@dragCtx</span>.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height
+        <span class="hljs-property">@dragCtx</span>.strokeStyle = <span class="hljs-string">'#00f'</span>
+        <span class="hljs-property">@dragCtx</span>.strokeRect rect.x, rect.y, rect.width, rect.height
 
     track.addEventListener <span class="hljs-string">'mouseup'</span>, <span class="hljs-function"><span class="hljs-params">(event)</span> =&gt;</span>
       <span class="hljs-keyword">if</span> <span class="hljs-property">@lassoAnchor</span>?</pre></div></div>
@@ -3156,7 +3158,7 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        dragCtx.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@dragCtx</span>.clearRect <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, drag.width, drag.height</pre></div></div>
             
         </li>
         
@@ -3250,10 +3252,10 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
             </div>
             
             <div class="content"><div class='highlight'><pre>      start = <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].x +
-        mainCtx.measureText(<span class="hljs-property">@hiddenInput</span>.value[...<span class="hljs-property">@hiddenInput</span>.selectionStart]).width
+        <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-property">@hiddenInput</span>.value[...<span class="hljs-property">@hiddenInput</span>.selectionStart]).width
 
       end = <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].x +
-        mainCtx.measureText(<span class="hljs-property">@hiddenInput</span>.value[...<span class="hljs-property">@hiddenInput</span>.selectionEnd]).width</pre></div></div>
+        <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-property">@hiddenInput</span>.value[...<span class="hljs-property">@hiddenInput</span>.selectionEnd]).width</pre></div></div>
             
         </li>
         
@@ -3283,7 +3285,7 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        mainCtx.strokeRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, <span class="hljs-number">0</span>, INPUT_LINE_HEIGHT
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@mainCtx</span>.strokeRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, <span class="hljs-number">0</span>, INPUT_LINE_HEIGHT
       <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
@@ -3299,8 +3301,8 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        mainCtx.fillStyle = <span class="hljs-string">'rgba(0, 0, 256, 0.3'</span>
-        mainCtx.fillRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@mainCtx</span>.fillStyle = <span class="hljs-string">'rgba(0, 0, 256, 0.3'</span>
+        <span class="hljs-property">@mainCtx</span>.fillRect start, <span class="hljs-property">@editedText</span>.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
     <span class="hljs-function"><span class="hljs-title">setTextInputFocus</span> = <span class="hljs-params">(focus)</span> =&gt;</span>
       <span class="hljs-built_in">console</span>.log <span class="hljs-string">'changing focus'</span>, <span class="hljs-property">@focus</span>, focus</pre></div></div>
@@ -3524,12 +3526,12 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
             <div class="content"><div class='highlight'><pre>      setTimeout (<span class="hljs-function">=&gt;</span> <span class="hljs-property">@hiddenInput</span>.focus()), <span class="hljs-number">0</span>
 
     <span class="hljs-function"><span class="hljs-title">setTextInputHead</span> = <span class="hljs-params">(point)</span> =&gt;</span>
-      textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x) / mainCtx.measureText(<span class="hljs-string">' '</span>).width
+      textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x) / <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width
 
       <span class="hljs-property">@hiddenInput</span>.setSelectionRange Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead)
 
     <span class="hljs-function"><span class="hljs-title">setTextInputAnchor</span> = <span class="hljs-params">(point)</span> =&gt;</span>
-      textInputAnchor = textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x - PADDING) / mainCtx.measureText(<span class="hljs-string">' '</span>).width
+      textInputAnchor = textInputHead = Math.round (point.x - <span class="hljs-property">@focus</span>.view.bounds[_editedInputLine].x - PADDING) / <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width
       <span class="hljs-property">@hiddenInput</span>.setSelectionRange textInputAnchor, textInputHead</pre></div></div>
             
         </li>
@@ -3618,7 +3620,7 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
       <span class="hljs-keyword">if</span> event.wheelDelta &gt; <span class="hljs-number">0</span>
         <span class="hljs-keyword">if</span> <span class="hljs-property">@scrollOffset</span>.y &gt;= <span class="hljs-number">100</span>
           <span class="hljs-property">@scrollOffset</span>.add <span class="hljs-number">0</span>, -<span class="hljs-number">100</span>
-          mainCtx.translate <span class="hljs-number">0</span>, <span class="hljs-number">100</span>
+          <span class="hljs-property">@mainCtx</span>.translate <span class="hljs-number">0</span>, <span class="hljs-number">100</span>
         <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
@@ -3634,11 +3636,11 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          mainCtx.translate <span class="hljs-number">0</span>, <span class="hljs-property">@scrollOffset</span>.y
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@mainCtx</span>.translate <span class="hljs-number">0</span>, <span class="hljs-property">@scrollOffset</span>.y
           <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-number">0</span>
       <span class="hljs-keyword">else</span>
         <span class="hljs-property">@scrollOffset</span>.add <span class="hljs-number">0</span>, <span class="hljs-number">100</span>
-        mainCtx.translate <span class="hljs-number">0</span>, -<span class="hljs-number">100</span>
+        <span class="hljs-property">@mainCtx</span>.translate <span class="hljs-number">0</span>, -<span class="hljs-number">100</span>
 
       <span class="hljs-property">@redraw</span>()
 
@@ -3646,9 +3648,7 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
     <span class="hljs-property">@tree</span> = coffee.parse(value).segment
     <span class="hljs-property">@redraw</span>()
 
-  <span class="hljs-attribute">getValue</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@tree</span>.toString()
-
-<span class="hljs-built_in">window</span>.<span class="hljs-function"><span class="hljs-title">onload</span> = -&gt;</span></pre></div></div>
+  <span class="hljs-attribute">getValue</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@tree</span>.toString()</pre></div></div>
             
         </li>
         
@@ -3658,6 +3658,202 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-207">&#182;</a>
+              </div>
+              <h2 id="performmeltanimation">performMeltAnimation</h2>
+<p>This will animate all the text elements from their current position to a position
+that imitates plaintext.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">performMeltAnimation</span>:<span class="hljs-function"> -&gt;</span>
+    <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-208">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-208">&#182;</a>
+              </div>
+              <p>First, we will need to get all the text elements which we will be animating.
+Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
+animation destination. Along the way we will move the cursor around due to newlines and indents.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    textElements = []
+    translationVectors = []
+    head = <span class="hljs-property">@tree</span>.start</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-209">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-209">&#182;</a>
+              </div>
+              <p>Set up the state which we will pass to </p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    state =
+      <span class="hljs-attribute">x</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attribute">y</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attribute">indent</span>: <span class="hljs-number">0</span>
+    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end
+      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span>
+        translationVectors.push head.view.computePlaintextTranslationVector state, <span class="hljs-property">@mainCtx</span>
+        textElements.push head
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>
+        state.y += FONT_SIZE
+        state.x = state.indent * <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span>
+        state.indent += head.indent.depth
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>
+        state.indent -= head.indent.depth
+
+      head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-210">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-210">&#182;</a>
+              </div>
+              <p>We have now obtained the destination position for the animation; now we animate.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    count = <span class="hljs-number">0</span>
+
+    <span class="hljs-function"><span class="hljs-title">tick</span> = =&gt;</span>
+      <span class="hljs-built_in">console</span>.log <span class="hljs-string">'ticking'</span>
+      count += <span class="hljs-number">1</span>
+      
+      <span class="hljs-keyword">if</span> count &lt; ANIMATION_FRAME_RATE
+        setTimeout tick, <span class="hljs-number">1000</span> / ANIMATION_FRAME_RATE
+
+      <span class="hljs-property">@clear</span>()
+      
+      <span class="hljs-property">@mainCtx</span>.globalAlpha = <span class="hljs-number">1</span> - count / ANIMATION_FRAME_RATE
+
+      <span class="hljs-property">@tree</span>.view.draw <span class="hljs-property">@mainCtx</span>
+
+      <span class="hljs-property">@mainCtx</span>.globalAlpha = <span class="hljs-number">1</span>
+      
+      <span class="hljs-keyword">for</span> element, i <span class="hljs-keyword">in</span> textElements
+        element.view.textElement.draw <span class="hljs-property">@mainCtx</span>
+        element.view.translate <span class="hljs-keyword">new</span> draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
+
+    tick()
+  
+  <span class="hljs-attribute">performFreezeAnimation</span>:<span class="hljs-function"> -&gt;</span>
+    <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-211">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-211">&#182;</a>
+              </div>
+              <p>First, we will need to get all the text elements which we will be animating.
+Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
+animation destination. Along the way we will move the cursor around due to newlines and indents.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    textElements = []
+    translationVectors = []
+    head = <span class="hljs-property">@tree</span>.start</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-212">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-212">&#182;</a>
+              </div>
+              <p>Set up the state which we will pass to </p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    state =
+      <span class="hljs-attribute">x</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attribute">y</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attribute">indent</span>: <span class="hljs-number">0</span>
+    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end
+      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span>
+        translationVectors.push head.view.computePlaintextTranslationVector state, <span class="hljs-property">@mainCtx</span>
+        head.view.translate translationVectors[translationVectors.length - <span class="hljs-number">1</span>]
+        textElements.push head
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>
+        state.y += FONT_SIZE
+        state.x = state.indent * <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span>
+        state.indent += head.indent.depth
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>
+        state.indent -= head.indent.depth
+
+      head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-213">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-213">&#182;</a>
+              </div>
+              <p>We have now obtained the destination position for the animation; now we animate.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    count = <span class="hljs-number">0</span>
+
+    <span class="hljs-function"><span class="hljs-title">tick</span> = =&gt;</span>
+      count += <span class="hljs-number">1</span>
+      
+      <span class="hljs-keyword">if</span> count &lt;= ANIMATION_FRAME_RATE
+        setTimeout tick, <span class="hljs-number">1000</span> / ANIMATION_FRAME_RATE
+
+      <span class="hljs-property">@clear</span>()
+      
+      <span class="hljs-property">@mainCtx</span>.globalAlpha = count / ANIMATION_FRAME_RATE
+
+      <span class="hljs-property">@tree</span>.view.draw <span class="hljs-property">@mainCtx</span>
+
+      <span class="hljs-property">@mainCtx</span>.globalAlpha = <span class="hljs-number">1</span>
+      
+      <span class="hljs-keyword">for</span> element, i <span class="hljs-keyword">in</span> textElements
+        element.view.textElement.draw <span class="hljs-property">@mainCtx</span>
+        element.view.translate <span class="hljs-keyword">new</span> draw.Point -translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE
+
+    tick()
+
+
+<span class="hljs-built_in">window</span>.<span class="hljs-function"><span class="hljs-title">onload</span> = -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-214">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-214">&#182;</a>
               </div>
               <h2 id="tests">Tests</h2>
 

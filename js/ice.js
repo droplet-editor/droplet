@@ -1,5 +1,5 @@
 (function() {
-  var Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, DROP_AREA_HEIGHT, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_DRAG_DISTANCE, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
+  var ANIMATION_FRAME_RATE, Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, DROP_AREA_HEIGHT, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, FONT_SIZE, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_DRAG_DISTANCE, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -433,9 +433,9 @@
     Socket.prototype.toString = function() {
       return this.start.toString({
         indent: ''
-      }).slice(0, +(-this.end.toString({
+      }).slice(0, -this.end.toString({
         indent: ''
-      }).length) + 1 || 9e9);
+      }).length);
     };
 
     return Socket;
@@ -1148,6 +1148,13 @@
       return TextView.__super__.translate.apply(this, arguments);
     };
 
+    TextView.prototype.computePlaintextTranslationVector = function(state, ctx) {
+      var point;
+      point = new draw.Point(state.x, state.y);
+      state.x += ctx.measureText(this.block.value).width;
+      return point.from(new draw.Point(this.bounds[this.lineStart].x, this.bounds[this.lineStart].y));
+    };
+
     return TextView;
 
   })(IceView);
@@ -1342,6 +1349,10 @@
 
   MIN_DRAG_DISTANCE = 5;
 
+  FONT_SIZE = 15;
+
+  ANIMATION_FRAME_RATE = 50;
+
   exports.IceEditorChangeEvent = IceEditorChangeEvent = (function() {
     function IceEditorChangeEvent(block, target) {
       this.block = block;
@@ -1354,7 +1365,7 @@
 
   exports.Editor = Editor = (function() {
     function Editor(el, paletteBlocks) {
-      var child, deleteFromCursor, drag, dragCtx, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, mainCtx, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, paletteCtx, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
+      var child, deleteFromCursor, drag, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
         _this = this;
       this.paletteBlocks = paletteBlocks;
       if (this.paletteBlocks == null) {
@@ -1411,18 +1422,18 @@
         child = _ref[_i];
         el.appendChild(child);
       }
-      mainCtx = main.getContext('2d');
-      dragCtx = drag.getContext('2d');
-      paletteCtx = palette.getContext('2d');
-      draw._setCTX(mainCtx);
+      this.mainCtx = main.getContext('2d');
+      this.dragCtx = drag.getContext('2d');
+      this.paletteCtx = palette.getContext('2d');
+      draw._setCTX(this.mainCtx);
       this.clear = function() {
-        return mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, main.width, main.height);
+        return _this.mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, main.width, main.height);
       };
       this.redraw = function() {
         var float, view, _j, _k, _len1, _len2, _ref1, _ref2, _results;
         _this.clear();
         _this.tree.view.compute();
-        _this.tree.view.draw(mainCtx);
+        _this.tree.view.draw(_this.mainCtx);
         if (_this.lassoSegment != null) {
           _this._lassoBounds = _this.lassoSegment.view.getBounds();
           _ref1 = _this.floatingBlocks;
@@ -1433,8 +1444,8 @@
             }
           }
           if (_this.lassoSegment !== _this.selection) {
-            _this._lassoBounds.stroke(mainCtx, '#000');
-            _this._lassoBounds.fill(mainCtx, 'rgba(0, 0, 256, 0.3)');
+            _this._lassoBounds.stroke(_this.mainCtx, '#000');
+            _this._lassoBounds.fill(_this.mainCtx, 'rgba(0, 0, 256, 0.3)');
           }
         }
         _ref2 = _this.floatingBlocks;
@@ -1444,7 +1455,7 @@
           view = float.block.view;
           view.compute();
           view.translate(float.position);
-          _results.push(view.draw(mainCtx));
+          _results.push(view.draw(_this.mainCtx));
         }
         return _results;
       };
@@ -1548,7 +1559,7 @@
           paletteBlock.view.compute();
           paletteBlock.view.translate(new draw.Point(0, lastBottomEdge));
           lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN;
-          _results.push(paletteBlock.view.draw(paletteCtx));
+          _results.push(paletteBlock.view.draw(_this.paletteCtx));
         }
         return _results;
       };
@@ -1579,11 +1590,11 @@
       scrollCursorIntoView = function() {
         _this.redraw();
         if (_this.cursor.view.point.y < _this.scrollOffset.y) {
-          mainCtx.translate(0, _this.scrollOffset.y - _this.cursor.view.point.y);
+          _this.mainCtx.translate(0, _this.scrollOffset.y - _this.cursor.view.point.y);
           _this.scrollOffset.y = _this.cursor.view.point.y;
           return _this.redraw();
         } else if (_this.cursor.view.point.y > (_this.scrollOffset.y + main.height)) {
-          mainCtx.translate(0, (_this.scrollOffset.y + main.height) - _this.cursor.view.point.y);
+          _this.mainCtx.translate(0, (_this.scrollOffset.y + main.height) - _this.cursor.view.point.y);
           _this.scrollOffset.y = _this.cursor.view.point.y - main.height;
           return _this.redraw();
         }
@@ -1996,7 +2007,7 @@
             }
             moveBlockTo(_this.selection, null);
             _this.selection.view.compute();
-            _this.selection.view.draw(dragCtx);
+            _this.selection.view.draw(_this.dragCtx);
             if (selectionInPalette) {
               fixedDest = new draw.Point(rect.x - PALETTE_WIDTH, rect.y);
             } else {
@@ -2021,7 +2032,7 @@
             _this.redraw();
           }
           if (highlight != null) {
-            highlight.view.dropHighlightReigon.fill(mainCtx, '#fff');
+            highlight.view.dropHighlightReigon.fill(_this.mainCtx, '#fff');
           }
           return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
         }
@@ -2076,7 +2087,7 @@
             }
           }
           drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(0px, 0px)";
-          dragCtx.clearRect(0, 0, drag.width, drag.height);
+          _this.dragCtx.clearRect(0, 0, drag.width, drag.height);
           if (highlight != null) {
             moveCursorTo(_this.selection.end);
           }
@@ -2093,9 +2104,9 @@
           point = getPointFromEvent(event);
           point.add(-_this.scrollOffset.x, -_this.scrollOffset.y);
           rect = getRectFromPoints(new draw.Point(_this.lassoAnchor.x - _this.scrollOffset.x, _this.lassoAnchor.y - _this.scrollOffset.y), point);
-          dragCtx.clearRect(0, 0, drag.width, drag.height);
-          dragCtx.strokeStyle = '#00f';
-          return dragCtx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          _this.dragCtx.clearRect(0, 0, drag.width, drag.height);
+          _this.dragCtx.strokeStyle = '#00f';
+          return _this.dragCtx.strokeRect(rect.x, rect.y, rect.width, rect.height);
         }
       });
       track.addEventListener('mouseup', function(event) {
@@ -2188,7 +2199,7 @@
             lastLassoed.insert(_this.lassoSegment.end);
             _this.redraw();
           }
-          dragCtx.clearRect(0, 0, drag.width, drag.height);
+          _this.dragCtx.clearRect(0, 0, drag.width, drag.height);
           if (_this.lassoSegment != null) {
             moveCursorTo(_this.lassoSegment.end);
           }
@@ -2200,13 +2211,13 @@
         var end, start;
         _this.editedText.value = _this.hiddenInput.value;
         _this.redraw();
-        start = _this.editedText.view.bounds[_editedInputLine].x + mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionStart)).width;
-        end = _this.editedText.view.bounds[_editedInputLine].x + mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionEnd)).width;
+        start = _this.editedText.view.bounds[_editedInputLine].x + _this.mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionStart)).width;
+        end = _this.editedText.view.bounds[_editedInputLine].x + _this.mainCtx.measureText(_this.hiddenInput.value.slice(0, _this.hiddenInput.selectionEnd)).width;
         if (start === end) {
-          return mainCtx.strokeRect(start, _this.editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT);
+          return _this.mainCtx.strokeRect(start, _this.editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT);
         } else {
-          mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3';
-          return mainCtx.fillRect(start, _this.editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT);
+          _this.mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3';
+          return _this.mainCtx.fillRect(start, _this.editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT);
         }
       };
       setTextInputFocus = function(focus) {
@@ -2265,11 +2276,11 @@
         }), 0);
       };
       setTextInputHead = function(point) {
-        textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x) / mainCtx.measureText(' ').width);
+        textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x) / _this.mainCtx.measureText(' ').width);
         return _this.hiddenInput.setSelectionRange(Math.min(textInputAnchor, textInputHead), Math.max(textInputAnchor, textInputHead));
       };
       setTextInputAnchor = function(point) {
-        textInputAnchor = textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x - PADDING) / mainCtx.measureText(' ').width);
+        textInputAnchor = textInputHead = Math.round((point.x - _this.focus.view.bounds[_editedInputLine].x - PADDING) / _this.mainCtx.measureText(' ').width);
         return _this.hiddenInput.setSelectionRange(textInputAnchor, textInputHead);
       };
       track.addEventListener('mousemove', function(event) {
@@ -2290,14 +2301,14 @@
         if (event.wheelDelta > 0) {
           if (_this.scrollOffset.y >= 100) {
             _this.scrollOffset.add(0, -100);
-            mainCtx.translate(0, 100);
+            _this.mainCtx.translate(0, 100);
           } else {
-            mainCtx.translate(0, _this.scrollOffset.y);
+            _this.mainCtx.translate(0, _this.scrollOffset.y);
             _this.scrollOffset.y = 0;
           }
         } else {
           _this.scrollOffset.add(0, 100);
-          mainCtx.translate(0, -100);
+          _this.mainCtx.translate(0, -100);
         }
         return _this.redraw();
       });
@@ -2310,6 +2321,104 @@
 
     Editor.prototype.getValue = function() {
       return this.tree.toString();
+    };
+
+    Editor.prototype.performMeltAnimation = function() {
+      var count, head, state, textElements, tick, translationVectors,
+        _this = this;
+      this.redraw();
+      textElements = [];
+      translationVectors = [];
+      head = this.tree.start;
+      state = {
+        x: 0,
+        y: 0,
+        indent: 0
+      };
+      while (head !== this.tree.end) {
+        if (head.type === 'text') {
+          translationVectors.push(head.view.computePlaintextTranslationVector(state, this.mainCtx));
+          textElements.push(head);
+        } else if (head.type === 'newline') {
+          state.y += FONT_SIZE;
+          state.x = state.indent * this.mainCtx.measureText(' ').width;
+        } else if (head.type === 'indentStart') {
+          state.indent += head.indent.depth;
+        } else if (head.type === 'indentEnd') {
+          state.indent -= head.indent.depth;
+        }
+        head = head.next;
+      }
+      count = 0;
+      tick = function() {
+        var element, i, _i, _len, _results;
+        console.log('ticking');
+        count += 1;
+        if (count < ANIMATION_FRAME_RATE) {
+          setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
+        }
+        _this.clear();
+        _this.mainCtx.globalAlpha = 1 - count / ANIMATION_FRAME_RATE;
+        _this.tree.view.draw(_this.mainCtx);
+        _this.mainCtx.globalAlpha = 1;
+        _results = [];
+        for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
+          element = textElements[i];
+          element.view.textElement.draw(_this.mainCtx);
+          _results.push(element.view.translate(new draw.Point(translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE)));
+        }
+        return _results;
+      };
+      return tick();
+    };
+
+    Editor.prototype.performFreezeAnimation = function() {
+      var count, head, state, textElements, tick, translationVectors,
+        _this = this;
+      this.redraw();
+      textElements = [];
+      translationVectors = [];
+      head = this.tree.start;
+      state = {
+        x: 0,
+        y: 0,
+        indent: 0
+      };
+      while (head !== this.tree.end) {
+        if (head.type === 'text') {
+          translationVectors.push(head.view.computePlaintextTranslationVector(state, this.mainCtx));
+          head.view.translate(translationVectors[translationVectors.length - 1]);
+          textElements.push(head);
+        } else if (head.type === 'newline') {
+          state.y += FONT_SIZE;
+          state.x = state.indent * this.mainCtx.measureText(' ').width;
+        } else if (head.type === 'indentStart') {
+          state.indent += head.indent.depth;
+        } else if (head.type === 'indentEnd') {
+          state.indent -= head.indent.depth;
+        }
+        head = head.next;
+      }
+      count = 0;
+      tick = function() {
+        var element, i, _i, _len, _results;
+        count += 1;
+        if (count <= ANIMATION_FRAME_RATE) {
+          setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
+        }
+        _this.clear();
+        _this.mainCtx.globalAlpha = count / ANIMATION_FRAME_RATE;
+        _this.tree.view.draw(_this.mainCtx);
+        _this.mainCtx.globalAlpha = 1;
+        _results = [];
+        for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
+          element = textElements[i];
+          element.view.textElement.draw(_this.mainCtx);
+          _results.push(element.view.translate(new draw.Point(-translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE)));
+        }
+        return _results;
+      };
+      return tick();
     };
 
     return Editor;
