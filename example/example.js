@@ -15,6 +15,7 @@
     editor.onChange = function() {
       return document.getElementById('out').value = editor.getValue();
     };
+    editor.onChange();
     document.getElementById('out').addEventListener('input', function() {
       try {
         return editor.setValue(this.value);

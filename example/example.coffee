@@ -40,6 +40,9 @@ window.onload = ->
   editor.onChange = ->
     document.getElementById('out').value = editor.getValue()
   
+  # Trigger immediately
+  editor.onChange()
+  
   # Update ICE Editor on textarea change
   document.getElementById('out').addEventListener 'input', ->
     try
