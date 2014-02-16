@@ -586,7 +586,7 @@ window.ICE = exports
 
 ## Magic constants
 PADDING = 5
-INDENT_SPACING = 10
+INDENT_SPACING = 15
 TOUNGE_HEIGHT = 10
 FONT_HEIGHT = 15
 EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * 2
@@ -1373,7 +1373,22 @@ exports.IceEditorChangeEvent = class IceEditorChangeEvent
 # to initialize an ICE editor in an element.
 
 exports.Editor = class Editor
-  constructor: (el, @paletteBlocks) ->
+  constructor: (wrapper, @paletteBlocks) ->
+
+    @el = document.createElement 'div'; @el.className = 'ice_editor'
+    wrapper.appendChild @el
+
+    @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
+    wrapper.appendChild @aceEl
+    
+    ###
+    @ace = ace.edit @aceEl
+    @ace.setTheme 'ace/theme/monokai'
+    @ace.getSession().setMode 'ace/mode/coffee'
+    ###
+
+    @aceEl.appendChild @ace = document.createElement 'textarea'
+    @ace.className = 'fullscreen_textarea'
 
     # ## Field declaration ##
     # (useful to have all in one place)
@@ -1422,23 +1437,25 @@ exports.Editor = class Editor
 
     offset = null
     highlight = null
+
+    @currentlyAnimating = false
     
     # ## DOM SETUP ##
 
     # The main canvas
-    main = document.createElement 'canvas'; main.className = 'canvas'
-    main.height = el.offsetHeight
-    main.width = el.offsetWidth - PALETTE_WIDTH
+    @main = document.createElement 'canvas'; @main.className = 'canvas'
+    @main.height = @el.offsetHeight
+    @main.width = @el.offsetWidth - PALETTE_WIDTH
 
     # The palette canvas
-    palette = document.createElement 'canvas'; palette.className = 'palette'
-    palette.height = el.offsetHeight
-    palette.width = PALETTE_WIDTH
+    @palette = document.createElement 'canvas'; @palette.className = 'palette'
+    @palette.height = @el.offsetHeight
+    @palette.width = PALETTE_WIDTH
 
     # The drag canvas
     drag = document.createElement 'canvas'; drag.className = 'drag'
-    drag.height = el.offsetHeight
-    drag.width = el.offsetWidth - PALETTE_WIDTH
+    drag.height = @el.offsetHeight
+    drag.width = @el.offsetWidth - PALETTE_WIDTH
 
     # The hidden input
     @hiddenInput = document.createElement 'input'; @hiddenInput.className = 'hidden_input'
@@ -1447,13 +1464,13 @@ exports.Editor = class Editor
     track = document.createElement 'div'; track.className = 'trackArea'
 
     # Append the children
-    for child in [main, palette, drag, track, @hiddenInput]
-      el.appendChild child
+    for child in [@main, @palette, drag, track, @hiddenInput]
+      @el.appendChild child
 
     # Get the contexts from each canvas
-    @mainCtx = main.getContext '2d'
+    @mainCtx = @main.getContext '2d'
     @dragCtx = drag.getContext '2d'
-    @paletteCtx = palette.getContext '2d'
+    @paletteCtx = @palette.getContext '2d'
 
     # The main context will be used for draw.js's text measurements (this is a bit of a hack)
     draw._setCTX @mainCtx
@@ -1462,7 +1479,7 @@ exports.Editor = class Editor
     # General-purpose methods that call the view (rendering functions)
     
     @clear = =>
-      @mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, main.width, main.height
+      @mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, @main.width, @main.height
     
     # ## Redraw ##
     # redraw does three main things: redraws the root tree (@tree)
@@ -1639,9 +1656,9 @@ exports.Editor = class Editor
         @scrollOffset.y = @cursor.view.point.y
 
         @redraw()
-      else if @cursor.view.point.y > (@scrollOffset.y + main.height)
-        @mainCtx.translate 0, (@scrollOffset.y + main.height) - @cursor.view.point.y
-        @scrollOffset.y = @cursor.view.point.y - main.height
+      else if @cursor.view.point.y > (@scrollOffset.y + @main.height)
+        @mainCtx.translate 0, (@scrollOffset.y + @main.height) - @cursor.view.point.y
+        @scrollOffset.y = @cursor.view.point.y - @main.height
 
         @redraw()
 
@@ -2432,6 +2449,9 @@ exports.Editor = class Editor
   # This will animate all the text elements from their current position to a position
   # that imitates plaintext.
   performMeltAnimation: ->
+    if @currentlyAnimating then return
+    else @currentlyAnimating = true
+
     @redraw()
 
     # First, we will need to get all the text elements which we will be animating.
@@ -2469,9 +2489,12 @@ exports.Editor = class Editor
       if count < ANIMATION_FRAME_RATE
         setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
+      @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)
+      @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
+
       @clear()
       
-      @mainCtx.globalAlpha = 1 - count / ANIMATION_FRAME_RATE
+      @mainCtx.globalAlpha = Math.max 0, 1 - 2 * count / ANIMATION_FRAME_RATE
 
       @tree.view.draw @mainCtx
 
@@ -2481,9 +2504,20 @@ exports.Editor = class Editor
         element.view.textElement.draw @mainCtx
         element.view.translate new draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
 
+      if count >= ANIMATION_FRAME_RATE
+        @ace.value = @getValue()
+        @el.style.display = 'none'
+        @aceEl.style.display = 'block'
+        @currentlyAnimating = false
+
     tick()
   
   performFreezeAnimation: ->
+    if @currentlyAnimating then return
+    else @currentlyAnimating = true
+
+    @setValue @ace.value
+
     @redraw()
     # First, we will need to get all the text elements which we will be animating.
     # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
@@ -2512,18 +2546,24 @@ exports.Editor = class Editor
 
       head = head.next
 
+    @aceEl.style.display = 'none'
+    @el.style.display = 'block'
+
     # We have now obtained the destination position for the animation; now we animate.
     count = 0
 
     tick = =>
       count += 1
       
-      if count <= ANIMATION_FRAME_RATE
+      if count < ANIMATION_FRAME_RATE
         setTimeout tick, 1000 / ANIMATION_FRAME_RATE
+
+      @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE)
+      @palette.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
       @clear()
       
-      @mainCtx.globalAlpha = count / ANIMATION_FRAME_RATE
+      @mainCtx.globalAlpha = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
       @tree.view.draw @mainCtx
 
@@ -2532,5 +2572,9 @@ exports.Editor = class Editor
       for element, i in textElements
         element.view.textElement.draw @mainCtx
         element.view.translate new draw.Point -translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE
+
+      if count is ANIMATION_FRAME_RATE
+        @redraw()
+        @currentlyAnimating = false
 
     tick()

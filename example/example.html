@@ -1,6 +1,7 @@
 <html>
   <head>
     <title>ICE Editor Demo</title>
+    <script src="http://d1n0x3qji82z53.cloudfront.net/src-min-noconflict/ace.js"></script>
     <script src="../vendor/underscore-min.js"></script>
     <script src="../vendor/coffee-script.js"></script>
     <script src="../js/draw.js"></script>
@@ -20,6 +21,7 @@
         z-index: 2
       }
       .palette {
+        z-index: 0;
         width: 300px;
         top: 0;
         left: 0;
@@ -27,7 +29,10 @@
       .palette, .canvas {
         border: 1px solid #000;
         background-color:#EEE;
+      }
+      .canvas {
         z-index: 1;
+        border-right: none;
       }
       .palette {
         background-color:#DDD;
@@ -40,11 +45,20 @@
         -webkit-user-select: none;
         user-select: none;
       }
-      #editor {
+      .ice_editor {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
         cursor: default;
         overflow: hidden;
         -webkit-user-select: none;
         user-select: none;
+      }
+      .fullscreen_textarea {
+        border: 1px solid black; padding: none;
+        height: 100%; width: 100%;
+        font-size: 15px;
+        line-height: 15px;
+        background-color: #EEE;
       }
       .trackArea {
         position: absolute;
@@ -64,6 +78,7 @@
         bottom: 0;
         right: 0;
         width: 900px;
+        background-color: #EEE;
       }
       #toolbar {
         position: absolute;

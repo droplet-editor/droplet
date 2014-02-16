@@ -686,7 +686,7 @@
 
   PADDING = 5;
 
-  INDENT_SPACING = 10;
+  INDENT_SPACING = 15;
 
   TOUNGE_HEIGHT = 10;
 
@@ -1364,10 +1364,24 @@
   })();
 
   exports.Editor = Editor = (function() {
-    function Editor(el, paletteBlocks) {
-      var child, deleteFromCursor, drag, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, main, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, palette, paletteBlock, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
+    function Editor(wrapper, paletteBlocks) {
+      var child, deleteFromCursor, drag, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, paletteBlock, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
         _this = this;
       this.paletteBlocks = paletteBlocks;
+      this.el = document.createElement('div');
+      this.el.className = 'ice_editor';
+      wrapper.appendChild(this.el);
+      this.aceEl = document.createElement('div');
+      this.aceEl.className = 'ice_ace';
+      wrapper.appendChild(this.aceEl);
+      /*
+      @ace = ace.edit @aceEl
+      @ace.setTheme 'ace/theme/monokai'
+      @ace.getSession().setMode 'ace/mode/coffee'
+      */
+
+      this.aceEl.appendChild(this.ace = document.createElement('textarea'));
+      this.ace.className = 'fullscreen_textarea';
       if (this.paletteBlocks == null) {
         this.paletteBlocks = [];
       }
@@ -1401,33 +1415,34 @@
       this.scrollOffset = new draw.Point(0, 0);
       offset = null;
       highlight = null;
-      main = document.createElement('canvas');
-      main.className = 'canvas';
-      main.height = el.offsetHeight;
-      main.width = el.offsetWidth - PALETTE_WIDTH;
-      palette = document.createElement('canvas');
-      palette.className = 'palette';
-      palette.height = el.offsetHeight;
-      palette.width = PALETTE_WIDTH;
+      this.currentlyAnimating = false;
+      this.main = document.createElement('canvas');
+      this.main.className = 'canvas';
+      this.main.height = this.el.offsetHeight;
+      this.main.width = this.el.offsetWidth - PALETTE_WIDTH;
+      this.palette = document.createElement('canvas');
+      this.palette.className = 'palette';
+      this.palette.height = this.el.offsetHeight;
+      this.palette.width = PALETTE_WIDTH;
       drag = document.createElement('canvas');
       drag.className = 'drag';
-      drag.height = el.offsetHeight;
-      drag.width = el.offsetWidth - PALETTE_WIDTH;
+      drag.height = this.el.offsetHeight;
+      drag.width = this.el.offsetWidth - PALETTE_WIDTH;
       this.hiddenInput = document.createElement('input');
       this.hiddenInput.className = 'hidden_input';
       track = document.createElement('div');
       track.className = 'trackArea';
-      _ref = [main, palette, drag, track, this.hiddenInput];
+      _ref = [this.main, this.palette, drag, track, this.hiddenInput];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         child = _ref[_i];
-        el.appendChild(child);
+        this.el.appendChild(child);
       }
-      this.mainCtx = main.getContext('2d');
+      this.mainCtx = this.main.getContext('2d');
       this.dragCtx = drag.getContext('2d');
-      this.paletteCtx = palette.getContext('2d');
+      this.paletteCtx = this.palette.getContext('2d');
       draw._setCTX(this.mainCtx);
       this.clear = function() {
-        return _this.mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, main.width, main.height);
+        return _this.mainCtx.clearRect(_this.scrollOffset.x, _this.scrollOffset.y, _this.main.width, _this.main.height);
       };
       this.redraw = function() {
         var float, view, _j, _k, _len1, _len2, _ref1, _ref2, _results;
@@ -1593,9 +1608,9 @@
           _this.mainCtx.translate(0, _this.scrollOffset.y - _this.cursor.view.point.y);
           _this.scrollOffset.y = _this.cursor.view.point.y;
           return _this.redraw();
-        } else if (_this.cursor.view.point.y > (_this.scrollOffset.y + main.height)) {
-          _this.mainCtx.translate(0, (_this.scrollOffset.y + main.height) - _this.cursor.view.point.y);
-          _this.scrollOffset.y = _this.cursor.view.point.y - main.height;
+        } else if (_this.cursor.view.point.y > (_this.scrollOffset.y + _this.main.height)) {
+          _this.mainCtx.translate(0, (_this.scrollOffset.y + _this.main.height) - _this.cursor.view.point.y);
+          _this.scrollOffset.y = _this.cursor.view.point.y - _this.main.height;
           return _this.redraw();
         }
       };
@@ -2329,6 +2344,11 @@
     Editor.prototype.performMeltAnimation = function() {
       var count, head, state, textElements, tick, translationVectors,
         _this = this;
+      if (this.currentlyAnimating) {
+        return;
+      } else {
+        this.currentlyAnimating = true;
+      }
       this.redraw();
       textElements = [];
       translationVectors = [];
@@ -2354,23 +2374,29 @@
       }
       count = 0;
       tick = function() {
-        var element, i, _i, _len, _results;
+        var element, i, _i, _len;
         console.log('ticking');
         count += 1;
         if (count < ANIMATION_FRAME_RATE) {
           setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
         }
+        _this.main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE);
+        _this.palette.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
         _this.clear();
-        _this.mainCtx.globalAlpha = 1 - count / ANIMATION_FRAME_RATE;
+        _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * count / ANIMATION_FRAME_RATE);
         _this.tree.view.draw(_this.mainCtx);
         _this.mainCtx.globalAlpha = 1;
-        _results = [];
         for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
           element = textElements[i];
           element.view.textElement.draw(_this.mainCtx);
-          _results.push(element.view.translate(new draw.Point(translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE)));
+          element.view.translate(new draw.Point(translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE));
         }
-        return _results;
+        if (count >= ANIMATION_FRAME_RATE) {
+          _this.ace.value = _this.getValue();
+          _this.el.style.display = 'none';
+          _this.aceEl.style.display = 'block';
+          return _this.currentlyAnimating = false;
+        }
       };
       return tick();
     };
@@ -2378,6 +2404,12 @@
     Editor.prototype.performFreezeAnimation = function() {
       var count, head, state, textElements, tick, translationVectors,
         _this = this;
+      if (this.currentlyAnimating) {
+        return;
+      } else {
+        this.currentlyAnimating = true;
+      }
+      this.setValue(this.ace.value);
       this.redraw();
       textElements = [];
       translationVectors = [];
@@ -2402,24 +2434,30 @@
         }
         head = head.next;
       }
+      this.aceEl.style.display = 'none';
+      this.el.style.display = 'block';
       count = 0;
       tick = function() {
-        var element, i, _i, _len, _results;
+        var element, i, _i, _len;
         count += 1;
-        if (count <= ANIMATION_FRAME_RATE) {
+        if (count < ANIMATION_FRAME_RATE) {
           setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
         }
+        _this.main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE);
+        _this.palette.style.opacity = Math.max(0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE));
         _this.clear();
-        _this.mainCtx.globalAlpha = count / ANIMATION_FRAME_RATE;
+        _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE));
         _this.tree.view.draw(_this.mainCtx);
         _this.mainCtx.globalAlpha = 1;
-        _results = [];
         for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
           element = textElements[i];
           element.view.textElement.draw(_this.mainCtx);
-          _results.push(element.view.translate(new draw.Point(-translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE)));
+          element.view.translate(new draw.Point(-translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE));
         }
-        return _results;
+        if (count === ANIMATION_FRAME_RATE) {
+          _this.redraw();
+          return _this.currentlyAnimating = false;
+        }
       };
       return tick();
     };
