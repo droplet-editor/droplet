@@ -95,6 +95,7 @@ DROP_AREA_HEIGHT = <span class="hljs-number">30</span>
 TAB_WIDTH = <span class="hljs-number">15</span>
 TAB_HEIGHT = <span class="hljs-number">5</span>
 TAB_OFFSET = <span class="hljs-number">10</span>
+SOCKET_DROP_PADDING = <span class="hljs-number">3</span>
 
 <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BoundingBoxState</span></span>
   <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
@@ -2091,7 +2092,8 @@ We have no drop area if we are filled by a block
             
             <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
     <span class="hljs-keyword">unless</span> <span class="hljs-property">@block</span>.content()?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'block'</span>
-      (<span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle()).copy <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>]
+      (<span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle()).copy <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>]
+      <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@dropArea</span>.x - SOCKET_DROP_PADDING, <span class="hljs-property">@dropArea</span>.y - SOCKET_DROP_PADDING, <span class="hljs-property">@dropArea</span>.width + SOCKET_DROP_PADDING * <span class="hljs-number">2</span>, <span class="hljs-property">@dropArea</span>.height + SOCKET_DROP_PADDING * <span class="hljs-number">2</span>
 
     <span class="hljs-keyword">super</span></pre></div></div>
             

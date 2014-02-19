@@ -19,6 +19,7 @@ DROP_AREA_HEIGHT = 30
 TAB_WIDTH = 15
 TAB_HEIGHT = 5
 TAB_OFFSET = 10
+SOCKET_DROP_PADDING = 3
 
 class BoundingBoxState
   constructor: (point) ->
@@ -693,7 +694,8 @@ class SocketView extends IceView
   # (as we are not droppable).
   computePath: ->
     unless @block.content()?.type is 'block'
-      (@dropHighlightReigon = @dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
+      (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
+      @dropHighlightReigon = new draw.Rectangle @dropArea.x - SOCKET_DROP_PADDING, @dropArea.y - SOCKET_DROP_PADDING, @dropArea.width + SOCKET_DROP_PADDING * 2, @dropArea.height + SOCKET_DROP_PADDING * 2
 
     super
   

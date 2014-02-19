@@ -11,6 +11,7 @@ PALETTE_WIDTH = 300
 MIN_DRAG_DISTANCE = 5
 FONT_SIZE = 15
 ANIMATION_FRAME_RATE = 50 # FPS
+SCROLL_INTERVAL = 50
 
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->
@@ -53,6 +54,7 @@ exports.Editor = class Editor
     @editedText = null # The focused textToken, if such thing exists (associated with @focus).
     @handwritten = false # Are we editing a handwritten line?
     @hiddenInput = null
+    @ephemeralOldFocusValue = ""
 
     @isEditingText = => @hiddenInput is document.activeElement
 
@@ -212,8 +214,10 @@ exports.Editor = class Editor
 
             handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
             
-            console.log 'successfully parsed'
             newBlock.moveTo parent
+
+            # Elminate gratuitous Segment wrapper
+            newBlock.remove()
       
       # We have done some modifications, so we must redraw.
       @redraw()
@@ -221,8 +225,23 @@ exports.Editor = class Editor
     moveBlockTo = (block, target) =>
       parent = block.start.prev
       while parent? and (parent.type is 'newline' or (parent.type is 'segmentStart' and parent.segment isnt @tree) or parent.type is 'cursor') then parent = parent.prev
+      
+      # Check to see if this is a floating block.
+      console.log @floatingBlocks
+      for float in @floatingBlocks
+        if block is float.block
+          @undoStack.push
+            type: 'floatingBlockMove'
+            block: block
+            position: float.position
 
+        block.moveTo target
+        if @onChange? then @onChange new IceEditorChangeEvent block, target
+
+        return
+      
       @undoStack.push
+        type: 'blockMove'
         block: block
         target: if parent? then (switch parent.type
           when 'indentStart', 'indentEnd' then parent.indent
@@ -237,49 +256,86 @@ exports.Editor = class Editor
     @undo = =>
       # If the undo stack is empty, give up.
       unless @undoStack.length > 0 then return
-
-      operation = lastOperation = target: null
+    
+      # Otherwise, pop from the stack.
+      operation = lastOperation = @undoStack.pop()
       
-      until operation.target? or operation.block isnt lastOperation.block
-        # Otherwise, pop from the undo stack
-        operation = @undoStack.pop()
+      if operation.type is 'blockMove'
+        for float, i in @floatingBlocks
+          if operation.block is float.block
+            @floatingBlocks.splice i, 1
 
-        unless operation? then break
-        
-        # Simulate dropping the block into its target
-        if operation.target? then switch operation.target.type
-          when 'indent'
-            head = operation.target.end.prev
-            while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
-
-            if head.type is 'newline'
-              # There's already a newline here.
-              operation.block.moveTo operation.target.start.next
-            else
-              # An insert drop signifies that we want to drop the block at the start of the indent
-              operation.block.moveTo operation.target.start.insert new NewlineToken()
-
-          when 'block'
-            # A block drop signifies that we want to drop the block after (the end of) the block.
-            operation.block.moveTo operation.target.end.insert new NewlineToken()
-
-          when 'socket'
-            # Remove any previously occupying block or text
-            if operation.target.content()? then operation.target.content().remove()
-
-            # Insert
-            operation.block.moveTo operation.target.start
+        while true # (this is for a wanted do-while syntax)
           
-          else
-            if operation.target is @tree
-              # We can also drop on the root tree (insert at the start of the program)
-              operation.block.moveTo @tree.start
+          # If we have reached the end of the stack (this will rarely occur),
+          # give up.
+          unless operation? then break
+          
+          # Simulate dropping the block into its target
+          if operation.target? then switch operation.target.type
+            when 'indent'
+              head = operation.target.end.prev
+              while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
 
-              # Don't insert a newline if it would create an empty line at the end of the file.
-              unless operation.block.end.next is @tree.end
-                operation.block.end.insert new NewlineToken()
-        else
-          operation.block.moveTo operation.target
+              if head.type is 'newline'
+                # There's already a newline here.
+                operation.block.moveTo operation.target.start.next
+              else
+                # An insert drop signifies that we want to drop the block at the start of the indent
+                operation.block.moveTo operation.target.start.insert new NewlineToken()
+
+            when 'block'
+              # A block drop signifies that we want to drop the block after (the end of) the block.
+              operation.block.moveTo operation.target.end.insert new NewlineToken()
+
+            when 'socket'
+              # Remove any previously occupying block or text
+              if operation.target.content()? then operation.target.content().remove()
+
+              # Insert
+              operation.block.moveTo operation.target.start
+            
+            else
+              if operation.target is @tree
+                # We can also drop on the root tree (insert at the start of the program)
+                operation.block.moveTo @tree.start
+
+                # Don't insert a newline if it would create an empty line at the end of the file.
+                unless operation.block.end.next is @tree.end
+                  operation.block.end.insert new NewlineToken()
+          else
+            operation.block.moveTo operation.target
+            
+          # We are done if we have actually reversed a block move,
+          # or if we are in a different operation.
+          if operation.type is 'floatingBlockMove'
+            console.log 'floatingBlockMove',  operation
+            operation.block.moveTo null
+
+            @floatingBlocks.push
+              position: operation.position
+              block: operation.block
+
+          if operation.target? or operation.type isnt 'blockMove' or operation.block isnt lastOperation.block then break
+          
+          # Otherwise, advance.
+          operation = @undoStack.pop()
+
+      else if operation.type is 'socketTextChange'
+        # Change the text of the desired socket.
+        operation.socket.content().value = operation.value
+
+      else if operation.type is 'floatingBlockMove'
+        for float, i in @floatingBlocks
+          if operation.block is float.block
+            @floatingBlocks.splice i, 1
+
+        console.log 'floatingBlockMove'
+        operation.block.moveTo null
+
+        @floatingBlocks.push
+          position: operation.position
+          block: operation.block
 
       @redraw()
 
@@ -731,12 +787,12 @@ exports.Editor = class Editor
           # If we have clicked something in the palette, the clone first.
           if selectionInPalette then @selection = @selection.clone()
 
+          # Move it to nowhere
+          moveBlockTo @selection, null
+
           # If we have clicked something floating, then delete it from the list of floating blocks
           for float, i in @floatingBlocks
             if float.block is @selection then @floatingBlocks.splice i, 1; break
-
-          # Move it to nowhere
-          moveBlockTo @selection, null
 
           # Draw it in the drag canvas
           @selection.view.compute()
@@ -1054,8 +1110,16 @@ exports.Editor = class Editor
         # Fire the onchange handler
         if @onChange? then @onChange new IceEditorChangeEvent @focus, focus
 
+        if @ephemeralOldFocusValue isnt @focus.toString()
+          @undoStack.push
+            type: 'socketTextChange'
+            socket: @focus
+            value: @ephemeralOldFocusValue
+
       # Literally set the focus
       @focus = focus
+      
+      @ephemeralOldFocusValue = @focus.toString()
       
       # If we just removed the focus, then we are done.
       if @focus is null then return
@@ -1125,16 +1189,16 @@ exports.Editor = class Editor
       @clear()
 
       if event.wheelDelta > 0
-        if @scrollOffset.y >= 100
-          @scrollOffset.add 0, -100
-          @mainCtx.translate 0, 100
+        if @scrollOffset.y >= SCROLL_INTERVAL
+          @scrollOffset.add 0, -SCROLL_INTERVAL
+          @mainCtx.translate 0, SCROLL_INTERVAL
         else
           # If we would go past the top of the file, just scroll to exactly the top of the file.
           @mainCtx.translate 0, @scrollOffset.y
           @scrollOffset.y = 0
       else
-        @scrollOffset.add 0, 100
-        @mainCtx.translate 0, -100
+        @scrollOffset.add 0, SCROLL_INTERVAL
+        @mainCtx.translate 0, -SCROLL_INTERVAL
 
       @redraw()
 

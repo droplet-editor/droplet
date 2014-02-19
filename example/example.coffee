@@ -2,20 +2,25 @@ window.onload = ->
   # Example palette
   window.editor = new ICE.Editor document.getElementById('editor'), (coffee.parse(paletteElement).next.block for paletteElement in [
     '''
-    for i in [1..10]
-      alert 'hello'
+    x = 'new value for x'
     '''
     '''
-    alert 'hello'
+    see 'hi!'
+    '''
+    '''
+    for item in list
+      see item
     '''
     '''
     if a is b
-      alert 'hi'
+      see 'a is b!'
     else
-      alert 'bye'
+      see 'a isnt b.'
     '''
     '''
-    a = b
+    (arg1, arg2) ->
+      see arg1
+      see arg2
     '''
     '''
     return 0
