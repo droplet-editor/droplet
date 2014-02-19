@@ -1475,10 +1475,55 @@
         return _results;
       };
       this.attemptReparse = function() {
-        try {
-          _this.tree = (coffee.parse(_this.getValue())).segment;
-          return _this.redraw();
-        } catch (_error) {}
+        var element, excludes, handwrittenBlock, head, newBlock, parent, reparseQueue, stack, _j, _k, _len1, _len2;
+        console.log('attempting a reparse.');
+        head = _this.tree.start;
+        stack = [];
+        excludes = [];
+        reparseQueue = [];
+        while (head !== _this.tree.end) {
+          switch (head.type) {
+            case 'blockStart':
+              stack.push(head.block);
+              break;
+            case 'indentStart':
+              stack.push(head.indent);
+              break;
+            case 'socketStart':
+              if (head.socket.handwritten && stack[stack.length - 1].type === 'block' && head.socket !== _this.focus) {
+                reparseQueue.push(stack[stack.length - 1]);
+              }
+              stack.push(head.socket);
+              break;
+            case 'cursor':
+              for (_j = 0, _len1 = stack.length; _j < _len1; _j++) {
+                element = stack[_j];
+                excludes.push(element);
+              }
+              break;
+            case 'blockEnd':
+            case 'socketEnd':
+            case 'indentEnd':
+              stack.pop();
+          }
+          head = head.next;
+        }
+        for (_k = 0, _len2 = reparseQueue.length; _k < _len2; _k++) {
+          handwrittenBlock = reparseQueue[_k];
+          if (__indexOf.call(excludes, handwrittenBlock) < 0) {
+            try {
+              console.log('trying');
+              parent = handwrittenBlock.start.prev;
+              newBlock = (coffee.parse(handwrittenBlock.toString())).segment;
+              handwrittenBlock.start.prev.append(handwrittenBlock.end.next);
+              handwrittenBlock.start.prev = null;
+              handwrittenBlock.end.next = null;
+              console.log('successfully parsed');
+              newBlock.moveTo(parent);
+            } catch (_error) {}
+          }
+        }
+        return _this.redraw();
       };
       moveBlockTo = function(block, target) {
         var parent;
@@ -1631,11 +1676,13 @@
         } else {
           head.insertBefore(_this.cursor);
         }
+        _this.attemptReparse();
         return scrollCursorIntoView();
       };
       moveCursorBefore = function(token) {
         _this.cursor.remove();
         token.insertBefore(_this.cursor);
+        _this.attemptReparse();
         return scrollCursorIntoView();
       };
       deleteFromCursor = function() {
@@ -2240,12 +2287,9 @@
       };
       setTextInputFocus = function(focus) {
         var depth, head, newParse, _ref2, _ref3;
-        console.log('changing focus', _this.focus, focus);
         if (_this.focus != null) {
           try {
-            console.log('trying', _this.focus.toString());
             newParse = coffee.parse(_this.focus.toString()).next;
-            console.log('here now', newParse);
             if (newParse.type === 'blockStart') {
               if (_this.focus.handwritten) {
                 newParse.block.moveTo(_this.focus.start.prev.block.start.prev);
@@ -2375,7 +2419,6 @@
       count = 0;
       tick = function() {
         var element, i, _i, _len;
-        console.log('ticking');
         count += 1;
         if (count < ANIMATION_FRAME_RATE) {
           setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);

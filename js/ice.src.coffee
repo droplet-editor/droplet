@@ -1518,11 +1518,63 @@ exports.Editor = class Editor
 
         # Draw it on the main context
         view.draw @mainCtx
-
+    
+    # ## attemptReparse ##
+    # This will be triggered by most cursor operations. It finds all handwritten blocks that do not contain the cursor,
+    # and attempts to replace them with the true-blockified representation of them.
     @attemptReparse = =>
-      try
-        @tree = (coffee.parse @getValue()).segment
-        @redraw()
+      console.log 'attempting a reparse.'
+      # Set up our linked-list parsing state
+      head = @tree.start; stack = []
+
+      # This will ultimately contain a list of blocks not to parse.
+      excludes = []
+      
+      # This will ultimately contain all non-reparsed handwritten lines.
+      reparseQueue = []
+
+      while head isnt @tree.end
+        switch head.type
+          when 'blockStart' then stack.push head.block
+          when 'indentStart' then stack.push head.indent
+          when 'socketStart'
+            # If we have just encountered the socket associated with a 
+            # handwritten block, push that handwritten block to the list of things that we may need
+            # to reparse.
+            if head.socket.handwritten and stack[stack.length - 1].type is 'block' and head.socket isnt @focus
+              reparseQueue.push stack[stack.length - 1]
+
+            stack.push head.socket
+          when 'cursor'
+            excludes.push element for element in stack
+          when 'blockEnd', 'socketEnd', 'indentEnd' then stack.pop()
+
+        head = head.next
+
+      # We have now assembled all the blocks that contain the cursor (at some level),
+      # and also all the handwritten blocks. We will reparse all the handwritten blocks
+      # that do not contain the cursor.
+
+      for handwrittenBlock in reparseQueue
+        unless handwrittenBlock in excludes
+          # To replace a block, we record its parent,
+          # splice it out, and splice the replacement in.
+          try
+            console.log 'trying'
+            parent = handwrittenBlock.start.prev
+            newBlock = (coffee.parse handwrittenBlock.toString()).segment
+
+            # Unfortunately moveTo handles whitepsace for us,
+            # which we do not want to do, so we must splice the block out ourselves.
+            handwrittenBlock.start.prev.append handwrittenBlock.end.next
+
+            handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
+            
+            console.log 'successfully parsed'
+            newBlock.moveTo parent
+      
+      # We have done some modifications, so we must redraw.
+      @redraw()
 
     moveBlockTo = (block, target) =>
       parent = block.start.prev
@@ -1681,6 +1733,10 @@ exports.Editor = class Editor
       else
         head.insertBefore @cursor
 
+      # We have moved the cursor, so it might now be possible
+      # to reparse some handwritten blocks. Try it.
+      @attemptReparse()
+
       scrollCursorIntoView()
     
     moveCursorBefore = (token) =>
@@ -1690,7 +1746,12 @@ exports.Editor = class Editor
       # Splice in
       token.insertBefore @cursor
 
+      # We have moved the cursor, so it might now be possible
+      # to reparse some handwritten blocks. Try it.
+      @attemptReparse()
+
       scrollCursorIntoView()
+
 
     deleteFromCursor = =>
       # Seek the block that we want to delete (i.e. the block that ends first before the cursor, if such thing exists)
@@ -2332,15 +2393,11 @@ exports.Editor = class Editor
         @mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
 
     setTextInputFocus = (focus) =>
-      console.log 'changing focus', @focus, focus
-
       # Deal with the previous focus
       if @focus?
         try
-          console.log 'trying', @focus.toString()
           # Attempt to reparse what's in the indent
           newParse = coffee.parse(@focus.toString()).next
-          console.log 'here now', newParse
           if newParse.type is 'blockStart'
             if @focus.handwritten
               newParse.block.moveTo @focus.start.prev.block.start.prev
@@ -2483,7 +2540,6 @@ exports.Editor = class Editor
     count = 0
 
     tick = =>
-      console.log 'ticking'
       count += 1
       
       if count < ANIMATION_FRAME_RATE
