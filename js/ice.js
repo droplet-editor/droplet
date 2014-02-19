@@ -1994,9 +1994,9 @@
         return hitTest(point, _this.tree.start);
       };
       hitTestFloating = function(point) {
-        var float, _k, _len2, _ref2;
+        var float, _k, _ref2;
         _ref2 = _this.floatingBlocks;
-        for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+        for (_k = _ref2.length - 1; _k >= 0; _k += -1) {
           float = _ref2[_k];
           if (hitTest(point, float.block.start) !== null) {
             return float.block;

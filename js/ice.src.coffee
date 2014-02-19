@@ -2008,7 +2008,7 @@ exports.Editor = class Editor
     hitTestRoot = (point) => hitTest point, @tree.start
     
     hitTestFloating = (point) =>
-      for float in @floatingBlocks
+      for float in @floatingBlocks by -1
         if hitTest(point, float.block.start) isnt null then return float.block
       return null
     
