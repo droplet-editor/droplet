@@ -191,7 +191,7 @@ token stream)</p>
     <span class="hljs-property">@editedText</span> = <span class="hljs-literal">null</span> <span class="hljs-comment"># The focused textToken, if such thing exists (associated with @focus).</span>
     <span class="hljs-property">@handwritten</span> = <span class="hljs-literal">false</span> <span class="hljs-comment"># Are we editing a handwritten line?</span>
     <span class="hljs-property">@hiddenInput</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@ephemeralOldFocusValue</span> = <span class="hljs-string">""</span>
+    <span class="hljs-property">@ephemeralOldFocusValue</span> = <span class="hljs-literal">null</span>
 
     <span class="hljs-property">@isEditingText</span> =<span class="hljs-function"> =&gt;</span> <span class="hljs-property">@hiddenInput</span> <span class="hljs-keyword">is</span> <span class="hljs-built_in">document</span>.activeElement
 
@@ -3705,7 +3705,8 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
             
             <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@focus</span> = focus
       
-      <span class="hljs-property">@ephemeralOldFocusValue</span> = <span class="hljs-property">@focus</span>.toString()</pre></div></div>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@focus</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@ephemeralOldFocusValue</span> = <span class="hljs-property">@focus</span>.toString()
+      <span class="hljs-keyword">else</span> <span class="hljs-property">@ephemeralOldFocusValue</span> = <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         

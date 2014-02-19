@@ -1407,7 +1407,7 @@ exports.Editor = class Editor
     @editedText = null # The focused textToken, if such thing exists (associated with @focus).
     @handwritten = false # Are we editing a handwritten line?
     @hiddenInput = null
-    @ephemeralOldFocusValue = ""
+    @ephemeralOldFocusValue = null
 
     @isEditingText = => @hiddenInput is document.activeElement
 
@@ -2472,7 +2472,8 @@ exports.Editor = class Editor
       # Literally set the focus
       @focus = focus
       
-      @ephemeralOldFocusValue = @focus.toString()
+      if @focus? then @ephemeralOldFocusValue = @focus.toString()
+      else @ephemeralOldFocusValue = null
       
       # If we just removed the focus, then we are done.
       if @focus is null then return

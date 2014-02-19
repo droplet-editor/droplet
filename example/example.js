@@ -3,7 +3,7 @@
     var paletteElement;
     window.editor = new ICE.Editor(document.getElementById('editor'), (function() {
       var _i, _len, _ref, _results;
-      _ref = ['x = \'new value for x\'', 'see \'hi!\'', 'for item in list\n  see item', 'if a is b\n  see \'a is b!\'\nelse\n  see \'a isnt b.\'', 'return 0', '(arg1, arg2) ->\n  see arg1\n  see arg2'];
+      _ref = ['x = \'new value for x\'', 'see \'hi!\'', 'for item in list\n  see item', 'if a is b\n  see \'a is b!\'\nelse\n  see \'a isnt b.\'', '(arg1, arg2) ->\n  see arg1\n  see arg2', 'return 0'];
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         paletteElement = _ref[_i];

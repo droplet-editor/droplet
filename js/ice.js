@@ -1400,7 +1400,7 @@
       this.editedText = null;
       this.handwritten = false;
       this.hiddenInput = null;
-      this.ephemeralOldFocusValue = "";
+      this.ephemeralOldFocusValue = null;
       this.isEditingText = function() {
         return _this.hiddenInput === document.activeElement;
       };
@@ -2363,7 +2363,11 @@
           }
         }
         _this.focus = focus;
-        _this.ephemeralOldFocusValue = _this.focus.toString();
+        if (_this.focus != null) {
+          _this.ephemeralOldFocusValue = _this.focus.toString();
+        } else {
+          _this.ephemeralOldFocusValue = null;
+        }
         if (_this.focus === null) {
           return;
         }
