@@ -1374,12 +1374,6 @@
       this.aceEl = document.createElement('div');
       this.aceEl.className = 'ice_ace';
       wrapper.appendChild(this.aceEl);
-      /*
-      @ace = ace.edit @aceEl
-      @ace.setTheme 'ace/theme/monokai'
-      @ace.getSession().setMode 'ace/mode/coffee'
-      */
-
       this.aceEl.appendChild(this.ace = document.createElement('textarea'));
       this.ace.className = 'fullscreen_textarea';
       if (this.paletteBlocks == null) {
@@ -1476,7 +1470,6 @@
       };
       this.attemptReparse = function() {
         var element, excludes, handwrittenBlock, head, newBlock, parent, reparseQueue, stack, _j, _k, _len1, _len2;
-        console.log('attempting a reparse.');
         head = _this.tree.start;
         stack = [];
         excludes = [];
@@ -1703,7 +1696,7 @@
       moveCursorUp = function() {
         var depth, head, _ref1, _ref2;
         head = _this.cursor.prev.prev;
-        while (head !== null && !((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd' || _ref1 === 'segmentStart')) {
+        while (head !== null && !(((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd') || head === _this.tree.start)) {
           head = head.prev;
         }
         if (head === null) {
@@ -1716,17 +1709,15 @@
         }
         head = _this.cursor;
         depth = 0;
-        while (!(((_ref2 = head.type) === 'blockEnd' || _ref2 === 'indentEnd' || _ref2 === 'segmentEnd') && depth === 0)) {
+        while (!((((_ref2 = head.type) === 'blockEnd' || _ref2 === 'indentEnd') || head === _this.tree.end) && depth === 0)) {
           switch (head.type) {
             case 'blockStart':
             case 'indentStart':
-            case 'segmentStart':
             case 'socketStart':
               depth += 1;
               break;
             case 'blockEnd':
             case 'indentEnd':
-            case 'segmentEnd':
             case 'socketEnd':
               depth -= 1;
           }
@@ -1739,7 +1730,7 @@
       moveCursorDown = function() {
         var depth, head, _ref1, _ref2;
         head = _this.cursor.next.next;
-        while (head !== null && !((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd' || _ref1 === 'segmentEnd')) {
+        while (head !== null && !(((_ref1 = head.type) === 'newline' || _ref1 === 'indentEnd') || head === _this.tree.end)) {
           head = head.next;
         }
         if (head === null) {
@@ -1752,17 +1743,15 @@
         }
         head = _this.cursor;
         depth = 0;
-        while (!(((_ref2 = head.type) === 'blockEnd' || _ref2 === 'indentEnd' || _ref2 === 'segmentEnd') && depth === 0)) {
+        while (!((((_ref2 = head.type) === 'blockEnd' || _ref2 === 'indentEnd') || head === _this.tree.end) && depth === 0)) {
           switch (head.type) {
             case 'blockStart':
             case 'indentStart':
-            case 'segmentStart':
             case 'socketStart':
               depth += 1;
               break;
             case 'blockEnd':
             case 'indentEnd':
-            case 'segmentEnd':
             case 'socketEnd':
               depth -= 1;
           }

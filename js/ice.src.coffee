@@ -1380,12 +1380,6 @@ exports.Editor = class Editor
 
     @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
     wrapper.appendChild @aceEl
-    
-    ###
-    @ace = ace.edit @aceEl
-    @ace.setTheme 'ace/theme/monokai'
-    @ace.getSession().setMode 'ace/mode/coffee'
-    ###
 
     @aceEl.appendChild @ace = document.createElement 'textarea'
     @ace.className = 'fullscreen_textarea'
@@ -1523,7 +1517,6 @@ exports.Editor = class Editor
     # This will be triggered by most cursor operations. It finds all handwritten blocks that do not contain the cursor,
     # and attempts to replace them with the true-blockified representation of them.
     @attemptReparse = =>
-      console.log 'attempting a reparse.'
       # Set up our linked-list parsing state
       head = @tree.start; stack = []
 
@@ -1771,7 +1764,7 @@ exports.Editor = class Editor
     moveCursorUp = =>
       # Seek newline
       head = @cursor.prev.prev
-      while head isnt null and not (head.type in ['newline', 'indentEnd', 'segmentStart'])
+      while head isnt null and not (head.type in ['newline', 'indentEnd'] or head is @tree.start)
         head = head.prev
       
       # If head is null, we are at the beginning of the file.
@@ -1786,10 +1779,10 @@ exports.Editor = class Editor
       # Make sure that we're not inside a block only.
       # This requires finding the immediate parent of the cursor
       head = @cursor; depth = 0
-      until head.type in ['blockEnd', 'indentEnd', 'segmentEnd'] and depth is 0
+      until (head.type in ['blockEnd', 'indentEnd'] or head is @tree.end) and depth is 0
         switch head.type
-          when 'blockStart', 'indentStart', 'segmentStart', 'socketStart' then depth += 1
-          when 'blockEnd', 'indentEnd', 'segmentEnd', 'socketEnd' then depth -= 1
+          when 'blockStart', 'indentStart', 'socketStart' then depth += 1
+          when 'blockEnd', 'indentEnd', 'socketEnd' then depth -= 1
         head = head.next
       
       # If we're in a bad place, then move us further.
@@ -1798,7 +1791,7 @@ exports.Editor = class Editor
     moveCursorDown = =>
       # Seek newline or newline-like character.
       head = @cursor.next.next
-      while head isnt null and not (head.type in ['newline', 'indentEnd', 'segmentEnd'])
+      while head isnt null and not (head.type in ['newline', 'indentEnd'] or head is @tree.end)
         head = head.next
 
       # If head is null, we are at the end of the file.
@@ -1813,10 +1806,10 @@ exports.Editor = class Editor
       # Make sure that we're not inside a block only.
       # This requires finding the immediate parent of the cursor
       head = @cursor; depth = 0
-      until head.type in ['blockEnd', 'indentEnd', 'segmentEnd'] and depth is 0
+      until (head.type in ['blockEnd', 'indentEnd'] or head is @tree.end) and depth is 0
         switch head.type
-          when 'blockStart', 'indentStart', 'segmentStart', 'socketStart' then depth += 1
-          when 'blockEnd', 'indentEnd', 'segmentEnd', 'socketEnd' then depth -= 1
+          when 'blockStart', 'indentStart', 'socketStart' then depth += 1
+          when 'blockEnd', 'indentEnd', 'socketEnd' then depth -= 1
         head = head.next
       
       # If we're in a bad place, then move us further.
