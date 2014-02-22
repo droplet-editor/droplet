@@ -1015,7 +1015,7 @@
             height = Math.max(height, child.dimensions[line].height + (child.lineEnd === line ? TOUNGE_HEIGHT : 0));
           } else if (child.indented[line]) {
             width += child.dimensions[line].width + PADDING;
-            height = Math.max(height, child.dimensions[line].height + (child.indentEndsOn[line] ? TOUNGE_HEIGHT : 0));
+            height = Math.max(height, child.dimensions[line].height + (child.lineEnd === line && child.indentEndsOn[line] ? TOUNGE_HEIGHT : 0));
           } else {
             width += child.dimensions[line].width + PADDING;
             height = Math.max(height, child.dimensions[line].height + 2 * PADDING);
@@ -1030,7 +1030,7 @@
       var axis, child, cursor, indentChild, paddingLeft, _i, _len, _ref;
       axis = state.y + this.dimensions[line].height / 2;
       cursor = state.x;
-      if (this.lineChildren[line].length > 0 && this.lineChildren[line][0].indentEndsOn[line]) {
+      if (this.lineChildren[line].length > 0 && this.lineChildren[line][0].lineEnd === line && this.lineChildren[line][0].indentEndsOn[line]) {
         axis -= TOUNGE_HEIGHT / 2;
       }
       this.bounds[line] = new draw.Rectangle(state.x, state.y, this.dimensions[line].width, this.dimensions[line].height);
@@ -1049,7 +1049,7 @@
       if (this.lineChildren[line].length > 0 && !(this.lineChildren[line][0].indented[line] || this.lineChildren[line][0].block.type === 'indent')) {
         return this.pathWaypoints[line] = new PathWaypoint([new draw.Point(this.bounds[line].x, this.bounds[line].y), new draw.Point(this.bounds[line].x, this.bounds[line].bottom())], [new draw.Point(this.bounds[line].right(), this.bounds[line].y), new draw.Point(this.bounds[line].right(), this.bounds[line].bottom())]);
       } else if (this.lineChildren[line].length > 0) {
-        if (line === this.lineChildren[line][0].lineEnd && this.lineChildren[line][0].indentEndsOn[line] || line === this.lineChildren[line][0].lineEnd && this.lineChildren[line][0].block.type === 'indent') {
+        if (line === this.lineChildren[line][0].lineEnd && (this.lineChildren[line][0].indentEndsOn[line] || this.lineChildren[line][0].block.type === 'indent')) {
           indentChild = this.lineChildren[line][0];
           paddingLeft = this.lineChildren[line][0].block.type === 'indent' ? INDENT_SPACING : PADDING;
           if (this.lineChildren[line].length === 1) {

@@ -316,7 +316,7 @@ class BlockView extends IceView
           width += child.dimensions[line].width + PADDING
 
           # The height of a block on a line is the maximum height of a child block. Indented things do not use any padding.
-          height = Math.max height, child.dimensions[line].height + (if child.indentEndsOn[line] then TOUNGE_HEIGHT else 0)
+          height = Math.max height, child.dimensions[line].height + (if child.lineEnd is line and child.indentEndsOn[line] then TOUNGE_HEIGHT else 0)
 
         else
           width += child.dimensions[line].width + PADDING
@@ -338,7 +338,7 @@ class BlockView extends IceView
     axis = state.y + @dimensions[line].height / 2
     cursor = state.x
 
-    if @lineChildren[line].length > 0 and @lineChildren[line][0].indentEndsOn[line]
+    if @lineChildren[line].length > 0 and @lineChildren[line][0].lineEnd is line and @lineChildren[line][0].indentEndsOn[line]
       axis -= TOUNGE_HEIGHT / 2
     
     # Accept the bounds given by our parent.
