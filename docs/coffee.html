@@ -85,6 +85,21 @@ colors =
 
   text = text.split(<span class="hljs-string">'\n'</span>)
 
+  operatorPrecedences =
+    <span class="hljs-string">'||'</span>: <span class="hljs-number">1</span>
+    <span class="hljs-string">'&amp;&amp;'</span>: <span class="hljs-number">2</span>
+    <span class="hljs-string">'==='</span>: <span class="hljs-number">3</span>
+    <span class="hljs-string">'!=='</span>: <span class="hljs-number">3</span>
+    <span class="hljs-string">'&gt;'</span>: <span class="hljs-number">3</span>
+    <span class="hljs-string">'&lt;'</span>: <span class="hljs-number">3</span>
+    <span class="hljs-string">'&gt;='</span>: <span class="hljs-number">3</span>
+    <span class="hljs-string">'&lt;='</span>: <span class="hljs-number">3</span>
+    <span class="hljs-string">'+'</span>: <span class="hljs-number">4</span>
+    <span class="hljs-string">'-'</span>: <span class="hljs-number">4</span>
+    <span class="hljs-string">'*'</span>: <span class="hljs-number">5</span>
+    <span class="hljs-string">'/'</span>: <span class="hljs-number">5</span>
+    <span class="hljs-string">'%'</span>: <span class="hljs-number">6</span>
+
   markup = [
     {
       <span class="hljs-attribute">token</span>: rootSegment.start
@@ -153,7 +168,7 @@ colors =
           <span class="hljs-attribute">end</span>: end
         }
 
-  <span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(node)</span> -&gt;</span>
+  <span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(node, precedence = <span class="hljs-number">0</span>)</span> -&gt;</span>
     <span class="hljs-keyword">switch</span> node.constructor.name
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Block'</span>
         indent = <span class="hljs-keyword">new</span> ICE.Indent [], <span class="hljs-number">2</span>
@@ -163,22 +178,22 @@ colors =
           mark expr
 
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Op'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
+        block = <span class="hljs-keyword">new</span> ICE.Block [], operatorPrecedences[node.operator]
         block.color=colors.VALUE
         addMarkup block, node
 
-        mark node.first
-        <span class="hljs-keyword">if</span> node.second? <span class="hljs-keyword">then</span> mark node.second
+        mark node.first, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
+        <span class="hljs-keyword">if</span> node.second? <span class="hljs-keyword">then</span> mark node.second, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
       
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Value'</span>
-        mark node.base
+        mark node.base, precedence
       
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Literal'</span>
-        socket = <span class="hljs-keyword">new</span> ICE.Socket()
-        addMarkup socket, node
+        socket = <span class="hljs-keyword">new</span> ICE.Socket <span class="hljs-literal">null</span>, precedence
+        addMarkup socket, node, precedence
       
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Call'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
+        block = <span class="hljs-keyword">new</span> ICE.Block [], <span class="hljs-number">0</span>
         block.color=colors.COMMAND
         addMarkup block, node
 

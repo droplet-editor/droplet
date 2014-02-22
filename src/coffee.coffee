@@ -18,6 +18,21 @@ exports.mark = (nodes, text) ->
 
   text = text.split('\n')
 
+  operatorPrecedences =
+    '||': 1
+    '&&': 2
+    '===': 3
+    '!==': 3
+    '>': 3
+    '<': 3
+    '>=': 3
+    '<=': 3
+    '+': 4
+    '-': 4
+    '*': 5
+    '/': 5
+    '%': 6
+
   markup = [
     {
       token: rootSegment.start
@@ -86,7 +101,7 @@ exports.mark = (nodes, text) ->
           end: end
         }
 
-  mark = (node) ->
+  mark = (node, precedence = 0) ->
     switch node.constructor.name
       when 'Block'
         indent = new ICE.Indent [], 2
@@ -96,22 +111,22 @@ exports.mark = (nodes, text) ->
           mark expr
 
       when 'Op'
-        block = new ICE.Block []
+        block = new ICE.Block [], operatorPrecedences[node.operator]
         block.color=colors.VALUE
         addMarkup block, node
 
-        mark node.first
-        if node.second? then mark node.second
+        mark node.first, operatorPrecedences[node.operator] ? 0
+        if node.second? then mark node.second, operatorPrecedences[node.operator] ? 0
       
       when 'Value'
-        mark node.base
+        mark node.base, precedence
       
       when 'Literal'
-        socket = new ICE.Socket()
-        addMarkup socket, node
+        socket = new ICE.Socket null, precedence
+        addMarkup socket, node, precedence
       
       when 'Call'
-        block = new ICE.Block []
+        block = new ICE.Block [], 0
         block.color=colors.COMMAND
         addMarkup block, node
 

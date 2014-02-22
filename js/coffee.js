@@ -11,10 +11,25 @@
   exports = {};
 
   exports.mark = function(nodes, text) {
-    var addMarkup, getBounds, id, mark, markup, node, rootSegment, _i, _len;
+    var addMarkup, getBounds, id, mark, markup, node, operatorPrecedences, rootSegment, _i, _len;
     id = 1;
     rootSegment = new ICE.Segment([]);
     text = text.split('\n');
+    operatorPrecedences = {
+      '||': 1,
+      '&&': 2,
+      '===': 3,
+      '!==': 3,
+      '>': 3,
+      '<': 3,
+      '>=': 3,
+      '<=': 3,
+      '+': 4,
+      '-': 4,
+      '*': 5,
+      '/': 5,
+      '%': 6
+    };
     markup = [
       {
         token: rootSegment.start,
@@ -81,8 +96,11 @@
           };
       }
     };
-    mark = function(node) {
-      var arg, block, end, expr, indent, object, param, property, socket, start, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _results, _results1, _results2, _results3;
+    mark = function(node, precedence) {
+      var arg, block, end, expr, indent, object, param, property, socket, start, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _results, _results1, _results2, _results3;
+      if (precedence == null) {
+        precedence = 0;
+      }
       switch (node.constructor.name) {
         case 'Block':
           indent = new ICE.Indent([], 2);
@@ -96,27 +114,27 @@
           return _results;
           break;
         case 'Op':
-          block = new ICE.Block([]);
+          block = new ICE.Block([], operatorPrecedences[node.operator]);
           block.color = colors.VALUE;
           addMarkup(block, node);
-          mark(node.first);
+          mark(node.first, (_ref1 = operatorPrecedences[node.operator]) != null ? _ref1 : 0);
           if (node.second != null) {
-            return mark(node.second);
+            return mark(node.second, (_ref2 = operatorPrecedences[node.operator]) != null ? _ref2 : 0);
           }
           break;
         case 'Value':
-          return mark(node.base);
+          return mark(node.base, precedence);
         case 'Literal':
-          socket = new ICE.Socket();
-          return addMarkup(socket, node);
+          socket = new ICE.Socket(null, precedence);
+          return addMarkup(socket, node, precedence);
         case 'Call':
-          block = new ICE.Block([]);
+          block = new ICE.Block([], 0);
           block.color = colors.COMMAND;
           addMarkup(block, node);
-          _ref1 = node.args;
+          _ref3 = node.args;
           _results1 = [];
-          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-            arg = _ref1[_j];
+          for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
+            arg = _ref3[_j];
             _results1.push(mark(arg));
           }
           return _results1;
@@ -125,9 +143,9 @@
           block = new ICE.Block([]);
           block.color = colors.VALUE;
           addMarkup(block, node);
-          _ref2 = node.params;
-          for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
-            param = _ref2[_k];
+          _ref4 = node.params;
+          for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
+            param = _ref4[_k];
             mark(param);
           }
           return mark(node.body.unwrap());
@@ -176,10 +194,10 @@
           block = new ICE.Block([]);
           block.color = colors.VALUE;
           addMarkup(block, node);
-          _ref3 = node.objects;
+          _ref5 = node.objects;
           _results2 = [];
-          for (_l = 0, _len3 = _ref3.length; _l < _len3; _l++) {
-            object = _ref3[_l];
+          for (_l = 0, _len3 = _ref5.length; _l < _len3; _l++) {
+            object = _ref5[_l];
             _results2.push(mark(object));
           }
           return _results2;
@@ -220,10 +238,10 @@
             start: false
           });
           id += 1;
-          _ref4 = node.properties;
+          _ref6 = node.properties;
           _results3 = [];
-          for (_m = 0, _len4 = _ref4.length; _m < _len4; _m++) {
-            property = _ref4[_m];
+          for (_m = 0, _len4 = _ref6.length; _m < _len4; _m++) {
+            property = _ref6[_m];
             _results3.push(mark(property));
           }
           return _results3;

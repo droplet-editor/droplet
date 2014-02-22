@@ -11,11 +11,18 @@ exports = {}
 # two tokens, one start token and one end token. Everything between these tokens
 # is a block's content. Thus "tree" operations are linked-list
 # splices.
+#
+# To handle order-of-operations precedence, a block knows a @precedence, an integer.
+# When we drop block A into socket B then if and only if B.precedence > A.precedence does A
+# wrap itself in parentheses
 
 exports.Block = class Block
-  constructor: (contents) ->
+  constructor: (contents, @precedence = 0) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
+
+    @currentlyParenWrapped = false
+
     @type = 'block'
     @color = '#ddf'
 
@@ -78,6 +85,9 @@ exports.Block = class Block
   # This will also eliminate any empty lines left behind, and any empty Segments.
   # Whitespace in general is this function's responsibility.
   moveTo: (parent) ->
+
+    console.log @precedence, parent?.socket?.precedence
+
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.segment.remove()
@@ -99,6 +109,16 @@ exports.Block = class Block
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
     @start.prev = @end.next = null
+
+    # Check to see if we need to wrap ouselves in parentheses
+    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      unless @currentlyParenWrapped
+        @start.insert new TextToken '('
+        @end.insertBefore new TextToken ')'
+        @currentlyParenWrapped = true
+    else if @currentlyParenWrapped
+      @start.next.remove(); @end.prev.remove()
+      @currentlyParenWrapped = false
     
     # Splice ourselves into the requested parent
     if parent?
@@ -352,7 +372,7 @@ exports.Segment = class Segment
 # by the Controller.
 
 exports.Socket = class Socket
-  constructor: (content) ->
+  constructor: (content, @precedence = 0) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
     

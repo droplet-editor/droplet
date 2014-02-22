@@ -7,10 +7,12 @@
   exports = {};
 
   exports.Block = Block = (function() {
-    function Block(contents) {
+    function Block(contents, precedence) {
       var head, token, _i, _len;
+      this.precedence = precedence != null ? precedence : 0;
       this.start = new BlockStartToken(this);
       this.end = new BlockEndToken(this);
+      this.currentlyParenWrapped = false;
       this.type = 'block';
       this.color = '#ddf';
       this.selected = false;
@@ -73,7 +75,8 @@
     };
 
     Block.prototype.moveTo = function(parent) {
-      var first, last, _ref;
+      var first, last, _ref, _ref1;
+      console.log(this.precedence, parent != null ? (_ref = parent.socket) != null ? _ref.precedence : void 0 : void 0);
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.segment.remove();
       }
@@ -86,7 +89,7 @@
         while ((first != null) && (first.type === 'segmentStart' || first.type === 'cursor')) {
           first = first.prev;
         }
-        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd') && !(((_ref = first.prev) != null ? _ref.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
+        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd') && !(((_ref1 = first.prev) != null ? _ref1.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
           first.remove();
         } else if ((last != null) && (last.type === 'newline') && ((first == null) || first.type === 'newline')) {
           last.remove();
@@ -99,6 +102,17 @@
         this.end.next.prev = this.start.prev;
       }
       this.start.prev = this.end.next = null;
+      if ((parent != null ? parent.type : void 0) === 'socketStart' && parent.socket.precedence > this.precedence) {
+        if (!this.currentlyParenWrapped) {
+          this.start.insert(new TextToken('('));
+          this.end.insertBefore(new TextToken(')'));
+          this.currentlyParenWrapped = true;
+        }
+      } else if (this.currentlyParenWrapped) {
+        this.start.next.remove();
+        this.end.prev.remove();
+        this.currentlyParenWrapped = false;
+      }
       if (parent != null) {
         this.end.next = parent.next;
         if (parent.next != null) {
@@ -361,7 +375,8 @@
   })();
 
   exports.Socket = Socket = (function() {
-    function Socket(content) {
+    function Socket(content, precedence) {
+      this.precedence = precedence != null ? precedence : 0;
       this.start = new SocketStartToken(this);
       this.end = new SocketEndToken(this);
       if ((content != null) && (content.start != null)) {
