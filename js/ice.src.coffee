@@ -915,7 +915,7 @@ class BlockView extends IceView
           width += child.dimensions[line].width + PADDING
 
           # The height of a block on a line is the maximum height of a child block. Indented things do not use any padding.
-          height = Math.max height, child.dimensions[line].height
+          height = Math.max height, child.dimensions[line].height + (if child.indentEndsOn[line] then TOUNGE_HEIGHT else 0)
 
         else
           width += child.dimensions[line].width + PADDING
@@ -936,6 +936,9 @@ class BlockView extends IceView
     # Find the middle of this rectangle
     axis = state.y + @dimensions[line].height / 2
     cursor = state.x
+
+    if @lineChildren[line].length > 0 and @lineChildren[line][0].indentEndsOn[line]
+      axis -= TOUNGE_HEIGHT / 2
     
     # Accept the bounds given by our parent.
     @bounds[line] = new draw.Rectangle state.x, state.y, @dimensions[line].width, @dimensions[line].height
@@ -972,7 +975,7 @@ class BlockView extends IceView
     else if @lineChildren[line].length > 0
       # There is, however, the special case when a child on this line is indented, or is an indent.
 
-      if line is @lineChildren[line][0].lineEnd and @lineChildren[line][0].block.type is 'indent'
+      if line is @lineChildren[line][0].lineEnd and @lineChildren[line][0].indentEndsOn[line] or line is @lineChildren[line][0].lineEnd and @lineChildren[line][0].block.type is 'indent'
         # If the indent ends on this line, we draw the piece underneath it, and any 'G'-shape elements after it.
 
         # We name this for conveniency

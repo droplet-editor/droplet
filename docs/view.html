@@ -956,7 +956,7 @@ We add 10 if the indent ends, so as to draw the bottom of the mouth.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          height = Math.max height, child.dimensions[line].height
+            <div class="content"><div class='highlight'><pre>          height = Math.max height, child.dimensions[line].height + (<span class="hljs-keyword">if</span> child.indentEndsOn[line] <span class="hljs-keyword">then</span> TOUNGE_HEIGHT <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
 
         <span class="hljs-keyword">else</span>
           width += child.dimensions[line].width + PADDING</pre></div></div>
@@ -1012,7 +1012,10 @@ to later connect with the container polygon.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>    axis = state.y + <span class="hljs-property">@dimensions</span>[line].height / <span class="hljs-number">2</span>
-    cursor = state.x</pre></div></div>
+    cursor = state.x
+
+    <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indentEndsOn[line]
+      axis -= TOUNGE_HEIGHT / <span class="hljs-number">2</span></pre></div></div>
             
         </li>
         
@@ -1138,7 +1141,7 @@ to later connect with the container polygon.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-      <span class="hljs-keyword">if</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span></pre></div></div>
+      <span class="hljs-keyword">if</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indentEndsOn[line] <span class="hljs-keyword">or</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span></pre></div></div>
             
         </li>
         
