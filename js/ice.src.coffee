@@ -85,9 +85,6 @@ exports.Block = class Block
   # This will also eliminate any empty lines left behind, and any empty Segments.
   # Whitespace in general is this function's responsibility.
   moveTo: (parent) ->
-
-    console.log @precedence, parent?.socket?.precedence
-
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.segment.remove()
@@ -109,16 +106,6 @@ exports.Block = class Block
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
     @start.prev = @end.next = null
-
-    # Check to see if we need to wrap ouselves in parentheses
-    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
-      unless @currentlyParenWrapped
-        @start.insert new TextToken '('
-        @end.insertBefore new TextToken ')'
-        @currentlyParenWrapped = true
-    else if @currentlyParenWrapped
-      @start.next.remove(); @end.prev.remove()
-      @currentlyParenWrapped = false
     
     # Splice ourselves into the requested parent
     if parent?
@@ -127,6 +114,33 @@ exports.Block = class Block
 
       parent.next = @start
       @start.prev = parent
+
+    # Check to see if we need to wrap ouselves in parentheses
+    # To do this, we find our actual parent (not wrapping segment).
+    while parent? and parent.type is 'segmentStart' then parent = parent.prev
+    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      unless @currentlyParenWrapped
+        @start.insert new TextToken '('
+        @end.insertBefore new TextToken ')'
+        @currentlyParenWrapped = true
+    else if @currentlyParenWrapped
+      @start.next.remove(); @end.prev.remove()
+      @currentlyParenWrapped = false
+  
+  # ## checkParenWrap ##
+  # Wrap ourselves or unwrap in parentheses if necessary, otherwise do nothing.
+  checkParenWrap: ->
+    parent = @start.prev
+    # To do this, we find our actual parent (not wrapping segment).
+    while parent? and parent.type is 'segmentStart' then parent = parent.prev
+    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      unless @currentlyParenWrapped
+        @start.insert new TextToken '('
+        @end.insertBefore new TextToken ')'
+        @currentlyParenWrapped = true
+    else if @currentlyParenWrapped
+      @start.next.remove(); @end.prev.remove()
+      @currentlyParenWrapped = false
   
   # ## find ##
   # This one is mainly used for hit-testing during drag-and-drop by the Controller.
@@ -1432,7 +1446,7 @@ exports.Editor = class Editor
     @hiddenInput = null
     @ephemeralOldFocusValue = null
 
-    @isEditingText = => @hiddenInput is document.activeElement
+    @isEditingText = => @focus? and @hiddenInput is document.activeElement
 
     textInputAnchor = textInputHead = null # The selection anchor and head in the input
 
@@ -1580,7 +1594,6 @@ exports.Editor = class Editor
           # To replace a block, we record its parent,
           # splice it out, and splice the replacement in.
           try
-            console.log 'trying'
             parent = handwrittenBlock.start.prev
             newBlock = (coffee.parse handwrittenBlock.toString()).segment
 
@@ -1603,7 +1616,6 @@ exports.Editor = class Editor
       while parent? and (parent.type is 'newline' or (parent.type is 'segmentStart' and parent.segment isnt @tree) or parent.type is 'cursor') then parent = parent.prev
       
       # Check to see if this is a floating block.
-      console.log @floatingBlocks
       for float in @floatingBlocks
         if block is float.block
           @undoStack.push
@@ -1625,7 +1637,7 @@ exports.Editor = class Editor
           when 'socketStart', 'socketEnd' then parent.socket
           when 'segmentStart', 'segmentEnd' then parent.segment
           else parent) else null
-
+      
       block.moveTo target
       if @onChange? then @onChange new IceEditorChangeEvent block, target
 
@@ -1685,7 +1697,6 @@ exports.Editor = class Editor
           # We are done if we have actually reversed a block move,
           # or if we are in a different operation.
           if operation.type is 'floatingBlockMove'
-            console.log 'floatingBlockMove',  operation
             operation.block.moveTo null
 
             @floatingBlocks.push
@@ -1706,7 +1717,6 @@ exports.Editor = class Editor
           if operation.block is float.block
             @floatingBlocks.splice i, 1
 
-        console.log 'floatingBlockMove'
         operation.block.moveTo null
 
         @floatingBlocks.push
@@ -1762,7 +1772,7 @@ exports.Editor = class Editor
         @redraw()
         setTextInputFocus newSocket
 
-      else if @cursor.prev.type is 'newline' or @cursor.prev.type is 'segmentStart'
+      else if @cursor.prev.type is 'newline' or @cursor.prev is @tree.start
 
         moveBlockTo newBlock, @cursor.prev
 
@@ -2095,7 +2105,8 @@ exports.Editor = class Editor
               flag = true
               break
 
-          unless flag # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+          # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+          unless flag
             @lassoSegment.remove()
 
           @lassoSegment = null
@@ -2260,6 +2271,12 @@ exports.Editor = class Editor
                 # Don't insert a newline if it would create an empty line at the end of the file.
                 unless @selection.end.next is @tree.end
                   @selection.end.insert new NewlineToken()
+          
+          # In the special case that we have selected a single block
+          # and dropped it into a socket, we need to check for parenthesis
+          # wrapping.
+          if @selection is @lassoSegment and @lassoSegment.start.next.type is 'blockStart'
+            @lassoSegment.start.next.block.checkParenWrap()
 
         else
           # If we have dropped the block in nowhere, append it (and it's floating position) to @floatingBlocks.

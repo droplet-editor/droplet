@@ -75,8 +75,7 @@
     };
 
     Block.prototype.moveTo = function(parent) {
-      var first, last, _ref, _ref1;
-      console.log(this.precedence, parent != null ? (_ref = parent.socket) != null ? _ref.precedence : void 0 : void 0);
+      var first, last, _ref;
       while ((this.start.prev != null) && this.start.prev.type === 'segmentStart' && this.start.prev.segment.end === this.end.next) {
         this.start.prev.segment.remove();
       }
@@ -89,7 +88,7 @@
         while ((first != null) && (first.type === 'segmentStart' || first.type === 'cursor')) {
           first = first.prev;
         }
-        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd') && !(((_ref1 = first.prev) != null ? _ref1.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
+        if ((first != null) && (first.type === 'newline') && ((last == null) || last.type === 'newline' || last.type === 'indentEnd') && !(((_ref = first.prev) != null ? _ref.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
           first.remove();
         } else if ((last != null) && (last.type === 'newline') && ((first == null) || first.type === 'newline')) {
           last.remove();
@@ -102,24 +101,46 @@
         this.end.next.prev = this.start.prev;
       }
       this.start.prev = this.end.next = null;
-      if ((parent != null ? parent.type : void 0) === 'socketStart' && parent.socket.precedence > this.precedence) {
-        if (!this.currentlyParenWrapped) {
-          this.start.insert(new TextToken('('));
-          this.end.insertBefore(new TextToken(')'));
-          this.currentlyParenWrapped = true;
-        }
-      } else if (this.currentlyParenWrapped) {
-        this.start.next.remove();
-        this.end.prev.remove();
-        this.currentlyParenWrapped = false;
-      }
       if (parent != null) {
         this.end.next = parent.next;
         if (parent.next != null) {
           parent.next.prev = this.end;
         }
         parent.next = this.start;
-        return this.start.prev = parent;
+        this.start.prev = parent;
+      }
+      while ((parent != null) && parent.type === 'segmentStart') {
+        parent = parent.prev;
+      }
+      if ((parent != null ? parent.type : void 0) === 'socketStart' && parent.socket.precedence > this.precedence) {
+        if (!this.currentlyParenWrapped) {
+          this.start.insert(new TextToken('('));
+          this.end.insertBefore(new TextToken(')'));
+          return this.currentlyParenWrapped = true;
+        }
+      } else if (this.currentlyParenWrapped) {
+        this.start.next.remove();
+        this.end.prev.remove();
+        return this.currentlyParenWrapped = false;
+      }
+    };
+
+    Block.prototype.checkParenWrap = function() {
+      var parent;
+      parent = this.start.prev;
+      while ((parent != null) && parent.type === 'segmentStart') {
+        parent = parent.prev;
+      }
+      if ((parent != null ? parent.type : void 0) === 'socketStart' && parent.socket.precedence > this.precedence) {
+        if (!this.currentlyParenWrapped) {
+          this.start.insert(new TextToken('('));
+          this.end.insertBefore(new TextToken(')'));
+          return this.currentlyParenWrapped = true;
+        }
+      } else if (this.currentlyParenWrapped) {
+        this.start.next.remove();
+        this.end.prev.remove();
+        return this.currentlyParenWrapped = false;
       }
     };
 
@@ -1420,7 +1441,7 @@
       this.hiddenInput = null;
       this.ephemeralOldFocusValue = null;
       this.isEditingText = function() {
-        return _this.hiddenInput === document.activeElement;
+        return (_this.focus != null) && _this.hiddenInput === document.activeElement;
       };
       textInputAnchor = textInputHead = null;
       textInputSelecting = false;
@@ -1529,7 +1550,6 @@
           handwrittenBlock = reparseQueue[_k];
           if (__indexOf.call(excludes, handwrittenBlock) < 0) {
             try {
-              console.log('trying');
               parent = handwrittenBlock.start.prev;
               newBlock = (coffee.parse(handwrittenBlock.toString())).segment;
               handwrittenBlock.start.prev.append(handwrittenBlock.end.next);
@@ -1548,7 +1568,6 @@
         while ((parent != null) && (parent.type === 'newline' || (parent.type === 'segmentStart' && parent.segment !== _this.tree) || parent.type === 'cursor')) {
           parent = parent.prev;
         }
-        console.log(_this.floatingBlocks);
         _ref1 = _this.floatingBlocks;
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
           float = _ref1[_j];
@@ -1644,7 +1663,6 @@
               operation.block.moveTo(operation.target);
             }
             if (operation.type === 'floatingBlockMove') {
-              console.log('floatingBlockMove', operation);
               operation.block.moveTo(null);
               _this.floatingBlocks.push({
                 position: operation.position,
@@ -1666,7 +1684,6 @@
               _this.floatingBlocks.splice(i, 1);
             }
           }
-          console.log('floatingBlockMove');
           operation.block.moveTo(null);
           _this.floatingBlocks.push({
             position: operation.position,
@@ -1708,7 +1725,7 @@
           }
           _this.redraw();
           setTextInputFocus(newSocket);
-        } else if (_this.cursor.prev.type === 'newline' || _this.cursor.prev.type === 'segmentStart') {
+        } else if (_this.cursor.prev.type === 'newline' || _this.cursor.prev === _this.tree.start) {
           moveBlockTo(newBlock, _this.cursor.prev);
           newBlock.end.insert(new NewlineToken());
           _this.redraw();
@@ -2205,6 +2222,9 @@
                     _this.selection.end.insert(new NewlineToken());
                   }
                 }
+            }
+            if (_this.selection === _this.lassoSegment && _this.lassoSegment.start.next.type === 'blockStart') {
+              _this.lassoSegment.start.next.block.checkParenWrap();
             }
           } else {
             if (dest.x > 0) {

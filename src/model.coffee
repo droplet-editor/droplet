@@ -85,9 +85,6 @@ exports.Block = class Block
   # This will also eliminate any empty lines left behind, and any empty Segments.
   # Whitespace in general is this function's responsibility.
   moveTo: (parent) ->
-
-    console.log @precedence, parent?.socket?.precedence
-
     # Check for empty segments
     while @start.prev? and @start.prev.type is 'segmentStart' and @start.prev.segment.end is @end.next
       @start.prev.segment.remove()
@@ -109,16 +106,6 @@ exports.Block = class Block
     if @start.prev? then @start.prev.next = @end.next
     if @end.next? then @end.next.prev = @start.prev
     @start.prev = @end.next = null
-
-    # Check to see if we need to wrap ouselves in parentheses
-    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
-      unless @currentlyParenWrapped
-        @start.insert new TextToken '('
-        @end.insertBefore new TextToken ')'
-        @currentlyParenWrapped = true
-    else if @currentlyParenWrapped
-      @start.next.remove(); @end.prev.remove()
-      @currentlyParenWrapped = false
     
     # Splice ourselves into the requested parent
     if parent?
@@ -127,6 +114,33 @@ exports.Block = class Block
 
       parent.next = @start
       @start.prev = parent
+
+    # Check to see if we need to wrap ouselves in parentheses
+    # To do this, we find our actual parent (not wrapping segment).
+    while parent? and parent.type is 'segmentStart' then parent = parent.prev
+    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      unless @currentlyParenWrapped
+        @start.insert new TextToken '('
+        @end.insertBefore new TextToken ')'
+        @currentlyParenWrapped = true
+    else if @currentlyParenWrapped
+      @start.next.remove(); @end.prev.remove()
+      @currentlyParenWrapped = false
+  
+  # ## checkParenWrap ##
+  # Wrap ourselves or unwrap in parentheses if necessary, otherwise do nothing.
+  checkParenWrap: ->
+    parent = @start.prev
+    # To do this, we find our actual parent (not wrapping segment).
+    while parent? and parent.type is 'segmentStart' then parent = parent.prev
+    if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      unless @currentlyParenWrapped
+        @start.insert new TextToken '('
+        @end.insertBefore new TextToken ')'
+        @currentlyParenWrapped = true
+    else if @currentlyParenWrapped
+      @start.next.remove(); @end.prev.remove()
+      @currentlyParenWrapped = false
   
   # ## find ##
   # This one is mainly used for hit-testing during drag-and-drop by the Controller.
