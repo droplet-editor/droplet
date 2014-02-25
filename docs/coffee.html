@@ -115,8 +115,11 @@ colors =
     }
   ]
 
-  <span class="hljs-function"><span class="hljs-title">addMarkup</span> = <span class="hljs-params">(block, node)</span> -&gt;</span>
+  <span class="hljs-function"><span class="hljs-title">addMarkup</span> = <span class="hljs-params">(block, node, shouldParenWrap)</span> -&gt;</span>
     bounds = getBounds node
+
+    <span class="hljs-keyword">if</span> shouldParenWrap
+      bounds.start[<span class="hljs-number">1</span>]--; bounds.end[<span class="hljs-number">1</span>]++
 
     markup.push
       <span class="hljs-attribute">token</span>: block.start
@@ -168,11 +171,11 @@ colors =
           <span class="hljs-attribute">end</span>: end
         }
 
-  <span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(node, precedence = <span class="hljs-number">0</span>)</span> -&gt;</span>
+  <span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(node, precedence = <span class="hljs-number">0</span>, shouldParenWrap = <span class="hljs-literal">false</span>)</span> -&gt;</span>
     <span class="hljs-keyword">switch</span> node.constructor.name
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Block'</span>
         indent = <span class="hljs-keyword">new</span> ICE.Indent [], <span class="hljs-number">2</span>
-        addMarkup indent, node
+        addMarkup indent, node, shouldParenWrap
 
         <span class="hljs-keyword">for</span> expr <span class="hljs-keyword">in</span> node.expressions
           mark expr
@@ -180,7 +183,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Op'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block [], operatorPrecedences[node.operator]
         block.color=colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         mark node.first, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
         <span class="hljs-keyword">if</span> node.second? <span class="hljs-keyword">then</span> mark node.second, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
@@ -190,12 +193,12 @@ colors =
       
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Literal'</span>
         socket = <span class="hljs-keyword">new</span> ICE.Socket <span class="hljs-literal">null</span>, precedence
-        addMarkup socket, node, precedence
+        addMarkup socket, node, shouldParenWrap
       
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Call'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block [], <span class="hljs-number">0</span>
         block.color=colors.COMMAND
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         <span class="hljs-keyword">for</span> arg <span class="hljs-keyword">in</span> node.args
           mark arg
@@ -203,7 +206,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Code'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         <span class="hljs-keyword">for</span> param <span class="hljs-keyword">in</span> node.params
           mark param
@@ -216,7 +219,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Assign'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.COMMAND
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         mark node.variable
         mark node.value
@@ -224,7 +227,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'For'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.CONTROL
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         <span class="hljs-keyword">if</span> node.index? <span class="hljs-keyword">then</span> mark node.index
         <span class="hljs-keyword">if</span> node.source? <span class="hljs-keyword">then</span> mark node.source
@@ -236,7 +239,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Range'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
         
         mark node.from
         mark node.to
@@ -244,7 +247,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'If'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.CONTROL
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         mark node.condition
         mark node.body
@@ -253,7 +256,7 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Arr'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
         
         <span class="hljs-keyword">for</span> object <span class="hljs-keyword">in</span> node.objects
           mark object
@@ -261,21 +264,50 @@ colors =
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Return'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.RETURN
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         <span class="hljs-keyword">if</span> node.expression? <span class="hljs-keyword">then</span> mark node.expression
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Parens'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node
+      <span class="hljs-keyword">when</span> <span class="hljs-string">'Parens'</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <h1 id="-">#</h1>
 
-        <span class="hljs-keyword">if</span> node.body? <span class="hljs-keyword">then</span> mark node.body.unwrap()
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        block = <span class="hljs-keyword">new</span> ICE.Block []
+        block.color = colors.VALUE
+        addMarkup block, node, shouldParenWrap</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <h1 id="-">#</h1>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-built_in">console</span>.log <span class="hljs-string">'encountered parens'</span>
+
+        <span class="hljs-keyword">if</span> node.body? <span class="hljs-keyword">then</span> mark node.body.unwrap(), <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>
 
       <span class="hljs-keyword">when</span> <span class="hljs-string">'Obj'</span>
         block = <span class="hljs-keyword">new</span> ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         start = getBounds node.properties[<span class="hljs-number">0</span>]
         end = getBounds node.properties[node.properties.length - <span class="hljs-number">1</span>]
@@ -298,6 +330,17 @@ colors =
 
         <span class="hljs-keyword">for</span> property <span class="hljs-keyword">in</span> node.properties <span class="hljs-keyword">then</span> mark property
 
+      <span class="hljs-keyword">when</span> <span class="hljs-string">'Existence'</span>
+        block = <span class="hljs-keyword">new</span> ICE.Block []
+        block.color = colors.VALUE
+        addMarkup block, node, shouldParenWrap
+        
+        block.precedence = <span class="hljs-number">7</span>
+
+        mark node.expression, <span class="hljs-number">7</span>
+
+    <span class="hljs-keyword">if</span> block? <span class="hljs-keyword">and</span> shouldParenWrap
+      block.currentlyParenWrapped = <span class="hljs-literal">true</span>
 
   <span class="hljs-keyword">for</span> node <span class="hljs-keyword">in</span> nodes
     mark node
@@ -310,11 +353,11 @@ colors =
         </li>
         
         
-        <li id="section-2">
+        <li id="section-4">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-2">&#182;</a>
+                <a class="pilcrow" href="#section-4">&#182;</a>
               </div>
               <p>Sort markup by position in the text</p>
 
@@ -327,11 +370,11 @@ colors =
         </li>
         
         
-        <li id="section-3">
+        <li id="section-5">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-3">&#182;</a>
+                <a class="pilcrow" href="#section-5">&#182;</a>
               </div>
               <p>Record the markup on each line</p>
 
@@ -343,11 +386,11 @@ colors =
         </li>
         
         
-        <li id="section-4">
+        <li id="section-6">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-4">&#182;</a>
+                <a class="pilcrow" href="#section-6">&#182;</a>
               </div>
               <p>Run through each line and construct the linked list</p>
 
@@ -363,11 +406,11 @@ colors =
         </li>
         
         
-        <li id="section-5">
+        <li id="section-7">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-5">&#182;</a>
+                <a class="pilcrow" href="#section-7">&#182;</a>
               </div>
               <p>Append the newline token</p>
 
@@ -389,11 +432,11 @@ colors =
         </li>
         
         
-        <li id="section-6">
+        <li id="section-8">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-6">&#182;</a>
+                <a class="pilcrow" href="#section-8">&#182;</a>
               </div>
               <p>Insert necessary markup on this line</p>
 
@@ -440,11 +483,11 @@ colors =
         </li>
         
         
-        <li id="section-7">
+        <li id="section-9">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-7">&#182;</a>
+                <a class="pilcrow" href="#section-9">&#182;</a>
               </div>
               <p>Insert the last string on this line.</p>
 

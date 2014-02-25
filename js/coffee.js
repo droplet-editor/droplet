@@ -43,9 +43,13 @@
         start: false
       }
     ];
-    addMarkup = function(block, node) {
+    addMarkup = function(block, node, shouldParenWrap) {
       var bounds;
       bounds = getBounds(node);
+      if (shouldParenWrap) {
+        bounds.start[1]--;
+        bounds.end[1]++;
+      }
       markup.push({
         token: block.start,
         position: bounds.start,
@@ -96,71 +100,75 @@
           };
       }
     };
-    mark = function(node, precedence) {
-      var arg, block, end, expr, indent, object, param, property, socket, start, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _results, _results1, _results2, _results3;
+    mark = function(node, precedence, shouldParenWrap) {
+      var arg, block, end, expr, indent, object, param, property, socket, start, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
       if (precedence == null) {
         precedence = 0;
+      }
+      if (shouldParenWrap == null) {
+        shouldParenWrap = false;
       }
       switch (node.constructor.name) {
         case 'Block':
           indent = new ICE.Indent([], 2);
-          addMarkup(indent, node);
+          addMarkup(indent, node, shouldParenWrap);
           _ref = node.expressions;
-          _results = [];
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             expr = _ref[_i];
-            _results.push(mark(expr));
+            mark(expr);
           }
-          return _results;
           break;
         case 'Op':
           block = new ICE.Block([], operatorPrecedences[node.operator]);
           block.color = colors.VALUE;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           mark(node.first, (_ref1 = operatorPrecedences[node.operator]) != null ? _ref1 : 0);
           if (node.second != null) {
-            return mark(node.second, (_ref2 = operatorPrecedences[node.operator]) != null ? _ref2 : 0);
+            mark(node.second, (_ref2 = operatorPrecedences[node.operator]) != null ? _ref2 : 0);
           }
           break;
         case 'Value':
-          return mark(node.base, precedence);
+          mark(node.base, precedence);
+          break;
         case 'Literal':
           socket = new ICE.Socket(null, precedence);
-          return addMarkup(socket, node, precedence);
+          addMarkup(socket, node, shouldParenWrap);
+          break;
         case 'Call':
           block = new ICE.Block([], 0);
           block.color = colors.COMMAND;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           _ref3 = node.args;
-          _results1 = [];
           for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
             arg = _ref3[_j];
-            _results1.push(mark(arg));
+            mark(arg);
           }
-          return _results1;
           break;
         case 'Code':
           block = new ICE.Block([]);
           block.color = colors.VALUE;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           _ref4 = node.params;
           for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
             param = _ref4[_k];
             mark(param);
           }
-          return mark(node.body.unwrap());
+          mark(node.body.unwrap());
+          break;
         case 'Param':
-          return mark(node.name);
+          mark(node.name);
+          break;
         case 'Assign':
           block = new ICE.Block([]);
           block.color = colors.COMMAND;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           mark(node.variable);
-          return mark(node.value);
+          mark(node.value);
+          break;
         case 'For':
           block = new ICE.Block([]);
           block.color = colors.CONTROL;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           if (node.index != null) {
             mark(node.index);
           }
@@ -173,55 +181,59 @@
           if (node.from != null) {
             mark(node.from);
           }
-          return mark(node.body);
+          mark(node.body);
+          break;
         case 'Range':
           block = new ICE.Block([]);
           block.color = colors.VALUE;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           mark(node.from);
-          return mark(node.to);
+          mark(node.to);
+          break;
         case 'If':
           block = new ICE.Block([]);
           block.color = colors.CONTROL;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           mark(node.condition);
           mark(node.body);
           if (node.elseBody != null) {
-            return mark(node.elseBody);
+            mark(node.elseBody);
           }
           break;
         case 'Arr':
           block = new ICE.Block([]);
           block.color = colors.VALUE;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           _ref5 = node.objects;
-          _results2 = [];
           for (_l = 0, _len3 = _ref5.length; _l < _len3; _l++) {
             object = _ref5[_l];
-            _results2.push(mark(object));
+            mark(object);
           }
-          return _results2;
           break;
         case 'Return':
           block = new ICE.Block([]);
           block.color = colors.RETURN;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           if (node.expression != null) {
-            return mark(node.expression);
+            mark(node.expression);
           }
           break;
         case 'Parens':
-          block = new ICE.Block([]);
-          block.color = colors.VALUE;
-          addMarkup(block, node);
+          /*
+          block = new ICE.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap
+          */
+
+          console.log('encountered parens');
           if (node.body != null) {
-            return mark(node.body.unwrap());
+            mark(node.body.unwrap(), 0, true);
           }
           break;
         case 'Obj':
           block = new ICE.Block([]);
           block.color = colors.VALUE;
-          addMarkup(block, node);
+          addMarkup(block, node, shouldParenWrap);
           start = getBounds(node.properties[0]);
           end = getBounds(node.properties[node.properties.length - 1]);
           indent = new ICE.Indent([]);
@@ -239,12 +251,20 @@
           });
           id += 1;
           _ref6 = node.properties;
-          _results3 = [];
           for (_m = 0, _len4 = _ref6.length; _m < _len4; _m++) {
             property = _ref6[_m];
-            _results3.push(mark(property));
+            mark(property);
           }
-          return _results3;
+          break;
+        case 'Existence':
+          block = new ICE.Block([]);
+          block.color = colors.VALUE;
+          addMarkup(block, node, shouldParenWrap);
+          block.precedence = 7;
+          mark(node.expression, 7);
+      }
+      if ((block != null) && shouldParenWrap) {
+        return block.currentlyParenWrapped = true;
       }
     };
     for (_i = 0, _len = nodes.length; _i < _len; _i++) {

@@ -48,8 +48,11 @@ exports.mark = (nodes, text) ->
     }
   ]
 
-  addMarkup = (block, node) ->
+  addMarkup = (block, node, shouldParenWrap) ->
     bounds = getBounds node
+
+    if shouldParenWrap
+      bounds.start[1]--; bounds.end[1]++
 
     markup.push
       token: block.start
@@ -101,11 +104,11 @@ exports.mark = (nodes, text) ->
           end: end
         }
 
-  mark = (node, precedence = 0) ->
+  mark = (node, precedence = 0, shouldParenWrap = false) ->
     switch node.constructor.name
       when 'Block'
         indent = new ICE.Indent [], 2
-        addMarkup indent, node
+        addMarkup indent, node, shouldParenWrap
 
         for expr in node.expressions
           mark expr
@@ -113,7 +116,7 @@ exports.mark = (nodes, text) ->
       when 'Op'
         block = new ICE.Block [], operatorPrecedences[node.operator]
         block.color=colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         mark node.first, operatorPrecedences[node.operator] ? 0
         if node.second? then mark node.second, operatorPrecedences[node.operator] ? 0
@@ -123,12 +126,12 @@ exports.mark = (nodes, text) ->
       
       when 'Literal'
         socket = new ICE.Socket null, precedence
-        addMarkup socket, node, precedence
+        addMarkup socket, node, shouldParenWrap
       
       when 'Call'
         block = new ICE.Block [], 0
         block.color=colors.COMMAND
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         for arg in node.args
           mark arg
@@ -136,7 +139,7 @@ exports.mark = (nodes, text) ->
       when 'Code'
         block = new ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         for param in node.params
           mark param
@@ -149,7 +152,7 @@ exports.mark = (nodes, text) ->
       when 'Assign'
         block = new ICE.Block []
         block.color = colors.COMMAND
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         mark node.variable
         mark node.value
@@ -157,7 +160,7 @@ exports.mark = (nodes, text) ->
       when 'For'
         block = new ICE.Block []
         block.color = colors.CONTROL
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         if node.index? then mark node.index
         if node.source? then mark node.source
@@ -169,7 +172,7 @@ exports.mark = (nodes, text) ->
       when 'Range'
         block = new ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
         
         mark node.from
         mark node.to
@@ -177,7 +180,7 @@ exports.mark = (nodes, text) ->
       when 'If'
         block = new ICE.Block []
         block.color = colors.CONTROL
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         mark node.condition
         mark node.body
@@ -186,7 +189,7 @@ exports.mark = (nodes, text) ->
       when 'Arr'
         block = new ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
         
         for object in node.objects
           mark object
@@ -194,21 +197,24 @@ exports.mark = (nodes, text) ->
       when 'Return'
         block = new ICE.Block []
         block.color = colors.RETURN
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         if node.expression? then mark node.expression
 
       when 'Parens'
+        ###
         block = new ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
+        ###
+        console.log 'encountered parens'
 
-        if node.body? then mark node.body.unwrap()
+        if node.body? then mark node.body.unwrap(), 0, true
 
       when 'Obj'
         block = new ICE.Block []
         block.color = colors.VALUE
-        addMarkup block, node
+        addMarkup block, node, shouldParenWrap
 
         start = getBounds node.properties[0]
         end = getBounds node.properties[node.properties.length - 1]
@@ -231,6 +237,17 @@ exports.mark = (nodes, text) ->
 
         for property in node.properties then mark property
 
+      when 'Existence'
+        block = new ICE.Block []
+        block.color = colors.VALUE
+        addMarkup block, node, shouldParenWrap
+        
+        block.precedence = 7
+
+        mark node.expression, 7
+
+    if block? and shouldParenWrap
+      block.currentlyParenWrapped = true
 
   for node in nodes
     mark node

@@ -1772,7 +1772,7 @@
         return scrollCursorIntoView();
       };
       deleteFromCursor = function() {
-        var head;
+        var head, nextVisibleElement, _ref1;
         head = _this.cursor.prev;
         while (head !== null && head.type !== 'indentStart' && head.type !== 'blockEnd') {
           head = head.prev;
@@ -1783,6 +1783,19 @@
         if (head.type === 'blockEnd') {
           moveBlockTo(head.block, null);
           _this.redraw();
+        }
+        console.log(head.type);
+        if (head.type === 'indentStart') {
+          nextVisibleElement = head.next;
+          while ((_ref1 = nextVisibleElement.type) === 'newline' || _ref1 === 'cursor' || _ref1 === 'segmentStart' || _ref1 === 'segmentEnd') {
+            nextVisibleElement = nextVisibleElement.next;
+          }
+          console.log(nextVisibleElement);
+          if (nextVisibleElement === head.indent.end) {
+            moveCursorDown();
+            head.prev.append(head.indent.end.next);
+            _this.redraw();
+          }
         }
         return scrollCursorIntoView();
       };

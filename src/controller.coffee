@@ -455,9 +455,28 @@ exports.Editor = class Editor
       
       # If there is no block before the cursor, give up.
       if head is null then return
+      
+      # If there is a block before us, delete it and redraw.
+      if head.type is 'blockEnd'
+        moveBlockTo head.block, null; @redraw()
 
-      # Delete that block and redraw
-      if head.type is 'blockEnd' then moveBlockTo head.block, null; @redraw()
+      console.log head.type
+
+      # If there is an indent before us and the indent is empty, delete it and redraw.
+      if head.type is 'indentStart'
+        # First, we must check to make sure that the indent is actually empty.
+        nextVisibleElement = head.next
+        while nextVisibleElement.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd']
+          nextVisibleElement = nextVisibleElement.next
+
+        console.log nextVisibleElement
+        
+        # If the indent is indeed empty, delete it.
+        # Remember, though, that the cursor is currently inside this indent, so we need to move it out first.
+        if nextVisibleElement is head.indent.end
+          moveCursorDown()
+          head.prev.append head.indent.end.next
+          @redraw()
 
       scrollCursorIntoView()
     
