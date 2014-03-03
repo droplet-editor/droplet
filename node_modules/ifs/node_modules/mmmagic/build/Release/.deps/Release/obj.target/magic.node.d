@@ -1,0 +1,1 @@
+cmd_Release/obj.target/magic.node := flock ./Release/linker.lock g++ -shared -pthread -rdynamic -m64  -Wl,-soname=magic.node -o Release/obj.target/magic.node -Wl,--start-group Release/obj.target/magic/src/magic.o Release/obj.target/deps/libmagic/magic.a Release/obj.target/deps/libmagic/pcre/pcre.a -Wl,--end-group 

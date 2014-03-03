@@ -24,15 +24,24 @@ exports.IceEditorChangeEvent = class IceEditorChangeEvent
 
 exports.Editor = class Editor
   constructor: (wrapper, @paletteBlocks) ->
+    @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
+    wrapper.appendChild @aceEl
+    
+    ###
+    @aceEl.appendChild @ace = document.createElement 'textarea'
+    @ace.className = 'fullscreen_textarea'
+    ###
+
+    @ace = ace.edit @aceEl
+    @ace.setTheme 'ace/theme/chrome'
+    @ace.getSession().setMode 'ace/mode/coffee'
+    @ace.getSession().setTabSize 2
+    @ace.setFontSize 15
+    @ace.renderer.setShowGutter false
 
     @el = document.createElement 'div'; @el.className = 'ice_editor'
     wrapper.appendChild @el
 
-    @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
-    wrapper.appendChild @aceEl
-
-    @aceEl.appendChild @ace = document.createElement 'textarea'
-    @ace.className = 'fullscreen_textarea'
 
     # ## Field declaration ##
     # (useful to have all in one place)
@@ -1290,7 +1299,9 @@ exports.Editor = class Editor
         element.view.translate new draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
 
       if count >= ANIMATION_FRAME_RATE
-        @ace.value = @getValue()
+        #@ace.value = @getValue() # ACE_MARKER
+        @ace.setValue @getValue()
+        @ace.clearSelection()
         @el.style.display = 'none'
         @aceEl.style.display = 'block'
         @currentlyAnimating = false
@@ -1301,7 +1312,7 @@ exports.Editor = class Editor
     if @currentlyAnimating then return
     else @currentlyAnimating = true
 
-    @setValue @ace.value
+    @setValue @ace.getValue() #value ACE_MARKER
 
     @redraw()
     # First, we will need to get all the text elements which we will be animating.

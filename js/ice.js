@@ -1412,14 +1412,23 @@
       var child, deleteFromCursor, drag, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, paletteBlock, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
         _this = this;
       this.paletteBlocks = paletteBlocks;
-      this.el = document.createElement('div');
-      this.el.className = 'ice_editor';
-      wrapper.appendChild(this.el);
       this.aceEl = document.createElement('div');
       this.aceEl.className = 'ice_ace';
       wrapper.appendChild(this.aceEl);
-      this.aceEl.appendChild(this.ace = document.createElement('textarea'));
-      this.ace.className = 'fullscreen_textarea';
+      /*
+      @aceEl.appendChild @ace = document.createElement 'textarea'
+      @ace.className = 'fullscreen_textarea'
+      */
+
+      this.ace = ace.edit(this.aceEl);
+      this.ace.setTheme('ace/theme/chrome');
+      this.ace.getSession().setMode('ace/mode/coffee');
+      this.ace.getSession().setTabSize(2);
+      this.ace.setFontSize(15);
+      this.ace.renderer.setShowGutter(false);
+      this.el = document.createElement('div');
+      this.el.className = 'ice_editor';
+      wrapper.appendChild(this.el);
       if (this.paletteBlocks == null) {
         this.paletteBlocks = [];
       }
@@ -2545,7 +2554,8 @@
           element.view.translate(new draw.Point(translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE));
         }
         if (count >= ANIMATION_FRAME_RATE) {
-          _this.ace.value = _this.getValue();
+          _this.ace.setValue(_this.getValue());
+          _this.ace.clearSelection();
           _this.el.style.display = 'none';
           _this.aceEl.style.display = 'block';
           return _this.currentlyAnimating = false;
@@ -2562,7 +2572,7 @@
       } else {
         this.currentlyAnimating = true;
       }
-      this.setValue(this.ace.value);
+      this.setValue(this.ace.getValue());
       this.redraw();
       textElements = [];
       translationVectors = [];

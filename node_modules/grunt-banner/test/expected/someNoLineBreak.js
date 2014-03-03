@@ -1,0 +1,1 @@
+console.log("loaded"); var variable = "this is a variable"

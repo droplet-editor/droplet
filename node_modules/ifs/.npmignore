@@ -1,0 +1,30 @@
+lib-cov
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+
+pids
+logs
+results
+
+node_modules
+npm-debug.log
+
+#Ignore sublime files
+
+#*.sublime-project
+#*.sublime-workspace
+
+#Ignore Azure package crap
+local_package*
+*.cspkg
+*.logs
+
+#Ignore IISNode stuff
+*.debug
+
+*.DS_Store
