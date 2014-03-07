@@ -1451,6 +1451,26 @@
       this._lassoBounds = null;
       this.cursor = new CursorToken();
       this.undoStack = [];
+      this.getSerializedUndoStack = function() {
+        var element, serialization, _i, _len, _ref, _ref1, _ref2;
+        serialization = [];
+        _ref = _this.undoStack;
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          element = _ref[_i];
+          if (element.type === 'blockMove') {
+            serialization.push(JSON.stringify({
+              type: 'blockMove',
+              block: element.block.toString({
+                indent: ''
+              }),
+              target: (_ref1 = (_ref2 = element.target) != null ? _ref2.toString({
+                indent: ''
+              }) : void 0) != null ? _ref1 : null
+            }));
+          }
+        }
+        return serialization.join('\n');
+      };
       this.scrollOffset = new draw.Point(0, 0);
       offset = null;
       highlight = null;
@@ -1512,6 +1532,12 @@
           _results.push(view.draw(_this.mainCtx));
         }
         return _results;
+      };
+      this.triggerOnChange = function(event) {
+        console.log(_this.getSerializedUndoStack());
+        if (_this.onChange != null) {
+          return _this.onChange(event);
+        }
       };
       this.attemptReparse = function() {
         var element, excludes, handwrittenBlock, head, newBlock, parent, reparseQueue, stack, _j, _k, _len1, _len2;
@@ -1579,9 +1605,7 @@
             });
           }
           block.moveTo(target);
-          if (_this.onChange != null) {
-            _this.onChange(new IceEditorChangeEvent(block, target));
-          }
+          _this.triggerOnChange(new IceEditorChangeEvent(block, target));
           return;
         }
         _this.undoStack.push({
@@ -1607,9 +1631,7 @@
           })()) : null
         });
         block.moveTo(target);
-        if (_this.onChange != null) {
-          return _this.onChange(new IceEditorChangeEvent(block, target));
-        }
+        return _this.triggerOnChange(new IceEditorChangeEvent(block, target));
       };
       this.undo = function() {
         var float, head, i, lastOperation, operation, _j, _k, _len1, _len2, _ref1, _ref2;
@@ -1669,8 +1691,13 @@
                 block: operation.block
               });
             }
-            if ((operation.target != null) || operation.type !== 'blockMove' || operation.block !== lastOperation.block) {
+            if (_this.undoStack.length === 0) {
               break;
+            } else {
+              operation = _this.undoStack[_this.undoStack.length - 1];
+              if ((operation.target != null) || operation.type !== 'blockMove' || operation.block !== lastOperation.block) {
+                break;
+              }
             }
             operation = _this.undoStack.pop();
           }
@@ -1691,9 +1718,7 @@
           });
         }
         _this.redraw();
-        if (_this.onChange != null) {
-          return _this.onChange(new IceEditorChangeEvent(operation.block, operation.target));
-        }
+        return _this.triggerOnChange(new IceEditorChangeEvent(operation.block, operation.target));
       };
       this.redrawPalette = function() {
         var lastBottomEdge, _j, _len1, _ref1, _results;
@@ -2402,9 +2427,7 @@
               }
             }
           } catch (_error) {}
-          if (_this.onChange != null) {
-            _this.onChange(new IceEditorChangeEvent(_this.focus, focus));
-          }
+          _this.triggerOnChange(new IceEditorChangeEvent(_this.focus, focus));
           if (_this.ephemeralOldFocusValue !== _this.focus.toString()) {
             _this.undoStack.push({
               type: 'socketTextChange',

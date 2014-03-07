@@ -1467,6 +1467,18 @@ exports.Editor = class Editor
     # UNDO STACK
     @undoStack = []
 
+    # Debugging serializer for undo stack
+    @getSerializedUndoStack = =>
+      serialization = []
+      for element in @undoStack
+        if element.type is 'blockMove'
+          serialization.push JSON.stringify {
+            type: 'blockMove'
+            block: element.block.toString(indent:'')
+            target: element.target?.toString(indent:'') ? null
+          }
+      return serialization.join '\n'
+
     # Scroll offset
     @scrollOffset = new draw.Point 0, 0
 
@@ -1553,6 +1565,10 @@ exports.Editor = class Editor
 
         # Draw it on the main context
         view.draw @mainCtx
+
+    @triggerOnChange  = (event) =>
+      console.log @getSerializedUndoStack()
+      if @onChange? then @onChange event
     
     # ## attemptReparse ##
     # This will be triggered by most cursor operations. It finds all handwritten blocks that do not contain the cursor,
@@ -1624,7 +1640,7 @@ exports.Editor = class Editor
             position: float.position
 
         block.moveTo target
-        if @onChange? then @onChange new IceEditorChangeEvent block, target
+        @triggerOnChange new IceEditorChangeEvent block, target
 
         return
       
@@ -1639,7 +1655,7 @@ exports.Editor = class Editor
           else parent) else null
       
       block.moveTo target
-      if @onChange? then @onChange new IceEditorChangeEvent block, target
+      @triggerOnChange new IceEditorChangeEvent block, target
 
     @undo = =>
       # If the undo stack is empty, give up.
@@ -1702,8 +1718,11 @@ exports.Editor = class Editor
             @floatingBlocks.push
               position: operation.position
               block: operation.block
-
-          if operation.target? or operation.type isnt 'blockMove' or operation.block isnt lastOperation.block then break
+          
+          if @undoStack.length is 0 then break
+          else
+            operation = @undoStack[@undoStack.length - 1]
+            if operation.target? or operation.type isnt 'blockMove' or operation.block isnt lastOperation.block then break
           
           # Otherwise, advance.
           operation = @undoStack.pop()
@@ -1725,7 +1744,7 @@ exports.Editor = class Editor
 
       @redraw()
 
-      if @onChange? then @onChange new IceEditorChangeEvent operation.block, operation.target
+      @triggerOnChange new IceEditorChangeEvent operation.block, operation.target
     
     # The redrawPalette function ought to be called only once in the current code structure.
     # If we want to scroll the palette later on, then this will be called to do so.
@@ -2520,7 +2539,7 @@ exports.Editor = class Editor
           
 
         # Fire the onchange handler
-        if @onChange? then @onChange new IceEditorChangeEvent @focus, focus
+        @triggerOnChange new IceEditorChangeEvent @focus, focus
 
         if @ephemeralOldFocusValue isnt @focus.toString()
           @undoStack.push
