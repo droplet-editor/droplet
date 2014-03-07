@@ -1403,6 +1403,25 @@ FONT_SIZE = 15
 ANIMATION_FRAME_RATE = 50 # FPS
 SCROLL_INTERVAL = 50
 
+# Convenience functions for interacting with the DOM,
+# used in the freeze/melt animations to find destination positions
+# of text elements. Hidden.
+findPosTop = (obj) ->
+  top = 0
+  while true
+    top += obj.offsetTop
+    unless (obj = obj.offsetParent)? then break
+
+  return top
+
+findPosLeft = (obj) ->
+  left = 0
+  while true
+    left += obj.offsetLeft
+    unless (obj = obj.offsetParent)? then break
+
+  return left
+
 exports.IceEditorChangeEvent = class IceEditorChangeEvent
   constructor: (@block, @target) ->
 
@@ -1417,17 +1436,12 @@ exports.Editor = class Editor
     @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
     wrapper.appendChild @aceEl
     
-    ###
-    @aceEl.appendChild @ace = document.createElement 'textarea'
-    @ace.className = 'fullscreen_textarea'
-    ###
-
     @ace = ace.edit @aceEl
     @ace.setTheme 'ace/theme/chrome'
     @ace.getSession().setMode 'ace/mode/coffee'
     @ace.getSession().setTabSize 2
     @ace.setFontSize 15
-    @ace.renderer.setShowGutter false
+    #@ace.renderer.setShowGutter false
 
     @el = document.createElement 'div'; @el.className = 'ice_editor'
     wrapper.appendChild @el
@@ -2634,69 +2648,86 @@ exports.Editor = class Editor
   # This will animate all the text elements from their current position to a position
   # that imitates plaintext.
   performMeltAnimation: ->
+
     if @currentlyAnimating then return
     else @currentlyAnimating = true
 
     @redraw()
 
-    # First, we will need to get all the text elements which we will be animating.
-    # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
-    # animation destination. Along the way we will move the cursor around due to newlines and indents.
-    textElements = []
-    translationVectors = []
-    head = @tree.start
-    # Set up the state which we will pass to 
-    state =
-      x: 0
-      y: 0
-      indent: 0
-    while head isnt @tree.end
-      if head.type is 'text'
-        translationVectors.push head.view.computePlaintextTranslationVector state, @mainCtx
-        textElements.push head
-      else if head.type is 'newline'
-        state.y += FONT_SIZE
-        state.x = state.indent * @mainCtx.measureText(' ').width
-      else if head.type is 'indentStart'
-        state.indent += head.indent.depth
-      else if head.type is 'indentEnd'
-        state.indent -= head.indent.depth
+    # We need to find out some properties of dimensions
+    # in the ace editor. So we will need to display the ace editor momentarily off-screen.
 
-      head = head.next
+    @ace.setValue @getValue()
+    @aceEl.style.top = -9999
+    @aceEl.style.left = -9999
+    @aceEl.style.display = 'block'
+    
+    # We must wait for the Ace editor to render before we continue.
+    setTimeout (=>
+      # First, we will need to get all the text elements which we will be animating.
+      # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
+      # animation destination. Along the way we will move the cursor around due to newlines and indents.
+      textElements = []
+      translationVectors = []
+      head = @tree.start
+      # Set up the state which we will pass to 
+      state =
+        x: @ace.container.getBoundingClientRect().left - findPosLeft(@aceEl) + @ace.renderer.$gutterLayer.gutterWidth
+        y: @ace.container.getBoundingClientRect().top - findPosTop(@aceEl)
+        indent: 0
+        leftEdge: @ace.container.getBoundingClientRect().left - findPosLeft(@aceEl) + @ace.renderer.$gutterLayer.gutterWidth
 
-    # We have now obtained the destination position for the animation; now we animate.
-    count = 0
+      console.log @ace.container.getBoundingClientRect(), @aceEl.offsetLeft, @aceEl.offsetTop
+      console.log @ace.renderer.layerConfig.offset, @ace.renderer.scrollLeft
+      while head isnt @tree.end
+        if head.type is 'text'
+          translationVectors.push head.view.computePlaintextTranslationVector state, @mainCtx
+          textElements.push head
+        else if head.type is 'newline'
+          state.y += FONT_SIZE
+          state.x = state.indent * @mainCtx.measureText(' ').width + state.leftEdge
+        else if head.type is 'indentStart'
+          state.indent += head.indent.depth
+        else if head.type is 'indentEnd'
+          state.indent -= head.indent.depth
 
-    tick = =>
-      count += 1
-      
-      if count < ANIMATION_FRAME_RATE
-        setTimeout tick, 1000 / ANIMATION_FRAME_RATE
+        head = head.next
 
-      @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)
-      @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
+      # We have now obtained the destination position for the animation; now we animate.
+      count = 0
 
-      @clear()
-      
-      @mainCtx.globalAlpha = Math.max 0, 1 - 2 * count / ANIMATION_FRAME_RATE
+      tick = =>
+        count += 1
+        
+        if count < ANIMATION_FRAME_RATE
+          setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
-      @tree.view.draw @mainCtx
+        @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)
+        @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
-      @mainCtx.globalAlpha = 1
-      
-      for element, i in textElements
-        element.view.textElement.draw @mainCtx
-        element.view.translate new draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
+        @clear()
+        
+        @mainCtx.globalAlpha = Math.max 0, 1 - 2 * count / ANIMATION_FRAME_RATE
 
-      if count >= ANIMATION_FRAME_RATE
-        #@ace.value = @getValue() # ACE_MARKER
-        @ace.setValue @getValue()
-        @ace.clearSelection()
-        @el.style.display = 'none'
-        @aceEl.style.display = 'block'
-        @currentlyAnimating = false
+        @tree.view.draw @mainCtx
 
-    tick()
+        @mainCtx.globalAlpha = 1
+        
+        for element, i in textElements
+          element.view.textElement.draw @mainCtx
+          element.view.translate new draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
+
+        if count >= ANIMATION_FRAME_RATE
+          #@ace.value = @getValue() # ACE_MARKER
+          @ace.clearSelection()
+          @el.style.display = 'none'
+          @aceEl.style.top = 0
+          @aceEl.style.left = 0
+          @aceEl.style.display = 'block'
+          @currentlyAnimating = false
+
+      tick()
+    ), 0
   
   performFreezeAnimation: ->
     if @currentlyAnimating then return
@@ -2714,9 +2745,10 @@ exports.Editor = class Editor
     
     # Set up the state which we will pass to 
     state =
-      x: 0
-      y: 0
+      x: @ace.container.getBoundingClientRect().left - findPosLeft(@aceEl) + @ace.renderer.$gutterLayer.gutterWidth
+      y: @ace.container.getBoundingClientRect().top - findPosTop(@aceEl)
       indent: 0
+      leftEdge: @ace.container.getBoundingClientRect().left - findPosLeft(@aceEl) + @ace.renderer.$gutterLayer.gutterWidth
     while head isnt @tree.end
       if head.type is 'text'
         translationVectors.push head.view.computePlaintextTranslationVector state, @mainCtx
@@ -2724,7 +2756,7 @@ exports.Editor = class Editor
         textElements.push head
       else if head.type is 'newline'
         state.y += FONT_SIZE
-        state.x = state.indent * @mainCtx.measureText(' ').width
+        state.x = state.indent * @mainCtx.measureText(' ').width + state.leftEdge
       else if head.type is 'indentStart'
         state.indent += head.indent.depth
       else if head.type is 'indentEnd'

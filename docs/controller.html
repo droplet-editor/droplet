@@ -77,10 +77,7 @@ PALETTE_WIDTH = <span class="hljs-number">300</span>
 MIN_DRAG_DISTANCE = <span class="hljs-number">5</span>
 FONT_SIZE = <span class="hljs-number">15</span>
 ANIMATION_FRAME_RATE = <span class="hljs-number">50</span> <span class="hljs-comment"># FPS</span>
-SCROLL_INTERVAL = <span class="hljs-number">50</span>
-
-<span class="hljs-built_in">exports</span>.IceEditorChangeEvent = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IceEditorChangeEvent</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>, <span class="hljs-property">@target</span>)</span> -&gt;</span></pre></div></div>
+SCROLL_INTERVAL = <span class="hljs-number">50</span></pre></div></div>
             
         </li>
         
@@ -90,6 +87,40 @@ SCROLL_INTERVAL = <span class="hljs-number">50</span>
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>Convenience functions for interacting with the DOM,
+used in the freeze/melt animations to find destination positions
+of text elements. Hidden.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-title">findPosTop</span> = <span class="hljs-params">(obj)</span> -&gt;</span>
+  top = <span class="hljs-number">0</span>
+  <span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>
+    top += obj.offsetTop
+    <span class="hljs-keyword">unless</span> (obj = obj.offsetParent)? <span class="hljs-keyword">then</span> <span class="hljs-keyword">break</span>
+
+  <span class="hljs-keyword">return</span> top
+
+<span class="hljs-function"><span class="hljs-title">findPosLeft</span> = <span class="hljs-params">(obj)</span> -&gt;</span>
+  left = <span class="hljs-number">0</span>
+  <span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>
+    left += obj.offsetLeft
+    <span class="hljs-keyword">unless</span> (obj = obj.offsetParent)? <span class="hljs-keyword">then</span> <span class="hljs-keyword">break</span>
+
+  <span class="hljs-keyword">return</span> left
+
+<span class="hljs-built_in">exports</span>.IceEditorChangeEvent = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IceEditorChangeEvent</span></span>
+  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>, <span class="hljs-property">@target</span>)</span> -&gt;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
               </div>
               <h1 id="the-editor-class">The Editor class</h1>
 <p>This class contains all the controller functions for ICE Editor.
@@ -103,23 +134,13 @@ to initialize an ICE editor in an element.</p>
 <span class="hljs-built_in">exports</span>.Editor = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Editor</span></span>
   <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(wrapper, <span class="hljs-property">@paletteBlocks</span>)</span> -&gt;</span>
     <span class="hljs-property">@aceEl</span> = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'div'</span>; <span class="hljs-property">@aceEl</span>.className = <span class="hljs-string">'ice_ace'</span>
-    wrapper.appendChild <span class="hljs-property">@aceEl</span></pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-3">
-            <div class="annotation">
-              
-              <div class="pilwrap ">
-                <a class="pilcrow" href="#section-3">&#182;</a>
-              </div>
-              <h1 id="-">#</h1>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@aceEl</span>.appendChild <span class="hljs-property">@ace</span> = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'textarea'</span>
-    <span class="hljs-property">@ace</span>.className = <span class="hljs-string">'fullscreen_textarea'</span></pre></div></div>
+    wrapper.appendChild <span class="hljs-property">@aceEl</span>
+    
+    <span class="hljs-property">@ace</span> = ace.edit <span class="hljs-property">@aceEl</span>
+    <span class="hljs-property">@ace</span>.setTheme <span class="hljs-string">'ace/theme/chrome'</span>
+    <span class="hljs-property">@ace</span>.getSession().setMode <span class="hljs-string">'ace/mode/coffee'</span>
+    <span class="hljs-property">@ace</span>.getSession().setTabSize <span class="hljs-number">2</span>
+    <span class="hljs-property">@ace</span>.setFontSize <span class="hljs-number">15</span></pre></div></div>
             
         </li>
         
@@ -130,18 +151,11 @@ to initialize an ICE editor in an element.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-4">&#182;</a>
               </div>
-              <h1 id="-">#</h1>
+              <p>@ace.renderer.setShowGutter false</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>
-    <span class="hljs-property">@ace</span> = ace.edit <span class="hljs-property">@aceEl</span>
-    <span class="hljs-property">@ace</span>.setTheme <span class="hljs-string">'ace/theme/chrome'</span>
-    <span class="hljs-property">@ace</span>.getSession().setMode <span class="hljs-string">'ace/mode/coffee'</span>
-    <span class="hljs-property">@ace</span>.getSession().setTabSize <span class="hljs-number">2</span>
-    <span class="hljs-property">@ace</span>.setFontSize <span class="hljs-number">15</span>
-    <span class="hljs-property">@ace</span>.renderer.setShowGutter <span class="hljs-literal">false</span>
-
     <span class="hljs-property">@el</span> = <span class="hljs-built_in">document</span>.createElement <span class="hljs-string">'div'</span>; <span class="hljs-property">@el</span>.className = <span class="hljs-string">'ice_editor'</span>
     wrapper.appendChild <span class="hljs-property">@el</span></pre></div></div>
             
@@ -4111,6 +4125,7 @@ that imitates plaintext.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">performMeltAnimation</span>:<span class="hljs-function"> -&gt;</span>
+
     <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyAnimating</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
     <span class="hljs-keyword">else</span> <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">true</span>
 
@@ -4125,15 +4140,16 @@ that imitates plaintext.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-231">&#182;</a>
               </div>
-              <p>First, we will need to get all the text elements which we will be animating.
-Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
-animation destination. Along the way we will move the cursor around due to newlines and indents.</p>
+              <p>We need to find out some properties of dimensions
+in the ace editor. So we will need to display the ace editor momentarily off-screen.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    textElements = []
-    translationVectors = []
-    head = <span class="hljs-property">@tree</span>.start</pre></div></div>
+            <div class="content"><div class='highlight'><pre>
+    <span class="hljs-property">@ace</span>.setValue <span class="hljs-property">@getValue</span>()
+    <span class="hljs-property">@aceEl</span>.style.top = -<span class="hljs-number">9999</span>
+    <span class="hljs-property">@aceEl</span>.style.left = -<span class="hljs-number">9999</span>
+    <span class="hljs-property">@aceEl</span>.style.display = <span class="hljs-string">'block'</span></pre></div></div>
             
         </li>
         
@@ -4144,27 +4160,11 @@ animation destination. Along the way we will move the cursor around due to newli
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-232">&#182;</a>
               </div>
-              <p>Set up the state which we will pass to </p>
+              <p>We must wait for the Ace editor to render before we continue.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    state =
-      <span class="hljs-attribute">x</span>: <span class="hljs-number">0</span>
-      <span class="hljs-attribute">y</span>: <span class="hljs-number">0</span>
-      <span class="hljs-attribute">indent</span>: <span class="hljs-number">0</span>
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end
-      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span>
-        translationVectors.push head.view.computePlaintextTranslationVector state, <span class="hljs-property">@mainCtx</span>
-        textElements.push head
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>
-        state.y += FONT_SIZE
-        state.x = state.indent * <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span>
-        state.indent += head.indent.depth
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>
-        state.indent -= head.indent.depth
-
-      head = head.next</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    setTimeout (<span class="hljs-function">=&gt;</span></pre></div></div>
             
         </li>
         
@@ -4175,34 +4175,15 @@ animation destination. Along the way we will move the cursor around due to newli
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-233">&#182;</a>
               </div>
-              <p>We have now obtained the destination position for the animation; now we animate.</p>
+              <p>First, we will need to get all the text elements which we will be animating.
+Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
+animation destination. Along the way we will move the cursor around due to newlines and indents.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    count = <span class="hljs-number">0</span>
-
-    <span class="hljs-function"><span class="hljs-title">tick</span> = =&gt;</span>
-      count += <span class="hljs-number">1</span>
-      
-      <span class="hljs-keyword">if</span> count &lt; ANIMATION_FRAME_RATE
-        setTimeout tick, <span class="hljs-number">1000</span> / ANIMATION_FRAME_RATE
-
-      <span class="hljs-property">@main</span>.style.left = PALETTE_WIDTH * (<span class="hljs-number">1</span> - count / ANIMATION_FRAME_RATE)
-      <span class="hljs-property">@palette</span>.style.opacity = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * (count / ANIMATION_FRAME_RATE)
-
-      <span class="hljs-property">@clear</span>()
-      
-      <span class="hljs-property">@mainCtx</span>.globalAlpha = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * count / ANIMATION_FRAME_RATE
-
-      <span class="hljs-property">@tree</span>.view.draw <span class="hljs-property">@mainCtx</span>
-
-      <span class="hljs-property">@mainCtx</span>.globalAlpha = <span class="hljs-number">1</span>
-      
-      <span class="hljs-keyword">for</span> element, i <span class="hljs-keyword">in</span> textElements
-        element.view.textElement.draw <span class="hljs-property">@mainCtx</span>
-        element.view.translate <span class="hljs-keyword">new</span> draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
-
-      <span class="hljs-keyword">if</span> count &gt;= ANIMATION_FRAME_RATE</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      textElements = []
+      translationVectors = []
+      head = <span class="hljs-property">@tree</span>.start</pre></div></div>
             
         </li>
         
@@ -4213,17 +4194,92 @@ animation destination. Along the way we will move the cursor around due to newli
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-234">&#182;</a>
               </div>
+              <p>Set up the state which we will pass to </p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      state =
+        <span class="hljs-attribute">x</span>: <span class="hljs-property">@ace</span>.container.getBoundingClientRect().left - findPosLeft(<span class="hljs-property">@aceEl</span>) + <span class="hljs-property">@ace</span>.renderer.$gutterLayer.gutterWidth
+        <span class="hljs-attribute">y</span>: <span class="hljs-property">@ace</span>.container.getBoundingClientRect().top - findPosTop(<span class="hljs-property">@aceEl</span>)
+        <span class="hljs-attribute">indent</span>: <span class="hljs-number">0</span>
+        <span class="hljs-attribute">leftEdge</span>: <span class="hljs-property">@ace</span>.container.getBoundingClientRect().left - findPosLeft(<span class="hljs-property">@aceEl</span>) + <span class="hljs-property">@ace</span>.renderer.$gutterLayer.gutterWidth
+
+      <span class="hljs-built_in">console</span>.log <span class="hljs-property">@ace</span>.container.getBoundingClientRect(), <span class="hljs-property">@aceEl</span>.offsetLeft, <span class="hljs-property">@aceEl</span>.offsetTop
+      <span class="hljs-built_in">console</span>.log <span class="hljs-property">@ace</span>.renderer.layerConfig.offset, <span class="hljs-property">@ace</span>.renderer.scrollLeft
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end
+        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span>
+          translationVectors.push head.view.computePlaintextTranslationVector state, <span class="hljs-property">@mainCtx</span>
+          textElements.push head
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>
+          state.y += FONT_SIZE
+          state.x = state.indent * <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width + state.leftEdge
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span>
+          state.indent += head.indent.depth
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>
+          state.indent -= head.indent.depth
+
+        head = head.next</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-235">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-235">&#182;</a>
+              </div>
+              <p>We have now obtained the destination position for the animation; now we animate.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      count = <span class="hljs-number">0</span>
+
+      <span class="hljs-function"><span class="hljs-title">tick</span> = =&gt;</span>
+        count += <span class="hljs-number">1</span>
+        
+        <span class="hljs-keyword">if</span> count &lt; ANIMATION_FRAME_RATE
+          setTimeout tick, <span class="hljs-number">1000</span> / ANIMATION_FRAME_RATE
+
+        <span class="hljs-property">@main</span>.style.left = PALETTE_WIDTH * (<span class="hljs-number">1</span> - count / ANIMATION_FRAME_RATE)
+        <span class="hljs-property">@palette</span>.style.opacity = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * (count / ANIMATION_FRAME_RATE)
+
+        <span class="hljs-property">@clear</span>()
+        
+        <span class="hljs-property">@mainCtx</span>.globalAlpha = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * count / ANIMATION_FRAME_RATE
+
+        <span class="hljs-property">@tree</span>.view.draw <span class="hljs-property">@mainCtx</span>
+
+        <span class="hljs-property">@mainCtx</span>.globalAlpha = <span class="hljs-number">1</span>
+        
+        <span class="hljs-keyword">for</span> element, i <span class="hljs-keyword">in</span> textElements
+          element.view.textElement.draw <span class="hljs-property">@mainCtx</span>
+          element.view.translate <span class="hljs-keyword">new</span> draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
+
+        <span class="hljs-keyword">if</span> count &gt;= ANIMATION_FRAME_RATE</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-236">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-236">&#182;</a>
+              </div>
               <p>@ace.value = @getValue() # ACE_MARKER</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@ace</span>.setValue <span class="hljs-property">@getValue</span>()
-        <span class="hljs-property">@ace</span>.clearSelection()
-        <span class="hljs-property">@el</span>.style.display = <span class="hljs-string">'none'</span>
-        <span class="hljs-property">@aceEl</span>.style.display = <span class="hljs-string">'block'</span>
-        <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">false</span>
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@ace</span>.clearSelection()
+          <span class="hljs-property">@el</span>.style.display = <span class="hljs-string">'none'</span>
+          <span class="hljs-property">@aceEl</span>.style.top = <span class="hljs-number">0</span>
+          <span class="hljs-property">@aceEl</span>.style.left = <span class="hljs-number">0</span>
+          <span class="hljs-property">@aceEl</span>.style.display = <span class="hljs-string">'block'</span>
+          <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">false</span>
 
-    tick()
+      tick()
+    ), <span class="hljs-number">0</span>
   
   <span class="hljs-attribute">performFreezeAnimation</span>:<span class="hljs-function"> -&gt;</span>
     <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyAnimating</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
@@ -4236,11 +4292,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-235">
+        <li id="section-237">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-235">&#182;</a>
+                <a class="pilcrow" href="#section-237">&#182;</a>
               </div>
               <p>First, we will need to get all the text elements which we will be animating.
 Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
@@ -4255,20 +4311,21 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-236">
+        <li id="section-238">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-236">&#182;</a>
+                <a class="pilcrow" href="#section-238">&#182;</a>
               </div>
               <p>Set up the state which we will pass to </p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>    state =
-      <span class="hljs-attribute">x</span>: <span class="hljs-number">0</span>
-      <span class="hljs-attribute">y</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attribute">x</span>: <span class="hljs-property">@ace</span>.container.getBoundingClientRect().left - findPosLeft(<span class="hljs-property">@aceEl</span>) + <span class="hljs-property">@ace</span>.renderer.$gutterLayer.gutterWidth
+      <span class="hljs-attribute">y</span>: <span class="hljs-property">@ace</span>.container.getBoundingClientRect().top - findPosTop(<span class="hljs-property">@aceEl</span>)
       <span class="hljs-attribute">indent</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attribute">leftEdge</span>: <span class="hljs-property">@ace</span>.container.getBoundingClientRect().left - findPosLeft(<span class="hljs-property">@aceEl</span>) + <span class="hljs-property">@ace</span>.renderer.$gutterLayer.gutterWidth
     <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@tree</span>.end
       <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span>
         translationVectors.push head.view.computePlaintextTranslationVector state, <span class="hljs-property">@mainCtx</span>
@@ -4276,7 +4333,7 @@ animation destination. Along the way we will move the cursor around due to newli
         textElements.push head
       <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>
         state.y += FONT_SIZE
-        state.x = state.indent * <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width
+        state.x = state.indent * <span class="hljs-property">@mainCtx</span>.measureText(<span class="hljs-string">' '</span>).width + state.leftEdge
       <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span>
         state.indent += head.indent.depth
       <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>
@@ -4290,11 +4347,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-237">
+        <li id="section-239">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-237">&#182;</a>
+                <a class="pilcrow" href="#section-239">&#182;</a>
               </div>
               <p>We have now obtained the destination position for the animation; now we animate.</p>
 

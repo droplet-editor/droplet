@@ -1,5 +1,5 @@
 (function() {
-  var ANIMATION_FRAME_RATE, Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, DROP_AREA_HEIGHT, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, FONT_SIZE, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_DRAG_DISTANCE, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, SCROLL_INTERVAL, SOCKET_DROP_PADDING, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports,
+  var ANIMATION_FRAME_RATE, Block, BlockEndToken, BlockStartToken, BlockView, BoundingBoxState, CursorToken, CursorView, DROP_AREA_HEIGHT, EMPTY_INDENT_HEIGHT, EMPTY_INDENT_WIDTH, EMPTY_SOCKET_HEIGHT, EMPTY_SOCKET_WIDTH, Editor, FONT_HEIGHT, FONT_SIZE, INDENT_SPACES, INDENT_SPACING, INPUT_LINE_HEIGHT, IceEditorChangeEvent, IceView, Indent, IndentEndToken, IndentStartToken, IndentView, MIN_DRAG_DISTANCE, MIN_SEGMENT_DROP_AREA_WIDTH, NewlineToken, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, PathWaypoint, SCROLL_INTERVAL, SOCKET_DROP_PADDING, Segment, SegmentEndToken, SegmentStartToken, SegmentView, Socket, SocketEndToken, SocketStartToken, SocketView, TAB_HEIGHT, TAB_OFFSET, TAB_WIDTH, TOUNGE_HEIGHT, TextToken, TextView, Token, exports, findPosLeft, findPosTop,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
@@ -1397,6 +1397,30 @@
 
   SCROLL_INTERVAL = 50;
 
+  findPosTop = function(obj) {
+    var top;
+    top = 0;
+    while (true) {
+      top += obj.offsetTop;
+      if ((obj = obj.offsetParent) == null) {
+        break;
+      }
+    }
+    return top;
+  };
+
+  findPosLeft = function(obj) {
+    var left;
+    left = 0;
+    while (true) {
+      left += obj.offsetLeft;
+      if ((obj = obj.offsetParent) == null) {
+        break;
+      }
+    }
+    return left;
+  };
+
   exports.IceEditorChangeEvent = IceEditorChangeEvent = (function() {
     function IceEditorChangeEvent(block, target) {
       this.block = block;
@@ -1415,17 +1439,11 @@
       this.aceEl = document.createElement('div');
       this.aceEl.className = 'ice_ace';
       wrapper.appendChild(this.aceEl);
-      /*
-      @aceEl.appendChild @ace = document.createElement 'textarea'
-      @ace.className = 'fullscreen_textarea'
-      */
-
       this.ace = ace.edit(this.aceEl);
       this.ace.setTheme('ace/theme/chrome');
       this.ace.getSession().setMode('ace/mode/coffee');
       this.ace.getSession().setTabSize(2);
       this.ace.setFontSize(15);
-      this.ace.renderer.setShowGutter(false);
       this.el = document.createElement('div');
       this.el.className = 'ice_editor';
       wrapper.appendChild(this.el);
@@ -2505,63 +2523,73 @@
     };
 
     Editor.prototype.performMeltAnimation = function() {
-      var count, head, state, textElements, tick, translationVectors,
-        _this = this;
+      var _this = this;
       if (this.currentlyAnimating) {
         return;
       } else {
         this.currentlyAnimating = true;
       }
       this.redraw();
-      textElements = [];
-      translationVectors = [];
-      head = this.tree.start;
-      state = {
-        x: 0,
-        y: 0,
-        indent: 0
-      };
-      while (head !== this.tree.end) {
-        if (head.type === 'text') {
-          translationVectors.push(head.view.computePlaintextTranslationVector(state, this.mainCtx));
-          textElements.push(head);
-        } else if (head.type === 'newline') {
-          state.y += FONT_SIZE;
-          state.x = state.indent * this.mainCtx.measureText(' ').width;
-        } else if (head.type === 'indentStart') {
-          state.indent += head.indent.depth;
-        } else if (head.type === 'indentEnd') {
-          state.indent -= head.indent.depth;
+      this.ace.setValue(this.getValue());
+      this.aceEl.style.top = -9999;
+      this.aceEl.style.left = -9999;
+      this.aceEl.style.display = 'block';
+      return setTimeout((function() {
+        var count, head, state, textElements, tick, translationVectors;
+        textElements = [];
+        translationVectors = [];
+        head = _this.tree.start;
+        state = {
+          x: _this.ace.container.getBoundingClientRect().left - findPosLeft(_this.aceEl) + _this.ace.renderer.$gutterLayer.gutterWidth,
+          y: _this.ace.container.getBoundingClientRect().top - findPosTop(_this.aceEl),
+          indent: 0,
+          leftEdge: _this.ace.container.getBoundingClientRect().left - findPosLeft(_this.aceEl) + _this.ace.renderer.$gutterLayer.gutterWidth
+        };
+        console.log(_this.ace.container.getBoundingClientRect(), _this.aceEl.offsetLeft, _this.aceEl.offsetTop);
+        console.log(_this.ace.renderer.layerConfig.offset, _this.ace.renderer.scrollLeft);
+        while (head !== _this.tree.end) {
+          if (head.type === 'text') {
+            translationVectors.push(head.view.computePlaintextTranslationVector(state, _this.mainCtx));
+            textElements.push(head);
+          } else if (head.type === 'newline') {
+            state.y += FONT_SIZE;
+            state.x = state.indent * _this.mainCtx.measureText(' ').width + state.leftEdge;
+          } else if (head.type === 'indentStart') {
+            state.indent += head.indent.depth;
+          } else if (head.type === 'indentEnd') {
+            state.indent -= head.indent.depth;
+          }
+          head = head.next;
         }
-        head = head.next;
-      }
-      count = 0;
-      tick = function() {
-        var element, i, _i, _len;
-        count += 1;
-        if (count < ANIMATION_FRAME_RATE) {
-          setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
-        }
-        _this.main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE);
-        _this.palette.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
-        _this.clear();
-        _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * count / ANIMATION_FRAME_RATE);
-        _this.tree.view.draw(_this.mainCtx);
-        _this.mainCtx.globalAlpha = 1;
-        for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
-          element = textElements[i];
-          element.view.textElement.draw(_this.mainCtx);
-          element.view.translate(new draw.Point(translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE));
-        }
-        if (count >= ANIMATION_FRAME_RATE) {
-          _this.ace.setValue(_this.getValue());
-          _this.ace.clearSelection();
-          _this.el.style.display = 'none';
-          _this.aceEl.style.display = 'block';
-          return _this.currentlyAnimating = false;
-        }
-      };
-      return tick();
+        count = 0;
+        tick = function() {
+          var element, i, _i, _len;
+          count += 1;
+          if (count < ANIMATION_FRAME_RATE) {
+            setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
+          }
+          _this.main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE);
+          _this.palette.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
+          _this.clear();
+          _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * count / ANIMATION_FRAME_RATE);
+          _this.tree.view.draw(_this.mainCtx);
+          _this.mainCtx.globalAlpha = 1;
+          for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
+            element = textElements[i];
+            element.view.textElement.draw(_this.mainCtx);
+            element.view.translate(new draw.Point(translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE));
+          }
+          if (count >= ANIMATION_FRAME_RATE) {
+            _this.ace.clearSelection();
+            _this.el.style.display = 'none';
+            _this.aceEl.style.top = 0;
+            _this.aceEl.style.left = 0;
+            _this.aceEl.style.display = 'block';
+            return _this.currentlyAnimating = false;
+          }
+        };
+        return tick();
+      }), 0);
     };
 
     Editor.prototype.performFreezeAnimation = function() {
@@ -2578,9 +2606,10 @@
       translationVectors = [];
       head = this.tree.start;
       state = {
-        x: 0,
-        y: 0,
-        indent: 0
+        x: this.ace.container.getBoundingClientRect().left - findPosLeft(this.aceEl) + this.ace.renderer.$gutterLayer.gutterWidth,
+        y: this.ace.container.getBoundingClientRect().top - findPosTop(this.aceEl),
+        indent: 0,
+        leftEdge: this.ace.container.getBoundingClientRect().left - findPosLeft(this.aceEl) + this.ace.renderer.$gutterLayer.gutterWidth
       };
       while (head !== this.tree.end) {
         if (head.type === 'text') {
@@ -2589,7 +2618,7 @@
           textElements.push(head);
         } else if (head.type === 'newline') {
           state.y += FONT_SIZE;
-          state.x = state.indent * this.mainCtx.measureText(' ').width;
+          state.x = state.indent * this.mainCtx.measureText(' ').width + state.leftEdge;
         } else if (head.type === 'indentStart') {
           state.indent += head.indent.depth;
         } else if (head.type === 'indentEnd') {
