@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "file": "requirejs_config.js",
+  "sourceRoot": "../src/",
+  "sources": [
+    "requirejs_config.coffee"
+  ],
+  "names": [],
+  "mappings": "AAAA;CAAA,CAAA;CAAA,CAAS,CAAT,CAAA,GAAA;CAAA,CAEE,EADF,CAAA;CACE,CAAY,IAAZ,IAAA,EAAA;CAAA,CACkB,IAAlB,UAAA,EADA;CAAA,CAEa,IAAb,KAAA,EAFA;CAAA,CAGY,IAAZ,IAAA,EAHA;CAAA,CAIc,IAAd,MAAA,EAJA;MAFF;CAAA,CAOM,EAAN,EAPA;CAAA,CAQK,CAAL,CAAA,SARA;CAAA,GAAA;CAAA"
+}
