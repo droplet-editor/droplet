@@ -34,8 +34,18 @@
               </a>
             
               
+              <a class="source" href="main.html">
+                main.coffee
+              </a>
+            
+              
               <a class="source" href="model.html">
                 model.coffee
+              </a>
+            
+              
+              <a class="source" href="requirejs_config.html">
+                requirejs_config.coffee
               </a>
             
               
@@ -69,6 +79,9 @@
 
             </div>
             
+            <div class="content"><div class='highlight'><pre>
+define [<span class="hljs-string">'ice-draw'</span>], <span class="hljs-function"><span class="hljs-params">(draw)</span> -&gt;</span></pre></div></div>
+            
         </li>
         
         
@@ -82,28 +95,30 @@
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>PADDING = <span class="hljs-number">5</span>
-INDENT_SPACING = <span class="hljs-number">15</span>
-TOUNGE_HEIGHT = <span class="hljs-number">10</span>
-FONT_HEIGHT = <span class="hljs-number">15</span>
-EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * <span class="hljs-number">2</span>
-EMPTY_SOCKET_WIDTH = <span class="hljs-number">20</span>
-EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * <span class="hljs-number">2</span>
-EMPTY_INDENT_WIDTH = <span class="hljs-number">50</span>
-MIN_SEGMENT_DROP_AREA_WIDTH = <span class="hljs-number">100</span>
-DROP_AREA_HEIGHT = <span class="hljs-number">30</span>
-TAB_WIDTH = <span class="hljs-number">15</span>
-TAB_HEIGHT = <span class="hljs-number">5</span>
-TAB_OFFSET = <span class="hljs-number">10</span>
-SOCKET_DROP_PADDING = <span class="hljs-number">3</span>
+            <div class="content"><div class='highlight'><pre>  PADDING = <span class="hljs-number">5</span>
+  INDENT_SPACING = <span class="hljs-number">15</span>
+  TOUNGE_HEIGHT = <span class="hljs-number">10</span>
+  FONT_HEIGHT = <span class="hljs-number">15</span>
+  EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * <span class="hljs-number">2</span>
+  EMPTY_SOCKET_WIDTH = <span class="hljs-number">20</span>
+  EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * <span class="hljs-number">2</span>
+  EMPTY_INDENT_WIDTH = <span class="hljs-number">50</span>
+  MIN_SEGMENT_DROP_AREA_WIDTH = <span class="hljs-number">100</span>
+  DROP_AREA_HEIGHT = <span class="hljs-number">30</span>
+  TAB_WIDTH = <span class="hljs-number">15</span>
+  TAB_HEIGHT = <span class="hljs-number">5</span>
+  TAB_OFFSET = <span class="hljs-number">10</span>
+  SOCKET_DROP_PADDING = <span class="hljs-number">3</span>
+  
+  <span class="hljs-built_in">exports</span> = {}
 
-<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BoundingBoxState</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@x</span> = point.x
-    <span class="hljs-property">@y</span> = point.y
+  <span class="hljs-built_in">exports</span>.BoundingBoxState = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BoundingBoxState</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@x</span> = point.x
+      <span class="hljs-property">@y</span> = point.y
 
-<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PathWaypoint</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@left</span>, <span class="hljs-property">@right</span>)</span> -&gt;</span></pre></div></div>
+  <span class="hljs-built_in">exports</span>.PathWaypoint = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">PathWaypoint</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@left</span>, <span class="hljs-property">@right</span>)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -115,16 +130,16 @@ SOCKET_DROP_PADDING = <span class="hljs-number">3</span>
                 <a class="pilcrow" href="#section-3">&#182;</a>
               </div>
               <h1 id="iceview">IceView</h1>
-<p>This is the base class from which all other View elements (except the CursorView) extend.
+<p>This is the base exports.from = class from which all other View elements (except the CursorView) extend.
 Code here handles most tree operations that need to be performed (all of which occur in
 FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IceView</span></span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.IceView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IceView</span></span>
 
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span>
-    <span class="hljs-property">@children</span> = [] <span class="hljs-comment"># All child blocks, for event delegation. (IceView[])</span></pre></div></div>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span>
+      <span class="hljs-property">@children</span> = [] <span class="hljs-comment"># All child blocks, for event delegation. (IceView[])</span></pre></div></div>
             
         </li>
         
@@ -139,27 +154,27 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@lineStart</span> = <span class="hljs-property">@lineEnd</span> = <span class="hljs-literal">null</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineStart</span> = <span class="hljs-property">@lineEnd</span> = <span class="hljs-literal">null</span>
 
-    <span class="hljs-property">@lineChildren</span> = {} <span class="hljs-comment"># Children on each line, computed in FIRST PASS (int:IceView[])</span>
+      <span class="hljs-property">@lineChildren</span> = {} <span class="hljs-comment"># Children on each line, computed in FIRST PASS (int:IceView[])</span>
 
-    <span class="hljs-property">@dimensions</span> = {} <span class="hljs-comment"># Bounding box on each line, computed in SECOND PASS (int:draw.Size)</span>
+      <span class="hljs-property">@dimensions</span> = {} <span class="hljs-comment"># Bounding box on each line, computed in SECOND PASS (int:draw.Size)</span>
 
-    <span class="hljs-property">@cursors</span> = []
+      <span class="hljs-property">@cursors</span> = []
 
-    <span class="hljs-property">@dropArea</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@dropArea</span> = <span class="hljs-literal">null</span>
 
-    <span class="hljs-property">@highlightArea</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@highlightArea</span> = <span class="hljs-literal">null</span>
 
-    <span class="hljs-property">@indented</span> = {}
+      <span class="hljs-property">@indented</span> = {}
 
-    <span class="hljs-property">@indentEndsOn</span> = {}
+      <span class="hljs-property">@indentEndsOn</span> = {}
 
-    <span class="hljs-property">@indentStartsOn</span> = {}
+      <span class="hljs-property">@indentStartsOn</span> = {}
 
-    <span class="hljs-property">@pathWaypoints</span> = {} <span class="hljs-comment"># PathWaypoint[]</span>
+      <span class="hljs-property">@pathWaypoints</span> = {} <span class="hljs-comment"># PathWaypoint[]</span>
 
-    <span class="hljs-property">@bounds</span> = {} <span class="hljs-comment"># Bounding boxes on each line, computed in THIRD PASS (int:draw.Rectangle)</span></pre></div></div>
+      <span class="hljs-property">@bounds</span> = {} <span class="hljs-comment"># Bounding boxes on each line, computed in THIRD PASS (int:draw.Rectangle)</span></pre></div></div>
             
         </li>
         
@@ -174,7 +189,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeChildren</span>: <span class="hljs-function"><span class="hljs-params">(line)</span> -&gt;</span> <span class="hljs-comment"># (line) is the starting line</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeChildren</span>: <span class="hljs-function"><span class="hljs-params">(line)</span> -&gt;</span> <span class="hljs-comment"># (line) is the starting line</span></pre></div></div>
             
         </li>
         
@@ -189,17 +204,17 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@children</span> = []
-    <span class="hljs-property">@lineStart</span> = <span class="hljs-property">@lineEnd</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@dropArea</span> = <span class="hljs-property">@highlightArea</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@lineChildren</span> = {}
-    <span class="hljs-property">@dimensions</span> = {}
-    <span class="hljs-property">@indented</span> = {}
-    <span class="hljs-property">@indentEndsOn</span> = {}
-    <span class="hljs-property">@indentStartsOn</span> = {}
-    <span class="hljs-property">@pathWaypoints</span> = {}
-    <span class="hljs-property">@bounds</span> = {}
-    <span class="hljs-property">@cursors</span> = []</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@children</span> = []
+      <span class="hljs-property">@lineStart</span> = <span class="hljs-property">@lineEnd</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@dropArea</span> = <span class="hljs-property">@highlightArea</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@lineChildren</span> = {}
+      <span class="hljs-property">@dimensions</span> = {}
+      <span class="hljs-property">@indented</span> = {}
+      <span class="hljs-property">@indentEndsOn</span> = {}
+      <span class="hljs-property">@indentStartsOn</span> = {}
+      <span class="hljs-property">@pathWaypoints</span> = {}
+      <span class="hljs-property">@bounds</span> = {}
+      <span class="hljs-property">@cursors</span> = []</pre></div></div>
             
         </li>
         
@@ -214,7 +229,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@lineStart</span> = line</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineStart</span> = line</pre></div></div>
             
         </li>
         
@@ -229,10 +244,10 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    head = <span class="hljs-property">@block</span>.start.next
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@block</span>.end
-      <span class="hljs-keyword">switch</span> head.type
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@block</span>.start.next
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@block</span>.end
+        <span class="hljs-keyword">switch</span> head.type
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span></pre></div></div>
             
         </li>
         
@@ -247,7 +262,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          line = head.block.view.computeChildren line</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            line = head.block.view.computeChildren line</pre></div></div>
             
         </li>
         
@@ -262,7 +277,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@children</span>.push head.block.view</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@children</span>.push head.block.view</pre></div></div>
             
         </li>
         
@@ -277,7 +292,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.block.view.lineStart..head.block.view.lineEnd] <span class="hljs-comment"># (iterate over all blocks which this indent occupies)</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.block.view.lineStart..head.block.view.lineEnd] <span class="hljs-comment"># (iterate over all blocks which this indent occupies)</span></pre></div></div>
             
         </li>
         
@@ -292,7 +307,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []</pre></div></div>
             
         </li>
         
@@ -307,10 +322,10 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.block.view
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.block.view
 
-            <span class="hljs-property">@indented</span>[occupiedLine] ||= head.block.view.indented[occupiedLine]
-            <span class="hljs-property">@indentEndsOn</span>[occupiedLine] ||= head.block.view.indentEndsOn[occupiedLine]</pre></div></div>
+              <span class="hljs-property">@indented</span>[occupiedLine] ||= head.block.view.indented[occupiedLine]
+              <span class="hljs-property">@indentEndsOn</span>[occupiedLine] ||= head.block.view.indentEndsOn[occupiedLine]</pre></div></div>
             
         </li>
         
@@ -325,9 +340,9 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          head = head.block.end
+            <div class="content"><div class='highlight'><pre>            head = head.block.end
 
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span></pre></div></div>
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span></pre></div></div>
             
         </li>
         
@@ -342,7 +357,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          line = head.indent.view.computeChildren line</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            line = head.indent.view.computeChildren line</pre></div></div>
             
         </li>
         
@@ -357,7 +372,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@children</span>.push head.indent.view</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@children</span>.push head.indent.view</pre></div></div>
             
         </li>
         
@@ -372,7 +387,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.indent.view.lineStart..head.indent.view.lineEnd] <span class="hljs-comment"># (iterate over all lines which this indent occupies)</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.indent.view.lineStart..head.indent.view.lineEnd] <span class="hljs-comment"># (iterate over all lines which this indent occupies)</span></pre></div></div>
             
         </li>
         
@@ -387,7 +402,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []</pre></div></div>
             
         </li>
         
@@ -402,7 +417,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.indent.view</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.indent.view</pre></div></div>
             
         </li>
         
@@ -417,10 +432,10 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@indented</span>[occupiedLine] = <span class="hljs-literal">true</span>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-property">@indented</span>[occupiedLine] = <span class="hljs-literal">true</span>
 
-          <span class="hljs-property">@indentEndsOn</span>[head.indent.view.lineEnd] = <span class="hljs-literal">true</span>
-          <span class="hljs-property">@indentStartsOn</span>[head.indent.view.lineStart] = <span class="hljs-literal">true</span></pre></div></div>
+            <span class="hljs-property">@indentEndsOn</span>[head.indent.view.lineEnd] = <span class="hljs-literal">true</span>
+            <span class="hljs-property">@indentStartsOn</span>[head.indent.view.lineStart] = <span class="hljs-literal">true</span></pre></div></div>
             
         </li>
         
@@ -435,9 +450,9 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          head = head.indent.end
+            <div class="content"><div class='highlight'><pre>            head = head.indent.end
 
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span></pre></div></div>
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span></pre></div></div>
             
         </li>
         
@@ -452,21 +467,21 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          line = head.socket.view.computeChildren line
+            <div class="content"><div class='highlight'><pre>            line = head.socket.view.computeChildren line
 
-          <span class="hljs-property">@children</span>.push head.socket.view
+            <span class="hljs-property">@children</span>.push head.socket.view
 
-          <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.socket.view.lineStart..head.socket.view.lineEnd]
-            <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []
+            <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.socket.view.lineStart..head.socket.view.lineEnd]
+              <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []
 
-            <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.socket.view
+              <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.socket.view
 
-            <span class="hljs-property">@indented</span>[occupiedLine] ||= head.socket.view.indented[occupiedLine]
-            <span class="hljs-property">@indentEndsOn</span>[occupiedLine] ||= head.socket.view.indentEndsOn[occupiedLine]
+              <span class="hljs-property">@indented</span>[occupiedLine] ||= head.socket.view.indented[occupiedLine]
+              <span class="hljs-property">@indentEndsOn</span>[occupiedLine] ||= head.socket.view.indentEndsOn[occupiedLine]
 
-          head = head.socket.end
+            head = head.socket.end
 
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'segmentStart'</span></pre></div></div>
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'segmentStart'</span></pre></div></div>
             
         </li>
         
@@ -481,21 +496,21 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          line = head.segment.view.computeChildren line
+            <div class="content"><div class='highlight'><pre>            line = head.segment.view.computeChildren line
 
-          <span class="hljs-property">@children</span>.push head.segment.view
+            <span class="hljs-property">@children</span>.push head.segment.view
 
-          <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.segment.view.lineStart..head.segment.view.lineEnd]
-            <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []
+            <span class="hljs-keyword">for</span> occupiedLine <span class="hljs-keyword">in</span> [head.segment.view.lineStart..head.segment.view.lineEnd]
+              <span class="hljs-property">@lineChildren</span>[occupiedLine] ?= []
 
-            <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.segment.view
+              <span class="hljs-property">@lineChildren</span>[occupiedLine].push head.segment.view
 
-            <span class="hljs-property">@indented</span>[occupiedLine] ||= head.segment.view.indented[occupiedLine]
-            <span class="hljs-property">@indentEndsOn</span>[occupiedLine] ||= head.segment.view.indentEndsOn[occupiedLine]
+              <span class="hljs-property">@indented</span>[occupiedLine] ||= head.segment.view.indented[occupiedLine]
+              <span class="hljs-property">@indentEndsOn</span>[occupiedLine] ||= head.segment.view.indentEndsOn[occupiedLine]
 
-          head = head.segment.end
+            head = head.segment.end
 
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'text'</span></pre></div></div>
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'text'</span></pre></div></div>
             
         </li>
         
@@ -510,7 +525,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          head.view.computeChildren line</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            head.view.computeChildren line</pre></div></div>
             
         </li>
         
@@ -525,17 +540,17 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@children</span>.push head.view
-          
-          <span class="hljs-property">@lineChildren</span>[line] ?= []; <span class="hljs-property">@lineChildren</span>[line].push head.view
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@children</span>.push head.view
+            
+            <span class="hljs-property">@lineChildren</span>[line] ?= []; <span class="hljs-property">@lineChildren</span>[line].push head.view
 
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'cursor'</span>
-          <span class="hljs-property">@cursors</span>.push
-            <span class="hljs-attribute">token</span>: head
-            <span class="hljs-attribute">line</span>: line
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'cursor'</span>
+            <span class="hljs-property">@cursors</span>.push
+              <span class="hljs-attribute">token</span>: head
+              <span class="hljs-attribute">line</span>: line
 
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'newline'</span>
-          line += <span class="hljs-number">1</span></pre></div></div>
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'newline'</span>
+            line += <span class="hljs-number">1</span></pre></div></div>
             
         </li>
         
@@ -550,7 +565,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      head = head.next</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        head = head.next</pre></div></div>
             
         </li>
         
@@ -565,7 +580,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@lineEnd</span> = line</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineEnd</span> = line</pre></div></div>
             
         </li>
         
@@ -580,10 +595,10 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> l <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
-      <span class="hljs-property">@lineChildren</span>[l] ?= []
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">for</span> l <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
+        <span class="hljs-property">@lineChildren</span>[l] ?= []
 
-    <span class="hljs-keyword">return</span> line</pre></div></div>
+      <span class="hljs-keyword">return</span> line</pre></div></div>
             
         </li>
         
@@ -598,7 +613,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-comment"># A block's dimensions on each line is strictly a function of its children, so this function has no arguments.</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-comment"># A block's dimensions on each line is strictly a function of its children, so this function has no arguments.</span></pre></div></div>
             
         </li>
         
@@ -613,9 +628,9 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.computeDimensions()
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.computeDimensions()
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@dimensions</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@dimensions</span></pre></div></div>
             
         </li>
         
@@ -630,7 +645,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span> <span class="hljs-comment"># (line) and (state) are given by the calling parent and signify restrictions on the position of the line (e.g. padding, etc).</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span> <span class="hljs-comment"># (line) and (state) are given by the calling parent and signify restrictions on the position of the line (e.g. padding, etc).</span></pre></div></div>
             
         </li>
         
@@ -645,9 +660,9 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line] <span class="hljs-keyword">then</span> child.computeBoundingBox line, state <span class="hljs-comment"># In an instance of this function, you will want to change (state) as you move along @lineChildren[line], to adjust for padding and such.</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line] <span class="hljs-keyword">then</span> child.computeBoundingBox line, state <span class="hljs-comment"># In an instance of this function, you will want to change (state) as you move along @lineChildren[line], to adjust for padding and such.</span>
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.NoRectangle() <span class="hljs-comment"># Should actually equal something</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.NoRectangle() <span class="hljs-comment"># Should actually equal something</span></pre></div></div>
             
         </li>
         
@@ -662,7 +677,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -677,9 +692,9 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.computePath()
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.computePath()
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@bounds</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@bounds</span></pre></div></div>
             
         </li>
         
@@ -694,7 +709,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -709,7 +724,7 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.drawPath ctx</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.drawPath ctx</pre></div></div>
             
         </li>
         
@@ -724,10 +739,10 @@ FIRST PASS).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">drawCursor</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.drawCursor ctx
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">drawCursor</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.drawCursor ctx
 
-    <span class="hljs-keyword">for</span> cursor <span class="hljs-keyword">in</span> <span class="hljs-property">@cursors</span></pre></div></div>
+      <span class="hljs-keyword">for</span> cursor <span class="hljs-keyword">in</span> <span class="hljs-property">@cursors</span></pre></div></div>
             
         </li>
         
@@ -743,28 +758,28 @@ we render it after or before the line it is on.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> cursor.token.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> cursor.token.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span>
-        yCoordinate = <span class="hljs-property">@bounds</span>[cursor.line].y
-      <span class="hljs-keyword">else</span>
-        yCoordinate = <span class="hljs-property">@bounds</span>[cursor.line].bottom()
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> cursor.token.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> cursor.token.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span>
+          yCoordinate = <span class="hljs-property">@bounds</span>[cursor.line].y
+        <span class="hljs-keyword">else</span>
+          yCoordinate = <span class="hljs-property">@bounds</span>[cursor.line].bottom()
 
-      cursor.token.view.point.y = yCoordinate
+        cursor.token.view.point.y = yCoordinate
 
-      ctx.fillStyle = <span class="hljs-string">'#000'</span>
-      ctx.strokeSTyle = <span class="hljs-string">'#000'</span>
-      ctx.beginPath()
+        ctx.fillStyle = <span class="hljs-string">'#000'</span>
+        ctx.strokeSTyle = <span class="hljs-string">'#000'</span>
+        ctx.beginPath()
 
-      <span class="hljs-keyword">if</span> <span class="hljs-property">@bounds</span>[cursor.line].x &gt;= <span class="hljs-number">5</span>
-        ctx.moveTo <span class="hljs-property">@bounds</span>[cursor.line].x, yCoordinate
-        ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x - <span class="hljs-number">5</span>, yCoordinate - <span class="hljs-number">5</span>
-        ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x - <span class="hljs-number">5</span>, yCoordinate + <span class="hljs-number">5</span>
-      <span class="hljs-keyword">else</span>
-        ctx.moveTo <span class="hljs-property">@bounds</span>[cursor.line].x, yCoordinate
-        ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x + <span class="hljs-number">5</span>, yCoordinate - <span class="hljs-number">5</span>
-        ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x + <span class="hljs-number">5</span>, yCoordinate + <span class="hljs-number">5</span>
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@bounds</span>[cursor.line].x &gt;= <span class="hljs-number">5</span>
+          ctx.moveTo <span class="hljs-property">@bounds</span>[cursor.line].x, yCoordinate
+          ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x - <span class="hljs-number">5</span>, yCoordinate - <span class="hljs-number">5</span>
+          ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x - <span class="hljs-number">5</span>, yCoordinate + <span class="hljs-number">5</span>
+        <span class="hljs-keyword">else</span>
+          ctx.moveTo <span class="hljs-property">@bounds</span>[cursor.line].x, yCoordinate
+          ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x + <span class="hljs-number">5</span>, yCoordinate - <span class="hljs-number">5</span>
+          ctx.lineTo <span class="hljs-property">@bounds</span>[cursor.line].x + <span class="hljs-number">5</span>, yCoordinate + <span class="hljs-number">5</span>
 
-      ctx.stroke()
-      ctx.fill()</pre></div></div>
+        ctx.stroke()
+        ctx.fill()</pre></div></div>
             
         </li>
         
@@ -779,9 +794,9 @@ we render it after or before the line it is on.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    <span class="hljs-property">@drawPath</span> ctx
-    <span class="hljs-property">@drawCursor</span> ctx</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      <span class="hljs-property">@drawPath</span> ctx
+      <span class="hljs-property">@drawCursor</span> ctx</pre></div></div>
             
         </li>
         
@@ -797,13 +812,13 @@ we render it after or before the line it is on.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeBoundingBoxes</span>:<span class="hljs-function"> -&gt;</span>
-    cursor = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
-    <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
-      <span class="hljs-property">@computeBoundingBox</span> line, <span class="hljs-keyword">new</span> BoundingBoxState cursor
-      cursor.y += <span class="hljs-property">@dimensions</span>[line].height
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeBoundingBoxes</span>:<span class="hljs-function"> -&gt;</span>
+      cursor = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+      <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
+        <span class="hljs-property">@computeBoundingBox</span> line, <span class="hljs-keyword">new</span> BoundingBoxState cursor
+        cursor.y += <span class="hljs-property">@dimensions</span>[line].height
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@bounds</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@bounds</span></pre></div></div>
             
         </li>
         
@@ -820,13 +835,13 @@ Must be called after passes</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">getBounds</span>:<span class="hljs-function"> -&gt;</span>
-    bound = <span class="hljs-keyword">new</span> draw.NoRectangle()
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">getBounds</span>:<span class="hljs-function"> -&gt;</span>
+      bound = <span class="hljs-keyword">new</span> draw.NoRectangle()
 
-    <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
-      bound.unite <span class="hljs-property">@bounds</span>[line]
+      <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
+        bound.unite <span class="hljs-property">@bounds</span>[line]
 
-    <span class="hljs-keyword">return</span> bound</pre></div></div>
+      <span class="hljs-keyword">return</span> bound</pre></div></div>
             
         </li>
         
@@ -841,13 +856,13 @@ Must be called after passes</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">compute</span>: <span class="hljs-function"><span class="hljs-params">(line = <span class="hljs-number">0</span>)</span> -&gt;</span>
-    <span class="hljs-property">@computeChildren</span> line
-    <span class="hljs-property">@computeDimensions</span>(); <span class="hljs-property">@computeBoundingBoxes</span>(); <span class="hljs-property">@computePath</span>()
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">compute</span>: <span class="hljs-function"><span class="hljs-params">(line = <span class="hljs-number">0</span>)</span> -&gt;</span>
+      <span class="hljs-property">@computeChildren</span> line
+      <span class="hljs-property">@computeDimensions</span>(); <span class="hljs-property">@computeBoundingBoxes</span>(); <span class="hljs-property">@computePath</span>()
 
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-keyword">for</span> line, bound <span class="hljs-keyword">of</span> <span class="hljs-property">@bounds</span> <span class="hljs-keyword">then</span> bound.translate point
-    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.translate point</pre></div></div>
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-keyword">for</span> line, bound <span class="hljs-keyword">of</span> <span class="hljs-property">@bounds</span> <span class="hljs-keyword">then</span> bound.translate point
+      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@children</span> <span class="hljs-keyword">then</span> child.translate point</pre></div></div>
             
         </li>
         
@@ -864,10 +879,10 @@ in ICE editor stem from here.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlockView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
-    <span class="hljs-keyword">super</span> block
-    <span class="hljs-property">@path</span> = <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.BlockView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlockView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
+      <span class="hljs-keyword">super</span> block
+      <span class="hljs-property">@path</span> = <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -885,7 +900,7 @@ width = sum(children_widths).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -900,14 +915,14 @@ width = sum(children_widths).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">super</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">super</span>
 
-    <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
-      width = PADDING; height = <span class="hljs-number">2</span> * PADDING
+      <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
+        width = PADDING; height = <span class="hljs-number">2</span> * PADDING
 
-      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]
+        <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]
 
-        <span class="hljs-keyword">if</span> child.block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span></pre></div></div>
+          <span class="hljs-keyword">if</span> child.block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span></pre></div></div>
             
         </li>
         
@@ -922,7 +937,7 @@ width = sum(children_widths).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          width += child.dimensions[line].width + INDENT_SPACING</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            width += child.dimensions[line].width + INDENT_SPACING</pre></div></div>
             
         </li>
         
@@ -938,10 +953,10 @@ We add 10 if the indent ends, so as to draw the bottom of the mouth.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          height = Math.max height, child.dimensions[line].height + (<span class="hljs-keyword">if</span> child.lineEnd <span class="hljs-keyword">is</span> line <span class="hljs-keyword">then</span> TOUNGE_HEIGHT <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
+            <div class="content"><div class='highlight'><pre>            height = Math.max height, child.dimensions[line].height + (<span class="hljs-keyword">if</span> child.lineEnd <span class="hljs-keyword">is</span> line <span class="hljs-keyword">then</span> TOUNGE_HEIGHT <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
 
-        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> child.indented[line]
-          width += child.dimensions[line].width + PADDING</pre></div></div>
+          <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> child.indented[line]
+            width += child.dimensions[line].width + PADDING</pre></div></div>
             
         </li>
         
@@ -956,10 +971,10 @@ We add 10 if the indent ends, so as to draw the bottom of the mouth.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          height = Math.max height, child.dimensions[line].height + (<span class="hljs-keyword">if</span> child.lineEnd <span class="hljs-keyword">is</span> line <span class="hljs-keyword">and</span> child.indentEndsOn[line] <span class="hljs-keyword">then</span> TOUNGE_HEIGHT <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
+            <div class="content"><div class='highlight'><pre>            height = Math.max height, child.dimensions[line].height + (<span class="hljs-keyword">if</span> child.lineEnd <span class="hljs-keyword">is</span> line <span class="hljs-keyword">and</span> child.indentEndsOn[line] <span class="hljs-keyword">then</span> TOUNGE_HEIGHT <span class="hljs-keyword">else</span> <span class="hljs-number">0</span>)
 
-        <span class="hljs-keyword">else</span>
-          width += child.dimensions[line].width + PADDING</pre></div></div>
+          <span class="hljs-keyword">else</span>
+            width += child.dimensions[line].width + PADDING</pre></div></div>
             
         </li>
         
@@ -974,9 +989,9 @@ We add 10 if the indent ends, so as to draw the bottom of the mouth.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          height = Math.max height, child.dimensions[line].height + <span class="hljs-number">2</span> * PADDING
+            <div class="content"><div class='highlight'><pre>            height = Math.max height, child.dimensions[line].height + <span class="hljs-number">2</span> * PADDING
 
-      <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size width, height</pre></div></div>
+        <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size width, height</pre></div></div>
             
         </li>
         
@@ -996,7 +1011,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -1011,11 +1026,11 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    axis = state.y + <span class="hljs-property">@dimensions</span>[line].height / <span class="hljs-number">2</span>
-    cursor = state.x
+            <div class="content"><div class='highlight'><pre>      axis = state.y + <span class="hljs-property">@dimensions</span>[line].height / <span class="hljs-number">2</span>
+      cursor = state.x
 
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">is</span> line <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indentEndsOn[line]
-      axis -= TOUNGE_HEIGHT / <span class="hljs-number">2</span></pre></div></div>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">is</span> line <span class="hljs-keyword">and</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indentEndsOn[line]
+        axis -= TOUNGE_HEIGHT / <span class="hljs-number">2</span></pre></div></div>
             
         </li>
         
@@ -1030,9 +1045,9 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
 
-    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]</pre></div></div>
+      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]</pre></div></div>
             
         </li>
         
@@ -1047,7 +1062,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> child.block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> child.block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span></pre></div></div>
             
         </li>
         
@@ -1062,12 +1077,12 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        cursor += INDENT_SPACING
+            <div class="content"><div class='highlight'><pre>          cursor += INDENT_SPACING
+          
+          child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursor,
+            state.y <span class="hljs-comment"># Position the child at the top of the line.</span>
         
-        child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursor,
-          state.y <span class="hljs-comment"># Position the child at the top of the line.</span>
-      
-      <span class="hljs-keyword">else</span></pre></div></div>
+        <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
         
@@ -1082,12 +1097,12 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        cursor += PADDING
+            <div class="content"><div class='highlight'><pre>          cursor += PADDING
 
-        child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursor,
-          axis - child.dimensions[line].height / <span class="hljs-number">2</span> <span class="hljs-comment"># Position the child in the middle of the line</span>
+          child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursor,
+            axis - child.dimensions[line].height / <span class="hljs-number">2</span> <span class="hljs-comment"># Position the child in the middle of the line</span>
 
-      cursor += child.dimensions[line].width</pre></div></div>
+        cursor += child.dimensions[line].width</pre></div></div>
             
         </li>
         
@@ -1102,7 +1117,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt;  <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (<span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indented[line] <span class="hljs-keyword">or</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt;  <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (<span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indented[line] <span class="hljs-keyword">or</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span>)</pre></div></div>
             
         </li>
         
@@ -1117,15 +1132,15 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [
-        <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
-        <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
-      ], [
-        <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].y
-        <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].bottom()
-      ]
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [
+          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
+          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
+        ], [
+          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].y
+          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].bottom()
+        ]
 
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">0</span></pre></div></div>
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">0</span></pre></div></div>
             
         </li>
         
@@ -1141,7 +1156,7 @@ to later connect with the container polygon.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-      <span class="hljs-keyword">if</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">and</span> (<span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indentEndsOn[line] <span class="hljs-keyword">or</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span>)</pre></div></div>
+        <span class="hljs-keyword">if</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].lineEnd <span class="hljs-keyword">and</span> (<span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].indentEndsOn[line] <span class="hljs-keyword">or</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span>)</pre></div></div>
             
         </li>
         
@@ -1169,12 +1184,12 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        indentChild = <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>]
+            <div class="content"><div class='highlight'><pre>          indentChild = <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>]
 
-        paddingLeft = <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span> <span class="hljs-keyword">then</span> INDENT_SPACING <span class="hljs-keyword">else</span> PADDING
+          paddingLeft = <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indent'</span> <span class="hljs-keyword">then</span> INDENT_SPACING <span class="hljs-keyword">else</span> PADDING
 
-        <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length <span class="hljs-keyword">is</span> <span class="hljs-number">1</span>
-          <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [</pre></div></div>
+          <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length <span class="hljs-keyword">is</span> <span class="hljs-number">1</span>
+            <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [</pre></div></div>
             
         </li>
         
@@ -1189,9 +1204,9 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
-            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
-          ], [</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
+              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
+            ], [</pre></div></div>
             
         </li>
         
@@ -1206,8 +1221,8 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, <span class="hljs-property">@bounds</span>[line].y
-            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, indentChild.bounds[line].bottom()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, <span class="hljs-property">@bounds</span>[line].y
+              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, indentChild.bounds[line].bottom()</pre></div></div>
             
         </li>
         
@@ -1222,7 +1237,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()</pre></div></div>
             
         </li>
         
@@ -1237,7 +1252,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), indentChild.bounds[line].bottom()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), indentChild.bounds[line].bottom()</pre></div></div>
             
         </li>
         
@@ -1252,11 +1267,11 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].bottom()
-          ]
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].bottom()
+            ]
 
-        <span class="hljs-keyword">else</span>
-          <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [</pre></div></div>
+          <span class="hljs-keyword">else</span>
+            <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [</pre></div></div>
             
         </li>
         
@@ -1271,9 +1286,9 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
-            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
-          ], [</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
+              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
+            ], [</pre></div></div>
             
         </li>
         
@@ -1288,8 +1303,8 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, <span class="hljs-property">@bounds</span>[line].y
-            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, indentChild.bounds[line].bottom()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, <span class="hljs-property">@bounds</span>[line].y
+              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + paddingLeft, indentChild.bounds[line].bottom()</pre></div></div>
             
         </li>
         
@@ -1304,7 +1319,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point indentChild.bounds[line].right(), indentChild.bounds[line].bottom()</pre></div></div>
             
         </li>
         
@@ -1319,7 +1334,7 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point indentChild.bounds[line].right(), <span class="hljs-property">@bounds</span>[line].y</pre></div></div>
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point indentChild.bounds[line].right(), <span class="hljs-property">@bounds</span>[line].y</pre></div></div>
             
         </li>
         
@@ -1334,11 +1349,11 @@ to later connect with the container polygon.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].y
-            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].bottom()
-          ]
+            <div class="content"><div class='highlight'><pre>              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].y
+              <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].right(), <span class="hljs-property">@bounds</span>[line].bottom()
+            ]
 
-      <span class="hljs-keyword">else</span></pre></div></div>
+        <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
         
@@ -1354,7 +1369,7 @@ of conainer block to the left of them, with width INDENT_SPACING</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@pathWaypoints</span>[line] = <span class="hljs-keyword">new</span> PathWaypoint [</pre></div></div>
             
         </li>
         
@@ -1369,9 +1384,9 @@ of conainer block to the left of them, with width INDENT_SPACING</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
-          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
-        ], [</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].y
+            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x, <span class="hljs-property">@bounds</span>[line].bottom()
+          ], [</pre></div></div>
             
         </li>
         
@@ -1386,9 +1401,9 @@ of conainer block to the left of them, with width INDENT_SPACING</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING, <span class="hljs-property">@bounds</span>[line].y
-          <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING, <span class="hljs-property">@bounds</span>[line].bottom()
-        ]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING, <span class="hljs-property">@bounds</span>[line].y
+            <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING, <span class="hljs-property">@bounds</span>[line].bottom()
+          ]</pre></div></div>
             
         </li>
         
@@ -1407,12 +1422,12 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">super</span>
-    
-    <span class="hljs-property">@path</span> = <span class="hljs-keyword">new</span> draw.Path()
-    <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() - DROP_AREA_HEIGHT / <span class="hljs-number">2</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].width, DROP_AREA_HEIGHT
-    <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() - <span class="hljs-number">5</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].width, <span class="hljs-number">10</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">super</span>
+      
+      <span class="hljs-property">@path</span> = <span class="hljs-keyword">new</span> draw.Path()
+      <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() - DROP_AREA_HEIGHT / <span class="hljs-number">2</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].width, DROP_AREA_HEIGHT
+      <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() - <span class="hljs-number">5</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].width, <span class="hljs-number">10</span></pre></div></div>
             
         </li>
         
@@ -1427,15 +1442,15 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">unless</span> (<span class="hljs-property">@block</span>.inSocket() ? <span class="hljs-literal">false</span>)
-      <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y
-      <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET + TAB_WIDTH / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y + TAB_HEIGHT
-      <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET + TAB_WIDTH * <span class="hljs-number">7</span> / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y + TAB_HEIGHT
-      <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET + TAB_WIDTH, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">unless</span> (<span class="hljs-property">@block</span>.inSocket() ? <span class="hljs-literal">false</span>)
+        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y
+        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET + TAB_WIDTH / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y + TAB_HEIGHT
+        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET + TAB_WIDTH * <span class="hljs-number">7</span> / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y + TAB_HEIGHT
+        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x + TAB_OFFSET + TAB_WIDTH, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y
 
-    <span class="hljs-keyword">for</span> line, waypoint <span class="hljs-keyword">of</span> <span class="hljs-property">@pathWaypoints</span>
-      
-      <span class="hljs-keyword">if</span> <span class="hljs-property">@indentStartsOn</span>[line]</pre></div></div>
+      <span class="hljs-keyword">for</span> line, waypoint <span class="hljs-keyword">of</span> <span class="hljs-property">@pathWaypoints</span>
+        
+        <span class="hljs-keyword">if</span> <span class="hljs-property">@indentStartsOn</span>[line]</pre></div></div>
             
         </li>
         
@@ -1450,7 +1465,7 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        entryPoint = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH, <span class="hljs-property">@bounds</span>[line].y</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          entryPoint = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH, <span class="hljs-property">@bounds</span>[line].y</pre></div></div>
             
         </li>
         
@@ -1465,8 +1480,8 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> entryPoint.y <span class="hljs-keyword">isnt</span> <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].y
-          <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].x, entryPoint.y</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> entryPoint.y <span class="hljs-keyword">isnt</span> <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].y
+            <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].x, entryPoint.y</pre></div></div>
             
         </li>
         
@@ -1481,12 +1496,12 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@path</span>.push entryPoint
-        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH * <span class="hljs-number">7</span> / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[line].y + TAB_HEIGHT
-        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[line].y + TAB_HEIGHT
-        <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET, <span class="hljs-property">@bounds</span>[line].y
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@path</span>.push entryPoint
+          <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH * <span class="hljs-number">7</span> / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[line].y + TAB_HEIGHT
+          <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET + TAB_WIDTH / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[line].y + TAB_HEIGHT
+          <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[line].x + INDENT_SPACING + TAB_OFFSET, <span class="hljs-property">@bounds</span>[line].y
 
-      <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> waypoint.left</pre></div></div>
+        <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> waypoint.left</pre></div></div>
             
         </li>
         
@@ -1501,12 +1516,12 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> point.x <span class="hljs-keyword">isnt</span> <span class="hljs-property">@path</span>._points[<span class="hljs-number">0</span>].x
-          <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point point.x, <span class="hljs-property">@path</span>._points[<span class="hljs-number">0</span>].y
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> point.x <span class="hljs-keyword">isnt</span> <span class="hljs-property">@path</span>._points[<span class="hljs-number">0</span>].x
+            <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point point.x, <span class="hljs-property">@path</span>._points[<span class="hljs-number">0</span>].y
 
-        <span class="hljs-property">@path</span>.unshift point
+          <span class="hljs-property">@path</span>.unshift point
 
-      <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> waypoint.right</pre></div></div>
+        <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> waypoint.right</pre></div></div>
             
         </li>
         
@@ -1521,10 +1536,10 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> point.y <span class="hljs-keyword">isnt</span> <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].y
-          <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].x, point.y
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> point.y <span class="hljs-keyword">isnt</span> <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].y
+            <span class="hljs-property">@path</span>.push <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@path</span>._points[<span class="hljs-property">@path</span>._points.length - <span class="hljs-number">1</span>].x, point.y
 
-        <span class="hljs-property">@path</span>.push point</pre></div></div>
+          <span class="hljs-property">@path</span>.push point</pre></div></div>
             
         </li>
         
@@ -1539,14 +1554,14 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">unless</span> (<span class="hljs-property">@block</span>.inSocket() ? <span class="hljs-literal">false</span>)
-      <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom()
-      <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET + TAB_WIDTH / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() + TAB_HEIGHT
-      <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET + TAB_WIDTH * <span class="hljs-number">7</span> / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() + TAB_HEIGHT
-      <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET + TAB_WIDTH, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom()
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">unless</span> (<span class="hljs-property">@block</span>.inSocket() ? <span class="hljs-literal">false</span>)
+        <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom()
+        <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET + TAB_WIDTH / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() + TAB_HEIGHT
+        <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET + TAB_WIDTH * <span class="hljs-number">7</span> / <span class="hljs-number">8</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom() + TAB_HEIGHT
+        <span class="hljs-property">@path</span>.unshift <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].x + TAB_OFFSET + TAB_WIDTH, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineEnd</span>].bottom()
 
-    <span class="hljs-property">@path</span>.style.fillColor = <span class="hljs-property">@block</span>.color
-    <span class="hljs-property">@path</span>.style.strokeColor = <span class="hljs-string">'#000'</span></pre></div></div>
+      <span class="hljs-property">@path</span>.style.fillColor = <span class="hljs-property">@block</span>.color
+      <span class="hljs-property">@path</span>.style.strokeColor = <span class="hljs-string">'#000'</span></pre></div></div>
             
         </li>
         
@@ -1562,23 +1577,23 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">debugger</span>
-    <span class="hljs-property">@path</span>.draw ctx
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@path</span>._points.length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">debugger</span>
+      <span class="hljs-property">@path</span>.draw ctx
 
-    <span class="hljs-keyword">super</span>
+      <span class="hljs-keyword">super</span>
 
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@path</span>.translate point
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@path</span>.translate point
 
-    <span class="hljs-keyword">super</span>
+      <span class="hljs-keyword">super</span>
 
-<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TextView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
-    <span class="hljs-keyword">super</span> block
-    <span class="hljs-property">@textElement</span> = <span class="hljs-literal">null</span>
-    
-  <span class="hljs-attribute">computeChildren</span>: <span class="hljs-function"><span class="hljs-params">(line)</span> -&gt;</span></pre></div></div>
+  <span class="hljs-built_in">exports</span>.TextView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TextView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
+      <span class="hljs-keyword">super</span> block
+      <span class="hljs-property">@textElement</span> = <span class="hljs-literal">null</span>
+      
+    <span class="hljs-attribute">computeChildren</span>: <span class="hljs-function"><span class="hljs-params">(line)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -1593,9 +1608,9 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@lineStart</span> = <span class="hljs-property">@lineEnd</span> = line
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineStart</span> = <span class="hljs-property">@lineEnd</span> = line
 
-  <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
+    <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -1610,8 +1625,8 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@textElement</span> = <span class="hljs-keyword">new</span> draw.Text <span class="hljs-keyword">new</span> draw.Point(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>),
-      <span class="hljs-property">@block</span>.value</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@textElement</span> = <span class="hljs-keyword">new</span> draw.Text <span class="hljs-keyword">new</span> draw.Point(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>),
+        <span class="hljs-property">@block</span>.value</pre></div></div>
             
         </li>
         
@@ -1626,13 +1641,13 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@dimensions</span>[<span class="hljs-property">@lineStart</span>] = <span class="hljs-keyword">new</span> draw.Size <span class="hljs-property">@textElement</span>.bounds().width,
-      <span class="hljs-property">@textElement</span>.bounds().height
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@dimensions</span>[<span class="hljs-property">@lineStart</span>] = <span class="hljs-keyword">new</span> draw.Size <span class="hljs-property">@textElement</span>.bounds().width,
+        <span class="hljs-property">@textElement</span>.bounds().height
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@dimesions</span>
-  
-  <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span>
-    <span class="hljs-keyword">if</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineStart</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@dimesions</span>
+    
+    <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span>
+      <span class="hljs-keyword">if</span> line <span class="hljs-keyword">is</span> <span class="hljs-property">@lineStart</span></pre></div></div>
             
         </li>
         
@@ -1647,7 +1662,7 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height</pre></div></div>
             
         </li>
         
@@ -1662,17 +1677,17 @@ This function is responsible for keeping paths rectilinear and adding tabs on bl
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@textElement</span>.setPosition <span class="hljs-keyword">new</span> draw.Point state.x, state.y
-  
-  <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-comment"># Do nothing</span>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@textElement</span>.setPosition <span class="hljs-keyword">new</span> draw.Point state.x, state.y
+    
+    <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-comment"># Do nothing</span>
 
-  <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    <span class="hljs-property">@textElement</span>.draw ctx
+    <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      <span class="hljs-property">@textElement</span>.draw ctx
 
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@textElement</span>.translate point
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@textElement</span>.translate point
 
-    <span class="hljs-keyword">super</span></pre></div></div>
+      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -1697,12 +1712,12 @@ whereas state will be modified (so must be mutable) to be passable to the next t
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computePlaintextTranslationVector</span>: <span class="hljs-function"><span class="hljs-params">(state, ctx)</span> -&gt;</span>
-    point = <span class="hljs-keyword">new</span> draw.Point state.x, state.y
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computePlaintextTranslationVector</span>: <span class="hljs-function"><span class="hljs-params">(state, ctx)</span> -&gt;</span>
+      point = <span class="hljs-keyword">new</span> draw.Point state.x, state.y
 
-    state.x += ctx.measureText(<span class="hljs-property">@block</span>.value).width
+      state.x += ctx.measureText(<span class="hljs-property">@block</span>.value).width
 
-    <span class="hljs-keyword">return</span> point.from <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y</pre></div></div>
+      <span class="hljs-keyword">return</span> point.from <span class="hljs-keyword">new</span> draw.Point <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y</pre></div></div>
             
         </li>
         
@@ -1719,9 +1734,9 @@ but handles some coordinate placement.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
-    <span class="hljs-keyword">super</span> block</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.IndentView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span>
+      <span class="hljs-keyword">super</span> block</pre></div></div>
             
         </li>
         
@@ -1740,8 +1755,8 @@ skip it.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeChildren</span>: <span class="hljs-function"><span class="hljs-params">(line)</span> -&gt;</span>
-    <span class="hljs-keyword">super</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeChildren</span>: <span class="hljs-function"><span class="hljs-params">(line)</span> -&gt;</span>
+      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -1756,9 +1771,9 @@ skip it.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@lineStart</span> += <span class="hljs-number">1</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineStart</span> += <span class="hljs-number">1</span>
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@lineEnd</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@lineEnd</span></pre></div></div>
             
         </li>
         
@@ -1775,8 +1790,8 @@ width = sum(child_widths). An Indent, however, adds no padding.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">super</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -1791,10 +1806,10 @@ width = sum(child_widths). An Indent, however, adds no padding.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@lineEnd</span> &gt;= <span class="hljs-property">@lineStart</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
-      height = width = <span class="hljs-number">0</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@lineEnd</span> &gt;= <span class="hljs-property">@lineStart</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
+        height = width = <span class="hljs-number">0</span>
 
-      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]</pre></div></div>
+        <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]</pre></div></div>
             
         </li>
         
@@ -1809,13 +1824,13 @@ width = sum(child_widths). An Indent, however, adds no padding.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        width += child.dimensions[line].width
-        height = Math.max height, child.dimensions[line].height
+            <div class="content"><div class='highlight'><pre>          width += child.dimensions[line].width
+          height = Math.max height, child.dimensions[line].height
 
-      height = Math.max height, EMPTY_INDENT_HEIGHT
-      width = Math.max width, EMPTY_INDENT_WIDTH
-      
-      <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size width, height</pre></div></div>
+        height = Math.max height, EMPTY_INDENT_HEIGHT
+        width = Math.max width, EMPTY_INDENT_WIDTH
+        
+        <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size width, height</pre></div></div>
             
         </li>
         
@@ -1833,9 +1848,9 @@ this function is pretty minimal.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span>
-    cursorX = state.x
-    cursorY = state.y</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span>
+      cursorX = state.x
+      cursorY = state.y</pre></div></div>
             
         </li>
         
@@ -1850,12 +1865,12 @@ this function is pretty minimal.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
 
-    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]
-      child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursorX, cursorY
-      
-      cursorX += child.dimensions[line].width</pre></div></div>
+      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]
+        child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursorX, cursorY
+        
+        cursorX += child.dimensions[line].width</pre></div></div>
             
         </li>
         
@@ -1872,11 +1887,11 @@ for drag-and-drop.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - DROP_AREA_HEIGHT / <span class="hljs-number">2</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width, DROP_AREA_HEIGHT
-    <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - <span class="hljs-number">5</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width, <span class="hljs-number">10</span>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - DROP_AREA_HEIGHT / <span class="hljs-number">2</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width, DROP_AREA_HEIGHT
+      <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - <span class="hljs-number">5</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width, <span class="hljs-number">10</span>
 
-    <span class="hljs-keyword">super</span></pre></div></div>
+      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -1895,8 +1910,8 @@ appropriately. That is this class’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SocketView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span> <span class="hljs-keyword">super</span> block</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.SocketView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SocketView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span> <span class="hljs-keyword">super</span> block</pre></div></div>
             
         </li>
         
@@ -1916,11 +1931,11 @@ file.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">super</span>
-    
-    <span class="hljs-keyword">if</span> (content = <span class="hljs-property">@block</span>.content())? <span class="hljs-keyword">then</span> <span class="hljs-keyword">switch</span> <span class="hljs-property">@block</span>.content().type
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'block'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">super</span>
+      
+      <span class="hljs-keyword">if</span> (content = <span class="hljs-property">@block</span>.content())? <span class="hljs-keyword">then</span> <span class="hljs-keyword">switch</span> <span class="hljs-property">@block</span>.content().type
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'block'</span></pre></div></div>
             
         </li>
         
@@ -1935,7 +1950,7 @@ file.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">for</span> line, value <span class="hljs-keyword">of</span> content.view.dimensions</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">for</span> line, value <span class="hljs-keyword">of</span> content.view.dimensions</pre></div></div>
             
         </li>
         
@@ -1950,9 +1965,9 @@ file.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size value.width, value.height
+            <div class="content"><div class='highlight'><pre>            <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size value.width, value.height
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'text'</span></pre></div></div>
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'text'</span></pre></div></div>
             
         </li>
         
@@ -1967,8 +1982,8 @@ file.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@dimensions</span>[content.view.lineStart] = <span class="hljs-keyword">new</span> draw.Size content.view.dimensions[content.view.lineStart].width + <span class="hljs-number">2</span> * PADDING,
-          content.view.dimensions[content.view.lineStart].height + <span class="hljs-number">2</span> * PADDING</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@dimensions</span>[content.view.lineStart] = <span class="hljs-keyword">new</span> draw.Size content.view.dimensions[content.view.lineStart].width + <span class="hljs-number">2</span> * PADDING,
+            content.view.dimensions[content.view.lineStart].height + <span class="hljs-number">2</span> * PADDING</pre></div></div>
             
         </li>
         
@@ -1983,11 +1998,11 @@ file.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@dimensions</span>[content.view.lineStart].width = Math.max <span class="hljs-property">@dimensions</span>[content.view.lineStart].width, EMPTY_SOCKET_WIDTH
-    <span class="hljs-keyword">else</span>
-      <span class="hljs-property">@dimensions</span>[<span class="hljs-property">@lineStart</span>] = <span class="hljs-keyword">new</span> draw.Size EMPTY_SOCKET_WIDTH, EMPTY_SOCKET_HEIGHT
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-property">@dimensions</span>[content.view.lineStart].width = Math.max <span class="hljs-property">@dimensions</span>[content.view.lineStart].width, EMPTY_SOCKET_WIDTH
+      <span class="hljs-keyword">else</span>
+        <span class="hljs-property">@dimensions</span>[<span class="hljs-property">@lineStart</span>] = <span class="hljs-keyword">new</span> draw.Size EMPTY_SOCKET_WIDTH, EMPTY_SOCKET_HEIGHT
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@dimensions</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@dimensions</span></pre></div></div>
             
         </li>
         
@@ -2007,7 +2022,7 @@ and end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -2022,11 +2037,11 @@ and end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
-    
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
+      
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
 
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">1</span></pre></div></div>
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@lineChildren</span>[line].length &gt; <span class="hljs-number">1</span></pre></div></div>
             
         </li>
         
@@ -2041,9 +2056,9 @@ and end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">throw</span> <span class="hljs-string">'Error: more than one child inside a socket'</span>
-    
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@block</span>.content().type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">throw</span> <span class="hljs-string">'Error: more than one child inside a socket'</span>
+      
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@block</span>.content().type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span></pre></div></div>
             
         </li>
         
@@ -2058,9 +2073,9 @@ and end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point state.x + PADDING, state.y + PADDING
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point state.x + PADDING, state.y + PADDING
 
-    <span class="hljs-keyword">else</span></pre></div></div>
+      <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
         
@@ -2075,7 +2090,7 @@ and end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].computeBoundingBox line, state</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@lineChildren</span>[line][<span class="hljs-number">0</span>].computeBoundingBox line, state</pre></div></div>
             
         </li>
         
@@ -2093,12 +2108,12 @@ We have no drop area if we are filled by a block
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">unless</span> <span class="hljs-property">@block</span>.content()?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'block'</span>
-      (<span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle()).copy <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>]
-      <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@dropArea</span>.x - SOCKET_DROP_PADDING, <span class="hljs-property">@dropArea</span>.y - SOCKET_DROP_PADDING, <span class="hljs-property">@dropArea</span>.width + SOCKET_DROP_PADDING * <span class="hljs-number">2</span>, <span class="hljs-property">@dropArea</span>.height + SOCKET_DROP_PADDING * <span class="hljs-number">2</span>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computePath</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">unless</span> <span class="hljs-property">@block</span>.content()?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'block'</span>
+        (<span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle()).copy <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>]
+        <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@dropArea</span>.x - SOCKET_DROP_PADDING, <span class="hljs-property">@dropArea</span>.y - SOCKET_DROP_PADDING, <span class="hljs-property">@dropArea</span>.width + SOCKET_DROP_PADDING * <span class="hljs-number">2</span>, <span class="hljs-property">@dropArea</span>.height + SOCKET_DROP_PADDING * <span class="hljs-number">2</span>
 
-    <span class="hljs-keyword">super</span></pre></div></div>
+      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -2116,8 +2131,8 @@ Otherwise, simply delegate.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@block</span>.content()? <span class="hljs-keyword">or</span> <span class="hljs-property">@block</span>.content().type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">drawPath</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> <span class="hljs-property">@block</span>.content()? <span class="hljs-keyword">or</span> <span class="hljs-property">@block</span>.content().type <span class="hljs-keyword">is</span> <span class="hljs-string">'text'</span></pre></div></div>
             
         </li>
         
@@ -2132,8 +2147,8 @@ Otherwise, simply delegate.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].stroke ctx, <span class="hljs-string">'#000'</span>
-      <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].fill ctx, <span class="hljs-string">'#FFF'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].stroke ctx, <span class="hljs-string">'#000'</span>
+        <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].fill ctx, <span class="hljs-string">'#FFF'</span></pre></div></div>
             
         </li>
         
@@ -2148,7 +2163,7 @@ Otherwise, simply delegate.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">super</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -2167,8 +2182,8 @@ one after another, if there are multiple children).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SegmentView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span> <span class="hljs-keyword">super</span> block</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.SegmentView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SegmentView</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">IceView</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(block)</span> -&gt;</span> <span class="hljs-keyword">super</span> block</pre></div></div>
             
         </li>
         
@@ -2185,13 +2200,13 @@ width = sum(child_widths) for each line.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">super</span>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeDimensions</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">super</span>
 
-    <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
-      height = width = <span class="hljs-number">0</span>
+      <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> [<span class="hljs-property">@lineStart</span>..<span class="hljs-property">@lineEnd</span>]
+        height = width = <span class="hljs-number">0</span>
 
-      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]</pre></div></div>
+        <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]</pre></div></div>
             
         </li>
         
@@ -2206,10 +2221,10 @@ width = sum(child_widths) for each line.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        width += child.dimensions[line].width
-        height = Math.max height, child.dimensions[line].height
-      
-      <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size width, height</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          width += child.dimensions[line].width
+          height = Math.max height, child.dimensions[line].height
+        
+        <span class="hljs-property">@dimensions</span>[line] = <span class="hljs-keyword">new</span> draw.Size width, height</pre></div></div>
             
         </li>
         
@@ -2224,7 +2239,7 @@ width = sum(child_widths) for each line.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">computeBoundingBox</span>: <span class="hljs-function"><span class="hljs-params">(line, state)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -2239,8 +2254,8 @@ width = sum(child_widths) for each line.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    cursorX = state.x
-    cursorY = state.y</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      cursorX = state.x
+      cursorY = state.y</pre></div></div>
             
         </li>
         
@@ -2255,12 +2270,12 @@ width = sum(child_widths) for each line.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@bounds</span>[line] = <span class="hljs-keyword">new</span> draw.Rectangle state.x, state.y, <span class="hljs-property">@dimensions</span>[line].width, <span class="hljs-property">@dimensions</span>[line].height
 
-    <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]
-      child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursorX, cursorY
-      
-      cursorX += child.dimensions[line].width</pre></div></div>
+      <span class="hljs-keyword">for</span> child <span class="hljs-keyword">in</span> <span class="hljs-property">@lineChildren</span>[line]
+        child.computeBoundingBox line, <span class="hljs-keyword">new</span> BoundingBoxState <span class="hljs-keyword">new</span> draw.Point cursorX, cursorY
+        
+        cursorX += child.dimensions[line].width</pre></div></div>
             
         </li>
         
@@ -2276,15 +2291,15 @@ width = sum(child_widths) for each line.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">drawPath</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x,
-      <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - <span class="hljs-number">5</span>,
-      Math.max(<span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width,MIN_SEGMENT_DROP_AREA_WIDTH),
-      <span class="hljs-number">10</span>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">drawPath</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@dropArea</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x,
+        <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - <span class="hljs-number">5</span>,
+        Math.max(<span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width,MIN_SEGMENT_DROP_AREA_WIDTH),
+        <span class="hljs-number">10</span>
 
-    <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - <span class="hljs-number">5</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width, <span class="hljs-number">10</span>
+      <span class="hljs-property">@dropHighlightReigon</span> = <span class="hljs-keyword">new</span> draw.Rectangle <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].x, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].y - <span class="hljs-number">5</span>, <span class="hljs-property">@bounds</span>[<span class="hljs-property">@lineStart</span>].width, <span class="hljs-number">10</span>
 
-    <span class="hljs-keyword">super</span></pre></div></div>
+      <span class="hljs-keyword">super</span></pre></div></div>
             
         </li>
         
@@ -2296,15 +2311,15 @@ width = sum(child_widths) for each line.</p>
                 <a class="pilcrow" href="#section-120">&#182;</a>
               </div>
               <h1 id="cursorview">CursorView</h1>
-<p>This class is a bit degenerate;
+<p>This exports.is = class is a bit degenerate;
 it’s mainly used by the controller to determine the position
 at which a cursor was rendered. The drawing function for a cursor
 is actually the responsibility of the cursor’s parent.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CursorView</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span>-&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.CursorView = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CursorView</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -2319,7 +2334,9 @@ is actually the responsibility of the cursor’s parent.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@point</span> = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@point</span> = <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">exports</span></pre></div></div>
             
         </li>
         

@@ -1,6 +1,6 @@
-window.onload = ->
+require ['../dist/ice'], (ice) ->
   # Example palette
-  window.editor = new ICE.Editor document.getElementById('editor'), (coffee.parse(paletteElement).next.block for paletteElement in [
+  window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).next.block for paletteElement in [
     '''
     x = 'new value for x'
     '''

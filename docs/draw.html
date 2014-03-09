@@ -34,8 +34,18 @@
               </a>
             
               
+              <a class="source" href="main.html">
+                main.coffee
+              </a>
+            
+              
               <a class="source" href="model.html">
                 model.coffee
+              </a>
+            
+              
+              <a class="source" href="requirejs_config.html">
+                requirejs_config.coffee
               </a>
             
               
@@ -82,6 +92,9 @@ MIT License</p>
 
             </div>
             
+            <div class="content"><div class='highlight'><pre>
+define<span class="hljs-function"> -&gt;</span></pre></div></div>
+            
         </li>
         
         
@@ -96,7 +109,7 @@ MIT License</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-title">_area</span> = <span class="hljs-params">(a, b, c)</span> -&gt;</span> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-function"><span class="hljs-title">_area</span> = <span class="hljs-params">(a, b, c)</span> -&gt;</span> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)</pre></div></div>
             
         </li>
         
@@ -112,8 +125,8 @@ MIT License</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-function"><span class="hljs-title">_intersects</span> = <span class="hljs-params">(a, b, c, d)</span> -&gt;</span>
-  ((_area(a, b, c) &gt; <span class="hljs-number">0</span>) != (_area(a, b, d) &gt; <span class="hljs-number">0</span>)) <span class="hljs-keyword">and</span> ((_area(c, d, a) &gt; <span class="hljs-number">0</span>) != (_area(c, d, b) &gt; <span class="hljs-number">0</span>))</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-function"><span class="hljs-title">_intersects</span> = <span class="hljs-params">(a, b, c, d)</span> -&gt;</span>
+    ((_area(a, b, c) &gt; <span class="hljs-number">0</span>) != (_area(a, b, d) &gt; <span class="hljs-number">0</span>)) <span class="hljs-keyword">and</span> ((_area(c, d, a) &gt; <span class="hljs-number">0</span>) != (_area(c, d, b) &gt; <span class="hljs-number">0</span>))</pre></div></div>
             
         </li>
         
@@ -129,7 +142,7 @@ MIT License</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-built_in">exports</span> = {}</pre></div></div>
+  <span class="hljs-built_in">exports</span> = {}</pre></div></div>
             
         </li>
         
@@ -145,24 +158,24 @@ MIT License</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Point = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Point</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>)</span> -&gt;</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Point = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Point</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>)</span> -&gt;</span>
 
-  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> Point <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>
+    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> Point <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>
 
-  <span class="hljs-attribute">magnitude</span>:<span class="hljs-function"> -&gt;</span> Math.sqrt <span class="hljs-property">@x</span> * <span class="hljs-property">@x</span> + <span class="hljs-property">@y</span> * <span class="hljs-property">@y</span>
+    <span class="hljs-attribute">magnitude</span>:<span class="hljs-function"> -&gt;</span> Math.sqrt <span class="hljs-property">@x</span> * <span class="hljs-property">@x</span> + <span class="hljs-property">@y</span> * <span class="hljs-property">@y</span>
 
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
-    <span class="hljs-property">@x</span> += vector.x; <span class="hljs-property">@y</span> += vector.y
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+      <span class="hljs-property">@x</span> += vector.x; <span class="hljs-property">@y</span> += vector.y
 
-  <span class="hljs-attribute">add</span>: <span class="hljs-function"><span class="hljs-params">(x, y)</span> -&gt;</span> <span class="hljs-property">@x</span> += x; <span class="hljs-property">@y</span> += y
+    <span class="hljs-attribute">add</span>: <span class="hljs-function"><span class="hljs-params">(x, y)</span> -&gt;</span> <span class="hljs-property">@x</span> += x; <span class="hljs-property">@y</span> += y
 
-  <span class="hljs-attribute">copy</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@x</span> = point.x; <span class="hljs-property">@y</span> = point.y
+    <span class="hljs-attribute">copy</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@x</span> = point.x; <span class="hljs-property">@y</span> = point.y
 
-  <span class="hljs-attribute">from</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-keyword">new</span> Point <span class="hljs-property">@x</span> - point.x, <span class="hljs-property">@y</span> - point.y
+    <span class="hljs-attribute">from</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-keyword">new</span> Point <span class="hljs-property">@x</span> - point.x, <span class="hljs-property">@y</span> - point.y
 
-  <span class="hljs-attribute">clear</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@x</span> = <span class="hljs-property">@y</span> = <span class="hljs-number">0</span></pre></div></div>
+    <span class="hljs-attribute">clear</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@x</span> = <span class="hljs-property">@y</span> = <span class="hljs-number">0</span></pre></div></div>
             
         </li>
         
@@ -178,8 +191,8 @@ MIT License</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Size = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Size</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Size = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Size</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -197,48 +210,48 @@ and rectangle or point union (point union is called “swallow”).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Rectangle = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Rectangle</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>)</span> -&gt;</span>
-  
-  <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ((point.x &lt; <span class="hljs-property">@x</span>) <span class="hljs-keyword">or</span> (point.x &gt; <span class="hljs-property">@x</span> + <span class="hljs-property">@width</span>) <span class="hljs-keyword">or</span> (point.y &lt; <span class="hljs-property">@y</span>) <span class="hljs-keyword">or</span> (point.y &gt; <span class="hljs-property">@y</span> + <span class="hljs-property">@height</span>))
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Rectangle = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Rectangle</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>)</span> -&gt;</span>
+    
+    <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ((point.x &lt; <span class="hljs-property">@x</span>) <span class="hljs-keyword">or</span> (point.x &gt; <span class="hljs-property">@x</span> + <span class="hljs-property">@width</span>) <span class="hljs-keyword">or</span> (point.y &lt; <span class="hljs-property">@y</span>) <span class="hljs-keyword">or</span> (point.y &gt; <span class="hljs-property">@y</span> + <span class="hljs-property">@height</span>))
 
-  <span class="hljs-attribute">copy</span>: <span class="hljs-function"><span class="hljs-params">(rect)</span> -&gt;</span>
-    <span class="hljs-property">@x</span> = rect.x; <span class="hljs-property">@y</span> = rect.y
-    <span class="hljs-property">@width</span> = rect.width; <span class="hljs-property">@height</span> = rect.height
+    <span class="hljs-attribute">copy</span>: <span class="hljs-function"><span class="hljs-params">(rect)</span> -&gt;</span>
+      <span class="hljs-property">@x</span> = rect.x; <span class="hljs-property">@y</span> = rect.y
+      <span class="hljs-property">@width</span> = rect.width; <span class="hljs-property">@height</span> = rect.height
 
-  <span class="hljs-attribute">clear</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@width</span> = <span class="hljs-property">@height</span> = <span class="hljs-number">0</span>; <span class="hljs-property">@x</span> = <span class="hljs-property">@y</span> = <span class="hljs-literal">null</span>
+    <span class="hljs-attribute">clear</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@width</span> = <span class="hljs-property">@height</span> = <span class="hljs-number">0</span>; <span class="hljs-property">@x</span> = <span class="hljs-property">@y</span> = <span class="hljs-literal">null</span>
 
-  <span class="hljs-attribute">bottom</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@y</span> + <span class="hljs-property">@height</span>
-  <span class="hljs-attribute">right</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@x</span> + <span class="hljs-property">@width</span>
+    <span class="hljs-attribute">bottom</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@y</span> + <span class="hljs-property">@height</span>
+    <span class="hljs-attribute">right</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@x</span> + <span class="hljs-property">@width</span>
 
-  <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
-    ctx.fillStyle = style
-    ctx.fillRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>
+    <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
+      ctx.fillStyle = style
+      ctx.fillRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>
 
-  <span class="hljs-attribute">unite</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span>
-    <span class="hljs-keyword">unless</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@copy</span> rectangle
-    <span class="hljs-keyword">else</span>
-      <span class="hljs-property">@width</span> = Math.max(<span class="hljs-property">@right</span>(), rectangle.right()) - (<span class="hljs-property">@x</span> = Math.min <span class="hljs-property">@x</span>, rectangle.x)
-      <span class="hljs-property">@height</span> = Math.max(<span class="hljs-property">@bottom</span>(), rectangle.bottom()) - (<span class="hljs-property">@y</span> = Math.min <span class="hljs-property">@y</span>, rectangle.y)
+    <span class="hljs-attribute">unite</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span>
+      <span class="hljs-keyword">unless</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@copy</span> rectangle
+      <span class="hljs-keyword">else</span>
+        <span class="hljs-property">@width</span> = Math.max(<span class="hljs-property">@right</span>(), rectangle.right()) - (<span class="hljs-property">@x</span> = Math.min <span class="hljs-property">@x</span>, rectangle.x)
+        <span class="hljs-property">@height</span> = Math.max(<span class="hljs-property">@bottom</span>(), rectangle.bottom()) - (<span class="hljs-property">@y</span> = Math.min <span class="hljs-property">@y</span>, rectangle.y)
 
-  <span class="hljs-attribute">swallow</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-keyword">unless</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@copy</span> <span class="hljs-keyword">new</span> Rectangle point.x, point.y, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
-    <span class="hljs-keyword">else</span>
-      <span class="hljs-property">@width</span> = Math.max(<span class="hljs-property">@right</span>(), point.x) - (<span class="hljs-property">@x</span> = Math.min <span class="hljs-property">@x</span>, point.x)
-      <span class="hljs-property">@height</span> = Math.max(<span class="hljs-property">@bottom</span>(), point.y) - (<span class="hljs-property">@y</span> = Math.min <span class="hljs-property">@y</span>, point.y)
+    <span class="hljs-attribute">swallow</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-keyword">unless</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@copy</span> <span class="hljs-keyword">new</span> Rectangle point.x, point.y, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
+      <span class="hljs-keyword">else</span>
+        <span class="hljs-property">@width</span> = Math.max(<span class="hljs-property">@right</span>(), point.x) - (<span class="hljs-property">@x</span> = Math.min <span class="hljs-property">@x</span>, point.x)
+        <span class="hljs-property">@height</span> = Math.max(<span class="hljs-property">@bottom</span>(), point.y) - (<span class="hljs-property">@y</span> = Math.min <span class="hljs-property">@y</span>, point.y)
 
-  <span class="hljs-attribute">overlap</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ((rectangle.right()) &lt; <span class="hljs-property">@x</span> <span class="hljs-keyword">or</span> (rectangle.bottom() &lt; <span class="hljs-property">@y</span>) <span class="hljs-keyword">or</span> (rectangle.x &gt; <span class="hljs-property">@right</span>()) <span class="hljs-keyword">or</span> (rectangle.y &gt; <span class="hljs-property">@bottom</span>()))
+    <span class="hljs-attribute">overlap</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span> <span class="hljs-property">@x</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@y</span>? <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ((rectangle.right()) &lt; <span class="hljs-property">@x</span> <span class="hljs-keyword">or</span> (rectangle.bottom() &lt; <span class="hljs-property">@y</span>) <span class="hljs-keyword">or</span> (rectangle.x &gt; <span class="hljs-property">@right</span>()) <span class="hljs-keyword">or</span> (rectangle.y &gt; <span class="hljs-property">@bottom</span>()))
 
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
-    <span class="hljs-property">@x</span> += vector.x; <span class="hljs-property">@y</span> += vector.y
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+      <span class="hljs-property">@x</span> += vector.x; <span class="hljs-property">@y</span> += vector.y
 
-  <span class="hljs-attribute">stroke</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
-    ctx.strokeStyle = style
-    ctx.strokeRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>
+    <span class="hljs-attribute">stroke</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
+      ctx.strokeStyle = style
+      ctx.strokeRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span>
 
-  <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
-    ctx.fillStyle = style
-    ctx.fillRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span></pre></div></div>
+    <span class="hljs-attribute">fill</span>: <span class="hljs-function"><span class="hljs-params">(ctx, style)</span> -&gt;</span>
+      ctx.fillStyle = style
+      ctx.fillRect <span class="hljs-property">@x</span>, <span class="hljs-property">@y</span>, <span class="hljs-property">@width</span>, <span class="hljs-property">@height</span></pre></div></div>
             
         </li>
         
@@ -256,8 +269,8 @@ via unite() and swallow().</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.NoRectangle = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NoRectangle</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Rectangle</span></span>
-  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">super</span>(<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.NoRectangle = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NoRectangle</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Rectangle</span></span>
+    <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">super</span>(<span class="hljs-literal">null</span>, <span class="hljs-literal">null</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>)</pre></div></div>
             
         </li>
         
@@ -274,38 +287,38 @@ It can do fast translation and rectangular intersection.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Path = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Path</span></span>
-  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@_points</span> = []
-    <span class="hljs-property">@_cachedTranslation</span> = <span class="hljs-keyword">new</span> Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
-    <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">false</span>
-    <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> NoRectangle()
-
-    <span class="hljs-property">@style</span> = {
-      <span class="hljs-string">'strokeColor'</span>: <span class="hljs-string">'#000'</span>
-      <span class="hljs-string">'fillColor'</span>: <span class="hljs-literal">null</span>
-    }
-  
-  <span class="hljs-attribute">_clearCache</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@_cacheFlag</span>
-      <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
-        point.translate <span class="hljs-property">@_cachedTranslation</span>
-      <span class="hljs-property">@_bounds</span>.translate <span class="hljs-property">@_cachedTranslation</span>
-      <span class="hljs-property">@_cachedTranslation</span>.clear()
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Path = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Path</span></span>
+    <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@_points</span> = []
+      <span class="hljs-property">@_cachedTranslation</span> = <span class="hljs-keyword">new</span> Point <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
       <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">false</span>
-  
-  <span class="hljs-attribute">recompute</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> NoRectangle()
-    <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
-      <span class="hljs-property">@_bounds</span>.swallow point
-  
-  <span class="hljs-attribute">push</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@_points</span>.push point
-    <span class="hljs-property">@_bounds</span>.swallow point
+      <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> NoRectangle()
 
-  <span class="hljs-attribute">unshift</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@_points</span>.unshift point
-    <span class="hljs-property">@_bounds</span>.swallow point</pre></div></div>
+      <span class="hljs-property">@style</span> = {
+        <span class="hljs-string">'strokeColor'</span>: <span class="hljs-string">'#000'</span>
+        <span class="hljs-string">'fillColor'</span>: <span class="hljs-literal">null</span>
+      }
+    
+    <span class="hljs-attribute">_clearCache</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@_cacheFlag</span>
+        <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+          point.translate <span class="hljs-property">@_cachedTranslation</span>
+        <span class="hljs-property">@_bounds</span>.translate <span class="hljs-property">@_cachedTranslation</span>
+        <span class="hljs-property">@_cachedTranslation</span>.clear()
+        <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">false</span>
+    
+    <span class="hljs-attribute">recompute</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> NoRectangle()
+      <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+        <span class="hljs-property">@_bounds</span>.swallow point
+    
+    <span class="hljs-attribute">push</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@_points</span>.push point
+      <span class="hljs-property">@_bounds</span>.swallow point
+
+    <span class="hljs-attribute">unshift</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@_points</span>.unshift point
+      <span class="hljs-property">@_bounds</span>.swallow point</pre></div></div>
             
         </li>
         
@@ -321,8 +334,8 @@ It can do fast translation and rectangular intersection.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
-    <span class="hljs-property">@_clearCache</span>()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span>
+      <span class="hljs-property">@_clearCache</span>()</pre></div></div>
             
         </li>
         
@@ -337,7 +350,7 @@ It can do fast translation and rectangular intersection.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    dest = <span class="hljs-keyword">new</span> Point <span class="hljs-property">@_bounds</span>.x - <span class="hljs-number">10</span>, point.y</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      dest = <span class="hljs-keyword">new</span> Point <span class="hljs-property">@_bounds</span>.x - <span class="hljs-number">10</span>, point.y</pre></div></div>
             
         </li>
         
@@ -352,13 +365,13 @@ It can do fast translation and rectangular intersection.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    count = <span class="hljs-number">0</span>
-    last = <span class="hljs-property">@_points</span>[<span class="hljs-property">@_points</span>.length - <span class="hljs-number">1</span>]
-    <span class="hljs-keyword">for</span> end <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
-      <span class="hljs-keyword">if</span> _intersects(last, end, point, dest) <span class="hljs-keyword">then</span> count += <span class="hljs-number">1</span>
-      last = end
+            <div class="content"><div class='highlight'><pre>      count = <span class="hljs-number">0</span>
+      last = <span class="hljs-property">@_points</span>[<span class="hljs-property">@_points</span>.length - <span class="hljs-number">1</span>]
+      <span class="hljs-keyword">for</span> end <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+        <span class="hljs-keyword">if</span> _intersects(last, end, point, dest) <span class="hljs-keyword">then</span> count += <span class="hljs-number">1</span>
+        last = end
 
-    <span class="hljs-keyword">return</span> count % <span class="hljs-number">2</span> <span class="hljs-keyword">is</span> <span class="hljs-number">1</span></pre></div></div>
+      <span class="hljs-keyword">return</span> count % <span class="hljs-number">2</span> <span class="hljs-keyword">is</span> <span class="hljs-number">1</span></pre></div></div>
             
         </li>
         
@@ -375,11 +388,11 @@ entirely within the other.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">intersects</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span>
-    <span class="hljs-property">@_clearCache</span>()
-    
-    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> rectangle.overlap <span class="hljs-property">@_bounds</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
-    <span class="hljs-keyword">else</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">intersects</span>: <span class="hljs-function"><span class="hljs-params">(rectangle)</span> -&gt;</span>
+      <span class="hljs-property">@_clearCache</span>()
+      
+      <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> rectangle.overlap <span class="hljs-property">@_bounds</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+      <span class="hljs-keyword">else</span></pre></div></div>
             
         </li>
         
@@ -394,19 +407,19 @@ entirely within the other.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      last = <span class="hljs-property">@_points</span>[<span class="hljs-property">@_points</span>.length - <span class="hljs-number">1</span>]
-      rectSides = [
-        <span class="hljs-keyword">new</span> draw.Point rectangle.x, rectangle.y
-        <span class="hljs-keyword">new</span> draw.Point rectangle.right(), rectangle.y
-        <span class="hljs-keyword">new</span> draw.Point rectangle.right(), rectangle.bottom()
-        <span class="hljs-keyword">new</span> draw.Point rectangle.x, rectangle.bottom()
-      ]
-      <span class="hljs-keyword">for</span> end <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
-        lastSide = rectSides[rectSides.length - <span class="hljs-number">1</span>]
-        <span class="hljs-keyword">for</span> side <span class="hljs-keyword">in</span> rectSides
-          <span class="hljs-keyword">if</span> _intersects(last, end, lastSide, side) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
-          lastSide = side
-        last = end</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        last = <span class="hljs-property">@_points</span>[<span class="hljs-property">@_points</span>.length - <span class="hljs-number">1</span>]
+        rectSides = [
+          <span class="hljs-keyword">new</span> Point rectangle.x, rectangle.y
+          <span class="hljs-keyword">new</span> Point rectangle.right(), rectangle.y
+          <span class="hljs-keyword">new</span> Point rectangle.right(), rectangle.bottom()
+          <span class="hljs-keyword">new</span> Point rectangle.x, rectangle.bottom()
+        ]
+        <span class="hljs-keyword">for</span> end <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+          lastSide = rectSides[rectSides.length - <span class="hljs-number">1</span>]
+          <span class="hljs-keyword">for</span> side <span class="hljs-keyword">in</span> rectSides
+            <span class="hljs-keyword">if</span> _intersects(last, end, lastSide, side) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
+            lastSide = side
+          last = end</pre></div></div>
             
         </li>
         
@@ -423,7 +436,7 @@ so it suffices to test one vertex.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@contains</span> rectSides[<span class="hljs-number">0</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@contains</span> rectSides[<span class="hljs-number">0</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
             
         </li>
         
@@ -438,7 +451,7 @@ so it suffices to test one vertex.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> rectangle.contains <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> rectangle.contains <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>] <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span></pre></div></div>
             
         </li>
         
@@ -453,23 +466,23 @@ so it suffices to test one vertex.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
 
-  <span class="hljs-attribute">bounds</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@_clearCache</span>(); <span class="hljs-property">@_bounds</span>
+    <span class="hljs-attribute">bounds</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@_clearCache</span>(); <span class="hljs-property">@_bounds</span>
 
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
-    <span class="hljs-property">@_cachedTranslation</span>.translate vector
-    <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">true</span>
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+      <span class="hljs-property">@_cachedTranslation</span>.translate vector
+      <span class="hljs-property">@_cacheFlag</span> = <span class="hljs-literal">true</span>
 
-  <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    <span class="hljs-property">@_clearCache</span>()
-    ctx.strokeStyle = <span class="hljs-property">@style</span>.strokeColor
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@style</span>.fillColor? <span class="hljs-keyword">then</span> ctx.fillStyle = <span class="hljs-property">@style</span>.fillColor
-    ctx.beginPath()
-    ctx.moveTo <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].x, <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].y
-    <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
-      ctx.lineTo point.x, point.y <span class="hljs-comment"># DEFAULT</span>
-    ctx.lineTo <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].x, <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].y</pre></div></div>
+    <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      <span class="hljs-property">@_clearCache</span>()
+      ctx.strokeStyle = <span class="hljs-property">@style</span>.strokeColor
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@style</span>.fillColor? <span class="hljs-keyword">then</span> ctx.fillStyle = <span class="hljs-property">@style</span>.fillColor
+      ctx.beginPath()
+      ctx.moveTo <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].x, <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].y
+      <span class="hljs-keyword">for</span> point <span class="hljs-keyword">in</span> <span class="hljs-property">@_points</span>
+        ctx.lineTo point.x, point.y <span class="hljs-comment"># DEFAULT</span>
+      ctx.lineTo <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].x, <span class="hljs-property">@_points</span>[<span class="hljs-number">0</span>].y</pre></div></div>
             
         </li>
         
@@ -484,10 +497,11 @@ so it suffices to test one vertex.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@style</span>.fillColor? <span class="hljs-keyword">then</span> ctx.fill()
-    ctx.stroke()
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@style</span>.fillColor? <span class="hljs-keyword">then</span> ctx.fill()
+      ctx.stroke()
 
-_CTX = <span class="hljs-literal">null</span> <span class="hljs-comment">#Hacky, hacky, hacky</span></pre></div></div>
+  _CTX = <span class="hljs-literal">null</span> <span class="hljs-comment">#Hacky, hacky, hacky</span>
+  _FONT_SIZE = <span class="hljs-number">15</span></pre></div></div>
             
         </li>
         
@@ -504,31 +518,31 @@ accomplished via ctx.measureText().</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Text = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Text</span></span>
-  <span class="hljs-attribute">_FONT_SIZE</span>: <span class="hljs-number">15</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Text = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Text</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@point</span>, <span class="hljs-property">@value</span>)</span> -&gt;</span>
+      _CTX.font = _FONT_SIZE + <span class="hljs-string">'px Courier New'</span>
+      <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> Rectangle <span class="hljs-property">@point</span>.x, <span class="hljs-property">@point</span>.y, _CTX.measureText(<span class="hljs-property">@value</span>).width, _FONT_SIZE
 
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@point</span>, <span class="hljs-property">@value</span>)</span> -&gt;</span>
-    _CTX.font = <span class="hljs-attribute">Text</span>::_FONT_SIZE + <span class="hljs-string">'px Courier New'</span>
-    <span class="hljs-property">@_bounds</span> = <span class="hljs-keyword">new</span> Rectangle <span class="hljs-property">@point</span>.x, <span class="hljs-property">@point</span>.y, _CTX.measureText(<span class="hljs-property">@value</span>).width, <span class="hljs-attribute">Text</span>::_FONT_SIZE
-   
-  <span class="hljs-attribute">bounds</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@_bounds</span>
-  <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@_bounds</span>.contains point
-   
-  <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
-    <span class="hljs-property">@point</span>.translate vector
-    <span class="hljs-property">@_bounds</span>.translate vector
+    <span class="hljs-attribute">bounds</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@_bounds</span>
+    <span class="hljs-attribute">contains</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@_bounds</span>.contains point
+     
+    <span class="hljs-attribute">translate</span>: <span class="hljs-function"><span class="hljs-params">(vector)</span> -&gt;</span>
+      <span class="hljs-property">@point</span>.translate vector
+      <span class="hljs-property">@_bounds</span>.translate vector
 
-  <span class="hljs-attribute">setPosition</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@translate</span> point.from <span class="hljs-property">@point</span>
-  
-  <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
-    ctx.textBaseline = <span class="hljs-string">'top'</span>
-    ctx.font = <span class="hljs-attribute">Text</span>::_FONT_SIZE + <span class="hljs-string">'px Courier New'</span>
-    ctx.fillStyle = <span class="hljs-string">'#000'</span>
-    ctx.fillText <span class="hljs-property">@value</span>, <span class="hljs-property">@point</span>.x, <span class="hljs-property">@point</span>.y
+    <span class="hljs-attribute">setPosition</span>: <span class="hljs-function"><span class="hljs-params">(point)</span> -&gt;</span> <span class="hljs-property">@translate</span> point.from <span class="hljs-property">@point</span>
+    
+    <span class="hljs-attribute">draw</span>: <span class="hljs-function"><span class="hljs-params">(ctx)</span> -&gt;</span>
+      ctx.textBaseline = <span class="hljs-string">'top'</span>
+      ctx.font = _FONT_SIZE + <span class="hljs-string">'px Courier New'</span>
+      ctx.fillStyle = <span class="hljs-string">'#000'</span>
+      ctx.fillText <span class="hljs-property">@value</span>, <span class="hljs-property">@point</span>.x, <span class="hljs-property">@point</span>.y
 
-<span class="hljs-built_in">exports</span>.<span class="hljs-function"><span class="hljs-title">_setCTX</span> = <span class="hljs-params">(ctx)</span> -&gt;</span> _CTX = ctx
+  <span class="hljs-built_in">exports</span>.<span class="hljs-function"><span class="hljs-title">_setCTX</span> = <span class="hljs-params">(ctx)</span> -&gt;</span> _CTX = ctx
+  <span class="hljs-built_in">exports</span>.<span class="hljs-function"><span class="hljs-title">_setGlobalFontSize</span> = <span class="hljs-params">(size)</span> -&gt;</span>
+    _FONT_SIZE = <span class="hljs-number">15</span>
 
-<span class="hljs-built_in">window</span>.draw = <span class="hljs-built_in">exports</span></pre></div></div>
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">exports</span></pre></div></div>
             
         </li>
         

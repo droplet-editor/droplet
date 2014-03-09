@@ -7,9 +7,14 @@ module.exports = (grunt) ->
       build:
         files:
           'js/draw.js': ['src/draw.coffee']
-          'js/ice.js': ['src/model.coffee', 'src/view.coffee', 'src/controller.coffee']
-          'js/tests.js': ['test/tests.coffee']
+          'js/model.js': ['src/model.coffee']
+          'js/view.js': ['src/view.coffee']
+          'js/controller.js': ['src/controller.coffee']
           'js/coffee.js': ['src/coffee.coffee']
+          'js/main.js': ['src/main.coffee']
+          'js/requirejs_config.js': ['src/requirejs_config.coffee']
+
+          'js/tests.js': ['test/tests.coffee']
           'example/example.js': ['example/example.coffee']
 
     uglify:
@@ -18,7 +23,6 @@ module.exports = (grunt) ->
         mangle: false
       build:
         files:
-          'js/ice.min.js': 'js/ice.js'
           'js/tests.min.js': 'js/tests.js'
           'js/draw.min.js':'js/draw.js'
 
@@ -38,6 +42,20 @@ module.exports = (grunt) ->
         src: ['src/*.coffee']
         options:
           output: 'docs/'
+
+    requirejs:
+      compile:
+        options:
+          baseUrl: 'js'
+          paths:
+            'ice-view': 'view'
+            'ice-controller': 'controller'
+            'ice-model': 'model'
+            'ice-draw': 'draw'
+            'ice-coffee': 'coffee'
+          name: 'main'
+          optimize: 'none'
+          out: 'dist/ice.js'
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -45,7 +63,8 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-concat'
   grunt.loadNpmTasks 'grunt-contrib-qunit'
   grunt.loadNpmTasks 'grunt-docco'
+  grunt.loadNpmTasks 'grunt-contrib-requirejs'
 
-  grunt.registerTask 'default', ['coffee', 'uglify', 'concat', 'docco']
+  grunt.registerTask 'default', ['coffee', 'docco', 'requirejs']
   grunt.registerTask 'all', ['coffee', 'uglify', 'concat', 'qunit']
   grunt.registerTask 'test', ['qunit']

@@ -34,8 +34,18 @@
               </a>
             
               
+              <a class="source" href="main.html">
+                main.coffee
+              </a>
+            
+              
               <a class="source" href="model.html">
                 model.coffee
+              </a>
+            
+              
+              <a class="source" href="requirejs_config.html">
+                requirejs_config.coffee
               </a>
             
               
@@ -63,212 +73,213 @@
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-1">&#182;</a>
               </div>
-              <p>A rudimentary CoffeeScript parser for ICE Editor.</p>
+              <p>A rudimentary CoffeeScript parser for model Editor.</p>
 <p>Created 2014 by Anthony Bau.
 This software is public domain.</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>
-colors =
-  <span class="hljs-attribute">COMMAND</span>: <span class="hljs-string">'#268bd2'</span>
-  <span class="hljs-attribute">CONTROL</span>: <span class="hljs-string">'#daa520'</span>
-  <span class="hljs-attribute">VALUE</span>: <span class="hljs-string">'#26cf3c'</span>
-  <span class="hljs-attribute">RETURN</span>: <span class="hljs-string">'#dc322f'</span>
+define [<span class="hljs-string">'ice-model'</span>], <span class="hljs-function"><span class="hljs-params">(model)</span> -&gt;</span>
+  colors =
+    <span class="hljs-attribute">COMMAND</span>: <span class="hljs-string">'#268bd2'</span>
+    <span class="hljs-attribute">CONTROL</span>: <span class="hljs-string">'#daa520'</span>
+    <span class="hljs-attribute">VALUE</span>: <span class="hljs-string">'#26cf3c'</span>
+    <span class="hljs-attribute">RETURN</span>: <span class="hljs-string">'#dc322f'</span>
 
-<span class="hljs-built_in">exports</span> = {}
+  <span class="hljs-built_in">exports</span> = {}
 
-<span class="hljs-built_in">exports</span>.<span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(nodes, text)</span> -&gt;</span>
+  <span class="hljs-built_in">exports</span>.<span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(nodes, text)</span> -&gt;</span>
 
-  id = <span class="hljs-number">1</span>
-  rootSegment = <span class="hljs-keyword">new</span> ICE.Segment []
+    id = <span class="hljs-number">1</span>
+    rootSegment = <span class="hljs-keyword">new</span> model.Segment []
 
-  text = text.split(<span class="hljs-string">'\n'</span>)
+    text = text.split(<span class="hljs-string">'\n'</span>)
 
-  operatorPrecedences =
-    <span class="hljs-string">'||'</span>: <span class="hljs-number">1</span>
-    <span class="hljs-string">'&amp;&amp;'</span>: <span class="hljs-number">2</span>
-    <span class="hljs-string">'==='</span>: <span class="hljs-number">3</span>
-    <span class="hljs-string">'!=='</span>: <span class="hljs-number">3</span>
-    <span class="hljs-string">'&gt;'</span>: <span class="hljs-number">3</span>
-    <span class="hljs-string">'&lt;'</span>: <span class="hljs-number">3</span>
-    <span class="hljs-string">'&gt;='</span>: <span class="hljs-number">3</span>
-    <span class="hljs-string">'&lt;='</span>: <span class="hljs-number">3</span>
-    <span class="hljs-string">'+'</span>: <span class="hljs-number">4</span>
-    <span class="hljs-string">'-'</span>: <span class="hljs-number">4</span>
-    <span class="hljs-string">'*'</span>: <span class="hljs-number">5</span>
-    <span class="hljs-string">'/'</span>: <span class="hljs-number">5</span>
-    <span class="hljs-string">'%'</span>: <span class="hljs-number">6</span>
+    operatorPrecedences =
+      <span class="hljs-string">'||'</span>: <span class="hljs-number">1</span>
+      <span class="hljs-string">'&amp;&amp;'</span>: <span class="hljs-number">2</span>
+      <span class="hljs-string">'==='</span>: <span class="hljs-number">3</span>
+      <span class="hljs-string">'!=='</span>: <span class="hljs-number">3</span>
+      <span class="hljs-string">'&gt;'</span>: <span class="hljs-number">3</span>
+      <span class="hljs-string">'&lt;'</span>: <span class="hljs-number">3</span>
+      <span class="hljs-string">'&gt;='</span>: <span class="hljs-number">3</span>
+      <span class="hljs-string">'&lt;='</span>: <span class="hljs-number">3</span>
+      <span class="hljs-string">'+'</span>: <span class="hljs-number">4</span>
+      <span class="hljs-string">'-'</span>: <span class="hljs-number">4</span>
+      <span class="hljs-string">'*'</span>: <span class="hljs-number">5</span>
+      <span class="hljs-string">'/'</span>: <span class="hljs-number">5</span>
+      <span class="hljs-string">'%'</span>: <span class="hljs-number">6</span>
 
-  markup = [
-    {
-      <span class="hljs-attribute">token</span>: rootSegment.start
-      <span class="hljs-attribute">position</span>: [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>]
-      <span class="hljs-attribute">id</span>: <span class="hljs-number">0</span>
-      <span class="hljs-attribute">start</span>: <span class="hljs-literal">true</span>
-    }
-    {
-      <span class="hljs-attribute">token</span>: rootSegment.end
-      <span class="hljs-attribute">position</span>: [text.length - <span class="hljs-number">1</span>, text[text.length - <span class="hljs-number">1</span>].length+<span class="hljs-number">1</span>]
-      <span class="hljs-attribute">id</span>: <span class="hljs-number">0</span>
-      <span class="hljs-attribute">start</span>: <span class="hljs-literal">false</span>
-    }
-  ]
+    markup = [
+      {
+        <span class="hljs-attribute">token</span>: rootSegment.start
+        <span class="hljs-attribute">position</span>: [<span class="hljs-number">0</span>, <span class="hljs-number">0</span>]
+        <span class="hljs-attribute">id</span>: <span class="hljs-number">0</span>
+        <span class="hljs-attribute">start</span>: <span class="hljs-literal">true</span>
+      }
+      {
+        <span class="hljs-attribute">token</span>: rootSegment.end
+        <span class="hljs-attribute">position</span>: [text.length - <span class="hljs-number">1</span>, text[text.length - <span class="hljs-number">1</span>].length+<span class="hljs-number">1</span>]
+        <span class="hljs-attribute">id</span>: <span class="hljs-number">0</span>
+        <span class="hljs-attribute">start</span>: <span class="hljs-literal">false</span>
+      }
+    ]
 
-  <span class="hljs-function"><span class="hljs-title">addMarkup</span> = <span class="hljs-params">(block, node, shouldParenWrap)</span> -&gt;</span>
-    bounds = getBounds node
+    <span class="hljs-function"><span class="hljs-title">addMarkup</span> = <span class="hljs-params">(block, node, shouldParenWrap)</span> -&gt;</span>
+      bounds = getBounds node
 
-    <span class="hljs-keyword">if</span> shouldParenWrap
-      bounds.start[<span class="hljs-number">1</span>]--; bounds.end[<span class="hljs-number">1</span>]++
+      <span class="hljs-keyword">if</span> shouldParenWrap
+        bounds.start[<span class="hljs-number">1</span>]--; bounds.end[<span class="hljs-number">1</span>]++
 
-    markup.push
-      <span class="hljs-attribute">token</span>: block.start
-      <span class="hljs-attribute">position</span>: bounds.start
-      <span class="hljs-attribute">id</span>: id
-      <span class="hljs-attribute">start</span>: <span class="hljs-literal">true</span>
+      markup.push
+        <span class="hljs-attribute">token</span>: block.start
+        <span class="hljs-attribute">position</span>: bounds.start
+        <span class="hljs-attribute">id</span>: id
+        <span class="hljs-attribute">start</span>: <span class="hljs-literal">true</span>
 
-    markup.push
-      <span class="hljs-attribute">token</span>: block.end
-      <span class="hljs-attribute">position</span>: bounds.end
-      <span class="hljs-attribute">id</span>: id
-      <span class="hljs-attribute">start</span>: <span class="hljs-literal">false</span>
+      markup.push
+        <span class="hljs-attribute">token</span>: block.end
+        <span class="hljs-attribute">position</span>: bounds.end
+        <span class="hljs-attribute">id</span>: id
+        <span class="hljs-attribute">start</span>: <span class="hljs-literal">false</span>
 
-    id += <span class="hljs-number">1</span>
+      id += <span class="hljs-number">1</span>
 
-  <span class="hljs-function"><span class="hljs-title">getBounds</span> = <span class="hljs-params">(node)</span> -&gt;</span>
-    <span class="hljs-keyword">switch</span> node.constructor.name
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Block'</span>
-        start = node.locationData
-        end = getBounds(node.expressions[node.expressions.length - <span class="hljs-number">1</span>]).end
+    <span class="hljs-function"><span class="hljs-title">getBounds</span> = <span class="hljs-params">(node)</span> -&gt;</span>
+      <span class="hljs-keyword">switch</span> node.constructor.name
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Block'</span>
+          start = node.locationData
+          end = getBounds(node.expressions[node.expressions.length - <span class="hljs-number">1</span>]).end
 
-        <span class="hljs-keyword">return</span> {
-          <span class="hljs-attribute">start</span>: [start.first_line - <span class="hljs-number">1</span>, text[start.first_line - <span class="hljs-number">1</span>].length]
-          <span class="hljs-attribute">end</span>: end
-        }
+          <span class="hljs-keyword">return</span> {
+            <span class="hljs-attribute">start</span>: [start.first_line - <span class="hljs-number">1</span>, text[start.first_line - <span class="hljs-number">1</span>].length]
+            <span class="hljs-attribute">end</span>: end
+          }
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'If'</span>
-        <span class="hljs-keyword">if</span> node.elseBody?
-          end = getBounds(node.elseBody).end
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'If'</span>
+          <span class="hljs-keyword">if</span> node.elseBody?
+            end = getBounds(node.elseBody).end
+          <span class="hljs-keyword">else</span>
+            end = [node.locationData.last_line, node.locationData.last_column + <span class="hljs-number">1</span>]
+        
+          <span class="hljs-keyword">if</span> text[end[<span class="hljs-number">0</span>]][...end[<span class="hljs-number">1</span>]].trimLeft().length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
+            end[<span class="hljs-number">0</span>] -= <span class="hljs-number">1</span>; end[<span class="hljs-number">1</span>] = text[end[<span class="hljs-number">0</span>]].length
+
+          <span class="hljs-keyword">return</span> {
+            <span class="hljs-attribute">start</span>: [node.locationData.first_line, node.locationData.first_column]
+            <span class="hljs-attribute">end</span>: end
+          }
+
         <span class="hljs-keyword">else</span>
           end = [node.locationData.last_line, node.locationData.last_column + <span class="hljs-number">1</span>]
-      
-        <span class="hljs-keyword">if</span> text[end[<span class="hljs-number">0</span>]][...end[<span class="hljs-number">1</span>]].trimLeft().length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
-          end[<span class="hljs-number">0</span>] -= <span class="hljs-number">1</span>; end[<span class="hljs-number">1</span>] = text[end[<span class="hljs-number">0</span>]].length
 
-        <span class="hljs-keyword">return</span> {
-          <span class="hljs-attribute">start</span>: [node.locationData.first_line, node.locationData.first_column]
-          <span class="hljs-attribute">end</span>: end
-        }
+          <span class="hljs-keyword">if</span> text[end[<span class="hljs-number">0</span>]][...end[<span class="hljs-number">1</span>]].trimLeft().length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
+            end[<span class="hljs-number">0</span>] -= <span class="hljs-number">1</span>; end[<span class="hljs-number">1</span>] = text[end[<span class="hljs-number">0</span>]].length
 
-      <span class="hljs-keyword">else</span>
-        end = [node.locationData.last_line, node.locationData.last_column + <span class="hljs-number">1</span>]
+          <span class="hljs-keyword">return</span> {
+            <span class="hljs-attribute">start</span>: [node.locationData.first_line, node.locationData.first_column]
+            <span class="hljs-attribute">end</span>: end
+          }
 
-        <span class="hljs-keyword">if</span> text[end[<span class="hljs-number">0</span>]][...end[<span class="hljs-number">1</span>]].trimLeft().length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
-          end[<span class="hljs-number">0</span>] -= <span class="hljs-number">1</span>; end[<span class="hljs-number">1</span>] = text[end[<span class="hljs-number">0</span>]].length
+    <span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(node, precedence = <span class="hljs-number">0</span>, shouldParenWrap = <span class="hljs-literal">false</span>)</span> -&gt;</span>
+      <span class="hljs-keyword">switch</span> node.constructor.name
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Block'</span>
+          indent = <span class="hljs-keyword">new</span> model.Indent [], <span class="hljs-number">2</span>
+          addMarkup indent, node, shouldParenWrap
 
-        <span class="hljs-keyword">return</span> {
-          <span class="hljs-attribute">start</span>: [node.locationData.first_line, node.locationData.first_column]
-          <span class="hljs-attribute">end</span>: end
-        }
+          <span class="hljs-keyword">for</span> expr <span class="hljs-keyword">in</span> node.expressions
+            mark expr
 
-  <span class="hljs-function"><span class="hljs-title">mark</span> = <span class="hljs-params">(node, precedence = <span class="hljs-number">0</span>, shouldParenWrap = <span class="hljs-literal">false</span>)</span> -&gt;</span>
-    <span class="hljs-keyword">switch</span> node.constructor.name
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Block'</span>
-        indent = <span class="hljs-keyword">new</span> ICE.Indent [], <span class="hljs-number">2</span>
-        addMarkup indent, node, shouldParenWrap
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Op'</span>
+          block = <span class="hljs-keyword">new</span> model.Block [], operatorPrecedences[node.operator]
+          block.color=colors.VALUE
+          addMarkup block, node, shouldParenWrap
 
-        <span class="hljs-keyword">for</span> expr <span class="hljs-keyword">in</span> node.expressions
-          mark expr
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Op'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block [], operatorPrecedences[node.operator]
-        block.color=colors.VALUE
-        addMarkup block, node, shouldParenWrap
-
-        mark node.first, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
-        <span class="hljs-keyword">if</span> node.second? <span class="hljs-keyword">then</span> mark node.second, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
-      
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Value'</span>
-        mark node.base, precedence
-      
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Literal'</span>
-        socket = <span class="hljs-keyword">new</span> ICE.Socket <span class="hljs-literal">null</span>, precedence
-        addMarkup socket, node, shouldParenWrap
-      
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Call'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block [], <span class="hljs-number">0</span>
-        block.color=colors.COMMAND
-        addMarkup block, node, shouldParenWrap
-
-        <span class="hljs-keyword">for</span> arg <span class="hljs-keyword">in</span> node.args
-          mark arg
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Code'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node, shouldParenWrap
-
-        <span class="hljs-keyword">for</span> param <span class="hljs-keyword">in</span> node.params
-          mark param
-
-        mark node.body.unwrap()
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Param'</span>
-        mark node.name
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Assign'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.COMMAND
-        addMarkup block, node, shouldParenWrap
-
-        mark node.variable
-        mark node.value
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'For'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.CONTROL
-        addMarkup block, node, shouldParenWrap
-
-        <span class="hljs-keyword">if</span> node.index? <span class="hljs-keyword">then</span> mark node.index
-        <span class="hljs-keyword">if</span> node.source? <span class="hljs-keyword">then</span> mark node.source
-        <span class="hljs-keyword">if</span> node.name? <span class="hljs-keyword">then</span> mark node.name
-        <span class="hljs-keyword">if</span> node.from? <span class="hljs-keyword">then</span> mark node.from
-
-        mark node.body
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Range'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node, shouldParenWrap
+          mark node.first, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
+          <span class="hljs-keyword">if</span> node.second? <span class="hljs-keyword">then</span> mark node.second, operatorPrecedences[node.operator] ? <span class="hljs-number">0</span>
         
-        mark node.from
-        mark node.to
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'If'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.CONTROL
-        addMarkup block, node, shouldParenWrap
-
-        mark node.condition
-        mark node.body
-        <span class="hljs-keyword">if</span> node.elseBody? <span class="hljs-keyword">then</span> mark node.elseBody
-
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Arr'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node, shouldParenWrap
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Value'</span>
+          mark node.base, precedence
         
-        <span class="hljs-keyword">for</span> object <span class="hljs-keyword">in</span> node.objects
-          mark object
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Literal'</span>
+          socket = <span class="hljs-keyword">new</span> model.Socket <span class="hljs-literal">null</span>, precedence
+          addMarkup socket, node, shouldParenWrap
+        
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Call'</span>
+          block = <span class="hljs-keyword">new</span> model.Block [], <span class="hljs-number">0</span>
+          block.color=colors.COMMAND
+          addMarkup block, node, shouldParenWrap
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Return'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.RETURN
-        addMarkup block, node, shouldParenWrap
+          <span class="hljs-keyword">for</span> arg <span class="hljs-keyword">in</span> node.args
+            mark arg
 
-        <span class="hljs-keyword">if</span> node.expression? <span class="hljs-keyword">then</span> mark node.expression
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Code'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Parens'</span></pre></div></div>
+          <span class="hljs-keyword">for</span> param <span class="hljs-keyword">in</span> node.params
+            mark param
+
+          mark node.body.unwrap()
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Param'</span>
+          mark node.name
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Assign'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.COMMAND
+          addMarkup block, node, shouldParenWrap
+
+          mark node.variable
+          mark node.value
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'For'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.CONTROL
+          addMarkup block, node, shouldParenWrap
+
+          <span class="hljs-keyword">if</span> node.index? <span class="hljs-keyword">then</span> mark node.index
+          <span class="hljs-keyword">if</span> node.source? <span class="hljs-keyword">then</span> mark node.source
+          <span class="hljs-keyword">if</span> node.name? <span class="hljs-keyword">then</span> mark node.name
+          <span class="hljs-keyword">if</span> node.from? <span class="hljs-keyword">then</span> mark node.from
+
+          mark node.body
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Range'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap
+          
+          mark node.from
+          mark node.to
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'If'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.CONTROL
+          addMarkup block, node, shouldParenWrap
+
+          mark node.condition
+          mark node.body
+          <span class="hljs-keyword">if</span> node.elseBody? <span class="hljs-keyword">then</span> mark node.elseBody
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Arr'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap
+          
+          <span class="hljs-keyword">for</span> object <span class="hljs-keyword">in</span> node.objects
+            mark object
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Return'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.RETURN
+          addMarkup block, node, shouldParenWrap
+
+          <span class="hljs-keyword">if</span> node.expression? <span class="hljs-keyword">then</span> mark node.expression
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Parens'</span></pre></div></div>
             
         </li>
         
@@ -283,9 +294,9 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node, shouldParenWrap</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap</pre></div></div>
             
         </li>
         
@@ -300,55 +311,55 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-built_in">console</span>.log <span class="hljs-string">'encountered parens'</span>
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-built_in">console</span>.log <span class="hljs-string">'encountered parens'</span>
 
-        <span class="hljs-keyword">if</span> node.body? <span class="hljs-keyword">then</span> mark node.body.unwrap(), <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>
+          <span class="hljs-keyword">if</span> node.body? <span class="hljs-keyword">then</span> mark node.body.unwrap(), <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Obj'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node, shouldParenWrap
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Obj'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap
 
-        start = getBounds node.properties[<span class="hljs-number">0</span>]
-        end = getBounds node.properties[node.properties.length - <span class="hljs-number">1</span>]
+          start = getBounds node.properties[<span class="hljs-number">0</span>]
+          end = getBounds node.properties[node.properties.length - <span class="hljs-number">1</span>]
 
-        indent = <span class="hljs-keyword">new</span> ICE.Indent []
+          indent = <span class="hljs-keyword">new</span> model.Indent []
 
-        markup.push
-          <span class="hljs-attribute">token</span>: indent.start
-          <span class="hljs-attribute">position</span>: start.start
-          <span class="hljs-attribute">id</span>: id
-          <span class="hljs-attribute">start</span>: <span class="hljs-literal">true</span>
+          markup.push
+            <span class="hljs-attribute">token</span>: indent.start
+            <span class="hljs-attribute">position</span>: start.start
+            <span class="hljs-attribute">id</span>: id
+            <span class="hljs-attribute">start</span>: <span class="hljs-literal">true</span>
 
-        markup.push
-          <span class="hljs-attribute">token</span>: indent.end
-          <span class="hljs-attribute">position</span>: end.end
-          <span class="hljs-attribute">id</span>: id
-          <span class="hljs-attribute">start</span>: <span class="hljs-literal">false</span>
+          markup.push
+            <span class="hljs-attribute">token</span>: indent.end
+            <span class="hljs-attribute">position</span>: end.end
+            <span class="hljs-attribute">id</span>: id
+            <span class="hljs-attribute">start</span>: <span class="hljs-literal">false</span>
 
-        id += <span class="hljs-number">1</span>
+          id += <span class="hljs-number">1</span>
 
-        <span class="hljs-keyword">for</span> property <span class="hljs-keyword">in</span> node.properties <span class="hljs-keyword">then</span> mark property
+          <span class="hljs-keyword">for</span> property <span class="hljs-keyword">in</span> node.properties <span class="hljs-keyword">then</span> mark property
 
-      <span class="hljs-keyword">when</span> <span class="hljs-string">'Existence'</span>
-        block = <span class="hljs-keyword">new</span> ICE.Block []
-        block.color = colors.VALUE
-        addMarkup block, node, shouldParenWrap
-        
-        block.precedence = <span class="hljs-number">7</span>
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'Existence'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.VALUE
+          addMarkup block, node, shouldParenWrap
+          
+          block.precedence = <span class="hljs-number">7</span>
 
-        mark node.expression, <span class="hljs-number">7</span>
+          mark node.expression, <span class="hljs-number">7</span>
 
-    <span class="hljs-keyword">if</span> block? <span class="hljs-keyword">and</span> shouldParenWrap
-      block.currentlyParenWrapped = <span class="hljs-literal">true</span>
+      <span class="hljs-keyword">if</span> block? <span class="hljs-keyword">and</span> shouldParenWrap
+        block.currentlyParenWrapped = <span class="hljs-literal">true</span>
 
-  <span class="hljs-keyword">for</span> node <span class="hljs-keyword">in</span> nodes
-    mark node
-  
-  <span class="hljs-keyword">return</span> markup
+    <span class="hljs-keyword">for</span> node <span class="hljs-keyword">in</span> nodes
+      mark node
+    
+    <span class="hljs-keyword">return</span> markup
 
-<span class="hljs-built_in">exports</span>.execute = <span class="hljs-function"><span class="hljs-title">execute</span> = <span class="hljs-params">(text, markup)</span> -&gt;</span>
-  id = <span class="hljs-number">0</span></pre></div></div>
+  <span class="hljs-built_in">exports</span>.execute = <span class="hljs-function"><span class="hljs-title">execute</span> = <span class="hljs-params">(text, markup)</span> -&gt;</span>
+    id = <span class="hljs-number">0</span></pre></div></div>
             
         </li>
         
@@ -363,9 +374,9 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  marks = {}
+            <div class="content"><div class='highlight'><pre>    marks = {}
 
-  <span class="hljs-keyword">for</span> _mark <span class="hljs-keyword">in</span> markup</pre></div></div>
+    <span class="hljs-keyword">for</span> _mark <span class="hljs-keyword">in</span> markup</pre></div></div>
             
         </li>
         
@@ -380,8 +391,8 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">unless</span> marks[_mark.position[<span class="hljs-number">0</span>]]? <span class="hljs-keyword">then</span> marks[_mark.position[<span class="hljs-number">0</span>]] = []
-    marks[_mark.position[<span class="hljs-number">0</span>]].push _mark</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">unless</span> marks[_mark.position[<span class="hljs-number">0</span>]]? <span class="hljs-keyword">then</span> marks[_mark.position[<span class="hljs-number">0</span>]] = []
+      marks[_mark.position[<span class="hljs-number">0</span>]].push _mark</pre></div></div>
             
         </li>
         
@@ -396,12 +407,12 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  text = text.split <span class="hljs-string">'\n'</span>
-  first = head = <span class="hljs-keyword">new</span> ICE.TextToken <span class="hljs-string">''</span>
-  
-  stack = []
+            <div class="content"><div class='highlight'><pre>    text = text.split <span class="hljs-string">'\n'</span>
+    first = head = <span class="hljs-keyword">new</span> model.TextToken <span class="hljs-string">''</span>
+    
+    stack = []
 
-  <span class="hljs-keyword">for</span> line, i <span class="hljs-keyword">in</span> text</pre></div></div>
+    <span class="hljs-keyword">for</span> line, i <span class="hljs-keyword">in</span> text</pre></div></div>
             
         </li>
         
@@ -416,18 +427,18 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    head = head.append <span class="hljs-keyword">new</span> ICE.NewlineToken()
+            <div class="content"><div class='highlight'><pre>      head = head.append <span class="hljs-keyword">new</span> model.NewlineToken()
 
-    <span class="hljs-keyword">if</span> line.trimLeft().length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
-      newBlock = <span class="hljs-keyword">new</span> ICE.Block []; newSocket = <span class="hljs-keyword">new</span> ICE.Socket []
-      newSocket.handwritten = <span class="hljs-literal">true</span>
+      <span class="hljs-keyword">if</span> line.trimLeft().length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
+        newBlock = <span class="hljs-keyword">new</span> model.Block []; newSocket = <span class="hljs-keyword">new</span> model.Socket []
+        newSocket.handwritten = <span class="hljs-literal">true</span>
 
-      newBlock.start.insert newSocket.start
-      newBlock.end.insertBefore newSocket.end
+        newBlock.start.insert newSocket.start
+        newBlock.end.insertBefore newSocket.end
 
-      head.append newBlock.start
-      head = newBlock.end
-      <span class="hljs-keyword">continue</span></pre></div></div>
+        head.append newBlock.start
+        head = newBlock.end
+        <span class="hljs-keyword">continue</span></pre></div></div>
             
         </li>
         
@@ -442,43 +453,43 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    lastMark = <span class="hljs-number">0</span>
-    <span class="hljs-keyword">if</span> marks[i]?
+            <div class="content"><div class='highlight'><pre>      lastMark = <span class="hljs-number">0</span>
+      <span class="hljs-keyword">if</span> marks[i]?
 
-      marks[i].sort <span class="hljs-function"><span class="hljs-params">(a, b)</span> -&gt;</span>
-        <span class="hljs-keyword">unless</span> a.position[<span class="hljs-number">1</span>] <span class="hljs-keyword">is</span> b.position[<span class="hljs-number">1</span>]
-          <span class="hljs-keyword">if</span> a.position[<span class="hljs-number">1</span>] &gt; b.position[<span class="hljs-number">1</span>] <span class="hljs-keyword">then</span> <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
-        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> a.start <span class="hljs-keyword">and</span> b.start
-          <span class="hljs-keyword">if</span> a.id &gt; b.id <span class="hljs-keyword">then</span> <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
-        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">not</span> a.start) <span class="hljs-keyword">and</span> (<span class="hljs-keyword">not</span> b.start)
-          <span class="hljs-keyword">if</span> b.id &gt; a.id <span class="hljs-keyword">then</span> <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
-        <span class="hljs-keyword">else</span>
-          <span class="hljs-keyword">if</span> a.start <span class="hljs-keyword">and</span> (<span class="hljs-keyword">not</span> b.start) <span class="hljs-keyword">then</span> <span class="hljs-number">1</span>
-          <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
+        marks[i].sort <span class="hljs-function"><span class="hljs-params">(a, b)</span> -&gt;</span>
+          <span class="hljs-keyword">unless</span> a.position[<span class="hljs-number">1</span>] <span class="hljs-keyword">is</span> b.position[<span class="hljs-number">1</span>]
+            <span class="hljs-keyword">if</span> a.position[<span class="hljs-number">1</span>] &gt; b.position[<span class="hljs-number">1</span>] <span class="hljs-keyword">then</span> <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
+          <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> a.start <span class="hljs-keyword">and</span> b.start
+            <span class="hljs-keyword">if</span> a.id &gt; b.id <span class="hljs-keyword">then</span> <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
+          <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">not</span> a.start) <span class="hljs-keyword">and</span> (<span class="hljs-keyword">not</span> b.start)
+            <span class="hljs-keyword">if</span> b.id &gt; a.id <span class="hljs-keyword">then</span> <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
+          <span class="hljs-keyword">else</span>
+            <span class="hljs-keyword">if</span> a.start <span class="hljs-keyword">and</span> (<span class="hljs-keyword">not</span> b.start) <span class="hljs-keyword">then</span> <span class="hljs-number">1</span>
+            <span class="hljs-keyword">else</span> -<span class="hljs-number">1</span>
 
-      <span class="hljs-keyword">for</span> _mark <span class="hljs-keyword">in</span> marks[i]
-        str = line[lastMark..._mark.position[<span class="hljs-number">1</span>]]
-        <span class="hljs-keyword">if</span> lastMark <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> str = str.trimLeft()
+        <span class="hljs-keyword">for</span> _mark <span class="hljs-keyword">in</span> marks[i]
+          str = line[lastMark..._mark.position[<span class="hljs-number">1</span>]]
+          <span class="hljs-keyword">if</span> lastMark <span class="hljs-keyword">is</span> <span class="hljs-number">0</span> <span class="hljs-keyword">then</span> str = str.trimLeft()
 
-        <span class="hljs-keyword">unless</span> str.length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
-          head = head.append <span class="hljs-keyword">new</span> ICE.TextToken str
-        
-        <span class="hljs-keyword">if</span> stack.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> stack[stack.length-<span class="hljs-number">1</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'block'</span> <span class="hljs-keyword">and</span> _mark.token.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span>
-          stack.push <span class="hljs-attribute">block</span>: (_socket = <span class="hljs-keyword">new</span> ICE.Socket()), <span class="hljs-attribute">implied</span>: <span class="hljs-literal">true</span>
-          head = head.append _socket.start
+          <span class="hljs-keyword">unless</span> str.length <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>
+            head = head.append <span class="hljs-keyword">new</span> model.TextToken str
+          
+          <span class="hljs-keyword">if</span> stack.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> stack[stack.length-<span class="hljs-number">1</span>].block.type <span class="hljs-keyword">is</span> <span class="hljs-string">'block'</span> <span class="hljs-keyword">and</span> _mark.token.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span>
+            stack.push <span class="hljs-attribute">block</span>: (_socket = <span class="hljs-keyword">new</span> model.Socket()), <span class="hljs-attribute">implied</span>: <span class="hljs-literal">true</span>
+            head = head.append _socket.start
 
-        <span class="hljs-keyword">switch</span> _mark.token.type
-          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> stack.push <span class="hljs-attribute">block</span>: _mark.token.block
-          <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">then</span> stack.push <span class="hljs-attribute">block</span>: _mark.token.socket
-          <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">then</span> stack.push <span class="hljs-attribute">block</span>: _mark.token.indent
-          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockEnd'</span>, <span class="hljs-string">'socketEnd'</span>, <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">then</span> stack.pop()
+          <span class="hljs-keyword">switch</span> _mark.token.type
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> stack.push <span class="hljs-attribute">block</span>: _mark.token.block
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">then</span> stack.push <span class="hljs-attribute">block</span>: _mark.token.socket
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">then</span> stack.push <span class="hljs-attribute">block</span>: _mark.token.indent
+            <span class="hljs-keyword">when</span> <span class="hljs-string">'blockEnd'</span>, <span class="hljs-string">'socketEnd'</span>, <span class="hljs-string">'indentEnd'</span> <span class="hljs-keyword">then</span> stack.pop()
 
-        head = head.append _mark.token
+          head = head.append _mark.token
 
-        <span class="hljs-keyword">if</span> stack.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> stack[stack.length - <span class="hljs-number">1</span>].implied?
-          head = head.append stack.pop().block.end
+          <span class="hljs-keyword">if</span> stack.length &gt; <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> stack[stack.length - <span class="hljs-number">1</span>].implied?
+            head = head.append stack.pop().block.end
 
-        lastMark = _mark.position[<span class="hljs-number">1</span>]</pre></div></div>
+          lastMark = _mark.position[<span class="hljs-number">1</span>]</pre></div></div>
             
         </li>
         
@@ -493,18 +504,18 @@ colors =
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">unless</span> lastMark &gt; line.length - <span class="hljs-number">1</span>
-      head = head.append <span class="hljs-keyword">new</span> ICE.TextToken line[lastMark..-<span class="hljs-number">1</span>]
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">unless</span> lastMark &gt; line.length - <span class="hljs-number">1</span>
+        head = head.append <span class="hljs-keyword">new</span> model.TextToken line[lastMark..-<span class="hljs-number">1</span>]
 
-  first = first.next.next
-  first.prev = <span class="hljs-literal">null</span>
-  <span class="hljs-keyword">return</span> first
+    first = first.next.next
+    first.prev = <span class="hljs-literal">null</span>
+    <span class="hljs-keyword">return</span> first
 
-<span class="hljs-built_in">exports</span>.parse = <span class="hljs-function"><span class="hljs-title">parse</span> = <span class="hljs-params">(text)</span> -&gt;</span>
-  markup = <span class="hljs-built_in">exports</span>.mark CoffeeScript.nodes(text).expressions, text
-  <span class="hljs-keyword">return</span> execute text, markup
-
-<span class="hljs-built_in">window</span>.coffee = <span class="hljs-built_in">exports</span></pre></div></div>
+  <span class="hljs-built_in">exports</span>.parse = <span class="hljs-function"><span class="hljs-title">parse</span> = <span class="hljs-params">(text)</span> -&gt;</span>
+    markup = <span class="hljs-built_in">exports</span>.mark CoffeeScript.nodes(text).expressions, text
+    <span class="hljs-keyword">return</span> execute text, markup
+  
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">exports</span></pre></div></div>
             
         </li>
         

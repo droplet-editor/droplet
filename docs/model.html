@@ -34,8 +34,18 @@
               </a>
             
               
+              <a class="source" href="main.html">
+                main.coffee
+              </a>
+            
+              
               <a class="source" href="model.html">
                 model.coffee
+              </a>
+            
+              
+              <a class="source" href="requirejs_config.html">
+                requirejs_config.coffee
               </a>
             
               
@@ -70,7 +80,8 @@
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-built_in">exports</span> = {}</pre></div></div>
+define [<span class="hljs-string">'ice-view'</span>], <span class="hljs-function"><span class="hljs-params">(view)</span> -&gt;</span>
+  <span class="hljs-built_in">exports</span> = {}</pre></div></div>
             
         </li>
         
@@ -93,17 +104,17 @@ wrap itself in parentheses</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-built_in">exports</span>.Block = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Block</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(contents, <span class="hljs-property">@precedence</span> = <span class="hljs-number">0</span>)</span> -&gt;</span>
-    <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> BlockStartToken <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> BlockEndToken <span class="hljs-keyword">this</span>
+  <span class="hljs-built_in">exports</span>.Block = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Block</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(contents, <span class="hljs-property">@precedence</span> = <span class="hljs-number">0</span>)</span> -&gt;</span>
+      <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> BlockStartToken <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> BlockEndToken <span class="hljs-keyword">this</span>
 
-    <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">false</span>
+      <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">false</span>
 
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'block'</span>
-    <span class="hljs-property">@color</span> = <span class="hljs-string">'#ddf'</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'block'</span>
+      <span class="hljs-property">@color</span> = <span class="hljs-string">'#ddf'</span>
 
-    <span class="hljs-property">@selected</span> = <span class="hljs-literal">false</span> <span class="hljs-comment"># Are we the selected block?</span></pre></div></div>
+      <span class="hljs-property">@selected</span> = <span class="hljs-literal">false</span> <span class="hljs-comment"># Are we the selected block?</span></pre></div></div>
             
         </li>
         
@@ -118,12 +129,12 @@ wrap itself in parentheses</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    head = <span class="hljs-property">@start</span>
-    <span class="hljs-keyword">for</span> token <span class="hljs-keyword">in</span> contents
-      head = head.append token.clone()
-    head.append <span class="hljs-property">@end</span>
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@start</span>
+      <span class="hljs-keyword">for</span> token <span class="hljs-keyword">in</span> contents
+        head = head.append token.clone()
+      head.append <span class="hljs-property">@end</span>
 
-    <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> BlockView <span class="hljs-keyword">this</span></pre></div></div>
+      <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> view.BlockView <span class="hljs-keyword">this</span></pre></div></div>
             
         </li>
         
@@ -140,37 +151,37 @@ of this one (there are no linked-list pointers in common).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span>
-    clone = <span class="hljs-keyword">new</span> Block []
-    clone.color = <span class="hljs-property">@color</span>
-    head = <span class="hljs-property">@start</span>.next
-    cursor = clone.start
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
-      <span class="hljs-keyword">switch</span> head.type
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>
-          block_clone = head.block.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.block.end
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span>
-          block_clone = head.socket.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.socket.end
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>
-          block_clone = head.indent.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.indent.end
-        <span class="hljs-keyword">else</span>
-          <span class="hljs-keyword">unless</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursorToken'</span> <span class="hljs-keyword">then</span> cursor = cursor.append head.clone()
-      head = head.next
-    cursor.append clone.end
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span>
+      clone = <span class="hljs-keyword">new</span> Block []
+      clone.color = <span class="hljs-property">@color</span>
+      head = <span class="hljs-property">@start</span>.next
+      cursor = clone.start
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
+        <span class="hljs-keyword">switch</span> head.type
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>
+            block_clone = head.block.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.block.end
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span>
+            block_clone = head.socket.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.socket.end
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>
+            block_clone = head.indent.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.indent.end
+          <span class="hljs-keyword">else</span>
+            <span class="hljs-keyword">unless</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursorToken'</span> <span class="hljs-keyword">then</span> cursor = cursor.append head.clone()
+        head = head.next
+      cursor.append clone.end
 
-    <span class="hljs-keyword">return</span> clone</pre></div></div>
+      <span class="hljs-keyword">return</span> clone</pre></div></div>
             
         </li>
         
@@ -188,10 +199,10 @@ and by the Controller to determine whether a block can be dropped after.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">inSocket</span>:<span class="hljs-function"> -&gt;</span>
-    head = <span class="hljs-property">@start</span>.prev
-    <span class="hljs-keyword">while</span> head? <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> head = head.prev
-    <span class="hljs-keyword">return</span> head? <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">inSocket</span>:<span class="hljs-function"> -&gt;</span>
+      head = <span class="hljs-property">@start</span>.prev
+      <span class="hljs-keyword">while</span> head? <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> head = head.prev
+      <span class="hljs-keyword">return</span> head? <span class="hljs-keyword">and</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span></pre></div></div>
             
         </li>
         
@@ -209,7 +220,7 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">moveTo</span>: <span class="hljs-function"><span class="hljs-params">(parent)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">moveTo</span>: <span class="hljs-function"><span class="hljs-params">(parent)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -224,8 +235,8 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">while</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.segment.end <span class="hljs-keyword">is</span> <span class="hljs-property">@end</span>.next
-      <span class="hljs-property">@start</span>.prev.segment.remove()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">while</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.segment.end <span class="hljs-keyword">is</span> <span class="hljs-property">@end</span>.next
+        <span class="hljs-property">@start</span>.prev.segment.remove()</pre></div></div>
             
         </li>
         
@@ -240,17 +251,17 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev?
-      last = <span class="hljs-property">@end</span>.next
-      <span class="hljs-keyword">while</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> last = last.next
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev?
+        last = <span class="hljs-property">@end</span>.next
+        <span class="hljs-keyword">while</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> last = last.next
 
-      first = <span class="hljs-property">@start</span>.prev
-      <span class="hljs-keyword">while</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> first = first.prev
+        first = <span class="hljs-property">@start</span>.prev
+        <span class="hljs-keyword">while</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> first = first.prev
 
-      <span class="hljs-keyword">if</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> last?) <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>) <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (first.prev?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>)
-        first.remove()
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> first?) <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>)
-        last.remove()</pre></div></div>
+        <span class="hljs-keyword">if</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> last?) <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>) <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (first.prev?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>)
+          first.remove()
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> first?) <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>)
+          last.remove()</pre></div></div>
             
         </li>
         
@@ -265,9 +276,9 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">then</span> <span class="hljs-property">@start</span>.prev.next = <span class="hljs-property">@end</span>.next
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">then</span> <span class="hljs-property">@end</span>.next.prev = <span class="hljs-property">@start</span>.prev
-    <span class="hljs-property">@start</span>.prev = <span class="hljs-property">@end</span>.next = <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">then</span> <span class="hljs-property">@start</span>.prev.next = <span class="hljs-property">@end</span>.next
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">then</span> <span class="hljs-property">@end</span>.next.prev = <span class="hljs-property">@start</span>.prev
+      <span class="hljs-property">@start</span>.prev = <span class="hljs-property">@end</span>.next = <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -282,12 +293,12 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> parent?
-      <span class="hljs-property">@end</span>.next = parent.next
-      <span class="hljs-keyword">if</span> parent.next? <span class="hljs-keyword">then</span> parent.next.prev = <span class="hljs-property">@end</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> parent?
+        <span class="hljs-property">@end</span>.next = parent.next
+        <span class="hljs-keyword">if</span> parent.next? <span class="hljs-keyword">then</span> parent.next.prev = <span class="hljs-property">@end</span>
 
-      parent.next = <span class="hljs-property">@start</span>
-      <span class="hljs-property">@start</span>.prev = parent</pre></div></div>
+        parent.next = <span class="hljs-property">@start</span>
+        <span class="hljs-property">@start</span>.prev = parent</pre></div></div>
             
         </li>
         
@@ -303,15 +314,15 @@ To do this, we find our actual parent (not wrapping segment).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">while</span> parent? <span class="hljs-keyword">and</span> parent.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> parent = parent.prev
-    <span class="hljs-keyword">if</span> parent?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> parent.socket.precedence &gt; <span class="hljs-property">@precedence</span>
-      <span class="hljs-keyword">unless</span> <span class="hljs-property">@currentlyParenWrapped</span>
-        <span class="hljs-property">@start</span>.insert <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">'('</span>
-        <span class="hljs-property">@end</span>.insertBefore <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">')'</span>
-        <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">true</span>
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyParenWrapped</span>
-      <span class="hljs-property">@start</span>.next.remove(); <span class="hljs-property">@end</span>.prev.remove()
-      <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">false</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">while</span> parent? <span class="hljs-keyword">and</span> parent.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> parent = parent.prev
+      <span class="hljs-keyword">if</span> parent?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> parent.socket.precedence &gt; <span class="hljs-property">@precedence</span>
+        <span class="hljs-keyword">unless</span> <span class="hljs-property">@currentlyParenWrapped</span>
+          <span class="hljs-property">@start</span>.insert <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">'('</span>
+          <span class="hljs-property">@end</span>.insertBefore <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">')'</span>
+          <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">true</span>
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyParenWrapped</span>
+        <span class="hljs-property">@start</span>.next.remove(); <span class="hljs-property">@end</span>.prev.remove()
+        <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">false</span></pre></div></div>
             
         </li>
         
@@ -327,8 +338,8 @@ To do this, we find our actual parent (not wrapping segment).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">checkParenWrap</span>:<span class="hljs-function"> -&gt;</span>
-    parent = <span class="hljs-property">@start</span>.prev</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">checkParenWrap</span>:<span class="hljs-function"> -&gt;</span>
+      parent = <span class="hljs-property">@start</span>.prev</pre></div></div>
             
         </li>
         
@@ -343,15 +354,15 @@ To do this, we find our actual parent (not wrapping segment).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">while</span> parent? <span class="hljs-keyword">and</span> parent.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> parent = parent.prev
-    <span class="hljs-keyword">if</span> parent?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> parent.socket.precedence &gt; <span class="hljs-property">@precedence</span>
-      <span class="hljs-keyword">unless</span> <span class="hljs-property">@currentlyParenWrapped</span>
-        <span class="hljs-property">@start</span>.insert <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">'('</span>
-        <span class="hljs-property">@end</span>.insertBefore <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">')'</span>
-        <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">true</span>
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyParenWrapped</span>
-      <span class="hljs-property">@start</span>.next.remove(); <span class="hljs-property">@end</span>.prev.remove()
-      <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">false</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">while</span> parent? <span class="hljs-keyword">and</span> parent.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> parent = parent.prev
+      <span class="hljs-keyword">if</span> parent?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> parent.socket.precedence &gt; <span class="hljs-property">@precedence</span>
+        <span class="hljs-keyword">unless</span> <span class="hljs-property">@currentlyParenWrapped</span>
+          <span class="hljs-property">@start</span>.insert <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">'('</span>
+          <span class="hljs-property">@end</span>.insertBefore <span class="hljs-keyword">new</span> TextToken <span class="hljs-string">')'</span>
+          <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">true</span>
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyParenWrapped</span>
+        <span class="hljs-property">@start</span>.next.remove(); <span class="hljs-property">@end</span>.prev.remove()
+        <span class="hljs-property">@currentlyParenWrapped</span> = <span class="hljs-literal">false</span></pre></div></div>
             
         </li>
         
@@ -381,9 +392,9 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span>
-    head = <span class="hljs-property">@start</span>.next
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span>
+      head = <span class="hljs-property">@start</span>.next
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
             
         </li>
         
@@ -398,10 +409,10 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
-      head = head.next</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
+        head = head.next</pre></div></div>
             
         </li>
         
@@ -416,7 +427,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span></pre></div></div>
             
         </li>
         
@@ -431,7 +442,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -449,9 +460,9 @@ everything, then splicing off everything after the end token.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span>
-    string = <span class="hljs-property">@start</span>.toString <span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>
-    <span class="hljs-keyword">return</span> string[..string.length-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length-<span class="hljs-number">1</span>]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span>
+      string = <span class="hljs-property">@start</span>.toString <span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>
+      <span class="hljs-keyword">return</span> string[..string.length-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length-<span class="hljs-number">1</span>]</pre></div></div>
             
         </li>
         
@@ -469,18 +480,18 @@ inside an indent will add @depth spaces after it.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Indent = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Indent</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(contents, <span class="hljs-property">@depth</span>)</span> -&gt;</span>
-    <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> IndentStartToken <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> IndentEndToken <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'indent'</span>
-    
-    head = <span class="hljs-property">@start</span>
-    <span class="hljs-keyword">for</span> block <span class="hljs-keyword">in</span> contents
-      head = head.append block.clone()
-    head.append <span class="hljs-property">@end</span>
-    
-    <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> IndentView <span class="hljs-keyword">this</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Indent = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Indent</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(contents, <span class="hljs-property">@depth</span>)</span> -&gt;</span>
+      <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> IndentStartToken <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> IndentEndToken <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'indent'</span>
+      
+      head = <span class="hljs-property">@start</span>
+      <span class="hljs-keyword">for</span> block <span class="hljs-keyword">in</span> contents
+        head = head.append block.clone()
+      head.append <span class="hljs-property">@end</span>
+      
+      <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> view.IndentView <span class="hljs-keyword">this</span></pre></div></div>
             
         </li>
         
@@ -497,36 +508,36 @@ is identical, but shares no linked-list pointers with us.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span>
-    clone = <span class="hljs-keyword">new</span> Indent [], <span class="hljs-property">@depth</span>
-    head = <span class="hljs-property">@start</span>.next
-    cursor = clone.start
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
-      <span class="hljs-keyword">switch</span> head.type
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>
-          block_clone = head.block.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.block.end
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span>
-          block_clone = head.socket.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.socket.end
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>
-          block_clone = head.indent.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.indent.end
-        <span class="hljs-keyword">else</span>
-          <span class="hljs-keyword">unless</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursorToken'</span> <span class="hljs-keyword">then</span> cursor = cursor.append head.clone()
-      head = head.next
-    cursor.append clone.end
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span>
+      clone = <span class="hljs-keyword">new</span> Indent [], <span class="hljs-property">@depth</span>
+      head = <span class="hljs-property">@start</span>.next
+      cursor = clone.start
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
+        <span class="hljs-keyword">switch</span> head.type
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>
+            block_clone = head.block.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.block.end
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span>
+            block_clone = head.socket.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.socket.end
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>
+            block_clone = head.indent.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.indent.end
+          <span class="hljs-keyword">else</span>
+            <span class="hljs-keyword">unless</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursorToken'</span> <span class="hljs-keyword">then</span> cursor = cursor.append head.clone()
+        head = head.next
+      cursor.append clone.end
 
-    <span class="hljs-keyword">return</span> clone</pre></div></div>
+      <span class="hljs-keyword">return</span> clone</pre></div></div>
             
         </li>
         
@@ -556,7 +567,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -571,8 +582,8 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    head = <span class="hljs-property">@start</span>.next
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@start</span>.next
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
             
         </li>
         
@@ -587,10 +598,10 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
-      head = head.next</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
+        head = head.next</pre></div></div>
             
         </li>
         
@@ -605,7 +616,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span></pre></div></div>
             
         </li>
         
@@ -620,7 +631,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -638,9 +649,9 @@ the start and splicing of the string representation of the end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-    string = <span class="hljs-property">@start</span>.toString(state)
-    <span class="hljs-keyword">return</span> string[...string.length-<span class="hljs-property">@end</span>.toString(state).length-<span class="hljs-number">1</span>]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      string = <span class="hljs-property">@start</span>.toString(state)
+      <span class="hljs-keyword">return</span> string[...string.length-<span class="hljs-property">@end</span>.toString(state).length-<span class="hljs-number">1</span>]</pre></div></div>
             
         </li>
         
@@ -658,18 +669,18 @@ for instance the Controller’s LASSO SELECT, which will drag multiple blocks at
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Segment = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Segment</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(contents)</span> -&gt;</span>
-    <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> SegmentStartToken <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> SegmentEndToken <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'segment'</span>
-    
-    head = <span class="hljs-property">@start</span>
-    <span class="hljs-keyword">for</span> block <span class="hljs-keyword">in</span> contents
-      head = head.append block.clone()
-    head.append <span class="hljs-property">@end</span>
-    
-    <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> SegmentView <span class="hljs-keyword">this</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Segment = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Segment</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(contents)</span> -&gt;</span>
+      <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> SegmentStartToken <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> SegmentEndToken <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'segment'</span>
+      
+      head = <span class="hljs-property">@start</span>
+      <span class="hljs-keyword">for</span> block <span class="hljs-keyword">in</span> contents
+        head = head.append block.clone()
+      head.append <span class="hljs-property">@end</span>
+      
+      <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> view.SegmentView <span class="hljs-keyword">this</span></pre></div></div>
             
         </li>
         
@@ -686,36 +697,36 @@ is identical, but shares no linked-list pointers with us.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span>
-    clone = <span class="hljs-keyword">new</span> Segment []
-    head = <span class="hljs-property">@start</span>.next
-    cursor = clone.start
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
-      <span class="hljs-keyword">switch</span> head.type
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>
-          block_clone = head.block.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.block.end
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span>
-          block_clone = head.socket.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.socket.end
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>
-          block_clone = head.indent.clone()
-          block_clone.start.prev = cursor
-          cursor.next = block_clone.start
-          cursor = block_clone.end
-          head = head.indent.end
-        <span class="hljs-keyword">else</span>
-          <span class="hljs-keyword">unless</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursorToken'</span> <span class="hljs-keyword">then</span> cursor = cursor.append head.clone()
-      head = head.next
-    cursor.append clone.end
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span>
+      clone = <span class="hljs-keyword">new</span> Segment []
+      head = <span class="hljs-property">@start</span>.next
+      cursor = clone.start
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
+        <span class="hljs-keyword">switch</span> head.type
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span>
+            block_clone = head.block.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.block.end
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'socketStart'</span>
+            block_clone = head.socket.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.socket.end
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'indentStart'</span>
+            block_clone = head.indent.clone()
+            block_clone.start.prev = cursor
+            cursor.next = block_clone.start
+            cursor = block_clone.end
+            head = head.indent.end
+          <span class="hljs-keyword">else</span>
+            <span class="hljs-keyword">unless</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursorToken'</span> <span class="hljs-keyword">then</span> cursor = cursor.append head.clone()
+        head = head.next
+      cursor.append clone.end
 
-    <span class="hljs-keyword">return</span> clone</pre></div></div>
+      <span class="hljs-keyword">return</span> clone</pre></div></div>
             
         </li>
         
@@ -733,11 +744,11 @@ the string representation of the data unchanged, but removing this Segment from 
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">remove</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@start</span>.remove()
-    <span class="hljs-property">@end</span>.remove()
-    <span class="hljs-property">@start</span>.next = <span class="hljs-property">@end</span>
-    <span class="hljs-property">@end</span>.prev = <span class="hljs-property">@start</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">remove</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@start</span>.remove()
+      <span class="hljs-property">@end</span>.remove()
+      <span class="hljs-property">@start</span>.next = <span class="hljs-property">@end</span>
+      <span class="hljs-property">@end</span>.prev = <span class="hljs-property">@start</span></pre></div></div>
             
         </li>
         
@@ -755,7 +766,7 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">moveTo</span>: <span class="hljs-function"><span class="hljs-params">(parent)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">moveTo</span>: <span class="hljs-function"><span class="hljs-params">(parent)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -770,8 +781,8 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">while</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.segment.end <span class="hljs-keyword">is</span> <span class="hljs-property">@end</span>.next
-      <span class="hljs-property">@start</span>.prev.segment.remove()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">while</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev.segment.end <span class="hljs-keyword">is</span> <span class="hljs-property">@end</span>.next
+        <span class="hljs-property">@start</span>.prev.segment.remove()</pre></div></div>
             
         </li>
         
@@ -786,17 +797,17 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev?
-      last = <span class="hljs-property">@end</span>.next
-      <span class="hljs-keyword">while</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> last = last.next
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">and</span> <span class="hljs-property">@start</span>.prev?
+        last = <span class="hljs-property">@end</span>.next
+        <span class="hljs-keyword">while</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentEnd'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> last = last.next
 
-      first = <span class="hljs-property">@start</span>.prev
-      <span class="hljs-keyword">while</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> first = first.prev
+        first = <span class="hljs-property">@start</span>.prev
+        <span class="hljs-keyword">while</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'cursor'</span>) <span class="hljs-keyword">then</span> first = first.prev
 
-      <span class="hljs-keyword">if</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> last?) <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>) <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (first.prev?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>)
-        first.remove()
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> first?) <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>)
-        last.remove()</pre></div></div>
+        <span class="hljs-keyword">if</span> first? <span class="hljs-keyword">and</span> (first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> last?) <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span> <span class="hljs-keyword">or</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>) <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> (first.prev?.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentEnd'</span>)
+          first.remove()
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> last? <span class="hljs-keyword">and</span> (last.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>) <span class="hljs-keyword">and</span> ((<span class="hljs-keyword">not</span> first?) <span class="hljs-keyword">or</span> first.type <span class="hljs-keyword">is</span> <span class="hljs-string">'newline'</span>)
+          last.remove()</pre></div></div>
             
         </li>
         
@@ -811,9 +822,9 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">then</span> <span class="hljs-property">@start</span>.prev.next = <span class="hljs-property">@end</span>.next
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">then</span> <span class="hljs-property">@end</span>.next.prev = <span class="hljs-property">@start</span>.prev
-    <span class="hljs-property">@start</span>.prev = <span class="hljs-property">@end</span>.next = <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> <span class="hljs-property">@start</span>.prev? <span class="hljs-keyword">then</span> <span class="hljs-property">@start</span>.prev.next = <span class="hljs-property">@end</span>.next
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@end</span>.next? <span class="hljs-keyword">then</span> <span class="hljs-property">@end</span>.next.prev = <span class="hljs-property">@start</span>.prev
+      <span class="hljs-property">@start</span>.prev = <span class="hljs-property">@end</span>.next = <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -828,12 +839,12 @@ Whitespace in general is this function’s responsibility.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> parent?
-      <span class="hljs-property">@end</span>.next = parent.next
-      <span class="hljs-keyword">if</span> parent.next? <span class="hljs-keyword">then</span> parent.next.prev = <span class="hljs-property">@end</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> parent?
+        <span class="hljs-property">@end</span>.next = parent.next
+        <span class="hljs-keyword">if</span> parent.next? <span class="hljs-keyword">then</span> parent.next.prev = <span class="hljs-property">@end</span>
 
-      parent.next= <span class="hljs-property">@start</span>
-      <span class="hljs-property">@start</span>.prev = parent</pre></div></div>
+        parent.next= <span class="hljs-property">@start</span>
+        <span class="hljs-property">@start</span>.prev = parent</pre></div></div>
             
         </li>
         
@@ -863,7 +874,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -878,8 +889,8 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    head = <span class="hljs-property">@start</span>.next
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@start</span>.next
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
             
         </li>
         
@@ -894,10 +905,10 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
-      head = head.next</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
+        head = head.next</pre></div></div>
             
         </li>
         
@@ -912,8 +923,8 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> f(<span class="hljs-keyword">this</span>) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> f(<span class="hljs-keyword">this</span>) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -932,9 +943,9 @@ the end token.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span>
-    start = <span class="hljs-property">@start</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>)
-    <span class="hljs-keyword">return</span> start[...start.length-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span>
+      start = <span class="hljs-property">@start</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>)
+      <span class="hljs-keyword">return</span> start[...start.length-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length]</pre></div></div>
             
         </li>
         
@@ -958,32 +969,32 @@ by the Controller.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-built_in">exports</span>.Socket = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Socket</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(content, <span class="hljs-property">@precedence</span> = <span class="hljs-number">0</span>)</span> -&gt;</span>
-    <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> SocketStartToken <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> SocketEndToken <span class="hljs-keyword">this</span>
-    
-    <span class="hljs-keyword">if</span> content? <span class="hljs-keyword">and</span> content.start?
+  <span class="hljs-built_in">exports</span>.Socket = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Socket</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(content, <span class="hljs-property">@precedence</span> = <span class="hljs-number">0</span>)</span> -&gt;</span>
+      <span class="hljs-property">@start</span> = <span class="hljs-keyword">new</span> SocketStartToken <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@end</span> = <span class="hljs-keyword">new</span> SocketEndToken <span class="hljs-keyword">this</span>
       
-      <span class="hljs-property">@start</span>.next = content.start
-      content.start.prev = <span class="hljs-property">@start</span>
+      <span class="hljs-keyword">if</span> content? <span class="hljs-keyword">and</span> content.start?
+        
+        <span class="hljs-property">@start</span>.next = content.start
+        content.start.prev = <span class="hljs-property">@start</span>
 
-      <span class="hljs-property">@end</span>.prev = content.end
-      content.end.next = <span class="hljs-property">@end</span>
+        <span class="hljs-property">@end</span>.prev = content.end
+        content.end.next = <span class="hljs-property">@end</span>
 
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> content?
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> content?
 
-      <span class="hljs-property">@start</span>.next = content
-      content.prev = <span class="hljs-property">@start</span>
+        <span class="hljs-property">@start</span>.next = content
+        content.prev = <span class="hljs-property">@start</span>
 
-      <span class="hljs-property">@end</span>.prev = content
-      content.next = <span class="hljs-property">@end</span>
+        <span class="hljs-property">@end</span>.prev = content
+        content.next = <span class="hljs-property">@end</span>
 
-    <span class="hljs-keyword">else</span>
-      <span class="hljs-property">@start</span>.next = <span class="hljs-property">@end</span>
-      <span class="hljs-property">@end</span>.prev = <span class="hljs-property">@start</span>
+      <span class="hljs-keyword">else</span>
+        <span class="hljs-property">@start</span>.next = <span class="hljs-property">@end</span>
+        <span class="hljs-property">@end</span>.prev = <span class="hljs-property">@start</span>
 
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'socket'</span></pre></div></div>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'socket'</span></pre></div></div>
             
         </li>
         
@@ -999,9 +1010,9 @@ Its controller instance also has special key bindings</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-property">@handwritten</span> = <span class="hljs-literal">false</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-property">@handwritten</span> = <span class="hljs-literal">false</span>
 
-    <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> SocketView <span class="hljs-keyword">this</span></pre></div></div>
+      <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> view.SocketView <span class="hljs-keyword">this</span></pre></div></div>
             
         </li>
         
@@ -1019,7 +1030,7 @@ there <em>may only be one</em>.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@content</span>()? <span class="hljs-keyword">then</span> <span class="hljs-keyword">new</span> Socket <span class="hljs-property">@content</span>().clone() <span class="hljs-keyword">else</span> <span class="hljs-keyword">new</span> Socket()</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@content</span>()? <span class="hljs-keyword">then</span> <span class="hljs-keyword">new</span> Socket <span class="hljs-property">@content</span>().clone() <span class="hljs-keyword">else</span> <span class="hljs-keyword">new</span> Socket()</pre></div></div>
             
         </li>
         
@@ -1035,16 +1046,16 @@ there <em>may only be one</em>.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">content</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-function"><span class="hljs-title">unwrap</span> = <span class="hljs-params">(el)</span> -&gt;</span>
-      <span class="hljs-keyword">switch</span> el.type
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> el.block
-        <span class="hljs-keyword">when</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> unwrap el.next
-        <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> el
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@start</span>.next <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
-      <span class="hljs-keyword">return</span> unwrap <span class="hljs-property">@start</span>.next
-    <span class="hljs-keyword">else</span>
-      <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">content</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-function"><span class="hljs-title">unwrap</span> = <span class="hljs-params">(el)</span> -&gt;</span>
+        <span class="hljs-keyword">switch</span> el.type
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> el.block
+          <span class="hljs-keyword">when</span> <span class="hljs-string">'segmentStart'</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> unwrap el.next
+          <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> el
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@start</span>.next <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span>
+        <span class="hljs-keyword">return</span> unwrap <span class="hljs-property">@start</span>.next
+      <span class="hljs-keyword">else</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -1074,7 +1085,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">find</span>: <span class="hljs-function"><span class="hljs-params">(f)</span> -&gt;</span></pre></div></div>
             
         </li>
         
@@ -1089,8 +1100,8 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    head = <span class="hljs-property">@start</span>.next
-    <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      head = <span class="hljs-property">@start</span>.next
+      <span class="hljs-keyword">while</span> head <span class="hljs-keyword">isnt</span> <span class="hljs-property">@end</span></pre></div></div>
             
         </li>
         
@@ -1105,10 +1116,10 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
-      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
-      head = head.next</pre></div></div>
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'blockStart'</span> <span class="hljs-keyword">and</span> f(head.block) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.block.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'indentStart'</span> <span class="hljs-keyword">and</span> f(head.indent) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.indent.find f
+        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> head.type <span class="hljs-keyword">is</span> <span class="hljs-string">'socketStart'</span> <span class="hljs-keyword">and</span> f(head.socket) <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> head.socket.find f
+        head = head.next</pre></div></div>
             
         </li>
         
@@ -1123,10 +1134,10 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
-    <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
+      <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>
 
-  <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@start</span>.toString(<span class="hljs-attribute">indent</span>:<span class="hljs-string">''</span>)[...-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>:<span class="hljs-string">''</span>).length]</pre></div></div>
+    <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@start</span>.toString(<span class="hljs-attribute">indent</span>:<span class="hljs-string">''</span>)[...-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>:<span class="hljs-string">''</span>).length]</pre></div></div>
             
         </li>
         
@@ -1143,9 +1154,9 @@ It knows basic linked-list operations.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.Token = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.Token = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -1164,9 +1175,9 @@ with that starting at (token).</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">append</span>: <span class="hljs-function"><span class="hljs-params">(token)</span> -&gt;</span>
-    token.prev = <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@next</span> = token</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">append</span>: <span class="hljs-function"><span class="hljs-params">(token)</span> -&gt;</span>
+      token.prev = <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@next</span> = token</pre></div></div>
             
         </li>
         
@@ -1183,13 +1194,13 @@ right after us. This retains our linked list order.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">insert</span>: <span class="hljs-function"><span class="hljs-params">(token)</span> -&gt;</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>?
-      token.next = <span class="hljs-property">@next</span>
-      <span class="hljs-property">@next</span>.prev = token
-    token.prev = <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@next</span> = token
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@next</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">insert</span>: <span class="hljs-function"><span class="hljs-params">(token)</span> -&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>?
+        token.next = <span class="hljs-property">@next</span>
+        <span class="hljs-property">@next</span>.prev = token
+      token.prev = <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@next</span> = token
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@next</span></pre></div></div>
             
         </li>
         
@@ -1205,15 +1216,15 @@ right after us. This retains our linked list order.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">insertBefore</span>: <span class="hljs-function"><span class="hljs-params">(token)</span> -&gt;</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@prev</span>?
-      token.prev = <span class="hljs-property">@prev</span>
-      <span class="hljs-property">@prev</span>.next = token
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">insertBefore</span>: <span class="hljs-function"><span class="hljs-params">(token)</span> -&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@prev</span>?
+        token.prev = <span class="hljs-property">@prev</span>
+        <span class="hljs-property">@prev</span>.next = token
 
-    token.next = <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@prev</span> = token
+      token.next = <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@prev</span> = token
 
-    <span class="hljs-keyword">return</span> <span class="hljs-property">@prev</span></pre></div></div>
+      <span class="hljs-keyword">return</span> <span class="hljs-property">@prev</span></pre></div></div>
             
         </li>
         
@@ -1229,10 +1240,10 @@ right after us. This retains our linked list order.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">remove</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@prev</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@prev</span>.next = <span class="hljs-property">@next</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.prev = <span class="hljs-property">@prev</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">remove</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@prev</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@prev</span>.next = <span class="hljs-property">@next</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.prev = <span class="hljs-property">@prev</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span></pre></div></div>
             
         </li>
         
@@ -1249,7 +1260,7 @@ and every token after it. </p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
             
         </li>
         
@@ -1279,13 +1290,13 @@ and the View renders as a black triangle</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.CursorToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CursorToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> CursorView <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'cursor'</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.CursorToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CursorToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> view.CursorView <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'cursor'</span>
 
-  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> CursorToken()</pre></div></div>
+    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> CursorToken()</pre></div></div>
             
         </li>
         
@@ -1301,16 +1312,16 @@ and the View renders as a black triangle</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.TextToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TextToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@value</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> TextView <span class="hljs-keyword">this</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'text'</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.TextToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TextToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@value</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@view</span> = <span class="hljs-keyword">new</span> view.TextView <span class="hljs-keyword">this</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'text'</span>
 
-  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> TextToken <span class="hljs-property">@value</span>
+    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> TextToken <span class="hljs-property">@value</span>
 
-  <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-    <span class="hljs-property">@value</span> + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
+    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      <span class="hljs-property">@value</span> + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
             
         </li>
         
@@ -1331,35 +1342,35 @@ but to identify their type.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.BlockStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlockStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'blockStart'</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.BlockStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlockStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'blockStart'</span>
 
-<span class="hljs-built_in">exports</span>.BlockEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlockEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'blockEnd'</span>
+  <span class="hljs-built_in">exports</span>.BlockEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlockEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@block</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'blockEnd'</span>
 
-<span class="hljs-built_in">exports</span>.SocketStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SocketStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@socket</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'socketStart'</span>
+  <span class="hljs-built_in">exports</span>.SocketStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SocketStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@socket</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'socketStart'</span>
 
-<span class="hljs-built_in">exports</span>.SocketEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SocketEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@socket</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'socketEnd'</span>
+  <span class="hljs-built_in">exports</span>.SocketEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SocketEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@socket</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'socketEnd'</span>
 
-<span class="hljs-built_in">exports</span>.SegmentStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SegmentStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@segment</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'segmentStart'</span>
+  <span class="hljs-built_in">exports</span>.SegmentStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SegmentStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@segment</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'segmentStart'</span>
 
-<span class="hljs-built_in">exports</span>.SegmentEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SegmentEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@segment</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'segmentEnd'</span></pre></div></div>
+  <span class="hljs-built_in">exports</span>.SegmentEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SegmentEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@segment</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'segmentEnd'</span></pre></div></div>
             
         </li>
         
@@ -1377,23 +1388,23 @@ an object passed down whenever a stringification occurs.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.IndentStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@indent</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> =  <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'indentStart'</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.IndentStartToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentStartToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@indent</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> =  <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'indentStart'</span>
 
-  <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-    state.indent += (<span class="hljs-string">' '</span> <span class="hljs-keyword">for</span> [<span class="hljs-number">1.</span>.<span class="hljs-property">@indent</span>.depth]).join <span class="hljs-string">''</span>
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
+    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      state.indent += (<span class="hljs-string">' '</span> <span class="hljs-keyword">for</span> [<span class="hljs-number">1.</span>.<span class="hljs-property">@indent</span>.depth]).join <span class="hljs-string">''</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
 
-<span class="hljs-built_in">exports</span>.IndentEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@indent</span>)</span> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> =  <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'indentEnd'</span>
+  <span class="hljs-built_in">exports</span>.IndentEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@indent</span>)</span> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> =  <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'indentEnd'</span>
 
-  <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-    state.indent = state.indent[...-<span class="hljs-property">@indent</span>.depth]
-    <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
+    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      state.indent = state.indent[...-<span class="hljs-property">@indent</span>.depth]
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
             
         </li>
         
@@ -1410,17 +1421,17 @@ if necessary.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-built_in">exports</span>.NewlineToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NewlineToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
-  <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
-    <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
-    <span class="hljs-property">@type</span> = <span class="hljs-string">'newline'</span>
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-built_in">exports</span>.NewlineToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NewlineToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
+    <span class="hljs-attribute">constructor</span>:<span class="hljs-function"> -&gt;</span>
+      <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> = <span class="hljs-literal">null</span>
+      <span class="hljs-property">@type</span> = <span class="hljs-string">'newline'</span>
 
-  <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> NewlineToken()
+    <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> NewlineToken()
 
-  <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-    <span class="hljs-string">'\n'</span> + state.indent + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
-
-<span class="hljs-built_in">window</span>.ICE = <span class="hljs-built_in">exports</span></pre></div></div>
+    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      <span class="hljs-string">'\n'</span> + state.indent + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
+  
+  <span class="hljs-keyword">return</span> <span class="hljs-built_in">exports</span></pre></div></div>
             
         </li>
         
