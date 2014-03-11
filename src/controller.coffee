@@ -130,6 +130,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Scroll offset
       @scrollOffset = new draw.Point 0, 0
 
+      # Touchscreen scrolling fields
+      @touchScrollAnchor = null
+
       offset = null
       highlight = null
 
@@ -754,7 +757,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           when event.offsetX? then new draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + @scrollOffset.y
           when event.layerX then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
       
-      performNormalMouseDown = (point) =>
+      performNormalMouseDown = (point, isTouchEvent) =>
 
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
@@ -764,27 +767,31 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           hitTestPalette(point)
         
         if not @ephemeralSelection?
-          # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
-          
-          # If there is already a selection, remove it.
-          if @lassoSegment?
+          if isTouchEvent
+            @touchScrollAnchor = point
 
-            # First, check to see if the block is floating
-            flag = false
-            for float in @floatingBlocks
-              if float.block is @lassoSegment
-                flag = true
-                break
+          else
+            # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
+            
+            # If there is already a selection, remove it.
+            if @lassoSegment?
 
-            # Don't remove the segment if it's floating, because it still needs to hold those blocks together
-            unless flag
-              @lassoSegment.remove()
+              # First, check to see if the block is floating
+              flag = false
+              for float in @floatingBlocks
+                if float.block is @lassoSegment
+                  flag = true
+                  break
 
-            @lassoSegment = null
-            @redraw()
+              # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+              unless flag
+                @lassoSegment.remove()
 
-          # Set the lasso anchor
-          @lassoAnchor = point
+              @lassoSegment = null
+              @redraw()
+
+            # Set the lasso anchor
+            @lassoAnchor = point
 
         else if @ephemeralSelection.type is 'socket'
           # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
@@ -823,14 +830,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # the focus from any sockets
         @hiddenInput.blur()
 
-        performNormalMouseDown getPointFromEvent event
+        performNormalMouseDown getPointFromEvent(event), false
       
       track.addEventListener 'touchstart', (event) =>
         event.preventDefault()
 
         @hiddenInput.blur()
 
-        performNormalMouseDown getPointFromEvent event.changedTouches[0]
+        performNormalMouseDown getPointFromEvent(event.changedTouches[0]), true
 
       # ## Mouse events for NORMAL DRAG ##
       
@@ -915,6 +922,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           drag.style.webkitTransform =
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
+        else if @touchScrollAnchor?
+          @scrollOffset.x = @touchScrollAnchor.from(point).x
       
       # Bind this mousemove function to mousemove. We need to add some
       # wrapper functions for touchmove, since multitouch works slightly differently
@@ -1022,6 +1031,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       track.addEventListener 'touchend', (event) =>
         event.preventDefault()
+
+        @touchScrollAnchor = null
 
         performNormalMouseUp event.changedTouches[0]
 
