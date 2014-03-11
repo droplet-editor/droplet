@@ -932,7 +932,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
         else if @touchScrollAnchor?
-          @scrollOffset.x = @touchScrollAnchor.from(point).x
+          point = new draw.Point event.offsetX, event.offsetY
+          @scrollOffse.y = Math.max 0, @touchScrollAnchor.from(point).y
+          @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
+          @redraw()
       
       # Bind this mousemove function to mousemove. We need to add some
       # wrapper functions for touchmove, since multitouch works slightly differently

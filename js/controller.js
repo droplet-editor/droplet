@@ -114,6 +114,7 @@
         this.cursor = new model.CursorToken();
         this.undoStack = [];
         this.scrollOffset = new draw.Point(0, 0);
+        this.touchScrollAnchor = null;
         offset = null;
         highlight = null;
         this.currentlyAnimating = false;
@@ -752,27 +753,31 @@
               return new draw.Point(event.layerX - PALETTE_WIDTH, event.layerY + _this.scrollOffset.y);
           }
         };
-        performNormalMouseDown = function(point) {
+        performNormalMouseDown = function(point, isTouchEvent) {
           var flag, float, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
           _this.ephemeralSelection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
           if (_this.ephemeralSelection == null) {
-            if (_this.lassoSegment != null) {
-              flag = false;
-              _ref6 = _this.floatingBlocks;
-              for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-                float = _ref6[_k];
-                if (float.block === _this.lassoSegment) {
-                  flag = true;
-                  break;
+            if (isTouchEvent) {
+              return _this.touchScrollAnchor = point;
+            } else {
+              if (_this.lassoSegment != null) {
+                flag = false;
+                _ref6 = _this.floatingBlocks;
+                for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+                  float = _ref6[_k];
+                  if (float.block === _this.lassoSegment) {
+                    flag = true;
+                    break;
+                  }
                 }
+                if (!flag) {
+                  _this.lassoSegment.remove();
+                }
+                _this.lassoSegment = null;
+                _this.redraw();
               }
-              if (!flag) {
-                _this.lassoSegment.remove();
-              }
-              _this.lassoSegment = null;
-              _this.redraw();
+              return _this.lassoAnchor = point;
             }
-            return _this.lassoAnchor = point;
           } else if (_this.ephemeralSelection.type === 'socket') {
             setTextInputFocus(_this.ephemeralSelection);
             _this.ephemeralSelection = null;
@@ -795,7 +800,7 @@
             return;
           }
           _this.hiddenInput.blur();
-          return performNormalMouseDown(getPointFromEvent(event));
+          return performNormalMouseDown(getPointFromEvent(event), false);
         });
         track.addEventListener('touchstart', function(event) {
           event.preventDefault();
@@ -804,7 +809,7 @@
           event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track);
           console.log(event.changedTouches[0].clientX, findPosLeft(track));
           console.log(event.changedTouches[0].clientY, findPosTop(track));
-          return performNormalMouseDown(getPointFromEvent(event.changedTouches[0]));
+          return performNormalMouseDown(getPointFromEvent(event.changedTouches[0]), true);
         });
         performNormalMouseMove = function(event) {
           var dest, fixedDest, float, head, i, next_head, old_highlight, point, rect, selectionInPalette, _k, _len2, _ref2, _ref3;
@@ -868,6 +873,11 @@
               highlight.view.dropHighlightReigon.fill(_this.mainCtx, '#fff');
             }
             return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
+          } else if (_this.touchScrollAnchor != null) {
+            point = new draw.Point(event.offsetX, event.offsetY);
+            _this.scrollOffse.y = Math.max(0, _this.touchScrollAnchor.from(point).y);
+            _this.mainCtx.setTransform(1, 0, 0, 1, 0, -_this.scrollOffset.y);
+            return _this.redraw();
           }
         };
         track.addEventListener('mousemove', function(event) {
@@ -948,6 +958,7 @@
         });
         track.addEventListener('touchend', function(event) {
           event.preventDefault();
+          _this.touchScrollAnchor = null;
           event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track);
           event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track);
           return performNormalMouseUp(event.changedTouches[0]);
