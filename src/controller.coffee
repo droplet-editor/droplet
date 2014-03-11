@@ -754,15 +754,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           when event.offsetX? then new draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + @scrollOffset.y
           when event.layerX then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
       
-      track.addEventListener 'mousedown', (event) =>
-        # Only capture left-click
-        unless event.button is 0 then return
-        
-        # Forcefully blur the hidden input if it is focused, removing
-        # the focus from any sockets
-        @hiddenInput.blur()
-
-        point = getPointFromEvent event
+      performNormalMouseDown = (point) =>
 
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
@@ -822,10 +814,27 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           
           # Move the cursor to the place we just clicked
           moveCursorTo @ephemeralSelection.end
+    
+      track.addEventListener 'mousedown', (event) =>
+        # Only capture left-click
+        unless event.button is 0 then return
+        
+        # Forcefully blur the hidden input if it is focused, removing
+        # the focus from any sockets
+        @hiddenInput.blur()
+
+        performNormalMouseDown getPointFromEvent event
+      
+      track.addEventListener 'touchstart', (event) =>
+        event.preventDefault()
+
+        @hiddenInput.blur()
+
+        performNormalMouseDown getPointFromEvent event.changedTouches[0]
 
       # ## Mouse events for NORMAL DRAG ##
-
-      track.addEventListener 'mousemove', (event) =>
+      
+      performNormalMouseMove = (event) =>
         if @ephemeralSelection?
           point = getPointFromEvent event
           
@@ -907,7 +916,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
       
-      track.addEventListener 'mouseup', (event) =>
+      # Bind this mousemove function to mousemove. We need to add some
+      # wrapper functions for touchmove, since multitouch works slightly differently
+      # from mouse.
+      track.addEventListener 'mousemove', (event) ->
+        performNormalMouseMove event
+
+      track.addEventListener 'touchmove', (event) ->
+        # Touchmove has a particularly inconvenient default (scrolling),
+        # so we want to prevent this here.
+        event.preventDefault()
+
+        unless event.changedTouches.length > 0 then return
+
+        performNormalMouseMove event.changedTouches[0]
+
+      
+      performNormalMouseUp = (event) =>
         if @ephemeralSelection?
           @ephemeralSelection = null
           @ephemeralPoint = null
@@ -991,6 +1016,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           
           # Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.
           @redraw()
+
+      track.addEventListener 'mouseup', (event) =>
+        performNormalMouseUp event
+
+      track.addEventListener 'touchend', (event) =>
+        event.preventDefault()
+
+        performNormalMouseUp event.changedTouches[0]
 
       # ## Mouse events for LASSO SELECT ##
 

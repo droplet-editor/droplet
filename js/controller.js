@@ -68,7 +68,7 @@
     })();
     exports.Editor = Editor = (function() {
       function Editor(wrapper, paletteBlocks) {
-        var child, deleteFromCursor, drag, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, paletteBlock, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
+        var child, deleteFromCursor, drag, eventName, getPointFromEvent, getRectFromPoints, highlight, hitTest, hitTestFloating, hitTestFocus, hitTestLasso, hitTestPalette, hitTestRoot, insertHandwrittenBlock, moveBlockTo, moveCursorBefore, moveCursorDown, moveCursorTo, moveCursorUp, offset, paletteBlock, performNormalMouseDown, performNormalMouseMove, performNormalMouseUp, redrawTextInput, scrollCursorIntoView, setTextInputAnchor, setTextInputFocus, setTextInputHead, textInputAnchor, textInputHead, textInputSelecting, track, _editedInputLine, _i, _j, _len, _len1, _ref, _ref1,
           _this = this;
         this.paletteBlocks = paletteBlocks;
         this.aceEl = document.createElement('div');
@@ -752,13 +752,8 @@
               return new draw.Point(event.layerX - PALETTE_WIDTH, event.layerY + _this.scrollOffset.y);
           }
         };
-        track.addEventListener('mousedown', function(event) {
-          var flag, float, point, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
-          if (event.button !== 0) {
-            return;
-          }
-          _this.hiddenInput.blur();
-          point = getPointFromEvent(event);
+        performNormalMouseDown = function(point) {
+          var flag, float, _k, _len2, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
           _this.ephemeralSelection = (_ref2 = (_ref3 = (_ref4 = (_ref5 = hitTestFloating(point)) != null ? _ref5 : hitTestLasso(point)) != null ? _ref4 : hitTestFocus(point)) != null ? _ref3 : hitTestRoot(point)) != null ? _ref2 : hitTestPalette(point);
           if (_this.ephemeralSelection == null) {
             if (_this.lassoSegment != null) {
@@ -794,8 +789,20 @@
             }
             return moveCursorTo(_this.ephemeralSelection.end);
           }
+        };
+        track.addEventListener('mousedown', function(event) {
+          if (event.button !== 0) {
+            return;
+          }
+          _this.hiddenInput.blur();
+          return performNormalMouseDown(getPointFromEvent(event));
         });
-        track.addEventListener('mousemove', function(event) {
+        track.addEventListener('touchstart', function(event) {
+          event.preventDefault();
+          _this.hiddenInput.blur();
+          return performNormalMouseDown(getPointFromEvent(event.changedTouches[0]));
+        });
+        performNormalMouseMove = function(event) {
           var dest, fixedDest, float, head, i, next_head, old_highlight, point, rect, selectionInPalette, _k, _len2, _ref2, _ref3;
           if (_this.ephemeralSelection != null) {
             point = getPointFromEvent(event);
@@ -858,8 +865,18 @@
             }
             return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
           }
+        };
+        track.addEventListener('mousemove', function(event) {
+          return performNormalMouseMove(event);
         });
-        track.addEventListener('mouseup', function(event) {
+        track.addEventListener('touchmove', function(event) {
+          event.preventDefault();
+          if (!(event.changedTouches.length > 0)) {
+            return;
+          }
+          return performNormalMouseMove(event.changedTouches[0]);
+        });
+        performNormalMouseUp = function(event) {
           var dest, head, point;
           if (_this.ephemeralSelection != null) {
             _this.ephemeralSelection = null;
@@ -919,6 +936,13 @@
             _this.selection = null;
             return _this.redraw();
           }
+        };
+        track.addEventListener('mouseup', function(event) {
+          return performNormalMouseUp(event);
+        });
+        track.addEventListener('touchend', function(event) {
+          event.preventDefault();
+          return performNormalMouseUp(event.changedTouches[0]);
         });
         getRectFromPoints = function(a, b) {
           return new draw.Rectangle(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(a.x - b.x), Math.abs(a.y - b.y));
