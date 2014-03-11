@@ -1,5 +1,5 @@
 (function() {
-  require(['../dist/ice'], function(ice) {
+  require(['main'], function(ice) {
     var paletteElement;
     window.editor = new ice.Editor(document.getElementById('editor'), (function() {
       var _i, _len, _ref, _results;

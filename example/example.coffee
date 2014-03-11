@@ -1,4 +1,4 @@
-require ['../dist/ice'], (ice) ->
+require ['main'], (ice) ->
   # Example palette
   window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).next.block for paletteElement in [
     '''
