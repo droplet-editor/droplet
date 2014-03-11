@@ -800,6 +800,10 @@
         track.addEventListener('touchstart', function(event) {
           event.preventDefault();
           _this.hiddenInput.blur();
+          event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track);
+          event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track);
+          console.log(event.changedTouches[0].clientX, findPosLeft(track));
+          console.log(event.changedTouches[0].clientY, findPosTop(track));
           return performNormalMouseDown(getPointFromEvent(event.changedTouches[0]));
         });
         performNormalMouseMove = function(event) {
@@ -874,6 +878,8 @@
           if (!(event.changedTouches.length > 0)) {
             return;
           }
+          event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track);
+          event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track);
           return performNormalMouseMove(event.changedTouches[0]);
         });
         performNormalMouseUp = function(event) {
@@ -942,6 +948,8 @@
         });
         track.addEventListener('touchend', function(event) {
           event.preventDefault();
+          event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track);
+          event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track);
           return performNormalMouseUp(event.changedTouches[0]);
         });
         getRectFromPoints = function(a, b) {
