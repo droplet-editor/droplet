@@ -836,6 +836,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         event.preventDefault()
 
         @hiddenInput.blur()
+        
+        # Track events do not contain offsetX/layerX properties,
+        # so we must set them manually.
+
+        event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track)
+        event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track)
+
+        console.log event.changedTouches[0].clientX, findPosLeft(track)
+        console.log event.changedTouches[0].clientY, findPosTop(track)
 
         performNormalMouseDown getPointFromEvent(event.changedTouches[0]), true
 
@@ -938,6 +947,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         unless event.changedTouches.length > 0 then return
 
+        event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track)
+        event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track)
+
         performNormalMouseMove event.changedTouches[0]
 
       
@@ -1033,6 +1045,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         event.preventDefault()
 
         @touchScrollAnchor = null
+
+        event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track)
+        event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track)
 
         performNormalMouseUp event.changedTouches[0]
 
