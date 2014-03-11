@@ -2937,7 +2937,7 @@ with offset to the palette.</p>
             drag.style.transform = <span class="hljs-string">"translate(<span class="hljs-subst">#{fixedDest.x}</span>px, <span class="hljs-subst">#{fixedDest.y}</span>px)"</span>
         <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@touchScrollAnchor</span>?
           point = <span class="hljs-keyword">new</span> draw.Point event.offsetX, event.offsetY
-          <span class="hljs-property">@scrollOffse</span>.y = Math.max <span class="hljs-number">0</span>, <span class="hljs-property">@touchScrollAnchor</span>.from(point).y
+          <span class="hljs-property">@scrollOffset</span>.y = Math.max <span class="hljs-number">0</span>, <span class="hljs-property">@touchScrollAnchor</span>.from(point).y
           <span class="hljs-property">@mainCtx</span>.setTransform <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, -<span class="hljs-property">@scrollOffset</span>.y
           <span class="hljs-property">@redraw</span>()</pre></div></div>
             

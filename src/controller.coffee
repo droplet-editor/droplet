@@ -933,7 +933,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
         else if @touchScrollAnchor?
           point = new draw.Point event.offsetX, event.offsetY
-          @scrollOffse.y = Math.max 0, @touchScrollAnchor.from(point).y
+          @scrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
           @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
           @redraw()
       

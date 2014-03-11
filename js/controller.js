@@ -875,7 +875,7 @@
             return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
           } else if (_this.touchScrollAnchor != null) {
             point = new draw.Point(event.offsetX, event.offsetY);
-            _this.scrollOffse.y = Math.max(0, _this.touchScrollAnchor.from(point).y);
+            _this.scrollOffset.y = Math.max(0, _this.touchScrollAnchor.from(point).y);
             _this.mainCtx.setTransform(1, 0, 0, 1, 0, -_this.scrollOffset.y);
             return _this.redraw();
           }
