@@ -1347,7 +1347,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # This will animate all the text elements from their current position to a position
     # that imitates plaintext.
     performMeltAnimation: ->
-
       if @currentlyAnimating then return
       else @currentlyAnimating = true
 
@@ -1362,7 +1361,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @aceEl.style.display = 'block'
       
       # We must wait for the Ace editor to render before we continue.
-      setTimeout (=>
+      # Ace actually takes some time with webworkers to determine some things like line height,
+      # which we need, so we will poll ace until it is done.
+      acePollingInterval = setInterval (=>
+        unless @ace.renderer.layerConfig.lineHeight > 0
+          # In this case, the ace editor has not yet rendered, so we continue to poll
+          return
+        
+        # In this case, the ace editor has rendered, so we stop polling and begin the animation.
+        clearInterval acePollingInterval
+
         # First, we will need to get all the text elements which we will be animating.
         # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
         # animation destination. Along the way we will move the cursor around due to newlines and indents.
@@ -1430,7 +1438,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             @currentlyAnimating = false
 
         tick()
-      ), 0
+      ), 1
     
     performFreezeAnimation: ->
       if @currentlyAnimating then return

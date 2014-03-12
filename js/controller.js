@@ -1201,7 +1201,8 @@
       };
 
       Editor.prototype.performMeltAnimation = function() {
-        var _this = this;
+        var acePollingInterval,
+          _this = this;
         if (this.currentlyAnimating) {
           return;
         } else {
@@ -1212,8 +1213,12 @@
         this.aceEl.style.top = -9999;
         this.aceEl.style.left = -9999;
         this.aceEl.style.display = 'block';
-        return setTimeout((function() {
+        return acePollingInterval = setInterval((function() {
           var animatedColor, count, head, state, textElements, tick, translationVectors;
+          if (!(_this.ace.renderer.layerConfig.lineHeight > 0)) {
+            return;
+          }
+          clearInterval(acePollingInterval);
           textElements = [];
           translationVectors = [];
           head = _this.tree.start;
@@ -1270,7 +1275,7 @@
             }
           };
           return tick();
-        }), 0);
+        }), 1);
       };
 
       Editor.prototype.performFreezeAnimation = function() {
