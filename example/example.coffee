@@ -2,28 +2,30 @@ require ['main'], (ice) ->
   # Example palette
   window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).next.block for paletteElement in [
     '''
-    x = 'new value for x'
+    fd 100
     '''
     '''
-    see 'hi!'
+    bk 100
     '''
     '''
-    for item in list
-      see item
+    rt 90
     '''
     '''
-    if a is b
-      see 'a is b!'
-    else
-      see 'a isnt b.'
+    lt 90
     '''
     '''
-    (arg1, arg2) ->
-      see arg1
-      see arg2
+    for i in [1..10]
+      fd 10
     '''
     '''
-    return 0
+    if touches 'red'
+      fd 10
+    '''
+    '''
+    rtFd = (arg) ->
+      rt 90
+      fd arg
+      return arg
     '''
   ])
   
