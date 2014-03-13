@@ -53,6 +53,18 @@ require ['main'], (ice) ->
   # Buttons for undo, melt, and freeze
   document.getElementById('undo').addEventListener 'click', ->
     editor.undo()
+  
+  messageElement = document.getElementById 'message'
+  displayMessage = (text) ->
+    messageElement.style.display = 'inline'
+    messageElement.innerText = text
+    setTimeout (->
+      messageElement.style.display = 'none'
+    ), 2000
 
   document.getElementById('toggle').addEventListener 'click', ->
-    editor.toggleBlocks()
+    unless editor.toggleBlocks()
+      # If we were unsuccessful at toggling,
+      # put up a message.
+      unless editor.currentlyUsingBlocks
+        displayMessage 'Syntax error'

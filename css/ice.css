@@ -14,8 +14,8 @@
   top: 0;
   left: 0;
 }
-.palette, .canvas {
-  border: 1px solid #000;
+.canvas {
+  border-left: 1px solid #000;
   background-color:#EEE;
 }
 .canvas {
@@ -40,6 +40,7 @@
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
+  background-color: #EEE;
 }
 .fullscreen_textarea {
   border: 1px solid black; padding: none;

@@ -1,6 +1,6 @@
 (function() {
   require(['main'], function(ice) {
-    var paletteElement;
+    var displayMessage, messageElement, paletteElement;
     window.editor = new ice.Editor(document.getElementById('editor'), (function() {
       var _i, _len, _ref, _results;
       _ref = ['fd 100', 'bk 100', 'rt 90', 'lt 90', 'for i in [1..10]\n  fd 10', 'if touches \'red\'\n  fd 10', 'rtFd = (arg) ->\n  rt 90\n  fd arg\n  return arg'];
@@ -17,8 +17,20 @@
     document.getElementById('undo').addEventListener('click', function() {
       return editor.undo();
     });
+    messageElement = document.getElementById('message');
+    displayMessage = function(text) {
+      messageElement.style.display = 'inline';
+      messageElement.innerText = text;
+      return setTimeout((function() {
+        return messageElement.style.display = 'none';
+      }), 2000);
+    };
     return document.getElementById('toggle').addEventListener('click', function() {
-      return editor.toggleBlocks();
+      if (!editor.toggleBlocks()) {
+        if (!editor.currentlyUsingBlocks) {
+          return displayMessage('Syntax error');
+        }
+      }
     });
   });
 
