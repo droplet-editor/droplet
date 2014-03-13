@@ -79,6 +79,12 @@ define ['ice-model'], (model) ->
             start: [start.first_line - 1, text[start.first_line - 1].length]
             end: end
           }
+        when 'While'
+          end = getBounds(node.body).end
+          return {
+            start: [node.locationData.first_line, node.locationData.first_column]
+            end: end
+          }
 
         when 'If'
           if node.elseBody?
@@ -201,6 +207,15 @@ define ['ice-model'], (model) ->
           addMarkup block, node, shouldParenWrap
 
           if node.expression? then mark node.expression
+
+        when 'While'
+          console.log 'encountered while'
+          block = new model.Block []
+          block.color = colors.CONTROL
+          addMarkup block, node, shouldParenWrap
+
+          mark node.condition
+          mark node.body
 
         when 'Parens'
           ###

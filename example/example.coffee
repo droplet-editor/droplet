@@ -59,8 +59,5 @@ require ['main'], (ice) ->
   document.getElementById('undo').addEventListener 'click', ->
     editor.undo()
 
-  document.getElementById('melt').addEventListener 'click', ->
-    editor.performMeltAnimation()
-
-  document.getElementById('freeze').addEventListener 'click', ->
-    editor.performFreezeAnimation()
+  document.getElementById('toggle').addEventListener 'click', ->
+    editor.toggleBlocks()

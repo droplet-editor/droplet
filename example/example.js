@@ -24,11 +24,8 @@
     document.getElementById('undo').addEventListener('click', function() {
       return editor.undo();
     });
-    document.getElementById('melt').addEventListener('click', function() {
-      return editor.performMeltAnimation();
-    });
-    return document.getElementById('freeze').addEventListener('click', function() {
-      return editor.performFreezeAnimation();
+    return document.getElementById('toggle').addEventListener('click', function() {
+      return editor.toggleBlocks();
     });
   });
 

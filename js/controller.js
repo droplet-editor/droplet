@@ -118,6 +118,7 @@
         offset = null;
         highlight = null;
         this.currentlyAnimating = false;
+        this.currentlyUsingBlocks = true;
         this.main = document.createElement('canvas');
         this.main.className = 'canvas';
         this.main.height = this.el.offsetHeight;
@@ -226,6 +227,11 @@
           }
           return _this.redraw();
         };
+        this.triggerOnChangeEvent = function(event) {
+          if (_this.onChange != null) {
+            return _this.onChange(event);
+          }
+        };
         moveBlockTo = function(block, target) {
           var float, parent, _j, _len1, _ref1;
           parent = block.start.prev;
@@ -243,9 +249,7 @@
               });
             }
             block.moveTo(target);
-            if (_this.onChange != null) {
-              _this.onChange(new IceEditorChangeEvent(block, target));
-            }
+            _this.triggerOnChangeEvent(new IceEditorChangeEvent(block, target));
             return;
           }
           _this.undoStack.push({
@@ -271,9 +275,7 @@
             })()) : null
           });
           block.moveTo(target);
-          if (_this.onChange != null) {
-            return _this.onChange(new IceEditorChangeEvent(block, target));
-          }
+          return _this.triggerOnChangeEvent(new IceEditorChangeEvent(block, target));
         };
         this.undo = function() {
           var float, head, i, lastOperation, operation, _j, _k, _len1, _len2, _ref1, _ref2;
@@ -355,9 +357,7 @@
             });
           }
           _this.redraw();
-          if (_this.onChange != null) {
-            return _this.onChange(new IceEditorChangeEvent(operation.block, operation.target));
-          }
+          return _this.triggerOnChangeEvent(new IceEditorChangeEvent(operation.block, operation.target));
         };
         this.redrawPalette = function() {
           var lastBottomEdge, _j, _len1, _ref1, _results;
@@ -1108,9 +1108,7 @@
                 }
               }
             } catch (_error) {}
-            if (_this.onChange != null) {
-              _this.onChange(new IceEditorChangeEvent(_this.focus, focus));
-            }
+            _this.triggerOnChangeEvent(new IceEditorChangeEvent(_this.focus, focus));
             if (_this.ephemeralOldFocusValue !== _this.focus.toString()) {
               _this.undoStack.push({
                 type: 'socketTextChange',
@@ -1193,6 +1191,7 @@
       }
 
       Editor.prototype.setValue = function(value) {
+        this.ace.setValue(value);
         this.tree = coffee.parse(value).segment;
         return this.redraw();
       };
@@ -1201,13 +1200,14 @@
         return this.tree.toString();
       };
 
-      Editor.prototype.performMeltAnimation = function() {
+      Editor.prototype._performMeltAnimation = function() {
         var acePollingInterval,
           _this = this;
-        if (this.currentlyAnimating) {
+        if (this.currentlyAnimating || !this.currentlyUsingBlocks) {
           return;
         } else {
           this.currentlyAnimating = true;
+          this.currentlyUsingBlocks = false;
         }
         this.redraw();
         this.ace.setValue(this.getValue());
@@ -1279,13 +1279,14 @@
         }), 1);
       };
 
-      Editor.prototype.performFreezeAnimation = function() {
+      Editor.prototype._performFreezeAnimation = function() {
         var animatedColor, count, head, state, textElements, tick, translationVectors,
           _this = this;
-        if (this.currentlyAnimating) {
+        if (this.currentlyAnimating || this.currentlyUsingBlocks) {
           return;
         } else {
           this.currentlyAnimating = true;
+          this.currentlyUsingBlocks = true;
         }
         this.setValue(this.ace.getValue());
         this.redraw();
@@ -1342,6 +1343,14 @@
           }
         };
         return tick();
+      };
+
+      Editor.prototype.toggleBlocks = function() {
+        if (this.currentlyUsingBlocks) {
+          return this._performMeltAnimation();
+        } else {
+          return this._performFreezeAnimation();
+        }
       };
 
       return Editor;

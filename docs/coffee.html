@@ -156,6 +156,12 @@ define [<span class="hljs-string">'ice-model'</span>], <span class="hljs-functio
             <span class="hljs-attribute">start</span>: [start.first_line - <span class="hljs-number">1</span>, text[start.first_line - <span class="hljs-number">1</span>].length]
             <span class="hljs-attribute">end</span>: end
           }
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'While'</span>
+          end = getBounds(node.body).end
+          <span class="hljs-keyword">return</span> {
+            <span class="hljs-attribute">start</span>: [node.locationData.first_line, node.locationData.first_column]
+            <span class="hljs-attribute">end</span>: end
+          }
 
         <span class="hljs-keyword">when</span> <span class="hljs-string">'If'</span>
           <span class="hljs-keyword">if</span> node.elseBody?
@@ -278,6 +284,15 @@ define [<span class="hljs-string">'ice-model'</span>], <span class="hljs-functio
           addMarkup block, node, shouldParenWrap
 
           <span class="hljs-keyword">if</span> node.expression? <span class="hljs-keyword">then</span> mark node.expression
+
+        <span class="hljs-keyword">when</span> <span class="hljs-string">'While'</span>
+          <span class="hljs-built_in">console</span>.log <span class="hljs-string">'encountered while'</span>
+          block = <span class="hljs-keyword">new</span> model.Block []
+          block.color = colors.CONTROL
+          addMarkup block, node, shouldParenWrap
+
+          mark node.condition
+          mark node.body
 
         <span class="hljs-keyword">when</span> <span class="hljs-string">'Parens'</span></pre></div></div>
             

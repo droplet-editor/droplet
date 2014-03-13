@@ -72,6 +72,12 @@
               start: [start.first_line - 1, text[start.first_line - 1].length],
               end: end
             };
+          case 'While':
+            end = getBounds(node.body).end;
+            return {
+              start: [node.locationData.first_line, node.locationData.first_column],
+              end: end
+            };
           case 'If':
             if (node.elseBody != null) {
               end = getBounds(node.elseBody).end;
@@ -215,6 +221,14 @@
             if (node.expression != null) {
               mark(node.expression);
             }
+            break;
+          case 'While':
+            console.log('encountered while');
+            block = new model.Block([]);
+            block.color = colors.CONTROL;
+            addMarkup(block, node, shouldParenWrap);
+            mark(node.condition);
+            mark(node.body);
             break;
           case 'Parens':
             /*

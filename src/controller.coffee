@@ -135,9 +135,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       offset = null
       highlight = null
-
-      @currentlyAnimating = false
       
+      @currentlyAnimating = false
+
+      # Remember the current editor state, so
+      # that we can refuse animations that do not apply.
+      @currentlyUsingBlocks = true
+
       # ## DOM SETUP ##
 
       # The main canvas
@@ -274,6 +278,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         
         # We have done some modifications, so we must redraw.
         @redraw()
+      
+      # A wrapper function which fires every time
+      # the editor content might have changed.
+      # We allow bindings to this function with the @onChange property,
+      # and do some bureaucracy here as well.
+      @triggerOnChangeEvent = (event) =>
+        # Set the ACE editor content simultaneously
+        #@ace.setValue @getValue()
+        if @onChange? then @onChange event
 
       moveBlockTo = (block, target) =>
         parent = block.start.prev
@@ -288,7 +301,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               position: float.position
 
           block.moveTo target
-          if @onChange? then @onChange new IceEditorChangeEvent block, target
+          @triggerOnChangeEvent new IceEditorChangeEvent block, target
 
           return
         
@@ -303,7 +316,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             else parent) else null
         
         block.moveTo target
-        if @onChange? then @onChange new IceEditorChangeEvent block, target
+        @triggerOnChangeEvent new IceEditorChangeEvent block, target
 
       @undo = =>
         # If the undo stack is empty, give up.
@@ -389,7 +402,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         @redraw()
 
-        if @onChange? then @onChange new IceEditorChangeEvent operation.block, operation.target
+        @triggerOnChangeEvent new IceEditorChangeEvent operation.block, operation.target
       
       # The redrawPalette function ought to be called only once in the current code structure.
       # If we want to scroll the palette later on, then this will be called to do so.
@@ -1243,7 +1256,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             
 
           # Fire the onchange handler
-          if @onChange? then @onChange new IceEditorChangeEvent @focus, focus
+          @triggerOnChangeEvent new IceEditorChangeEvent @focus, focus
 
           if @ephemeralOldFocusValue isnt @focus.toString()
             @undoStack.push
@@ -1339,6 +1352,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @redraw()
 
     setValue: (value) ->
+      @ace.setValue value
       @tree = coffee.parse(value).segment
       @redraw()
 
@@ -1347,9 +1361,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # ## performMeltAnimation ##
     # This will animate all the text elements from their current position to a position
     # that imitates plaintext.
-    performMeltAnimation: ->
-      if @currentlyAnimating then return
-      else @currentlyAnimating = true
+    _performMeltAnimation: ->
+      if @currentlyAnimating or not @currentlyUsingBlocks then return
+      else @currentlyAnimating = true; @currentlyUsingBlocks = false
 
       @redraw()
 
@@ -1441,9 +1455,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         tick()
       ), 1
     
-    performFreezeAnimation: ->
-      if @currentlyAnimating then return
-      else @currentlyAnimating = true
+    _performFreezeAnimation: ->
+      if @currentlyAnimating or @currentlyUsingBlocks then return
+      else @currentlyAnimating = true; @currentlyUsingBlocks = true
 
       @setValue @ace.getValue() #value ACE_MARKER
 
@@ -1512,5 +1526,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           @currentlyAnimating = false
 
       tick()
+
+    toggleBlocks: ->
+      if @currentlyUsingBlocks then @_performMeltAnimation()
+      else @_performFreezeAnimation()
 
   return exports
