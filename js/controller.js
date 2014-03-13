@@ -875,7 +875,10 @@
             }
             return drag.style.webkitTransform = drag.style.mozTransform = drag.style.transform = "translate(" + fixedDest.x + "px, " + fixedDest.y + "px)";
           } else if (_this.touchScrollAnchor != null) {
-            return _this.scrollOffset.x = _this.touchScrollAnchor.from(point).x;
+            point = new draw.Point(event.offsetX, event.offsetY);
+            _this.scrollOffset.y = Math.max(0, _this.touchScrollAnchor.from(point).y);
+            _this.mainCtx.setTransform(1, 0, 0, 1, 0, -_this.scrollOffset.y);
+            return _this.redraw();
           }
         };
         track.addEventListener('mousemove', function(event) {
@@ -1199,7 +1202,8 @@
       };
 
       Editor.prototype.performMeltAnimation = function() {
-        var _this = this;
+        var acePollingInterval,
+          _this = this;
         if (this.currentlyAnimating) {
           return;
         } else {
@@ -1210,8 +1214,12 @@
         this.aceEl.style.top = -9999;
         this.aceEl.style.left = -9999;
         this.aceEl.style.display = 'block';
-        return setTimeout((function() {
+        return acePollingInterval = setInterval((function() {
           var animatedColor, count, head, state, textElements, tick, translationVectors;
+          if (!(_this.ace.renderer.layerConfig.lineHeight > 0)) {
+            return;
+          }
+          clearInterval(acePollingInterval);
           textElements = [];
           translationVectors = [];
           head = _this.tree.start;
@@ -1268,7 +1276,7 @@
             }
           };
           return tick();
-        }), 0);
+        }), 1);
       };
 
       Editor.prototype.performFreezeAnimation = function() {

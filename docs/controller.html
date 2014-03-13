@@ -2937,7 +2937,10 @@ with offset to the palette.</p>
             drag.style.mozTransform =
             drag.style.transform = <span class="hljs-string">"translate(<span class="hljs-subst">#{fixedDest.x}</span>px, <span class="hljs-subst">#{fixedDest.y}</span>px)"</span>
         <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@touchScrollAnchor</span>?
-          <span class="hljs-property">@scrollOffset</span>.x = <span class="hljs-property">@touchScrollAnchor</span>.from(point).x</pre></div></div>
+          point = <span class="hljs-keyword">new</span> draw.Point event.offsetX, event.offsetY
+          <span class="hljs-property">@scrollOffset</span>.y = Math.max <span class="hljs-number">0</span>, <span class="hljs-property">@touchScrollAnchor</span>.from(point).y
+          <span class="hljs-property">@mainCtx</span>.setTransform <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, -<span class="hljs-property">@scrollOffset</span>.y
+          <span class="hljs-property">@redraw</span>()</pre></div></div>
             
         </li>
         
@@ -4283,7 +4286,6 @@ that imitates plaintext.</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">performMeltAnimation</span>:<span class="hljs-function"> -&gt;</span>
-
       <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyAnimating</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
       <span class="hljs-keyword">else</span> <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">true</span>
 
@@ -4318,11 +4320,14 @@ in the ace editor. So we will need to display the ace editor momentarily off-scr
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-237">&#182;</a>
               </div>
-              <p>We must wait for the Ace editor to render before we continue.</p>
+              <p>We must wait for the Ace editor to render before we continue.
+Ace actually takes some time with webworkers to determine some things like line height,
+which we need, so we will poll ace until it is done.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>      setTimeout (<span class="hljs-function">=&gt;</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>      acePollingInterval = setInterval (<span class="hljs-function">=&gt;</span>
+        <span class="hljs-keyword">unless</span> <span class="hljs-property">@ace</span>.renderer.layerConfig.lineHeight &gt; <span class="hljs-number">0</span></pre></div></div>
             
         </li>
         
@@ -4332,6 +4337,36 @@ in the ace editor. So we will need to display the ace editor momentarily off-scr
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-238">&#182;</a>
+              </div>
+              <p>In this case, the ace editor has not yet rendered, so we continue to poll</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>          <span class="hljs-keyword">return</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-239">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-239">&#182;</a>
+              </div>
+              <p>In this case, the ace editor has rendered, so we stop polling and begin the animation.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        clearInterval acePollingInterval</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-240">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-240">&#182;</a>
               </div>
               <p>First, we will need to get all the text elements which we will be animating.
 Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
@@ -4346,11 +4381,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-239">
+        <li id="section-241">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-239">&#182;</a>
+                <a class="pilcrow" href="#section-241">&#182;</a>
               </div>
               <p>Set up the state which we will pass to </p>
 
@@ -4382,11 +4417,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-240">
+        <li id="section-242">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-240">&#182;</a>
+                <a class="pilcrow" href="#section-242">&#182;</a>
               </div>
               <p>We have now obtained the destination position for the animation; now we animate.</p>
 
@@ -4423,11 +4458,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-241">
+        <li id="section-243">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-241">&#182;</a>
+                <a class="pilcrow" href="#section-243">&#182;</a>
               </div>
               <p>@ace.value = @getValue() # ACE_MARKER</p>
 
@@ -4441,7 +4476,7 @@ animation destination. Along the way we will move the cursor around due to newli
             <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">false</span>
 
         tick()
-      ), <span class="hljs-number">0</span>
+      ), <span class="hljs-number">1</span>
     
     <span class="hljs-attribute">performFreezeAnimation</span>:<span class="hljs-function"> -&gt;</span>
       <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyAnimating</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
@@ -4454,11 +4489,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-242">
+        <li id="section-244">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-242">&#182;</a>
+                <a class="pilcrow" href="#section-244">&#182;</a>
               </div>
               <p>First, we will need to get all the text elements which we will be animating.
 Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
@@ -4473,11 +4508,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-243">
+        <li id="section-245">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-243">&#182;</a>
+                <a class="pilcrow" href="#section-245">&#182;</a>
               </div>
               <p>Set up the state which we will pass to </p>
 
@@ -4510,11 +4545,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-244">
+        <li id="section-246">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-244">&#182;</a>
+                <a class="pilcrow" href="#section-246">&#182;</a>
               </div>
               <p>We have now obtained the destination position for the animation; now we animate.</p>
 
