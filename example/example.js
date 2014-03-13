@@ -12,15 +12,8 @@
       return _results;
     })());
     editor.setValue('for i in [1..1000]\n  if i % 15 is 0\n    console.log \'fizzbuzz\'\n  else\n    if i % 5 is 0\n      console.log \'fizz\'\n    if i % 3 is 0\n      console.log \'buzz\'\n    if i % 3 isnt 0 and i % 5 isnt 0\n      console.log i');
-    editor.onChange = function() {
-      return document.getElementById('out').value = editor.getValue();
-    };
+    editor.onChange = function() {};
     editor.onChange();
-    document.getElementById('out').addEventListener('input', function() {
-      try {
-        return editor.setValue(this.value);
-      } catch (_error) {}
-    });
     document.getElementById('undo').addEventListener('click', function() {
       return editor.undo();
     });

@@ -86,6 +86,8 @@ define [<span class="hljs-string">'ice-coffee'</span>, <span class="hljs-string"
   INDENT_SPACES = <span class="hljs-number">2</span>
   INPUT_LINE_HEIGHT = <span class="hljs-number">15</span>
   PALETTE_MARGIN = <span class="hljs-number">10</span>
+  PALETTE_LEFT_MARGIN = <span class="hljs-number">0</span>
+  PALETTE_TOP_MARGIN = <span class="hljs-number">0</span>
   PALETTE_WIDTH = <span class="hljs-number">300</span>
   MIN_DRAG_DISTANCE = <span class="hljs-number">5</span>
   FONT_SIZE = <span class="hljs-number">15</span>
@@ -930,7 +932,7 @@ and do some bureaucracy here as well.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@onChange</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@onChange</span> event
+            <div class="content"><div class='highlight'><pre>        <span class="hljs-keyword">if</span> <span class="hljs-property">@onChange</span>? <span class="hljs-keyword">then</span> <span class="hljs-keyword">try</span> <span class="hljs-property">@onChange</span> event
 
       <span class="hljs-function"><span class="hljs-title">moveBlockTo</span> = <span class="hljs-params">(block, target)</span> =&gt;</span>
         parent = block.start.prev
@@ -1265,7 +1267,7 @@ so we know where to put the top of the next one (there will be a margin of PALET
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>        lastBottomEdge = <span class="hljs-number">0</span>
+            <div class="content"><div class='highlight'><pre>        lastBottomEdge = PALETTE_TOP_MARGIN
 
         <span class="hljs-keyword">for</span> paletteBlock <span class="hljs-keyword">in</span> <span class="hljs-property">@paletteBlocks</span></pre></div></div>
             
@@ -1297,7 +1299,7 @@ so we know where to put the top of the next one (there will be a margin of PALET
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>          paletteBlock.view.translate <span class="hljs-keyword">new</span> draw.Point <span class="hljs-number">0</span>, lastBottomEdge</pre></div></div>
+            <div class="content"><div class='highlight'><pre>          paletteBlock.view.translate <span class="hljs-keyword">new</span> draw.Point PALETTE_LEFT_MARGIN, lastBottomEdge</pre></div></div>
             
         </li>
         
@@ -4315,9 +4317,14 @@ same wrapping block, and nothing outside it (i.e. the wrapping block of the inde
         <span class="hljs-property">@redraw</span>()
 
     <span class="hljs-attribute">setValue</span>: <span class="hljs-function"><span class="hljs-params">(value)</span> -&gt;</span>
-      <span class="hljs-property">@ace</span>.setValue value
-      <span class="hljs-property">@tree</span> = coffee.parse(value).segment
-      <span class="hljs-property">@redraw</span>()
+      <span class="hljs-keyword">try</span>
+        <span class="hljs-property">@ace</span>.setValue value
+        <span class="hljs-property">@tree</span> = coffee.parse(value).segment
+        <span class="hljs-property">@redraw</span>()
+      <span class="hljs-keyword">catch</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+      
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
 
     <span class="hljs-attribute">getValue</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@tree</span>.toString()</pre></div></div>
             
@@ -4489,7 +4496,7 @@ animation destination. Along the way we will move the cursor around due to newli
             setTimeout tick, <span class="hljs-number">1000</span> / ANIMATION_FRAME_RATE
 
           <span class="hljs-property">@main</span>.style.left = PALETTE_WIDTH * (<span class="hljs-number">1</span> - count / ANIMATION_FRAME_RATE)
-          <span class="hljs-property">@main</span>.style.backgroundColor = animatedColor.advance()
+          <span class="hljs-property">@el</span>.style.backgroundColor = <span class="hljs-property">@main</span>.style.backgroundColor = animatedColor.advance()
           <span class="hljs-property">@palette</span>.style.opacity = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * (count / ANIMATION_FRAME_RATE)
 
           <span class="hljs-property">@clear</span>()
@@ -4528,14 +4535,12 @@ animation destination. Along the way we will move the cursor around due to newli
 
         tick()
       ), <span class="hljs-number">1</span>
+
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
     
     <span class="hljs-attribute">_performFreezeAnimation</span>:<span class="hljs-function"> -&gt;</span>
       <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyAnimating</span> <span class="hljs-keyword">or</span> <span class="hljs-property">@currentlyUsingBlocks</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span>
-      <span class="hljs-keyword">else</span> <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">true</span>; <span class="hljs-property">@currentlyUsingBlocks</span> = <span class="hljs-literal">true</span>
-
-      <span class="hljs-property">@setValue</span> <span class="hljs-property">@ace</span>.getValue() <span class="hljs-comment">#value ACE_MARKER</span>
-
-      <span class="hljs-property">@redraw</span>()</pre></div></div>
+      <span class="hljs-keyword">else</span> <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">true</span>; <span class="hljs-property">@currentlyUsingBlocks</span> = <span class="hljs-literal">true</span></pre></div></div>
             
         </li>
         
@@ -4545,6 +4550,26 @@ animation destination. Along the way we will move the cursor around due to newli
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-247">&#182;</a>
+              </div>
+              <p>In the case that we do not successfully set our value
+(i.e. we failed to parse the text), give up immediately.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">unless</span> <span class="hljs-property">@setValue</span> <span class="hljs-property">@ace</span>.getValue()
+        <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">false</span>; <span class="hljs-property">@currentlyUsingBlocks</span> = <span class="hljs-literal">false</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>
+
+      <span class="hljs-property">@redraw</span>()</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-248">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-248">&#182;</a>
               </div>
               <p>First, we will need to get all the text elements which we will be animating.
 Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
@@ -4559,11 +4584,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-248">
+        <li id="section-249">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-248">&#182;</a>
+                <a class="pilcrow" href="#section-249">&#182;</a>
               </div>
               <p>Set up the state which we will pass to </p>
 
@@ -4596,11 +4621,11 @@ animation destination. Along the way we will move the cursor around due to newli
         </li>
         
         
-        <li id="section-249">
+        <li id="section-250">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-249">&#182;</a>
+                <a class="pilcrow" href="#section-250">&#182;</a>
               </div>
               <p>We have now obtained the destination position for the animation; now we animate.</p>
 
@@ -4617,7 +4642,7 @@ animation destination. Along the way we will move the cursor around due to newli
           setTimeout tick, <span class="hljs-number">1000</span> / ANIMATION_FRAME_RATE
 
         <span class="hljs-property">@main</span>.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE)
-        <span class="hljs-property">@main</span>.style.backgroundColor = animatedColor.advance()
+        <span class="hljs-property">@el</span>.style.backgroundColor = <span class="hljs-property">@main</span>.style.backgroundColor = animatedColor.advance()
         <span class="hljs-property">@palette</span>.style.opacity = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * (<span class="hljs-number">1</span> - count / ANIMATION_FRAME_RATE)
 
         <span class="hljs-property">@clear</span>()
@@ -4637,6 +4662,8 @@ animation destination. Along the way we will move the cursor around due to newli
           <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">false</span>
 
       tick()
+      
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
 
     <span class="hljs-attribute">toggleBlocks</span>:<span class="hljs-function"> -&gt;</span>
       <span class="hljs-keyword">if</span> <span class="hljs-property">@currentlyUsingBlocks</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@_performMeltAnimation</span>()

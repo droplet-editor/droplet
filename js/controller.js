@@ -2,11 +2,13 @@
   var __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['ice-coffee', 'ice-draw', 'ice-model'], function(coffee, draw, model) {
-    var ANIMATION_FRAME_RATE, AnimatedColor, Editor, FONT_SIZE, INDENT_SPACES, INPUT_LINE_HEIGHT, IceEditorChangeEvent, MIN_DRAG_DISTANCE, PADDING, PALETTE_MARGIN, PALETTE_WIDTH, SCROLL_INTERVAL, exports, findPosLeft, findPosTop;
+    var ANIMATION_FRAME_RATE, AnimatedColor, Editor, FONT_SIZE, INDENT_SPACES, INPUT_LINE_HEIGHT, IceEditorChangeEvent, MIN_DRAG_DISTANCE, PADDING, PALETTE_LEFT_MARGIN, PALETTE_MARGIN, PALETTE_TOP_MARGIN, PALETTE_WIDTH, SCROLL_INTERVAL, exports, findPosLeft, findPosTop;
     PADDING = 5;
     INDENT_SPACES = 2;
     INPUT_LINE_HEIGHT = 15;
     PALETTE_MARGIN = 10;
+    PALETTE_LEFT_MARGIN = 0;
+    PALETTE_TOP_MARGIN = 0;
     PALETTE_WIDTH = 300;
     MIN_DRAG_DISTANCE = 5;
     FONT_SIZE = 15;
@@ -229,7 +231,9 @@
         };
         this.triggerOnChangeEvent = function(event) {
           if (_this.onChange != null) {
-            return _this.onChange(event);
+            try {
+              return _this.onChange(event);
+            } catch (_error) {}
           }
         };
         moveBlockTo = function(block, target) {
@@ -361,13 +365,13 @@
         };
         this.redrawPalette = function() {
           var lastBottomEdge, _j, _len1, _ref1, _results;
-          lastBottomEdge = 0;
+          lastBottomEdge = PALETTE_TOP_MARGIN;
           _ref1 = _this.paletteBlocks;
           _results = [];
           for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
             paletteBlock = _ref1[_j];
             paletteBlock.view.compute();
-            paletteBlock.view.translate(new draw.Point(0, lastBottomEdge));
+            paletteBlock.view.translate(new draw.Point(PALETTE_LEFT_MARGIN, lastBottomEdge));
             lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN;
             _results.push(paletteBlock.view.draw(_this.paletteCtx));
           }
@@ -1191,9 +1195,14 @@
       }
 
       Editor.prototype.setValue = function(value) {
-        this.ace.setValue(value);
-        this.tree = coffee.parse(value).segment;
-        return this.redraw();
+        try {
+          this.ace.setValue(value);
+          this.tree = coffee.parse(value).segment;
+          this.redraw();
+        } catch (_error) {
+          return false;
+        }
+        return true;
       };
 
       Editor.prototype.getValue = function() {
@@ -1214,7 +1223,7 @@
         this.aceEl.style.top = -9999;
         this.aceEl.style.left = -9999;
         this.aceEl.style.display = 'block';
-        return acePollingInterval = setInterval((function() {
+        acePollingInterval = setInterval((function() {
           var animatedColor, count, head, state, textElements, tick, translationVectors;
           if (!(_this.ace.renderer.layerConfig.lineHeight > 0)) {
             return;
@@ -1255,7 +1264,7 @@
               setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
             }
             _this.main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE);
-            _this.main.style.backgroundColor = animatedColor.advance();
+            _this.el.style.backgroundColor = _this.main.style.backgroundColor = animatedColor.advance();
             _this.palette.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
             _this.clear();
             _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * count / ANIMATION_FRAME_RATE);
@@ -1277,6 +1286,7 @@
           };
           return tick();
         }), 1);
+        return true;
       };
 
       Editor.prototype._performFreezeAnimation = function() {
@@ -1288,7 +1298,11 @@
           this.currentlyAnimating = true;
           this.currentlyUsingBlocks = true;
         }
-        this.setValue(this.ace.getValue());
+        if (!this.setValue(this.ace.getValue())) {
+          this.currentlyAnimating = false;
+          this.currentlyUsingBlocks = false;
+          return false;
+        }
         this.redraw();
         textElements = [];
         translationVectors = [];
@@ -1326,7 +1340,7 @@
             setTimeout(tick, 1000 / ANIMATION_FRAME_RATE);
           }
           _this.main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE);
-          _this.main.style.backgroundColor = animatedColor.advance();
+          _this.el.style.backgroundColor = _this.main.style.backgroundColor = animatedColor.advance();
           _this.palette.style.opacity = Math.max(0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE));
           _this.clear();
           _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE));
@@ -1342,7 +1356,8 @@
             return _this.currentlyAnimating = false;
           }
         };
-        return tick();
+        tick();
+        return true;
       };
 
       Editor.prototype.toggleBlocks = function() {

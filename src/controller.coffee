@@ -10,6 +10,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   INDENT_SPACES = 2
   INPUT_LINE_HEIGHT = 15
   PALETTE_MARGIN = 10
+  PALETTE_LEFT_MARGIN = 0
+  PALETTE_TOP_MARGIN = 0
   PALETTE_WIDTH = 300
   MIN_DRAG_DISTANCE = 5
   FONT_SIZE = 15
@@ -286,7 +288,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @triggerOnChangeEvent = (event) =>
         # Set the ACE editor content simultaneously
         #@ace.setValue @getValue()
-        if @onChange? then @onChange event
+        if @onChange? then try @onChange event
 
       moveBlockTo = (block, target) =>
         parent = block.start.prev
@@ -409,14 +411,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @redrawPalette = =>
         # We need to keep track of the bottom edge of the last element,
         # so we know where to put the top of the next one (there will be a margin of PALETTE_MARGIN between them)
-        lastBottomEdge = 0
+        lastBottomEdge = PALETTE_TOP_MARGIN
 
         for paletteBlock in @paletteBlocks
           # Compute the coordinates
           paletteBlock.view.compute()
 
           # Translate it into position
-          paletteBlock.view.translate new draw.Point 0, lastBottomEdge
+          paletteBlock.view.translate new draw.Point PALETTE_LEFT_MARGIN, lastBottomEdge
 
           # Increment the running height count
           lastBottomEdge = paletteBlock.view.bounds[paletteBlock.view.lineEnd].bottom() + PALETTE_MARGIN # Add margin
@@ -1352,9 +1354,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @redraw()
 
     setValue: (value) ->
-      @ace.setValue value
-      @tree = coffee.parse(value).segment
-      @redraw()
+      try
+        @ace.setValue value
+        @tree = coffee.parse(value).segment
+        @redraw()
+      catch
+        return false
+      
+      return true
 
     getValue: -> @tree.toString()
     
@@ -1428,7 +1435,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
           @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)
-          @main.style.backgroundColor = animatedColor.advance()
+          @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
           @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
           @clear()
@@ -1454,12 +1461,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         tick()
       ), 1
+
+      return true
     
     _performFreezeAnimation: ->
       if @currentlyAnimating or @currentlyUsingBlocks then return
       else @currentlyAnimating = true; @currentlyUsingBlocks = true
-
-      @setValue @ace.getValue() #value ACE_MARKER
+      
+      # In the case that we do not successfully set our value
+      # (i.e. we failed to parse the text), give up immediately.
+      unless @setValue @ace.getValue()
+        @currentlyAnimating = false; @currentlyUsingBlocks = false
+        return false
 
       @redraw()
       # First, we will need to get all the text elements which we will be animating.
@@ -1506,7 +1519,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
         @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE)
-        @main.style.backgroundColor = animatedColor.advance()
+        @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
         @palette.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
         @clear()
@@ -1526,6 +1539,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           @currentlyAnimating = false
 
       tick()
+      
+      return true
 
     toggleBlocks: ->
       if @currentlyUsingBlocks then @_performMeltAnimation()

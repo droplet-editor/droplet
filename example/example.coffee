@@ -45,15 +45,10 @@ require ['main'], (ice) ->
   
   # Update textarea on ICE editor change
   editor.onChange = ->
-    document.getElementById('out').value = editor.getValue()
+    # Currently empty function
   
   # Trigger immediately
   editor.onChange()
-  
-  # Update ICE Editor on textarea change
-  document.getElementById('out').addEventListener 'input', ->
-    try
-      editor.setValue this.value
   
   # Buttons for undo, melt, and freeze
   document.getElementById('undo').addEventListener 'click', ->
