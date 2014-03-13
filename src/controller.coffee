@@ -152,6 +152,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # The drag canvas
       drag = document.createElement 'canvas'; drag.className = 'drag'
+      drag.style.opacity = 0.85
       drag.height = @el.offsetHeight
       drag.width = @el.offsetWidth - PALETTE_WIDTH
 
