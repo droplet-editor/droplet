@@ -1,3 +1,8 @@
+# Cache bust, since most of our changed code is
+# in the require.js 'main' module.
+require.config
+  urlArgs: "bust=" + (new Date()).getTime()
+
 require ['main'], (ice) ->
   # Example palette
   window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).next.block for paletteElement in [
