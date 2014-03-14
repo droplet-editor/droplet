@@ -80,6 +80,7 @@
         this.ace.setTheme('ace/theme/chrome');
         this.ace.getSession().setMode('ace/mode/coffee');
         this.ace.getSession().setTabSize(2);
+        this.ace.setShowPrintMargin(false);
         this.ace.setFontSize(15);
         this.el = document.createElement('div');
         this.el.className = 'ice_editor';

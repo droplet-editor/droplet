@@ -79,6 +79,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @ace.setTheme 'ace/theme/chrome'
       @ace.getSession().setMode 'ace/mode/coffee'
       @ace.getSession().setTabSize 2
+      @ace.setShowPrintMargin false
       @ace.setFontSize 15
       #@ace.renderer.setShowGutter false
 
