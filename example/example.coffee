@@ -77,6 +77,7 @@ require ['main'], (ice) ->
       unless editor.currentlyUsingBlocks or editor.currentlyAnimating
         displayMessage 'Syntax error'
   
+  ###
   logsElement = document.getElementById 'logs'
   logsContentElement = document.getElementById 'logsContent'
   closeLogsElement = document.getElementById 'closeLogs'
@@ -94,3 +95,4 @@ require ['main'], (ice) ->
   document.getElementById('closeLogs').addEventListener 'click', ->
     logsElement.style.right = '-500px'
     closeLogsElement.style.top = '0px'
+  ###

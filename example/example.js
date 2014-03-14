@@ -4,7 +4,7 @@
   });
 
   require(['main'], function(ice) {
-    var closeLogsElement, displayMessage, logsContentElement, logsElement, messageElement, paletteElement;
+    var displayMessage, messageElement, paletteElement;
     window.editor = new ice.Editor(document.getElementById('editor'), (function() {
       var _i, _len, _ref, _results;
       _ref = ['fd 100', 'bk 100', 'rt 90', 'lt 90', 'see \'hi\'', 'for i in [1..10]\n  fd 10', 'if touches \'red\'\n  fd 10', 'rtFd = (arg) ->\n  rt 90\n  fd arg\n  return arg'];
@@ -29,32 +29,33 @@
         return messageElement.style.display = 'none';
       }), 2000);
     };
-    document.getElementById('toggle').addEventListener('click', function() {
+    return document.getElementById('toggle').addEventListener('click', function() {
       if (!editor.toggleBlocks()) {
         if (!(editor.currentlyUsingBlocks || editor.currentlyAnimating)) {
           return displayMessage('Syntax error');
         }
       }
     });
-    logsElement = document.getElementById('logs');
-    logsContentElement = document.getElementById('logsContent');
-    closeLogsElement = document.getElementById('closeLogs');
-    document.getElementById('run').addEventListener('click', function() {
-      var logs, see;
-      logs = [];
-      see = function(arg) {
-        return logs.push(arg);
-      };
-      eval(CoffeeScript.compile(editor.getValue()));
-      see = null;
-      logsContentElement.innerText = logs.join('\n');
-      logsElement.style.right = '0px';
-      return closeLogsElement.style.top = '30px';
-    });
-    return document.getElementById('closeLogs').addEventListener('click', function() {
-      logsElement.style.right = '-500px';
-      return closeLogsElement.style.top = '0px';
-    });
+    /*
+    logsElement = document.getElementById 'logs'
+    logsContentElement = document.getElementById 'logsContent'
+    closeLogsElement = document.getElementById 'closeLogs'
+    document.getElementById('run').addEventListener 'click', ->
+      logs = []
+      see = (arg) ->
+        logs.push arg
+      eval CoffeeScript.compile editor.getValue()
+      see = null
+    
+      logsContentElement.innerText = logs.join '\n'
+      logsElement.style.right = '0px'
+      closeLogsElement.style.top = '30px'
+    
+    document.getElementById('closeLogs').addEventListener 'click', ->
+      logsElement.style.right = '-500px'
+      closeLogsElement.style.top = '0px'
+    */
+
   });
 
 }).call(this);
