@@ -31,7 +31,7 @@
     };
     return document.getElementById('toggle').addEventListener('click', function() {
       if (!editor.toggleBlocks()) {
-        if (!editor.currentlyUsingBlocks) {
+        if (!(editor.currentlyUsingBlocks || editor.currentlyAnimating)) {
           return displayMessage('Syntax error');
         }
       }

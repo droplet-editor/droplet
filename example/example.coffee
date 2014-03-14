@@ -71,5 +71,5 @@ require ['main'], (ice) ->
     unless editor.toggleBlocks()
       # If we were unsuccessful at toggling,
       # put up a message.
-      unless editor.currentlyUsingBlocks
+      unless editor.currentlyUsingBlocks or editor.currentlyAnimating
         displayMessage 'Syntax error'
