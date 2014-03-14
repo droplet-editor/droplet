@@ -19,6 +19,9 @@ require ['main'], (ice) ->
     lt 90
     '''
     '''
+    see 'hi'
+    '''
+    '''
     for i in [1..10]
       fd 10
     '''
@@ -38,14 +41,14 @@ require ['main'], (ice) ->
   editor.setValue '''
   for i in [1..1000]
     if i % 15 is 0
-      console.log 'fizzbuzz'
+      see 'fizzbuzz'
     else
       if i % 5 is 0
-        console.log 'fizz'
+        see 'fizz'
       if i % 3 is 0
-        console.log 'buzz'
+        see 'buzz'
       if i % 3 isnt 0 and i % 5 isnt 0
-        console.log i
+        see i
   '''
   
   # Update textarea on ICE editor change
@@ -73,3 +76,21 @@ require ['main'], (ice) ->
       # put up a message.
       unless editor.currentlyUsingBlocks or editor.currentlyAnimating
         displayMessage 'Syntax error'
+  
+  logsElement = document.getElementById 'logs'
+  logsContentElement = document.getElementById 'logsContent'
+  closeLogsElement = document.getElementById 'closeLogs'
+  document.getElementById('run').addEventListener 'click', ->
+    logs = []
+    see = (arg) ->
+      logs.push arg
+    eval CoffeeScript.compile editor.getValue()
+    see = null
+
+    logsContentElement.innerText = logs.join '\n'
+    logsElement.style.right = '0px'
+    closeLogsElement.style.top = '30px'
+  
+  document.getElementById('closeLogs').addEventListener 'click', ->
+    logsElement.style.right = '-500px'
+    closeLogsElement.style.top = '0px'

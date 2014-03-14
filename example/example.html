@@ -10,6 +10,7 @@
     <style>
       body {
         font-family: sans-serif;
+        overflow: hidden;
       }
       #out {
         height: 200px;
@@ -28,7 +29,7 @@
         top: 0; right: 0; left: 0;
         height: 30px;
         background-color: #022;
-        /*background: linear-gradient(#222, #444);*/
+        z-index: 255;
       }
       #toolbar button {
         background-color: inherit;
@@ -60,13 +61,43 @@
         font-size: 13px;
         padding-left: 10px;
       }
+      #logs {
+        background-color: #FFF;
+        border-left: 1px solid #000;
+        border-bottom: 1px solid #000;
+        max-height: 100%;
+        overflow: auto;
+        font-family: monospace;
+        position: absolute;
+        top: 30px; right: -500px; bottom: 0;
+        width: 500px;
+        transition: right 0.5s linear;
+        z-index: 253;
+      }
+      #closeLogs {
+        height: 30px; width: 30px;
+        line-height: 30px;
+        position: absolute; top: 0; right: 0;
+        background-color: #222;
+        border-left: 1px solid #FFF;
+        border-bottom: 1px solid #FFF;
+        box-shadow: 0 0 5px #888;
+        color: #FFF;
+        text-align: center;
+        cursor: pointer;
+        z-index: 254;
+        transition: top 0.3s linear;
+        font-family: monospace;
+      }
     </style>
   </head>
   <body>
     <div id='editor'>
     </div>
     <div id='toolbar'>
-      <button id='undo'>Undo</button><button id='toggle'>Toggle Blocks</button><span id='message'></span>
+      <button id='undo'>Undo</button><button id='toggle'>Toggle Blocks</button><button id='run'>Run</button><span id='message'></span>
     </div>
+    <div id='logs'><div id="logsContent"></div></div>
+    <div id='closeLogs'>x</div>
   </body>
 </html>

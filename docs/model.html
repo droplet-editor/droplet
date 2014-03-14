@@ -453,16 +453,16 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-19">&#182;</a>
               </div>
-              <h2 id="tostring">toString</h2>
+              <h2 id="stringify">stringify</h2>
 <p>This one is mainly used for debugging. The string representation (“compiled code”)
 for anything between our start and end tokens. This is computed by stringifying
 everything, then splicing off everything after the end token.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span>
-      string = <span class="hljs-property">@start</span>.toString <span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>
-      <span class="hljs-keyword">return</span> string[..string.length-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length-<span class="hljs-number">1</span>]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">stringify</span>:<span class="hljs-function"> -&gt;</span>
+      string = <span class="hljs-property">@start</span>.stringify <span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>
+      <span class="hljs-keyword">return</span> string[..string.length-<span class="hljs-property">@end</span>.stringify(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length-<span class="hljs-number">1</span>]</pre></div></div>
             
         </li>
         
@@ -642,16 +642,16 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-28">&#182;</a>
               </div>
-              <h2 id="tostring">toString</h2>
-<p>This one is mainly used for debugging. Like Block.toString, computes
+              <h2 id="stringify">stringify</h2>
+<p>This one is mainly used for debugging. Like Block.stringify, computes
 the compiled code for everything between the two end tokens, by stringifying
 the start and splicing of the string representation of the end.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-      string = <span class="hljs-property">@start</span>.toString(state)
-      <span class="hljs-keyword">return</span> string[...string.length-<span class="hljs-property">@end</span>.toString(state).length-<span class="hljs-number">1</span>]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">stringify</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      string = <span class="hljs-property">@start</span>.stringify(state)
+      <span class="hljs-keyword">return</span> string[...string.length-<span class="hljs-property">@end</span>.stringify(state).length-<span class="hljs-number">1</span>]</pre></div></div>
             
         </li>
         
@@ -935,7 +935,7 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-42">&#182;</a>
               </div>
-              <h2 id="tostring">toString</h2>
+              <h2 id="stringify">stringify</h2>
 <p>This one is actually called often from the Controller, since
 Segments serve as the root elements of every tree. As with Blocks and Indents,
 this is computed by stringifying the start token (get all code) and splicing off things after
@@ -943,9 +943,9 @@ the end token.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span>
-      start = <span class="hljs-property">@start</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>)
-      <span class="hljs-keyword">return</span> start[...start.length-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>).length]</pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">stringify</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@start</span>.stringify
+      <span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>
+      <span class="hljs-attribute">stopToken</span>: <span class="hljs-property">@end</span></pre></div></div>
             
         </li>
         
@@ -1137,7 +1137,9 @@ It finds the first child fitting f(x) that does not have a child who fits f(x).<
             <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">if</span> f <span class="hljs-keyword">this</span> <span class="hljs-keyword">then</span> <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>
       <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>
 
-    <span class="hljs-attribute">toString</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@start</span>.toString(<span class="hljs-attribute">indent</span>:<span class="hljs-string">''</span>)[...-<span class="hljs-property">@end</span>.toString(<span class="hljs-attribute">indent</span>:<span class="hljs-string">''</span>).length]</pre></div></div>
+    <span class="hljs-attribute">stringify</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@start</span>.stringify
+      <span class="hljs-attribute">indent</span>: <span class="hljs-string">''</span>
+      <span class="hljs-attribute">stopToken</span>: <span class="hljs-property">@end</span></pre></div></div>
             
         </li>
         
@@ -1254,13 +1256,13 @@ right after us. This retains our linked list order.</p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-57">&#182;</a>
               </div>
-              <h2 id="tostring">toString</h2>
+              <h2 id="stringify">stringify</h2>
 <p>Converting a Token to a string gets you the compilation of this
 and every token after it. </p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">stringify</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span> <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">isnt</span> state.stopToken <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.stringify(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
             
         </li>
         
@@ -1271,9 +1273,13 @@ and every token after it. </p>
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-58">&#182;</a>
               </div>
-              <h1 id="special-kinds-of-tokens">Special kinds of tokens</h1>
+              <h2 id="getexactstringvalue">getExactStringValue</h2>
+<p>Get the string that this token exactly contributes to a toString().
+This definition does not apply to newlines.</p>
 
             </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-attribute">getExactStringValue</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-string">''</span></pre></div></div>
             
         </li>
         
@@ -1283,6 +1289,19 @@ and every token after it. </p>
               
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-59">&#182;</a>
+              </div>
+              <h1 id="special-kinds-of-tokens">Special kinds of tokens</h1>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-60">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-60">&#182;</a>
               </div>
               <h2 id="cursortoken">CursorToken</h2>
 <p>A user’s cursor, which the Controller can perform operations at
@@ -1301,11 +1320,11 @@ and the View renders as a black triangle</p>
         </li>
         
         
-        <li id="section-60">
+        <li id="section-61">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-60">&#182;</a>
+                <a class="pilcrow" href="#section-61">&#182;</a>
               </div>
               <h2 id="texttoken">TextToken</h2>
 <p>A token representing plain text.</p>
@@ -1320,17 +1339,19 @@ and the View renders as a black triangle</p>
 
     <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> TextToken <span class="hljs-property">@value</span>
 
-    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-      <span class="hljs-property">@value</span> + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
+    <span class="hljs-attribute">stringify</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      <span class="hljs-property">@value</span> + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span>? <span class="hljs-keyword">and</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">isnt</span> state.stopToken <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.stringify(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
+
+    <span class="hljs-attribute">getExactStringValue</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-property">@value</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-61">
+        <li id="section-62">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-61">&#182;</a>
+                <a class="pilcrow" href="#section-62">&#182;</a>
               </div>
               <h2 id="markup-tokens">Markup tokens</h2>
 <p>These are the tokens to which we referred earlier when we discussed
@@ -1375,11 +1396,11 @@ but to identify their type.</p>
         </li>
         
         
-        <li id="section-62">
+        <li id="section-63">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-62">&#182;</a>
+                <a class="pilcrow" href="#section-63">&#182;</a>
               </div>
               <h2 id="indentstart-and-indentend">IndentStart and IndentEnd</h2>
 <p>These tokens must increment or decrement the number of spaces
@@ -1393,27 +1414,27 @@ an object passed down whenever a stringification occurs.</p>
       <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> =  <span class="hljs-literal">null</span>
       <span class="hljs-property">@type</span> = <span class="hljs-string">'indentStart'</span>
 
-    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+    <span class="hljs-attribute">stringify</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
       state.indent += (<span class="hljs-string">' '</span> <span class="hljs-keyword">for</span> [<span class="hljs-number">1.</span>.<span class="hljs-property">@indent</span>.depth]).join <span class="hljs-string">''</span>
-      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">isnt</span> state.stopToken <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.stringify(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
 
   <span class="hljs-built_in">exports</span>.IndentEndToken = <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IndentEndToken</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Token</span></span>
     <span class="hljs-attribute">constructor</span>: <span class="hljs-function"><span class="hljs-params">(<span class="hljs-property">@indent</span>)</span> -&gt;</span>
       <span class="hljs-property">@prev</span> = <span class="hljs-property">@next</span> =  <span class="hljs-literal">null</span>
       <span class="hljs-property">@type</span> = <span class="hljs-string">'indentEnd'</span>
 
-    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+    <span class="hljs-attribute">stringify</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
       state.indent = state.indent[...-<span class="hljs-property">@indent</span>.depth]
-      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
+      <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">isnt</span> state.stopToken <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.stringify(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-63">
+        <li id="section-64">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-63">&#182;</a>
+                <a class="pilcrow" href="#section-64">&#182;</a>
               </div>
               <h2 id="newlinetoken">NewlineToken</h2>
 <p>This token represents a newline. When stringifying, it inserts (state.indent) spaces
@@ -1428,8 +1449,8 @@ if necessary.</p>
 
     <span class="hljs-attribute">clone</span>:<span class="hljs-function"> -&gt;</span> <span class="hljs-keyword">new</span> NewlineToken()
 
-    <span class="hljs-attribute">toString</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
-      <span class="hljs-string">'\n'</span> + state.indent + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.toString(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
+    <span class="hljs-attribute">stringify</span>: <span class="hljs-function"><span class="hljs-params">(state)</span> -&gt;</span>
+      <span class="hljs-string">'\n'</span> + state.indent + <span class="hljs-keyword">if</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">and</span> <span class="hljs-property">@next</span> <span class="hljs-keyword">isnt</span> state.stopToken <span class="hljs-keyword">then</span> <span class="hljs-property">@next</span>.stringify(state) <span class="hljs-keyword">else</span> <span class="hljs-string">''</span>
   
   <span class="hljs-keyword">return</span> <span class="hljs-built_in">exports</span></pre></div></div>
             

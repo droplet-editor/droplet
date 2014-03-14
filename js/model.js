@@ -163,12 +163,12 @@
         }
       };
 
-      Block.prototype.toString = function() {
+      Block.prototype.stringify = function() {
         var string;
-        string = this.start.toString({
+        string = this.start.stringify({
           indent: ''
         });
-        return string.slice(0, +(string.length - this.end.toString({
+        return string.slice(0, +(string.length - this.end.stringify({
           indent: ''
         }).length - 1) + 1 || 9e9);
       };
@@ -251,10 +251,10 @@
         }
       };
 
-      Indent.prototype.toString = function(state) {
+      Indent.prototype.stringify = function(state) {
         var string;
-        string = this.start.toString(state);
-        return string.slice(0, string.length - this.end.toString(state).length - 1);
+        string = this.start.stringify(state);
+        return string.slice(0, string.length - this.end.stringify(state).length - 1);
       };
 
       return Indent;
@@ -378,14 +378,11 @@
         }
       };
 
-      Segment.prototype.toString = function() {
-        var start;
-        start = this.start.toString({
-          indent: ''
+      Segment.prototype.stringify = function() {
+        return this.start.stringify({
+          indent: '',
+          stopToken: this.end
         });
-        return start.slice(0, start.length - this.end.toString({
-          indent: ''
-        }).length);
       };
 
       return Segment;
@@ -462,12 +459,11 @@
         }
       };
 
-      Socket.prototype.toString = function() {
-        return this.start.toString({
-          indent: ''
-        }).slice(0, -this.end.toString({
-          indent: ''
-        }).length);
+      Socket.prototype.stringify = function() {
+        return this.start.stringify({
+          indent: '',
+          stopToken: this.end
+        });
       };
 
       return Socket;
@@ -513,12 +509,16 @@
         return this.prev = this.next = null;
       };
 
-      Token.prototype.toString = function(state) {
-        if (this.next != null) {
-          return this.next.toString(state);
+      Token.prototype.stringify = function(state) {
+        if ((this.next != null) && this.next !== state.stopToken) {
+          return this.next.stringify(state);
         } else {
           return '';
         }
+      };
+
+      Token.prototype.getExactStringValue = function() {
+        return '';
       };
 
       return Token;
@@ -554,8 +554,12 @@
         return new TextToken(this.value);
       };
 
-      TextToken.prototype.toString = function(state) {
-        return this.value + (this.next != null ? this.next.toString(state) : '');
+      TextToken.prototype.stringify = function(state) {
+        return this.value + ((this.next != null) && this.next !== state.stopToken ? this.next.stringify(state) : '');
+      };
+
+      TextToken.prototype.getExactStringValue = function() {
+        return this.value;
       };
 
       return TextToken;
@@ -642,7 +646,7 @@
         this.type = 'indentStart';
       }
 
-      IndentStartToken.prototype.toString = function(state) {
+      IndentStartToken.prototype.stringify = function(state) {
         state.indent += ((function() {
           var _i, _ref, _results;
           _results = [];
@@ -651,8 +655,8 @@
           }
           return _results;
         }).call(this)).join('');
-        if (this.next) {
-          return this.next.toString(state);
+        if (this.next && this.next !== state.stopToken) {
+          return this.next.stringify(state);
         } else {
           return '';
         }
@@ -670,10 +674,10 @@
         this.type = 'indentEnd';
       }
 
-      IndentEndToken.prototype.toString = function(state) {
+      IndentEndToken.prototype.stringify = function(state) {
         state.indent = state.indent.slice(0, -this.indent.depth);
-        if (this.next) {
-          return this.next.toString(state);
+        if (this.next && this.next !== state.stopToken) {
+          return this.next.stringify(state);
         } else {
           return '';
         }
@@ -694,8 +698,8 @@
         return new NewlineToken();
       };
 
-      NewlineToken.prototype.toString = function(state) {
-        return '\n' + state.indent + (this.next ? this.next.toString(state) : '');
+      NewlineToken.prototype.stringify = function(state) {
+        return '\n' + state.indent + (this.next && this.next !== state.stopToken ? this.next.stringify(state) : '');
       };
 
       return NewlineToken;

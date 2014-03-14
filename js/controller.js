@@ -219,7 +219,7 @@
             if (__indexOf.call(excludes, handwrittenBlock) < 0) {
               try {
                 parent = handwrittenBlock.start.prev;
-                newBlock = (coffee.parse(handwrittenBlock.toString())).segment;
+                newBlock = (coffee.parse(handwrittenBlock.stringify())).segment;
                 handwrittenBlock.start.prev.append(handwrittenBlock.end.next);
                 handwrittenBlock.start.prev = null;
                 handwrittenBlock.end.next = null;
@@ -1098,8 +1098,11 @@
           var depth, head, newParse, _ref2, _ref3;
           if (_this.focus != null) {
             try {
-              newParse = coffee.parse(_this.focus.toString()).next;
+              console.log(_this.focus, _this.focus.content());
+              newParse = coffee.parse(_this.focus.stringify()).next;
+              console.log('successfully parsed old expression', "'" + _this.focus.stringify() + "'", newParse);
               if (newParse.type === 'blockStart') {
+                console.log('successfully parsed old expression _to block_');
                 if (_this.focus.handwritten) {
                   newParse.block.moveTo(_this.focus.start.prev.block.start.prev);
                   _this.focus.start.prev.block.moveTo(null);
@@ -1114,7 +1117,7 @@
               }
             } catch (_error) {}
             _this.triggerOnChangeEvent(new IceEditorChangeEvent(_this.focus, focus));
-            if (_this.ephemeralOldFocusValue !== _this.focus.toString()) {
+            if (_this.ephemeralOldFocusValue !== _this.focus.stringify()) {
               _this.undoStack.push({
                 type: 'socketTextChange',
                 socket: _this.focus,
@@ -1124,7 +1127,7 @@
           }
           _this.focus = focus;
           if (_this.focus != null) {
-            _this.ephemeralOldFocusValue = _this.focus.toString();
+            _this.ephemeralOldFocusValue = _this.focus.stringify();
           } else {
             _this.ephemeralOldFocusValue = null;
           }
@@ -1207,7 +1210,7 @@
       };
 
       Editor.prototype.getValue = function() {
-        return this.tree.toString();
+        return this.tree.stringify();
       };
 
       Editor.prototype._performMeltAnimation = function() {

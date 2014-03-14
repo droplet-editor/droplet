@@ -163,13 +163,13 @@ define ['ice-view'], (view) ->
       # We found no results, so return null.
       else return null
     
-    # ## toString ##
+    # ## stringify ##
     # This one is mainly used for debugging. The string representation ("compiled code")
     # for anything between our start and end tokens. This is computed by stringifying
     # everything, then splicing off everything after the end token.
-    toString: ->
-      string = @start.toString indent: ''
-      return string[..string.length-@end.toString(indent: '').length-1]
+    stringify: ->
+      string = @start.stringify indent: ''
+      return string[..string.length-@end.stringify(indent: '').length-1]
 
   # # Indent
   # An Indent, like a Block, consists of two tokens, start and end. An Indent also knows its @depth,
@@ -243,13 +243,13 @@ define ['ice-view'], (view) ->
       # Couldn't find any, so return null.
       else return null
     
-    # ## toString ##
-    # This one is mainly used for debugging. Like Block.toString, computes
+    # ## stringify ##
+    # This one is mainly used for debugging. Like Block.stringify, computes
     # the compiled code for everything between the two end tokens, by stringifying
     # the start and splicing of the string representation of the end.
-    toString: (state) ->
-      string = @start.toString(state)
-      return string[...string.length-@end.toString(state).length-1]
+    stringify: (state) ->
+      string = @start.stringify(state)
+      return string[...string.length-@end.stringify(state).length-1]
 
   # # Segment
   # A Segment is a basically invisible piece of markup, which knows its start and end tokens.
@@ -366,14 +366,14 @@ define ['ice-view'], (view) ->
       if f(this) then return this
       else return null
     
-    # ## toString ##
+    # ## stringify ##
     # This one is actually called often from the Controller, since
     # Segments serve as the root elements of every tree. As with Blocks and Indents,
     # this is computed by stringifying the start token (get all code) and splicing off things after
     # the end token.
-    toString: ->
-      start = @start.toString(indent: '')
-      return start[...start.length-@end.toString(indent: '').length]
+    stringify: -> @start.stringify
+      indent: ''
+      stopToken: @end
 
   # # Socket
   # A Socket is an inline droppable area for a Block, and
@@ -457,7 +457,9 @@ define ['ice-view'], (view) ->
       if f this then return this
       else return null
 
-    toString: -> @start.toString(indent:'')[...-@end.toString(indent:'').length]
+    stringify: -> @start.stringify
+      indent: ''
+      stopToken: @end
    
   # # Token
   # This is the class from which all ICE Editor tokens descend.
@@ -505,10 +507,15 @@ define ['ice-view'], (view) ->
       if @next? then @next.prev = @prev
       @prev = @next = null
     
-    # ## toString ##
+    # ## stringify ##
     # Converting a Token to a string gets you the compilation of this
     # and every token after it. 
-    toString: (state) -> if @next? then @next.toString(state) else ''
+    stringify: (state) -> if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
+    
+    # ## getExactStringValue ##
+    # Get the string that this token exactly contributes to a toString().
+    # This definition does not apply to newlines.
+    getExactStringValue: -> ''
 
   ## Special kinds of tokens
 
@@ -533,8 +540,10 @@ define ['ice-view'], (view) ->
 
     clone: -> new TextToken @value
 
-    toString: (state) ->
-      @value + if @next? then @next.toString(state) else ''
+    stringify: (state) ->
+      @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
+
+    getExactStringValue: -> @value
 
   # ## Markup tokens ##
   # These are the tokens to which we referred earlier when we discussed
@@ -583,19 +592,18 @@ define ['ice-view'], (view) ->
       @prev = @next =  null
       @type = 'indentStart'
 
-    toString: (state) ->
+    stringify: (state) ->
       state.indent += (' ' for [1..@indent.depth]).join ''
-      if @next then @next.toString(state) else ''
+      if @next and @next isnt state.stopToken then @next.stringify(state) else ''
 
   exports.IndentEndToken = class IndentEndToken extends Token
     constructor: (@indent) ->
       @prev = @next =  null
       @type = 'indentEnd'
 
-    toString: (state) ->
+    stringify: (state) ->
       state.indent = state.indent[...-@indent.depth]
-      if @next then @next.toString(state) else ''
-
+      if @next and @next isnt state.stopToken then @next.stringify(state) else ''
 
   # ## NewlineToken ##
   # This token represents a newline. When stringifying, it inserts (state.indent) spaces
@@ -607,7 +615,7 @@ define ['ice-view'], (view) ->
 
     clone: -> new NewlineToken()
 
-    toString: (state) ->
-      '\n' + state.indent + if @next then @next.toString(state) else ''
+    stringify: (state) ->
+      '\n' + state.indent + if @next and @next isnt state.stopToken then @next.stringify(state) else ''
   
   return exports

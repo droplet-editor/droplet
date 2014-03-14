@@ -266,7 +266,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # splice it out, and splice the replacement in.
             try
               parent = handwrittenBlock.start.prev
-              newBlock = (coffee.parse handwrittenBlock.toString()).segment
+              newBlock = (coffee.parse handwrittenBlock.stringify()).segment
 
               # Unfortunately moveTo handles whitepsace for us,
               # which we do not want to do, so we must splice the block out ourselves.
@@ -1245,9 +1245,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Deal with the previous focus
         if @focus?
           try
-            # Attempt to reparse what's in the indent
-            newParse = coffee.parse(@focus.toString()).next
+            console.log @focus, @focus.content()
+            # Attempt to reparse what's in the socket
+            newParse = coffee.parse(@focus.stringify()).next
+            console.log 'successfully parsed old expression', "'" + @focus.stringify() + "'", newParse
             if newParse.type is 'blockStart'
+              console.log 'successfully parsed old expression _to block_'
               if @focus.handwritten
                 newParse.block.moveTo @focus.start.prev.block.start.prev
                 @focus.start.prev.block.moveTo null
@@ -1256,12 +1259,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 else if @focus.content()?.type is 'block' then @focus.content().moveTo null
 
                 newParse.block.moveTo @focus.start
-            
 
           # Fire the onchange handler
           @triggerOnChangeEvent new IceEditorChangeEvent @focus, focus
 
-          if @ephemeralOldFocusValue isnt @focus.toString()
+          if @ephemeralOldFocusValue isnt @focus.stringify()
             @undoStack.push
               type: 'socketTextChange'
               socket: @focus
@@ -1270,7 +1272,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Literally set the focus
         @focus = focus
         
-        if @focus? then @ephemeralOldFocusValue = @focus.toString()
+        if @focus? then @ephemeralOldFocusValue = @focus.stringify()
         else @ephemeralOldFocusValue = null
         
         # If we just removed the focus, then we are done.
@@ -1364,7 +1366,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       return true
 
-    getValue: -> @tree.toString()
+    getValue: -> @tree.stringify()
     
     # ## performMeltAnimation ##
     # This will animate all the text elements from their current position to a position
