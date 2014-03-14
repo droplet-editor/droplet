@@ -1428,6 +1428,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         count = 0
 
         animatedColor = new AnimatedColor('#EEEEEE', '#FFFFFF', ANIMATION_FRAME_RATE)
+        originalOffset = @scrollOffset.y
 
         tick = =>
           count += 1
@@ -1442,6 +1443,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           @clear()
           
           @mainCtx.globalAlpha = Math.max 0, 1 - 2 * count / ANIMATION_FRAME_RATE
+          @mainCtx.translate 0, originalOffset / ANIMATION_FRAME_RATE
+          @scrollOffset.y -= originalOffset / ANIMATION_FRAME_RATE
 
           @tree.view.draw @mainCtx
 
@@ -1459,6 +1462,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             @aceEl.style.left = 0
             @aceEl.style.display = 'block'
             @currentlyAnimating = false
+            @scrollOffset.y = 0
+            @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
         tick()
       ), 1

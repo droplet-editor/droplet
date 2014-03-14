@@ -1225,7 +1225,7 @@
         this.aceEl.style.left = -9999;
         this.aceEl.style.display = 'block';
         acePollingInterval = setInterval((function() {
-          var animatedColor, count, head, state, textElements, tick, translationVectors;
+          var animatedColor, count, head, originalOffset, state, textElements, tick, translationVectors;
           if (!(_this.ace.renderer.layerConfig.lineHeight > 0)) {
             return;
           }
@@ -1258,6 +1258,7 @@
           }
           count = 0;
           animatedColor = new AnimatedColor('#EEEEEE', '#FFFFFF', ANIMATION_FRAME_RATE);
+          originalOffset = _this.scrollOffset.y;
           tick = function() {
             var element, i, _i, _len;
             count += 1;
@@ -1269,6 +1270,8 @@
             _this.palette.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
             _this.clear();
             _this.mainCtx.globalAlpha = Math.max(0, 1 - 2 * count / ANIMATION_FRAME_RATE);
+            _this.mainCtx.translate(0, originalOffset / ANIMATION_FRAME_RATE);
+            _this.scrollOffset.y -= originalOffset / ANIMATION_FRAME_RATE;
             _this.tree.view.draw(_this.mainCtx);
             _this.mainCtx.globalAlpha = 1;
             for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
@@ -1282,7 +1285,9 @@
               _this.aceEl.style.top = 0;
               _this.aceEl.style.left = 0;
               _this.aceEl.style.display = 'block';
-              return _this.currentlyAnimating = false;
+              _this.currentlyAnimating = false;
+              _this.scrollOffset.y = 0;
+              return _this.mainCtx.setTransform(1, 0, 0, 1, 0, 0);
             }
           };
           return tick();

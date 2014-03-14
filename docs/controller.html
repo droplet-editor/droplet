@@ -4489,6 +4489,7 @@ animation destination. Along the way we will move the cursor around due to newli
             <div class="content"><div class='highlight'><pre>        count = <span class="hljs-number">0</span>
 
         animatedColor = <span class="hljs-keyword">new</span> AnimatedColor(<span class="hljs-string">'#EEEEEE'</span>, <span class="hljs-string">'#FFFFFF'</span>, ANIMATION_FRAME_RATE)
+        originalOffset = <span class="hljs-property">@scrollOffset</span>.y
 
         <span class="hljs-function"><span class="hljs-title">tick</span> = =&gt;</span>
           count += <span class="hljs-number">1</span>
@@ -4503,6 +4504,8 @@ animation destination. Along the way we will move the cursor around due to newli
           <span class="hljs-property">@clear</span>()
           
           <span class="hljs-property">@mainCtx</span>.globalAlpha = Math.max <span class="hljs-number">0</span>, <span class="hljs-number">1</span> - <span class="hljs-number">2</span> * count / ANIMATION_FRAME_RATE
+          <span class="hljs-property">@mainCtx</span>.translate <span class="hljs-number">0</span>, originalOffset / ANIMATION_FRAME_RATE
+          <span class="hljs-property">@scrollOffset</span>.y -= originalOffset / ANIMATION_FRAME_RATE
 
           <span class="hljs-property">@tree</span>.view.draw <span class="hljs-property">@mainCtx</span>
 
@@ -4533,6 +4536,8 @@ animation destination. Along the way we will move the cursor around due to newli
             <span class="hljs-property">@aceEl</span>.style.left = <span class="hljs-number">0</span>
             <span class="hljs-property">@aceEl</span>.style.display = <span class="hljs-string">'block'</span>
             <span class="hljs-property">@currentlyAnimating</span> = <span class="hljs-literal">false</span>
+            <span class="hljs-property">@scrollOffset</span>.y = <span class="hljs-number">0</span>
+            <span class="hljs-property">@mainCtx</span>.setTransform <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>
 
         tick()
       ), <span class="hljs-number">1</span>
