@@ -857,11 +857,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Track events do not contain offsetX/layerX properties,
         # so we must set them manually.
 
-        event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track)
-        event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track)
+        event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
+        event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
-        console.log event.changedTouches[0].clientX, findPosLeft(track)
-        console.log event.changedTouches[0].clientY, findPosTop(track)
+        console.log event.changedTouches[0].pageX, findPosLeft(track)
+        console.log event.changedTouches[0].pageY, findPosTop(track)
 
         performNormalMouseDown getPointFromEvent(event.changedTouches[0]), true
 
@@ -967,8 +967,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         unless event.changedTouches.length > 0 then return
 
-        event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track)
-        event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track)
+        event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
+        event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
         performNormalMouseMove event.changedTouches[0]
 
@@ -1066,8 +1066,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         @touchScrollAnchor = null
 
-        event.changedTouches[0].offsetX = event.changedTouches[0].clientX - findPosLeft(track)
-        event.changedTouches[0].offsetY = event.changedTouches[0].clientY - findPosTop(track)
+        event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
+        event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
         performNormalMouseUp event.changedTouches[0]
 
