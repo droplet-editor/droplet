@@ -1358,7 +1358,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     setValue: (value) ->
       try
-        @ace.setValue value
+        @ace.setValue value, -1
         @tree = coffee.parse(value).segment
         @redraw()
       catch
@@ -1380,7 +1380,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # We need to find out some properties of dimensions
       # in the ace editor. So we will need to display the ace editor momentarily off-screen.
 
-      @ace.setValue @getValue()
+      @ace.setValue @getValue(), -1
       @aceEl.style.top = -9999
       @aceEl.style.left = -9999
       @aceEl.style.display = 'block'
@@ -1457,12 +1457,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             element.view.translate new draw.Point translationVectors[i].x / ANIMATION_FRAME_RATE, translationVectors[i].y / ANIMATION_FRAME_RATE
 
           if count >= ANIMATION_FRAME_RATE
-            #@ace.value = @getValue() # ACE_MARKER
-            @ace.clearSelection()
             @el.style.display = 'none'
+            
             @aceEl.style.top = 0
             @aceEl.style.left = 0
             @aceEl.style.display = 'block'
+            
+            # We need to trigger an ace resize event by hand,
+            # because ace still thinks that it is hidden (0x0).
+            @ace.resize()
+
             @currentlyAnimating = false
             @scrollOffset.y = 0
             @mainCtx.setTransform 1, 0, 0, 1, 0, 0
@@ -1478,7 +1482,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       # In the case that we do not successfully set our value
       # (i.e. we failed to parse the text), give up immediately.
-      unless @setValue @ace.getValue()
+      unless @setValue @ace.getValue(), -1
         @currentlyAnimating = false; @currentlyUsingBlocks = false
         return false
 

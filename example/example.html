@@ -11,6 +11,7 @@
       body {
         font-family: sans-serif;
         overflow: hidden;
+        margin: 0px; padding: 0px;
       }
       #out {
         height: 200px;
@@ -18,28 +19,30 @@
       }
       #editor {
         position: absolute;
-        top: 30;
-        bottom: 0;
-        right: 0;
-        left: 0;
+        top: 30px;
+        bottom: 0px;
+        right: 0px;
+        left: 0px;
         background-color: #EEE;
       }
       #toolbar {
         position: absolute;
-        top: 0; right: 0; left: 0;
+        top: 0px; right: 0; left: 0;
         height: 30px;
         background-color: #022;
         z-index: 255;
+        overflow: hidden;
       }
       #toolbar button {
         background-color: inherit;
-        height: 100%;
+        height: 30px;
         width: 100px;
         color: #FFF;
         border: none;
         cursor: pointer;
         outline: none;
         font-size: 13px;
+        white-space: nowrap;
       }
       #toolbar button:hover {
         background-color: #555;
@@ -49,7 +52,7 @@
       }
       #out_wrapper {
         position: absolute;
-        top: 0; left: 0; right: 900px; bottom: 0;
+        top: 0px; left: 0; right: 900px; bottom: 0;
       }
       #out {
         width: 100%; height: 100%;
@@ -63,13 +66,13 @@
       }
       #logs {
         background-color: #FFF;
-        border-left: 1px solid #000;
-        border-bottom: 1px solid #000;
+        border-left: 1px solid #000px;
+        border-bottom: 1px solid #000px;
         max-height: 100%;
         overflow: auto;
         font-family: monospace;
         position: absolute;
-        top: 30px; right: -500px; bottom: 0;
+        top: 30px; right: -500px; bottom: 0px;
         width: 500px;
         transition: right 0.5s linear;
         z-index: 253;
@@ -77,7 +80,7 @@
       #closeLogs {
         height: 30px; width: 30px;
         line-height: 30px;
-        position: absolute; top: 0; right: 0;
+        position: absolute; top: 0px; right: 0;
         background-color: #222;
         border-left: 1px solid #FFF;
         border-bottom: 1px solid #FFF;
@@ -89,13 +92,37 @@
         transition: top 0.3s linear;
         font-family: monospace;
       }
+      #which_example {
+        height: 30px;
+        line-height: 30px;
+        vertical-align: top;
+        font-size: 13px;
+        background: #FFF;
+        box-shadow: 0 0 5px #000 inset;
+        outline: none;
+        border: none;
+        cursor: pointer;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        padding: 0px; margin: 0px;
+        appearance: none;
+        margin-left: -5px;
+      }
     </style>
   </head>
   <body>
     <div id='editor'>
     </div>
     <div id='toolbar'>
-      <button id='undo'>Undo</button><button id='toggle'>Toggle Blocks</button><!--<button id='run'>Run</button> # temporarily removing Run button for working demo--><span id='message'></span>
+      <button id='undo'>Undo</button>
+      <button id='toggle'>Toggle Blocks</button>
+      <button id='run'>Run</button>
+      <select id='which_example'>
+        <option value='quicksort'>Quicksort</option>
+        <option value='fizzbuzz'>Fizzbuzz</option>
+        <option value='church'>Church Numerals</option>
+      </select>
+      <span id='message'></span>
     </div>
     <div id='logs'><div id="logsContent"></div></div>
     <div id='closeLogs'>x</div>
