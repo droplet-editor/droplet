@@ -132,7 +132,7 @@ require ['main'], (ice) ->
   document.getElementById('which_example').addEventListener 'change', ->
     editor.setValue examplePrograms[@value]
 
-  editor.setValue examplePrograms.quicksort
+  editor.setValue examplePrograms.fizzbuzz
   
   # Buttons for undo, melt, and freeze
   document.getElementById('undo').addEventListener 'click', ->
