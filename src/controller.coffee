@@ -61,6 +61,102 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       return "rgb(#{Math.round(@currentRGB[0])},#{Math.round(@currentRGB[1])},#{Math.round(@currentRGB[2])})"
 
+  # ## diff ##
+  # Returns an array of line operations to perform to transform ice editor segment
+  # a to segment b. Used in the undo stack.
+
+  class IceEditorLine
+    # Start and end here ought to be newline tokens
+    constructor: (@start, @end) ->
+    
+    stringify: -> @start.stringify
+      indent: ''
+      stopToken: @end
+    
+    # Line equality will actually hold as long as the strings for the line are the same.
+    # Any discrepancy here will be dealt with summariliy by one of the reparses
+    # that the controller does ten times a second.
+    equals: (other) -> other.stringify() is @stringify()
+
+    getCloned: -> @stringify() #model.cloneTokens @start, @end # DEBUGGING
+  
+  # For longestCommonSubstring we will need a simple linked list
+  # implementation.
+  class LinkedList
+    constructor: (@value, @next) ->
+      if @next? then @length = @next.length + 1
+      else @length = 1
+
+    toArray: ->
+      head = this
+      array = []
+      until head is null
+        array.unshift head.value
+        head = head.next
+
+      return array
+
+  # As per tradition, an implementation of diff is
+  # based on the textbook longest-common-substring algorithm.
+  # longestCommonSubstring will take two arrays of "lines", where a line is a start and end token
+  longestCommonSubstring = (a, b) ->
+    dpTable = ((null for [0..b.length]) for [0..a.length])
+
+    for aLine, i_ in a
+      i = i_ + 1
+      for bLine, j_ in b
+        j = j_ + 1
+        if aLine.equals bLine
+          dpTable[i][j] = new LinkedList aLine, dpTable[i - 1][j - 1]
+        else
+          if dpTable[i - 1][j]? and
+              ((not dpTable[i][j - 1]?) or
+              dpTable[i - 1][j].length > dpTable[i][j - 1].length)
+            dpTable[i][j] = dpTable[i - 1][j]
+          else
+            dpTable[i][j] = dpTable[i][j - 1]
+
+    return dpTable[a.length][b.length].toArray()
+  
+  # Now the diff function itself; any tokens
+  # that were in the original string but not the lcs
+  # were removed, and any that are in the new string and not the lcs
+  # were added.
+  diff = (a, b) ->
+    a = (new IceEditorLine(k[0], k[1]) for k in a); b = (new IceEditorLine(k[0], k[1]) for k in b)
+    lcs = longestCommonSubstring a, b
+
+    linesRemoved = []
+    linesAdded = []
+
+    indexInA = indexInB = 0
+
+    for line in lcs
+      until a[indexInA].equals line
+        linesRemoved.push {
+          position: indexInA
+          value: a[indexInA].getCloned()
+        }
+        indexInA += 1
+      indexInA += 1
+
+    for line in lcs
+      until b[indexInB].equals line
+        linesAdded.push {
+          position: indexInB
+          value: b[indexInB].getCloned()
+        }
+        indexInB += 1
+      indexInB += 1
+
+    return {
+      added: linesAdded,
+      removed: linesRemoved
+    }
+  
+  # ## iceEditorChangeEvent ##
+  # Simple struct that serves as the argument type to
+  # @onChange()
   exports.IceEditorChangeEvent = class IceEditorChangeEvent
     constructor: (@block, @target) ->
 
@@ -81,7 +177,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @ace.getSession().setTabSize 2
       @ace.setShowPrintMargin false
       @ace.setFontSize 15
-      #@ace.renderer.setShowGutter false
 
       @el = document.createElement 'div'; @el.className = 'ice_editor'
       wrapper.appendChild @el
@@ -291,6 +386,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         #@ace.setValue @getValue()
         if @onChange? then try @onChange event
 
+      # TODO move to top
+      @lastEditorState = null
+
       moveBlockTo = (block, target) =>
         parent = block.start.prev
         while parent? and (parent.type is 'newline' or (parent.type is 'segmentStart' and parent.segment isnt @tree) or parent.type is 'cursor') then parent = parent.prev
@@ -319,6 +417,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             else parent) else null
         
         block.moveTo target
+
+        _diff = diff @lastEditorState.getLineMarkers(), @tree.getLineMarkers()
+        console.log 'REMOVED'
+        for line in _diff.removed
+          console.log line.value
+        console.log 'ADDED'
+        for line in _diff.added
+          console.log line.value
+        @lastEditorState = @tree.clone()
         @triggerOnChangeEvent new IceEditorChangeEvent block, target
 
       @undo = =>
@@ -436,7 +543,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       insertHandwrittenBlock = =>
         # Create the new block and socket for a new handwritten line
-        newBlock = new model.Block []; newSocket = new model.Socket []
+        newBlock = new model.Block(); newSocket = new model.Socket []
         newSocket.handwritten = true
 
         # Put the new socket into the new block
@@ -859,9 +966,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
-
-        console.log event.changedTouches[0].pageX, findPosLeft(track)
-        console.log event.changedTouches[0].pageY, findPosTop(track)
 
         performNormalMouseDown getPointFromEvent(event.changedTouches[0]), true
 
@@ -1360,6 +1464,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       try
         @ace.setValue value, -1
         @tree = coffee.parse(value).segment
+        @lastEditorState = @tree.clone()
         @redraw()
       catch
         return false
@@ -1410,8 +1515,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           lineHeight: @ace.renderer.layerConfig.lineHeight
           leftEdge: @ace.container.getBoundingClientRect().left - findPosLeft(@aceEl) + @ace.renderer.$gutterLayer.gutterWidth
 
-        console.log @ace.container.getBoundingClientRect(), @aceEl.offsetLeft, @aceEl.offsetTop
-        console.log @ace.renderer.layerConfig.offset, @ace.renderer.scrollLeft
         while head isnt @tree.end
           if head.type is 'text'
             translationVectors.push head.view.computePlaintextTranslationVector state, @mainCtx
