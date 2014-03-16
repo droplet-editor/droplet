@@ -61,98 +61,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       return "rgb(#{Math.round(@currentRGB[0])},#{Math.round(@currentRGB[1])},#{Math.round(@currentRGB[2])})"
 
-  # ## diff ##
-  # Returns an array of line operations to perform to transform ice editor segment
-  # a to segment b. Used in the undo stack.
+  # ## FloatingBlockDescriptor ##
+  # A struct representing a block and position for floating blocks
+  class FloatingBlockDescriptor
+    constructor: ({position: @position, block: @block}) ->
 
-  class IceEditorLine
-    # Start and end here ought to be newline tokens
-    constructor: (@start, @end) ->
-    
-    stringify: -> @start.stringify
-      indent: ''
-      stopToken: @end
-    
-    # Line equality will actually hold as long as the strings for the line are the same.
-    # Any discrepancy here will be dealt with summariliy by one of the reparses
-    # that the controller does ten times a second.
-    equals: (other) -> other.stringify() is @stringify()
-
-    getCloned: -> @stringify() #model.cloneTokens @start, @end # DEBUGGING
-  
-  # For longestCommonSubstring we will need a simple linked list
-  # implementation.
-  class LinkedList
-    constructor: (@value, @next) ->
-      if @next? then @length = @next.length + 1
-      else @length = 1
-
-    toArray: ->
-      head = this
-      array = []
-      until head is null
-        array.unshift head.value
-        head = head.next
-
-      return array
-
-  # As per tradition, an implementation of diff is
-  # based on the textbook longest-common-substring algorithm.
-  # longestCommonSubstring will take two arrays of "lines", where a line is a start and end token
-  longestCommonSubstring = (a, b) ->
-    dpTable = ((null for [0..b.length]) for [0..a.length])
-
-    for aLine, i_ in a
-      i = i_ + 1
-      for bLine, j_ in b
-        j = j_ + 1
-        if aLine.equals bLine
-          dpTable[i][j] = new LinkedList aLine, dpTable[i - 1][j - 1]
-        else
-          if dpTable[i - 1][j]? and
-              ((not dpTable[i][j - 1]?) or
-              dpTable[i - 1][j].length > dpTable[i][j - 1].length)
-            dpTable[i][j] = dpTable[i - 1][j]
-          else
-            dpTable[i][j] = dpTable[i][j - 1]
-
-    return dpTable[a.length][b.length].toArray()
-  
-  # Now the diff function itself; any tokens
-  # that were in the original string but not the lcs
-  # were removed, and any that are in the new string and not the lcs
-  # were added.
-  diff = (a, b) ->
-    a = (new IceEditorLine(k[0], k[1]) for k in a); b = (new IceEditorLine(k[0], k[1]) for k in b)
-    lcs = longestCommonSubstring a, b
-
-    linesRemoved = []
-    linesAdded = []
-
-    indexInA = indexInB = 0
-
-    for line in lcs
-      until a[indexInA].equals line
-        linesRemoved.push {
-          position: indexInA
-          value: a[indexInA].getCloned()
-        }
-        indexInA += 1
-      indexInA += 1
-
-    for line in lcs
-      until b[indexInB].equals line
-        linesAdded.push {
-          position: indexInB
-          value: b[indexInB].getCloned()
-        }
-        indexInB += 1
-      indexInB += 1
-
-    return {
-      added: linesAdded,
-      removed: linesRemoved
-    }
+    clone: -> new FloatingBlockDescriptor
+      position: new draw.Point @position.x, @position.y
+      block: @block.clone()
   
   # ## iceEditorChangeEvent ##
   # Simple struct that serves as the argument type to
@@ -363,10 +279,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               parent = handwrittenBlock.start.prev
               newBlock = (coffee.parse handwrittenBlock.stringify()).segment
 
+              # Add an undo operation
+              addMicroUndoOperation
+                type: 'handwrittenReparse'
+                location: handwrittenBlock.start.prev.getSerializedLocation()
+                before: handwrittenBlock.clone()
+                after: newBlock.clone()
+
               # Unfortunately moveTo handles whitepsace for us,
               # which we do not want to do, so we must splice the block out ourselves.
               handwrittenBlock.start.prev.append handwrittenBlock.end.next
-
               handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
               
               newBlock.moveTo parent
@@ -377,6 +299,80 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # We have done some modifications, so we must redraw.
         @redraw()
       
+      # ## addMicroUndoOperation ##
+      # Bureaucracy wrapper for pushing to the undo stack.
+      addMicroUndoOperation = (operation) =>
+        # For clarity, we ensure that the operation
+        # is of one of the known types.
+        unless operation?.type in [
+          'socketTextChange'
+          'socketReparse'
+          'handwrittenReparse'
+          'blockMove'
+          'blockMoveToFloat'
+          'blockMoveFromFloat'
+        ] then return
+        @undoStack.push operation
+
+      captureUndoEvent = =>
+        @undoStack.push
+          type: 'operationMarker'
+
+      # ## undo ##
+      # Actually reverse some operations in the undo stack.
+      @undo = =>
+        if @undoStack.length is 0 then return
+
+        operation = @undoStack.pop()
+
+        # If last logged mutationwas to capture an undo operation,
+        # skip over it (undo should actually do at least one mutation action).
+        if operation.type is 'operationMarker' then operation = @undoStack.pop()
+        
+        until (not operation?) or operation.type is 'operationMarker'
+          console.log operation, @undoStack
+          switch operation.type
+            when 'socketTextChange'
+              socketStart = @tree.getTokenAtLocation operation.socket - 1
+              socketStart.socket.content().remove()
+              socketStart.insert new model.TextToken operation.before
+            #when 'socketReparse'
+            #when 'handwrittenReparse'
+            when 'blockMove'
+              console.log 'was a blockMove'
+
+              if operation.after?
+                @tree.getTokenAtLocation(operation.after).block.moveTo null
+              
+              if operation.before?
+                target = @tree.getTokenAtLocation operation.before - 1
+                if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
+                  target = target.insert new model.NewlineToken()
+                console.log target
+                operation.block.moveTo target
+            when 'blockMoveToFloat'
+              # Remove the block from the list of floating blocks
+              @floatingBlocks.splice operation.floatingBlockIndex
+              
+              if operation.before?
+                target = @tree.getTokenAtLocation operation.before - 1
+                if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
+                  target = target.insert new model.NewlineToken()
+                console.log target
+                operation.block.moveTo target
+            when 'blockMoveFromFloat'
+              if operation.after?
+                @tree.getTokenAtLocation(operation.after).block.moveTo null
+
+              @floatingBlocks.push operation.before
+
+          operation = @undoStack.pop()
+
+        @redraw()
+
+        return @undoStack.length
+      
+      # ## triggerOnChangeEvent ##
       # A wrapper function which fires every time
       # the editor content might have changed.
       # We allow bindings to this function with the @onChange property,
@@ -386,134 +382,44 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         #@ace.setValue @getValue()
         if @onChange? then try @onChange event
 
-      # TODO move to top
-      @lastEditorState = null
-
+      
+      # ## moveBlockTo ##
+      # We want to have some bottleneck for most block moves;
+      # this is it. It manages things like the undo stack.
       moveBlockTo = (block, target) =>
+        # Find the parent of this block,
+        # the parent being the token for which we can call block.moveTo(parent)
+        # and result in the current location.
         parent = block.start.prev
         while parent? and (parent.type is 'newline' or (parent.type is 'segmentStart' and parent.segment isnt @tree) or parent.type is 'cursor') then parent = parent.prev
         
         # Check to see if this is a floating block.
+        # Note that if it is a floating block, it could only have gotten that way
+        # by being picked up first, so (before) is null.
         for float in @floatingBlocks
           if block is float.block
-            @undoStack.push
-              type: 'floatingBlockMove'
-              block: block
-              position: float.position
-
+            addMicroUndoOperation
+              type: 'blockMoveFromFloat'
+              before: float.clone()
+              after: if target? then target.getSerializedLocation() else null
+              block: block.clone()
+          
           block.moveTo target
           @triggerOnChangeEvent new IceEditorChangeEvent block, target
 
           return
         
-        @undoStack.push
+        # Log the undo operation
+        addMicroUndoOperation
           type: 'blockMove'
-          block: block
-          target: if parent? then (switch parent.type
-            when 'indentStart', 'indentEnd' then parent.indent
-            when 'blockStart', 'blockEnd' then parent.block
-            when 'socketStart', 'socketEnd' then parent.socket
-            when 'segmentStart', 'segmentEnd' then parent.segment
-            else parent) else null
-        
+          before: if parent? then parent.getSerializedLocation() else null
+          after: if target? then target.getSerializedLocation() else null
+          block: block.clone()
+
         block.moveTo target
 
-        _diff = diff @lastEditorState.getLineMarkers(), @tree.getLineMarkers()
-        console.log 'REMOVED'
-        for line in _diff.removed
-          console.log line.value
-        console.log 'ADDED'
-        for line in _diff.added
-          console.log line.value
-        @lastEditorState = @tree.clone()
         @triggerOnChangeEvent new IceEditorChangeEvent block, target
 
-      @undo = =>
-        # If the undo stack is empty, give up.
-        unless @undoStack.length > 0 then return
-      
-        # Otherwise, pop from the stack.
-        operation = lastOperation = @undoStack.pop()
-        
-        if operation.type is 'blockMove'
-          for float, i in @floatingBlocks
-            if operation.block is float.block
-              @floatingBlocks.splice i, 1
-
-          while true # (this is for a wanted do-while syntax)
-            
-            # If we have reached the end of the stack (this will rarely occur),
-            # give up.
-            unless operation? then break
-            
-            # Simulate dropping the block into its target
-            if operation.target? then switch operation.target.type
-              when 'indent'
-                head = operation.target.end.prev
-                while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
-
-                if head.type is 'newline'
-                  # There's already a newline here.
-                  operation.block.moveTo operation.target.start.next
-                else
-                  # An insert drop signifies that we want to drop the block at the start of the indent
-                  operation.block.moveTo operation.target.start.insert new model.NewlineToken()
-
-              when 'block'
-                # A block drop signifies that we want to drop the block after (the end of) the block.
-                operation.block.moveTo operation.target.end.insert new model.NewlineToken()
-
-              when 'socket'
-                # Remove any previously occupying block or text
-                if operation.target.content()? then operation.target.content().remove()
-
-                # Insert
-                operation.block.moveTo operation.target.start
-              
-              else
-                if operation.target is @tree
-                  # We can also drop on the root tree (insert at the start of the program)
-                  operation.block.moveTo @tree.start
-
-                  # Don't insert a newline if it would create an empty line at the end of the file.
-                  unless operation.block.end.next is @tree.end
-                    operation.block.end.insert new model.NewlineToken()
-            else
-              operation.block.moveTo operation.target
-              
-            # We are done if we have actually reversed a block move,
-            # or if we are in a different operation.
-            if operation.type is 'floatingBlockMove'
-              operation.block.moveTo null
-
-              @floatingBlocks.push
-                position: operation.position
-                block: operation.block
-
-            if operation.target? or operation.type isnt 'blockMove' or operation.block isnt lastOperation.block then break
-            
-            # Otherwise, advance.
-            operation = @undoStack.pop()
-
-        else if operation.type is 'socketTextChange'
-          # Change the text of the desired socket.
-          operation.socket.content().value = operation.value
-
-        else if operation.type is 'floatingBlockMove'
-          for float, i in @floatingBlocks
-            if operation.block is float.block
-              @floatingBlocks.splice i, 1
-
-          operation.block.moveTo null
-
-          @floatingBlocks.push
-            position: operation.position
-            block: operation.block
-
-        @redraw()
-
-        @triggerOnChangeEvent new IceEditorChangeEvent operation.block, operation.target
-      
       # The redrawPalette function ought to be called only once in the current code structure.
       # If we want to scroll the palette later on, then this will be called to do so.
       @redrawPalette = =>
@@ -537,7 +443,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # (call it right away)
       @redrawPalette()
       
-      # ##Cursor operations ##
+      # ## Cursor operations ##
       # Functions that manipulate the cursor. The cursor is a normal ICE editor model token
       # that is rendered specially in the View.
 
@@ -623,7 +529,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         scrollCursorIntoView()
 
-
       deleteFromCursor = =>
         # Seek the block that we want to delete (i.e. the block that ends first before the cursor, if such thing exists)
         head = @cursor.prev
@@ -637,8 +542,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if head.type is 'blockEnd'
           moveBlockTo head.block, null; @redraw()
 
-        console.log head.type
-
         # If there is an indent before us and the indent is empty, delete it and redraw.
         if head.type is 'indentStart'
           # First, we must check to make sure that the indent is actually empty.
@@ -646,8 +549,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           while nextVisibleElement.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd']
             nextVisibleElement = nextVisibleElement.next
 
-          console.log nextVisibleElement
-          
           # If the indent is indeed empty, delete it.
           # Remember, though, that the cursor is currently inside this indent, so we need to move it out first.
           if nextVisibleElement is head.indent.end
@@ -1130,9 +1031,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           else
             # If we have dropped the block in nowhere, append it (and it's floating position) to @floatingBlocks.
             if dest.x > 0
-              @floatingBlocks.push
+              descriptor = new FloatingBlockDescriptor
                 position: dest
                 block: @selection
+
+              addMicroUndoOperation
+                type: 'blockMoveToFloat'
+                before: null
+                after: descriptor.clone()
+                floatingBlockIndex: @floatingBlocks.length
+                block: @selection.clone()
+
+              @floatingBlocks.push descriptor
             
             # If we have dropped the block on the palette, then delete it.
             # This normally requires no operations, but if we have selected it as the lassoSegment,
@@ -1164,6 +1074,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       track.addEventListener 'mouseup', (event) =>
         performNormalMouseUp event
+
+        captureUndoEvent()
 
       track.addEventListener 'touchend', (event) =>
         event.preventDefault()
@@ -1348,31 +1260,58 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       setTextInputFocus = (focus) =>
         # Deal with the previous focus
         if @focus?
+          # Log in the undo stack that the text input value changed
+          if @ephemeralOldFocusValue isnt @focus.stringify()
+            addMicroUndoOperation
+              type: 'socketTextChange'
+              socket: @focus.start.getSerializedLocation()
+              before: @ephemeralOldFocusValue
+              after: @focus.stringify()
+          
           try
-            console.log @focus, @focus.content()
-            # Attempt to reparse what's in the socket
-            newParse = coffee.parse(@focus.stringify()).next
-            console.log 'successfully parsed old expression', "'" + @focus.stringify() + "'", newParse
-            if newParse.type is 'blockStart'
-              console.log 'successfully parsed old expression _to block_'
-              if @focus.handwritten
-                newParse.block.moveTo @focus.start.prev.block.start.prev
+            if @focus.handwritten
+              # If we are in a handwritten block, we actually want to reparse
+              # the entire block we're in
+              newParse = coffee.parse @focus.start.prev.block.stringify()
+
+              # If what has been parsed ends up creating a new block,
+              # subsitute this new block for the old (unstable) text
+              if newParse.type is 'blockStart'
+                # Log in the undo stack the operation
+                # we're about to do
+                addMicroUndoOperation
+                  type: 'handwrittenReparse'
+                  location: @focus.start.prev.prev.getSerializedLocation()
+                  before: @focus.start.prev.block.clone()
+                  after: newParse.block.clone()
+
+                newParse.block.moveTo @focus.start.prev.prev
                 @focus.start.prev.block.moveTo null
-              else
+              
+            else
+              # If we are not a handwritten block, attempt to reparse
+              # just what's in the socket
+              newParse = coffee.parse(@focus.stringify()).next
+              
+              # If what has been parsed ends up creating a new block,
+              # subsitute this new block for the old (unstable) text
+              if newParse.type is 'blockStart'
+                # Log in the undo stack the operation
+                # we're about to do
+                addMicroUndoOperation
+                  type: 'socketReparse'
+                  location: @focus.start.getSerializedLocation()
+                  before: @focus.content()
+                  after: newParse.block.clone()
+                
                 if @focus.content()?.type is 'text' then @focus.content().remove()
                 else if @focus.content()?.type is 'block' then @focus.content().moveTo null
-
+                
                 newParse.block.moveTo @focus.start
 
           # Fire the onchange handler
           @triggerOnChangeEvent new IceEditorChangeEvent @focus, focus
-
-          if @ephemeralOldFocusValue isnt @focus.stringify()
-            @undoStack.push
-              type: 'socketTextChange'
-              socket: @focus
-              value: @ephemeralOldFocusValue
-
+        
         # Literally set the focus
         @focus = focus
         

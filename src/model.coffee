@@ -56,6 +56,12 @@ define ['ice-view'], (view) ->
     beginning.remove()
 
     return [clonedStart, clonedEnd]
+  
+  lengthBetween = (start, end) ->
+    head = start; len = 1
+    until head is end
+      head = head.next; len++
+    return len
 
   # # Block
   # The basic data structure in ICE Editor is a linked list. A Block is a group of 
@@ -95,6 +101,8 @@ define ['ice-view'], (view) ->
         clonedEnd.append clone.end
       
       return clone
+    
+    length: -> lengthBetween @start, @end
       
     # ## inSocket ##
     # Is this block in a Socket? This function is mainly used
@@ -265,6 +273,8 @@ define ['ice-view'], (view) ->
       
       @view = new view.SegmentView this
     
+    length: -> lengthBetween @start, @end
+
     # ## clone ##
     # Like Block, creates an Segment whose string representation and data structure 
     # is identical, but shares no linked-list pointers with us.
@@ -354,21 +364,24 @@ define ['ice-view'], (view) ->
       indent: ''
       stopToken: @end
     
-    # ## getLineMarkers ##
-    # Get every pair of consecutive newline tokens,
-    # used in the controller for diffing ice editor trees.
-    getLineMarkers: ->
-      head = @start.next
-      last = @start
-      lines = []
-      until head is @end
-        if head.type is 'newline'
-          lines.push [last, head]
-          last = head
+    # ## getTokenAtLocation ##
+    # Get the token at serialized location (location), produced
+    # with Token::getSerializedLocation()
+    getTokenAtLocation: (location) ->
+      # A location of "null" means token "null"
+      unless location? then return null
+
+      # Otherwise, location (n) means the (nth) token
+      # from the start (not including segments or the cursor)
+      head = @start
+      for [1..location]
+        while head.type in ['segmentStart', 'segmentEnd', 'cursor']
+          head = head.next
         head = head.next
-      
-      lines.push [last, head]
-      return lines
+
+      while head.type in ['segmentStart', 'segmentEnd', 'cursor']
+        head = head.next
+      return head
 
   # # Socket
   # A Socket is an inline droppable area for a Block, and
@@ -501,18 +514,24 @@ define ['ice-view'], (view) ->
       if @prev? then @prev.next = @next
       if @next? then @next.prev = @prev
       @prev = @next = null
-    
+
     # ## stringify ##
     # Converting a Token to a string gets you the compilation of this
     # and every token after it. 
     stringify: (state) -> if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
     
-    # ## getExactStringValue ##
-    # Get the string that this token exactly contributes to a toString().
-    # This definition does not apply to newlines.
-    getExactStringValue: -> ''
+    # ## getSerializedLocation ##
+    # Get dead data representing this token's position in the tree.
+    getSerializedLocation: ->
+      head = this
+      count = 0
+      until head is null
+        unless head.type in ['cursor', 'segmentStart', 'segmentEnd']
+          count += 1
+        head = head.prev
+      return count
 
-  ## Special kinds of tokens
+  # # Special kinds of tokens
 
   # ## CursorToken ##
   # A user's cursor, which the Controller can perform operations at
@@ -537,8 +556,6 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
-
-    getExactStringValue: -> @value
 
   # ## Markup tokens ##
   # These are the tokens to which we referred earlier when we discussed
