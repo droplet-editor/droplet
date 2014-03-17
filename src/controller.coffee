@@ -276,13 +276,24 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # To replace a block, we record its parent,
             # splice it out, and splice the replacement in.
             try
-              parent = handwrittenBlock.start.prev
+              testHead = parent = handwrittenBlock.start.prev
+
+              # Make sure that this block is actually in the tree
+              # (as we don't want to log an undo event for a no-op)
+              until testHead is null or testHead is @tree.start
+                testHead = testHead.prev
+              
+              if testHead is null
+                continue
+              
               newBlock = (coffee.parse handwrittenBlock.stringify()).segment
+
+              console.log handwrittenBlock.stringify(), handwrittenBlock.start.getSerializedLocation()
 
               # Add an undo operation
               addMicroUndoOperation
                 type: 'handwrittenReparse'
-                location: handwrittenBlock.start.prev.getSerializedLocation()
+                location: handwrittenBlock.start.getSerializedLocation()
                 before: handwrittenBlock.clone()
                 after: newBlock.clone()
 
@@ -311,16 +322,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           'blockMove'
           'blockMoveToFloat'
           'blockMoveFromFloat'
+          'createIndent'
+          'destroyIndent'
         ] then return
         @undoStack.push operation
 
       captureUndoEvent = =>
-        @undoStack.push
-          type: 'operationMarker'
+        unless @undoStack[@undoStack.length - 1]?.type is 'operationMarker'
+          @undoStack.push
+            type: 'operationMarker'
 
       # ## undo ##
       # Actually reverse some operations in the undo stack.
       @undo = =>
+        @cursor.remove()
         if @undoStack.length is 0 then return
 
         operation = @undoStack.pop()
@@ -333,21 +348,40 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           console.log operation, @undoStack
           switch operation.type
             when 'socketTextChange'
-              socketStart = @tree.getTokenAtLocation operation.socket - 1
+              socketStart = @tree.getTokenAtLocation operation.location - 1
               socketStart.socket.content().remove()
               socketStart.insert new model.TextToken operation.before
-            #when 'socketReparse'
-            #when 'handwrittenReparse'
-            when 'blockMove'
-              console.log 'was a blockMove'
+            when 'socketReparse'
+              socketStart = @tree.getTokenAtLocation operation.location - 1
+              socketStart.append socketStart.socket.end
+              socketStart.insert operation.before
+            when 'handwrittenReparse'
+              attachBefore = @tree.getTokenAtLocation operation.location - 2
+              attachAfter = attachBefore.next.block.end.next
 
+              attachBefore.append operation.before.start
+              operation.before.end.append attachAfter
+            when 'blockMove'
               if operation.after?
                 @tree.getTokenAtLocation(operation.after).block.moveTo null
               
               if operation.before?
                 target = @tree.getTokenAtLocation operation.before - 1
-                if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
+
+                if target.type is 'indentStart'
+                  head = highlight.end.prev
+                  while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
+                  
+                  unless head.type is 'newline'
+                    target = target.insert new model.NewlineToken()
+
+                else if target is @tree.start
+                  unless @tree.start.next is @tree.end
+                    target.insert new model.NewlineToken()
+
+                else if target.type is 'blockEnd'
                   target = target.insert new model.NewlineToken()
+
                 console.log target
                 operation.block.moveTo target
             when 'blockMoveToFloat'
@@ -366,7 +400,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
               @floatingBlocks.push operation.before
 
+            when 'createIndent'
+              attachBefore = @tree.getTokenAtLocation(operation.location)
+              attachBefore.prev.append attachBefore.indent.end.next
+
           operation = @undoStack.pop()
+
+          @redraw()
+          debugger
 
         @redraw()
 
@@ -448,8 +489,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # that is rendered specially in the View.
 
       insertHandwrittenBlock = =>
+        captureUndoEvent()
+
         # Create the new block and socket for a new handwritten line
-        newBlock = new model.Block(); newSocket = new model.Socket []
+        newBlock = new model.Block(); newSocket = new model.Socket null
         newSocket.handwritten = true
 
         # Put the new socket into the new block
@@ -553,6 +596,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # Remember, though, that the cursor is currently inside this indent, so we need to move it out first.
           if nextVisibleElement is head.indent.end
             moveCursorDown()
+            captureUndoEvent()
+
+            addMicroUndoEvent
+              type: 'destroyIndent'
+              location: head.prev.getSerializedLocation()
+
             head.prev.append head.indent.end.next
             @redraw()
 
@@ -657,8 +706,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             
             # We have found a block we want to move into, but there's no indent here, so create one.
             else
-              # Create and insert a new indent
-              newIndent = new model.Indent [], INDENT_SPACES
+              addMicroUndoOperation
+                type: 'createIndent'
+                location: head.prev.getSerializedLocation()
+
+              # Create and insert a new indent (default 2 spaces)
+              newIndent = new model.Indent INDENT_SPACES
               head.prev.insert newIndent.start; head.prev.insert newIndent.end
 
               # Move the block we're editing into this new indent
@@ -1262,9 +1315,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if @focus?
           # Log in the undo stack that the text input value changed
           if @ephemeralOldFocusValue isnt @focus.stringify()
+            unless @focus.handwritten then captureUndoEvent()
+
             addMicroUndoOperation
               type: 'socketTextChange'
-              socket: @focus.start.getSerializedLocation()
+              location: @focus.start.getSerializedLocation()
               before: @ephemeralOldFocusValue
               after: @focus.stringify()
           
@@ -1301,7 +1356,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 addMicroUndoOperation
                   type: 'socketReparse'
                   location: @focus.start.getSerializedLocation()
-                  before: @focus.content()
+                  before: @focus.content().clone()
                   after: newParse.block.clone()
                 
                 if @focus.content()?.type is 'text' then @focus.content().remove()
