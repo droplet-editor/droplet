@@ -78,6 +78,8 @@ define ['ice-view'], (view) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
+      @start.next = @end; @end.prev = @start
+
       @currentlyParenWrapped = false
 
       @type = 'block'
@@ -212,6 +214,8 @@ define ['ice-view'], (view) ->
       @start = new IndentStartToken this
       @end = new IndentEndToken this
       @type = 'indent'
+
+      @start.next = @end; @end.prev = @start
       
       @view = new view.IndentView this
 
@@ -270,6 +274,8 @@ define ['ice-view'], (view) ->
       @start = new SegmentStartToken this
       @end = new SegmentEndToken this
       @type = 'segment'
+
+      @start.next = @end; @end.prev = @start
       
       @view = new view.SegmentView this
     

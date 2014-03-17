@@ -2,7 +2,7 @@
   position: absolute;
 }
 .canvas, .drag {
-  left: 300;
+  left: 300px;
   top: 0;
 }
 .drag {
@@ -27,8 +27,8 @@
 }
 .hidden_input {
   position: absolute;
-  top: -9999;
-  left: -9999;
+  top: -9999px;
+  left: -9999px;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
