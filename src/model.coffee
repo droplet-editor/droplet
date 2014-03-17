@@ -6,6 +6,62 @@
 
 define ['ice-view'], (view) ->
   exports = {}
+  # ## cloneTokens ##
+  # Return a pointer-unrelated start and end tokens whose linkage
+  # structure is the same as the given start and end tokens.
+  exports.cloneTokens = cloneTokens = (start, end) ->
+    head = start
+    cursor = beginning = new Token()
+    
+    # This is "while true" to simulate a kind of
+    # do-while; we want to actually perform this action
+    # the first time our condition is true but no more.
+    while true
+      switch head.type
+        when 'blockStart'
+          block_clone = head.block.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.block.end
+        when 'socketStart'
+          block_clone = head.socket.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.socket.end
+        when 'indentStart'
+          block_clone = head.indent.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.indent.end
+        when 'segmentStart'
+          block_clone = head.segment.clone()
+          block_clone.start.prev = cursor
+          cursor.next = block_clone.start
+          cursor = block_clone.end
+          head = head.segment.end
+        else
+          unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
+      
+      # Here's the condition we talked about earlier
+      if head is end then break
+
+      head = head.next
+    
+    clonedStart = beginning.next
+    clonedEnd = cursor
+
+    beginning.remove()
+
+    return [clonedStart, clonedEnd]
+  
+  lengthBetween = (start, end) ->
+    head = start; len = 1
+    until head is end
+      head = head.next; len++
+    return len
 
   # # Block
   # The basic data structure in ICE Editor is a linked list. A Block is a group of 
@@ -18,22 +74,15 @@ define ['ice-view'], (view) ->
   # wrap itself in parentheses
 
   exports.Block = class Block
-    constructor: (contents, @precedence = 0) ->
+    constructor: (@precedence = 0, @color = '#ddf') ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
       @currentlyParenWrapped = false
 
       @type = 'block'
-      @color = '#ddf'
 
       @selected = false # Are we the selected block?
-
-      # Fill up the linked list with the array of tokens we got.
-      head = @start
-      for token in contents
-        head = head.append token.clone()
-      head.append @end
 
       @view = new view.BlockView this
     
@@ -41,36 +90,19 @@ define ['ice-view'], (view) ->
     # Cloning produces a new Block entirely independent
     # of this one (there are no linked-list pointers in common).
     clone: ->
-      clone = new Block []
-      clone.color = @color
-      head = @start.next
-      cursor = clone.start
-      while head isnt @end
-        switch head.type
-          when 'blockStart'
-            block_clone = head.block.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.block.end
-          when 'socketStart'
-            block_clone = head.socket.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.socket.end
-          when 'indentStart'
-            block_clone = head.indent.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.indent.end
-          else
-            unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
-        head = head.next
-      cursor.append clone.end
-
+      clone = new Block @precedence, @color
+      
+      unless @start.next is @end
+        [clonedStart, clonedEnd] = cloneTokens @start.next, @end.prev
+        
+        # Splice the cloned string of tokens into
+        # the cloned start and end
+        clone.start.append clonedStart
+        clonedEnd.append clone.end
+      
       return clone
+    
+    length: -> lengthBetween @start, @end
       
     # ## inSocket ##
     # Is this block in a Socket? This function is mainly used
@@ -176,15 +208,10 @@ define ['ice-view'], (view) ->
   # which is the number of spaces that it is indented in. When compiling/stringifying, every newline
   # inside an indent will add @depth spaces after it.
   exports.Indent = class Indent
-    constructor: (contents, @depth) ->
+    constructor: (@depth) ->
       @start = new IndentStartToken this
       @end = new IndentEndToken this
       @type = 'indent'
-      
-      head = @start
-      for block in contents
-        head = head.append block.clone()
-      head.append @end
       
       @view = new view.IndentView this
 
@@ -192,34 +219,16 @@ define ['ice-view'], (view) ->
     # Like Block, creates an Indent whose string representation and data structure 
     # is identical, but shares no linked-list pointers with us.
     clone: ->
-      clone = new Indent [], @depth
-      head = @start.next
-      cursor = clone.start
-      while head isnt @end
-        switch head.type
-          when 'blockStart'
-            block_clone = head.block.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.block.end
-          when 'socketStart'
-            block_clone = head.socket.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.socket.end
-          when 'indentStart'
-            block_clone = head.indent.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.indent.end
-          else
-            unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
-        head = head.next
-      cursor.append clone.end
-
+      clone = new Indent @depth
+      
+      unless @start.next is @end
+        [clonedStart, clonedEnd] = cloneTokens @start.next, @end.prev
+        
+        # Splice the cloned string of tokens into
+        # the cloned start and end
+        clone.start.append clonedStart
+        clonedEnd.append clone.end
+      
       return clone
 
     # ## find ##
@@ -251,55 +260,35 @@ define ['ice-view'], (view) ->
       string = @start.stringify(state)
       return string[...string.length-@end.stringify(state).length-1]
 
+
   # # Segment
   # A Segment is a basically invisible piece of markup, which knows its start and end tokens.
   # In rendering, this is usually passed through unnoticed. It is useful for mass tree operations,
   # for instance the Controller's LASSO SELECT, which will drag multiple blocks at once.
   exports.Segment = class Segment
-    constructor: (contents) ->
+    constructor: ->
       @start = new SegmentStartToken this
       @end = new SegmentEndToken this
       @type = 'segment'
       
-      head = @start
-      for block in contents
-        head = head.append block.clone()
-      head.append @end
-      
       @view = new view.SegmentView this
     
+    length: -> lengthBetween @start, @end
+
     # ## clone ##
     # Like Block, creates an Segment whose string representation and data structure 
     # is identical, but shares no linked-list pointers with us.
     clone: ->
-      clone = new Segment []
-      head = @start.next
-      cursor = clone.start
-      while head isnt @end
-        switch head.type
-          when 'blockStart'
-            block_clone = head.block.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.block.end
-          when 'socketStart'
-            block_clone = head.socket.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.socket.end
-          when 'indentStart'
-            block_clone = head.indent.clone()
-            block_clone.start.prev = cursor
-            cursor.next = block_clone.start
-            cursor = block_clone.end
-            head = head.indent.end
-          else
-            unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
-        head = head.next
-      cursor.append clone.end
+      clone = new Segment()
 
+      unless @start.next is @end
+        [clonedStart, clonedEnd] = cloneTokens @start.next, @end.prev
+        
+        # Splice the cloned string of tokens into
+        # the cloned start and end
+        clone.start.append clonedStart
+        clonedEnd.append clone.end
+      
       return clone
     
     # ## remove ##
@@ -355,7 +344,7 @@ define ['ice-view'], (view) ->
     find: (f) ->
       # Find the innermost child fitting function f(x)
       head = @start.next
-      while head isnt @end
+      until head is @end
         # If we found a child block, find in there
         if head.type is 'blockStart' and f(head.block) then return head.block.find f
         else if head.type is 'indentStart' and f(head.indent) then return head.indent.find f
@@ -374,6 +363,25 @@ define ['ice-view'], (view) ->
     stringify: -> @start.stringify
       indent: ''
       stopToken: @end
+    
+    # ## getTokenAtLocation ##
+    # Get the token at serialized location (location), produced
+    # with Token::getSerializedLocation()
+    getTokenAtLocation: (location) ->
+      # A location of "null" means token "null"
+      unless location? then return null
+
+      # Otherwise, location (n) means the (nth) token
+      # from the start (not including segments or the cursor)
+      head = @start
+      for [1..location]
+        while head.type in ['segmentStart', 'segmentEnd', 'cursor']
+          head = head.next
+        head = head.next
+
+      while head.type in ['segmentStart', 'segmentEnd', 'cursor']
+        head = head.next
+      return head
 
   # # Socket
   # A Socket is an inline droppable area for a Block, and
@@ -506,18 +514,24 @@ define ['ice-view'], (view) ->
       if @prev? then @prev.next = @next
       if @next? then @next.prev = @prev
       @prev = @next = null
-    
+
     # ## stringify ##
     # Converting a Token to a string gets you the compilation of this
     # and every token after it. 
     stringify: (state) -> if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
     
-    # ## getExactStringValue ##
-    # Get the string that this token exactly contributes to a toString().
-    # This definition does not apply to newlines.
-    getExactStringValue: -> ''
+    # ## getSerializedLocation ##
+    # Get dead data representing this token's position in the tree.
+    getSerializedLocation: ->
+      head = this
+      count = 0
+      until head is null
+        unless head.type in ['cursor', 'segmentStart', 'segmentEnd']
+          count += 1
+        head = head.prev
+      return count
 
-  ## Special kinds of tokens
+  # # Special kinds of tokens
 
   # ## CursorToken ##
   # A user's cursor, which the Controller can perform operations at
@@ -542,8 +556,6 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
-
-    getExactStringValue: -> @value
 
   # ## Markup tokens ##
   # These are the tokens to which we referred earlier when we discussed

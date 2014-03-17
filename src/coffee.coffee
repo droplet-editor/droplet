@@ -15,7 +15,7 @@ define ['ice-model'], (model) ->
   exports.mark = (nodes, text) ->
 
     id = 1
-    rootSegment = new model.Segment []
+    rootSegment = new model.Segment()
 
     text = text.split('\n')
 
@@ -114,15 +114,15 @@ define ['ice-model'], (model) ->
     mark = (node, precedence = 0, shouldParenWrap = false) ->
       switch node.constructor.name
         when 'Block'
-          indent = new model.Indent [], 2
+          indent = new model.Indent 2
           addMarkup indent, node, shouldParenWrap
 
           for expr in node.expressions
             mark expr
 
         when 'Op'
-          block = new model.Block [], operatorPrecedences[node.operator]
-          block.color=colors.VALUE
+          block = new model.Block operatorPrecedences[node.operator]
+          block.color = colors.VALUE
           addMarkup block, node, shouldParenWrap
 
           mark node.first, operatorPrecedences[node.operator] ? 0
@@ -136,15 +136,15 @@ define ['ice-model'], (model) ->
           addMarkup socket, node, shouldParenWrap
         
         when 'Call'
-          block = new model.Block [], 0
-          block.color=colors.COMMAND
+          block = new model.Block 0
+          block.color = colors.COMMAND
           addMarkup block, node, shouldParenWrap
 
           for arg in node.args
             mark arg
 
         when 'Code'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.VALUE
           addMarkup block, node, shouldParenWrap
 
@@ -157,7 +157,7 @@ define ['ice-model'], (model) ->
           mark node.name
 
         when 'Assign'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.COMMAND
           addMarkup block, node, shouldParenWrap
 
@@ -165,7 +165,7 @@ define ['ice-model'], (model) ->
           mark node.value
 
         when 'For'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.CONTROL
           addMarkup block, node, shouldParenWrap
 
@@ -177,7 +177,7 @@ define ['ice-model'], (model) ->
           mark node.body
 
         when 'Range'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.VALUE
           addMarkup block, node, shouldParenWrap
           
@@ -185,7 +185,7 @@ define ['ice-model'], (model) ->
           mark node.to
 
         when 'If'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.CONTROL
           addMarkup block, node, shouldParenWrap
 
@@ -194,7 +194,7 @@ define ['ice-model'], (model) ->
           if node.elseBody? then mark node.elseBody
 
         when 'Arr'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.VALUE
           addMarkup block, node, shouldParenWrap
           
@@ -202,7 +202,7 @@ define ['ice-model'], (model) ->
             mark object
 
         when 'Return'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.RETURN
           addMarkup block, node, shouldParenWrap
 
@@ -210,7 +210,7 @@ define ['ice-model'], (model) ->
 
         when 'While'
           console.log 'encountered while'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.CONTROL
           addMarkup block, node, shouldParenWrap
 
@@ -218,24 +218,17 @@ define ['ice-model'], (model) ->
           mark node.body
 
         when 'Parens'
-          ###
-          block = new model.Block []
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
-          ###
-          console.log 'encountered parens'
-
           if node.body? then mark node.body.unwrap(), 0, true
 
         when 'Obj'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.VALUE
           addMarkup block, node, shouldParenWrap
 
           start = getBounds node.properties[0]
           end = getBounds node.properties[node.properties.length - 1]
 
-          indent = new model.Indent []
+          indent = new model.Indent 2
 
           markup.push
             token: indent.start
@@ -254,7 +247,7 @@ define ['ice-model'], (model) ->
           for property in node.properties then mark property
 
         when 'Existence'
-          block = new model.Block []
+          block = new model.Block()
           block.color = colors.VALUE
           addMarkup block, node, shouldParenWrap
           
@@ -292,7 +285,7 @@ define ['ice-model'], (model) ->
       head = head.append new model.NewlineToken()
 
       if line.trimLeft().length is 0
-        newBlock = new model.Block []; newSocket = new model.Socket []
+        newBlock = new model.Block(); newSocket = new model.Socket null
         newSocket.handwritten = true
 
         newBlock.start.insert newSocket.start
