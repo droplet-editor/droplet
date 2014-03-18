@@ -369,8 +369,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               socketStart = @tree.getTokenAtLocation operation.location
               socketStart.socket.content().remove()
               socketStart.insert new model.TextToken operation.before
+              
+              setTextInputFocus socketStart.socket
+              textInputSelectAll()
 
-              moveCursorTo socketStart
             when 'socketReparse'
               socketStart = @tree.getTokenAtLocation operation.location
               socketStart.append socketStart.socket.end
@@ -797,8 +799,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       ctrlKeyPressed = false
 
       @el.addEventListener 'keydown', (event) =>
-        # Keyboard shortcuts don't apply if they were executed in a text input area
-        if event.target.tagName in ['INPUT', 'TEXTAREA'] then return
+        # Keyboard shortcuts don't apply if they were executed in a text input area (except for UNDO)
+        if event.target.tagName in ['INPUT', 'TEXTAREA'] and not (event.keyCode in [17, 90]) then return
         
         switch event.keyCode
           when 13 then unless @isEditingText() then insertHandwrittenBlock()
@@ -1449,6 +1451,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         # Focus the hidden input
         setTimeout (=> @hiddenInput.focus()), 0
+
+      textInputSelectAll = =>
+        textInputAnchor = 0; textInputHead = @focus.stringify().length
+        @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
       setTextInputHead = (point) =>
         textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / @mainCtx.measureText(' ').width
