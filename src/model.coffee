@@ -141,6 +141,23 @@ define ['ice-view'], (view) ->
       if @start.prev? then @start.prev.next = @end.next
       if @end.next? then @end.next.prev = @start.prev
       @start.prev = @end.next = null
+
+      # Append newlines to the parent if necessary
+      switch parent?.type
+        when 'indentStart'
+          head = parent.indent.end.prev
+          while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
+
+          if head.type is 'newline'
+            parent = parent.next
+          else
+            parent = parent.insert new NewlineToken()
+        when 'blockEnd'
+          parent = parent.insert new NewlineToken()
+
+        when 'segmentStart'
+          unless parent.next is parent.segment.end
+            parent = parent.insert new NewlineToken()
       
       # Splice ourselves into the requested parent
       if parent?
@@ -333,6 +350,23 @@ define ['ice-view'], (view) ->
       if @start.prev? then @start.prev.next = @end.next
       if @end.next? then @end.next.prev = @start.prev
       @start.prev = @end.next = null
+
+      # Append newlines to the parent if necessary
+      switch parent?.type
+        when 'indentStart'
+          head = parent.indent.end
+          while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
+
+          if head.type is 'newline'
+            parent = parent.next
+          else
+            parent = parent.insert new NewlineToken()
+        when 'blockEnd'
+          parent = parent.insert new NewlineToken()
+
+        when 'segmentStart'
+          unless parent.next is parent.segment.end
+            parent = parent.insert new NewlineToken()
       
       # Splice ourselves into the requested parent
       if parent?
@@ -376,11 +410,17 @@ define ['ice-view'], (view) ->
     getTokenAtLocation: (location) ->
       # A location of "null" means token "null"
       unless location? then return null
+      
+      # A location of 0 means that the only tokens between
+      # the desired location and the start are segmentStart, segmentEnd, and cursor.
+      # Doing a normal linked-list thing might result in (null) if the list is empty,
+      # so make sure things work.
+      if location is 0 then return @start
 
       # Otherwise, location (n) means the (nth) token
       # from the start (not including segments or the cursor)
       head = @start
-      for [1..location]
+      for [1...location]
         while head.type in ['segmentStart', 'segmentEnd', 'cursor']
           head = head.next
         head = head.next

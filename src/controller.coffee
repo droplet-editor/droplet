@@ -96,7 +96,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @el = document.createElement 'div'; @el.className = 'ice_editor'
       wrapper.appendChild @el
-
+      
+      # Give our element a tabindex so we can keep track of its focus.
+      @el.tabIndex = 0
 
       # ## Field declaration ##
       # (useful to have all in one place)
@@ -160,19 +162,33 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # The main canvas
       @main = document.createElement 'canvas'; @main.className = 'canvas'
-      @main.height = @el.offsetHeight
-      @main.width = @el.offsetWidth - PALETTE_WIDTH
 
       # The palette canvas
       @palette = document.createElement 'canvas'; @palette.className = 'palette'
-      @palette.height = @el.offsetHeight
-      @palette.width = PALETTE_WIDTH
 
       # The drag canvas
       drag = document.createElement 'canvas'; drag.className = 'drag'
       drag.style.opacity = 0.85
-      drag.height = @el.offsetHeight
-      drag.width = @el.offsetWidth - PALETTE_WIDTH
+
+      computeCanvasDimensions = =>
+        @main.height = @el.offsetHeight
+        @main.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+        
+        @palette.height = @el.offsetHeight
+        @palette.width = PALETTE_WIDTH
+
+        drag.height = @el.offsetHeight
+        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+      
+      # We need to resize the canvases any time the editor resizes.
+      # We will bind this to the document resize function, but this function
+      # should be called at any other time the editor is resized.
+      window.addEventListener 'resize', @resize = =>
+        computeCanvasDimensions()
+
+        @redraw(); @redrawPalette()
+
+      computeCanvasDimensions()
 
       # The hidden input
       @hiddenInput = document.createElement 'input'; @hiddenInput.className = 'hidden_input'
@@ -335,7 +351,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # ## undo ##
       # Actually reverse some operations in the undo stack.
       @undo = =>
-        @cursor.remove()
         if @undoStack.length is 0 then return
 
         operation = @undoStack.pop()
@@ -345,31 +360,45 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if operation.type is 'operationMarker' then operation = @undoStack.pop()
         
         until (not operation?) or operation.type is 'operationMarker'
-          console.log operation, @undoStack
+          # Get the cursor out of the way
+          oldCursorLocation = @cursor.getSerializedLocation()
+          @cursor.remove()
+
           switch operation.type
             when 'socketTextChange'
-              socketStart = @tree.getTokenAtLocation operation.location - 1
+              socketStart = @tree.getTokenAtLocation operation.location
               socketStart.socket.content().remove()
               socketStart.insert new model.TextToken operation.before
+
+              moveCursorTo socketStart
             when 'socketReparse'
-              socketStart = @tree.getTokenAtLocation operation.location - 1
+              socketStart = @tree.getTokenAtLocation operation.location
               socketStart.append socketStart.socket.end
               socketStart.insert operation.before
+
+              moveCursorTo socketStart
             when 'handwrittenReparse'
-              attachBefore = @tree.getTokenAtLocation operation.location - 2
+              attachBefore = @tree.getTokenAtLocation(operation.location).prev
               attachAfter = attachBefore.next.block.end.next
 
               attachBefore.append operation.before.start
               operation.before.end.append attachAfter
+
+              moveCursorTo attachAfter
             when 'blockMove'
               if operation.after?
-                @tree.getTokenAtLocation(operation.after).block.moveTo null
+                pos = @tree.getTokenAtLocation operation.after
+
+                until pos.type is 'blockStart' then pos = pos.next
+                pos.block.moveTo null
+                
+                unless operation.before? then moveCursorTo @tree.getTokenAtLocation operation.after
               
               if operation.before?
-                target = @tree.getTokenAtLocation operation.before - 1
+                target = @tree.getTokenAtLocation operation.before
 
                 if target.type is 'indentStart'
-                  head = highlight.end.prev
+                  head = target.indent.end.prev
                   while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
                   
                   unless head.type is 'newline'
@@ -384,30 +413,38 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
                 console.log target
                 operation.block.moveTo target
+
+                moveCursorTo operation.block.end
             when 'blockMoveToFloat'
               # Remove the block from the list of floating blocks
               @floatingBlocks.splice operation.floatingBlockIndex
               
               if operation.before?
-                target = @tree.getTokenAtLocation operation.before - 1
+                target = @tree.getTokenAtLocation operation.before
                 if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
                   target = target.insert new model.NewlineToken()
                 console.log target
                 operation.block.moveTo target
+
+                moveCursorTo operation.block.end
             when 'blockMoveFromFloat'
               if operation.after?
                 @tree.getTokenAtLocation(operation.after).block.moveTo null
 
               @floatingBlocks.push operation.before
-
+              
             when 'createIndent'
               attachBefore = @tree.getTokenAtLocation(operation.location)
               attachBefore.prev.append attachBefore.indent.end.next
 
+              moveCursorTo attachBefore
+
           operation = @undoStack.pop()
 
-          @redraw()
-          debugger
+        # If we have failed to reinsert the cursor, put it
+        # wherever it was before
+        if @cursor.prev is null and @cursor.next is null
+          moveCursorTo @tree.getTokenAtLocation oldCursorLocation
 
         @redraw()
 
@@ -450,6 +487,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           return
         
+        console.log 'after', target
         # Log the undo operation
         addMicroUndoOperation
           type: 'blockMove'
@@ -489,6 +527,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # that is rendered specially in the View.
 
       insertHandwrittenBlock = =>
+        setTextInputFocus null
         captureUndoEvent()
 
         # Create the new block and socket for a new handwritten line
@@ -498,24 +537,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Put the new socket into the new block
         newBlock.start.insert newSocket.start; newBlock.end.prev.insert newSocket.end
         
+        head = @cursor.prev
+        while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
+          head = head.prev
+        
         # Move it to where the cursor should be
-        if @cursor.next.type is 'newline' or @cursor.next.type is 'indentEnd' or @cursor.next.type is 'segmentEnd'
-          if @cursor.next.type is 'indentEnd' and @cursor.prev.type is 'newline'
-            moveBlockTo newBlock, @cursor.prev
-          else
-            moveBlockTo newBlock, @cursor.prev.insert new model.NewlineToken()
+        moveBlockTo newBlock, head
 
-          @redraw()
-          setTextInputFocus newSocket
-
-        else if @cursor.prev.type is 'newline' or @cursor.prev is @tree.start
-
-          moveBlockTo newBlock, @cursor.prev
-
-          newBlock.end.insert new model.NewlineToken()
-
-          @redraw()
-          setTextInputFocus newSocket
+        @redraw()
+        setTextInputFocus newSocket
 
         scrollCursorIntoView()
 
@@ -598,7 +628,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             moveCursorDown()
             captureUndoEvent()
 
-            addMicroUndoEvent
+            addMicroUndoOperation
               type: 'destroyIndent'
               location: head.prev.getSerializedLocation()
 
@@ -684,7 +714,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             if @handwritten then insertHandwrittenBlock()
             else setTextInputFocus null; @hiddenInput.blur(); @redraw()
           when 8 then if @handwritten and @hiddenInput.value.length is 0
-            deleteFromCursor(); setTextInputFocus null; @hiddenInput.blur()
+            deleteFromCursor(); setTextInputFocus null; @el.focus(); @hiddenInput.blur()
           when 9 then if @handwritten
             # Seek the block right before this handwritten block
             head = @focus.start.prev.prev
@@ -696,7 +726,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Otherwise, see if the last child of this block is an indent
             else if head.prev.type is 'indentEnd'
               # Note that it is guaranteed that a handwritten block satisfies @focus.start.prev.block is (the wrapping block)
-              moveBlockTo @focus.start.prev.block, head.prev.prev.insert new model.NewlineToken() # Move the block we're editing into the indent
+              moveBlockTo @focus.start.prev.block, head.prev.prev
 
               # Move the cursor into its proper position (after this block)
               moveCursorTo @focus.start.prev.block.end
@@ -708,22 +738,27 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             else
               addMicroUndoOperation
                 type: 'createIndent'
-                location: head.prev.getSerializedLocation()
+                location: head.getSerializedLocation()
 
               # Create and insert a new indent (default 2 spaces)
               newIndent = new model.Indent INDENT_SPACES
               head.prev.insert newIndent.start; head.prev.insert newIndent.end
+            
+              # Fill the indent with two newlines (as any empty indent must be)
+              # This is done mainly to satisfy the undo stack's need to know exactly
+              # what an indent looked like before a block move operation happened.
+              newIndent.start.insert new model.NewlineToken()
 
               # Move the block we're editing into this new indent
-              moveBlockTo @focus.start.prev.block, newIndent.start.insert new model.NewlineToken()
+              moveBlockTo @focus.start.prev.block, newIndent.start
 
               # Move the cursor into its proper position (after this block)
               moveCursorTo @focus.start.prev.block.end
 
               @redraw()
               event.preventDefault(); return false
-          when 38 then setTextInputFocus null; @hiddenInput.blur(); moveCursorUp(); @redraw()
-          when 40 then setTextInputFocus null; @hiddenInput.blur(); moveCursorDown(); @redraw()
+          when 38 then setTextInputFocus null; @hiddenInput.blur(); moveCursorUp(); @el.focus(); @redraw()
+          when 40 then setTextInputFocus null; @hiddenInput.blur(); moveCursorDown(); @el.focus(); @redraw()
           when 37 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is 0
             # Pressing the left-arrow at the leftmost end of a socket brings us to the previous socket
             head = @focus.start
@@ -751,8 +786,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if event.target isnt document.activeElement then setTextInputFocus null
       
       # Bind keyboard shortcut events to the document
+      
+      ctrlKeyPressed = false
 
-      document.body.addEventListener 'keydown', (event) =>
+      @el.addEventListener 'keydown', (event) =>
         # Keyboard shortcuts don't apply if they were executed in a text input area
         if event.target.tagName in ['INPUT', 'TEXTAREA'] then return
         
@@ -780,12 +817,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+
+          when 17 then ctrlKeyPressed = true
+
+          when 90 then if ctrlKeyPressed
+            @undo()
         
         # If we manipulated the root tree, redraw.
         if event.keyCode in [13, 38, 40, 8] then @redraw()
         
         # If we caught the keypress, prevent default.
-        if event.keyCode in [13, 38, 40, 8, 37] then event.preventDefault()
+        if event.keyCode in [13, 38, 40, 8, 37, 90] then event.preventDefault()
+
+      @el.addEventListener 'keyup', (event) =>
+        switch event.keyCode
+          when 17 then ctrKeyPressed = false
 
       # Hit-testing functions
 
@@ -1045,19 +1091,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Drop areas signify different things depending on the block that they belong to
             switch highlight.type
               when 'indent'
-                head = highlight.end.prev
-                while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
-
-                if head.type is 'newline'
-                  # There's already a newline here.
-                  moveBlockTo @selection, highlight.start.next
-                else
-                  # An insert drop signifies that we want to drop the block at the start of the indent
-                  moveBlockTo @selection, highlight.start.insert new model.NewlineToken()
+                moveBlockTo @selection, highlight.start
 
               when 'block'
                 # A block drop signifies that we want to drop the block after (the end of) the block.
-                moveBlockTo @selection, highlight.end.insert new model.NewlineToken()
+                moveBlockTo @selection, highlight.end
 
               when 'socket'
                 # Remove any previously occupying block or text
@@ -1070,10 +1108,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 if highlight is @tree
                   # We can also drop on the root tree (insert at the start of the program)
                   moveBlockTo @selection, @tree.start
-
-                  # Don't insert a newline if it would create an empty line at the end of the file.
-                  unless @selection.end.next is @tree.end
-                    @selection.end.insert new model.NewlineToken()
             
             # In the special case that we have selected a single block
             # and dropped it into a socket, we need to check for parenthesis
