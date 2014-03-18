@@ -168,7 +168,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # The drag canvas
       drag = document.createElement 'canvas'; drag.className = 'drag'
-      drag.style.opacity = 0.85
 
       computeCanvasDimensions = =>
         @main.height = @el.offsetHeight
@@ -302,9 +301,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               if testHead is null
                 continue
               
-              newBlock = (coffee.parse handwrittenBlock.stringify()).segment
+              newBlock = (coffee.parse handwrittenBlock.stringify()).next
 
-              console.log handwrittenBlock.stringify(), handwrittenBlock.start.getSerializedLocation()
+              if newBlock.type isnt 'blockStart' then continue
+              else newBlock = newBlock.block
 
               # Add an undo operation
               addMicroUndoOperation
@@ -312,6 +312,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 location: handwrittenBlock.start.getSerializedLocation()
                 before: handwrittenBlock.clone()
                 after: newBlock.clone()
+
+                # For debugging only:
+                stack: (new Error()).stack
 
               # Unfortunately moveTo handles whitepsace for us,
               # which we do not want to do, so we must splice the block out ourselves.
@@ -360,6 +363,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if operation.type is 'operationMarker' then operation = @undoStack.pop()
         
         until (not operation?) or operation.type is 'operationMarker'
+          if @focus? then setTextInputFocusRaw null
+
           # Get the cursor out of the way
           oldCursorLocation = @cursor.getSerializedLocation()
           @cursor.remove()
@@ -370,7 +375,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               socketStart.socket.content().remove()
               socketStart.insert new model.TextToken operation.before
               
-              setTextInputFocus socketStart.socket
+              setTextInputFocusRaw socketStart.socket
               textInputSelectAll()
 
             when 'socketReparse'
@@ -378,7 +383,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               socketStart.append socketStart.socket.end
               socketStart.insert operation.before
 
-              moveCursorTo socketStart
+              moveCursorToRaw socketStart
             when 'handwrittenReparse'
               attachBefore = @tree.getTokenAtLocation(operation.location).prev
               attachAfter = attachBefore.next.block.end.next
@@ -386,7 +391,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               attachBefore.append operation.before.start
               operation.before.end.append attachAfter
 
-              moveCursorTo attachAfter
+              moveCursorToRaw attachAfter
             when 'blockMove'
               if operation.after?
                 pos = @tree.getTokenAtLocation operation.after
@@ -394,7 +399,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 until pos.type is 'blockStart' then pos = pos.next
                 pos.block.moveTo null
                 
-                unless operation.before? then moveCursorTo @tree.getTokenAtLocation operation.after
+                unless operation.before? then moveCursorToRaw @tree.getTokenAtLocation operation.after
               
               if operation.before?
                 target = @tree.getTokenAtLocation operation.before
@@ -413,10 +418,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 else if target.type is 'blockEnd'
                   target = target.insert new model.NewlineToken()
 
-                console.log target
                 operation.block.moveTo target
 
-                moveCursorTo operation.block.end
+                moveCursorToRaw operation.block.end
             when 'blockMoveToFloat'
               # Remove the block from the list of floating blocks
               @floatingBlocks.splice operation.floatingBlockIndex
@@ -428,7 +432,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 console.log target
                 operation.block.moveTo target
 
-                moveCursorTo operation.block.end
+                moveCursorToRaw operation.block.end
             when 'blockMoveFromFloat'
               if operation.after?
                 @tree.getTokenAtLocation(operation.after).block.moveTo null
@@ -439,7 +443,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               attachBefore = @tree.getTokenAtLocation(operation.location)
               attachBefore.prev.append attachBefore.indent.end.next
 
-              moveCursorTo attachBefore
+              moveCursorToRaw attachBefore
 
           operation = @undoStack.pop()
 
@@ -447,8 +451,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # wherever it was before
         if @cursor.prev is null and @cursor.next is null
           moveCursorTo @tree.getTokenAtLocation oldCursorLocation
-
+        
+        scrollCursorIntoView()
         @redraw()
+
+        unless @focus? then setTimeout (=> @el.focus()), 0
 
         return @undoStack.length
       
@@ -489,7 +496,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           return
         
-        console.log 'after', target
+        console.log 'before', parent
         # Log the undo operation
         addMicroUndoOperation
           type: 'blockMove'
@@ -566,8 +573,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           @redraw()
 
-      moveCursorTo = (token) =>
-        # Splice out
+      moveCursorToRaw = (token) =>
+        # Make sure that we are actually inside the tree
+        head = token
+        until head is null or head is @tree.end
+          head = head.next
+
+        # If we are not, then give up.
+        if head is null then return
+
+        # Otherwise, splice out
         @cursor.remove()
 
         # Find the newline or end markup after the given token.
@@ -584,6 +599,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           head.insert @cursor
         else
           head.insertBefore @cursor
+    
+      moveCursorTo = (token) =>
+        moveCursorToRaw token
 
         # We have moved the cursor, so it might now be possible
         # to reparse some handwritten blocks. Try it.
@@ -591,12 +609,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         scrollCursorIntoView()
       
-      moveCursorBefore = (token) =>
+      moveCursorBeforeRaw = (token) =>
         # Splice out
         @cursor.remove()
         
         # Splice in
         token.insertBefore @cursor
+      
+      moveCursorBefore = (token) =>
+        moveCursorBeforeRaw token
 
         # We have moved the cursor, so it might now be possible
         # to reparse some handwritten blocks. Try it.
@@ -816,6 +837,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+            setTimeout (=>
+              setRawTextInputCursor head.socket.stringify().length
+              redrawTextInput()), 0
+
           when 39 then if @cursor?
             # Pressing the left-arrow at the rightmost end of a socket brings us to the next socket
             head = @cursor
@@ -826,6 +851,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+            setTimeout (=>
+              setRawTextInputCursor 0
+              redrawTextInput()), 0
 
           when 17 then ctrlKeyPressed = true
 
@@ -1368,6 +1396,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           
           try
             if @focus.handwritten
+              console.log @focus.tart.prev.block.stringify()
+
               # If we are in a handwritten block, we actually want to reparse
               # the entire block we're in
               newParse = coffee.parse @focus.start.prev.block.stringify()
@@ -1375,6 +1405,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               # If what has been parsed ends up creating a new block,
               # subsitute this new block for the old (unstable) text
               if newParse.type is 'blockStart'
+                console.log newParse
+
                 # Log in the undo stack the operation
                 # we're about to do
                 addMicroUndoOperation
@@ -1382,7 +1414,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                   location: @focus.start.prev.prev.getSerializedLocation()
                   before: @focus.start.prev.block.clone()
                   after: newParse.block.clone()
+                  
+                  # For debugging only:
+                  stack: (new Error()).stack
 
+                
                 newParse.block.moveTo @focus.start.prev.prev
                 @focus.start.prev.block.moveTo null
               
@@ -1436,8 +1472,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         else
           # Otherwise, we have an error condition.
-          throw 'Cannot edit occupied socket.'
-
+          throw new Error 'Cannot edit occupied socket.'
 
         # Find the wrapping block and move the cursor to
         head = @focus.end; depth = 0
@@ -1445,6 +1480,48 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         
         if head.type is 'newline' then moveCursorTo head
         else moveCursorBefore head
+        
+        # Set the contents of the hidden input
+        @hiddenInput.value = @editedText.value
+
+        # Focus the hidden input
+        setTimeout (=> @hiddenInput.focus()), 0
+
+      setTextInputFocusRaw = (focus) =>
+        # Literally set the focus
+        @focus = focus
+        
+        if @focus? then @ephemeralOldFocusValue = @focus.stringify()
+        else @ephemeralOldFocusValue = null
+        
+        # If we just removed the focus, then we are done.
+        if @focus is null then return
+        
+        # Record the line that the focus is on
+        _editedInputLine = @focus.view.lineStart
+
+        # Flag whether we are editing handwritten
+        @handwritten = @focus.handwritten
+        
+        if not @focus.content()
+          # If the socket is empty, put a text thing in, setting that to the edited text
+          @editedText = new model.TextToken ''
+          @focus.start.insert @editedText
+        
+        else if @focus.content().type is 'text'
+          # If the socket is not empty but contains only text, edit that text
+          @editedText = @focus.content()
+
+        else
+          # Otherwise, we have an error condition.
+          throw new Error 'Cannot edit occupied socket.'
+
+        # Find the wrapping block and move the cursor to
+        head = @focus.end; depth = 0
+        while head.type isnt 'newline' and head.type isnt 'indentEnd' and head.type isnt 'segmentEnd' then head = head.next
+        
+        if head.type is 'newline' then moveCursorToRaw head
+        else moveCursorBeforeRaw head
         
         # Set the contents of the hidden input
         @hiddenInput.value = @editedText.value
@@ -1509,7 +1586,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       try
         @ace.setValue value, -1
         @tree = coffee.parse(value).segment
-        @lastEditorState = @tree.clone()
+        @tree.start.insert @cursor
         @redraw()
       catch
         return false

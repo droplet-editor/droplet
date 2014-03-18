@@ -157,7 +157,7 @@ define ['ice-view'], (view) ->
 
         when 'segmentStart'
           unless parent.next is parent.segment.end
-            parent = parent.insert new NewlineToken()
+            parent.insert new NewlineToken()
       
       # Splice ourselves into the requested parent
       if parent?
@@ -218,9 +218,9 @@ define ['ice-view'], (view) ->
     # This one is mainly used for debugging. The string representation ("compiled code")
     # for anything between our start and end tokens. This is computed by stringifying
     # everything, then splicing off everything after the end token.
-    stringify: ->
-      string = @start.stringify indent: ''
-      return string[..string.length-@end.stringify(indent: '').length-1]
+    stringify: -> @start.stringify
+        indent: ''
+        stopToken: @end
 
   # # Indent
   # An Indent, like a Block, consists of two tokens, start and end. An Indent also knows its @depth,
@@ -277,9 +277,9 @@ define ['ice-view'], (view) ->
     # This one is mainly used for debugging. Like Block.stringify, computes
     # the compiled code for everything between the two end tokens, by stringifying
     # the start and splicing of the string representation of the end.
-    stringify: (state) ->
-      string = @start.stringify(state)
-      return string[...string.length-@end.stringify(state).length-1]
+    stringify: -> @start.stringify
+      indent: ''
+      stopToken: @end
 
 
   # # Segment
@@ -420,13 +420,20 @@ define ['ice-view'], (view) ->
       # Otherwise, location (n) means the (nth) token
       # from the start (not including segments or the cursor)
       head = @start
-      for [1...location]
-        while head.type in ['segmentStart', 'segmentEnd', 'cursor']
-          head = head.next
+      count = 1
+      until count is location or not head?
+        unless head?.type in ['segmentStart', 'segmentEnd', 'cursor'] then count += 1
         head = head.next
 
-      while head.type in ['segmentStart', 'segmentEnd', 'cursor']
+      while head?.type in ['segmentStart', 'segmentEnd', 'cursor']
         head = head.next
+      
+      # If we have already reached the end of the document
+      # (may happen if the last token is specified),
+      # return the end of the document.
+      unless head?
+        return @end
+
       return head
 
   # # Socket
@@ -568,6 +575,9 @@ define ['ice-view'], (view) ->
     
     # ## getSerializedLocation ##
     # Get dead data representing this token's position in the tree.
+    #
+    # This is the number of tokens before this token, not including the token itself,
+    # and discluding segment markup and cursors.
     getSerializedLocation: ->
       head = this
       count = 0

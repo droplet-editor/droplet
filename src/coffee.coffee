@@ -283,17 +283,6 @@ define ['ice-model'], (model) ->
     for line, i in text
       # Append the newline token
       head = head.append new model.NewlineToken()
-
-      if line.trimLeft().length is 0
-        newBlock = new model.Block(); newSocket = new model.Socket null
-        newSocket.handwritten = true
-
-        newBlock.start.insert newSocket.start
-        newBlock.end.insertBefore newSocket.end
-
-        head.append newBlock.start
-        head = newBlock.end
-        continue
       
       # Insert necessary markup on this line
       lastMark = 0
