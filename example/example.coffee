@@ -134,10 +134,6 @@ require ['main'], (ice) ->
 
   editor.setValue examplePrograms.fizzbuzz
   
-  # Buttons for undo, melt, and freeze
-  document.getElementById('undo').addEventListener 'click', ->
-    editor.undo()
-  
   messageElement = document.getElementById 'message'
   displayMessage = (text) ->
     messageElement.style.display = 'inline'

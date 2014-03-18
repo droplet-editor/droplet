@@ -637,7 +637,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         scrollCursorIntoView()
       
-      # TODO the following are known not to be able to navigate to the end of an indent.
       moveCursorUp = =>
         # Seek newline
         head = @cursor.prev.prev
@@ -769,6 +768,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+            setTimeout (=>
+              setRawTextInputCursor head.socket.stringify().length
+              redrawTextInput()), 0
+
           when 39 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is @hiddenInput.value.length
             # Pressing right left-arrow at the rightmost end of a socket brings us to the next socket
             head = @focus.end
@@ -779,7 +782,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
-      
+
+            setTimeout (=>
+              setRawTextInputCursor 0
+              redrawTextInput()), 0
+
       # When we blur the hidden input, also blur the canvas text focus
       @hiddenInput.addEventListener 'blur', (event) =>
         # If we have actually blurred (as opposed to simply unfocused the browser window)
@@ -1450,6 +1457,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       setTextInputAnchor = (point) =>
         textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x - PADDING) / @mainCtx.measureText(' ').width
+        @hiddenInput.setSelectionRange textInputAnchor, textInputHead
+
+      setRawTextInputCursor = (offset) =>
+        textInputAnchor = textInputHead = offset
         @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
       # ## Mouse events for TEXT INPUT ##
