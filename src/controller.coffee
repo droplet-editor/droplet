@@ -339,6 +339,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           'socketReparse'
           'handwrittenReparse'
           'blockMove'
+          'blockMoveToSocket'
           'blockMoveToFloat'
           'blockMoveFromFloat'
           'createIndent'
@@ -396,6 +397,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               if operation.after?
                 pos = @tree.getTokenAtLocation operation.after
 
+                if operation.displaced?
+                  pos.insert operation.displaced
+
                 until pos.type is 'blockStart' then pos = pos.next
                 pos.block.moveTo null
                 
@@ -421,6 +425,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 operation.block.moveTo target
 
                 moveCursorToRaw operation.block.end
+
             when 'blockMoveToFloat'
               # Remove the block from the list of floating blocks
               @floatingBlocks.splice operation.floatingBlockIndex
@@ -496,13 +501,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           return
         
-        console.log 'before', parent
         # Log the undo operation
         addMicroUndoOperation
           type: 'blockMove'
           before: if parent? then parent.getSerializedLocation() else null
           after: if target? then target.getSerializedLocation() else null
+          displaced: if target?.type is 'socketStart' then target.socket.content().clone() else null
           block: block.clone()
+
+        if target?.type is 'socketStart'
+          target.socket.content().remove()
 
         block.moveTo target
 
@@ -1135,9 +1143,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 moveBlockTo @selection, highlight.end
 
               when 'socket'
-                # Remove any previously occupying block or text
-                if highlight.content()? then highlight.content().remove()
-
                 # Insert
                 moveBlockTo @selection, highlight.start
               
