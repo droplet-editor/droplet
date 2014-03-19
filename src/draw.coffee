@@ -112,6 +112,7 @@ define ->
 
       @style = {
         'strokeColor': '#000'
+        'lineWidth': 1
         'fillColor': null
       }
     
@@ -196,6 +197,7 @@ define ->
     draw: (ctx) ->
       @_clearCache()
       ctx.strokeStyle = @style.strokeColor
+      ctx.lineWidth = @style.lineWidth
       if @style.fillColor? then ctx.fillStyle = @style.fillColor
       ctx.beginPath()
       ctx.moveTo @_points[0].x, @_points[0].y

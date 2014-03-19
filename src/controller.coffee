@@ -149,6 +149,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # Touchscreen scrolling fields
       @touchScrollAnchor = null
+      @scrollingPalette = false
 
       offset = null
       highlight = null
@@ -317,9 +318,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 before: handwrittenBlock.clone()
                 after: newBlock.clone()
 
-                # For debugging only:
-                stack: (new Error()).stack
-
               # Unfortunately moveTo handles whitepsace for us,
               # which we do not want to do, so we must splice the block out ourselves.
               handwrittenBlock.start.prev.append handwrittenBlock.end.next
@@ -453,6 +451,22 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               attachBefore.prev.append attachBefore.indent.end.next
 
               moveCursorToRaw attachBefore
+
+            when 'destroyIndent'
+              head = @tree.getTokenAtLocation operation.location
+              
+              console.log head
+              
+              # Create and insert a new indent (default 2 spaces)
+              newIndent = new model.Indent INDENT_SPACES
+              head.prev.insert newIndent.start; head.prev.insert newIndent.end
+              
+              # Fill the indent with two newlines (as any empty indent must be)
+              # This is done mainly to satisfy the undo stack's need to know exactly
+              # what an indent looked like before a block move operation happened.
+              newIndent.start.insert new model.NewlineToken()
+
+              moveCursorToRaw newIndent.start
 
           operation = @undoStack.pop()
 
@@ -665,7 +679,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             addMicroUndoOperation
               type: 'destroyIndent'
-              location: head.prev.getSerializedLocation()
+              location: head.getSerializedLocation()
 
             head.prev.append head.indent.end.next
             @redraw()
@@ -948,6 +962,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if not @ephemeralSelection?
           if isTouchEvent
             @touchScrollAnchor = point
+            @scrollingPalette = (point.x > 0)
 
           else
             # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
@@ -1109,10 +1124,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           drag.style.webkitTransform =
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
+
         else if @touchScrollAnchor?
           point = new draw.Point event.offsetX, event.offsetY
-          @scrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
-          @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
+          if @scrollingPalette?
+            @paletteScrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
+            @paletteCtx.setTransform 1, 0, 0, 1, 0, -@paletteScrollOffset.y
+          else
+            @scrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
+            @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
           @redraw()
       
       # Bind this mousemove function to mousemove. We need to add some
@@ -1431,10 +1451,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                   location: @focus.start.prev.prev.getSerializedLocation()
                   before: @focus.start.prev.block.clone()
                   after: newParse.block.clone()
-                  
-                  # For debugging only:
-                  stack: (new Error()).stack
-
                 
                 newParse.block.moveTo @focus.start.prev.prev
                 @focus.start.prev.block.moveTo null
