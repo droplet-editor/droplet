@@ -436,6 +436,21 @@ define ['ice-view'], (view) ->
 
       return head
 
+    getBlockOnLine: (line) ->
+      head = @start; lineCount = 0
+      stack = []
+      until lineCount is line or not head?
+        head = head.next
+        switch head.type
+          when 'newline' then lineCount++
+          when 'blockStart' then stack.push head.block
+          when 'blockEnd' then stack.pop()
+
+      while head?.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] then head = head.next
+      if head?.type is 'blockStart' then stack.push head.block
+
+      return stack[stack.length - 1]
+
   # # Socket
   # A Socket is an inline droppable area for a Block, and
   # also a typable area for Text. Like a Block and an Indent,

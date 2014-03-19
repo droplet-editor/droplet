@@ -497,7 +497,8 @@ define ['ice-draw'], (draw) ->
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH, @bounds[@lineEnd].bottom()
 
       @path.style.fillColor = @block.color
-      @path.style.strokeColor = '#000'
+      @path.style.lineWidth = if @block.lineMarked then 2 else 1
+      @path.style.strokeColor = if @block.lineMarked then '#FF0' else '#000'
       
     # ## drawPath ##
     # This just executes that path we constructed in computePath
