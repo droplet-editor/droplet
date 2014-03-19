@@ -1661,8 +1661,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # in the ace editor. So we will need to display the ace editor momentarily off-screen.
 
       @ace.setValue @getValue(), -1
-      @aceEl.style.top = -9999
-      @aceEl.style.left = -9999
+      @aceEl.style.top = '-9999px'
+      @aceEl.style.left = '-9999px'
       @aceEl.style.display = 'block'
       
       # We must wait for the Ace editor to render before we continue.
@@ -1716,7 +1716,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if count < ANIMATION_FRAME_RATE
             setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
-          @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)
+          @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE) + 'px'
           @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
           @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
@@ -1808,7 +1808,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if count < ANIMATION_FRAME_RATE
           setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
-        @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE)
+        @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE) + 'px'
         @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
         @palette.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
