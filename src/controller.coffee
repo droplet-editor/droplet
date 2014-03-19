@@ -145,6 +145,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # Scroll offset
       @scrollOffset = new draw.Point 0, 0
+      @paletteScrollOffset = new draw.Point 0, 0
 
       # Touchscreen scrolling fields
       @touchScrollAnchor = null
@@ -212,6 +213,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       @clear = =>
         @mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, @main.width, @main.height
+
+      @clearPalette = =>
+        @paletteCtx.clearRect @paletteScrollOffset.x, @paletteScrollOffset.y, @palette.width, @palette.height
       
       # ## Redraw ##
       # redraw does three main things: redraws the root tree (@tree)
@@ -910,7 +914,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       hitTestLasso = (point) => if @lassoSegment? and @_lassoBounds.contains point then @lassoSegment else null
 
       hitTestPalette = (point) =>
-        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y
+        # The point was given in relation to the main canvas,
+        # but we want it in relation to the palette canvas;
+        # translate it.
+        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y + @paletteScrollOffset.y
+
+        # Hit test as per normal.
         for block in @paletteBlocks
           if hitTest(point, block.start)? then return block
         return null
@@ -919,12 +928,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       # ### getPointFromEvent ###
       # This is a conveneince function, which will contain compatability layers for getting
-      # the offset coordinates of a mouse click point
+      # the offset coordinates of a mouse click point. This is returned in relation to the origin
+      # of the main canvas; things in relation to other canvases must translate from here.
 
       getPointFromEvent = (event) =>
         switch
           when event.offsetX? then new draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + @scrollOffset.y
-          when event.layerX then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
+          when event.layerX? then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
       
       performNormalMouseDown = (point, isTouchEvent) =>
 
@@ -984,7 +994,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@ephemeralSelection?)
           
           if @ephemeralSelection in @paletteBlocks
-            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x, point.y - @scrollOffset.y
+
+            # It's in the palette, so we need to translate it.
+            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x + @paletteScrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y
           else
             @ephemeralPoint = new draw.Point point.x, point.y
           
@@ -1571,21 +1583,41 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # ## Mouse events for SCROLLING ##
 
       track.addEventListener 'mousewheel', (event) =>
-        @clear()
+        # Mousewheel can either scroll the palette
+        # or the main canvas.
+        if event.offsetX < PALETTE_WIDTH
+          @clearPalette()
 
-        if event.wheelDelta > 0
-          if @scrollOffset.y >= SCROLL_INTERVAL
-            @scrollOffset.add 0, -SCROLL_INTERVAL
-            @mainCtx.translate 0, SCROLL_INTERVAL
+          if event.wheelDelta > 0
+            if @paletteScrollOffset.y >= SCROLL_INTERVAL
+              @paletteScrollOffset.add 0, -SCROLL_INTERVAL
+              @paletteCtx.translate 0, SCROLL_INTERVAL
+            else
+              # If we would go past the top of the file, just scroll to exactly the top of the file.
+              @paletteCtx.translate 0, @paletteScrollOffset.y
+              @paletteScrollOffset.y = 0
           else
-            # If we would go past the top of the file, just scroll to exactly the top of the file.
-            @mainCtx.translate 0, @scrollOffset.y
-            @scrollOffset.y = 0
-        else
-          @scrollOffset.add 0, SCROLL_INTERVAL
-          @mainCtx.translate 0, -SCROLL_INTERVAL
+            @paletteScrollOffset.add 0, SCROLL_INTERVAL
+            @paletteCtx.translate 0, -SCROLL_INTERVAL
 
-        @redraw()
+          @redrawPalette()
+
+        else
+          @clear()
+        
+          if event.wheelDelta > 0
+            if @scrollOffset.y >= SCROLL_INTERVAL
+              @scrollOffset.add 0, -SCROLL_INTERVAL
+              @mainCtx.translate 0, SCROLL_INTERVAL
+            else
+              # If we would go past the top of the file, just scroll to exactly the top of the file.
+              @mainCtx.translate 0, @scrollOffset.y
+              @scrollOffset.y = 0
+          else
+            @scrollOffset.add 0, SCROLL_INTERVAL
+            @mainCtx.translate 0, -SCROLL_INTERVAL
+
+          @redraw()
 
     setValue: (value) ->
       try
