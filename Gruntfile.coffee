@@ -12,7 +12,6 @@ module.exports = (grunt) ->
           'js/controller.js': ['src/controller.coffee']
           'js/coffee.js': ['src/coffee.coffee']
           'js/main.js': ['src/main.coffee']
-          'js/requirejs_config.js': ['src/requirejs_config.coffee']
 
           'js/tests.js': ['test/tests.coffee']
           'example/example.js': ['example/example.coffee']

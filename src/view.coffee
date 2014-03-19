@@ -217,7 +217,11 @@ define ['ice-draw'], (draw) ->
     # ## FIFTH PASS: draw ##
     drawPath: (ctx) ->
       # Event propagate
-      for child in @children then child.drawPath ctx
+      for child in @children
+        unless child.block.type is 'block' and child.block.lineMarked then child.drawPath ctx
+
+      for child in @children
+        if child.block.type is 'block' and child.block.lineMarked then child.drawPath ctx
 
     # ## SIXTH Pass: draw cursor ##
     drawCursor: (ctx) ->
