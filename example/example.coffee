@@ -143,7 +143,7 @@ require ['main'], (ice) ->
     ), 2000
 
   document.getElementById('toggle').addEventListener 'click', ->
-    unless editor.toggleBlocks()
+    unless editor.toggleBlocks().success
       # If we were unsuccessful at toggling,
       # put up a message.
       unless editor.currentlyUsingBlocks or editor.currentlyAnimating

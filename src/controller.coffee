@@ -1641,10 +1641,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @tree = coffee.parse(value).segment
         @tree.start.insert @cursor
         @redraw()
-      catch
-        return false
+      catch e
+        return {
+          success: false
+          error: e
+        }
       
-      return true
+      return {
+        success: true
+      }
 
     getValue: -> @tree.stringify()
     
@@ -1760,9 +1765,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       # In the case that we do not successfully set our value
       # (i.e. we failed to parse the text), give up immediately.
-      unless @setValue @ace.getValue(), -1
+      parseResult = @setValue @ace.getValue(), -1
+      unless parseResult.success
         @currentlyAnimating = false; @currentlyUsingBlocks = false
-        return false
+        return parseResult
 
       @redraw()
       # First, we will need to get all the text elements which we will be animating.
@@ -1830,7 +1836,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       tick()
       
-      return true
+      return {
+        success: true
+      }
 
     toggleBlocks: ->
       if @currentlyUsingBlocks then @_performMeltAnimation()
