@@ -1908,8 +1908,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           element.view.translate new draw.Point -translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE
 
         if count is ANIMATION_FRAME_RATE
-          @redraw()
           @currentlyAnimating = false
+          @redraw()
 
       tick()
       
