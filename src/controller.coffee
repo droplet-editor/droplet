@@ -8,7 +8,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   
   PADDING = 5
   INDENT_SPACES = 2
-  INPUT_LINE_HEIGHT = 15
   PALETTE_MARGIN = 10
   PALETTE_LEFT_MARGIN = 0
   PALETTE_TOP_MARGIN = 0
@@ -84,15 +83,22 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   exports.Editor = class Editor
     constructor: (wrapper, @paletteBlocks) ->
+      # Default font size
+      @fontSize = FONT_SIZE
+
       @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
       wrapper.appendChild @aceEl
       
+      # Defaults for ace editor
       @ace = ace.edit @aceEl
       @ace.setTheme 'ace/theme/chrome'
       @ace.getSession().setMode 'ace/mode/coffee'
       @ace.getSession().setTabSize 2
       @ace.setShowPrintMargin false
       @ace.setFontSize 15
+      
+      @ace.on 'change', =>
+        @setFontSize @ace.getFontSize()
 
       @el = document.createElement 'div'; @el.className = 'ice_editor'
       wrapper.appendChild @el
@@ -223,6 +229,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # redraws any floating blocks (@floatingBlocks), and draws the bounding rectangle
       # of any lassoed segments.
       @redraw = =>
+        if @currentlyAnimating then return
+
+        draw._setGlobalFontSize @fontSize
+
         # Clear the main canvas
         @clear()
 
@@ -524,11 +534,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           type: 'blockMove'
           before: if parent? then parent.getSerializedLocation() else null
           after: if target? then target.getSerializedLocation() else null
-          displaced: if target?.type is 'socketStart' then target.socket.content().clone() else null
+          displaced: if target?.type is 'socketStart' then (target.socket.content()?.clone() ? null) else null
           block: block.clone()
 
         if target?.type is 'socketStart'
-          target.socket.content().remove()
+          target.socket.content()?.remove()
 
         block.moveTo target
 
@@ -537,6 +547,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The redrawPalette function ought to be called only once in the current code structure.
       # If we want to scroll the palette later on, then this will be called to do so.
       @redrawPalette = =>
+        @clearPalette()
+
+        draw._setGlobalFontSize @fontSize
+
         # We need to keep track of the bottom edge of the last element,
         # so we know where to put the top of the next one (there will be a margin of PALETTE_MARGIN between them)
         lastBottomEdge = PALETTE_TOP_MARGIN
@@ -1078,6 +1092,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             for float, i in @floatingBlocks
               if float.block is @selection then @floatingBlocks.splice i, 1; break
 
+            # Unhighlight all the blocks in @selection
+            head = @selection.start
+            until head is @selection.end
+              if head.type is 'blockStart' then head.block.lineMarked = false
+              head = head.next
+
             # Draw it in the drag canvas
             @selection.view.compute()
             @selection.view.draw @dragCtx
@@ -1412,11 +1432,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Draw the typing cursor itself
         if start is end
           # This is just a line
-          @mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
+          @mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, @fontSize
         else
           # This is the translucent rectangle
           @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3'
-          @mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+          @mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, @fontSize
 
       setTextInputFocus = (focus) =>
         # Deal with the previous focus
@@ -1634,6 +1654,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             @mainCtx.translate 0, -SCROLL_INTERVAL
 
           @redraw()
+      
+      # ## lineHover ##
+      lastHoveredLine = null
+      track.addEventListener 'mousemove', (event) =>
+        if @onLineHover?
+          line = @getHoveredLine getPointFromEvent event
+          if line isnt lastHoveredLine
+            lastHoveredLine = line
+            @onLineHover {
+              line: line
+            }
 
     setValue: (value) ->
       try
@@ -1658,9 +1689,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # that imitates plaintext.
     _performMeltAnimation: ->
       if @currentlyAnimating or not @currentlyUsingBlocks then return
-      else @currentlyAnimating = true; @currentlyUsingBlocks = false
 
       @redraw()
+      
+      @currentlyAnimating = true; @currentlyUsingBlocks = false
 
       # We need to find out some properties of dimensions
       # in the ace editor. So we will need to display the ace editor momentarily off-screen.
@@ -1761,7 +1793,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     
     _performFreezeAnimation: ->
       if @currentlyAnimating or @currentlyUsingBlocks then return
-      else @currentlyAnimating = true; @currentlyUsingBlocks = true
+
+      @redraw()
       
       # In the case that we do not successfully set our value
       # (i.e. we failed to parse the text), give up immediately.
@@ -1769,8 +1802,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       unless parseResult.success
         @currentlyAnimating = false; @currentlyUsingBlocks = false
         return parseResult
+      
+      @currentlyAnimating = true; @currentlyUsingBlocks = true
 
-      @redraw()
       # First, we will need to get all the text elements which we will be animating.
       # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
       # animation destination. Along the way we will move the cursor around due to newlines and indents.
@@ -1840,6 +1874,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         success: true
       }
 
+    setFontSize: (size) ->
+      unless @fontSize is size
+        @fontSize = size
+
+        @redraw()
+        @redrawPalette()
+
     toggleBlocks: ->
       if @currentlyUsingBlocks then @_performMeltAnimation()
       else @_performFreezeAnimation()
@@ -1862,4 +1903,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       @redraw()
 
+    getHoveredLine: (point) ->
+      for line in [@tree.view.lineStart..@tree.view.lineEnd]
+        if @tree.view.bounds[line].contains point
+          return line
+
+      return null
+    
   return exports

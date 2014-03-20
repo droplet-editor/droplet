@@ -237,7 +237,9 @@ define ->
 
   exports._setCTX = (ctx) -> _CTX = ctx
   exports._setGlobalFontSize = (size) ->
-    _FONT_SIZE = 15
+    _FONT_SIZE = size
+
+  exports._getGlobalFontSize = -> _FONT_SIZE
 
   return exports
 

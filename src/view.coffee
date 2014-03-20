@@ -9,10 +9,7 @@ define ['ice-draw'], (draw) ->
   PADDING = 5
   INDENT_SPACING = 15
   TOUNGE_HEIGHT = 10
-  FONT_HEIGHT = 15
-  EMPTY_SOCKET_HEIGHT = FONT_HEIGHT + PADDING * 2
   EMPTY_SOCKET_WIDTH = 20
-  EMPTY_INDENT_HEIGHT = FONT_HEIGHT + PADDING * 2
   EMPTY_INDENT_WIDTH = 50
   MIN_SEGMENT_DROP_AREA_WIDTH = 100
   DROP_AREA_HEIGHT = 30
@@ -608,7 +605,7 @@ define ['ice-draw'], (draw) ->
           width += child.dimensions[line].width
           height = Math.max height, child.dimensions[line].height
 
-        height = Math.max height, EMPTY_INDENT_HEIGHT
+        height = Math.max height, draw._getGlobalFontSize() + 2 * PADDING
         width = Math.max width, EMPTY_INDENT_WIDTH
         
         @dimensions[line] = new draw.Size width, height
@@ -670,7 +667,7 @@ define ['ice-draw'], (draw) ->
           # Don't allow ourselves to get smaller than an empty socket, though>
           @dimensions[content.view.lineStart].width = Math.max @dimensions[content.view.lineStart].width, EMPTY_SOCKET_WIDTH
       else
-        @dimensions[@lineStart] = new draw.Size EMPTY_SOCKET_WIDTH, EMPTY_SOCKET_HEIGHT
+        @dimensions[@lineStart] = new draw.Size EMPTY_SOCKET_WIDTH, draw._getGlobalFontSize() + 2 * PADDING
 
       return @dimensions
     
