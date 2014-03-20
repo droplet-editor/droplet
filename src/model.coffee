@@ -354,7 +354,7 @@ define ['ice-view'], (view) ->
       # Append newlines to the parent if necessary
       switch parent?.type
         when 'indentStart'
-          head = parent.indent.end
+          head = parent.indent.end.prev
           while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
 
           if head.type is 'newline'

@@ -443,13 +443,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 target = @tree.getTokenAtLocation operation.before
                 if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
                   target = target.insert new model.NewlineToken()
-                console.log target
                 operation.block.moveTo target
 
                 moveCursorToRaw operation.block.end
             when 'blockMoveFromFloat'
               if operation.after?
-                @tree.getTokenAtLocation(operation.after).block.moveTo null
+                if operation.block.type is 'segment'
+                  @tree.getTokenAtLocation(operation.after).block.moveTo null
+                else
+                  @tree.getTokenAtLocation(operation.after).segment.moveTo null
 
               @floatingBlocks.push operation.before
               
