@@ -422,10 +422,10 @@ define ['ice-view'], (view) ->
       head = @start
       count = 1
       until count is location or not head?
-        unless head?.type in ['segmentStart', 'segmentEnd', 'cursor'] then count += 1
+        unless head?.type is 'cursor' then count += 1
         head = head.next
 
-      while head?.type in ['segmentStart', 'segmentEnd', 'cursor']
+      while head?.type is 'cursor'
         head = head.next
       
       # If we have already reached the end of the document
@@ -597,7 +597,7 @@ define ['ice-view'], (view) ->
       head = this
       count = 0
       until head is null
-        unless head.type in ['cursor', 'segmentStart', 'segmentEnd']
+        unless head.type is 'cursor'
           count += 1
         head = head.prev
       return count

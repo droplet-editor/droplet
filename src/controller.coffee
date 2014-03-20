@@ -348,14 +348,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # is of one of the known types.
         unless operation?.type in [
           'socketTextChange'
+
           'socketReparse'
           'handwrittenReparse'
+          
           'blockMove'
-          'blockMoveToSocket'
           'blockMoveToFloat'
           'blockMoveFromFloat'
+          
           'createIndent'
           'destroyIndent'
+
+          'createSegment'
+          'destroySegment'
         ] then return
         @undoStack.push operation
 
@@ -367,6 +372,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # ## undo ##
       # Actually reverse some operations in the undo stack.
       @undo = =>
+        @lassoSegment = null
+
         if @undoStack.length is 0 then return
 
         operation = @undoStack.pop()
@@ -412,27 +419,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 if operation.displaced?
                   pos.insert operation.displaced
 
-                until pos.type is 'blockStart' then pos = pos.next
-                pos.block.moveTo null
+                until pos.type is operation.block.start.type then pos = pos.next
+
+                if operation.block.type is 'segment'
+                  pos.segment.moveTo null
+                else
+                  pos.block.moveTo null
                 
                 unless operation.before? then moveCursorToRaw @tree.getTokenAtLocation operation.after
               
               if operation.before?
                 target = @tree.getTokenAtLocation operation.before
-
-                if target.type is 'indentStart'
-                  head = target.indent.end.prev
-                  while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
-                  
-                  unless head.type is 'newline'
-                    target = target.insert new model.NewlineToken()
-
-                else if target is @tree.start
-                  unless @tree.start.next is @tree.end
-                    target.insert new model.NewlineToken()
-
-                else if target.type is 'blockEnd'
-                  target = target.insert new model.NewlineToken()
 
                 operation.block.moveTo target
 
@@ -477,6 +474,22 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               newIndent.start.insert new model.NewlineToken()
 
               moveCursorToRaw newIndent.start
+
+            when 'createSegment'
+              segmentStart = @tree.getTokenAtLocation operation.start
+
+              moveCursorToRaw segmentStart
+
+              segmentStart.segment.remove()
+
+            when 'destroySegment'
+              segment = new model.Segment()
+
+              @tree.getTokenAtLocation(operation.start).insert segment.start
+              @tree.getTokenAtLocation(operation.end).insert segment.end
+
+              moveCursorToRaw segment.end
+
 
           operation = @undoStack.pop()
 
@@ -993,6 +1006,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
               # Don't remove the segment if it's floating, because it still needs to hold those blocks together
               unless flag
+                addMicroUndoOperation
+                  type: 'destroySegment'
+                  start: @lassoSegment.start.getSerializedLocation()
+                  end: @lassoSegment.end.getSerializedLocation()
+
                 @lassoSegment.remove()
 
               @lassoSegment = null
@@ -1394,7 +1412,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               firstLassoed = lastLassoed.block.start
 
             # Now, insert the actual lasso segment.
-            @lassoSegment = new model.Segment []
+            @lassoSegment = new model.Segment()
+
+            addMicroUndoOperation
+              type: 'createSegment'
+              start: firstLassoed.getSerializedLocation()
+              end: lastLassoed.getSerializedLocation()
 
             firstLassoed.insertBefore @lassoSegment.start
             lastLassoed.insert @lassoSegment.end
