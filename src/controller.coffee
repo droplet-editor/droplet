@@ -1695,25 +1695,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             @onLineHover {
               line: line
             }
-    
-    ###
-    setValueWithoutUndoStack: (value) ->
-      try
-        @ace.setValue value, -1
-
-        @tree = coffee.parse(value).segment
-        @tree.start.insert @cursor
-        @redraw()
-      catch e
-        return {
-          success: false
-          error: e
-        }
-      
-      return {
-        success: true
-      }
-    ###
 
     clearUndoStack: ->
       @undoStack.length = 0

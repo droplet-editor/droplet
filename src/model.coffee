@@ -99,8 +99,9 @@ define ['ice-view'], (view) ->
         
         # Splice the cloned string of tokens into
         # the cloned start and end
-        clone.start.append clonedStart
-        clonedEnd.append clone.end
+        if clonedStart? and clonedEnd?
+          clone.start.append clonedStart
+          clonedEnd.append clone.end
       
       return clone
     
@@ -247,8 +248,9 @@ define ['ice-view'], (view) ->
         
         # Splice the cloned string of tokens into
         # the cloned start and end
-        clone.start.append clonedStart
-        clonedEnd.append clone.end
+        if clonedStart? and clonedEnd?
+          clone.start.append clonedStart
+          clonedEnd.append clone.end
       
       return clone
 
@@ -309,8 +311,9 @@ define ['ice-view'], (view) ->
         
         # Splice the cloned string of tokens into
         # the cloned start and end
-        clone.start.append clonedStart
-        clonedEnd.append clone.end
+        if clonedStart? and clonedEnd?
+          clone.start.append clonedStart
+          clonedEnd.append clone.end
       
       return clone
     
