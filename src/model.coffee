@@ -43,7 +43,7 @@ define ['ice-view'], (view) ->
           cursor = block_clone.end
           head = head.segment.end
         else
-          unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
+          unless head.type is 'cursor' then cursor = cursor.append head.clone()
       
       # Here's the condition we talked about earlier
       if head is end then break

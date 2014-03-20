@@ -118,7 +118,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @paletteBlocks = (paletteBlock.clone() for paletteBlock in @paletteBlocks)
 
       # MODEL instances (program state)
-      @tree = null # The root tree
+      @tree = new model.Segment() # The root tree
       @floatingBlocks = [] # The other root blocks that are not attached to the root tree
       
       # TEXT INPUT interactive fields
@@ -145,6 +145,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # CURSOR interactive fields
       @cursor = new model.CursorToken()
+
+      @tree.start.insert @cursor
 
       # UNDO STACK
       @undoStack = []
@@ -322,7 +324,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               else newBlock = newBlock.block
 
               # Add an undo operation
-              addMicroUndoOperation
+              @addMicroUndoOperation
                 type: 'handwrittenReparse'
                 location: handwrittenBlock.start.getSerializedLocation()
                 before: handwrittenBlock.clone()
@@ -341,9 +343,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # We have done some modifications, so we must redraw.
         @redraw()
       
-      # ## addMicroUndoOperation ##
+      # ## @addMicroUndoOperation ##
       # Bureaucracy wrapper for pushing to the undo stack.
-      addMicroUndoOperation = (operation) =>
+      @addMicroUndoOperation = (operation) =>
         # For clarity, we ensure that the operation
         # is of one of the known types.
         unless operation?.type in [
@@ -361,10 +363,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           'createSegment'
           'destroySegment'
+          'setValue'
         ] then return
         @undoStack.push operation
 
-      captureUndoEvent = =>
+      @captureUndoEvent = =>
         unless @undoStack[@undoStack.length - 1]?.type is 'operationMarker'
           @undoStack.push
             type: 'operationMarker'
@@ -492,6 +495,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
               moveCursorToRaw segment.end
 
+            when 'setValue'
+              @tree = operation.before
 
           operation = @undoStack.pop()
 
@@ -533,7 +538,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # by being picked up first, so (before) is null.
         for float in @floatingBlocks
           if block is float.block
-            addMicroUndoOperation
+            @addMicroUndoOperation
               type: 'blockMoveFromFloat'
               before: float.clone()
               after: if target? then target.getSerializedLocation() else null
@@ -545,7 +550,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           return
         
         # Log the undo operation
-        addMicroUndoOperation
+        @addMicroUndoOperation
           type: 'blockMove'
           before: if parent? then parent.getSerializedLocation() else null
           after: if target? then target.getSerializedLocation() else null
@@ -592,7 +597,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       insertHandwrittenBlock = =>
         setTextInputFocus null
-        captureUndoEvent()
+        @captureUndoEvent()
 
         # Create the new block and socket for a new handwritten line
         newBlock = new model.Block(); newSocket = new model.Socket null
@@ -704,9 +709,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # Remember, though, that the cursor is currently inside this indent, so we need to move it out first.
           if nextVisibleElement is head.indent.end
             moveCursorDown()
-            captureUndoEvent()
+            @captureUndoEvent()
 
-            addMicroUndoOperation
+            @addMicroUndoOperation
               type: 'destroyIndent'
               location: head.getSerializedLocation()
 
@@ -813,7 +818,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             
             # We have found a block we want to move into, but there's no indent here, so create one.
             else
-              addMicroUndoOperation
+              @addMicroUndoOperation
                 type: 'createIndent'
                 location: head.getSerializedLocation()
 
@@ -1008,7 +1013,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
               # Don't remove the segment if it's floating, because it still needs to hold those blocks together
               unless flag
-                addMicroUndoOperation
+                @addMicroUndoOperation
                   type: 'destroySegment'
                   start: @lassoSegment.start.getSerializedLocation()
                   end: @lassoSegment.end.getSerializedLocation()
@@ -1236,7 +1241,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 position: dest
                 block: @selection
 
-              addMicroUndoOperation
+              @addMicroUndoOperation
                 type: 'blockMoveToFloat'
                 before: null
                 after: descriptor.clone()
@@ -1276,7 +1281,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mouseup', (event) =>
         performNormalMouseUp event
 
-        captureUndoEvent()
+        @captureUndoEvent()
 
       track.addEventListener 'touchend', (event) =>
         event.preventDefault()
@@ -1416,7 +1421,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Now, insert the actual lasso segment.
             @lassoSegment = new model.Segment()
 
-            addMicroUndoOperation
+            @addMicroUndoOperation
               type: 'createSegment'
               start: firstLassoed.getSerializedLocation()
               end: lastLassoed.getSerializedLocation()
@@ -1468,9 +1473,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if @focus?
           # Log in the undo stack that the text input value changed
           if @ephemeralOldFocusValue isnt @focus.stringify()
-            unless @focus.handwritten then captureUndoEvent()
+            unless @focus.handwritten then @captureUndoEvent()
 
-            addMicroUndoOperation
+            @addMicroUndoOperation
               type: 'socketTextChange'
               location: @focus.start.getSerializedLocation()
               before: @ephemeralOldFocusValue
@@ -1491,7 +1496,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
                 # Log in the undo stack the operation
                 # we're about to do
-                addMicroUndoOperation
+                @addMicroUndoOperation
                   type: 'handwrittenReparse'
                   location: @focus.start.prev.prev.getSerializedLocation()
                   before: @focus.start.prev.block.clone()
@@ -1510,7 +1515,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               if newParse.type is 'blockStart'
                 # Log in the undo stack the operation
                 # we're about to do
-                addMicroUndoOperation
+                @addMicroUndoOperation
                   type: 'socketReparse'
                   location: @focus.start.getSerializedLocation()
                   before: @focus.content().clone()
@@ -1690,10 +1695,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             @onLineHover {
               line: line
             }
-
-    setValue: (value) ->
+    
+    ###
+    setValueWithoutUndoStack: (value) ->
       try
         @ace.setValue value, -1
+
         @tree = coffee.parse(value).segment
         @tree.start.insert @cursor
         @redraw()
@@ -1706,6 +1713,36 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       return {
         success: true
       }
+    ###
+
+    clearUndoStack: ->
+      @undoStack.length = 0
+
+    setValue: (value) ->
+      try
+        @ace.setValue value, -1
+        
+        newTree = coffee.parse(value).segment
+      
+        @addMicroUndoOperation
+          type: 'setValue'
+          before: @tree.clone()
+          after: newTree.clone()
+        
+        @tree = newTree
+        @tree.start.insert @cursor
+        @redraw()
+
+      catch e
+        return {
+          success: false
+          error: e
+        }
+      
+      return {
+        success: true
+      }
+
 
     getValue: -> @tree.stringify()
     

@@ -133,6 +133,7 @@ require ['main'], (ice) ->
     editor.setValue examplePrograms[@value]
 
   editor.setValue examplePrograms.fizzbuzz
+  editor.clearUndoStack()
   
   messageElement = document.getElementById 'message'
   displayMessage = (text) ->
