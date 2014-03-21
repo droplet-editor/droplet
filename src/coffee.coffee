@@ -99,6 +99,22 @@ define ['ice-model'], (model) ->
             start: [node.locationData.first_line, node.locationData.first_column]
             end: end
           }
+        when 'Obj'
+          start = [node.locationData.first_line, node.locationData.first_column]
+          end = [node.locationData.last_line, node.locationData.last_column + 1]
+
+          firstChildBounds = getBounds node.properties[0]
+
+          if firstChildBounds.start[0] <= start[0]
+            start = [firstChildBounds.start[0] - 1, text[firstChildBounds.start[0] - 1].length]
+
+          if text[end[0]][...end[1]].trimLeft().length is 0
+            end[0] -= 1; end[1] = text[end[0]].length
+
+          return {
+            start: start
+            end: end
+          }
 
         else
           end = [node.locationData.last_line, node.locationData.last_column + 1]
@@ -229,10 +245,10 @@ define ['ice-model'], (model) ->
           end = getBounds node.properties[node.properties.length - 1]
 
           indent = new model.Indent 2
-
+          
           markup.push
             token: indent.start
-            position: start.start
+            position: [start.start[0]-1, text[start.start[0]-1].length]
             id: id
             start: true
 
