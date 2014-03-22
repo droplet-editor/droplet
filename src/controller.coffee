@@ -467,8 +467,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             when 'destroyIndent'
               head = @tree.getTokenAtLocation operation.location
               
-              console.log head
-              
               # Create and insert a new indent (default 2 spaces)
               newIndent = new model.Indent INDENT_SPACES
               head.prev.insert newIndent.start; head.prev.insert newIndent.end
@@ -1120,7 +1118,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Unhighlight all the blocks in @selection
             head = @selection.start
             until head is @selection.end
-              if head.type is 'blockStart' then head.block.lineMarked = false
+              if head.type is 'blockStart' then head.block.lineMarked.length = 0
               head = head.next
 
             # Draw it in the drag canvas
@@ -1928,20 +1926,35 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       if @currentlyUsingBlocks then @_performMeltAnimation()
       else @_performFreezeAnimation()
 
-    markLine: (line) ->
-      @tree.getBlockOnLine(line).lineMarked = true
+    markLine: (line, style) ->
+      # Note: we fail silently when the line given
+      # is not in the document
+      @tree.getBlockOnLine(line)?.lineMarked.push style
       
       @redraw()
 
-    unmarkLine: (line) ->
-      @tree.getBlockOnLine(line).lineMarked = false
+    unmarkLine: (line, tag) ->
+
+      unless (blockOnLine = @tree.getBlockOnLine(line))? then return
+
+      for style, i in blockOnLine.lineMarked
+        if style.tag is tag
+          blockOnLine.lineMarked.splice i, 1
+          break
       
       @redraw()
 
-    clearLineMarks: ->
+    clearLineMarks: (tag) ->
       head = @tree.start
       until head is @tree.end
-        if head.type is 'blockStart' then head.block.lineMarked = false
+        if head.type is 'blockStart'
+          unless tag?
+            head.block.lineMarked.length = 0
+          else
+            for style, i in head.block.lineMarked
+              if style.tag is tag
+                head.block.lineMarked.splice i, 1
+                break
         head = head.next
       
       @redraw()

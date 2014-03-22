@@ -87,6 +87,8 @@ define ['ice-view'], (view) ->
       @selected = false # Are we the selected block?
 
       @view = new view.BlockView this
+
+      @lineMarked = []
     
     # ## Clone ##
     # Cloning produces a new Block entirely independent
