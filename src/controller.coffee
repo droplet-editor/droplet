@@ -318,7 +318,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               if testHead is null
                 continue
               
-              newBlock = (coffee.parse handwrittenBlock.stringify()).next
+              newBlock = (coffee.parse handwrittenBlock.stringify()).start.next
 
               if newBlock.type isnt 'blockStart' then continue
               else newBlock = newBlock.block
@@ -1481,11 +1481,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           
           try
             if @focus.handwritten
-              console.log @focus.tart.prev.block.stringify()
+              console.log @focus.start.prev.block.stringify()
 
               # If we are in a handwritten block, we actually want to reparse
               # the entire block we're in
-              newParse = coffee.parse @focus.start.prev.block.stringify()
+              newParse = coffee.parse(@focus.start.prev.block.stringify()).start.next
 
               # If what has been parsed ends up creating a new block,
               # subsitute this new block for the old (unstable) text
@@ -1506,7 +1506,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             else
               # If we are not a handwritten block, attempt to reparse
               # just what's in the socket
-              newParse = coffee.parse(@focus.stringify()).next
+              newParse = coffee.parse(@focus.stringify()).start.next
               
               # If what has been parsed ends up creating a new block,
               # subsitute this new block for the old (unstable) text
@@ -1701,7 +1701,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       try
         @ace.setValue value, -1
         
-        newTree = coffee.parse(value).segment
+        newTree = coffee.parse value
       
         @addMicroUndoOperation
           type: 'setValue'

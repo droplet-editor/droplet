@@ -3,7 +3,7 @@
 # Created 2014 by Anthony Bau.
 # This software is public domain.
 
-define ['ice-model'], (model) ->
+define ['ice-model', 'ice-parser'], (model, parser) ->
   colors =
     COMMAND: '#268bd2'
     CONTROL: '#daa520'
@@ -34,321 +34,238 @@ define ['ice-model'], (model) ->
       '/': 5
       '%': 6
 
-    markup = [
-      {
-        token: rootSegment.start
-        position: [0, 0]
-        id: 0
-        start: true
-      }
-      {
-        token: rootSegment.end
-        position: [text.length - 1, text[text.length - 1].length+1]
-        id: 0
-        start: false
-      }
-    ]
+    markup = []
 
-    addMarkup = (block, node, shouldParenWrap) ->
-      bounds = getBounds node
-
-      if shouldParenWrap
-        bounds.start[1]--; bounds.end[1]++
+    addMarkup = (block, node, wrappingParen) ->
+      if wrappingParen
+        bounds = getBounds wrappingParen
+      else
+        bounds = getBounds node
 
       markup.push
         token: block.start
-        position: bounds.start
+        location: bounds.start
         id: id
         start: true
 
       markup.push
         token: block.end
-        position: bounds.end
+        location: bounds.end
         id: id
         start: false
 
       id += 1
 
     getBounds = (node) ->
-      switch node.constructor.name
-        when 'Block'
-          start = node.locationData
-          end = getBounds(node.expressions[node.expressions.length - 1]).end
+      # Defaults simply take
+      # CoffeeScript locationData.
+      start = {
+        line: node.locationData.first_line
+        column: node.locationData.first_column
+      }
 
-          return {
-            start: [start.first_line - 1, text[start.first_line - 1].length]
-            end: end
-          }
-        when 'While'
-          end = getBounds(node.body).end
-          return {
-            start: [node.locationData.first_line, node.locationData.first_column]
-            end: end
-          }
+      end = {
+        line: node.locationData.last_line
+        column: node.locationData.last_column + 1
+      }
 
-        when 'If'
-          if node.elseBody?
-            end = getBounds(node.elseBody).end
-          else
-            end = [node.locationData.last_line, node.locationData.last_column + 1]
-        
-          if text[end[0]][...end[1]].trimLeft().length is 0
-            end[0] -= 1; end[1] = text[end[0]].length
+      # There are a bunch of special cases where
+      # CoffeeScript gets location data wrong.
+      #
+      # The first of these is indents, where CoffeeScript
+      # usually only gives one line. We will instead take
+      # the last expression inside the block as the ending bound.
+      if node.constructor.name is 'Block'
+        unless start.line is 0
+          start.line -= 1; start.column = text[start.line].length
+        end = getBounds(node.expressions[node.expressions.length - 1]).end
 
-          return {
-            start: [node.locationData.first_line, node.locationData.first_column]
-            end: end
-          }
-        when 'Obj'
-          start = [node.locationData.first_line, node.locationData.first_column]
-          end = [node.locationData.last_line, node.locationData.last_column + 1]
+      # When CoffeeScript gives an if statement,
+      # it only encloses the "if", and not the "else"
+      # if it exists. If there is an "else", enclose it too.
+      if node.constructor.name is 'If' and node.elseBody?
+        end = getBounds(node.elseBody).end
 
-          firstChildBounds = getBounds node.properties[0]
+      # CoffeeScript's "while" node location data
+      # only encloses the line containing "while".
+      # Enclose the body too.
+      if node.constructor.name is 'While'
+        end = getBounds(node.body).end
+      
+      # Sometimes CoffeeScript can grant blocks
+      # extra spaces at the start of the next line.
+      # We don't want those spaces; discard them.
+      if text[end.line][...end.column].trim().length is 0
+        end.line -= 1; end.column = text[end.line].length
 
-          if firstChildBounds.start[0] <= start[0]
-            start = [firstChildBounds.start[0] - 1, text[firstChildBounds.start[0] - 1].length]
+      return {
+        start: start
+        end: end
+      }
+    
+    addBlock = (node, precedence, color, wrappingParen) ->
+      block = new model.Block precedence
+      block.color = color
+      addMarkup block, node, wrappingParen
 
-          if text[end[0]][...end[1]].trimLeft().length is 0
-            end[0] -= 1; end[1] = text[end[0]].length
-
-          return {
-            start: start
-            end: end
-          }
-
-        else
-          end = [node.locationData.last_line, node.locationData.last_column + 1]
-
-          if text[end[0]][...end[1]].trimLeft().length is 0
-            end[0] -= 1; end[1] = text[end[0]].length
-
-          return {
-            start: [node.locationData.first_line, node.locationData.first_column]
-            end: end
-          }
-
-    mark = (node, precedence = 0, shouldParenWrap = false) ->
+    mark = (node, precedence = 0, wrappingParen = null) ->
       switch node.constructor.name
         when 'Block'
           indent = new model.Indent 2
-          addMarkup indent, node, shouldParenWrap
-
+          addMarkup indent, node, wrappingParen
+          
+          # Delegate to children with zero precedence and no paren wrapping
           for expr in node.expressions
             mark expr
 
         when 'Op'
-          block = new model.Block operatorPrecedences[node.operator]
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
+          addBlock node, operatorPrecedences[node.operator], colors.VALUE, wrappingParen
 
-          mark node.first, operatorPrecedences[node.operator] ? 0
-          if node.second? then mark node.second, operatorPrecedences[node.operator] ? 0
+          mark node.first, operatorPrecedences[node.operator]
+          if node.second? then mark node.second, operatorPrecedences[node.operator]
+
+        when 'Existence'
+          addBlock node, 7, colors.CONTROL, wrappingParen
+          mark node.expression, 7
         
         when 'Value'
           mark node.base, precedence
         
         when 'Literal'
           socket = new model.Socket null, precedence
-          addMarkup socket, node, shouldParenWrap
+          addMarkup socket, node, wrappingParen
         
         when 'Call'
-          block = new model.Block 0
-          block.color = colors.COMMAND
-          addMarkup block, node, shouldParenWrap
-
-          for arg in node.args
-            mark arg
+          addBlock node, precedence, colors.COMMAND, wrappingParen
+          for arg in node.args then mark arg
 
         when 'Code'
-          block = new model.Block()
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
+          addBlock node, precedence, colors.VALUE, wrappingParen
+          for param in node.params then mark param
+          
+          # If it is a one-line function,
+          # unwrap the body.
+          if getBounds(node.body).end.line is getBounds(node).start.line
+            mark node.body.unwrap()
 
-          for param in node.params
-            mark param
-
-          mark node.body.unwrap()
+          # Otherwise, do not.
+          else
+            mark node.body
 
         when 'Param'
           mark node.name
 
         when 'Assign'
-          block = new model.Block()
-          block.color = colors.COMMAND
-          addMarkup block, node, shouldParenWrap
-
-          mark node.variable
-          mark node.value
+          addBlock node, precedence, colors.COMMAND, wrappingParen
+          mark node.variable; mark node.value
 
         when 'For'
-          block = new model.Block()
-          block.color = colors.CONTROL
-          addMarkup block, node, shouldParenWrap
-
+          addBlock node, precedence, colors.CONTROL, wrappingParen
           if node.index? then mark node.index
           if node.source? then mark node.source
           if node.name? then mark node.name
           if node.from? then mark node.from
 
-          mark node.body
+          # If it is a one-line "for",
+          # unwrap the body.
+          if getBounds(node.body).end.line is getBounds(node).start.line
+            mark node.body.unwrap()
+
+          # Otherwise, do not.
+          else
+            mark node.body
 
         when 'Range'
-          block = new model.Block()
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
-          
-          mark node.from
-          mark node.to
+          addBlock node, precedence, colors.VALUE, wrappingParen
+          mark node.from; mark node.to
 
         when 'If'
-          block = new model.Block()
-          block.color = colors.CONTROL
-          addMarkup block, node, shouldParenWrap
-
+          addBlock node, precedence, colors.CONTROL, wrappingParen
           mark node.condition
-          mark node.body
-          if node.elseBody? then mark node.elseBody
+
+          # If it is a one-line "if",
+          # unwrap the body.
+          if getBounds(node.body).end.line is getBounds(node).start.line
+            mark node.body.unwrap()
+
+          # Otherwise, do not.
+          else
+            mark node.body
+          
+          if node.elseBody?
+            # If it is a one-line "else",
+            # unwrap the body.
+            if getBounds(node.elseBody).end.line is getBounds(node).start.line
+              mark node.elseBody.unwrap()
+
+            # Otherwise, do not.
+            else
+              mark node.elseBody
 
         when 'Arr'
-          block = new model.Block()
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
-          
-          for object in node.objects
-            mark object
+          addBlock node, precedence, colors.VALUE, wrappingParen
+          for object in node.objects then mark object
 
         when 'Return'
-          block = new model.Block()
-          block.color = colors.RETURN
-          addMarkup block, node, shouldParenWrap
-
+          addBlock node, precedence, colors.RETURN, wrappingParen
           if node.expression? then mark node.expression
 
         when 'While'
-          console.log 'encountered while'
-          block = new model.Block()
-          block.color = colors.CONTROL
-          addMarkup block, node, shouldParenWrap
-
+          addBlock node, precedence, colors.CONTROL, wrappingParen
           mark node.condition
-          mark node.body
+
+          # If it is a one-line "while",
+          # unwrap the body.
+          if getBounds(node.body).end.line is getBounds(node).start.line
+            mark node.body.unwrap()
+
+          # Otherwise, do not.
+          else
+            mark node.body
 
         when 'Parens'
           if node.body? then mark node.body.unwrap(), 0, true
 
         when 'Obj'
-          block = new model.Block()
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
-
+          addBlock node, precedence, colors.VALUE, wrappingParen
+          
+          # We must insert the indent for an object by hand
           start = getBounds node.properties[0]
           end = getBounds node.properties[node.properties.length - 1]
-
-          indent = new model.Indent 2
           
-          markup.push
-            token: indent.start
-            position: [start.start[0]-1, text[start.start[0]-1].length]
-            id: id
-            start: true
+          unless end.end.line is start.start.line
+            indent = new model.Indent 2
+            
+            markup.push
+              token: indent.start
+              location: {
+                line: start.start.line-1
+                column: text[start.start.line-1].length
+              }
+              id: id
+              start: true
 
-          markup.push
-            token: indent.end
-            position: end.end
-            id: id
-            start: false
+            markup.push
+              token: indent.end
+              location: end.end
+              id: id
+              start: false
 
-          id += 1
+            id += 1
 
           for property in node.properties then mark property
 
-        when 'Existence'
-          block = new model.Block()
-          block.color = colors.VALUE
-          addMarkup block, node, shouldParenWrap
-          
-          block.precedence = 7
-
-          mark node.expression, 7
-
-      if block? and shouldParenWrap
+      if block? and wrappingParen?
         block.currentlyParenWrapped = true
 
     for node in nodes
       mark node
     
     return markup
-
-  exports.execute = execute = (text, markup) ->
-    id = 0
-
-    # Sort markup by position in the text
-    marks = {}
-
-    for _mark in markup
-      # Record the markup on each line
-      unless marks[_mark.position[0]]? then marks[_mark.position[0]] = []
-      marks[_mark.position[0]].push _mark
-
-    # Run through each line and construct the linked list
-    text = text.split '\n'
-    first = head = new model.TextToken ''
-    
-    stack = []
-
-    for line, i in text
-      # Append the newline token
-      head = head.append new model.NewlineToken()
-      
-      # Insert necessary markup on this line
-      lastMark = 0
-      if marks[i]?
-
-        marks[i].sort (a, b) ->
-          unless a.position[1] is b.position[1]
-            if a.position[1] > b.position[1] then 1 else -1
-          else if a.start and b.start
-            if a.id > b.id then 1 else -1
-          else if (not a.start) and (not b.start)
-            if b.id > a.id then 1 else -1
-          else
-            if a.start and (not b.start) then 1
-            else -1
-
-        for _mark in marks[i]
-          str = line[lastMark..._mark.position[1]]
-          if lastMark is 0 then str = str.trimLeft()
-
-          unless str.length is 0
-            head = head.append new model.TextToken str
-          
-          if stack.length > 0 and stack[stack.length-1].block.type is 'block' and _mark.token.type is 'blockStart'
-            stack.push block: (_socket = new model.Socket()), implied: true
-            head = head.append _socket.start
-
-          switch _mark.token.type
-            when 'blockStart' then stack.push block: _mark.token.block
-            when 'socketStart' then stack.push block: _mark.token.socket
-            when 'indentStart' then stack.push block: _mark.token.indent
-            when 'blockEnd', 'socketEnd', 'indentEnd' then stack.pop()
-
-          head = head.append _mark.token
-
-          if stack.length > 0 and stack[stack.length - 1].implied?
-            head = head.append stack.pop().block.end
-
-          lastMark = _mark.position[1]
-
-      # Insert the last string on this line.
-      unless lastMark > line.length - 1
-        head = head.append new model.TextToken line[lastMark..-1]
-
-    first = first.next.next
-    first.prev = null
-    return first
-
-  exports.parse = parse = (text) ->
-    markup = exports.mark CoffeeScript.nodes(text).expressions, text
-    return execute text, markup
   
+  parser = new parser.Parser (text) -> exports.mark CoffeeScript.nodes(text).expressions, text
+
+  exports.parse = (text) ->
+    return parser.parse text
+
   return exports

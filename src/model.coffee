@@ -6,6 +6,13 @@
 
 define ['ice-view'], (view) ->
   exports = {}
+
+  window.printSegment = (seg) ->
+    head = seg.start
+    until head is seg.end
+      console.log head
+      head = head.next
+
   # ## cloneTokens ##
   # Return a pointer-unrelated start and end tokens whose linkage
   # structure is the same as the given start and end tokens.

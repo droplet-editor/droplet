@@ -5,7 +5,7 @@ require.config
 
 require ['main'], (ice) ->
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).next.block for paletteElement in [
+  window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).start.next.block for paletteElement in [
     '''
     fd 100
     '''
