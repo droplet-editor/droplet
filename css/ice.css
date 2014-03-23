@@ -6,7 +6,8 @@
   top: 0;
 }
 .drag {
-  z-index: 2
+  z-index: 2;
+  margin-top: -1px;
 }
 .palette {
   z-index: 0;

@@ -220,6 +220,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @mainCtx = @main.getContext '2d'
       @dragCtx = drag.getContext '2d'
       @paletteCtx = @palette.getContext '2d'
+      
+      # Transform to allow border.
+      # In the css, we also put in a pixel margin,
+      # so that the image actually ends up in the same spot.
+      @dragCtx.setTransform 1, 0, 0, 1, 1, 1
 
       # The main context will be used for draw.js's text measurements (this is a bit of a hack)
       draw._setCTX @mainCtx
