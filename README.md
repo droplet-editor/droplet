@@ -22,7 +22,7 @@ To embed, call new ice.Editor() on a div.
 </html>
 ```
 
-```coffescript
+```coffeescript
 require ['ice'], (ice) ->
   editor = new ice.Editor document.getElementById('editor'), [
      ice.parse('hello world')
