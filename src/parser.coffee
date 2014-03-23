@@ -134,7 +134,7 @@ define ['ice-model'], (model) ->
               # If the a block is embedded
               # directly in another block, we should
               # insert a socket around it automatically.
-              if stack?[stack.length - 1]?.type is 'block'
+              if stack[stack.length - 1]?.type is 'block'
                 # Push the socket to the autoinsertedStack,
                 # so that we know to close it later.
                 autoinsertStack.push mark.token.block
@@ -154,6 +154,25 @@ define ['ice-model'], (model) ->
               head = head.append mark.token
 
             when 'socketStart'
+              # A socket is only allowed to be directly inside a block.
+              # Currently, our behaviour will be to auto-repair it in
+              # some cases, but this
+              # might need to be changed in the future.
+              #
+              # We will auto-repair if it is inside an indent,
+              # otherwise we will throw
+              unless stack[stack.length - 1]?.type is 'block'
+                if stack.length is 0
+                  throw new Error 'Improper parser: document root cannot be a socket.'
+                else if stack[stack.length - 1].type is 'indent'
+                  autoinsertStack.push mark.token.socket
+
+                  autoinsertedBlock = new model.Block()
+
+                  head = head.append autoinsertedBlock.start
+
+                  stack.push autoinsertedBlock
+
               # Update the stack and append the token.
               stack.push mark.token.socket
 
@@ -164,7 +183,7 @@ define ['ice-model'], (model) ->
             # its corresponding Start token; if it is not,
             # we throw.
             when 'indentEnd'
-              unless mark.token.indent is stack?[stack.length - 1]
+              unless mark.token.indent is stack[stack.length - 1]
                 throw new Error 'Improper parser: indent ended too early.'
               
               # Update stack and indent depth
@@ -174,7 +193,7 @@ define ['ice-model'], (model) ->
               head = head.append mark.token
 
             when 'blockEnd'
-              unless mark.token.block is stack?[stack.length - 1]
+              unless mark.token.block is stack[stack.length - 1]
                 throw new Error 'Improper parser: block ended too early.'
               
               # Update stack
@@ -184,18 +203,22 @@ define ['ice-model'], (model) ->
               
               # If we need to close an autoinserted socket,
               # close it.
-              if mark.token.block is autoinsertStack?[autoinsertStack.length - 1]
+              if mark.token.block is autoinsertStack[autoinsertStack.length - 1]
                 autoinsertStack.pop()
                 head = head.append stack.pop().end
 
             when 'socketEnd'
               unless mark.token.socket is stack[stack.length - 1]
                 throw new Error 'Improper parser: socket ended too early.'
-              
+
               # Update stack
               stack.pop()
 
               head = head.append mark.token
+
+              if mark.token.socket is autoinsertStack[autoinsertStack.length - 1]
+                autoinsertStack.pop()
+                head = head.append stack.pop().end
 
           lastIndex = mark.location.column
       
