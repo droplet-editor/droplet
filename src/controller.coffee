@@ -1023,7 +1023,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @el.addEventListener 'keyup', (event) =>
         switch event.keyCode
-          when 17 then ctrKeyPressed = false
+          when 17 then ctrlKeyPressed = false
 
       # Hit-testing functions
 
