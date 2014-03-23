@@ -1242,9 +1242,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           dest = new draw.Point -offset.x + point.x, -offset.y + point.y # Where do we position things as related to the way we draw the root tree?
 
           old_highlight = highlight
-
-          highlight = @tree.find (block) ->
-            (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
+          
+          if @selection.type is 'block'
+            highlight = @tree.find (block) ->
+              (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
+          else if @selection.type is 'segment'
+            highlight = @tree.find (block) ->
+              (block.type isnt 'socket') and (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
 
           # If highlight changed, redraw
           if old_highlight isnt highlight then @redraw()

@@ -404,6 +404,11 @@ define ['ice-view'], (view) ->
         when 'segmentStart'
           unless parent.next is parent.segment.end
             parent = parent.insert new NewlineToken()
+        
+        # We can only move into a socket
+        # if we are exactly one block.
+        when 'socketStart'
+          throw new Error 'Cannot move Segment into a Socket.'
       
       # Splice ourselves into the requested parent
       if parent?
