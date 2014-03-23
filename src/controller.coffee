@@ -343,14 +343,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 after: newBlock.clone()
 
               # Unfortunately moveTo handles whitepsace for us,
-              # which we do not want to do, so we must splice the block out ourselves.
-              handwrittenBlock.start.prev.append handwrittenBlock.end.next
-              handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
-              
-              newBlock.moveTo parent
+              # which we do not want to do, so we must splice the block out ourselves,
+              # and move the new block in verbatim.
+              handwrittenBlock.start.prev.append newBlock.start
+              newBlock.end.append handwrittenBlock.end.next
 
-              # Elminate gratuitous Segment wrapper
-              newBlock.remove()
+              # Fully unlink the handwritten block
+              handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
         
         # We have done some modifications, so we must redraw.
         @redraw()
@@ -1596,7 +1595,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 # we're about to do
                 @addMicroUndoOperation
                   type: 'handwrittenReparse'
-                  location: @focus.start.prev.prev.getSerializedLocation()
+                  location: @focus.start.prev.getSerializedLocation()
                   before: @focus.start.prev.block.clone()
                   after: newParse.block.clone()
                 
