@@ -97,6 +97,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @ace.setShowPrintMargin false
       @ace.setFontSize 15
       
+      # We want to bind the font size of ICE editor to the font
+      # size of ACE editor, so that animations always remains smooth.
+      #
+      # To this end, we listen to ACE editor "change" and reset.
+      #
+      # The application layer should trigger setFontSize() any
+      # time the font size changes without ACE editor text changing.
       @ace.on 'change', =>
         @setFontSize @ace.getFontSize()
 
@@ -393,6 +400,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           @cursor.remove()
 
           switch operation.type
+            # ### socketTextChange ###
+            # Represents a change in socket text;
+            # to undo simply change the text back.
+            #
+            # When we do this we will also
+            # put the cursor into the input that changed.
             when 'socketTextChange'
               socketStart = @tree.getTokenAtLocation operation.location
               socketStart.socket.content().remove()
@@ -401,29 +414,63 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               setTextInputFocusRaw socketStart.socket
               textInputSelectAll()
 
+            # ### socketReparse ###
+            # Represents an automatic reparse of
+            # the text in a socket.
+            #
+            # To undo replace the parsed blocks with the unparsed
+            # text. When we do this we will put the cursor near
+            # the block.
             when 'socketReparse'
               socketStart = @tree.getTokenAtLocation operation.location
               socketStart.append socketStart.socket.end
               socketStart.insert operation.before
 
               moveCursorToRaw socketStart
+
+            # ### handwrittenReparse ###
+            # Represents an automatic reparse of
+            # a handwritten block.
+            #
+            # To undo replace the parsed blocks with the unparsed
+            # handwritten block. When we do this we will put the cursor near
+            # the block.
             when 'handwrittenReparse'
+              # Get the block we want to replace
               attachBefore = @tree.getTokenAtLocation(operation.location).prev
               attachAfter = attachBefore.next.block.end.next
-
+              
+              # Splice it out and splice
+              # the new block in.
               attachBefore.append operation.before.start
               operation.before.end.append attachAfter
 
               moveCursorToRaw attachAfter
+
+            # ### blockMove ###
+            # Represents the vanilla block or segment move.
+            #
+            # To undo, delete the block at the ending location
+            # and insert an idenitcal block at the starting location.
+            # When we do this we will put the cursor at the inserted block.
             when 'blockMove'
+              # If the block was not moved to (null) (i.e. is still in the tree),
+              # splice it out.
               if operation.after?
                 pos = @tree.getTokenAtLocation operation.after
-
+                
+                # If moving the block here removed
+                # some text from a socket (text in an
+                # input is deleted when you drag a block over it),
+                # put that text back in.
                 if operation.displaced?
                   pos.insert operation.displaced
-
+                
+                # We might be in front of some segments or cursors,
+                # so keep going to seek the beginning of the block.
                 until pos.type is operation.block.start.type then pos = pos.next
-
+                
+                # Splice out.
                 if operation.block.type is 'segment'
                   pos.segment.moveTo null
                 else
@@ -431,39 +478,67 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 
                 unless operation.before? then moveCursorToRaw @tree.getTokenAtLocation operation.after
               
+              # If the block was not moved from (null) (i.e. was formerly in the tree),
+              # splice it in.
               if operation.before?
                 target = @tree.getTokenAtLocation operation.before
 
                 operation.block.moveTo target
 
                 moveCursorToRaw operation.block.end
-
+            
+            # ### blockMoveToFloat ###
+            # Represents moving a block from the tree (or palette)
+            # to a floating position.
+            #
+            # To undo, remove the block from the list of floating blocks,
+            # and splice it back into the 
             when 'blockMoveToFloat'
               # Remove the block from the list of floating blocks
               @floatingBlocks.splice operation.floatingBlockIndex
               
+              # If the block used to be in the tree, splice it back in.
               if operation.before?
                 target = @tree.getTokenAtLocation operation.before
-                if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
-                  target = target.insert new model.NewlineToken()
+
                 operation.block.moveTo target
 
                 moveCursorToRaw operation.block.end
+            
+            # ### blockMoveFromFloat ###
+            # Represents a block from floating into the tree (or palette).
+            #
+            # To undo, push an identical record of a floating block into
+            # the list of floating blocks, and delete the thing in the tree
+            # at the ending position.
             when 'blockMoveFromFloat'
               if operation.after?
                 if operation.block.type is 'segment'
                   @tree.getTokenAtLocation(operation.after).block.moveTo null
                 else
                   @tree.getTokenAtLocation(operation.after).segment.moveTo null
+                
+                # As with blockMove, we may have displaced some
+                # text, so reinsert it.
+                if operation.displaced?
+                  @tree.getTokenAtLocation(operation.after).insert operation.displaced
 
               @floatingBlocks.push operation.before
-              
+            
+            # ### createIndent ###
+            # Represents creating an indent with the 'tab' key.
+            #
+            # To undo, destroy the given indent.
             when 'createIndent'
               attachBefore = @tree.getTokenAtLocation(operation.location)
               attachBefore.prev.append attachBefore.indent.end.next
 
               moveCursorToRaw attachBefore
-
+            
+            # ### destroyIndent ###
+            # Represents destroying an indent with the 'delete key'
+            #
+            # To undo, reinsert an empty indent at the given location.
             when 'destroyIndent'
               head = @tree.getTokenAtLocation operation.location
               
@@ -477,14 +552,25 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               newIndent.start.insert new model.NewlineToken()
 
               moveCursorToRaw newIndent.start
-
+            
+            # ### createSegment ###
+            # Represents creating a segment in the tree,
+            # usually by user lasso select.
+            #
+            # To undo, simply remove the given segment.
             when 'createSegment'
               segmentStart = @tree.getTokenAtLocation operation.start
 
               moveCursorToRaw segmentStart
 
               segmentStart.segment.remove()
-
+            
+            # ### destroySegment ###
+            # Represents destroying a segment in the tree,
+            # usually done automatically after a lasso select operation
+            # is over.
+            #
+            # To undo, insert a segment at the given start/end positions.
             when 'destroySegment'
               segment = new model.Segment()
 
@@ -492,7 +578,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               @tree.getTokenAtLocation(operation.end).insert segment.end
 
               moveCursorToRaw segment.end
-
+            
+            # ### setValue ###
+            # Represents changing the entire content of the editor
+            # with setValue().
+            #
+            # To undo, simply set the value to what it was before.
             when 'setValue'
               @tree = operation.before
 
@@ -541,6 +632,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               before: float.clone()
               after: if target? then target.getSerializedLocation() else null
               block: block.clone()
+              displaced: if target?.type is 'socketStart' then (target.socket.content()?.clone() ? null) else null
           
           block.moveTo target
           @triggerOnChangeEvent new IceEditorChangeEvent block, target
@@ -1684,6 +1776,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           @redraw()
       
       # ## lineHover ##
+      # We allow binding to hovering
+      # over blocks on lines, pasing the line
+      # hovered as an event.
+      #
+      # For performance reasons, if there is no binding,
+      # we do not keep track of what line the mouse is over.
+      # 
+      # The event only fires when the hovered line changes,
+      # and fires on line: null when the mouse goes out of the document.
       lastHoveredLine = null
       track.addEventListener 'mousemove', (event) =>
         if @onLineHover?
@@ -1693,10 +1794,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             @onLineHover {
               line: line
             }
-
+  
+    # ## clearUndoStack ##
+    # Clears the undo stack; pretty self-explanatory.
     clearUndoStack: ->
       @undoStack.length = 0
-
+    
+    # ## setValue ##
+    # Set the value of the editor to some text.
+    # Performs a reparse and *adds an undo event*.
+    #
+    # If the application layer is doing this they may
+    # want to clear the undo stack afterwards.
+    #
+    # If parsing fails, returns the parse error in an object
+    # {success: false, error: parseError}.
+    #
+    # Ideally, this will be the syntax error that trigger the failure to parse.
     setValue: (value) ->
       try
         @ace.setValue value, -1
@@ -1722,7 +1836,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         success: true
       }
 
-
+    
+    # ## getValue ##
+    # Get the textual value of the editor (stringified).
     getValue: -> @tree.stringify()
     
     # ## performMeltAnimation ##
@@ -1914,27 +2030,50 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       return {
         success: true
       }
+    
+    # ## toggleBlocks ##
+    # If we are using blocks, melt to text.
+    # If we are using text, freeze to blocks.
+    #
+    # This should be the function used by the application layer,
+    # *not* _performMeltAnimation() or _performFreezeAnimation().
+    toggleBlocks: ->
+      if @currentlyUsingBlocks then @_performMeltAnimation()
+      else @_performFreezeAnimation()
 
+    # ## setFontSize ##
+    # Set the font size of the editor.
+    #
+    # Note that the font size is bound to the ACE editor font size.
+    # Changing the ICE editor font size will probably be inconsequential
+    # unless you simultaneously change the ACE editor font size.
+    #
+    # This is mainly here as a utility function for ICE editor to use
+    # internally.
     setFontSize: (size) ->
       unless @fontSize is size
         @fontSize = size
 
         @redraw()
         @redrawPalette()
-
-    toggleBlocks: ->
-      if @currentlyUsingBlocks then @_performMeltAnimation()
-      else @_performFreezeAnimation()
-
+    
+    # ## markLine ##
+    # Add a style to a line. Currently,
+    # styles take the form {tag:string, color:string},
+    # and outlines the block in that color.
+    #
+    # Tags are for later removal.
     markLine: (line, style) ->
       # Note: we fail silently when the line given
       # is not in the document
       @tree.getBlockOnLine(line)?.lineMarked.push style
       
       @redraw()
-
+    
+    # ## unmarkLine ##
+    # Remove all styles with the given tag
+    # from a line.
     unmarkLine: (line, tag) ->
-
       unless (blockOnLine = @tree.getBlockOnLine(line))? then return
 
       for style, i in blockOnLine.lineMarked
@@ -1943,7 +2082,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           break
       
       @redraw()
-
+    
+    # ## clearLineMarks ##
+    # Remove all styles with the given tag from
+    # a document.
     clearLineMarks: (tag) ->
       head = @tree.start
       until head is @tree.end
@@ -1958,8 +2100,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         head = head.next
       
       @redraw()
-
+    
+    # ## getHoveredLine ##
+    # A utility function for internal use;
+    # get the line in which the given point resides
+    # in the document.
     getHoveredLine: (point) ->
+      # For performance reasons, and also for
+      # clarity, we treat each line as its bounding rectangle,
+      # rather than the block on that line.
+      #
+      # This way we can hover to the left of the block on a line
+      # and still get the event.
       for line in [@tree.view.lineStart..@tree.view.lineEnd]
         if @tree.view.bounds[line].contains point
           return line

@@ -37,8 +37,9 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
   # Take some text and the CoffeeScript AST of it and
   # return an array of markup.
   exports.mark = (nodes, text) ->
-
     id = 1
+
+    markup = []
     
     # We will work with line-column coordinates,
     # so we want to deal with text lines and not

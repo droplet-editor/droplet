@@ -1,9 +1,17 @@
+# # Parser.coffee
+#
+# Utility functions for defining ICE editor parsers.
+#
+# Copyright (c) 2014 Anthony Bau
+# MIT License.
+
 define ['ice-model'], (model) ->
   exports = {}
-
+  
+  # ## sortMarkup ##
+  # Sort the markup by the order
+  # in which it will appear in the text.
   sortMarkup = (unsortedMarkup) ->
-    # Sort the markup by the order
-    # in which it appears in the text.
 
     unsortedMarkup.sort (a, b) ->
       # First by line
@@ -46,12 +54,19 @@ define ['ice-model'], (model) ->
     # is usually unecessary)
     return unsortedMarkup
   
-  applyMarkup = (text, sortedVerifiedMarkup) ->
+  # ## applyMarkup ##
+  # Given some text and (sorted) markup,
+  # produce an ICE editor document
+  # with the markup inserted into the text.
+  #
+  # Automatically insert sockets around blocks along the way.
+
+  applyMarkup = (text, sortedMarkup) ->
     # For convenience, will we
     # separate the markup by the line on which it is placed.
     markupOnLines = {}
 
-    for mark in sortedVerifiedMarkup
+    for mark in sortedMarkup
       markupOnLines[mark.location.line] ?= []
       markupOnLines[mark.location.line].push mark
     
@@ -103,36 +118,56 @@ define ['ice-model'], (model) ->
           # the new indent depth and the new stack.
           switch mark.token.type
             when 'indentStart'
+              # An Indent is only allowed to be
+              # directly inside a block; if not, then throw.
               unless stack?[stack.length - 1]?.type is 'block'
                 throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
               
+              # Update stack and indent depth
               stack.push mark.token.indent
               indentDepth += mark.token.indent.depth
-
+              
+              # Append the token itself.
               head = head.append mark.token
-
+            
             when 'blockStart'
+              # If the a block is embedded
+              # directly in another block, we should
+              # insert a socket around it automatically.
               if stack?[stack.length - 1]?.type is 'block'
+                # Push the socket to the autoinsertedStack,
+                # so that we know to close it later.
                 autoinsertStack.push mark.token.block
                 autoinsertedSocket = new model.Socket()
-
+                
+                # Append the socket start.
                 head = head.append autoinsertedSocket.start
-
+                
+                # Push it to the stack,
+                # so that we can close it later.
                 stack.push autoinsertedSocket
               
+              # Update the stack
               stack.push mark.token.block
               
+              # Push the token itself.
               head = head.append mark.token
 
             when 'socketStart'
+              # Update the stack and append the token.
               stack.push mark.token.socket
 
               head = head.append mark.token
-
+            
+            # For each End token,
+            # we make sure that it is properly closing
+            # its corresponding Start token; if it is not,
+            # we throw.
             when 'indentEnd'
               unless mark.token.indent is stack?[stack.length - 1]
                 throw new Error 'Improper parser: indent ended too early.'
               
+              # Update stack and indent depth
               stack.pop()
               indentDepth -= mark.token.indent.depth
 
@@ -142,10 +177,13 @@ define ['ice-model'], (model) ->
               unless mark.token.block is stack?[stack.length - 1]
                 throw new Error 'Improper parser: block ended too early.'
               
+              # Update stack
               stack.pop()
 
               head = head.append mark.token
-
+              
+              # If we need to close an autoinserted socket,
+              # close it.
               if mark.token.block is autoinsertStack?[autoinsertStack.length - 1]
                 autoinsertStack.pop()
                 head = head.append stack.pop().end
@@ -154,6 +192,7 @@ define ['ice-model'], (model) ->
               unless mark.token.socket is stack[stack.length - 1]
                 throw new Error 'Improper parser: socket ended too early.'
               
+              # Update stack
               stack.pop()
 
               head = head.append mark.token
@@ -179,6 +218,9 @@ define ['ice-model'], (model) ->
     # Return the document
     return document
   
+  # ## stringifyMarkup ##
+  # A utility function for printing out produced markup.
+  # Used for debugging only.
   stringifyMarkup = (markup) ->
     str = '0: '
     lastLine = 0
@@ -189,6 +231,7 @@ define ['ice-model'], (model) ->
       str += '<' + mark.token.type + '_' + mark.id + '>'
     return str
   
+  # ## Parser ##
   # The Parser class is a simple
   # wrapper on the above functions
   # and a given parser function.
