@@ -179,14 +179,35 @@ define ['ice-view'], (view) ->
 
       # Check to see if we need to wrap ouselves in parentheses
       # To do this, we find our actual parent (not wrapping segment).
+      #
+      # First, find the parent we actually droped into.
       while parent? and parent.type is 'segmentStart' then parent = parent.prev
-      if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      
+      # If the parent was a socket, we might need to wrap.
+      # Check the precedence to see if we need to.
+      if parent?.type is 'socketStart' and parent.socket.precedence >= @precedence
+        # If we need to wrap ourselves in parentheses
+        # and we are not currently wrapped, wrap.
         unless @currentlyParenWrapped
           @start.insert new TextToken '('
           @end.insertBefore new TextToken ')'
           @currentlyParenWrapped = true
+      
+      # If we do not need to wrap, unwrap.
       else if @currentlyParenWrapped
-        @start.next.remove(); @end.prev.remove()
+        # Make sure we really can unwrap parentheses.
+        unless @start.next.type is 'text' and @end.prev.type is 'text'
+          throw new Error 'Cannot unwrap parentheses; parentheses do not exist.'
+
+        # Remove the first and last characters, which ought to
+        # be the parentheses
+        @start.next.value = @start.next.value[1...]
+        @end.prev.value = @end.prev.value[...-1]
+        
+        # If we just generated empty text things, remove them altogether.
+        if @start.next.value.length is 0 then @start.next.remove()
+        if @end.prev.value.length is 0 then @end.prev.remove()
+
         @currentlyParenWrapped = false
     
     # ## checkParenWrap ##

@@ -194,6 +194,13 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # have lowest precedence.
         when 'Call'
           addBlock node, precedence, colors.COMMAND, wrappingParen
+          
+          # If the variable name is parseable beyond
+          # just some text, parse it. Otherwise, 
+          # don't even put a text socket in.
+          unless node.variable.base?.constructor.name is 'Literal'
+            mark node.variable
+
           for arg in node.args then mark arg
         
         # ### Code ###
