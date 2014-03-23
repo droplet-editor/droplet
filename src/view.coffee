@@ -504,7 +504,8 @@ define ['ice-draw'], (draw) ->
     # ## drawPath ##
     # This just executes that path we constructed in computePath
     drawPath: (ctx) ->
-      if @path._points.length is 0 then debugger
+      if @path._points.length is 0
+        throw new Error 'View error: block has no path.'
       @path.draw ctx
 
       super

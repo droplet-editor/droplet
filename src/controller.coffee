@@ -579,7 +579,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             when 'destroySegment'
               segment = new model.Segment()
 
-              @tree.getTokenAtLocation(operation.start).insert segment.start
+              @tree.getTokenAtLocation(operation.start).insertBefore segment.start
               @tree.getTokenAtLocation(operation.end).insert segment.end
 
               moveCursorToRaw segment.end
@@ -1523,13 +1523,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Now, insert the actual lasso segment.
             @lassoSegment = new model.Segment()
 
-            @addMicroUndoOperation
-              type: 'createSegment'
-              start: firstLassoed.getSerializedLocation()
-              end: lastLassoed.getSerializedLocation()
-
             firstLassoed.insertBefore @lassoSegment.start
             lastLassoed.insert @lassoSegment.end
+
+            @addMicroUndoOperation
+              type: 'createSegment'
+              start: @lassoSegment.start.getSerializedLocation()
+              end: @lassoSegment.end.getSerializedLocation()
 
             @redraw()
           
