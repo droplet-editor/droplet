@@ -1,9 +1,10 @@
 # A rudimentary CoffeeScript parser for model Editor.
 # 
-# Created 2014 by Anthony Bau.
-# This software is public domain.
+# Copyright (c) 2014 Anthony Bau.
+# MIT License.
 
 define ['ice-model', 'ice-parser'], (model, parser) ->
+  # Sample colour scheme.
   colors =
     COMMAND: '#268bd2'
     CONTROL: '#daa520'
@@ -12,36 +13,52 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
 
   exports = {}
 
+  # Keep a static list of
+  # operator precedence for later use.
+  #
+  # Lower-numbered operations occur last
+  # in order of operations.
+  operatorPrecedences =
+    '||': 1
+    '&&': 2
+    '===': 3
+    '!==': 3
+    '>': 3
+    '<': 3
+    '>=': 3
+    '<=': 3
+    '+': 4
+    '-': 4
+    '*': 5
+    '/': 5
+    '%': 6
+  
+  # # exports.mark #
+  # Take some text and the CoffeeScript AST of it and
+  # return an array of markup.
   exports.mark = (nodes, text) ->
 
     id = 1
-    rootSegment = new model.Segment()
-
+    
+    # We will work with line-column coordinates,
+    # so we want to deal with text lines and not
+    # a bunch of characters.
     text = text.split('\n')
-
-    operatorPrecedences =
-      '||': 1
-      '&&': 2
-      '===': 3
-      '!==': 3
-      '>': 3
-      '<': 3
-      '>=': 3
-      '<=': 3
-      '+': 4
-      '-': 4
-      '*': 5
-      '/': 5
-      '%': 6
-
-    markup = []
-
+    
+    # ## addMarkup ##
+    # A utility function for adding markup to our markup array
+    # (with location data, id, and start/end flag).
     addMarkup = (block, node, wrappingParen) ->
-      if wrappingParen
+
+      # If the node is wrapped by a parenthesis,
+      # we actually want to enclose the parenthesis by the
+      # new block and not the node itself.
+      if wrappingParen?
         bounds = getBounds wrappingParen
       else
         bounds = getBounds node
-
+      
+      # Push the start and end tokens to the markup array.
       markup.push
         token: block.start
         location: bounds.start
@@ -53,9 +70,17 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         location: bounds.end
         id: id
         start: false
-
+      
+      # Increment the ID.
       id += 1
-
+    
+    # ## getBounds ##
+    # Get the wanted visual bounds
+    # for a piece of syntax.
+    #
+    # CoffeeScript locationData is often
+    # not exactly what we want, so we have to
+    # adjust it here.
     getBounds = (node) ->
       # Defaults simply take
       # CoffeeScript locationData.
@@ -103,42 +128,77 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         end: end
       }
     
+    # ## addBlock ##
+    # A simple utility function for adding a block of a given
+    # precedence and color. We do a lot of this in (mark).
     addBlock = (node, precedence, color, wrappingParen) ->
       block = new model.Block precedence
       block.color = color
       addMarkup block, node, wrappingParen
 
+      if wrappingParen?
+        block.currentlyParenWrapped = true
+    
+    # ## mark ##
+    # The core recursive function for adding the markup associated
+    # with a parse tree.
     mark = (node, precedence = 0, wrappingParen = null) ->
       switch node.constructor.name
+
+        # ### Block ###
+        # A Block is an indented bit of code,
+        # so we will surround it with an Indent.
         when 'Block'
           indent = new model.Indent 2
           addMarkup indent, node, wrappingParen
-          
-          # Delegate to children with zero precedence and no paren wrapping
+
           for expr in node.expressions
             mark expr
-
+        
+        # ### Op ###
+        # An Operator is represented
+        # by a VALUE color block and has
+        # children @first and @second
         when 'Op'
           addBlock node, operatorPrecedences[node.operator], colors.VALUE, wrappingParen
 
           mark node.first, operatorPrecedences[node.operator]
           if node.second? then mark node.second, operatorPrecedences[node.operator]
-
+      
+        # ### Existence ###
+        # The Existence operator works
+        # basically like any other operator;
+        # it has highest precedence.
         when 'Existence'
           addBlock node, 7, colors.CONTROL, wrappingParen
           mark node.expression, 7
         
+        # ### Value ####
+        # A Value is not of much use to the ICE
+        # Editor; it signifies nothing visual.
+        # We pass along to its children
         when 'Value'
           mark node.base, precedence
         
+        # ### Literal ###
+        # A Literal is a value
+        # that should be in a editable
+        # textarea.
         when 'Literal'
           socket = new model.Socket null, precedence
           addMarkup socket, node, wrappingParen
         
+        # ### Call ###
+        # Call blocks are blue and
+        # have lowest precedence.
         when 'Call'
           addBlock node, precedence, colors.COMMAND, wrappingParen
           for arg in node.args then mark arg
-
+        
+        # ### Code ###
+        # Code is a function definition.
+        # There are two cases here, because
+        # functions can be one-line or indented.
         when 'Code'
           addBlock node, precedence, colors.VALUE, wrappingParen
           for param in node.params then mark param
@@ -151,14 +211,29 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           # Otherwise, do not.
           else
             mark node.body
-
+        
+        # ### Param ###
+        # A part of Code; it will
+        # consist of 'Literal',
+        # which is what we want.
         when 'Param'
           mark node.name
-
+        
+        # ### Assign ###
+        # Assign blocks actually cover two cases --
+        # object literal a:b and variable a=b.
+        # This is probably because in CoffeeScript
+        # a:b could be in a class definition and be translated
+        # to a=b.
+        #
+        # In the future we may want to render these two cases differently,
+        # but for now both are blue and have equal precedence.
         when 'Assign'
           addBlock node, precedence, colors.COMMAND, wrappingParen
           mark node.variable; mark node.value
-
+        
+        # ### For ###
+        # A for block has a lot of optional arguments.
         when 'For'
           addBlock node, precedence, colors.CONTROL, wrappingParen
           if node.index? then mark node.index
@@ -174,11 +249,18 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           # Otherwise, do not.
           else
             mark node.body
-
+        
+        # ### Range ###
+        # A Range has two children and is rendered VALUE.
+        # Nothing particularly interesting.
         when 'Range'
           addBlock node, precedence, colors.VALUE, wrappingParen
           mark node.from; mark node.to
-
+        
+        # ### If ###
+        # An If consists of two separate
+        # Blocks (possibly), each of which might either be
+        # an indent or a one-line.
         when 'If'
           addBlock node, precedence, colors.CONTROL, wrappingParen
           mark node.condition
@@ -201,15 +283,24 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
             # Otherwise, do not.
             else
               mark node.elseBody
-
+        
+        # ### Arr ###
+        # An Array has a bunch of elements. Mark all of them and
+        # render the block VALUE.
+        #
+        # In the future, we may want to put a mutation button here
+        # for adding more elements.
         when 'Arr'
           addBlock node, precedence, colors.VALUE, wrappingParen
           for object in node.objects then mark object
-
+        
+        # ### Return ###
+        # A return is the only block other than 'break' rendered RETURN.
         when 'Return'
           addBlock node, precedence, colors.RETURN, wrappingParen
           if node.expression? then mark node.expression
-
+        
+        # ### While ###
         when 'While'
           addBlock node, precedence, colors.CONTROL, wrappingParen
           mark node.condition
@@ -222,18 +313,39 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           # Otherwise, do not.
           else
             mark node.body
-
+        
+        # ### Parens ###
+        # Parens are special because they are delegated to the
+        # expression they contain. They have no block rendering;
+        # we will simply signify to the child node that it must wrap
+        # itself in these parentheses.
         when 'Parens'
-          if node.body? then mark node.body.unwrap(), 0, true
-
+          if node.body? then mark node.body.unwrap(), 0, node
+        
+        # ### Obj ###
+        # Objects can be one-line or multiline,
+        # and can be surrounded in braces or not.
+        # They are rendered VALUE and contain Assign blocks;
+        # we may want to change this behaviour in the future.
         when 'Obj'
           addBlock node, precedence, colors.VALUE, wrappingParen
           
-          # We must insert the indent for an object by hand
+          # We must insert the indent for an object by hand.
+          # Get the needed bounds for this indent.
           start = getBounds node.properties[0]
           end = getBounds node.properties[node.properties.length - 1]
           
+          # If the indent is actually on the same line
+          # as the object literal's beginning,
+          # we do not want to render it as an indent,
+          # but rather as a one-line object.
           unless end.end.line is start.start.line
+            # If we do want to render it as an indent,
+            # insert the indent.
+            #
+            # We have to do some messy work here by hand,
+            # since this is the only place we do this
+            # and we have no utility function.
             indent = new model.Indent 2
             
             markup.push
@@ -254,17 +366,18 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
             id += 1
 
           for property in node.properties then mark property
-
-      if block? and wrappingParen?
-        block.currentlyParenWrapped = true
-
+    
+    # We do not mark the root expression,
+    # but rather every child of it.
     for node in nodes
       mark node
     
     return markup
   
+  # Package ourself as an ICE editor parser.
   parser = new parser.Parser (text) -> exports.mark CoffeeScript.nodes(text).expressions, text
-
+  
+  # Export to requirejs.
   exports.parse = (text) ->
     return parser.parse text
 
