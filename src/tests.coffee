@@ -89,10 +89,28 @@ require ['ice-coffee'], (coffee) ->
       console.log hello
     ''', 'Move hello back in'
 
-    document.getBlockOnLine(0).end.prev.socket.content().remove()
     document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.socket.start
 
     equal document.stringify(), '''
-    console.log for i in [1..10]
-      console.log hello
-    ''', 'Move for into socket'
+    console.log (for i in [1..10]
+      console.log hello)
+    ''', 'Move for into socket (req. paren wrap)'
+
+  test 'Paren wrap', ->
+    document = coffee.parse '''
+    Math.sqrt 2
+    see 1 + 1
+    '''
+
+    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.socket.start
+
+    equal document.stringify(), '''
+    see 1 + (Math.sqrt 2)
+    ''', 'Wrap'
+
+    block.moveTo document.start
+
+    equal document.stringify(), '''
+    Math.sqrt 2
+    see 1 + 
+    ''', 'Unwrap'

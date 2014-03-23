@@ -647,9 +647,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           displaced: if target?.type is 'socketStart' then (target.socket.content()?.clone() ? null) else null
           block: block.clone()
 
-        if target?.type is 'socketStart'
-          target.socket.content()?.remove()
-
         block.moveTo target
 
         @triggerOnChangeEvent new IceEditorChangeEvent block, target

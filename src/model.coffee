@@ -168,6 +168,10 @@ define ['ice-view'], (view) ->
         when 'segmentStart'
           unless parent.next is parent.segment.end
             parent.insert new NewlineToken()
+        
+        # Remove socket content when necessary
+        when 'socketStart'
+          parent.socket.content()?.remove()
       
       # Splice ourselves into the requested parent
       if parent?
