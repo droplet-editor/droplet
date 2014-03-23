@@ -413,7 +413,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # put the cursor into the input that changed.
             when 'socketTextChange'
               socketStart = @tree.getTokenAtLocation operation.location
-              socketStart.socket.content().remove()
+              socketStart.socket.content()?.remove()
               socketStart.insert new model.TextToken operation.before
               
               setTextInputFocusRaw socketStart.socket
@@ -966,6 +966,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @hiddenInput.addEventListener 'blur', (event) =>
         # If we have actually blurred (as opposed to simply unfocused the browser window)
         if event.target isnt document.activeElement then setTextInputFocus null
+        
+        # Focus the editor to capture keypresses
+        @el.focus()
       
       # Bind keyboard shortcut events to the document
       
@@ -1011,12 +1014,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           when 90 then if ctrlKeyPressed
             @undo()
+            event.preventDefault()
         
         # If we manipulated the root tree, redraw.
         if event.keyCode in [13, 38, 40, 8] then @redraw()
         
         # If we caught the keypress, prevent default.
-        if event.keyCode in [13, 38, 40, 8, 37, 90] then event.preventDefault()
+        if event.keyCode in [13, 38, 40, 8, 37] then event.preventDefault()
 
       @el.addEventListener 'keyup', (event) =>
         switch event.keyCode
@@ -1581,8 +1585,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           
           try
             if @focus.handwritten
-              console.log @focus.start.prev.block.stringify()
-
               # If we are in a handwritten block, we actually want to reparse
               # the entire block we're in
               newParse = coffee.parse(@focus.start.prev.block.stringify()).start.next
@@ -1590,8 +1592,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               # If what has been parsed ends up creating a new block,
               # subsitute this new block for the old (unstable) text
               if newParse.type is 'blockStart'
-                console.log newParse
-
                 # Log in the undo stack the operation
                 # we're about to do
                 @addMicroUndoOperation
