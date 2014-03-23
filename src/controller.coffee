@@ -1749,6 +1749,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mousewheel', (event) =>
         # Mousewheel can either scroll the palette
         # or the main canvas.
+        #
+        # First we'll deal with the palette case.
         if event.offsetX < PALETTE_WIDTH
           @clearPalette()
 
@@ -1756,16 +1758,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             if @paletteScrollOffset.y >= SCROLL_INTERVAL
               @paletteScrollOffset.add 0, -SCROLL_INTERVAL
               @paletteCtx.translate 0, SCROLL_INTERVAL
+
             else
               # If we would go past the top of the file, just scroll to exactly the top of the file.
               @paletteCtx.translate 0, @paletteScrollOffset.y
               @paletteScrollOffset.y = 0
+
           else
             @paletteScrollOffset.add 0, SCROLL_INTERVAL
             @paletteCtx.translate 0, -SCROLL_INTERVAL
 
           @redrawPalette()
-
+        
+        # Now the main canvas case
         else
           @clear()
         
@@ -1773,13 +1778,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             if @scrollOffset.y >= SCROLL_INTERVAL
               @scrollOffset.add 0, -SCROLL_INTERVAL
               @mainCtx.translate 0, SCROLL_INTERVAL
+
             else
               # If we would go past the top of the file, just scroll to exactly the top of the file.
-              @mainCtx.translate 0, @scrollOffset.y
+              @mainCtx.setTransform 1, 0, 0, 1, 0, 0
               @scrollOffset.y = 0
+
           else
-            @scrollOffset.add 0, SCROLL_INTERVAL
-            @mainCtx.translate 0, -SCROLL_INTERVAL
+            if @scrollOffset.y + SCROLL_INTERVAL + @main.height > @tree.view.bounds[@tree.view.lineEnd].bottom()
+              @scrollOffset.y = Math.max 0, @tree.view.bounds[@tree.view.lineEnd].bottom() - @main.height
+              @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
+            else
+              @scrollOffset.add 0, SCROLL_INTERVAL
+              @mainCtx.translate 0, -SCROLL_INTERVAL
 
           @redraw()
       
