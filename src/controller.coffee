@@ -1359,7 +1359,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             drag.style.transform = "translate(0px, 0px)"
           
           # Clear the drag canvas
-          @dragCtx.clearRect 0, 0, drag.width, drag.height
+          # Note that we clear from -1, -1 because of our pixel-shift hack
+          # to allow the border in.
+          @dragCtx.clearRect -1, -1, drag.width, drag.height
 
           # If we inserted into root, move the cursor to the end of the selection.
           if highlight?
