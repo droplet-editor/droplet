@@ -163,7 +163,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @paletteScrollOffset = new draw.Point 0, 0
 
       # Touchscreen scrolling fields
-      @touchScrollAnchor = null
       @scrollingPalette = false
 
       offset = null
@@ -212,6 +211,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The mouse tracking div
       track = document.createElement 'div'; track.className = 'trackArea'
 
+      # Invisible-scrollers hack.
+      paletteScroller = document.createElement 'div'; paletteScroller.className = 'ice_palette_scroller'
+      paletteScrollerStuffing = document.createElement 'div'; paletteScrollerStuffing.className = 'ice_palette_scroller_stuffing'
+
+      mainScroller = document.createElement 'div'; mainScroller.className = 'ice_main_scroller'
+      mainScrollerStuffing = document.createElement 'div'; mainScrollerStuffing.className = 'ice_main_scroller_stuffing'
+      
+      track.appendChild paletteScroller
+      paletteScroller.appendChild paletteScrollerStuffing
+
+      track.appendChild mainScroller
+      mainScroller.appendChild mainScrollerStuffing
+      
       # Append the children
       for child in [@main, @palette, drag, track, @hiddenInput]
         @el.appendChild child
@@ -255,6 +267,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         # Draw it on the main context
         @tree.view.draw @mainCtx
+        
+        # Update the main scroller dimensions
+        # to fit the document dimensions
+        bounds = @tree.view.getBounds()
+        mainScrollerStuffing.style.height = bounds.bottom()
+        mainScrollerStuffing.style.width = bounds.right()
         
         # Alert the lasso segment, if it exists, to recompute its bounds
         if @lassoSegment?
@@ -665,6 +683,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # We need to keep track of the bottom edge of the last element,
         # so we know where to put the top of the next one (there will be a margin of PALETTE_MARGIN between them)
         lastBottomEdge = PALETTE_TOP_MARGIN
+        bounds = new draw.NoRectangle()
 
         for paletteBlock in @paletteBlocks
           # Compute the coordinates
@@ -678,6 +697,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           # Finish and draw the palette block
           paletteBlock.view.draw @paletteCtx
+
+          bounds.unite paletteBlock.view.getBounds()
+
+        # Set the size of palette scroller stuffing
+        # to match palette size
+        paletteScrollerStuffing.style.height = lastBottomEdge
+        paletteScrollerStuffing.style.width = bounds.width
       
       # (call it right away)
       @redrawPalette()
@@ -714,13 +740,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         
         # If the cursor has scrolled out of view, scroll it back into view.
         if @cursor.view.point.y < @scrollOffset.y
-          @mainCtx.translate 0, @scrollOffset.y - @cursor.view.point.y
           @scrollOffset.y = @cursor.view.point.y
+          mainScroller.scrollTop = @scrollOffset.y
+          @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffset.x, -@scrollOffset.y
 
           @redraw()
         else if @cursor.view.point.y > (@scrollOffset.y + @main.height)
-          @mainCtx.translate 0, (@scrollOffset.y + @main.height) - @cursor.view.point.y
           @scrollOffset.y = @cursor.view.point.y - @main.height
+          mainScroller.scrollTop = @scrollOffset.y
+          @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffset.x, -@scrollOffset.y
 
           @redraw()
 
@@ -1076,10 +1104,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       getPointFromEvent = (event) =>
         switch
-          when event.offsetX? then new draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + @scrollOffset.y
-          when event.layerX? then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
+          when event.offsetX?
+            return new draw.Point(
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageY - findPosTop(track) + @scrollOffset.y
+            )
+          when event.layerX?
+            return new draw.Point(
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageY - findPosTop(track) + @scrollOffset.y
+            )
       
-      performNormalMouseDown = (point, isTouchEvent) =>
+      performNormalMouseDown = (point) =>
 
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
@@ -1089,37 +1125,32 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           hitTestPalette(point)
         
         if not @ephemeralSelection?
-          if isTouchEvent
-            @touchScrollAnchor = point
-            @scrollingPalette = (point.x > 0)
+          # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
+          
+          # If there is already a selection, remove it.
+          if @lassoSegment?
 
-          else
-            # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
-            
-            # If there is already a selection, remove it.
-            if @lassoSegment?
+            # First, check to see if the block is floating
+            flag = false
+            for float in @floatingBlocks
+              if float.block is @lassoSegment
+                flag = true
+                break
 
-              # First, check to see if the block is floating
-              flag = false
-              for float in @floatingBlocks
-                if float.block is @lassoSegment
-                  flag = true
-                  break
+            # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+            unless flag
+              @addMicroUndoOperation
+                type: 'destroySegment'
+                start: @lassoSegment.start.getSerializedLocation()
+                end: @lassoSegment.end.getSerializedLocation()
 
-              # Don't remove the segment if it's floating, because it still needs to hold those blocks together
-              unless flag
-                @addMicroUndoOperation
-                  type: 'destroySegment'
-                  start: @lassoSegment.start.getSerializedLocation()
-                  end: @lassoSegment.end.getSerializedLocation()
+              @lassoSegment.remove()
 
-                @lassoSegment.remove()
+            @lassoSegment = null
+            @redraw()
 
-              @lassoSegment = null
-              @redraw()
-
-            # Set the lasso anchor
-            @lassoAnchor = point
+          # Set the lasso anchor
+          @lassoAnchor = point
 
         else if @ephemeralSelection.type is 'socket'
           # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
@@ -1268,16 +1299,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           drag.style.webkitTransform =
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
-
-        else if @touchScrollAnchor?
-          point = new draw.Point event.offsetX, event.offsetY
-          if @scrollingPalette?
-            @paletteScrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
-            @paletteCtx.setTransform 1, 0, 0, 1, 0, -@paletteScrollOffset.y
-          else
-            @scrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
-            @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
-          @redraw()
       
       # Bind this mousemove function to mousemove. We need to add some
       # wrapper functions for touchmove, since multitouch works slightly differently
@@ -1386,8 +1407,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       track.addEventListener 'touchend', (event) =>
         event.preventDefault()
-
-        @touchScrollAnchor = null
 
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
@@ -1742,56 +1761,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mouseup', (event) =>
         if @isEditingText()
           textInputSelecting = false
+      
+      # ## Scrolling ##
+      # We handle scrolling through some invisible scroller elements in the track div.
+      # We bind to their scroll events and translate the canvases based on their
+      # scroll positions.
 
-      # ## Mouse events for SCROLLING ##
+      paletteScroller.addEventListener 'scroll', =>
+        @paletteScrollOffset.x = paletteScroller.scrollLeft
+        @paletteScrollOffset.y = paletteScroller.scrollTop
+        @paletteCtx.setTransform 1, 0, 0, 1, -@paletteScrollOffset.x, -@paletteScrollOffset.y
+        @redrawPalette()
 
-      track.addEventListener 'mousewheel', (event) =>
-        # Mousewheel can either scroll the palette
-        # or the main canvas.
-        #
-        # First we'll deal with the palette case.
-        if event.offsetX < PALETTE_WIDTH
-          @clearPalette()
-
-          if event.wheelDelta > 0
-            if @paletteScrollOffset.y >= SCROLL_INTERVAL
-              @paletteScrollOffset.add 0, -SCROLL_INTERVAL
-              @paletteCtx.translate 0, SCROLL_INTERVAL
-
-            else
-              # If we would go past the top of the file, just scroll to exactly the top of the file.
-              @paletteCtx.translate 0, @paletteScrollOffset.y
-              @paletteScrollOffset.y = 0
-
-          else
-            @paletteScrollOffset.add 0, SCROLL_INTERVAL
-            @paletteCtx.translate 0, -SCROLL_INTERVAL
-
-          @redrawPalette()
-        
-        # Now the main canvas case
-        else
-          @clear()
-        
-          if event.wheelDelta > 0
-            if @scrollOffset.y >= SCROLL_INTERVAL
-              @scrollOffset.add 0, -SCROLL_INTERVAL
-              @mainCtx.translate 0, SCROLL_INTERVAL
-
-            else
-              # If we would go past the top of the file, just scroll to exactly the top of the file.
-              @mainCtx.setTransform 1, 0, 0, 1, 0, 0
-              @scrollOffset.y = 0
-
-          else
-            if @scrollOffset.y + SCROLL_INTERVAL + @main.height > @tree.view.bounds[@tree.view.lineEnd].bottom()
-              @scrollOffset.y = Math.max 0, @tree.view.bounds[@tree.view.lineEnd].bottom() - @main.height
-              @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
-            else
-              @scrollOffset.add 0, SCROLL_INTERVAL
-              @mainCtx.translate 0, -SCROLL_INTERVAL
-
-          @redraw()
+      mainScroller.addEventListener 'scroll', =>
+        @scrollOffset.x = mainScroller.scrollLeft
+        @scrollOffset.y = mainScroller.scrollTop
+        @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffset.x, -@scrollOffset.y
+        @redraw()
       
       # ## lineHover ##
       # We allow binding to hovering
