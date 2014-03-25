@@ -6,7 +6,8 @@
   top: 0;
 }
 .drag {
-  z-index: 2
+  z-index: 2;
+  margin-top: -1px;
 }
 .palette {
   z-index: 0;
@@ -62,4 +63,14 @@
   position: absolute;
   top: 0; left: 0; bottom:0; right:0;
   font-family: Courier, monospace;
+}
+.ice_main_scroller {
+  position: absolute;
+  top: 0; left: 300px; bottom: 0; right: 0;
+  overflow: auto;
+}
+.ice_palette_scroller {
+  position: absolute;
+  left: 0; top: 0; bottom: 0; width: 300px;
+  overflow: auto;
 }

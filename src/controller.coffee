@@ -8,7 +8,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   
   PADDING = 5
   INDENT_SPACES = 2
-  INPUT_LINE_HEIGHT = 15
   PALETTE_MARGIN = 10
   PALETTE_LEFT_MARGIN = 0
   PALETTE_TOP_MARGIN = 0
@@ -84,19 +83,35 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   exports.Editor = class Editor
     constructor: (wrapper, @paletteBlocks) ->
+      # Default font size
+      @fontSize = FONT_SIZE
+
       @aceEl = document.createElement 'div'; @aceEl.className = 'ice_ace'
       wrapper.appendChild @aceEl
       
+      # Defaults for ace editor
       @ace = ace.edit @aceEl
       @ace.setTheme 'ace/theme/chrome'
       @ace.getSession().setMode 'ace/mode/coffee'
       @ace.getSession().setTabSize 2
       @ace.setShowPrintMargin false
       @ace.setFontSize 15
+      
+      # We want to bind the font size of ICE editor to the font
+      # size of ACE editor, so that animations always remains smooth.
+      #
+      # To this end, we listen to ACE editor "change" and reset.
+      #
+      # The application layer should trigger setFontSize() any
+      # time the font size changes without ACE editor text changing.
+      @ace.on 'change', =>
+        @setFontSize @ace.getFontSize()
 
       @el = document.createElement 'div'; @el.className = 'ice_editor'
       wrapper.appendChild @el
-
+      
+      # Give our element a tabindex so we can keep track of its focus.
+      @el.tabIndex = 0
 
       # ## Field declaration ##
       # (useful to have all in one place)
@@ -110,7 +125,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @paletteBlocks = (paletteBlock.clone() for paletteBlock in @paletteBlocks)
 
       # MODEL instances (program state)
-      @tree = null # The root tree
+      @tree = new model.Segment() # The root tree
       @floatingBlocks = [] # The other root blocks that are not attached to the root tree
       
       # TEXT INPUT interactive fields
@@ -138,14 +153,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # CURSOR interactive fields
       @cursor = new model.CursorToken()
 
+      @tree.start.insert @cursor
+
       # UNDO STACK
       @undoStack = []
 
       # Scroll offset
       @scrollOffset = new draw.Point 0, 0
+      @paletteScrollOffset = new draw.Point 0, 0
 
       # Touchscreen scrolling fields
-      @touchScrollAnchor = null
+      @scrollingPalette = false
 
       offset = null
       highlight = null
@@ -160,19 +178,32 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # The main canvas
       @main = document.createElement 'canvas'; @main.className = 'canvas'
-      @main.height = @el.offsetHeight
-      @main.width = @el.offsetWidth - PALETTE_WIDTH
 
       # The palette canvas
       @palette = document.createElement 'canvas'; @palette.className = 'palette'
-      @palette.height = @el.offsetHeight
-      @palette.width = PALETTE_WIDTH
 
       # The drag canvas
       drag = document.createElement 'canvas'; drag.className = 'drag'
-      drag.style.opacity = 0.85
-      drag.height = @el.offsetHeight
-      drag.width = @el.offsetWidth - PALETTE_WIDTH
+
+      computeCanvasDimensions = =>
+        @main.height = @el.offsetHeight
+        @main.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+        
+        @palette.height = @el.offsetHeight
+        @palette.width = PALETTE_WIDTH
+
+        drag.height = @el.offsetHeight
+        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+      
+      # We need to resize the canvases any time the editor resizes.
+      # We will bind this to the document resize function, but this function
+      # should be called at any other time the editor is resized.
+      window.addEventListener 'resize', @resize = =>
+        computeCanvasDimensions()
+
+        @redraw(); @redrawPalette()
+
+      computeCanvasDimensions()
 
       # The hidden input
       @hiddenInput = document.createElement 'input'; @hiddenInput.className = 'hidden_input'
@@ -180,6 +211,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The mouse tracking div
       track = document.createElement 'div'; track.className = 'trackArea'
 
+      # Invisible-scrollers hack.
+      paletteScroller = document.createElement 'div'; paletteScroller.className = 'ice_palette_scroller'
+      paletteScrollerStuffing = document.createElement 'div'; paletteScrollerStuffing.className = 'ice_palette_scroller_stuffing'
+
+      mainScroller = document.createElement 'div'; mainScroller.className = 'ice_main_scroller'
+      mainScrollerStuffing = document.createElement 'div'; mainScrollerStuffing.className = 'ice_main_scroller_stuffing'
+      
+      track.appendChild paletteScroller
+      paletteScroller.appendChild paletteScrollerStuffing
+
+      track.appendChild mainScroller
+      mainScroller.appendChild mainScrollerStuffing
+      
       # Append the children
       for child in [@main, @palette, drag, track, @hiddenInput]
         @el.appendChild child
@@ -188,6 +232,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @mainCtx = @main.getContext '2d'
       @dragCtx = drag.getContext '2d'
       @paletteCtx = @palette.getContext '2d'
+      
+      # Transform to allow border.
+      # In the css, we also put in a pixel margin,
+      # so that the image actually ends up in the same spot.
+      @dragCtx.setTransform 1, 0, 0, 1, 1, 1
 
       # The main context will be used for draw.js's text measurements (this is a bit of a hack)
       draw._setCTX @mainCtx
@@ -197,12 +246,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       @clear = =>
         @mainCtx.clearRect @scrollOffset.x, @scrollOffset.y, @main.width, @main.height
+
+      @clearPalette = =>
+        @paletteCtx.clearRect @paletteScrollOffset.x, @paletteScrollOffset.y, @palette.width, @palette.height
       
       # ## Redraw ##
       # redraw does three main things: redraws the root tree (@tree)
       # redraws any floating blocks (@floatingBlocks), and draws the bounding rectangle
       # of any lassoed segments.
       @redraw = =>
+        if @currentlyAnimating then return
+
+        draw._setGlobalFontSize @fontSize
+
         # Clear the main canvas
         @clear()
 
@@ -211,6 +267,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         # Draw it on the main context
         @tree.view.draw @mainCtx
+        
+        # Update the main scroller dimensions
+        # to fit the document dimensions
+        bounds = @tree.view.getBounds()
+        mainScrollerStuffing.style.height = bounds.bottom()
+        mainScrollerStuffing.style.width = bounds.right()
         
         # Alert the lasso segment, if it exists, to recompute its bounds
         if @lassoSegment?
@@ -286,48 +348,55 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               if testHead is null
                 continue
               
-              newBlock = (coffee.parse handwrittenBlock.stringify()).segment
+              newBlock = (coffee.parse handwrittenBlock.stringify()).start.next
 
-              console.log handwrittenBlock.stringify(), handwrittenBlock.start.getSerializedLocation()
+              if newBlock.type isnt 'blockStart' then continue
+              else newBlock = newBlock.block
 
               # Add an undo operation
-              addMicroUndoOperation
+              @addMicroUndoOperation
                 type: 'handwrittenReparse'
                 location: handwrittenBlock.start.getSerializedLocation()
                 before: handwrittenBlock.clone()
                 after: newBlock.clone()
 
               # Unfortunately moveTo handles whitepsace for us,
-              # which we do not want to do, so we must splice the block out ourselves.
-              handwrittenBlock.start.prev.append handwrittenBlock.end.next
-              handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
-              
-              newBlock.moveTo parent
+              # which we do not want to do, so we must splice the block out ourselves,
+              # and move the new block in verbatim.
+              handwrittenBlock.start.prev.append newBlock.start
+              newBlock.end.append handwrittenBlock.end.next
 
-              # Elminate gratuitous Segment wrapper
-              newBlock.remove()
+              # Fully unlink the handwritten block
+              handwrittenBlock.start.prev = null; handwrittenBlock.end.next = null
         
         # We have done some modifications, so we must redraw.
         @redraw()
       
-      # ## addMicroUndoOperation ##
+      # ## @addMicroUndoOperation ##
       # Bureaucracy wrapper for pushing to the undo stack.
-      addMicroUndoOperation = (operation) =>
+      @addMicroUndoOperation = (operation) =>
         # For clarity, we ensure that the operation
         # is of one of the known types.
         unless operation?.type in [
           'socketTextChange'
+
           'socketReparse'
           'handwrittenReparse'
+          
           'blockMove'
           'blockMoveToFloat'
           'blockMoveFromFloat'
+          
           'createIndent'
           'destroyIndent'
+
+          'createSegment'
+          'destroySegment'
+          'setValue'
         ] then return
         @undoStack.push operation
 
-      captureUndoEvent = =>
+      @captureUndoEvent = =>
         unless @undoStack[@undoStack.length - 1]?.type is 'operationMarker'
           @undoStack.push
             type: 'operationMarker'
@@ -335,7 +404,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # ## undo ##
       # Actually reverse some operations in the undo stack.
       @undo = =>
-        @cursor.remove()
+        @lassoSegment = null
+
         if @undoStack.length is 0 then return
 
         operation = @undoStack.pop()
@@ -345,71 +415,211 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if operation.type is 'operationMarker' then operation = @undoStack.pop()
         
         until (not operation?) or operation.type is 'operationMarker'
-          console.log operation, @undoStack
+          if @focus? then setTextInputFocusRaw null
+
+          # Get the cursor out of the way
+          oldCursorLocation = @cursor.getSerializedLocation()
+          @cursor.remove()
+
           switch operation.type
+            # ### socketTextChange ###
+            # Represents a change in socket text;
+            # to undo simply change the text back.
+            #
+            # When we do this we will also
+            # put the cursor into the input that changed.
             when 'socketTextChange'
-              socketStart = @tree.getTokenAtLocation operation.location - 1
-              socketStart.socket.content().remove()
+              socketStart = @tree.getTokenAtLocation operation.location
+              socketStart.socket.content()?.remove()
               socketStart.insert new model.TextToken operation.before
+              
+              setTextInputFocusRaw socketStart.socket
+              textInputSelectAll()
+
+            # ### socketReparse ###
+            # Represents an automatic reparse of
+            # the text in a socket.
+            #
+            # To undo replace the parsed blocks with the unparsed
+            # text. When we do this we will put the cursor near
+            # the block.
             when 'socketReparse'
-              socketStart = @tree.getTokenAtLocation operation.location - 1
+              socketStart = @tree.getTokenAtLocation operation.location
               socketStart.append socketStart.socket.end
               socketStart.insert operation.before
-            when 'handwrittenReparse'
-              attachBefore = @tree.getTokenAtLocation operation.location - 2
-              attachAfter = attachBefore.next.block.end.next
 
+              moveCursorToRaw socketStart
+
+            # ### handwrittenReparse ###
+            # Represents an automatic reparse of
+            # a handwritten block.
+            #
+            # To undo replace the parsed blocks with the unparsed
+            # handwritten block. When we do this we will put the cursor near
+            # the block.
+            when 'handwrittenReparse'
+              # Get the block we want to replace
+              attachBefore = @tree.getTokenAtLocation(operation.location).prev
+              attachAfter = attachBefore.next.block.end.next
+              
+              # Splice it out and splice
+              # the new block in.
               attachBefore.append operation.before.start
               operation.before.end.append attachAfter
+
+              moveCursorToRaw attachAfter
+
+            # ### blockMove ###
+            # Represents the vanilla block or segment move.
+            #
+            # To undo, delete the block at the ending location
+            # and insert an idenitcal block at the starting location.
+            # When we do this we will put the cursor at the inserted block.
             when 'blockMove'
+              # If the block was not moved to (null) (i.e. is still in the tree),
+              # splice it out.
               if operation.after?
-                @tree.getTokenAtLocation(operation.after).block.moveTo null
+                pos = @tree.getTokenAtLocation operation.after
+                
+                # If moving the block here removed
+                # some text from a socket (text in an
+                # input is deleted when you drag a block over it),
+                # put that text back in.
+                if operation.displaced?
+                  pos.insert operation.displaced
+                
+                # We might be in front of some segments or cursors,
+                # so keep going to seek the beginning of the block.
+                until pos.type is operation.block.start.type then pos = pos.next
+                
+                # Splice out.
+                if operation.block.type is 'segment'
+                  pos.segment.moveTo null
+                else
+                  pos.block.moveTo null
+                
+                unless operation.before? then moveCursorToRaw @tree.getTokenAtLocation operation.after
               
+              # If the block was not moved from (null) (i.e. was formerly in the tree),
+              # splice it in.
               if operation.before?
-                target = @tree.getTokenAtLocation operation.before - 1
+                target = @tree.getTokenAtLocation operation.before
 
-                if target.type is 'indentStart'
-                  head = highlight.end.prev
-                  while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
-                  
-                  unless head.type is 'newline'
-                    target = target.insert new model.NewlineToken()
-
-                else if target is @tree.start
-                  unless @tree.start.next is @tree.end
-                    target.insert new model.NewlineToken()
-
-                else if target.type is 'blockEnd'
-                  target = target.insert new model.NewlineToken()
-
-                console.log target
                 operation.block.moveTo target
+
+                moveCursorToRaw operation.block.end
+            
+            # ### blockMoveToFloat ###
+            # Represents moving a block from the tree (or palette)
+            # to a floating position.
+            #
+            # To undo, remove the block from the list of floating blocks,
+            # and splice it back into the 
             when 'blockMoveToFloat'
               # Remove the block from the list of floating blocks
               @floatingBlocks.splice operation.floatingBlockIndex
               
+              # If the block used to be in the tree, splice it back in.
               if operation.before?
-                target = @tree.getTokenAtLocation operation.before - 1
-                if target.type in ['indentStart', 'blockEnd'] and target.next.next.type isnt 'newline'
-                  target = target.insert new model.NewlineToken()
-                console.log target
+                target = @tree.getTokenAtLocation operation.before
+
                 operation.block.moveTo target
+
+                moveCursorToRaw operation.block.end
+            
+            # ### blockMoveFromFloat ###
+            # Represents a block from floating into the tree (or palette).
+            #
+            # To undo, push an identical record of a floating block into
+            # the list of floating blocks, and delete the thing in the tree
+            # at the ending position.
             when 'blockMoveFromFloat'
               if operation.after?
-                @tree.getTokenAtLocation(operation.after).block.moveTo null
+                if operation.block.type is 'segment'
+                  @tree.getTokenAtLocation(operation.after).block.moveTo null
+                else
+                  @tree.getTokenAtLocation(operation.after).segment.moveTo null
+                
+                # As with blockMove, we may have displaced some
+                # text, so reinsert it.
+                if operation.displaced?
+                  @tree.getTokenAtLocation(operation.after).insert operation.displaced
 
               @floatingBlocks.push operation.before
-
+            
+            # ### createIndent ###
+            # Represents creating an indent with the 'tab' key.
+            #
+            # To undo, destroy the given indent.
             when 'createIndent'
               attachBefore = @tree.getTokenAtLocation(operation.location)
               attachBefore.prev.append attachBefore.indent.end.next
 
+              moveCursorToRaw attachBefore
+            
+            # ### destroyIndent ###
+            # Represents destroying an indent with the 'delete key'
+            #
+            # To undo, reinsert an empty indent at the given location.
+            when 'destroyIndent'
+              head = @tree.getTokenAtLocation operation.location
+              
+              # Create and insert a new indent (default 2 spaces)
+              newIndent = new model.Indent INDENT_SPACES
+              head.prev.insert newIndent.start; head.prev.insert newIndent.end
+              
+              # Fill the indent with two newlines (as any empty indent must be)
+              # This is done mainly to satisfy the undo stack's need to know exactly
+              # what an indent looked like before a block move operation happened.
+              newIndent.start.insert new model.NewlineToken()
+
+              moveCursorToRaw newIndent.start
+            
+            # ### createSegment ###
+            # Represents creating a segment in the tree,
+            # usually by user lasso select.
+            #
+            # To undo, simply remove the given segment.
+            when 'createSegment'
+              segmentStart = @tree.getTokenAtLocation operation.start
+
+              moveCursorToRaw segmentStart
+
+              segmentStart.segment.remove()
+            
+            # ### destroySegment ###
+            # Represents destroying a segment in the tree,
+            # usually done automatically after a lasso select operation
+            # is over.
+            #
+            # To undo, insert a segment at the given start/end positions.
+            when 'destroySegment'
+              segment = new model.Segment()
+
+              @tree.getTokenAtLocation(operation.start).insertBefore segment.start
+              @tree.getTokenAtLocation(operation.end).insert segment.end
+
+              moveCursorToRaw segment.end
+            
+            # ### setValue ###
+            # Represents changing the entire content of the editor
+            # with setValue().
+            #
+            # To undo, simply set the value to what it was before.
+            when 'setValue'
+              @tree = operation.before
+
           operation = @undoStack.pop()
 
-          @redraw()
-          debugger
-
+        # If we have failed to reinsert the cursor, put it
+        # wherever it was before
+        if @cursor.prev is null and @cursor.next is null
+          moveCursorTo @tree.getTokenAtLocation oldCursorLocation
+        
+        scrollCursorIntoView()
         @redraw()
+
+        unless @focus? then setTimeout (=> @el.focus()), 0
 
         return @undoStack.length
       
@@ -439,11 +649,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # by being picked up first, so (before) is null.
         for float in @floatingBlocks
           if block is float.block
-            addMicroUndoOperation
+            @addMicroUndoOperation
               type: 'blockMoveFromFloat'
               before: float.clone()
               after: if target? then target.getSerializedLocation() else null
               block: block.clone()
+              displaced: if target?.type is 'socketStart' then (target.socket.content()?.clone() ? null) else null
           
           block.moveTo target
           @triggerOnChangeEvent new IceEditorChangeEvent block, target
@@ -451,10 +662,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           return
         
         # Log the undo operation
-        addMicroUndoOperation
+        @addMicroUndoOperation
           type: 'blockMove'
           before: if parent? then parent.getSerializedLocation() else null
           after: if target? then target.getSerializedLocation() else null
+          displaced: if target?.type is 'socketStart' then (target.socket.content()?.clone() ? null) else null
           block: block.clone()
 
         block.moveTo target
@@ -464,9 +676,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The redrawPalette function ought to be called only once in the current code structure.
       # If we want to scroll the palette later on, then this will be called to do so.
       @redrawPalette = =>
+        @clearPalette()
+
+        draw._setGlobalFontSize @fontSize
+
         # We need to keep track of the bottom edge of the last element,
         # so we know where to put the top of the next one (there will be a margin of PALETTE_MARGIN between them)
         lastBottomEdge = PALETTE_TOP_MARGIN
+        bounds = new draw.NoRectangle()
 
         for paletteBlock in @paletteBlocks
           # Compute the coordinates
@@ -480,6 +697,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           # Finish and draw the palette block
           paletteBlock.view.draw @paletteCtx
+
+          bounds.unite paletteBlock.view.getBounds()
+
+        # Set the size of palette scroller stuffing
+        # to match palette size
+        paletteScrollerStuffing.style.height = lastBottomEdge
+        paletteScrollerStuffing.style.width = bounds.width
       
       # (call it right away)
       @redrawPalette()
@@ -489,7 +713,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # that is rendered specially in the View.
 
       insertHandwrittenBlock = =>
-        captureUndoEvent()
+        setTextInputFocus null
+        @captureUndoEvent()
 
         # Create the new block and socket for a new handwritten line
         newBlock = new model.Block(); newSocket = new model.Socket null
@@ -498,24 +723,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Put the new socket into the new block
         newBlock.start.insert newSocket.start; newBlock.end.prev.insert newSocket.end
         
+        head = @cursor.prev
+        while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
+          head = head.prev
+        
         # Move it to where the cursor should be
-        if @cursor.next.type is 'newline' or @cursor.next.type is 'indentEnd' or @cursor.next.type is 'segmentEnd'
-          if @cursor.next.type is 'indentEnd' and @cursor.prev.type is 'newline'
-            moveBlockTo newBlock, @cursor.prev
-          else
-            moveBlockTo newBlock, @cursor.prev.insert new model.NewlineToken()
+        moveBlockTo newBlock, head
 
-          @redraw()
-          setTextInputFocus newSocket
-
-        else if @cursor.prev.type is 'newline' or @cursor.prev is @tree.start
-
-          moveBlockTo newBlock, @cursor.prev
-
-          newBlock.end.insert new model.NewlineToken()
-
-          @redraw()
-          setTextInputFocus newSocket
+        @redraw()
+        setTextInputFocus newSocket
 
         scrollCursorIntoView()
 
@@ -524,18 +740,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         
         # If the cursor has scrolled out of view, scroll it back into view.
         if @cursor.view.point.y < @scrollOffset.y
-          @mainCtx.translate 0, @scrollOffset.y - @cursor.view.point.y
           @scrollOffset.y = @cursor.view.point.y
+          mainScroller.scrollTop = @scrollOffset.y
+          @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffset.x, -@scrollOffset.y
 
           @redraw()
         else if @cursor.view.point.y > (@scrollOffset.y + @main.height)
-          @mainCtx.translate 0, (@scrollOffset.y + @main.height) - @cursor.view.point.y
           @scrollOffset.y = @cursor.view.point.y - @main.height
+          mainScroller.scrollTop = @scrollOffset.y
+          @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffset.x, -@scrollOffset.y
 
           @redraw()
 
-      moveCursorTo = (token) =>
-        # Splice out
+      moveCursorToRaw = (token) =>
+        # Make sure that we are actually inside the tree
+        head = token
+        until head is null or head is @tree.end
+          head = head.next
+
+        # If we are not, then give up.
+        if head is null then return
+
+        # Otherwise, splice out
         @cursor.remove()
 
         # Find the newline or end markup after the given token.
@@ -552,6 +778,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           head.insert @cursor
         else
           head.insertBefore @cursor
+    
+      moveCursorTo = (token) =>
+        moveCursorToRaw token
 
         # We have moved the cursor, so it might now be possible
         # to reparse some handwritten blocks. Try it.
@@ -559,12 +788,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         scrollCursorIntoView()
       
-      moveCursorBefore = (token) =>
+      moveCursorBeforeRaw = (token) =>
         # Splice out
         @cursor.remove()
         
         # Splice in
         token.insertBefore @cursor
+      
+      moveCursorBefore = (token) =>
+        moveCursorBeforeRaw token
 
         # We have moved the cursor, so it might now be possible
         # to reparse some handwritten blocks. Try it.
@@ -596,18 +828,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # Remember, though, that the cursor is currently inside this indent, so we need to move it out first.
           if nextVisibleElement is head.indent.end
             moveCursorDown()
-            captureUndoEvent()
+            @captureUndoEvent()
 
-            addMicroUndoEvent
+            @addMicroUndoOperation
               type: 'destroyIndent'
-              location: head.prev.getSerializedLocation()
+              location: head.getSerializedLocation()
 
             head.prev.append head.indent.end.next
             @redraw()
 
         scrollCursorIntoView()
       
-      # TODO the following are known not to be able to navigate to the end of an indent.
       moveCursorUp = =>
         # Seek newline
         head = @cursor.prev.prev
@@ -684,7 +915,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             if @handwritten then insertHandwrittenBlock()
             else setTextInputFocus null; @hiddenInput.blur(); @redraw()
           when 8 then if @handwritten and @hiddenInput.value.length is 0
-            deleteFromCursor(); setTextInputFocus null; @hiddenInput.blur()
+            deleteFromCursor(); setTextInputFocus null; @el.focus(); @hiddenInput.blur()
           when 9 then if @handwritten
             # Seek the block right before this handwritten block
             head = @focus.start.prev.prev
@@ -696,7 +927,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Otherwise, see if the last child of this block is an indent
             else if head.prev.type is 'indentEnd'
               # Note that it is guaranteed that a handwritten block satisfies @focus.start.prev.block is (the wrapping block)
-              moveBlockTo @focus.start.prev.block, head.prev.prev.insert new model.NewlineToken() # Move the block we're editing into the indent
+              moveBlockTo @focus.start.prev.block, head.prev.prev
 
               # Move the cursor into its proper position (after this block)
               moveCursorTo @focus.start.prev.block.end
@@ -706,24 +937,29 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             
             # We have found a block we want to move into, but there's no indent here, so create one.
             else
-              addMicroUndoOperation
+              @addMicroUndoOperation
                 type: 'createIndent'
-                location: head.prev.getSerializedLocation()
+                location: head.getSerializedLocation()
 
               # Create and insert a new indent (default 2 spaces)
               newIndent = new model.Indent INDENT_SPACES
               head.prev.insert newIndent.start; head.prev.insert newIndent.end
+            
+              # Fill the indent with two newlines (as any empty indent must be)
+              # This is done mainly to satisfy the undo stack's need to know exactly
+              # what an indent looked like before a block move operation happened.
+              newIndent.start.insert new model.NewlineToken()
 
               # Move the block we're editing into this new indent
-              moveBlockTo @focus.start.prev.block, newIndent.start.insert new model.NewlineToken()
+              moveBlockTo @focus.start.prev.block, newIndent.start
 
               # Move the cursor into its proper position (after this block)
               moveCursorTo @focus.start.prev.block.end
 
               @redraw()
               event.preventDefault(); return false
-          when 38 then setTextInputFocus null; @hiddenInput.blur(); moveCursorUp(); @redraw()
-          when 40 then setTextInputFocus null; @hiddenInput.blur(); moveCursorDown(); @redraw()
+          when 38 then setTextInputFocus null; @hiddenInput.blur(); moveCursorUp(); @el.focus(); @redraw()
+          when 40 then setTextInputFocus null; @hiddenInput.blur(); moveCursorDown(); @el.focus(); @redraw()
           when 37 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is 0
             # Pressing the left-arrow at the leftmost end of a socket brings us to the previous socket
             head = @focus.start
@@ -734,6 +970,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+            setTimeout (=>
+              setRawTextInputCursor head.socket.stringify().length
+              redrawTextInput()), 0
+
           when 39 then if @hiddenInput.selectionStart is @hiddenInput.selectionEnd and @hiddenInput.selectionStart is @hiddenInput.value.length
             # Pressing right left-arrow at the rightmost end of a socket brings us to the next socket
             head = @focus.end
@@ -744,17 +984,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
-      
+
+            setTimeout (=>
+              setRawTextInputCursor 0
+              redrawTextInput()), 0
+
       # When we blur the hidden input, also blur the canvas text focus
       @hiddenInput.addEventListener 'blur', (event) =>
         # If we have actually blurred (as opposed to simply unfocused the browser window)
         if event.target isnt document.activeElement then setTextInputFocus null
+        
+        # Focus the editor to capture keypresses
+        @el.focus()
       
       # Bind keyboard shortcut events to the document
+      
+      ctrlKeyPressed = false
 
-      document.body.addEventListener 'keydown', (event) =>
-        # Keyboard shortcuts don't apply if they were executed in a text input area
-        if event.target.tagName in ['INPUT', 'TEXTAREA'] then return
+      @el.addEventListener 'keydown', (event) =>
+        # Keyboard shortcuts don't apply if they were executed in a text input area (except for UNDO)
+        if event.target.tagName in ['INPUT', 'TEXTAREA'] and not (event.keyCode in [17, 90]) then return
         
         switch event.keyCode
           when 13 then unless @isEditingText() then insertHandwrittenBlock()
@@ -770,6 +1019,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+            setTimeout (=>
+              setRawTextInputCursor head.socket.stringify().length
+              redrawTextInput()), 0
+
           when 39 then if @cursor?
             # Pressing the left-arrow at the rightmost end of a socket brings us to the next socket
             head = @cursor
@@ -780,12 +1033,25 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             unless head? then return
 
             setTextInputFocus head.socket
+            setTimeout (=>
+              setRawTextInputCursor 0
+              redrawTextInput()), 0
+
+          when 17 then ctrlKeyPressed = true
+
+          when 90 then if ctrlKeyPressed
+            @undo()
+            event.preventDefault()
         
         # If we manipulated the root tree, redraw.
         if event.keyCode in [13, 38, 40, 8] then @redraw()
         
         # If we caught the keypress, prevent default.
         if event.keyCode in [13, 38, 40, 8, 37] then event.preventDefault()
+
+      @el.addEventListener 'keyup', (event) =>
+        switch event.keyCode
+          when 17 then ctrlKeyPressed = false
 
       # Hit-testing functions
 
@@ -819,7 +1085,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       hitTestLasso = (point) => if @lassoSegment? and @_lassoBounds.contains point then @lassoSegment else null
 
       hitTestPalette = (point) =>
-        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y
+        # The point was given in relation to the main canvas,
+        # but we want it in relation to the palette canvas;
+        # translate it.
+        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y + @paletteScrollOffset.y
+
+        # Hit test as per normal.
         for block in @paletteBlocks
           if hitTest(point, block.start)? then return block
         return null
@@ -828,14 +1099,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       # ### getPointFromEvent ###
       # This is a conveneince function, which will contain compatability layers for getting
-      # the offset coordinates of a mouse click point
+      # the offset coordinates of a mouse click point. This is returned in relation to the origin
+      # of the main canvas; things in relation to other canvases must translate from here.
 
       getPointFromEvent = (event) =>
         switch
-          when event.offsetX? then new draw.Point event.offsetX - PALETTE_WIDTH, event.offsetY + @scrollOffset.y
-          when event.layerX then new draw.Point event.layerX - PALETTE_WIDTH, event.layerY + @scrollOffset.y
+          when event.offsetX?
+            return new draw.Point(
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageY - findPosTop(track) + @scrollOffset.y
+            )
+          when event.layerX?
+            return new draw.Point(
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageY - findPosTop(track) + @scrollOffset.y
+            )
       
-      performNormalMouseDown = (point, isTouchEvent) =>
+      performNormalMouseDown = (point) =>
 
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
@@ -845,31 +1125,32 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           hitTestPalette(point)
         
         if not @ephemeralSelection?
-          if isTouchEvent
-            @touchScrollAnchor = point
+          # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
+          
+          # If there is already a selection, remove it.
+          if @lassoSegment?
 
-          else
-            # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
-            
-            # If there is already a selection, remove it.
-            if @lassoSegment?
+            # First, check to see if the block is floating
+            flag = false
+            for float in @floatingBlocks
+              if float.block is @lassoSegment
+                flag = true
+                break
 
-              # First, check to see if the block is floating
-              flag = false
-              for float in @floatingBlocks
-                if float.block is @lassoSegment
-                  flag = true
-                  break
+            # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+            unless flag
+              @addMicroUndoOperation
+                type: 'destroySegment'
+                start: @lassoSegment.start.getSerializedLocation()
+                end: @lassoSegment.end.getSerializedLocation()
 
-              # Don't remove the segment if it's floating, because it still needs to hold those blocks together
-              unless flag
-                @lassoSegment.remove()
+              @lassoSegment.remove()
 
-              @lassoSegment = null
-              @redraw()
+            @lassoSegment = null
+            @redraw()
 
-            # Set the lasso anchor
-            @lassoAnchor = point
+          # Set the lasso anchor
+          @lassoAnchor = point
 
         else if @ephemeralSelection.type is 'socket'
           # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
@@ -893,7 +1174,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # If we have clicked on a block or segment, then NORMAL DRAG, indicated by (@ephemeralSelection?)
           
           if @ephemeralSelection in @paletteBlocks
-            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x, point.y - @scrollOffset.y
+
+            # It's in the palette, so we need to translate it.
+            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x + @paletteScrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y
           else
             @ephemeralPoint = new draw.Point point.x, point.y
           
@@ -960,6 +1243,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             for float, i in @floatingBlocks
               if float.block is @selection then @floatingBlocks.splice i, 1; break
 
+            # Unhighlight all the blocks in @selection
+            head = @selection.start
+            until head is @selection.end
+              if head.type is 'blockStart' then head.block.lineMarked.length = 0
+              head = head.next
+
             # Draw it in the drag canvas
             @selection.view.compute()
             @selection.view.draw @dragCtx
@@ -992,9 +1281,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           dest = new draw.Point -offset.x + point.x, -offset.y + point.y # Where do we position things as related to the way we draw the root tree?
 
           old_highlight = highlight
-
-          highlight = @tree.find (block) ->
-            (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
+          
+          if @selection.type is 'block'
+            highlight = @tree.find (block) ->
+              (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
+          else if @selection.type is 'segment'
+            highlight = @tree.find (block) ->
+              (block.type isnt 'socket') and (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
 
           # If highlight changed, redraw
           if old_highlight isnt highlight then @redraw()
@@ -1006,11 +1299,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           drag.style.webkitTransform =
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
-        else if @touchScrollAnchor?
-          point = new draw.Point event.offsetX, event.offsetY
-          @scrollOffset.y = Math.max 0, @touchScrollAnchor.from(point).y
-          @mainCtx.setTransform 1, 0, 0, 1, 0, -@scrollOffset.y
-          @redraw()
       
       # Bind this mousemove function to mousemove. We need to add some
       # wrapper functions for touchmove, since multitouch works slightly differently
@@ -1045,24 +1333,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Drop areas signify different things depending on the block that they belong to
             switch highlight.type
               when 'indent'
-                head = highlight.end.prev
-                while head.type is 'segmentEnd' or head.type is 'segmentStart' or head.type is 'cursor' then head = head.prev
-
-                if head.type is 'newline'
-                  # There's already a newline here.
-                  moveBlockTo @selection, highlight.start.next
-                else
-                  # An insert drop signifies that we want to drop the block at the start of the indent
-                  moveBlockTo @selection, highlight.start.insert new model.NewlineToken()
+                moveBlockTo @selection, highlight.start
 
               when 'block'
                 # A block drop signifies that we want to drop the block after (the end of) the block.
-                moveBlockTo @selection, highlight.end.insert new model.NewlineToken()
+                moveBlockTo @selection, highlight.end
 
               when 'socket'
-                # Remove any previously occupying block or text
-                if highlight.content()? then highlight.content().remove()
-
                 # Insert
                 moveBlockTo @selection, highlight.start
               
@@ -1070,10 +1347,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 if highlight is @tree
                   # We can also drop on the root tree (insert at the start of the program)
                   moveBlockTo @selection, @tree.start
-
-                  # Don't insert a newline if it would create an empty line at the end of the file.
-                  unless @selection.end.next is @tree.end
-                    @selection.end.insert new model.NewlineToken()
             
             # In the special case that we have selected a single block
             # and dropped it into a socket, we need to check for parenthesis
@@ -1088,7 +1361,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 position: dest
                 block: @selection
 
-              addMicroUndoOperation
+              @addMicroUndoOperation
                 type: 'blockMoveToFloat'
                 before: null
                 after: descriptor.clone()
@@ -1110,7 +1383,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             drag.style.transform = "translate(0px, 0px)"
           
           # Clear the drag canvas
-          @dragCtx.clearRect 0, 0, drag.width, drag.height
+          # Note that we clear from -1, -1 because of our pixel-shift hack
+          # to allow the border in.
+          @dragCtx.clearRect -1, -1, drag.width, drag.height
 
           # If we inserted into root, move the cursor to the end of the selection.
           if highlight?
@@ -1128,12 +1403,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mouseup', (event) =>
         performNormalMouseUp event
 
-        captureUndoEvent()
+        @captureUndoEvent()
 
       track.addEventListener 'touchend', (event) =>
         event.preventDefault()
-
-        @touchScrollAnchor = null
 
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
@@ -1266,10 +1539,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               firstLassoed = lastLassoed.block.start
 
             # Now, insert the actual lasso segment.
-            @lassoSegment = new model.Segment []
+            @lassoSegment = new model.Segment()
 
             firstLassoed.insertBefore @lassoSegment.start
             lastLassoed.insert @lassoSegment.end
+
+            @addMicroUndoOperation
+              type: 'createSegment'
+              start: @lassoSegment.start.getSerializedLocation()
+              end: @lassoSegment.end.getSerializedLocation()
 
             @redraw()
           
@@ -1304,20 +1582,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Draw the typing cursor itself
         if start is end
           # This is just a line
-          @mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, INPUT_LINE_HEIGHT
+          @mainCtx.strokeRect start, @editedText.view.bounds[_editedInputLine].y, 0, @fontSize
         else
           # This is the translucent rectangle
           @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3'
-          @mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, INPUT_LINE_HEIGHT
+          @mainCtx.fillRect start, @editedText.view.bounds[_editedInputLine].y, end - start, @fontSize
 
       setTextInputFocus = (focus) =>
         # Deal with the previous focus
         if @focus?
           # Log in the undo stack that the text input value changed
           if @ephemeralOldFocusValue isnt @focus.stringify()
-            unless @focus.handwritten then captureUndoEvent()
+            unless @focus.handwritten then @captureUndoEvent()
 
-            addMicroUndoOperation
+            @addMicroUndoOperation
               type: 'socketTextChange'
               location: @focus.start.getSerializedLocation()
               before: @ephemeralOldFocusValue
@@ -1327,33 +1605,33 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             if @focus.handwritten
               # If we are in a handwritten block, we actually want to reparse
               # the entire block we're in
-              newParse = coffee.parse @focus.start.prev.block.stringify()
+              newParse = coffee.parse(@focus.start.prev.block.stringify()).start.next
 
               # If what has been parsed ends up creating a new block,
               # subsitute this new block for the old (unstable) text
               if newParse.type is 'blockStart'
                 # Log in the undo stack the operation
                 # we're about to do
-                addMicroUndoOperation
+                @addMicroUndoOperation
                   type: 'handwrittenReparse'
-                  location: @focus.start.prev.prev.getSerializedLocation()
+                  location: @focus.start.prev.getSerializedLocation()
                   before: @focus.start.prev.block.clone()
                   after: newParse.block.clone()
-
+                
                 newParse.block.moveTo @focus.start.prev.prev
                 @focus.start.prev.block.moveTo null
               
             else
               # If we are not a handwritten block, attempt to reparse
               # just what's in the socket
-              newParse = coffee.parse(@focus.stringify()).next
+              newParse = coffee.parse(@focus.stringify()).start.next
               
               # If what has been parsed ends up creating a new block,
               # subsitute this new block for the old (unstable) text
               if newParse.type is 'blockStart'
                 # Log in the undo stack the operation
                 # we're about to do
-                addMicroUndoOperation
+                @addMicroUndoOperation
                   type: 'socketReparse'
                   location: @focus.start.getSerializedLocation()
                   before: @focus.content().clone()
@@ -1393,8 +1671,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         else
           # Otherwise, we have an error condition.
-          throw 'Cannot edit occupied socket.'
-
+          throw new Error 'Cannot edit occupied socket.'
 
         # Find the wrapping block and move the cursor to
         head = @focus.end; depth = 0
@@ -1409,6 +1686,52 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Focus the hidden input
         setTimeout (=> @hiddenInput.focus()), 0
 
+      setTextInputFocusRaw = (focus) =>
+        # Literally set the focus
+        @focus = focus
+        
+        if @focus? then @ephemeralOldFocusValue = @focus.stringify()
+        else @ephemeralOldFocusValue = null
+        
+        # If we just removed the focus, then we are done.
+        if @focus is null then return
+        
+        # Record the line that the focus is on
+        _editedInputLine = @focus.view.lineStart
+
+        # Flag whether we are editing handwritten
+        @handwritten = @focus.handwritten
+        
+        if not @focus.content()
+          # If the socket is empty, put a text thing in, setting that to the edited text
+          @editedText = new model.TextToken ''
+          @focus.start.insert @editedText
+        
+        else if @focus.content().type is 'text'
+          # If the socket is not empty but contains only text, edit that text
+          @editedText = @focus.content()
+
+        else
+          # Otherwise, we have an error condition.
+          throw new Error 'Cannot edit occupied socket.'
+
+        # Find the wrapping block and move the cursor to
+        head = @focus.end; depth = 0
+        while head.type isnt 'newline' and head.type isnt 'indentEnd' and head.type isnt 'segmentEnd' then head = head.next
+        
+        if head.type is 'newline' then moveCursorToRaw head
+        else moveCursorBeforeRaw head
+        
+        # Set the contents of the hidden input
+        @hiddenInput.value = @editedText.value
+
+        # Focus the hidden input
+        setTimeout (=> @hiddenInput.focus()), 0
+
+      textInputSelectAll = =>
+        textInputAnchor = 0; textInputHead = @focus.stringify().length
+        @hiddenInput.setSelectionRange textInputAnchor, textInputHead
+
       setTextInputHead = (point) =>
         textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x) / @mainCtx.measureText(' ').width
 
@@ -1416,6 +1739,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       setTextInputAnchor = (point) =>
         textInputAnchor = textInputHead = Math.round (point.x - @focus.view.bounds[_editedInputLine].x - PADDING) / @mainCtx.measureText(' ').width
+        @hiddenInput.setSelectionRange textInputAnchor, textInputHead
+
+      setRawTextInputCursor = (offset) =>
+        textInputAnchor = textInputHead = offset
         @hiddenInput.setSelectionRange textInputAnchor, textInputHead
 
       # ## Mouse events for TEXT INPUT ##
@@ -1434,37 +1761,88 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mouseup', (event) =>
         if @isEditingText()
           textInputSelecting = false
+      
+      # ## Scrolling ##
+      # We handle scrolling through some invisible scroller elements in the track div.
+      # We bind to their scroll events and translate the canvases based on their
+      # scroll positions.
 
-      # ## Mouse events for SCROLLING ##
+      paletteScroller.addEventListener 'scroll', =>
+        @paletteScrollOffset.x = paletteScroller.scrollLeft
+        @paletteScrollOffset.y = paletteScroller.scrollTop
+        @paletteCtx.setTransform 1, 0, 0, 1, -@paletteScrollOffset.x, -@paletteScrollOffset.y
+        @redrawPalette()
 
-      track.addEventListener 'mousewheel', (event) =>
-        @clear()
-
-        if event.wheelDelta > 0
-          if @scrollOffset.y >= SCROLL_INTERVAL
-            @scrollOffset.add 0, -SCROLL_INTERVAL
-            @mainCtx.translate 0, SCROLL_INTERVAL
-          else
-            # If we would go past the top of the file, just scroll to exactly the top of the file.
-            @mainCtx.translate 0, @scrollOffset.y
-            @scrollOffset.y = 0
-        else
-          @scrollOffset.add 0, SCROLL_INTERVAL
-          @mainCtx.translate 0, -SCROLL_INTERVAL
-
+      mainScroller.addEventListener 'scroll', =>
+        @scrollOffset.x = mainScroller.scrollLeft
+        @scrollOffset.y = mainScroller.scrollTop
+        @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffset.x, -@scrollOffset.y
         @redraw()
-
+      
+      # ## lineHover ##
+      # We allow binding to hovering
+      # over blocks on lines, pasing the line
+      # hovered as an event.
+      #
+      # For performance reasons, if there is no binding,
+      # we do not keep track of what line the mouse is over.
+      # 
+      # The event only fires when the hovered line changes,
+      # and fires on line: null when the mouse goes out of the document.
+      lastHoveredLine = null
+      track.addEventListener 'mousemove', (event) =>
+        if @onLineHover?
+          line = @getHoveredLine getPointFromEvent event
+          if line isnt lastHoveredLine
+            lastHoveredLine = line
+            @onLineHover {
+              line: line
+            }
+  
+    # ## clearUndoStack ##
+    # Clears the undo stack; pretty self-explanatory.
+    clearUndoStack: ->
+      @undoStack.length = 0
+    
+    # ## setValue ##
+    # Set the value of the editor to some text.
+    # Performs a reparse and *adds an undo event*.
+    #
+    # If the application layer is doing this they may
+    # want to clear the undo stack afterwards.
+    #
+    # If parsing fails, returns the parse error in an object
+    # {success: false, error: parseError}.
+    #
+    # Ideally, this will be the syntax error that trigger the failure to parse.
     setValue: (value) ->
       try
         @ace.setValue value, -1
-        @tree = coffee.parse(value).segment
-        @lastEditorState = @tree.clone()
-        @redraw()
-      catch
-        return false
+        
+        newTree = coffee.parse value
       
-      return true
+        @addMicroUndoOperation
+          type: 'setValue'
+          before: @tree.clone()
+          after: newTree.clone()
+        
+        @tree = newTree
+        @tree.start.insert @cursor
+        @redraw()
 
+      catch e
+        return {
+          success: false
+          error: e
+        }
+      
+      return {
+        success: true
+      }
+
+    
+    # ## getValue ##
+    # Get the textual value of the editor (stringified).
     getValue: -> @tree.stringify()
     
     # ## performMeltAnimation ##
@@ -1472,16 +1850,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # that imitates plaintext.
     _performMeltAnimation: ->
       if @currentlyAnimating or not @currentlyUsingBlocks then return
-      else @currentlyAnimating = true; @currentlyUsingBlocks = false
 
       @redraw()
+      
+      @currentlyAnimating = true; @currentlyUsingBlocks = false
 
       # We need to find out some properties of dimensions
       # in the ace editor. So we will need to display the ace editor momentarily off-screen.
 
       @ace.setValue @getValue(), -1
-      @aceEl.style.top = -9999
-      @aceEl.style.left = -9999
+      @aceEl.style.top = '-9999px'
+      @aceEl.style.left = '-9999px'
       @aceEl.style.display = 'block'
       
       # We must wait for the Ace editor to render before we continue.
@@ -1535,7 +1914,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if count < ANIMATION_FRAME_RATE
             setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
-          @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)
+          @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE) + 'px'
           @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
           @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
@@ -1575,15 +1954,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     
     _performFreezeAnimation: ->
       if @currentlyAnimating or @currentlyUsingBlocks then return
-      else @currentlyAnimating = true; @currentlyUsingBlocks = true
+
+      @redraw()
       
       # In the case that we do not successfully set our value
       # (i.e. we failed to parse the text), give up immediately.
-      unless @setValue @ace.getValue(), -1
+      parseResult = @setValue @ace.getValue(), -1
+      unless parseResult.success
         @currentlyAnimating = false; @currentlyUsingBlocks = false
-        return false
+        return parseResult
+      
+      @currentlyAnimating = true; @currentlyUsingBlocks = true
 
-      @redraw()
       # First, we will need to get all the text elements which we will be animating.
       # Simultaneously, we can ask text elements to compute their position as if they were plaintext. This will be the
       # animation destination. Along the way we will move the cursor around due to newlines and indents.
@@ -1627,7 +2009,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if count < ANIMATION_FRAME_RATE
           setTimeout tick, 1000 / ANIMATION_FRAME_RATE
 
-        @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE)
+        @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE) + 'px'
         @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
         @palette.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
@@ -1644,15 +2026,100 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           element.view.translate new draw.Point -translationVectors[i].x / ANIMATION_FRAME_RATE, -translationVectors[i].y / ANIMATION_FRAME_RATE
 
         if count is ANIMATION_FRAME_RATE
-          @redraw()
           @currentlyAnimating = false
+          @redraw()
 
       tick()
       
-      return true
-
+      return {
+        success: true
+      }
+    
+    # ## toggleBlocks ##
+    # If we are using blocks, melt to text.
+    # If we are using text, freeze to blocks.
+    #
+    # This should be the function used by the application layer,
+    # *not* _performMeltAnimation() or _performFreezeAnimation().
     toggleBlocks: ->
       if @currentlyUsingBlocks then @_performMeltAnimation()
       else @_performFreezeAnimation()
 
+    # ## setFontSize ##
+    # Set the font size of the editor.
+    #
+    # Note that the font size is bound to the ACE editor font size.
+    # Changing the ICE editor font size will probably be inconsequential
+    # unless you simultaneously change the ACE editor font size.
+    #
+    # This is mainly here as a utility function for ICE editor to use
+    # internally.
+    setFontSize: (size) ->
+      unless @fontSize is size
+        @fontSize = size
+
+        @redraw()
+        @redrawPalette()
+    
+    # ## markLine ##
+    # Add a style to a line. Currently,
+    # styles take the form {tag:string, color:string},
+    # and outlines the block in that color.
+    #
+    # Tags are for later removal.
+    markLine: (line, style) ->
+      # Note: we fail silently when the line given
+      # is not in the document
+      @tree.getBlockOnLine(line)?.lineMarked.push style
+      
+      @redraw()
+    
+    # ## unmarkLine ##
+    # Remove all styles with the given tag
+    # from a line.
+    unmarkLine: (line, tag) ->
+      unless (blockOnLine = @tree.getBlockOnLine(line))? then return
+
+      for style, i in blockOnLine.lineMarked
+        if style.tag is tag
+          blockOnLine.lineMarked.splice i, 1
+          break
+      
+      @redraw()
+    
+    # ## clearLineMarks ##
+    # Remove all styles with the given tag from
+    # a document.
+    clearLineMarks: (tag) ->
+      head = @tree.start
+      until head is @tree.end
+        if head.type is 'blockStart'
+          unless tag?
+            head.block.lineMarked.length = 0
+          else
+            for style, i in head.block.lineMarked
+              if style.tag is tag
+                head.block.lineMarked.splice i, 1
+                break
+        head = head.next
+      
+      @redraw()
+    
+    # ## getHoveredLine ##
+    # A utility function for internal use;
+    # get the line in which the given point resides
+    # in the document.
+    getHoveredLine: (point) ->
+      # For performance reasons, and also for
+      # clarity, we treat each line as its bounding rectangle,
+      # rather than the block on that line.
+      #
+      # This way we can hover to the left of the block on a line
+      # and still get the event.
+      for line in [@tree.view.lineStart..@tree.view.lineEnd]
+        if @tree.view.bounds[line].contains point
+          return line
+
+      return null
+    
   return exports

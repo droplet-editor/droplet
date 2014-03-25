@@ -6,6 +6,13 @@
 
 define ['ice-view'], (view) ->
   exports = {}
+
+  window.printSegment = (seg) ->
+    head = seg.start
+    until head is seg.end
+      console.log head
+      head = head.next
+
   # ## cloneTokens ##
   # Return a pointer-unrelated start and end tokens whose linkage
   # structure is the same as the given start and end tokens.
@@ -43,7 +50,7 @@ define ['ice-view'], (view) ->
           cursor = block_clone.end
           head = head.segment.end
         else
-          unless head.type is 'cursorToken' then cursor = cursor.append head.clone()
+          unless head.type is 'cursor' then cursor = cursor.append head.clone()
       
       # Here's the condition we talked about earlier
       if head is end then break
@@ -87,6 +94,8 @@ define ['ice-view'], (view) ->
       @selected = false # Are we the selected block?
 
       @view = new view.BlockView this
+
+      @lineMarked = []
     
     # ## Clone ##
     # Cloning produces a new Block entirely independent
@@ -99,8 +108,9 @@ define ['ice-view'], (view) ->
         
         # Splice the cloned string of tokens into
         # the cloned start and end
-        clone.start.append clonedStart
-        clonedEnd.append clone.end
+        if clonedStart? and clonedEnd?
+          clone.start.append clonedStart
+          clonedEnd.append clone.end
       
       return clone
     
@@ -141,6 +151,27 @@ define ['ice-view'], (view) ->
       if @start.prev? then @start.prev.next = @end.next
       if @end.next? then @end.next.prev = @start.prev
       @start.prev = @end.next = null
+
+      # Append newlines to the parent if necessary
+      switch parent?.type
+        when 'indentStart'
+          head = parent.indent.end.prev
+          while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
+
+          if head.type is 'newline'
+            parent = parent.next
+          else
+            parent = parent.insert new NewlineToken()
+        when 'blockEnd'
+          parent = parent.insert new NewlineToken()
+
+        when 'segmentStart'
+          unless parent.next is parent.segment.end
+            parent.insert new NewlineToken()
+        
+        # Remove socket content when necessary
+        when 'socketStart'
+          parent.socket.content()?.remove()
       
       # Splice ourselves into the requested parent
       if parent?
@@ -152,14 +183,35 @@ define ['ice-view'], (view) ->
 
       # Check to see if we need to wrap ouselves in parentheses
       # To do this, we find our actual parent (not wrapping segment).
+      #
+      # First, find the parent we actually droped into.
       while parent? and parent.type is 'segmentStart' then parent = parent.prev
-      if parent?.type is 'socketStart' and parent.socket.precedence > @precedence
+      
+      # If the parent was a socket, we might need to wrap.
+      # Check the precedence to see if we need to.
+      if parent?.type is 'socketStart' and parent.socket.precedence >= @precedence
+        # If we need to wrap ourselves in parentheses
+        # and we are not currently wrapped, wrap.
         unless @currentlyParenWrapped
           @start.insert new TextToken '('
           @end.insertBefore new TextToken ')'
           @currentlyParenWrapped = true
+      
+      # If we do not need to wrap, unwrap.
       else if @currentlyParenWrapped
-        @start.next.remove(); @end.prev.remove()
+        # Make sure we really can unwrap parentheses.
+        unless @start.next.type is 'text' and @end.prev.type is 'text'
+          throw new Error 'Cannot unwrap parentheses; parentheses do not exist.'
+
+        # Remove the first and last characters, which ought to
+        # be the parentheses
+        @start.next.value = @start.next.value[1...]
+        @end.prev.value = @end.prev.value[...-1]
+        
+        # If we just generated empty text things, remove them altogether.
+        if @start.next.value.length is 0 then @start.next.remove()
+        if @end.prev.value.length is 0 then @end.prev.remove()
+
         @currentlyParenWrapped = false
     
     # ## checkParenWrap ##
@@ -201,9 +253,9 @@ define ['ice-view'], (view) ->
     # This one is mainly used for debugging. The string representation ("compiled code")
     # for anything between our start and end tokens. This is computed by stringifying
     # everything, then splicing off everything after the end token.
-    stringify: ->
-      string = @start.stringify indent: ''
-      return string[..string.length-@end.stringify(indent: '').length-1]
+    stringify: -> @start.stringify
+        indent: ''
+        stopToken: @end
 
   # # Indent
   # An Indent, like a Block, consists of two tokens, start and end. An Indent also knows its @depth,
@@ -230,8 +282,9 @@ define ['ice-view'], (view) ->
         
         # Splice the cloned string of tokens into
         # the cloned start and end
-        clone.start.append clonedStart
-        clonedEnd.append clone.end
+        if clonedStart? and clonedEnd?
+          clone.start.append clonedStart
+          clonedEnd.append clone.end
       
       return clone
 
@@ -260,9 +313,9 @@ define ['ice-view'], (view) ->
     # This one is mainly used for debugging. Like Block.stringify, computes
     # the compiled code for everything between the two end tokens, by stringifying
     # the start and splicing of the string representation of the end.
-    stringify: (state) ->
-      string = @start.stringify(state)
-      return string[...string.length-@end.stringify(state).length-1]
+    stringify: -> @start.stringify
+      indent: ''
+      stopToken: @end
 
 
   # # Segment
@@ -292,8 +345,9 @@ define ['ice-view'], (view) ->
         
         # Splice the cloned string of tokens into
         # the cloned start and end
-        clone.start.append clonedStart
-        clonedEnd.append clone.end
+        if clonedStart? and clonedEnd?
+          clone.start.append clonedStart
+          clonedEnd.append clone.end
       
       return clone
     
@@ -333,6 +387,28 @@ define ['ice-view'], (view) ->
       if @start.prev? then @start.prev.next = @end.next
       if @end.next? then @end.next.prev = @start.prev
       @start.prev = @end.next = null
+
+      # Append newlines to the parent if necessary
+      switch parent?.type
+        when 'indentStart'
+          head = parent.indent.end.prev
+          while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
+
+          if head.type is 'newline'
+            parent = parent.next
+          else
+            parent = parent.insert new NewlineToken()
+        when 'blockEnd'
+          parent = parent.insert new NewlineToken()
+
+        when 'segmentStart'
+          unless parent.next is parent.segment.end
+            parent = parent.insert new NewlineToken()
+        
+        # We can only move into a socket
+        # if we are exactly one block.
+        when 'socketStart'
+          throw new Error 'Cannot move Segment into a Socket.'
       
       # Splice ourselves into the requested parent
       if parent?
@@ -376,18 +452,46 @@ define ['ice-view'], (view) ->
     getTokenAtLocation: (location) ->
       # A location of "null" means token "null"
       unless location? then return null
+      
+      # A location of 0 means that the only tokens between
+      # the desired location and the start are segmentStart, segmentEnd, and cursor.
+      # Doing a normal linked-list thing might result in (null) if the list is empty,
+      # so make sure things work.
+      if location is 0 then return @start
 
       # Otherwise, location (n) means the (nth) token
       # from the start (not including segments or the cursor)
       head = @start
-      for [1..location]
-        while head.type in ['segmentStart', 'segmentEnd', 'cursor']
-          head = head.next
+      count = 1
+      until count is location or not head?
+        unless head?.type is 'cursor' then count += 1
         head = head.next
 
-      while head.type in ['segmentStart', 'segmentEnd', 'cursor']
+      while head?.type is 'cursor'
         head = head.next
+      
+      # If we have already reached the end of the document
+      # (may happen if the last token is specified),
+      # return the end of the document.
+      unless head?
+        return @end
+
       return head
+
+    getBlockOnLine: (line) ->
+      head = @start; lineCount = 0
+      stack = []
+      until lineCount is line or not head?
+        head = head.next
+        switch head.type
+          when 'newline' then lineCount++
+          when 'blockStart' then stack.push head.block
+          when 'blockEnd' then stack.pop()
+
+      while head?.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] then head = head.next
+      if head?.type is 'blockStart' then stack.push head.block
+
+      return stack[stack.length - 1]
 
   # # Socket
   # A Socket is an inline droppable area for a Block, and
@@ -528,11 +632,14 @@ define ['ice-view'], (view) ->
     
     # ## getSerializedLocation ##
     # Get dead data representing this token's position in the tree.
+    #
+    # This is the number of tokens before this token, not including the token itself,
+    # and discluding segment markup and cursors.
     getSerializedLocation: ->
       head = this
       count = 0
       until head is null
-        unless head.type in ['cursor', 'segmentStart', 'segmentEnd']
+        unless head.type is 'cursor'
           count += 1
         head = head.prev
       return count

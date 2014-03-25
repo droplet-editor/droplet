@@ -11,10 +11,10 @@ module.exports = (grunt) ->
           'js/view.js': ['src/view.coffee']
           'js/controller.js': ['src/controller.coffee']
           'js/coffee.js': ['src/coffee.coffee']
+          'js/parser.js': ['src/parser.coffee']
           'js/main.js': ['src/main.coffee']
-          'js/requirejs_config.js': ['src/requirejs_config.coffee']
 
-          'js/tests.js': ['test/tests.coffee']
+          'test/tests.js': ['src/tests.coffee']
           'example/example.js': ['example/example.coffee']
 
     uglify:
@@ -53,6 +53,7 @@ module.exports = (grunt) ->
             'ice-model': 'model'
             'ice-draw': 'draw'
             'ice-coffee': 'coffee'
+            'ice-parser': 'parser'
           name: 'main'
           optimize: 'none'
           out: 'example/main.js'
