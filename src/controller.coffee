@@ -1115,7 +1115,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               event.pageY - findPosTop(track) + @scrollOffset.y
             )
       
-      performNormalMouseDown = (point) =>
+      performNormalMouseDown = (point, event) =>
 
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
@@ -1123,6 +1123,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           hitTestFocus(point) ?
           hitTestRoot(point) ?
           hitTestPalette(point)
+
+        if @ephemeralSelection?
+          event.preventDefault()
         
         if not @ephemeralSelection?
           # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
@@ -1191,7 +1194,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # the focus from any sockets
         @hiddenInput.blur()
 
-        performNormalMouseDown getPointFromEvent(event), false
+        performNormalMouseDown getPointFromEvent(event), event
       
       track.addEventListener 'touchstart', (event) =>
         @hiddenInput.blur()
@@ -1202,11 +1205,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
-        performNormalMouseDown getPointFromEvent(event.changedTouches[0]), true
+        performNormalMouseDown getPointFromEvent(event.changedTouches[0]), event
 
       # ## Mouse events for NORMAL DRAG ##
       
-      performNormalMouseMove = (event) =>
+      performNormalMouseMove = (event, raw) =>
         if @ephemeralSelection?
           point = getPointFromEvent event
           
@@ -1266,7 +1269,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Redraw the main canvas
             @redraw()
 
-        if @selection?
+        else if @selection?
           # Determine the position of the mouse
           point = getPointFromEvent event
 
@@ -1297,12 +1300,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           drag.style.webkitTransform =
             drag.style.mozTransform =
             drag.style.transform = "translate(#{fixedDest.x}px, #{fixedDest.y}px)"
+
+        else
+          raw.preventDefault()
       
       # Bind this mousemove function to mousemove. We need to add some
       # wrapper functions for touchmove, since multitouch works slightly differently
       # from mouse.
       track.addEventListener 'mousemove', (event) ->
-        performNormalMouseMove event
+        performNormalMouseMove event, event
 
       track.addEventListener 'touchmove', (event) ->
         unless event.changedTouches.length > 0 then return
@@ -1310,15 +1316,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
-        performNormalMouseMove event.changedTouches[0]
+        performNormalMouseMove event.changedTouches[0], event
 
       
-      performNormalMouseUp = (event) =>
+      performNormalMouseUp = (event, raw) =>
         if @ephemeralSelection?
           @ephemeralSelection = null
           @ephemeralPoint = null
 
-        if @selection?
+        else if @selection?
           # Determine the position of the mouse and the place we want to render the block
           point = getPointFromEvent event
           dest = new draw.Point -offset.x + point.x, -offset.y + point.y
@@ -1393,9 +1399,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           
           # Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.
           @redraw()
+      
+        else
+          raw.preventDefault()
 
       track.addEventListener 'mouseup', (event) =>
-        performNormalMouseUp event
+        performNormalMouseUp event, event
 
         @captureUndoEvent()
 
@@ -1403,7 +1412,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
-        performNormalMouseUp event.changedTouches[0]
+        performNormalMouseUp event.changedTouches[0], event
 
       # ## Mouse events for LASSO SELECT ##
 
