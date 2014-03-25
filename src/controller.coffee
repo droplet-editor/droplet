@@ -1194,8 +1194,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         performNormalMouseDown getPointFromEvent(event), false
       
       track.addEventListener 'touchstart', (event) =>
-        event.preventDefault()
-
         @hiddenInput.blur()
         
         # Track events do not contain offsetX/layerX properties,
@@ -1307,10 +1305,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         performNormalMouseMove event
 
       track.addEventListener 'touchmove', (event) ->
-        # Touchmove has a particularly inconvenient default (scrolling),
-        # so we want to prevent this here.
-        event.preventDefault()
-
         unless event.changedTouches.length > 0 then return
 
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
@@ -1406,8 +1400,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @captureUndoEvent()
 
       track.addEventListener 'touchend', (event) =>
-        event.preventDefault()
-
         event.changedTouches[0].offsetX = event.changedTouches[0].pageX - findPosLeft(track)
         event.changedTouches[0].offsetY = event.changedTouches[0].pageY - findPosTop(track)
 
