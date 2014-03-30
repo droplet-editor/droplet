@@ -174,6 +174,15 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           addBlock node, 7, colors.VALUE, wrappingParen
           mark node.expression, 7
         
+        # ### In ###
+        # The In operator has precedence
+        # equivalent to a function call.
+        when 'In'
+          addBlock node, 0, colors.VALUE, wrappingParen
+
+          mark node.object, 0
+          mark node.array, 0
+        
         # ### Value ####
         # A Value is not of much use to the ICE
         # Editor; it signifies nothing visual.
