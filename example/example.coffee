@@ -5,37 +5,68 @@ require.config
 
 require ['main'], (ice) ->
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).start.next.block for paletteElement in [
-    '''
-    fd 100
-    '''
-    '''
-    bk 100
-    '''
-    '''
-    rt 90
-    '''
-    '''
-    lt 90
-    '''
-    '''
-    see 'hi'
-    '''
-    '''
-    for i in [1..10]
-      fd 10
-    '''
-    '''
-    if touches 'red'
-      fd 10
-    '''
-    '''
-    rtFd = (arg) ->
-      rt 90
-      fd arg
-      return arg
-    '''
-  ])
+  window.editor = new ice.Editor document.getElementById('editor'), [
+    {
+      name: 'Common',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '''
+        fd 100
+        '''
+        '''
+        bk 100
+        '''
+        '''
+        rt 90
+        '''
+        '''
+        lt 90
+        '''
+        '''
+        see 'hi'
+        '''
+        '''
+        for i in [1..10]
+          fd 10
+        '''
+        '''
+        if touches 'red'
+          fd 10
+        '''
+        '''
+        rtFd = (arg) ->
+          rt 90
+          fd arg
+          return arg
+        '''
+      ])
+    }
+    {
+      name: 'Turtle',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '''
+        fd 100
+        '''
+        '''
+        bk 100
+        '''
+        '''
+        rt 90
+        '''
+        '''
+        lt 90
+        '''
+        '''
+        dot 10, black
+        '''
+        '''
+        scale 2
+        '''
+        '''
+        touches 'red'
+        '''
+      ])
+    }
+  ]
   
   # Example program (fizzbuzz)
   examplePrograms = {

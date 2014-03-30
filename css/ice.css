@@ -9,10 +9,35 @@
   z-index: 2;
   margin-top: -1px;
 }
+.palette_header {
+  z-index: 257;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 150px;
+  width: 300px;
+  background-color: #CCC;
+  border-bottom: 2px solid #000;
+}
+.palette_group_header {
+  box-sizing: border-box;
+  display: inline-block;
+  width: 50%;
+  height: 30px;
+  padding: 5px;
+  cursor: pointer;
+}
+.palette_group_header_selected {
+  display: inline-block;
+  width: 50%;
+  cursor: pointer;
+  background-color: #000;
+  color: #FFF;
+}
 .palette {
   z-index: 0;
   width: 300px;
-  top: 0;
+  top: 150px;
   left: 0;
 }
 .canvas {
@@ -71,6 +96,6 @@
 }
 .ice_palette_scroller {
   position: absolute;
-  left: 0; top: 0; bottom: 0; width: 300px;
+  left: 0; top: 150px; bottom: 0; width: 300px;
   overflow: auto;
 }

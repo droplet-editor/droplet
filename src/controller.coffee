@@ -10,7 +10,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   INDENT_SPACES = 2
   PALETTE_MARGIN = 10
   PALETTE_LEFT_MARGIN = 0
-  PALETTE_TOP_MARGIN = 0
+  PALETTE_TOP_MARGIN = 10
   PALETTE_WIDTH = 300
   MIN_DRAG_DISTANCE = 5
   FONT_SIZE = 15
@@ -82,7 +82,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # to initialize an ICE editor in an element.
 
   exports.Editor = class Editor
-    constructor: (wrapper, @paletteBlocks) ->
+    constructor: (wrapper, @paletteGroups) ->
       # Default font size
       @fontSize = FONT_SIZE
 
@@ -117,12 +117,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # (useful to have all in one place)
       
       # If we did not recieve palette blocks in the constructor, we have no palette.
-      @paletteBlocks ?= []
-      
-      # We discard the blocks we are fed, preferring to clone them
-      # to be as unintrusive as possible (also to get blocks unattached to any
-      # token stream)
-      @paletteBlocks = (paletteBlock.clone() for paletteBlock in @paletteBlocks)
+      @paletteBlocks = []
 
       # MODEL instances (program state)
       @tree = new model.Segment() # The root tree
@@ -182,28 +177,50 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The palette canvas
       @palette = document.createElement 'canvas'; @palette.className = 'palette'
 
+      # The palette hierarchical menu
+      @paletteHeader = document.createElement 'div'; @paletteHeader.className = 'palette_header'
+
+      @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30
+      
+      # Construct the hierarchical menu
+      # button for each palette group, and the @paletteBlocks
+      #
+      # (We need to closure paletteGroup, so we wrap this in a function call)
+      for paletteGroup, i in @paletteGroups then do (paletteGroup) =>
+        # Clone all the blocks so as not to
+        # intrude on outside stuff
+        paletteGroup.blocks = (block.clone() for block in paletteGroup.blocks)
+
+        # Create the element itself
+        paletteGroupHeader = document.createElement 'div'; paletteGroupHeader.className = 'palette_group_header'
+        paletteGroupHeader.innerText = paletteGroup.name
+        
+        # Bind palette-switch to clicking it
+        paletteGroupHeader.addEventListener 'click', =>
+          @currentPaletteGroup = paletteGroup.name
+          @paletteBlocks = paletteGroup.blocks
+
+          # Apply "selected" header style
+          @currentPaletteGroupHeader.className = 'palette_group_header'
+          (@currentPaletteGroupHeader = paletteGroupHeader).className = 'palette_group_header palette_group_header_selected'
+          
+          # Redraw
+          @redrawPalette()
+      
+        # If we are the first element,
+        # we also want to select ourselves.
+        if i is 0
+          @currentPaletteGroup = paletteGroup.name
+          @paletteBlocks = paletteGroup.blocks
+
+          # Apply "selected" header style
+          (@currentPaletteGroupHeader = paletteGroupHeader).className = 'palette_group_header palette_group_header_selected'
+
+        # Add the element to the palette header.
+        @paletteHeader.appendChild paletteGroupHeader
+
       # The drag canvas
       drag = document.createElement 'canvas'; drag.className = 'drag'
-
-      computeCanvasDimensions = =>
-        @main.height = @el.offsetHeight
-        @main.width = @el.offsetWidth * 2 - PALETTE_WIDTH
-        
-        @palette.height = @el.offsetHeight
-        @palette.width = PALETTE_WIDTH
-
-        drag.height = @el.offsetHeight
-        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH
-      
-      # We need to resize the canvases any time the editor resizes.
-      # We will bind this to the document resize function, but this function
-      # should be called at any other time the editor is resized.
-      window.addEventListener 'resize', @resize = =>
-        computeCanvasDimensions()
-
-        @redraw(); @redrawPalette()
-
-      computeCanvasDimensions()
 
       # The hidden input
       @hiddenInput = document.createElement 'input'; @hiddenInput.className = 'hidden_input'
@@ -223,9 +240,30 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       track.appendChild mainScroller
       mainScroller.appendChild mainScrollerStuffing
+
+      computeCanvasDimensions = =>
+        @main.height = @el.offsetHeight
+        @main.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+        
+        @palette.style.top = paletteScroller.style.top = @paletteHeader.style.height = @paletteHeaderHeight
+        @palette.height = @el.offsetHeight - @paletteHeaderHeight
+        @palette.width = PALETTE_WIDTH
+
+        drag.height = @el.offsetHeight
+        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH
       
+      # We need to resize the canvases any time the editor resizes.
+      # We will bind this to the document resize function, but this function
+      # should be called at any other time the editor is resized.
+      window.addEventListener 'resize', @resize = =>
+        computeCanvasDimensions()
+
+        @redraw(); @redrawPalette()
+
+      computeCanvasDimensions()
+
       # Append the children
-      for child in [@main, @palette, drag, track, @hiddenInput]
+      for child in [@main, @palette, drag, track, @hiddenInput, @paletteHeader]
         @el.appendChild child
 
       # Get the contexts from each canvas
@@ -632,7 +670,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Set the ACE editor content simultaneously
         #@ace.setValue @getValue()
         if @onChange? then try @onChange event
-
       
       # ## moveBlockTo ##
       # We want to have some bottleneck for most block moves;
@@ -1088,7 +1125,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # The point was given in relation to the main canvas,
         # but we want it in relation to the palette canvas;
         # translate it.
-        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y + @paletteScrollOffset.y
+        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y + @paletteScrollOffset.y - @paletteHeaderHeight
 
         # Hit test as per normal.
         for block in @paletteBlocks
@@ -1123,8 +1160,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           hitTestFocus(point) ?
           hitTestRoot(point) ?
           hitTestPalette(point)
-
-        if @ephemeralSelection?
+        
+        # We want to prevent the default for this event
+        # when we are on a touchscreen (default is scrolling, which
+        # is bad), but not on a mousedown -- the mousedown triggers
+        # focus focus of the editor for the tabIndex hack.
+        if @ephemeralSelection? and event.type is 'TOUCHSTART'
           event.preventDefault()
         
         if not @ephemeralSelection?
@@ -1179,7 +1220,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if @ephemeralSelection in @paletteBlocks
 
             # It's in the palette, so we need to translate it.
-            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x + @paletteScrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y
+            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x + @paletteScrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y - @paletteHeaderHeight
           else
             @ephemeralPoint = new draw.Point point.x, point.y
           
@@ -1257,7 +1298,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # CSS-transform the drag canvas to where it ought to be
             if selectionInPalette
               # If we picked up from the palette, then rect.x is actually relative to the palette
-              fixedDest = new draw.Point rect.x - PALETTE_WIDTH, rect.y
+              fixedDest = new draw.Point rect.x - PALETTE_WIDTH, rect.y + @paletteHeaderHeight
             else
               # Otherwise, do as we would with mousemove
               fixedDest = new draw.Point rect.x - @scrollOffset.x, rect.y - @scrollOffset.y
@@ -1762,7 +1803,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mouseup', (event) =>
         if @isEditingText()
           textInputSelecting = false
-      
+          
       # ## Scrolling ##
       # We handle scrolling through some invisible scroller elements in the track div.
       # We bind to their scroll events and translate the canvases based on their
@@ -1864,6 +1905,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @aceEl.style.left = '-9999px'
       @aceEl.style.display = 'block'
       
+      @paletteHeader.style.zIndex = 0
+      
       # We must wait for the Ace editor to render before we continue.
       # Ace actually takes some time with webworkers to determine some things like line height,
       # which we need, so we will poll ace until it is done.
@@ -1917,7 +1960,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE) + 'px'
           @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
-          @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
+          @palette.style.opacity = @paletteHeader.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
           @clear()
           
@@ -2012,7 +2055,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE) + 'px'
         @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
-        @palette.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
+        @palette.style.opacity = @paletteHeader.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
         @clear()
         
@@ -2029,6 +2072,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if count is ANIMATION_FRAME_RATE
           @currentlyAnimating = false
           @redraw()
+          @paletteHeader.style.zIndex = 257
 
       tick()
       
