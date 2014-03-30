@@ -1178,33 +1178,35 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if @ephemeralSelection? and event.type is 'TOUCHSTART'
           event.preventDefault()
         
+        # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
         if not @ephemeralSelection?
-          # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
-          
-          # If there is already a selection, remove it.
-          if @lassoSegment?
+          # We do not want to begin a lasso select
+          # if we have clicked in the palette.
+          if point.x > 0
+            # If there is already a selection, remove it.
+            if @lassoSegment?
 
-            # First, check to see if the block is floating
-            flag = false
-            for float in @floatingBlocks
-              if float.block is @lassoSegment
-                flag = true
-                break
+              # First, check to see if the block is floating
+              flag = false
+              for float in @floatingBlocks
+                if float.block is @lassoSegment
+                  flag = true
+                  break
 
-            # Don't remove the segment if it's floating, because it still needs to hold those blocks together
-            unless flag
-              @addMicroUndoOperation
-                type: 'destroySegment'
-                start: @lassoSegment.start.getSerializedLocation()
-                end: @lassoSegment.end.getSerializedLocation()
+              # Don't remove the segment if it's floating, because it still needs to hold those blocks together
+              unless flag
+                @addMicroUndoOperation
+                  type: 'destroySegment'
+                  start: @lassoSegment.start.getSerializedLocation()
+                  end: @lassoSegment.end.getSerializedLocation()
 
-              @lassoSegment.remove()
+                @lassoSegment.remove()
 
-            @lassoSegment = null
-            @redraw()
+              @lassoSegment = null
+              @redraw()
 
-          # Set the lasso anchor
-          @lassoAnchor = point
+            # Set the lasso anchor
+            @lassoAnchor = point
 
         else if @ephemeralSelection.type is 'socket'
           # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
