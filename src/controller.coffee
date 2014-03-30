@@ -1135,7 +1135,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # The point was given in relation to the main canvas,
         # but we want it in relation to the palette canvas;
         # translate it.
-        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y + @paletteScrollOffset.y - @paletteHeaderHeight
+        point = new draw.Point point.x + PALETTE_WIDTH - @scrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y - @paletteHeaderHeight
 
         # Hit test as per normal.
         for block in @paletteBlocks
@@ -1153,12 +1153,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         switch
           when event.offsetX?
             return new draw.Point(
-              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH + @scrollOffset.x,
               event.pageY - findPosTop(track) + @scrollOffset.y
             )
           when event.layerX?
             return new draw.Point(
-              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH + @scrollOffset.x,
               event.pageY - findPosTop(track) + @scrollOffset.y
             )
       
