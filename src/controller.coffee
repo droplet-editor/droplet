@@ -306,11 +306,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Draw it on the main context
         @tree.view.draw @mainCtx
         
-        # Update the main scroller dimensions
-        # to fit the document dimensions
+        # We want to get the dimensinos of the entire document;
+        # this includes both the root tree and any floating blocks.
+        #
+        # We will initialize this rectangle as the dimensions of the root tree,
+        # and then unite it with all the floating block boundaries.
         bounds = @tree.view.getBounds()
-        mainScrollerStuffing.style.height = bounds.bottom()
-        mainScrollerStuffing.style.width = bounds.right()
         
         # Alert the lasso segment, if it exists, to recompute its bounds
         if @lassoSegment?
@@ -335,6 +336,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           # Draw it on the main context
           view.draw @mainCtx
+          
+          # Unite this boundary
+          # with the document boundary
+          bounds.unite view.getBounds()
+        
+        # Update the scroller stuffing dimensions
+        # to fit the document dimensions
+        mainScrollerStuffing.style.height = bounds.bottom()
+        mainScrollerStuffing.style.width = bounds.right()
       
       # ## attemptReparse ##
       # This will be triggered by most cursor operations. It finds all handwritten blocks that do not contain the cursor,
