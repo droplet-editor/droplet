@@ -171,7 +171,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # basically like any other operator;
         # it has highest precedence.
         when 'Existence'
-          addBlock node, 7, colors.CONTROL, wrappingParen
+          addBlock node, 7, colors.VALUE, wrappingParen
           mark node.expression, 7
         
         # ### Value ####
