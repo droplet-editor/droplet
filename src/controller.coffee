@@ -1271,6 +1271,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Move the ephemeral selection into the selection position
             @selection = @ephemeralSelection
             @ephemeralSelection = null
+            
+            # Move the palette header to the back,
+            # so that the drag canvas can appear on top of it
+            # and the track div can track its area.
+            @paletteHeader.style.zIndex = 0
 
             # Check to make sure that the selection doesn't contain a cursor
             head = @selection.start
@@ -1347,7 +1352,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if old_highlight isnt highlight then @redraw()
 
           # Highlight the highlight
-          if highlight? then highlight.view.dropHighlightReigon.fill @mainCtx, '#fff'
+          if highlight? then highlight.view.dropHighlightRegion.fill @mainCtx, '#fff'
 
           # CSS-transform the drag canvas to where it ought to be
           drag.style.webkitTransform =
@@ -1449,6 +1454,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           # Signify that we are no longer in a NORMAL DRAG
           @selection = null
+
+          # Move the palette header back to the front,
+          # so that we can click it.
+          @paletteHeader.style.zIndex = 257
           
           # Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.
           @redraw()
@@ -1961,7 +1970,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # We have now obtained the destination position for the animation; now we animate.
         count = 0
 
-        animatedColor = new AnimatedColor('#EEEEEE', '#FFFFFF', ANIMATION_FRAME_RATE)
+        animatedColor = new AnimatedColor('#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE)
         originalOffset = @scrollOffset.y
 
         tick = =>
@@ -2057,7 +2066,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # We have now obtained the destination position for the animation; now we animate.
       count = 0
 
-      animatedColor = new AnimatedColor '#FFFFFF', '#EEEEEE', ANIMATION_FRAME_RATE
+      animatedColor = new AnimatedColor '#FFFFFF', '#CCCCCC', ANIMATION_FRAME_RATE
 
       tick = =>
         count += 1

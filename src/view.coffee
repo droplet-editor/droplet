@@ -451,7 +451,7 @@ define ['ice-draw'], (draw) ->
       
       @path = new draw.Path()
       @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - DROP_AREA_HEIGHT / 2, @bounds[@lineEnd].width, DROP_AREA_HEIGHT
-      @dropHighlightReigon = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
+      @dropHighlightRegion = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
       
       # Add the top tab (if applicable)
       unless (@block.inSocket() ? false)
@@ -632,7 +632,7 @@ define ['ice-draw'], (draw) ->
     # for drag-and-drop.
     computePath: ->
       @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - DROP_AREA_HEIGHT / 2, @bounds[@lineStart].width, DROP_AREA_HEIGHT
-      @dropHighlightReigon = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+      @dropHighlightRegion = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
 
       super
 
@@ -703,7 +703,7 @@ define ['ice-draw'], (draw) ->
     computePath: ->
       unless @block.content()?.type is 'block'
         (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
-        @dropHighlightReigon = new draw.Rectangle @dropArea.x - SOCKET_DROP_PADDING, @dropArea.y - SOCKET_DROP_PADDING, @dropArea.width + SOCKET_DROP_PADDING * 2, @dropArea.height + SOCKET_DROP_PADDING * 2
+        @dropHighlightRegion = new draw.Rectangle @dropArea.x - SOCKET_DROP_PADDING, @dropArea.y - SOCKET_DROP_PADDING, @dropArea.width + SOCKET_DROP_PADDING * 2, @dropArea.height + SOCKET_DROP_PADDING * 2
 
       super
     
@@ -762,11 +762,11 @@ define ['ice-draw'], (draw) ->
     # We must override this to provide a drop area
     drawPath: ->
       @dropArea = new draw.Rectangle @bounds[@lineStart].x,
-        @bounds[@lineStart].y - 5,
+        @bounds[@lineStart].y,
         Math.max(@bounds[@lineStart].width,MIN_SEGMENT_DROP_AREA_WIDTH),
         10
 
-      @dropHighlightReigon = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+      (@dropHighlightRegion = new draw.NoRectangle()).copy @dropArea
 
       super
 

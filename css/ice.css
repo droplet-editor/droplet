@@ -16,7 +16,7 @@
   left: 0;
   height: 150px;
   width: 300px;
-  background-color: #CCC;
+  background-color: #DDD;
   border-bottom: 2px solid #000;
 }
 .palette_group_header {
@@ -42,7 +42,7 @@
 }
 .canvas {
   border-left: 1px solid #000;
-  background-color:#EEE;
+  background-color:#CCC;
 }
 .canvas {
   z-index: 1;
