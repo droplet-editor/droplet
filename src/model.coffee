@@ -186,7 +186,7 @@ define ['ice-view'], (view) ->
       #
       # First, find the parent we actually droped into.
       while parent? and parent.type is 'segmentStart' then parent = parent.prev
-      
+
       # If the parent was a socket, we might need to wrap.
       # Check the precedence to see if we need to.
       if parent?.type is 'socketStart' and parent.socket.precedence >= @precedence
@@ -541,7 +541,7 @@ define ['ice-view'], (view) ->
     # Cloning produces an identical Socket with no shared linked-list pointers.
     # To produce this clone, we need only delegate to our content block, because
     # there *may only be one*.
-    clone: -> if @content()? then new Socket @content().clone() else new Socket()
+    clone: -> if @content()? then new Socket @content().clone(), @precedence else new Socket null, @precedence
     
     # ## content ##
     # Get the content block of this Socket

@@ -194,7 +194,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # A Literal is a value
         # that should be in a editable
         # textarea.
-        when 'Literal'
+        when 'Literal', 'Bool', 'Undefined', 'Null'
           socket = new model.Socket null, precedence
           addMarkup socket, node, wrappingParen
         

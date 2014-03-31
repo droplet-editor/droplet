@@ -9,21 +9,10 @@ require ['main'], (ice) ->
     {
       name: 'Common',
       blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
-        '''
-        fd 100
-        '''
-        '''
-        bk 100
-        '''
-        '''
-        rt 90
-        '''
-        '''
-        lt 90
-        '''
-        '''
-        see 'hi'
-        '''
+        'fd 100'
+        'bk 100'
+        'rt 90'
+        'lt 90'
         '''
         for i in [1..10]
           fd 10
@@ -33,9 +22,7 @@ require ['main'], (ice) ->
           fd 10
         '''
         '''
-        rtFd = (arg) ->
-          rt 90
-          fd arg
+        fun = (arg) ->
           return arg
         '''
       ])
@@ -43,27 +30,88 @@ require ['main'], (ice) ->
     {
       name: 'Turtle',
       blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        'fd 100'
+        'bk 100'
+        'rt 90'
+        'lt 90'
+        'pen red'
+        'dot green, 20'
+        'slide 10'
+        'jumpto 0, 0'
+        'turnto 0'
+        'rt 90, 100'
+        'lt 90, 100'
+      ])
+    }
+    {
+      name: 'Control',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
         '''
-        fd 100
+        if touches 'red'
+          fd 10
         '''
         '''
-        bk 100
+        if touches 'red'
+          fd 10
+        else
+          bk 10
         '''
         '''
-        rt 90
+        for element, i in list
+          see element
         '''
         '''
-        lt 90
+        for key, value of obj
+          see key, value
         '''
         '''
-        dot 10, black
+        while touches 'red'
+          fd 10
+        '''
+      ])
+    }
+    {
+      name: 'Functions',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '''
+        fn = (arg) ->
+          return arg
         '''
         '''
-        scale 2
+        return arg
         '''
-        '''
-        touches 'red'
-        '''
+      ])
+    }
+    {
+      name: 'Containers',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        'array = []'
+        'array.push \'hello\''
+        'array.sort()'
+        'obj[\'hello\'] = \'world\''
+      ])
+    }
+    {
+      name: 'Logic'
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '1 is 1'
+        '1 isnt 2'
+        'true and false'
+        'false or true'
+      ])
+    }
+    {
+      name: 'Math'
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '2 + 3'
+        '2 - 3'
+        '2 * 3'
+        '2 / 3'
+        '2 < 3'
+        '3 > 2'
+        'Math.pow 2, 3'
+        'Math.sqrt 2'
+        'random 10'
       ])
     }
   ]
