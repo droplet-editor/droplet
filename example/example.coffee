@@ -72,15 +72,52 @@ require ['main'], (ice) ->
     }
     {
       name: 'Functions',
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
-        '''
-        fn = (arg) ->
-          return arg
-        '''
-        '''
-        return arg
-        '''
-      ]).concat [
+      blocks: [
+        ice.parseObj {
+          type: 'block'
+          color: '#26cf3c'
+          precedence: 0
+          children: [
+            '('
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'arg'
+            }
+            {
+              type: 'mutationButton'
+              expand: [
+                ', '
+                {
+                  type: 'socket'
+                  precedence: 0
+                  contents: 'arg'
+                }
+                0
+              ]
+            }
+            ') ->'
+            {
+              type: 'indent'
+              children: [
+                '\n'
+                {
+                  type: 'block'
+                  color: '#F00'
+                  children: [
+                    'return '
+                    {
+                      type: 'socket'
+                      precedence: 0
+                      contents: 'arg'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        ice.parse('return arg').start.next.block
         ice.parseObj {
           type: 'block'
           color: '#268bd2'

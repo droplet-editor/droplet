@@ -664,7 +664,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               prev.append operation.before
               operation.before.append next
 
-              #moveCursorToRaw operation.before
+              moveCursorToRaw operation.before
             
             # ### setValue ###
             # Represents changing the entire content of the editor
