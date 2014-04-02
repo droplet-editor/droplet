@@ -17,6 +17,10 @@ define ['ice-draw'], (draw) ->
   TAB_HEIGHT = 5
   TAB_OFFSET = 10
   SOCKET_DROP_PADDING = 3
+
+  MUTATION_BUTTON_WIDTH = MUTATION_BUTTON_HEIGHT = 20
+  MUTATION_BUTTON_BORDER_RADIUS = 5
+  PLUS_SYMBOL_LINE_WIDTH = 2
   
   exports = {}
 
@@ -80,6 +84,12 @@ define ['ice-draw'], (draw) ->
       @lineStart = line
 
       # Linked-list loop through inner tokens
+      #
+      # In this loop we will need to do three things for each child element:
+      # 1. Ask it to computeChildren as well
+      # 2. Add its IceView out our list of @children
+      # 3. Add its IceView to our list of @lineChildren[line] on the line on which it resides
+      # 4. If it affects whether something is @indented[line] or @indentEndsOn[line], update those booleans
       head = @block.start.next
       while head isnt @block.end
         switch head.type
@@ -92,7 +102,7 @@ define ['ice-draw'], (draw) ->
 
             # Append to line children array
             for occupiedLine in [head.block.view.lineStart..head.block.view.lineEnd] # (iterate over all blocks which this indent occupies)
-              # (initialize empty array if it doesn't already exist
+              # (initialize empty array if it doesn't already exist)
               @lineChildren[occupiedLine] ?= []
 
               # Push to the children on this line
@@ -113,7 +123,7 @@ define ['ice-draw'], (draw) ->
 
             # Append to line children array
             for occupiedLine in [head.indent.view.lineStart..head.indent.view.lineEnd] # (iterate over all lines which this indent occupies)
-              # (initialize empty array if it doesn't already exist
+              # (initialize empty array if it doesn't already exist)
               @lineChildren[occupiedLine] ?= []
 
               # Push to the children on this line
@@ -161,12 +171,19 @@ define ['ice-draw'], (draw) ->
             head = head.segment.end
 
           when 'text'
-            # Act analagously for text and cursor
+            # Act analagously for text, cursor and MutationButton
             head.view.computeChildren line
             
             # (For text and cursor the token itself is also the manifested thing)
             @children.push head.view
             
+            @lineChildren[line] ?= []; @lineChildren[line].push head.view
+
+          when 'mutationButton'
+            head.view.computeChildren line
+
+            @children.push head.view
+
             @lineChildren[line] ?= []; @lineChildren[line].push head.view
 
           when 'cursor'
@@ -768,6 +785,62 @@ define ['ice-draw'], (draw) ->
 
       (@dropHighlightRegion = new draw.NoRectangle()).copy @dropArea
 
+      super
+  
+  # # MutationButtonView
+  # A mutation button is just an empty box.
+  exports.MutationButtonView = class MutationButtonView extends IceView
+    constructor: (block) ->
+      super block
+    
+    computeChildren: (line) -> @lineStart = @lineEnd = line
+    
+    computeDimensions: ->
+      super
+      @dimensions[@lineStart] = new draw.Size MUTATION_BUTTON_WIDTH, MUTATION_BUTTON_HEIGHT
+
+    computeBoundingBox: (line, state) ->
+      @bounds[@lineStart] = new draw.Rectangle state.x, state.y, MUTATION_BUTTON_WIDTH, MUTATION_BUTTON_HEIGHT
+
+    drawPath: (ctx) ->
+      bounds = @bounds[@lineStart]
+      
+      # Button
+      r = MUTATION_BUTTON_BORDER_RADIUS
+
+      ctx.beginPath()
+      ctx.moveTo bounds.x, bounds.y + r
+
+      ctx.arc bounds.x + r, bounds.y + r, r, Math.PI, 1.5 * Math.PI
+      ctx.lineTo bounds.right() - r, bounds.y
+
+      ctx.arc bounds.right() - r, bounds.y + r, r, 1.5 * Math.PI, 0
+      ctx.lineTo bounds.right(), bounds.bottom() - r
+
+      ctx.arc bounds.right() - r, bounds.bottom() - r, r, 0, 0.5 * Math.PI
+      ctx.lineTo bounds.x + r, bounds.bottom()
+
+      ctx.arc bounds.x + r, bounds.bottom() - r, r, 0.5 * Math.PI, Math.PI
+      ctx.lineTo bounds.x, bounds.y + r
+
+      ctx.strokeStyle = '#000'
+      ctx.fillStyle = '#FFF'
+
+      ctx.fill()
+      ctx.stroke()
+
+      # "+" symbol
+      ctx.fillStyle = '#000'
+      ctx.fillRect(
+        bounds.x + bounds.width / 2 - PLUS_SYMBOL_LINE_WIDTH / 2, bounds.y + 5,
+        PLUS_SYMBOL_LINE_WIDTH, bounds.height - 10
+      )
+
+      ctx.fillRect(
+        bounds.x + 5, bounds.y + bounds.height / 2 - PLUS_SYMBOL_LINE_WIDTH / 2
+        bounds.width - 10, PLUS_SYMBOL_LINE_WIDTH
+      )
+      
       super
 
   # # CursorView

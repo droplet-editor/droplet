@@ -670,6 +670,31 @@ define ['ice-view'], (view) ->
     stringify: (state) ->
       @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
 
+  # ## mutationButton token ##
+  # A Mutation button is a clickable square that can "expand"
+  # into some other tokens (e.g. "[MutationButton]" -> ", [Socket] [MutationButton]" to add
+  # an element to an array or function call)
+  exports.MutationButtonToken = class MutationButtonToken extends Token
+    constructor: (@expandValue) ->
+      unless @expandValue.type is 'segment'
+        throw new Error "Must instantiate a MutationButton with a Segment object, not #{@expandValue.type}"
+      
+      @prev = @next = null
+      @view = new view.MutationButtonView this
+      @type = 'mutationButton'
+
+    clone: -> new MutationButtonToken @expandValue
+    
+    # Expand the mutation button.
+    # We clone here (as opposed to at construction
+    # time) so as to avoid infinite recursion.
+    expand: ->
+      clone = @expandValue.clone()
+      @prev.append clone.start
+      clone.end.append @next
+
+      clone.remove()
+
   # ## Markup tokens ##
   # These are the tokens to which we referred earlier when we discussed
   # Blocks, Indents, Segments, and Sockets. They represent the start and end of a piece of markup.

@@ -5,7 +5,7 @@
 # MIT License
 
 define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
-  
+
   PADDING = 5
   INDENT_SPACES = 2
   PALETTE_MARGIN = 10
@@ -440,6 +440,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           'createSegment'
           'destroySegment'
+
+          'mutationButtonExpand'
+
           'setValue'
         ] then return
         @undoStack.push operation
@@ -648,6 +651,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               @tree.getTokenAtLocation(operation.end).insert segment.end
 
               moveCursorToRaw segment.end
+
+            # ### mutationButtonExpand ###
+            # Represents clicking a mutation button and having it expand
+            # into its @expandValue segment.
+            #
+            # To undo, replace the expanded segment with the button.
+            when 'mutationButtonExpand'
+              prev = @tree.getTokenAtLocation operation.start
+              next = @tree.getTokenAtLocation operation.end
+
+              prev.append operation.before
+              operation.before.append next
+
+              #moveCursorToRaw operation.before
             
             # ### setValue ###
             # Represents changing the entire content of the editor
@@ -1111,6 +1128,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         
         if seek? then seek.block else null
 
+      hitTestMutationButton = (point) =>
+        head = @tree.start
+        while head isnt @tree.end
+          if head.type is 'mutationButton' and head.view.bounds[head.view.lineStart].contains point
+            return head
+          head = head.next
+        return null
+
       hitTestRoot = (point) => hitTest point, @tree.start
       
       hitTestFloating = (point) =>
@@ -1167,6 +1192,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
           hitTestLasso(point) ?
+          hitTestMutationButton(point) ?
           hitTestFocus(point) ?
           hitTestRoot(point) ?
           hitTestPalette(point)
@@ -1207,6 +1233,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             # Set the lasso anchor
             @lassoAnchor = point
+
+        else if @ephemeralSelection.type is 'mutationButton'
+          @captureUndoEvent()
+
+          operation =
+            type: 'mutationButtonExpand'
+            before: @ephemeralSelection.clone()
+            after: @ephemeralSelection.expandValue.clone()
+
+          prev = @ephemeralSelection.prev
+          next = @ephemeralSelection.next
+
+          @ephemeralSelection.expand()
+
+          operation.start = prev.getSerializedLocation()
+          operation.end = next.getSerializedLocation()
+
+          @addMicroUndoOperation operation
+
+          @ephemeralSelection = null
+          
+          @redraw()
 
         else if @ephemeralSelection.type is 'socket'
           # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())

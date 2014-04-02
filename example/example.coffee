@@ -80,16 +80,73 @@ require ['main'], (ice) ->
         '''
         return arg
         '''
-      ])
+      ]).concat [
+        ice.parseObj {
+          type: 'block'
+          color: '#268bd2'
+          precedence: 0
+          children: [
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'fn'
+            },
+            '('
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'arg'
+            }
+            {
+              type: 'mutationButton'
+              expand: [
+                ', '
+                {
+                  type: 'socket'
+                  precedence: 0
+                  contents: 'arg'
+                }
+                0
+              ]
+            }
+            ')'
+          ]
+        }
+      ]
     }
     {
       name: 'Containers',
       blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
-        'array = []'
         'array.push \'hello\''
         'array.sort()'
         'obj[\'hello\'] = \'world\''
-      ])
+      ]).concat [
+        ice.parseObj {
+          type: 'block'
+          color: '#26cf3c'
+          children: [
+            '['
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'el'
+            }
+            {
+              type: 'mutationButton'
+              expand: [
+                ', '
+                {
+                  type: 'socket'
+                  precedence: 0
+                  contents: 'el'
+                }
+                0
+              ]
+            }
+            ']'
+          ]
+        }
+      ]
     }
     {
       name: 'Logic'
