@@ -1,7 +1,7 @@
-.palette, .drag, .canvas {
+.palette, .drag, .canvas, .ice-lasso-select {
   position: absolute;
 }
-.canvas, .drag {
+.canvas, .drag, .ice-lasso-select {
   left: 300px;
   top: 0;
 }
@@ -45,7 +45,7 @@
   border-left: 1px solid #000;
   background-color:#CCC;
 }
-.canvas {
+.canvas, .ice-lasso-select {
   z-index: 1;
   border-right: none;
 }

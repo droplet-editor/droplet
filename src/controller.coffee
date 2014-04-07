@@ -274,7 +274,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       computeCanvasDimensions()
 
       # Append the children
-      for child in [@main, @palette, @hiddenInput, @paletteHeader, track]
+      for child in [@main, @palette, @lassoSelectCanvas, @hiddenInput, @paletteHeader, track]
         @el.appendChild child
 
       # Get the contexts from each canvas
@@ -1683,8 +1683,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             @redraw()
           
-          # Clear the drag canvas
-          @dragCtx.clearRect 0, 0, drag.width, drag.height
+          # Clear the lasso select canvas
+          @lassoSelectCtx.clearRect 0, 0, @lassoSelectCanvas.width, @lassoSelectCanvas.height
 
           # If we inserted a lasso segment, move the cursor appropriately
           if @lassoSegment? then moveCursorTo @lassoSegment.end
