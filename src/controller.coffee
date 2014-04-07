@@ -13,6 +13,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   PALETTE_TOP_MARGIN = 10
   PALETTE_WIDTH = 300
   MIN_DRAG_DISTANCE = 5
+  
+  SHADOW_OFFSET = 7
+  SHADOW_BLUR = 7
+
   FONT_SIZE = 15
   ANIMATION_FRAME_RATE = 50 # FPS
   SCROLL_INTERVAL = 50
@@ -279,6 +283,29 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The main context will be used for draw.js's text measurements (this is a bit of a hack)
       draw._setCTX @mainCtx
 
+      # ## clearLassoSegment ##
+      # (TODO: find a home for this function).
+      #
+      # Signify that we have no longer selected anything with the lasso, without changing the tree.
+      @clearLassoSegment = =>
+        # We will keep scanning the document for
+        # lasso selects until there are none left.
+        until head is @tree.end
+          head = @tree.start
+          until head is @tree.end
+            if head.type is 'segmentStart' and head.segment.isLassoSegment
+              @addMicroUndoOperation
+                type: 'destroySegment'
+                start: head.segment.start.getSerializedLocation()
+                end: head.segment.end.getSerializedLocation()
+
+              head.segment.remove()
+              break
+
+            head = head.next
+
+        @lassoSegment = null
+
       # ## Convenience Functions ##
       # General-purpose methods that call the view (rendering functions)
       
@@ -312,20 +339,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # We will initialize this rectangle as the dimensions of the root tree,
         # and then unite it with all the floating block boundaries.
         bounds = @tree.view.getBounds()
-        
-        # Alert the lasso segment, if it exists, to recompute its bounds
-        if @lassoSegment?
-          # Get those compute bounds
-          @_lassoBounds = @lassoSegment.view.getBounds()
-
-          for float in @floatingBlocks
-            if @lassoSegment is float.block
-              @_lassoBounds.translate float.position
-          
-          # Unless we're already drawing it on the drag canvas, draw the lasso segment borders on the main canvas
-          unless @lassoSegment is @selection
-            @_lassoBounds.stroke @mainCtx, '#000'
-            @_lassoBounds.fill @mainCtx, 'rgba(0, 0, 256, 0.3)'
 
         for float in @floatingBlocks
           view = float.block.view
@@ -455,7 +468,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # ## undo ##
       # Actually reverse some operations in the undo stack.
       @undo = =>
-        @lassoSegment = null
+        @clearLassoSegment()
 
         if @undoStack.length is 0 then return
 
@@ -1120,13 +1133,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Hit-testing functions
 
       hitTest = (point, root) =>
-        head = root; seek = null
-        while head isnt seek
+        # Iterate through all the children of this block/segment
+        # to see what the innermost clicked child was.
+        head = root.start; seek = root.end
+        until head is seek
           if head.type is 'blockStart' and head.block.view.path.contains point
             seek = head.block.end
           head = head.next
         
-        if seek? then seek.block else null
+        # The last possibility is that we clicked this block
+        # at the root level. So check that as well.
+        if seek isnt root.end or root.type is 'block' and root.view.path.contains point
+          return seek.block
+        else
+          return null
 
       hitTestMutationButton = (point) =>
         head = @tree.start
@@ -1136,11 +1156,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           head = head.next
         return null
 
-      hitTestRoot = (point) => hitTest point, @tree.start
+      hitTestRoot = (point) => hitTest point, @tree
       
       hitTestFloating = (point) =>
         for float in @floatingBlocks by -1
-          if hitTest(point, float.block.start) isnt null then return float.block
+          if hitTest(point, float.block) isnt null then return float.block
         return null
       
       hitTestFocus = (point) =>
@@ -1154,7 +1174,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         return null
       
-      hitTestLasso = (point) => if @lassoSegment? and @_lassoBounds.contains point then @lassoSegment else null
+      hitTestLasso = (point) => if @lassoSegment? and hitTest(point, @lassoSegment)? then @lassoSegment else null
 
       hitTestPalette = (point) =>
         # The point was given in relation to the main canvas,
@@ -1164,7 +1184,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         # Hit test as per normal.
         for block in @paletteBlocks
-          if hitTest(point, block.start)? then return block
+          if hitTest(point, block)? then return block
         return null
 
       # ## The mousedown event ##
@@ -1197,6 +1217,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           hitTestRoot(point) ?
           hitTestPalette(point)
         
+        # Unselect stuff unless we are moving the selection.
+        unless @ephemeralSelection is @lassoSegment
+          @clearLassoSegment()
+        
         # We want to prevent the default for this event
         # when we are on a touchscreen (default is scrolling, which
         # is bad), but not on a mousedown -- the mousedown triggers
@@ -1209,26 +1233,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # We do not want to begin a lasso select
           # if we have clicked in the palette.
           if point.x > 0
-            # If there is already a selection, remove it.
-            if @lassoSegment?
 
-              # First, check to see if the block is floating
-              flag = false
-              for float in @floatingBlocks
-                if float.block is @lassoSegment
-                  flag = true
-                  break
-
-              # Don't remove the segment if it's floating, because it still needs to hold those blocks together
-              unless flag
-                @addMicroUndoOperation
-                  type: 'destroySegment'
-                  start: @lassoSegment.start.getSerializedLocation()
-                  end: @lassoSegment.end.getSerializedLocation()
-
-                @lassoSegment.remove()
-
-              @lassoSegment = null
+              @clearLassoSegment()
               @redraw()
 
             # Set the lasso anchor
@@ -1358,6 +1364,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             # Draw it in the drag canvas
             @selection.view.compute()
+
+            @selection.view.drawShadow @dragCtx, SHADOW_OFFSET, SHADOW_OFFSET, SHADOW_BLUR
+
+            # We translate by 1, 1 so that we can see the entire border;
+            # otherwise half a pixel is clipped because it is off the drag canas.
+            @selection.view.translate new draw.Point 1, 1
             @selection.view.draw @dragCtx
 
             # CSS-transform the drag canvas to where it ought to be
@@ -1392,6 +1404,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if @selection.type is 'block'
             highlight = @tree.find (block) ->
               (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
+
           else if @selection.type is 'segment'
             highlight = @tree.find (block) ->
               (block.type isnt 'socket') and (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
@@ -1480,8 +1493,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # This normally requires no operations, but if we have selected it as the lassoSegment,
             # we want to stop drawing its bounding box.
             else if @selection is @lassoSegment
-              @lassoSegment = null
-
+              @clearLassoSegment()
           
           # CSS-transform the drag canvas back to the origin
           drag.style.webkitTransform =
@@ -1651,6 +1663,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             # Now, insert the actual lasso segment.
             @lassoSegment = new model.Segment()
+            @lassoSegment.isLassoSegment = true
 
             firstLassoed.insertBefore @lassoSegment.start
             lastLassoed.insert @lassoSegment.end
@@ -1731,6 +1744,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 
                 newParse.block.moveTo @focus.start.prev.prev
                 @focus.start.prev.block.moveTo null
+
+                @redraw()
               
             else
               # If we are not a handwritten block, attempt to reparse
@@ -1752,6 +1767,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 else if @focus.content()?.type is 'block' then @focus.content().moveTo null
                 
                 newParse.block.moveTo @focus.start
+
+                @redraw()
 
           # Fire the onchange handler
           @triggerOnChangeEvent new IceEditorChangeEvent @focus, focus

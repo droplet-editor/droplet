@@ -207,7 +207,37 @@ define ->
 
       # Fill and stroke
       if @style.fillColor? then ctx.fill()
+      ctx.globalAlpha *= 0.3
       ctx.stroke()
+      ctx.globalAlpha /= 0.3
+
+    drawShadow: (ctx, offsetX, offsetY, blur) ->
+      @_clearCache()
+      ctx.fillStyle = @style.fillColor
+      
+      oldValues = {
+        shadowColor: ctx.shadowColor
+        shadowBlur: ctx.shadowBlur
+        shadowOffsetY: ctx.shadowOffsetY
+        shadowOffsetX: ctx.shadowOffsetX
+        globalAlpha: ctx.globalAlpha
+      }
+      
+      ctx.globalAlpha = 0.5
+      ctx.shadowColor = '#000'; ctx.shadowBlur = blur
+      ctx.shadowOffsetX = offsetX; ctx.shadowOffsetY = offsetY
+
+      ctx.beginPath()
+      
+      ctx.moveTo @_points[0].x, @_points[0].y
+      for point in @_points
+        ctx.lineTo point.x, point.y # DEFAULT
+      ctx.lineTo @_points[0].x, @_points[0].y
+
+      ctx.fill()
+
+      for own key, value of oldValues
+        ctx[key] = value
 
   _CTX = null #Hacky, hacky, hacky
   _FONT_SIZE = 15

@@ -18,6 +18,8 @@ define ['ice-draw'], (draw) ->
   TAB_OFFSET = 10
   SOCKET_DROP_PADDING = 3
 
+  SHADOW_BLUR = 5
+
   MUTATION_BUTTON_WIDTH = MUTATION_BUTTON_HEIGHT = 20
   MUTATION_BUTTON_BORDER_RADIUS = 5
   PLUS_SYMBOL_LINE_WIDTH = 2
@@ -229,13 +231,13 @@ define ['ice-draw'], (draw) ->
     
 
     # ## FIFTH PASS: draw ##
-    drawPath: (ctx) ->
+    drawPath: (ctx, style) ->
       # Event propagate
       for child in @children
-        unless child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx
+        unless child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx, style
 
       for child in @children
-        if child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx
+        if child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx, style
 
     # ## SIXTH Pass: draw cursor ##
     drawCursor: (ctx) ->
@@ -269,8 +271,12 @@ define ['ice-draw'], (draw) ->
     
     # ### Convenience function: full draw ###
     draw: (ctx) ->
-      @drawPath ctx
+      @drawPath ctx, selected: 0
       @drawCursor ctx
+
+    drawShadow: (ctx, offsetX, offsetY) ->
+      for child in @children
+        child.drawShadow ctx, offsetX, offsetY
 
     # ###Convenience function: computeBoundingBoxes. ##
     # Normally called on root
@@ -471,7 +477,7 @@ define ['ice-draw'], (draw) ->
       @dropHighlightRegion = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
       
       # Add the top tab (if applicable)
-      unless (@block.inSocket() ? false)
+      unless (@block.inSocket() ? @block.valueByDefault)
         @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET, @bounds[@lineStart].y
         @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineStart].y + TAB_HEIGHT
         @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineStart].y + TAB_HEIGHT
@@ -508,7 +514,7 @@ define ['ice-draw'], (draw) ->
           @path.push point
 
       # Add the bottom tab (if applicable)
-      unless (@block.inSocket() ? false)
+      unless (@block.inSocket() ? @block.valueByDefault)
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET, @bounds[@lineEnd].bottom()
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
@@ -520,10 +526,30 @@ define ['ice-draw'], (draw) ->
       
     # ## drawPath ##
     # This just executes that path we constructed in computePath
-    drawPath: (ctx) ->
+    drawPath: (ctx, style) ->
       if @path._points.length is 0
         throw new Error 'View error: block has no path.'
       @path.draw ctx
+
+      if style.selected > 0
+        @path.style.fillColor = '#00F'
+        @path.style.strokeColor = '#008'
+        ctx.globalAlpha *= 0.3
+
+        @path.draw ctx
+
+        ctx.globalAlpha /= 0.3
+
+        @path.style.fillColor = @block.color
+      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
+
+      super
+
+    drawShadow: (ctx, offsetX, offsetY) ->
+      if @path._points.length is 0
+        throw new Error 'View error: block has no path.'
+      
+      @path.drawShadow ctx, offsetX, offsetY, SHADOW_BLUR
 
       super
 
@@ -777,15 +803,21 @@ define ['ice-draw'], (draw) ->
     
     # ## drawPath ##
     # We must override this to provide a drop area
-    drawPath: ->
+    drawPath: (ctx, style) ->
       @dropArea = new draw.Rectangle @bounds[@lineStart].x,
         @bounds[@lineStart].y,
         Math.max(@bounds[@lineStart].width,MIN_SEGMENT_DROP_AREA_WIDTH),
         10
 
       (@dropHighlightRegion = new draw.NoRectangle()).copy @dropArea
+      
+      if @block.isLassoSegment
+        style.selected += 1
 
       super
+      
+      if @block.isLassoSegment
+        style.selected -= 1
   
   # # MutationButtonView
   # A mutation button is just an empty box.

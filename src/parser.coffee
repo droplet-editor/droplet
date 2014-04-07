@@ -279,7 +279,7 @@ define ['ice-model'], (model) ->
     else
       switch object.type
         when 'block'
-          block = new model.Block object.precedence, object.color
+          block = new model.Block object.precedence, object.color, object.valueByDefault
           head = block.start
           for child in object.children
             subBlock = parseObj child

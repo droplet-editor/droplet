@@ -133,8 +133,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
     # A simple utility function for adding a block of a given
     # precedence and color. We do a lot of this in (mark).
     addBlock = (node, precedence, color, wrappingParen) ->
-      block = new model.Block precedence
-      block.color = color
+      block = new model.Block precedence, color, (color is colors.VALUE)
       addMarkup block, node, wrappingParen
 
       if wrappingParen?
@@ -349,8 +348,11 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           
           # We must insert the indent for an object by hand.
           # Get the needed bounds for this indent.
-          start = getBounds node.properties[0]
-          end = getBounds node.properties[node.properties.length - 1]
+          if node.properties.length is 0
+            end = start = getBounds node
+          else
+            start = getBounds node.properties[0]
+            end = getBounds node.properties[node.properties.length - 1]
           
           # If the indent is actually on the same line
           # as the object literal's beginning,

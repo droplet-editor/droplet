@@ -75,8 +75,8 @@ require ['main'], (ice) ->
       blocks: [
         ice.parseObj {
           type: 'block'
+          valueByDefault: true
           color: '#26cf3c'
-          precedence: 0
           children: [
             '('
             {
@@ -99,11 +99,13 @@ require ['main'], (ice) ->
             ') ->'
             {
               type: 'indent'
+              depth: 2
               children: [
                 '\n'
                 {
                   type: 'block'
-                  color: '#F00'
+                  valueByDefault: false
+                  color: '#dc322f'
                   children: [
                     'return '
                     {
@@ -120,8 +122,9 @@ require ['main'], (ice) ->
         ice.parse('return arg').start.next.block
         ice.parseObj {
           type: 'block'
+          valueByDefault: false
           color: '#268bd2'
-          precedence: 0
+          precedence: 32
           children: [
             {
               type: 'socket'
@@ -153,14 +156,12 @@ require ['main'], (ice) ->
     }
     {
       name: 'Containers',
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
-        'array.push \'hello\''
-        'array.sort()'
-        'obj[\'hello\'] = \'world\''
-      ]).concat [
+      blocks: [
         ice.parseObj {
           type: 'block'
+          valueByDefault: true
           color: '#26cf3c'
+          precedence: 32
           children: [
             '['
             {
@@ -183,6 +184,44 @@ require ['main'], (ice) ->
             ']'
           ]
         }
+        ice.parse("array.push 'hello'").start.next.block
+        ice.parse("array.sort()").start.next.block
+        ice.parse('{}').start.next.block
+        ice.parseObj {
+          type: 'block'
+          valueByDefault: true
+          precedence: 32
+          color: '#26cf3c'
+          children: [
+            '{   '
+            {
+              type: 'indent'
+              depth: 2
+              children: [
+                '\n'
+              ]
+            }
+            '}'
+          ]
+        }
+        ice.parseObj {
+          type: 'block'
+          color: '#268bd2'
+          children: [
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'property'
+            }
+            ':'
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'value'
+            }
+          ]
+        }
+        ice.parse("obj['hello'] = 'world'").start.next.block
       ]
     }
     {
@@ -322,21 +361,3 @@ require ['main'], (ice) ->
       # put up a message.
       unless editor.currentlyUsingBlocks or editor.currentlyAnimating
         displayMessage 'Syntax error'
-  
-  logsElement = document.getElementById 'logs'
-  logsContentElement = document.getElementById 'logsContent'
-  closeLogsElement = document.getElementById 'closeLogs'
-  document.getElementById('run').addEventListener 'click', ->
-    logs = []
-    see = (arg) ->
-      logs.push arg
-    eval CoffeeScript.compile editor.getValue()
-    see = null
-
-    logsContentElement.innerHTML = logs.join('\n').replace(/</g,'&lt;').replace(/>/g, '&gt;').replace(/&/g,'&amp;').replace(/\n/g, '<br/>')
-    logsElement.style.right = '0px'
-    closeLogsElement.style.top = '30px'
-  
-  document.getElementById('closeLogs').addEventListener 'click', ->
-    logsElement.style.right = '-500px'
-    closeLogsElement.style.top = '0px'

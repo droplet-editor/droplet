@@ -81,7 +81,7 @@ define ['ice-view'], (view) ->
   # wrap itself in parentheses
 
   exports.Block = class Block
-    constructor: (@precedence = 0, @color = '#ddf') ->
+    constructor: (@precedence = 0, @color = '#ddf', @valueByDefault = false) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -101,7 +101,7 @@ define ['ice-view'], (view) ->
     # Cloning produces a new Block entirely independent
     # of this one (there are no linked-list pointers in common).
     clone: ->
-      clone = new Block @precedence, @color
+      clone = new Block @precedence, @color, @valueByDefault
       
       unless @start.next is @end
         [clonedStart, clonedEnd] = cloneTokens @start.next, @end.prev
@@ -123,7 +123,9 @@ define ['ice-view'], (view) ->
     inSocket: ->
       head = @start.prev
       while head? and head.type is 'segmentStart' then head = head.prev
-      return head? and head.type is 'socketStart'
+
+      if not head? then return null
+      else return head.type is 'socketStart'
     
     # ## moveTo ##
     # Splice this block out and place it somewhere else.
@@ -327,6 +329,8 @@ define ['ice-view'], (view) ->
       @start = new SegmentStartToken this
       @end = new SegmentEndToken this
       @type = 'segment'
+
+      @isLassoSegment = false
 
       @start.next = @end; @end.prev = @start
       
