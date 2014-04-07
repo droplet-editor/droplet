@@ -661,7 +661,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               segment = new model.Segment()
 
               @tree.getTokenAtLocation(operation.start).insertBefore segment.start
-              @tree.getTokenAtLocation(operation.end).insert segment.end
+              @tree.getTokenAtLocation(operation.end).insertBefore segment.end
 
               moveCursorToRaw segment.end
 
