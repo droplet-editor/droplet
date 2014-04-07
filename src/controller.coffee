@@ -178,6 +178,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The main canvas
       @main = document.createElement 'canvas'; @main.className = 'canvas'
 
+      # The lasso-select draw canvas
+      @lassoSelectCanvas = document.createElement 'canvas'; @lassoSelectCanvas.className = 'ice-lasso-select'
+
       # The palette canvas
       @palette = document.createElement 'canvas'; @palette.className = 'palette'
 
@@ -245,9 +248,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.appendChild mainScroller
       mainScroller.appendChild mainScrollerStuffing
 
+      track.appendChild drag
+
       computeCanvasDimensions = =>
-        @main.height = @el.offsetHeight; @main.style.height = "#{@el.offsetHeight}px"
-        @main.width = @el.offsetWidth - PALETTE_WIDTH; @main.style.width = "#{@el.offsetWidth - PALETTE_WIDTH}px"
+        @main.height = @lassoSelectCanvas.height = @el.offsetHeight
+        @main.style.height = @lassoSelectCanvas.style.height = "#{@el.offsetHeight}px"
+        @main.width = @lassoSelectCanvas.width = @el.offsetWidth - PALETTE_WIDTH
+        @main.style.width = @lassoSelectCanvas.style.width = "#{@el.offsetWidth - PALETTE_WIDTH}px"
         
         @palette.style.top = paletteScroller.style.top = @paletteHeader.style.height = "#{@paletteHeaderHeight}px"
         @palette.height = @el.offsetHeight - @paletteHeaderHeight; @palette.style.height = "#{@el.offsetHeight - @paletteHeaderHeight}px"
@@ -267,13 +274,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       computeCanvasDimensions()
 
       # Append the children
-      for child in [@main, @palette, drag, track, @hiddenInput, @paletteHeader]
+      for child in [@main, @palette, @hiddenInput, @paletteHeader, track]
         @el.appendChild child
 
       # Get the contexts from each canvas
       @mainCtx = @main.getContext '2d'
       @dragCtx = drag.getContext '2d'
       @paletteCtx = @palette.getContext '2d'
+      @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
       
       # Transform to allow border.
       # In the css, we also put in a pixel margin,
@@ -1558,9 +1566,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           rect = getRectFromPoints (new draw.Point @lassoAnchor.x - @scrollOffset.x, @lassoAnchor.y - @scrollOffset.y), point
 
           # Clear and redraw the lasso on the drag canvas
-          @dragCtx.clearRect 0, 0, drag.width, drag.height
-          @dragCtx.strokeStyle = '#00f'
-          @dragCtx.strokeRect rect.x, rect.y, rect.width, rect.height
+          @lassoSelectCtx.clearRect 0, 0, @lassoSelectCanvas.width, @lassoSelectCanvas.height
+          @lassoSelectCtx.strokeStyle = '#00f'
+          @lassoSelectCtx.strokeRect rect.x, rect.y, rect.width, rect.height
 
       track.addEventListener 'mouseup', (event) =>
         if @lassoAnchor?
