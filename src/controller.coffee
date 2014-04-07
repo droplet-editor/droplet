@@ -246,15 +246,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       mainScroller.appendChild mainScrollerStuffing
 
       computeCanvasDimensions = =>
-        @main.height = @el.offsetHeight
-        @main.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+        @main.height = @el.offsetHeight; @main.style.height = "#{@el.offsetHeight}px"
+        @main.width = @el.offsetWidth - PALETTE_WIDTH; @main.style.width = "#{@el.offsetWidth - PALETTE_WIDTH}px"
         
-        @palette.style.top = paletteScroller.style.top = @paletteHeader.style.height = @paletteHeaderHeight
-        @palette.height = @el.offsetHeight - @paletteHeaderHeight
-        @palette.width = PALETTE_WIDTH
+        @palette.style.top = paletteScroller.style.top = @paletteHeader.style.height = "#{@paletteHeaderHeight}px"
+        @palette.height = @el.offsetHeight - @paletteHeaderHeight; @palette.style.height = "#{@el.offsetHeight - @paletteHeaderHeight}px"
+        @palette.width = PALETTE_WIDTH; @palette.style.width = "#{PALETTE_WIDTH}px"
 
-        drag.height = @el.offsetHeight
-        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH
+        drag.height = @el.offsetHeight * 2; drag.style.height = "#{@el.offsetHeight * 2}px"
+        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH; drag.style.width = "#{@el.offsetWidth * 2 - PALETTE_WIDTH}px"
       
       # We need to resize the canvases any time the editor resizes.
       # We will bind this to the document resize function, but this function
@@ -2080,7 +2080,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         tick()
       ), 1
 
-      return true
+      return {
+        success: true
+      }
     
     _performFreezeAnimation: ->
       if @currentlyAnimating or @currentlyUsingBlocks then return
