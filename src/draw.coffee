@@ -207,9 +207,7 @@ define ->
 
       # Fill and stroke
       if @style.fillColor? then ctx.fill()
-      ctx.globalAlpha *= 0.3
       ctx.stroke()
-      ctx.globalAlpha /= 0.3
 
     drawShadow: (ctx, offsetX, offsetY, blur) ->
       @_clearCache()

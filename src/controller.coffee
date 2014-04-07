@@ -356,8 +356,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         
         # Update the scroller stuffing dimensions
         # to fit the document dimensions
-        mainScrollerStuffing.style.height = bounds.bottom()
-        mainScrollerStuffing.style.width = bounds.right()
+        mainScrollerStuffing.style.height = "#{bounds.bottom()}px"
+        mainScrollerStuffing.style.width = "#{bounds.right()}px"
       
       # ## attemptReparse ##
       # This will be triggered by most cursor operations. It finds all handwritten blocks that do not contain the cursor,
@@ -779,8 +779,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         # Set the size of palette scroller stuffing
         # to match palette size
-        paletteScrollerStuffing.style.height = lastBottomEdge
-        paletteScrollerStuffing.style.width = bounds.width
+        paletteScrollerStuffing.style.height = "#{lastBottomEdge}px"
+        paletteScrollerStuffing.style.width = "#{bounds.width}px"
       
       # (call it right away)
       @redrawPalette()

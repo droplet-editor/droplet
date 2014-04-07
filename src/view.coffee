@@ -522,13 +522,14 @@ define ['ice-draw'], (draw) ->
 
       @path.style.fillColor = @block.color
       @path.style.lineWidth = if @block.lineMarked.length > 0 then 2 else 1
-      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
+      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else 'rgba(0, 0, 0, 0.3)'
       
     # ## drawPath ##
     # This just executes that path we constructed in computePath
     drawPath: (ctx, style) ->
       if @path._points.length is 0
         throw new Error 'View error: block has no path.'
+
       @path.draw ctx
 
       if style.selected > 0
@@ -541,7 +542,7 @@ define ['ice-draw'], (draw) ->
         ctx.globalAlpha /= 0.3
 
         @path.style.fillColor = @block.color
-      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
+        @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
 
       super
 
