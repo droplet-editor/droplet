@@ -93,6 +93,8 @@ define ->
       ctx.fillStyle = style
       ctx.fillRect @x, @y, @width, @height
 
+    upperLeftCorner: -> new draw.Point @x, @y
+
   # ## NoRectangle ##
   # NoRectangle is an alternate constructor for Rectangle which starts
   # the rectangle as nothing (without even a location). It can gain location and size
