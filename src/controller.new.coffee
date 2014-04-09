@@ -1,6 +1,7 @@
 define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # # Magic constants
   PALETTE_TOP_MARGIN = 5
+  PALETTE_MARGIN = 5
   MIN_DRAG_DISTANCE = 5
   PALETTE_LEFT_MARGIN = 5
   PALETTE_WIDTH = 300
@@ -15,7 +16,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   #
   # These are different events associated with the Editor
   # that features will want to bind to.
-  editorBindings = {
+  unsortedEditorBindings = {
     'populate': []
 
     'resize': []
@@ -26,9 +27,31 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     'mousemove': []
     'mouseup': []
 
-    'keydown': []
-    'keyup': []
+    'mutation': []
+
+    'key': []
   }
+
+  editorBindings = {}
+  
+  # This hook function is for convenience,
+  # for features to add events that will occur at
+  # various times in the editor lifecycle.
+  hook = (event, priority, fn) ->
+    if event.indexOf('.') > 0
+      console.log event[...event.indexOf('.')]
+      unsortedEditorBindings[event[...event.indexOf('.')]].push {
+        priority: priority
+        fn: {
+          combo: event[event.indexOf('.') + 1..]
+          fn: fn
+        }
+      }
+    else
+      unsortedEditorBindings[event].push {
+        priority: priority
+        fn: fn
+      }
   
   # # The Editor Class
   exports.Editor = class Editor
@@ -45,7 +68,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # We give our element a tabIndex so that it can be focused and capture keypresses.
       @iceElement.tabIndex = 0
-      
+
       # Append that div.
       @wrapperElement.appendChild @iceElement
 
@@ -56,7 +79,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @tracker.className = 'ice-track-area'
       
       # Append that div.
-      @wrapperElement.appendChild @tracker
+      @iceElement.appendChild @tracker
       
       # ## Canvases
       # Create the palette and main canvases
@@ -67,7 +90,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @mainCtx = @mainCanvas.getContext '2d'
       
-      @wrapperElement.appendChild @mainCanvas
+      @iceElement.appendChild @mainCanvas
       
       # Then palette canvas
       @paletteCanvas = document.createElement 'canvas'
@@ -75,7 +98,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @paletteCtx = @paletteCanvas.getContext '2d'
 
-      @wrapperElement.appendChild @paletteCanvas
+      @iceElement.appendChild @paletteCanvas
       
       # Call all the feature bindings that are supposed
       # to happen now.
@@ -86,7 +109,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # This stage of ICE editor construction, which is repeated
       # whenever the editor is resized, should adjust the sizes
       # of all the ICE editor componenents to fit the wrapper.
-      window.addEventListener 'resize', @resize
+      window.addEventListener 'resize', =>
+        @resize()
+        @redrawMain(); @redrawPalette()
 
       @resize()
 
@@ -103,6 +128,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           # Call all the handlers.
           for handler in editorBindings[eventName]
             handler.call this, trackPoint, event, state
+
+      # We also allow binding to keypresses in the element.
+      # We will use dmauro's Keypress library for keyboard-shortcut
+      # input.
+      @keyListener = new window.keypress.Listener @iceElement
+      for listener in editorBindings.key then do (listener) =>
+        @keyListener.simple_combo listener.combo, =>
+          listener.fn.call this
       
       # # Document initialization
       # We start of with an empty document
@@ -117,8 +150,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
-
-      @paletteCanvas.height = @iceElement.height - @paletteHeaderHeight
+      
+      @paletteCanvas.style.top = @paletteHeaderHeight
+      @paletteCanvas.height = @iceElement.offsetHeight - @paletteHeaderHeight
       @paletteCanvas.width = PALETTE_WIDTH
 
       @paletteCanvas.style.height = "#{@paletteCanvas.height}px"
@@ -257,12 +291,165 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     else return null
 
   ###########################################
+  # UNDO STACK SUPPORT
+  ###########################################
+
+  # We must declare a few
+  # fields a populate time
+  hook 'populate', 0, ->
+    @undoStack = []
+  
+  # The UndoOperation class is the base
+  # class for all undo operations.
+  class UndoOperation
+    constructor: ->
+
+    # Undo and redo should return
+    # the desired new cursor position.
+    undo: (editor) -> editor.tree.start
+    redo: (editor) -> editor.tree.start
+  
+  # addMicroUndoOperation pushes
+  # the given operation to the undo stack,
+  # and might possibly do some bureaucracy in the future.
+  Editor::addMicroUndoOperation = (operation) ->
+    @undoStack.push operation
+    
+    # We allow binding to mutation;
+    # all mutation must call addMicroUndoOperation.
+    for binding in editorBindings.mutation
+      binding.call this
+  
+  # The undo function pops and undoes
+  # operations from the undo stack until
+  # we reach a capture point.
+  Editor::undo = ->
+    # If the undo stack is empty, give up
+    if @undoStack.length is 0 then return
+
+    # Otherwise, try to undo the operation
+    operation = @undoStack.pop()
+    
+    # If the operation is a capture point, stop.
+    #
+    # NOTE: Right now capture points are signified by the
+    # string 'CAPTURE_POINT'; this may need to be changed
+    # in the future.
+    if operation is 'CAPTURE_POINT' then return
+    else
+      # Otherwise, apply the undo operation and
+      # recurse.
+      @moveCursorTo operation.undo this
+      @undo()
+
+    @redrawMain()
+  
+  # We'll also allow users to clear
+  # the undo stack.
+  Editor::clearUndoStack = ->
+    @undoStack.length = 0
+
+  # Now we hook to ctrl-z to undo.
+  hook 'key.ctrl z', 0, ->
+    @undo()
+
+  ###########################################
   # BASIC BLOCK MOVE SUPPORT
   ###########################################
   
+  # Set up the undo operation for
+  # block moving.
+  class PickUpOperation extends UndoOperation
+    constructor: (block) ->
+      @block = block.clone()
+      beforeToken = block.start.prev
+      
+      # For the "before" location, we don't actually want
+      # the thing before; we want the place at which we can
+      # place the block to get it back to what it used to be.
+      while beforeToken?.prev? and beforeToken.type in ['newline', 'segmentStart', 'cursor']
+        beforeToken = beforeToken.prev
+
+      @before = beforeToken?.getSerializedLocation() ? null
+
+    undo: (editor) ->
+      # If the block used to be at null, we don't need to do anything.
+      unless @before? then return
+
+      console.log editor.tree.getTokenAtLocation @before
+
+      # Move a clone into position.
+      (clone = @block.clone()).moveTo editor.tree.getTokenAtLocation @before
+      
+      # Move the cursor to the end of it.
+      return clone.end
+
+    redo: (editor) ->
+      # If the operation was a no-op, redo is a no-op.
+      unless @before? then return
+
+      # Find the block we want to remove
+      blockStart = editor.tree.getTokenAtLocation @before
+      until blockStart.type is @block.start.type then blockStart = blockStart.next
+      
+      # Move it to null.
+      if @block.start.type is 'segment'
+        blockStart.segment.moveTo null
+
+      else
+        blockStart.block.moveTo null
+      
+      # Move the cursor somewhere close to what we
+      # just deleted.
+      return editor.tree.getTokenAtLocation @before
+
+  class DropOperation extends UndoOperation
+    constructor: (block, dest) ->
+      @block = block.clone()
+      @dest = dest?.getSerializedLocation() ? null
+      
+      if dest?.type is 'socketStart'
+        @displacedSocketText = dest.socket.content()?.clone() ? null
+      else @displacedSocketText = null
+
+    undo: (editor) ->
+      # If the operation was a no-op, undo is a no-op.
+      unless @dest? then return
+
+      # Find the block we want to remove
+      blockStart = editor.tree.getTokenAtLocation @dest
+      until blockStart.type is @block.start.type then blockStart = blockStart.next
+      
+      # Move it to null.
+      if @block.start.type is 'segment'
+        blockStart.segment.moveTo null
+
+      else
+        blockStart.block.moveTo null
+      
+      # We may need to replace some of displaced
+      # socket text from dropping a block
+      # into a socket. If so, do so.
+      if @displacedSocketText?
+        editor.tree.getTokenAtLocation(@dest).insert @displacedSocketText.clone()
+      
+      # Move the cursor somewhere close to what we
+      # just deleted.
+      return editor.tree.getTokenAtLocation @dest
+    
+    redo: (editor) ->
+      # If the operation was a no-op, redo is a no-op.
+      unless @dest? then return
+
+      # Move a clone into position.
+      (clone = @block.clone()).moveTo editor.tree.getTokenAtLocation @dest
+      
+      # Move the cursor to the end of it.
+      return clone.end
+  
   # At population-time, we will
   # want to set up a few fields.
-  editorBindings.populate.push ->
+  hook 'populate', 0, ->
     @clickedPoint = null
     @clickedBlock = null
 
@@ -288,7 +475,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     @dragCtx.clearRect 0, 0, @dragCanvas.width, @dragCanvas.height
 
   # On resize, we will want to size the drag canvas correctly.
-  editorBindings.resize.push ->
+  hook 'resize', 0, ->
     @dragCanvas.width = @iceElement.offsetWidth - PALETTE_WIDTH
     @dragCanvas.height = @iceElement.offsetHeight
   
@@ -298,7 +485,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   #
   # We do not do anything until the user
   # drags their mouse five pixels
-  editorBindings.mousedown.push (point, event, state) ->
+  hook 'mousedown', 3, (point, event, state) ->
+    # If someone else has already taken this click, pass.
+    if state.consumedHitTest then return
+    
     # Hit test against the tree.
     hitTestResult = hitTest @trackerPointToMain(point), @tree
     
@@ -319,7 +509,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # If the user lifts the mouse
   # before they have dragged five pixels,
   # abort stuff.
-  editorBindings.mouseup.push (point, event, state) ->
+  hook 'mouseup', 0, (point, event, state) ->
     # @clickedBlock and @clickedPoint should will exist iff
     # we have dragged not yet more than 5 pixels.
     #
@@ -331,15 +521,37 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # On mousemove, if there is a clicked block but no drag block,
   # we might want to transition to a dragging the block if the user
   # moved their mouse far enough.
-  editorBindings.mousemove.push (point, event, state) ->
+  hook 'mousemove', 1, (point, event, state) ->
     if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
       # Signify that we are now dragging a block.
       @draggingBlock = @clickedBlock
-      @draggingOffset = @draggingBlock.view.bounds[@draggingBlock.view.lineStart].upperLeftCorner().from(
-        @trackerPointToMain(@clickedPoint))
 
-      # Take the block out of the tree
-      @moveBlockTo @draggingBlock, null
+      # Our dragging offset must be computed using the canvas on which this block
+      # is rendered.
+      #
+      # TODO this really falls under "PALETTE SUPPORT", but must
+      # go here. Try to organise this better.
+      if @clickedBlockIsPaletteBlock
+        @draggingOffset = @draggingBlock.view.bounds[@draggingBlock.view.lineStart].upperLeftCorner().from(
+          @trackerPointToPalette(@clickedPoint))
+
+        @draggingBlock = @draggingBlock.clone()
+        
+        # Notice that since this block effectively
+        # came from nowhere, no undo operation
+        # is needed to destroy it.
+
+      else
+        @draggingOffset = @draggingBlock.view.bounds[@draggingBlock.view.lineStart].upperLeftCorner().from(
+          @trackerPointToMain(@clickedPoint))
+        
+        # Since we removed this from the tree,
+        # we will need to log an undo operation
+        # to put it back in.
+        @addMicroUndoOperation new PickUpOperation @draggingBlock
+      
+      # Remove the block from the tree.
+      @draggingBlock.moveTo null # MUTATION
 
       # Draw the new dragging block on the drag canvas.
       # 
@@ -347,16 +559,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Also, we translate the block 1x1 to the right,
       # so that we can see its borders.
       @draggingBlock.view.compute(); @draggingBlock.view.translate new draw.Point 1, 1
-      @draggingBlock.view.drawShadow @dragCtx
+      @draggingBlock.view.drawShadow @dragCtx, 5, 5
       @draggingBlock.view.draw @dragCtx
+      
+      # Translate it immediately into position
+      position = new draw.Point(
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
+      )
+
+      @dragCanvas.style.top = "#{position.y}px"
+      @dragCanvas.style.left = "#{position.x}px"
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
 
+      # Redraw the main canvas
+      @redrawMain()
+
   # On mousemove, if there is a dragged block, we want to
   # translate the drag canvas into place,
   # as well as highlighting any focused drop areas.
-  editorBindings.mousemove.push (point, event, state) ->
+  hook 'mousemove', 0, (point, event, state) ->
     if @draggingBlock?
       # Translate the drag canvas into position.
       position = new draw.Point(
@@ -404,21 +628,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         @lastHighlight = highlight
 
-  editorBindings.mouseup.push (point, event, state) ->
+  hook 'mouseup', 0, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
     if @draggingBlock? and @lastHighlight?
       # Depending on what the highlighted element is,
       # we might want to drop the block at its
       # beginning or at its end.
+      #
+      # We will need to log undo operations here too.
       switch @lastHighlight.type
         when 'indent', 'socket'
-          @moveBlockTo @draggingBlock, @lastHighlight.start
+          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
+          @draggingBlock.moveTo @lastHighlight.start #MUTATION
         when 'block'
-          @moveBlockTo @draggingBlock, @lastHighlight.end
+          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
+          @draggingBlock.moveTo @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
-            @moveBlockTo @selection, @tree.start
+            @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
+            @selection.moveTo @tree.start #MUTATION
     
       # Now that we've done that, we can annul stuff.
       @draggingBlock = null
@@ -432,15 +661,55 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # FLOATING BLOCK SUPPORT
   ###########################################
   
+  # We need to initialize the @floatingBlocks
+  # array at populate-time.
+  hook 'populate', 0, ->
+    @floatingBlocks = []
+
   class FloatingBlockRecord
     constructor: (@block, @position) ->
+  
+  # # Undo operations
+  # We have two: FromFloating and ToFloating.
+  # They mimick block move pick/drop operations
+  # except that they also interact with the @floatingBlocks array.
+  class ToFloatingOperation extends DropOperation
+    constructor: (block, position) ->
+      # Copy the position we got
+      @position = new draw.Point position.x, position.y
+      
+      # Do all the normal blockMove stuff.
+      super block, null
 
-  editorBindings.populate.push ->
-    @floatingBlocks = []
+    undo: (editor) ->
+      editor.floatingBlocks.pop()
+
+      super
+
+    redo: (editor) ->
+      editor.floatingBlocks.push new FloatingBlockRecord @block.clone(), @position
+
+      super
+
+  class FromFloatingOperation extends PickUpOperation
+    constructor: (record) ->
+      @position = new draw.Point record.position.x, record.position.y
+
+      super record.block, null
+
+    undo: (editor) ->
+      editor.floatingBlocks.push new FloatingBlockRecord @block.clone(), @position
+
+      super
+
+    redo: (editor) ->
+      editor.floatingBlocks.pop()
+
+      super
 
   # We can create floating blocks by dropping
   # blocks without a highlight.
-  editorBindings.mouseup.push (point, event, state) ->
+  hook 'mouseup', 0, (point, event, state) ->
     if @draggingBlock? and not @lastHighlight? and point.x > 0
       # Before we put this block into our list of floating blocks,
       # we need to figure out where on the main canvas
@@ -450,6 +719,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         mainCanvasPoint.x + @draggingOffset.x,
         mainCanvasPoint.y + @draggingOffset.y
       )
+      
+      # Add the undo operation associated
+      # with creating this floating block
+      @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint
 
       # Add this block to our list of floating blocks
       @floatingBlocks.push new FloatingBlockRecord(
@@ -466,7 +739,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @redrawMain()
   
   # On mousedown, we can hit test for floating blocks.
-  editorBindings.mousedown.push (point, event, state) ->
+  hook 'mousedown', 7, (point, event, state) ->
+    # If someone else has already taken this click, pass.
+    if state.consumedHitTest then return
+
     # Hit test against floating blocks
     for record, i in @floatingBlocks
       hitTestResult = hitTest @trackerPointToMain(point), record.block
@@ -475,57 +751,399 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @clickedBlock = record.block
         @clickedPoint = point
 
-        @floatingBlocks.splice i, 1
+        state.consumedHitTest = true
         
         @redrawMain()
   
+  hook 'mousemove', 7, (point, event, state) ->
+    if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
+      for record, i in @floatingBlocks
+        if record.block is @clickedBlock
+          # Add the undo operation associated
+          # with picking up this floating block
+          @addMicroUndoOperation new FromFloatingOperation record
+
+          @floatingBlocks.splice i, 1
+
+          @redrawMain()
+
+          return
+
   # On redraw, we draw all the floating blocks
   # in their proper positions.
-  editorBindings.redraw_main.push ->
+  hook 'redraw_main', 0, ->
     for record in @floatingBlocks
       record.block.view.compute()
       record.block.view.translate record.position
 
       record.block.view.draw @mainCtx
+
+  ###########################################
+  # PALETTE SUPPORT
+  ###########################################
+
+  # The first thing we will have to do with
+  # the palette is install the hierarchical menu.
+  #
+  # This happens at population time.
+  hook 'populate', 0, ->
+    @currentPaletteBlocks = []
+    @clickedBlockIsPaletteBlock = false
+    
+    # Create the hierarchical menu element.
+    @paletteHeader = document.createElement 'div'
+    @paletteHeader.className = 'ice-palette-header'
+    
+    # Record its height, which is deterministic.
+    @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30
+
+    # Append the element.
+    @iceElement.appendChild @paletteHeader
+
+    for paletteGroup, i in @paletteGroups then do (paletteGroup) =>
+      # Clone all the blocks so as not to
+      # intrude on outside stuff
+      paletteGroup.blocks = (block.clone() for block in paletteGroup.blocks)
+
+      # Create the element itself
+      paletteGroupHeader = document.createElement 'div'
+      paletteGroupHeader.className = 'ice-palette-group-header'
+      paletteGroupHeader.innerText = paletteGroup.name
+
+      @paletteHeader.appendChild paletteGroupHeader
+      
+      # When we click this element,
+      # we should switch to it in the palette.
+      paletteGroupHeader.addEventListener 'click', =>
+        # Record that we are the selected group now
+        @currentPaletteGroup = paletteGroup.name
+        @currentPaletteBlocks = paletteGroup.blocks
+        
+        # Unapply the "selected" style to the current palette group header
+        @currentPaletteGroupHeader.className = 'ice-palette-group-header'
+
+        # Now we are the current palette group header
+        @currentPaletteGroupHeader = paletteGroupHeader
+
+        # Apply the "selected" style to us
+        @currentPaletteGroupHeader.className = 'ice-palette-group-header ice-palette-group-header-selected'
+        
+        # Redraw the palette.
+        @redrawPalette()
+      
+      # If we are the first element, make us the selected palette group.
+      if i is 0
+        @currentPaletteGroup = paletteGroup.name
+        @currentPaletteBlocks = paletteGroup.blocks
+
+        @currentPaletteGroupHeader = paletteGroupHeader
+
+        # Apply the "selected" style to us
+        @currentPaletteGroupHeader.className = 'ice-palette-group-header ice-palette-group-header-selected'
+
+  # The palette hierarchical menu is on top of the track div
+  # so that we can click it. However, we do not want this to happen
+  # when we are dragging something. So:
+  hook 'mousedown', 0, ->
+    @paletteHeader.style.zIndex = 0
+
+  hook 'mouseup', 0, ->
+    @paletteHeader.style.zIndex = 257
+  
+  # The next thing we need to do with the palette
+  # is let people pick things up from it.
+  hook 'mousedown', 7, (point, event, state) ->
+    # If someone else has already taken this click, pass.
+    if state.consumedHitTest then return
+
+    palettePoint = @trackerPointToPalette point
+    for block in @currentPaletteBlocks
+      hitTestResult = hitTest palettePoint, block
+
+      if hitTestResult?
+        @clickedBlock = block
+        @clickedPoint = point
+        @clickedBlockIsPaletteBlock = true
+        return
+
+    @clickedBlockIsPaletteBlock = false
+
+  ###########################################
+  # TEXT INPUT SUPPORT
+  ###########################################
+
+  # Text input has two undo events: text change
+  # and text reparse.
+  class TextChangeOperation extends UndoOperation
+    constructor: (socket, @before) ->
+      @after = socket.stringify()
+      @socket = socket.start.getSerializedLocation()
+
+    undo: (editor) ->
+      socket = editor.tree.getTokenAtLocation(@socket).socket
+      socket.content()?.remove()
+      socket.start.insert new model.TextToken @before
+
+    redo: (editor) ->
+      socket = editor.tree.getTokenAtLocation(@socket).socket
+      socket.content()?.remove()
+      socket.start.insert new model.TextToken @after
+
+  class TextReparseOperation extends UndoOperation
+    constructor: (socket, @before) ->
+      @after = socket.content().clone()
+      @socket = socket.start.getSerializedLocation()
+
+    undo: (editor) ->
+      socket = editor.tree.getTokenAtLocation(@socket).socket
+      socket.content().moveTo null
+      socket.start.insert new model.TextToken @before
+
+    redo: (editor) ->
+      socket = editor.tree.getTokenAtLocation(@socket).socket
+      socket.content()?.remove()
+      @after.clone().moveTo socket
+  
+  # At populate-time, we need
+  # to create and append the hidden input
+  # we will use for text input.
+  hook 'populate', 1, ->
+    @hiddenInput = document.createElement 'input'
+    @hiddenInput.className = 'hidden-input'
+
+    @iceElement.appendChild @hiddenInput
+
+    # We also need to initialise some fields
+    # for knowing what is focused
+    @socketFocus = null
+    @textFocus = null
+    @textInputAnchor = null
+
+    @textInputSelecting = false
+
+    @oldFocusValue = null
+    
+    # The hidden input should be set up
+    # to mirror the text to which it is associated.
+    for event in ['input', 'keyup', 'keydown']
+      @hiddenInput.addEventListener event, =>
+        if @textFocus?
+          @textFocus.value = @hiddenInput.value
+
+          @redrawTextInput()
+
+  # Redraw function for text input
+  Editor::redrawTextInput = ->
+    # Set the value in the model to fit
+    # the hidden input value.
+    @textFocus.value = @hiddenInput.value
+    
+    # Redraw the main canvas, on top of
+    # which we will draw the cursor and
+    # highlights.
+    @redrawMain()
+
+    # Determine the coordinate positions
+    # of the typic cursor
+    startPosition = @textFocus.view.bounds[@textFocus.view.lineStart].x +
+      @mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionStart]).width
+    endPosition = @textFocus.view.bounds[@textFocus.view.lineStart].x +
+      @mainCtx.measureText(@hiddenInput.value[...@hiddenInput.selectionEnd]).width
+
+    # Now draw the highlight/typing cursor
+    #
+    # Draw a line if it is just a cursor
+    if startPosition is endPosition
+      @mainCtx.strokeRect startPosition, @textFocus.view.bounds[@textFocus.view.lineStart].y, 0, @fontSize
+
+    # Draw a translucent rectangle if there is a selection.
+    else
+      @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+      @mainCtx.fillRect startPosition, @textFocus.view.bounds[@textFocus.view.lineStart].y, endPosition - startPosition, @fontSize
+
+  # Convenince function for setting the text input
+  Editor::setTextInputFocus = (focus) ->
+    # If there is already a focus, we
+    # need to wrap some things up with it.
+    if @textFocus?
+
+      # The first of these is an undo operation;
+      # we need to add this text change to the undo stack.
+      @addMicroUndoOperation new TextChangeOperation @socketFocus, @oldFocusValue
+      @oldFocusValue = null
+
+      # The second of these is a reparse attempt.
+      # If we can, try to reparse the focus
+      # value.
+      try
+        newParse = coffee.parse(unparsedValue = @socketFocus.stringify()).start.next
+
+        if newParse.type is 'blockStart'
+          newParse.block.moveTo @socketFocus.start
+
+          @addMicroUndoOperation new TextReparseOperation @socketFocus, unparsedValue
+
+    # Now we're done with the old focus,
+    # we can start over.
+    #
+    # Literally set the focus.
+    @socketFocus = focus
+
+    # Record old focus value
+    @oldFocusValue = focus.stringify()
+
+    # Now create a text token
+    # with the appropriate text to put in it.
+    @textFocus = new model.TextToken focus.stringify()
+    focus.content()?.remove()
+    focus.start.insert @textFocus
+
+    # TODO move the cursor to the focus.
+    
+    # Set the hidden input up to mirror the text.
+    @hiddenInput.value = @textFocus.value
+    
+    # Focus the hidden input.
+    setTimeout (=> @hiddenInput.focus()), 0
+
+    # Redraw.
+    @redrawMain()
+
+  # Convenience hit-testing function
+  hitTestTextInput = (point, block) ->
+    head = block.start
+    while head?
+      if head.type is 'socketStart' and head.next.type in ['text', 'socketEnd'] and
+          head.socket.view.bounds[head.socket.view.lineStart].contains point
+        return head.socket
+      head = head.next
+
+    return null
+  
+  # Convenience functions for setting
+  # the text input selection, given
+  # points on the main canvas.
+  Editor::setTextInputAnchor = (point) ->
+    @textInputAnchor = @textInputHead = Math.round(
+      (point.x - @textFocus.view.bounds[@textFocus.view.lineStart].x) / @mainCtx.measureText(' ').width
+    )
+
+    @hiddenInput.setSelectionRange @textInputAnchor, @textInputHead
+
+  Editor::setTextInputHead = (point) ->
+    @textInputHead = Math.round(
+      (point.x - @textFocus.view.bounds[@textFocus.view.lineStart].x) / @mainCtx.measureText(' ').width
+    )
+
+    @hiddenInput.setSelectionRange Math.min(@textInputAnchor, @textInputHead), Math.max(@textInputAnchor, @textInputHead)
+  
+  # On mousedown, we will want to start
+  # selections and focus text inputs
+  # if we apply.
+  hook 'mousedown', 6, (point, event, state) ->
+    # If someone else already took this click, return.
+    if state.consumedHitTest then return
+    
+    # Otherwise, look for a socket that
+    # the user has clicked
+    mainPoint = @trackerPointToMain point
+    hitTestResult = hitTestTextInput mainPoint, @tree
+    
+    # If they have clicked a socket,
+    # focus it, and 
+    if hitTestResult?
+      @setTextInputFocus hitTestResult
+
+      setTimeout (=>
+        @setTextInputAnchor mainPoint
+        @redrawTextInput()
+
+        @textInputSelecting = true
+      ), 0
+
+      state.consumedHitTest = true
+  
+  # On mousemove, if we are selecting,
+  # we want to update the selection
+  # to match the mouse.
+  hook 'mousemove', 0, (point, event, state) ->
+    if @textInputSelecting
+      mainPoint = @trackerPointToMain point
+
+      @setTextInputHead mainPoint
+
+      @redrawTextInput()
+  
+  # On mouseup, we want to stop selecting.
+  hook 'mouseup', 0, (point, event, state) ->
+    @textInputSelecting = false
+
+  ###########################################
+  # LASSO SELECT SUPPORT: TODO
+  ###########################################
+
+  ###########################################
+  # CURSOR OPERATION SUPPORT: TODO
+  ###########################################
+  Editor::moveCursorTo = ->
+
+  ###########################################
+  # HANDWRITTEN LINE SUPPORT: TODO
+  ###########################################
+
+  ###########################################
+  # ANIMATION SUPPORT: TODO
+  ###########################################
   
   ###########################################
   # SCROLLING SUPPORT: TODO
   ###########################################
 
-  editorBindings.populate.push ->
+  hook 'populate', 0, ->
     @scrollOffsets = {
       main: new draw.Point 0, 0
       palette: new draw.Point 0, 0
     }
 
   ###########################################
-  # PALETTE SUPPORT: TODO
-  ###########################################
-  
-  editorBindings.populate.push ->
-    @currentPaletteBlocks = []
-
-  ###########################################
   # MULTIPLE FONT SIZE SUPPORT: TODO
   ###########################################
-  editorBindings.populate.push ->
+  hook 'populate', 0, ->
     @fontSize = 15
 
   ###########################################
-  # UNDO SUPPORT: TODO
+  # MUTATION BUTTON SUPPORT: TODO
   ###########################################
-  Editor::moveBlockTo = (block, dest) ->
-    block.moveTo dest
 
-  Editor::clearUndoStack = ->
+  ###########################################
+  # LINE MARKING SUPPORT: TODO
+  ###########################################
 
-  # # GET/SET VALUE
-  # Simple getters and setters for editor value.
+  ###########################################
+  # LINE HOVER SUPPORT: TODO
+  ###########################################
+
+  ###########################################
+  # GET/SET VALUE SUPPORT: TODO
+  ###########################################
 
   Editor::setValue = (value) ->
     @tree = coffee.parse value
     @redrawMain()
 
   Editor::getValue = -> @tree.stringify()
+  
+  ###########################################
+  # CLOSING FOUNDATIONAL STUFF
+  ###########################################
 
+  # Order the arrays correctly.
+  for key of unsortedEditorBindings
+    unsortedEditorBindings[key].sort (a, b) -> if a.priority > b.priority then -1 else 1
+    
+    editorBindings[key] = []
+
+    for binding in unsortedEditorBindings[key]
+      editorBindings[key].push binding.fn
+    
   return exports
