@@ -18,36 +18,12 @@
       }
       #editor {
         position: absolute;
-        top: 30px;
+        top: 0;
         bottom: 0px;
         right: 0px;
         left: 0px;
         background-color: #EEE;
-      }
-      #toolbar {
-        position: absolute;
-        top: 0px; right: 0; left: 0;
-        height: 30px;
-        background-color: #022;
-        z-index: 255;
-        overflow: hidden;
-      }
-      #toolbar button {
-        background-color: inherit;
-        height: 30px;
-        width: 100px;
-        color: #FFF;
-        border: none;
-        cursor: pointer;
-        outline: none;
-        font-size: 13px;
-        white-space: nowrap;
-      }
-      #toolbar button:hover {
-        background-color: #555;
-        border-left: 1px solid #FFF;
-        border-right: 1px solid #FFF;
-        box-shadow: 0 0 5px #000 inset;
+        z-index: 0;
       }
       #out_wrapper {
         position: absolute;
@@ -56,6 +32,14 @@
       #out {
         width: 100%; height: 100%;
       }
+      #toolbar {
+        z-index: 9999;
+        position: absolute;
+        height: 70px;
+        width: 320px;
+        top: 0;
+        right: 0;
+      }
       #message {
         color: #F00;
         display: none;
@@ -63,49 +47,26 @@
         font-size: 13px;
         padding-left: 10px;
       }
-      #logs {
-        background-color: #FFF;
-        border-left: 1px solid #000px;
-        border-bottom: 1px solid #000px;
-        max-height: 100%;
-        overflow: auto;
-        font-family: monospace;
-        position: absolute;
-        top: 30px; right: -500px; bottom: 0px;
-        width: 500px;
-        transition: right 0.5s linear;
-        z-index: 253;
-      }
-      #closeLogs {
-        height: 30px; width: 30px;
-        line-height: 30px;
-        position: absolute; top: 0px; right: 0;
-        background-color: #222;
-        border-left: 1px solid #FFF;
-        border-bottom: 1px solid #FFF;
-        box-shadow: 0 0 5px #888;
-        color: #FFF;
-        text-align: center;
-        cursor: pointer;
-        z-index: 254;
-        transition: top 0.3s linear;
-        font-family: monospace;
-      }
       #which_example {
         height: 30px;
         line-height: 30px;
         vertical-align: top;
         font-size: 13px;
+        position: absolute;
         background: #FFF;
-        box-shadow: 0 0 5px #000 inset;
-        outline: none;
-        border: none;
+        top: 0;
+        width: 150px;
+        right: 160px;
         cursor: pointer;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        padding: 0px; margin: 0px;
-        appearance: none;
-        margin-left: -5px;
+      }
+      #toggle {
+        height: 30px;
+        line-height: 30px;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 150px;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -114,7 +75,6 @@
     </div>
     <div id='toolbar'>
       <button id='toggle'>Toggle Blocks</button>
-      <button id='run'>Run</button>
       <select id='which_example'>
         <option value='fizzbuzz'>Fizzbuzz</option>
         <option value='quicksort'>Quicksort</option>

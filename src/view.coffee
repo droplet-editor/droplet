@@ -17,6 +17,12 @@ define ['ice-draw'], (draw) ->
   TAB_HEIGHT = 5
   TAB_OFFSET = 10
   SOCKET_DROP_PADDING = 3
+
+  SHADOW_BLUR = 5
+
+  MUTATION_BUTTON_WIDTH = MUTATION_BUTTON_HEIGHT = 20
+  MUTATION_BUTTON_BORDER_RADIUS = 5
+  PLUS_SYMBOL_LINE_WIDTH = 2
   
   exports = {}
 
@@ -80,6 +86,12 @@ define ['ice-draw'], (draw) ->
       @lineStart = line
 
       # Linked-list loop through inner tokens
+      #
+      # In this loop we will need to do three things for each child element:
+      # 1. Ask it to computeChildren as well
+      # 2. Add its IceView out our list of @children
+      # 3. Add its IceView to our list of @lineChildren[line] on the line on which it resides
+      # 4. If it affects whether something is @indented[line] or @indentEndsOn[line], update those booleans
       head = @block.start.next
       while head isnt @block.end
         switch head.type
@@ -92,7 +104,7 @@ define ['ice-draw'], (draw) ->
 
             # Append to line children array
             for occupiedLine in [head.block.view.lineStart..head.block.view.lineEnd] # (iterate over all blocks which this indent occupies)
-              # (initialize empty array if it doesn't already exist
+              # (initialize empty array if it doesn't already exist)
               @lineChildren[occupiedLine] ?= []
 
               # Push to the children on this line
@@ -113,7 +125,7 @@ define ['ice-draw'], (draw) ->
 
             # Append to line children array
             for occupiedLine in [head.indent.view.lineStart..head.indent.view.lineEnd] # (iterate over all lines which this indent occupies)
-              # (initialize empty array if it doesn't already exist
+              # (initialize empty array if it doesn't already exist)
               @lineChildren[occupiedLine] ?= []
 
               # Push to the children on this line
@@ -161,12 +173,19 @@ define ['ice-draw'], (draw) ->
             head = head.segment.end
 
           when 'text'
-            # Act analagously for text and cursor
+            # Act analagously for text, cursor and MutationButton
             head.view.computeChildren line
             
             # (For text and cursor the token itself is also the manifested thing)
             @children.push head.view
             
+            @lineChildren[line] ?= []; @lineChildren[line].push head.view
+
+          when 'mutationButton'
+            head.view.computeChildren line
+
+            @children.push head.view
+
             @lineChildren[line] ?= []; @lineChildren[line].push head.view
 
           when 'cursor'
@@ -212,13 +231,13 @@ define ['ice-draw'], (draw) ->
     
 
     # ## FIFTH PASS: draw ##
-    drawPath: (ctx) ->
+    drawPath: (ctx, style) ->
       # Event propagate
       for child in @children
-        unless child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx
+        unless child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx, style
 
       for child in @children
-        if child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx
+        if child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx, style
 
     # ## SIXTH Pass: draw cursor ##
     drawCursor: (ctx) ->
@@ -252,8 +271,12 @@ define ['ice-draw'], (draw) ->
     
     # ### Convenience function: full draw ###
     draw: (ctx) ->
-      @drawPath ctx
+      @drawPath ctx, selected: 0
       @drawCursor ctx
+
+    drawShadow: (ctx, offsetX, offsetY) ->
+      for child in @children
+        child.drawShadow ctx, offsetX, offsetY
 
     # ###Convenience function: computeBoundingBoxes. ##
     # Normally called on root
@@ -451,10 +474,10 @@ define ['ice-draw'], (draw) ->
       
       @path = new draw.Path()
       @dropArea = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - DROP_AREA_HEIGHT / 2, @bounds[@lineEnd].width, DROP_AREA_HEIGHT
-      @dropHighlightReigon = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
+      @dropHighlightRegion = new draw.Rectangle @bounds[@lineEnd].x, @bounds[@lineEnd].bottom() - 5, @bounds[@lineEnd].width, 10
       
       # Add the top tab (if applicable)
-      unless (@block.inSocket() ? false)
+      unless (@block.inSocket() ? @block.valueByDefault)
         @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET, @bounds[@lineStart].y
         @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineStart].y + TAB_HEIGHT
         @path.push new draw.Point @bounds[@lineStart].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineStart].y + TAB_HEIGHT
@@ -491,7 +514,7 @@ define ['ice-draw'], (draw) ->
           @path.push point
 
       # Add the bottom tab (if applicable)
-      unless (@block.inSocket() ? false)
+      unless (@block.inSocket() ? @block.valueByDefault)
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET, @bounds[@lineEnd].bottom()
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH * 7 / 8, @bounds[@lineEnd].bottom() + TAB_HEIGHT
@@ -499,14 +522,35 @@ define ['ice-draw'], (draw) ->
 
       @path.style.fillColor = @block.color
       @path.style.lineWidth = if @block.lineMarked.length > 0 then 2 else 1
-      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
+      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else 'rgba(0, 0, 0, 0.3)'
       
     # ## drawPath ##
     # This just executes that path we constructed in computePath
-    drawPath: (ctx) ->
+    drawPath: (ctx, style) ->
       if @path._points.length is 0
         throw new Error 'View error: block has no path.'
+
       @path.draw ctx
+
+      if style.selected > 0
+        @path.style.fillColor = '#00F'
+        @path.style.strokeColor = '#008'
+        ctx.globalAlpha *= 0.3
+
+        @path.draw ctx
+
+        ctx.globalAlpha /= 0.3
+
+        @path.style.fillColor = @block.color
+        @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
+
+      super
+
+    drawShadow: (ctx, offsetX, offsetY) ->
+      if @path._points.length is 0
+        throw new Error 'View error: block has no path.'
+      
+      @path.drawShadow ctx, offsetX, offsetY, SHADOW_BLUR
 
       super
 
@@ -632,7 +676,7 @@ define ['ice-draw'], (draw) ->
     # for drag-and-drop.
     computePath: ->
       @dropArea = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - DROP_AREA_HEIGHT / 2, @bounds[@lineStart].width, DROP_AREA_HEIGHT
-      @dropHighlightReigon = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+      @dropHighlightRegion = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
 
       super
 
@@ -703,7 +747,7 @@ define ['ice-draw'], (draw) ->
     computePath: ->
       unless @block.content()?.type is 'block'
         (@dropArea = new draw.Rectangle()).copy @bounds[@lineStart]
-        @dropHighlightReigon = new draw.Rectangle @dropArea.x - SOCKET_DROP_PADDING, @dropArea.y - SOCKET_DROP_PADDING, @dropArea.width + SOCKET_DROP_PADDING * 2, @dropArea.height + SOCKET_DROP_PADDING * 2
+        @dropHighlightRegion = new draw.Rectangle @dropArea.x - SOCKET_DROP_PADDING, @dropArea.y - SOCKET_DROP_PADDING, @dropArea.width + SOCKET_DROP_PADDING * 2, @dropArea.height + SOCKET_DROP_PADDING * 2
 
       super
     
@@ -760,14 +804,76 @@ define ['ice-draw'], (draw) ->
     
     # ## drawPath ##
     # We must override this to provide a drop area
-    drawPath: ->
+    drawPath: (ctx, style) ->
       @dropArea = new draw.Rectangle @bounds[@lineStart].x,
-        @bounds[@lineStart].y - 5,
+        @bounds[@lineStart].y,
         Math.max(@bounds[@lineStart].width,MIN_SEGMENT_DROP_AREA_WIDTH),
         10
 
-      @dropHighlightReigon = new draw.Rectangle @bounds[@lineStart].x, @bounds[@lineStart].y - 5, @bounds[@lineStart].width, 10
+      (@dropHighlightRegion = new draw.NoRectangle()).copy @dropArea
+      
+      if @block.isLassoSegment
+        style.selected += 1
 
+      super
+      
+      if @block.isLassoSegment
+        style.selected -= 1
+  
+  # # MutationButtonView
+  # A mutation button is just an empty box.
+  exports.MutationButtonView = class MutationButtonView extends IceView
+    constructor: (block) ->
+      super block
+    
+    computeChildren: (line) -> @lineStart = @lineEnd = line
+    
+    computeDimensions: ->
+      super
+      @dimensions[@lineStart] = new draw.Size MUTATION_BUTTON_WIDTH, MUTATION_BUTTON_HEIGHT
+
+    computeBoundingBox: (line, state) ->
+      @bounds[@lineStart] = new draw.Rectangle state.x, state.y, MUTATION_BUTTON_WIDTH, MUTATION_BUTTON_HEIGHT
+
+    drawPath: (ctx) ->
+      bounds = @bounds[@lineStart]
+      
+      # Button
+      r = MUTATION_BUTTON_BORDER_RADIUS
+
+      ctx.beginPath()
+      ctx.moveTo bounds.x, bounds.y + r
+
+      ctx.arc bounds.x + r, bounds.y + r, r, Math.PI, 1.5 * Math.PI
+      ctx.lineTo bounds.right() - r, bounds.y
+
+      ctx.arc bounds.right() - r, bounds.y + r, r, 1.5 * Math.PI, 0
+      ctx.lineTo bounds.right(), bounds.bottom() - r
+
+      ctx.arc bounds.right() - r, bounds.bottom() - r, r, 0, 0.5 * Math.PI
+      ctx.lineTo bounds.x + r, bounds.bottom()
+
+      ctx.arc bounds.x + r, bounds.bottom() - r, r, 0.5 * Math.PI, Math.PI
+      ctx.lineTo bounds.x, bounds.y + r
+
+      ctx.strokeStyle = '#000'
+      ctx.fillStyle = '#FFF'
+
+      ctx.fill()
+      ctx.stroke()
+
+      # "+" symbol
+      ctx.fillStyle = '#000'
+      ctx.fillRect(
+        bounds.x + bounds.width / 2 - PLUS_SYMBOL_LINE_WIDTH / 2, bounds.y + 5,
+        PLUS_SYMBOL_LINE_WIDTH, bounds.height - 10
+      )
+
+      ctx.fillRect(
+        bounds.x + 5, bounds.y + bounds.height / 2 - PLUS_SYMBOL_LINE_WIDTH / 2
+        bounds.width - 10, PLUS_SYMBOL_LINE_WIDTH
+      )
+      
       super
 
   # # CursorView

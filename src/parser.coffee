@@ -100,7 +100,7 @@ define ['ice-model'], (model) ->
       # If there is no markup on this line,
       # simply append the text of this line to the document
       # (stripping things as needed for indent)
-      if not i of markupOnLines
+      if not (i of markupOnLines)
         unless indentDepth >= line.length
           head = head.append new model.TextToken(line[indentDepth...])
         head = head.append new model.NewlineToken()
@@ -265,5 +265,75 @@ define ['ice-model'], (model) ->
       markup = @parseFn text
       sortMarkup markup
       return applyMarkup text, markup
+
+  exports.parseObj = parseObj = (object) ->
+    unless object?
+      return null
+    
+    if typeof object is 'string' or object instanceof String
+      if object is '\n'
+        return new model.NewlineToken()
+      else
+        return new model.TextToken object
+    
+    else
+      switch object.type
+        when 'block'
+          block = new model.Block object.precedence, object.color, object.valueByDefault
+          head = block.start
+          for child in object.children
+            subBlock = parseObj child
+            if subBlock.type in ['text', 'newline', 'mutationButton']
+              head = head.append subBlock
+            else
+              head.append subBlock.start
+              head = subBlock.end
+
+          head.append block.end
+
+          return block
+
+        when 'socket'
+          return new model.Socket parseObj(object.contents), object.precedence
+        
+        when 'indent'
+          block = new model.Indent object.depth
+
+          head = block.start
+
+          for child in object.children
+            subBlock = parseObj child
+            if subBlock.type in ['text', 'newline']
+              head = head.append subBlock
+            else
+              head.append subBlock.start
+              head = subBlock.end
+
+          head.append block.end
+
+          return block
+        
+        when 'mutationButton'
+          segment = new model.Segment()
+
+          button = new model.MutationButtonToken segment
+
+          head = segment.start
+          for child in object.expand
+            if child is 0
+              subBlock = button
+            else
+              subBlock = parseObj child
+
+            if subBlock.type in ['text', 'newline', 'mutationButton']
+              head = head.append subBlock
+            else
+              head.append subBlock.start
+              head = subBlock.end
+
+          head.append segment.end
+
+          return button
+
 
   return exports

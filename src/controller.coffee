@@ -5,14 +5,18 @@
 # MIT License
 
 define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
-  
+
   PADDING = 5
   INDENT_SPACES = 2
   PALETTE_MARGIN = 10
   PALETTE_LEFT_MARGIN = 0
-  PALETTE_TOP_MARGIN = 0
+  PALETTE_TOP_MARGIN = 10
   PALETTE_WIDTH = 300
   MIN_DRAG_DISTANCE = 5
+  
+  SHADOW_OFFSET = 7
+  SHADOW_BLUR = 7
+
   FONT_SIZE = 15
   ANIMATION_FRAME_RATE = 50 # FPS
   SCROLL_INTERVAL = 50
@@ -82,7 +86,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # to initialize an ICE editor in an element.
 
   exports.Editor = class Editor
-    constructor: (wrapper, @paletteBlocks) ->
+    constructor: (wrapper, @paletteGroups) ->
       # Default font size
       @fontSize = FONT_SIZE
 
@@ -117,12 +121,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # (useful to have all in one place)
       
       # If we did not recieve palette blocks in the constructor, we have no palette.
-      @paletteBlocks ?= []
-      
-      # We discard the blocks we are fed, preferring to clone them
-      # to be as unintrusive as possible (also to get blocks unattached to any
-      # token stream)
-      @paletteBlocks = (paletteBlock.clone() for paletteBlock in @paletteBlocks)
+      @paletteBlocks = []
 
       # MODEL instances (program state)
       @tree = new model.Segment() # The root tree
@@ -179,31 +178,56 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # The main canvas
       @main = document.createElement 'canvas'; @main.className = 'canvas'
 
+      # The lasso-select draw canvas
+      @lassoSelectCanvas = document.createElement 'canvas'; @lassoSelectCanvas.className = 'ice-lasso-select'
+
       # The palette canvas
       @palette = document.createElement 'canvas'; @palette.className = 'palette'
 
+      # The palette hierarchical menu
+      @paletteHeader = document.createElement 'div'; @paletteHeader.className = 'palette_header'
+
+      @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30
+      
+      # Construct the hierarchical menu
+      # button for each palette group, and the @paletteBlocks
+      #
+      # (We need to closure paletteGroup, so we wrap this in a function call)
+      for paletteGroup, i in @paletteGroups then do (paletteGroup) =>
+        # Clone all the blocks so as not to
+        # intrude on outside stuff
+        paletteGroup.blocks = (block.clone() for block in paletteGroup.blocks)
+
+        # Create the element itself
+        paletteGroupHeader = document.createElement 'div'; paletteGroupHeader.className = 'palette_group_header'
+        paletteGroupHeader.innerText = paletteGroup.name
+        
+        # Bind palette-switch to clicking it
+        paletteGroupHeader.addEventListener 'click', =>
+          @currentPaletteGroup = paletteGroup.name
+          @paletteBlocks = paletteGroup.blocks
+
+          # Apply "selected" header style
+          @currentPaletteGroupHeader.className = 'palette_group_header'
+          (@currentPaletteGroupHeader = paletteGroupHeader).className = 'palette_group_header palette_group_header_selected'
+          
+          # Redraw
+          @redrawPalette()
+      
+        # If we are the first element,
+        # we also want to select ourselves.
+        if i is 0
+          @currentPaletteGroup = paletteGroup.name
+          @paletteBlocks = paletteGroup.blocks
+
+          # Apply "selected" header style
+          (@currentPaletteGroupHeader = paletteGroupHeader).className = 'palette_group_header palette_group_header_selected'
+
+        # Add the element to the palette header.
+        @paletteHeader.appendChild paletteGroupHeader
+
       # The drag canvas
       drag = document.createElement 'canvas'; drag.className = 'drag'
-
-      computeCanvasDimensions = =>
-        @main.height = @el.offsetHeight
-        @main.width = @el.offsetWidth * 2 - PALETTE_WIDTH
-        
-        @palette.height = @el.offsetHeight
-        @palette.width = PALETTE_WIDTH
-
-        drag.height = @el.offsetHeight
-        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH
-      
-      # We need to resize the canvases any time the editor resizes.
-      # We will bind this to the document resize function, but this function
-      # should be called at any other time the editor is resized.
-      window.addEventListener 'resize', @resize = =>
-        computeCanvasDimensions()
-
-        @redraw(); @redrawPalette()
-
-      computeCanvasDimensions()
 
       # The hidden input
       @hiddenInput = document.createElement 'input'; @hiddenInput.className = 'hidden_input'
@@ -223,15 +247,41 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       track.appendChild mainScroller
       mainScroller.appendChild mainScrollerStuffing
+
+      track.appendChild drag
+
+      computeCanvasDimensions = =>
+        @main.height = @lassoSelectCanvas.height = @el.offsetHeight
+        @main.style.height = @lassoSelectCanvas.style.height = "#{@el.offsetHeight}px"
+        @main.width = @lassoSelectCanvas.width = @el.offsetWidth - PALETTE_WIDTH
+        @main.style.width = @lassoSelectCanvas.style.width = "#{@el.offsetWidth - PALETTE_WIDTH}px"
+        
+        @palette.style.top = paletteScroller.style.top = @paletteHeader.style.height = "#{@paletteHeaderHeight}px"
+        @palette.height = @el.offsetHeight - @paletteHeaderHeight; @palette.style.height = "#{@el.offsetHeight - @paletteHeaderHeight}px"
+        @palette.width = PALETTE_WIDTH; @palette.style.width = "#{PALETTE_WIDTH}px"
+
+        drag.height = @el.offsetHeight * 2; drag.style.height = "#{@el.offsetHeight * 2}px"
+        drag.width = @el.offsetWidth * 2 - PALETTE_WIDTH; drag.style.width = "#{@el.offsetWidth * 2 - PALETTE_WIDTH}px"
       
+      # We need to resize the canvases any time the editor resizes.
+      # We will bind this to the document resize function, but this function
+      # should be called at any other time the editor is resized.
+      window.addEventListener 'resize', @resize = =>
+        computeCanvasDimensions()
+
+        @redraw(); @redrawPalette()
+
+      computeCanvasDimensions()
+
       # Append the children
-      for child in [@main, @palette, drag, track, @hiddenInput]
+      for child in [@main, @palette, @lassoSelectCanvas, @hiddenInput, @paletteHeader, track]
         @el.appendChild child
 
       # Get the contexts from each canvas
       @mainCtx = @main.getContext '2d'
       @dragCtx = drag.getContext '2d'
       @paletteCtx = @palette.getContext '2d'
+      @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
       
       # Transform to allow border.
       # In the css, we also put in a pixel margin,
@@ -240,6 +290,29 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       # The main context will be used for draw.js's text measurements (this is a bit of a hack)
       draw._setCTX @mainCtx
+
+      # ## clearLassoSegment ##
+      # (TODO: find a home for this function).
+      #
+      # Signify that we have no longer selected anything with the lasso, without changing the tree.
+      @clearLassoSegment = =>
+        # We will keep scanning the document for
+        # lasso selects until there are none left.
+        until head is @tree.end
+          head = @tree.start
+          until head is @tree.end
+            if head.type is 'segmentStart' and head.segment.isLassoSegment
+              @addMicroUndoOperation
+                type: 'destroySegment'
+                start: head.segment.start.getSerializedLocation()
+                end: head.segment.end.getSerializedLocation()
+
+              head.segment.remove()
+              break
+
+            head = head.next
+
+        @lassoSegment = null
 
       # ## Convenience Functions ##
       # General-purpose methods that call the view (rendering functions)
@@ -268,25 +341,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Draw it on the main context
         @tree.view.draw @mainCtx
         
-        # Update the main scroller dimensions
-        # to fit the document dimensions
+        # We want to get the dimensinos of the entire document;
+        # this includes both the root tree and any floating blocks.
+        #
+        # We will initialize this rectangle as the dimensions of the root tree,
+        # and then unite it with all the floating block boundaries.
         bounds = @tree.view.getBounds()
-        mainScrollerStuffing.style.height = bounds.bottom()
-        mainScrollerStuffing.style.width = bounds.right()
-        
-        # Alert the lasso segment, if it exists, to recompute its bounds
-        if @lassoSegment?
-          # Get those compute bounds
-          @_lassoBounds = @lassoSegment.view.getBounds()
-
-          for float in @floatingBlocks
-            if @lassoSegment is float.block
-              @_lassoBounds.translate float.position
-          
-          # Unless we're already drawing it on the drag canvas, draw the lasso segment borders on the main canvas
-          unless @lassoSegment is @selection
-            @_lassoBounds.stroke @mainCtx, '#000'
-            @_lassoBounds.fill @mainCtx, 'rgba(0, 0, 256, 0.3)'
 
         for float in @floatingBlocks
           view = float.block.view
@@ -297,6 +357,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           # Draw it on the main context
           view.draw @mainCtx
+          
+          # Unite this boundary
+          # with the document boundary
+          bounds.unite view.getBounds()
+        
+        # Update the scroller stuffing dimensions
+        # to fit the document dimensions
+        mainScrollerStuffing.style.height = "#{bounds.bottom()}px"
+        mainScrollerStuffing.style.width = "#{bounds.right()}px"
       
       # ## attemptReparse ##
       # This will be triggered by most cursor operations. It finds all handwritten blocks that do not contain the cursor,
@@ -392,6 +461,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           'createSegment'
           'destroySegment'
+
+          'mutationButtonExpand'
+
           'setValue'
         ] then return
         @undoStack.push operation
@@ -404,7 +476,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # ## undo ##
       # Actually reverse some operations in the undo stack.
       @undo = =>
-        @lassoSegment = null
+        @clearLassoSegment()
 
         if @undoStack.length is 0 then return
 
@@ -597,9 +669,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
               segment = new model.Segment()
 
               @tree.getTokenAtLocation(operation.start).insertBefore segment.start
-              @tree.getTokenAtLocation(operation.end).insert segment.end
+              @tree.getTokenAtLocation(operation.end).insertBefore segment.end
 
               moveCursorToRaw segment.end
+
+            # ### mutationButtonExpand ###
+            # Represents clicking a mutation button and having it expand
+            # into its @expandValue segment.
+            #
+            # To undo, replace the expanded segment with the button.
+            when 'mutationButtonExpand'
+              prev = @tree.getTokenAtLocation operation.start
+              next = @tree.getTokenAtLocation operation.end
+
+              prev.append operation.before
+              operation.before.append next
+
+              moveCursorToRaw operation.before
             
             # ### setValue ###
             # Represents changing the entire content of the editor
@@ -632,7 +718,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # Set the ACE editor content simultaneously
         #@ace.setValue @getValue()
         if @onChange? then try @onChange event
-
       
       # ## moveBlockTo ##
       # We want to have some bottleneck for most block moves;
@@ -702,8 +787,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         # Set the size of palette scroller stuffing
         # to match palette size
-        paletteScrollerStuffing.style.height = lastBottomEdge
-        paletteScrollerStuffing.style.width = bounds.width
+        paletteScrollerStuffing.style.height = "#{lastBottomEdge}px"
+        paletteScrollerStuffing.style.width = "#{bounds.width}px"
       
       # (call it right away)
       @redrawPalette()
@@ -1056,19 +1141,34 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Hit-testing functions
 
       hitTest = (point, root) =>
-        head = root; seek = null
-        while head isnt seek
+        # Iterate through all the children of this block/segment
+        # to see what the innermost clicked child was.
+        head = root.start; seek = root.end
+        until head is seek
           if head.type is 'blockStart' and head.block.view.path.contains point
             seek = head.block.end
           head = head.next
         
-        if seek? then seek.block else null
+        # The last possibility is that we clicked this block
+        # at the root level. So check that as well.
+        if seek isnt root.end or root.type is 'block' and root.view.path.contains point
+          return seek.block
+        else
+          return null
 
-      hitTestRoot = (point) => hitTest point, @tree.start
+      hitTestMutationButton = (point) =>
+        head = @tree.start
+        while head isnt @tree.end
+          if head.type is 'mutationButton' and head.view.bounds[head.view.lineStart].contains point
+            return head
+          head = head.next
+        return null
+
+      hitTestRoot = (point) => hitTest point, @tree
       
       hitTestFloating = (point) =>
         for float in @floatingBlocks by -1
-          if hitTest(point, float.block.start) isnt null then return float.block
+          if hitTest(point, float.block) isnt null then return float.block
         return null
       
       hitTestFocus = (point) =>
@@ -1082,17 +1182,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         return null
       
-      hitTestLasso = (point) => if @lassoSegment? and @_lassoBounds.contains point then @lassoSegment else null
+      hitTestLasso = (point) => if @lassoSegment? and hitTest(point, @lassoSegment)? then @lassoSegment else null
 
       hitTestPalette = (point) =>
         # The point was given in relation to the main canvas,
         # but we want it in relation to the palette canvas;
         # translate it.
-        point = new draw.Point point.x + PALETTE_WIDTH, point.y - @scrollOffset.y + @paletteScrollOffset.y
+        point = new draw.Point point.x + PALETTE_WIDTH - @scrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y - @paletteHeaderHeight
 
         # Hit test as per normal.
         for block in @paletteBlocks
-          if hitTest(point, block.start)? then return block
+          if hitTest(point, block)? then return block
         return null
 
       # ## The mousedown event ##
@@ -1106,12 +1206,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         switch
           when event.offsetX?
             return new draw.Point(
-              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH + @scrollOffset.x,
               event.pageY - findPosTop(track) + @scrollOffset.y
             )
           when event.layerX?
             return new draw.Point(
-              event.pageX - findPosLeft(track) - PALETTE_WIDTH,
+              event.pageX - findPosLeft(track) - PALETTE_WIDTH + @scrollOffset.x,
               event.pageY - findPosTop(track) + @scrollOffset.y
             )
       
@@ -1120,40 +1220,55 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # See what we picked up
         @ephemeralSelection = hitTestFloating(point) ?
           hitTestLasso(point) ?
+          hitTestMutationButton(point) ?
           hitTestFocus(point) ?
           hitTestRoot(point) ?
           hitTestPalette(point)
-
-        if @ephemeralSelection?
+        
+        # Unselect stuff unless we are moving the selection.
+        unless @ephemeralSelection is @lassoSegment
+          @clearLassoSegment()
+        
+        # We want to prevent the default for this event
+        # when we are on a touchscreen (default is scrolling, which
+        # is bad), but not on a mousedown -- the mousedown triggers
+        # focus focus of the editor for the tabIndex hack.
+        if @ephemeralSelection? and event.type is 'TOUCHSTART'
           event.preventDefault()
         
+        # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
         if not @ephemeralSelection?
-          # If we haven't clicked on any clickable element, then LASSO SELECT, indicated by (@lassoAnchor?)
+          # We do not want to begin a lasso select
+          # if we have clicked in the palette.
+          if point.x > 0
+
+              @clearLassoSegment()
+              @redraw()
+
+            # Set the lasso anchor
+            @lassoAnchor = point
+
+        else if @ephemeralSelection.type is 'mutationButton'
+          @captureUndoEvent()
+
+          operation =
+            type: 'mutationButtonExpand'
+            before: @ephemeralSelection.clone()
+            after: @ephemeralSelection.expandValue.clone()
+
+          prev = @ephemeralSelection.prev
+          next = @ephemeralSelection.next
+
+          @ephemeralSelection.expand()
+
+          operation.start = prev.getSerializedLocation()
+          operation.end = next.getSerializedLocation()
+
+          @addMicroUndoOperation operation
+
+          @ephemeralSelection = null
           
-          # If there is already a selection, remove it.
-          if @lassoSegment?
-
-            # First, check to see if the block is floating
-            flag = false
-            for float in @floatingBlocks
-              if float.block is @lassoSegment
-                flag = true
-                break
-
-            # Don't remove the segment if it's floating, because it still needs to hold those blocks together
-            unless flag
-              @addMicroUndoOperation
-                type: 'destroySegment'
-                start: @lassoSegment.start.getSerializedLocation()
-                end: @lassoSegment.end.getSerializedLocation()
-
-              @lassoSegment.remove()
-
-            @lassoSegment = null
-            @redraw()
-
-          # Set the lasso anchor
-          @lassoAnchor = point
+          @redraw()
 
         else if @ephemeralSelection.type is 'socket'
           # If we have clicked on a socket, then TEXT INPUT, indicated by (@isEditingText())
@@ -1179,7 +1294,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if @ephemeralSelection in @paletteBlocks
 
             # It's in the palette, so we need to translate it.
-            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x + @paletteScrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y
+            @ephemeralPoint = new draw.Point point.x - @scrollOffset.x + @paletteScrollOffset.x, point.y - @scrollOffset.y + @paletteScrollOffset.y - @paletteHeaderHeight
           else
             @ephemeralPoint = new draw.Point point.x, point.y
           
@@ -1218,6 +1333,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # Move the ephemeral selection into the selection position
             @selection = @ephemeralSelection
             @ephemeralSelection = null
+            
+            # Move the palette header to the back,
+            # so that the drag canvas can appear on top of it
+            # and the track div can track its area.
+            @paletteHeader.style.zIndex = 0
 
             # Check to make sure that the selection doesn't contain a cursor
             head = @selection.start
@@ -1252,12 +1372,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             # Draw it in the drag canvas
             @selection.view.compute()
+
+            @selection.view.drawShadow @dragCtx, SHADOW_OFFSET, SHADOW_OFFSET, SHADOW_BLUR
+
+            # We translate by 1, 1 so that we can see the entire border;
+            # otherwise half a pixel is clipped because it is off the drag canas.
+            @selection.view.translate new draw.Point 1, 1
             @selection.view.draw @dragCtx
 
             # CSS-transform the drag canvas to where it ought to be
             if selectionInPalette
               # If we picked up from the palette, then rect.x is actually relative to the palette
-              fixedDest = new draw.Point rect.x - PALETTE_WIDTH, rect.y
+              fixedDest = new draw.Point rect.x - PALETTE_WIDTH, rect.y + @paletteHeaderHeight
             else
               # Otherwise, do as we would with mousemove
               fixedDest = new draw.Point rect.x - @scrollOffset.x, rect.y - @scrollOffset.y
@@ -1286,6 +1412,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if @selection.type is 'block'
             highlight = @tree.find (block) ->
               (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
+
           else if @selection.type is 'segment'
             highlight = @tree.find (block) ->
               (block.type isnt 'socket') and (not (block.inSocket?() ? false)) and block.view.dropArea? and block.view.dropArea.contains dest
@@ -1294,7 +1421,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if old_highlight isnt highlight then @redraw()
 
           # Highlight the highlight
-          if highlight? then highlight.view.dropHighlightReigon.fill @mainCtx, '#fff'
+          if highlight? then highlight.view.dropHighlightRegion.fill @mainCtx, '#fff'
 
           # CSS-transform the drag canvas to where it ought to be
           drag.style.webkitTransform =
@@ -1374,8 +1501,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
             # This normally requires no operations, but if we have selected it as the lassoSegment,
             # we want to stop drawing its bounding box.
             else if @selection is @lassoSegment
-              @lassoSegment = null
-
+              @clearLassoSegment()
           
           # CSS-transform the drag canvas back to the origin
           drag.style.webkitTransform =
@@ -1396,6 +1522,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           # Signify that we are no longer in a NORMAL DRAG
           @selection = null
+
+          # Move the palette header back to the front,
+          # so that we can click it.
+          @paletteHeader.style.zIndex = 257
           
           # Redraw after the selection has been set to null, since @redraw is sensitive to what things are being dragged.
           @redraw()
@@ -1436,9 +1566,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           rect = getRectFromPoints (new draw.Point @lassoAnchor.x - @scrollOffset.x, @lassoAnchor.y - @scrollOffset.y), point
 
           # Clear and redraw the lasso on the drag canvas
-          @dragCtx.clearRect 0, 0, drag.width, drag.height
-          @dragCtx.strokeStyle = '#00f'
-          @dragCtx.strokeRect rect.x, rect.y, rect.width, rect.height
+          @lassoSelectCtx.clearRect 0, 0, @lassoSelectCanvas.width, @lassoSelectCanvas.height
+          @lassoSelectCtx.strokeStyle = '#00f'
+          @lassoSelectCtx.strokeRect rect.x, rect.y, rect.width, rect.height
 
       track.addEventListener 'mouseup', (event) =>
         if @lassoAnchor?
@@ -1541,6 +1671,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             # Now, insert the actual lasso segment.
             @lassoSegment = new model.Segment()
+            @lassoSegment.isLassoSegment = true
 
             firstLassoed.insertBefore @lassoSegment.start
             lastLassoed.insert @lassoSegment.end
@@ -1552,8 +1683,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
             @redraw()
           
-          # Clear the drag canvas
-          @dragCtx.clearRect 0, 0, drag.width, drag.height
+          # Clear the lasso select canvas
+          @lassoSelectCtx.clearRect 0, 0, @lassoSelectCanvas.width, @lassoSelectCanvas.height
 
           # If we inserted a lasso segment, move the cursor appropriately
           if @lassoSegment? then moveCursorTo @lassoSegment.end
@@ -1621,6 +1752,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 
                 newParse.block.moveTo @focus.start.prev.prev
                 @focus.start.prev.block.moveTo null
+
+                @redraw()
               
             else
               # If we are not a handwritten block, attempt to reparse
@@ -1642,6 +1775,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
                 else if @focus.content()?.type is 'block' then @focus.content().moveTo null
                 
                 newParse.block.moveTo @focus.start
+
+                @redraw()
 
           # Fire the onchange handler
           @triggerOnChangeEvent new IceEditorChangeEvent @focus, focus
@@ -1762,7 +1897,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       track.addEventListener 'mouseup', (event) =>
         if @isEditingText()
           textInputSelecting = false
-      
+          
       # ## Scrolling ##
       # We handle scrolling through some invisible scroller elements in the track div.
       # We bind to their scroll events and translate the canvases based on their
@@ -1864,6 +1999,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @aceEl.style.left = '-9999px'
       @aceEl.style.display = 'block'
       
+      @paletteHeader.style.zIndex = 0
+      
       # We must wait for the Ace editor to render before we continue.
       # Ace actually takes some time with webworkers to determine some things like line height,
       # which we need, so we will poll ace until it is done.
@@ -1906,7 +2043,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # We have now obtained the destination position for the animation; now we animate.
         count = 0
 
-        animatedColor = new AnimatedColor('#EEEEEE', '#FFFFFF', ANIMATION_FRAME_RATE)
+        animatedColor = new AnimatedColor('#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE)
         originalOffset = @scrollOffset.y
 
         tick = =>
@@ -1917,7 +2054,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           @main.style.left = PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE) + 'px'
           @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
-          @palette.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
+          @palette.style.opacity = @paletteHeader.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
           @clear()
           
@@ -1951,7 +2088,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         tick()
       ), 1
 
-      return true
+      return {
+        success: true
+      }
     
     _performFreezeAnimation: ->
       if @currentlyAnimating or @currentlyUsingBlocks then return
@@ -2002,7 +2141,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # We have now obtained the destination position for the animation; now we animate.
       count = 0
 
-      animatedColor = new AnimatedColor '#FFFFFF', '#EEEEEE', ANIMATION_FRAME_RATE
+      animatedColor = new AnimatedColor '#FFFFFF', '#CCCCCC', ANIMATION_FRAME_RATE
 
       tick = =>
         count += 1
@@ -2012,7 +2151,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
         @main.style.left = PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE) + 'px'
         @el.style.backgroundColor = @main.style.backgroundColor = animatedColor.advance()
-        @palette.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
+        @palette.style.opacity = @paletteHeader.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
 
         @clear()
         
@@ -2029,6 +2168,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if count is ANIMATION_FRAME_RATE
           @currentlyAnimating = false
           @redraw()
+          @paletteHeader.style.zIndex = 257
 
       tick()
       

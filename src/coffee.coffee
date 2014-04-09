@@ -133,12 +133,17 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
     # A simple utility function for adding a block of a given
     # precedence and color. We do a lot of this in (mark).
     addBlock = (node, precedence, color, wrappingParen) ->
-      block = new model.Block precedence
-      block.color = color
+      block = new model.Block precedence, color, (color is colors.VALUE)
       addMarkup block, node, wrappingParen
 
       if wrappingParen?
         block.currentlyParenWrapped = true
+
+    addSocket = (node, precedence = 0, wrappingParen = null) ->
+      socket = new model.Socket null, precedence
+      addMarkup socket, node, wrappingParen
+
+      mark node
     
     # ## mark ##
     # The core recursive function for adding the markup associated
@@ -163,16 +168,25 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         when 'Op'
           addBlock node, operatorPrecedences[node.operator], colors.VALUE, wrappingParen
 
-          mark node.first, operatorPrecedences[node.operator]
-          if node.second? then mark node.second, operatorPrecedences[node.operator]
+          addSocket node.first, operatorPrecedences[node.operator]
+          if node.second? then addSocket node.second, operatorPrecedences[node.operator]
       
         # ### Existence ###
         # The Existence operator works
         # basically like any other operator;
         # it has highest precedence.
         when 'Existence'
-          addBlock node, 7, colors.CONTROL, wrappingParen
-          mark node.expression, 7
+          addBlock node, 7, colors.VALUE, wrappingParen
+          addSocket node.expression, 7
+        
+        # ### In ###
+        # The In operator has precedence
+        # equivalent to a function call.
+        when 'In'
+          addBlock node, 0, colors.VALUE, wrappingParen
+
+          addSocket node.object, 0
+          addSocket node.array, 0
         
         # ### Value ####
         # A Value is not of much use to the ICE
@@ -182,12 +196,9 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           mark node.base, precedence
         
         # ### Literal ###
-        # A Literal is a value
-        # that should be in a editable
-        # textarea.
-        when 'Literal'
-          socket = new model.Socket null, precedence
-          addMarkup socket, node, wrappingParen
+        # Pass for literals.
+        when 'Literal', 'Bool', 'Undefined', 'Null'
+          0
         
         # ### Call ###
         # Call blocks are blue and
@@ -199,9 +210,9 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           # just some text, parse it. Otherwise, 
           # don't even put a text socket in.
           unless node.variable.base?.constructor.name is 'Literal'
-            mark node.variable
+            addSocket node.variable
 
-          for arg in node.args then mark arg
+          for arg in node.args then addSocket arg
         
         # ### Code ###
         # Code is a function definition.
@@ -209,12 +220,12 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # functions can be one-line or indented.
         when 'Code'
           addBlock node, precedence, colors.VALUE, wrappingParen
-          for param in node.params then mark param
+          for param in node.params then addSocket param
           
           # If it is a one-line function,
           # unwrap the body.
           if getBounds(node.body).end.line is getBounds(node).start.line
-            mark node.body.unwrap()
+            addSocket node.body.unwrap()
 
           # Otherwise, do not.
           else
@@ -238,21 +249,21 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # but for now both are blue and have equal precedence.
         when 'Assign'
           addBlock node, precedence, colors.COMMAND, wrappingParen
-          mark node.variable; mark node.value
+          addSocket node.variable; addSocket node.value
         
         # ### For ###
         # A for block has a lot of optional arguments.
         when 'For'
           addBlock node, precedence, colors.CONTROL, wrappingParen
-          if node.index? then mark node.index
-          if node.source? then mark node.source
-          if node.name? then mark node.name
-          if node.from? then mark node.from
+          if node.index? then addSocket node.index
+          if node.source? then addSocket node.source
+          if node.name? then addSocket node.name
+          if node.from? then addSocket node.from
 
           # If it is a one-line "for",
           # unwrap the body.
           if getBounds(node.body).end.line is getBounds(node).start.line
-            mark node.body.unwrap()
+            addSocket node.body.unwrap()
 
           # Otherwise, do not.
           else
@@ -263,7 +274,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # Nothing particularly interesting.
         when 'Range'
           addBlock node, precedence, colors.VALUE, wrappingParen
-          mark node.from; mark node.to
+          addSocket node.from; addSocket node.to
         
         # ### If ###
         # An If consists of two separate
@@ -271,12 +282,12 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # an indent or a one-line.
         when 'If'
           addBlock node, precedence, colors.CONTROL, wrappingParen
-          mark node.condition
+          addSocket node.condition
 
           # If it is a one-line "if",
           # unwrap the body.
           if getBounds(node.body).end.line is getBounds(node).start.line
-            mark node.body.unwrap()
+            addSocket node.body.unwrap()
 
           # Otherwise, do not.
           else
@@ -286,7 +297,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
             # If it is a one-line "else",
             # unwrap the body.
             if getBounds(node.elseBody).end.line is getBounds(node).start.line
-              mark node.elseBody.unwrap()
+              addSocket node.elseBody.unwrap()
 
             # Otherwise, do not.
             else
@@ -306,12 +317,12 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # A return is the only block other than 'break' rendered RETURN.
         when 'Return'
           addBlock node, precedence, colors.RETURN, wrappingParen
-          if node.expression? then mark node.expression
+          if node.expression? then addSocket node.expression
         
         # ### While ###
         when 'While'
           addBlock node, precedence, colors.CONTROL, wrappingParen
-          mark node.condition
+          addSocket node.condition
 
           # If it is a one-line "while",
           # unwrap the body.
@@ -328,7 +339,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # we will simply signify to the child node that it must wrap
         # itself in these parentheses.
         when 'Parens'
-          if node.body? then mark node.body.unwrap(), 0, node
+          if node.body? then addSocket node.body.unwrap(), 0, node
         
         # ### Obj ###
         # Objects can be one-line or multiline,
@@ -340,8 +351,11 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
           
           # We must insert the indent for an object by hand.
           # Get the needed bounds for this indent.
-          start = getBounds node.properties[0]
-          end = getBounds node.properties[node.properties.length - 1]
+          if node.properties.length is 0
+            end = start = getBounds node
+          else
+            start = getBounds node.properties[0]
+            end = getBounds node.properties[node.properties.length - 1]
           
           # If the indent is actually on the same line
           # as the object literal's beginning,
@@ -372,8 +386,10 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
               start: false
 
             id += 1
-
-          for property in node.properties then mark property
+          
+            for property in node.properties then mark property
+          else
+            for property in node.properties then addSocket property
     
     # We do not mark the root expression,
     # but rather every child of it.

@@ -81,7 +81,7 @@ define ['ice-view'], (view) ->
   # wrap itself in parentheses
 
   exports.Block = class Block
-    constructor: (@precedence = 0, @color = '#ddf') ->
+    constructor: (@precedence = 0, @color = '#ddf', @valueByDefault = false) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -101,7 +101,7 @@ define ['ice-view'], (view) ->
     # Cloning produces a new Block entirely independent
     # of this one (there are no linked-list pointers in common).
     clone: ->
-      clone = new Block @precedence, @color
+      clone = new Block @precedence, @color, @valueByDefault
       
       unless @start.next is @end
         [clonedStart, clonedEnd] = cloneTokens @start.next, @end.prev
@@ -123,7 +123,9 @@ define ['ice-view'], (view) ->
     inSocket: ->
       head = @start.prev
       while head? and head.type is 'segmentStart' then head = head.prev
-      return head? and head.type is 'socketStart'
+
+      if not head? then return null
+      else return head.type is 'socketStart'
     
     # ## moveTo ##
     # Splice this block out and place it somewhere else.
@@ -186,7 +188,7 @@ define ['ice-view'], (view) ->
       #
       # First, find the parent we actually droped into.
       while parent? and parent.type is 'segmentStart' then parent = parent.prev
-      
+
       # If the parent was a socket, we might need to wrap.
       # Check the precedence to see if we need to.
       if parent?.type is 'socketStart' and parent.socket.precedence >= @precedence
@@ -328,6 +330,8 @@ define ['ice-view'], (view) ->
       @end = new SegmentEndToken this
       @type = 'segment'
 
+      @isLassoSegment = false
+
       @start.next = @end; @end.prev = @start
       
       @view = new view.SegmentView this
@@ -403,7 +407,7 @@ define ['ice-view'], (view) ->
 
         when 'segmentStart'
           unless parent.next is parent.segment.end
-            parent = parent.insert new NewlineToken()
+            parent.insert new NewlineToken()
         
         # We can only move into a socket
         # if we are exactly one block.
@@ -541,7 +545,7 @@ define ['ice-view'], (view) ->
     # Cloning produces an identical Socket with no shared linked-list pointers.
     # To produce this clone, we need only delegate to our content block, because
     # there *may only be one*.
-    clone: -> if @content()? then new Socket @content().clone() else new Socket()
+    clone: -> if @content()? then new Socket @content().clone(), @precedence else new Socket null, @precedence
     
     # ## content ##
     # Get the content block of this Socket
@@ -669,6 +673,31 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
+
+  # ## mutationButton token ##
+  # A Mutation button is a clickable square that can "expand"
+  # into some other tokens (e.g. "[MutationButton]" -> ", [Socket] [MutationButton]" to add
+  # an element to an array or function call)
+  exports.MutationButtonToken = class MutationButtonToken extends Token
+    constructor: (@expandValue) ->
+      unless @expandValue.type is 'segment'
+        throw new Error "Must instantiate a MutationButton with a Segment object, not #{@expandValue.type}"
+      
+      @prev = @next = null
+      @view = new view.MutationButtonView this
+      @type = 'mutationButton'
+
+    clone: -> new MutationButtonToken @expandValue
+    
+    # Expand the mutation button.
+    # We clone here (as opposed to at construction
+    # time) so as to avoid infinite recursion.
+    expand: ->
+      clone = @expandValue.clone()
+      @prev.append clone.start
+      clone.end.append @next
+
+      clone.remove()
 
   # ## Markup tokens ##
   # These are the tokens to which we referred earlier when we discussed

@@ -5,37 +5,249 @@ require.config
 
 require ['main'], (ice) ->
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), (ice.parse(paletteElement).start.next.block for paletteElement in [
-    '''
-    fd 100
-    '''
-    '''
-    bk 100
-    '''
-    '''
-    rt 90
-    '''
-    '''
-    lt 90
-    '''
-    '''
-    see 'hi'
-    '''
-    '''
-    for i in [1..10]
-      fd 10
-    '''
-    '''
-    if touches 'red'
-      fd 10
-    '''
-    '''
-    rtFd = (arg) ->
-      rt 90
-      fd arg
-      return arg
-    '''
-  ])
+  window.editor = new ice.Editor document.getElementById('editor'), [
+    {
+      name: 'Common',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        'fd 100'
+        'bk 100'
+        'rt 90'
+        'lt 90'
+        '''
+        for i in [1..10]
+          fd 10
+        '''
+        '''
+        if touches 'red'
+          fd 10
+        '''
+        '''
+        fun = (arg) ->
+          return arg
+        '''
+      ])
+    }
+    {
+      name: 'Turtle',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        'fd 100'
+        'bk 100'
+        'rt 90'
+        'lt 90'
+        'pen red'
+        'dot green, 20'
+        'slide 10'
+        'jumpto 0, 0'
+        'turnto 0'
+        'rt 90, 100'
+        'lt 90, 100'
+      ])
+    }
+    {
+      name: 'Control',
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '''
+        if touches 'red'
+          fd 10
+        '''
+        '''
+        if touches 'red'
+          fd 10
+        else
+          bk 10
+        '''
+        '''
+        for element, i in list
+          see element
+        '''
+        '''
+        for key, value of obj
+          see key, value
+        '''
+        '''
+        while touches 'red'
+          fd 10
+        '''
+      ])
+    }
+    {
+      name: 'Functions',
+      blocks: [
+        ice.parseObj {
+          type: 'block'
+          valueByDefault: true
+          color: '#26cf3c'
+          children: [
+            '('
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'arg'
+            }
+            {
+              type: 'mutationButton'
+              expand: [
+                ', '
+                {
+                  type: 'socket'
+                  precedence: 0
+                  contents: 'arg'
+                }
+                0
+              ]
+            }
+            ') ->'
+            {
+              type: 'indent'
+              depth: 2
+              children: [
+                '\n'
+                {
+                  type: 'block'
+                  valueByDefault: false
+                  color: '#dc322f'
+                  children: [
+                    'return '
+                    {
+                      type: 'socket'
+                      precedence: 0
+                      contents: 'arg'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+        ice.parse('return arg').start.next.block
+        ice.parseObj {
+          type: 'block'
+          valueByDefault: false
+          color: '#268bd2'
+          precedence: 32
+          children: [
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'fn'
+            },
+            '('
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'arg'
+            }
+            {
+              type: 'mutationButton'
+              expand: [
+                ', '
+                {
+                  type: 'socket'
+                  precedence: 0
+                  contents: 'arg'
+                }
+                0
+              ]
+            }
+            ')'
+          ]
+        }
+      ]
+    }
+    {
+      name: 'Containers',
+      blocks: [
+        ice.parseObj {
+          type: 'block'
+          valueByDefault: true
+          color: '#26cf3c'
+          precedence: 32
+          children: [
+            '['
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'el'
+            }
+            {
+              type: 'mutationButton'
+              expand: [
+                ', '
+                {
+                  type: 'socket'
+                  precedence: 0
+                  contents: 'el'
+                }
+                0
+              ]
+            }
+            ']'
+          ]
+        }
+        ice.parse("array.push 'hello'").start.next.block
+        ice.parse("array.sort()").start.next.block
+        ice.parse('{}').start.next.block
+        ice.parseObj {
+          type: 'block'
+          valueByDefault: true
+          precedence: 32
+          color: '#26cf3c'
+          children: [
+            '{   '
+            {
+              type: 'indent'
+              depth: 2
+              children: [
+                '\n'
+              ]
+            }
+            '}'
+          ]
+        }
+        ice.parseObj {
+          type: 'block'
+          color: '#268bd2'
+          children: [
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'property'
+            }
+            ':'
+            {
+              type: 'socket'
+              precedence: 0
+              contents: 'value'
+            }
+          ]
+        }
+        ice.parse("obj['hello'] = 'world'").start.next.block
+      ]
+    }
+    {
+      name: 'Logic'
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '1 is 1'
+        '1 isnt 2'
+        'true and false'
+        'false or true'
+      ])
+    }
+    {
+      name: 'Math'
+      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+        '2 + 3'
+        '2 - 3'
+        '2 * 3'
+        '2 / 3'
+        '2 < 3'
+        '3 > 2'
+        'Math.pow 2, 3'
+        'Math.sqrt 2'
+        'random 10'
+      ])
+    }
+  ]
   
   # Example program (fizzbuzz)
   examplePrograms = {
@@ -149,21 +361,3 @@ require ['main'], (ice) ->
       # put up a message.
       unless editor.currentlyUsingBlocks or editor.currentlyAnimating
         displayMessage 'Syntax error'
-  
-  logsElement = document.getElementById 'logs'
-  logsContentElement = document.getElementById 'logsContent'
-  closeLogsElement = document.getElementById 'closeLogs'
-  document.getElementById('run').addEventListener 'click', ->
-    logs = []
-    see = (arg) ->
-      logs.push arg
-    eval CoffeeScript.compile editor.getValue()
-    see = null
-
-    logsContentElement.innerHTML = logs.join('\n').replace(/</g,'&lt;').replace(/>/g, '&gt;').replace(/&/g,'&amp;').replace(/\n/g, '<br/>')
-    logsElement.style.right = '0px'
-    closeLogsElement.style.top = '30px'
-  
-  document.getElementById('closeLogs').addEventListener 'click', ->
-    logsElement.style.right = '-500px'
-    closeLogsElement.style.top = '0px'
