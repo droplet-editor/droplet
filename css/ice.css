@@ -10,6 +10,54 @@
   margin-top: -2px;
   margin-left: -1px;
 }
+.palette{
+  z-index: 0;
+  width: 300px;
+  left: 0;
+}
+.canvas {
+  border-left: 1px solid #000;
+  background-color:#CCC;
+}
+.canvas, .ice-lasso-select {
+  z-index: 1;
+  border-right: none;
+}
+.palette{
+  background-color:#DDD;
+}
+.ice_editor {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  cursor: default;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  background-color: #EEE;
+}
+.trackArea {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+}
+.ice_ace {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; bottom:0; right:0;
+  font-family: Courier, monospace;
+}
+.ice_main_scroller {
+  position: absolute;
+  top: 0; left: 300px; bottom: 0; right: 0;
+  overflow: auto;
+}
+.ice_palette_scroller {
+  position: absolute;
+  left: 0; top: 150px; bottom: 0; width: 300px;
+  overflow: auto;
+}
 .palette_header {
   z-index: 257;
   position: absolute;
@@ -35,23 +83,6 @@
   background-color: #000;
   color: #FFF;
 }
-.palette {
-  z-index: 0;
-  width: 300px;
-  top: 150px;
-  left: 0;
-}
-.canvas {
-  border-left: 1px solid #000;
-  background-color:#CCC;
-}
-.canvas, .ice-lasso-select {
-  z-index: 1;
-  border-right: none;
-}
-.palette {
-  background-color:#DDD;
-}
 .hidden_input {
   position: absolute;
   top: -9999px;
@@ -59,44 +90,4 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-}
-.ice_editor {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  cursor: default;
-  overflow: hidden;
-  -webkit-user-select: none;
-  user-select: none;
-  background-color: #EEE;
-}
-.fullscreen_textarea {
-  border: 1px solid black; padding: none;
-  font-family: Courier, monospace;
-  height: 100%; width: 100%;
-  font-size: 15px;
-  line-height: 15px;
-  background-color: #EEE;
-}
-.trackArea {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 3;
-}
-.ice_ace {
-  display: none;
-  position: absolute;
-  top: 0; left: 0; bottom:0; right:0;
-  font-family: Courier, monospace;
-}
-.ice_main_scroller {
-  position: absolute;
-  top: 0; left: 300px; bottom: 0; right: 0;
-  overflow: auto;
-}
-.ice_palette_scroller {
-  position: absolute;
-  left: 0; top: 150px; bottom: 0; width: 300px;
-  overflow: auto;
 }
