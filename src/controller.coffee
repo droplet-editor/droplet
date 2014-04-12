@@ -687,7 +687,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
             @draggingBlock.moveTo @tree.start #MUTATION
-    
+      
+      # Move the cursor to the position we just
+      # dropped the block
+      @moveCursorTo @draggingBlock.end, true
+
       # Now that we've done that, we can annul stuff.
       @draggingBlock = null
       @draggingOffset = null
