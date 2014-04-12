@@ -1178,7 +1178,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   ###########################################
   # LASSO SELECT SUPPORT
   ###########################################
-
+  
+  # We need undo operations for create/destroy segment
+  # so that other undo operations work properly in
+  # the tree -- for instance, DropOperation needs
+  # to have the segment in the tree that is being
+  # dropped in order to work.
   class CreateSegmentOperation extends UndoOperation
     constructor: (segment) ->
       @first = segment.start.getSerializedLocation()
@@ -1375,6 +1380,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       last.insert @lassoSegment.end #MUTATION
 
       @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
+      
+      # Move the cursor to the segment we just created
+      @moveCursorTo @lassoSegment.end, true
 
       @redrawMain()
   
