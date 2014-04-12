@@ -624,11 +624,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       mainPoint = @trackerPointToMain(position)
       
+      # If we are below the document, append to the document.
+      if mainPoint.y > @tree.view.getBounds().bottom() and mainPoint.x > 0
+        head = @tree.end
+        until head.type is 'blockEnd' or head is @tree.start then head = head.prev
+        
+        if head is @tree.start then highlight = @tree
+        else highlight = head.block
+      
       # If we are dragging a block,
       # we can drop on any Block not in a socket,
       # any Indent, or any Socket that does
       # not contain a block.
-      if @draggingBlock.type is 'block'
+      else if @draggingBlock.type is 'block'
         highlight = @tree.find (block) ->
           (not (block.inSocket?() ? false)) and
             block.view.dropArea? and
