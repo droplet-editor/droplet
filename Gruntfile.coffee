@@ -42,6 +42,7 @@ module.exports = (grunt) ->
         src: ['src/*.coffee']
         options:
           output: 'docs/'
+          layout: 'parallel'
 
     requirejs:
       compile:

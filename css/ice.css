@@ -80,8 +80,11 @@
   box-sizing: border-box;
   display: inline-block;
   width: 50%;
-  height: 30px;
+  height: 30px; /* True height should be constant 30px */
   padding: 5px;
+  font-size: 15px;
+  font-family: sans-serif;
+  line-height: auto;
   cursor: pointer;
 }
 .ice-palette-group-header-selected {

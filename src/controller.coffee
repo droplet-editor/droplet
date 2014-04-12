@@ -3,7 +3,7 @@
 # MIT License.
 
 define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
-  # # Magic constants
+  # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
   MIN_DRAG_DISTANCE = 5
@@ -14,11 +14,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   exports = {}
 
-  ###########################################
   # FOUNDATION
-  ###########################################
+  # ================================
 
-  # # Editor event bindings
+  # ## Editor event bindings
   #
   # These are different events associated with the Editor
   # that features will want to bind to.
@@ -56,14 +55,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         fn: fn
       }
   
-  # # The Editor Class
+  # ## The Editor Class
   exports.Editor = class Editor
     constructor: (@wrapperElement, @paletteGroups) ->
-      # # DOM Population
+      # ## DOM Population
       # This stage of ICE Editor construction populates the given wrapper
       # element with all the necessary ICE editor components.
       
-      # ## Wrapper
+      # ### Wrapper
       # Create the div that will contain all the ICE Editor graphics
 
       @iceElement = document.createElement 'div'
@@ -75,7 +74,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Append that div.
       @wrapperElement.appendChild @iceElement
 
-      # ## Tracker
+      # ### Tracker
       # Create the div that will track all the ICE editor mouse movement
 
       @tracker = document.createElement 'div'
@@ -84,7 +83,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Append that div.
       @iceElement.appendChild @tracker
       
-      # ## Canvases
+      # ### Canvases
       # Create the palette and main canvases
 
       # Main canvas first
@@ -108,7 +107,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       for binding in editorBindings.populate
         binding.call this
       
-      # # Resize
+      # ## Resize
       # This stage of ICE editor construction, which is repeated
       # whenever the editor is resized, should adjust the sizes
       # of all the ICE editor componenents to fit the wrapper.
@@ -118,7 +117,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @resize()
 
-      # # Tracker Events
+      # ## Tracker Events
       # We allow binding to the tracker element.
       for eventName in ['mousedown', 'mouseup', 'mousemove'] then do (eventName) =>
         @tracker.addEventListener eventName, (event) =>
@@ -139,6 +138,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       boundListeners = []
       
+      # For each combo to which binding(s) are attached,
+      # listen for that combo and execute each binding
+      # attached to it.
+      #
+      # We will preventDefault (!executeDefault) if anyone
+      # wants to preventDefault.
       for combo, fns of editorBindings.key then do (fns) =>
         @keyListener.simple_combo combo, =>
           state = {}
@@ -151,16 +156,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
           return executeDefault
       
-      # # Document initialization
+      # ## Document initialization
       # We start of with an empty document
       @tree = new model.Segment()
 
       # Now that we've populated everything, immediately redraw.
       @redrawMain(); @redrawPalette()
-
+    
+    # ## Foundational Resize
+    # At the editor core, we will need to resize
+    # all of the natively-added canvases, as well
+    # as the wrapper element, whenever a resize
+    # occurs.
     resize: ->
-      @iceElement.style.height = @wrapperElement.offsetHeight
-      @iceElement.style.width = @wrapperElement.offsetWidth
+      @iceElement.style.height = "#{@wrapperElement.offsetHeight}px"
+      @iceElement.style.width ="#{ @wrapperElement.offsetWidth}px"
 
       @mainCanvas.height = @iceElement.offsetHeight
       @mainCanvas.width = @iceElement.offsetWidth - PALETTE_WIDTH
@@ -168,7 +178,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
       
-      @paletteCanvas.style.top = @paletteHeaderHeight
+      @paletteCanvas.style.top = "#{@paletteHeaderHeight}px"
       @paletteCanvas.height = @iceElement.offsetHeight - @paletteHeaderHeight
       @paletteCanvas.width = PALETTE_WIDTH
 
@@ -178,11 +188,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       for binding in editorBindings.resize
         binding.call this, event
     
-  ###########################################
   # RENDERING CAPABILITIES
-  ###########################################
+  # ================================
   
-  # # Redraw
+  # ## Redraw
   # There are two different redraw events, redraw_main and redraw_palette,
   # for redrawing the main canvas and palette canvas, respectively.
   # 
@@ -240,14 +249,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       for binding in editorBindings.redraw_palette
         binding.call this
 
-  ###########################################
   # MOUSE INTERACTION WRAPPERS
-  ###########################################
+  # ================================
 
   # These are some common operations we need to do with
   # the mouse that will be convenient later.
 
-  # ## getPointRelativeToTracker
+  # ### getPointRelativeToTracker
   # Given a mousedown/touchstart event,
   # get its coordinates relative to the tracker element.
 
@@ -277,7 +285,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # Now we're done.
     return point
     
-  # ## Conversion functions
+  # ### Conversion functions
   # Convert a point relative to the tracker into
   # a point relative to one of the two canvases.
   Editor::trackerPointToMain = (point) ->
@@ -292,7 +300,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       point.y - @paletteCanvas.offsetTop + @scrollOffsets.palette.y
     )
     
-  # ## hitTest
+  # ### hitTest
   # Simple function for going through a linked-list block
   # and seeing what the innermost child is that we hit.
   hitTest = (point, block) ->
@@ -316,9 +324,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # Nope, it's not. Answer is null.
     else return null
 
-  ###########################################
   # UNDO STACK SUPPORT
-  ###########################################
+  # ================================
 
   # We must declare a few
   # fields a populate time
@@ -379,9 +386,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   hook 'key.meta z', 0, ->
     @undo()
 
-  ###########################################
   # BASIC BLOCK MOVE SUPPORT
-  ###########################################
+  # ================================
   
   # Set up the undo operation for
   # block moving.
@@ -704,9 +710,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @clearDrag()
       @redrawMain()
 
-  ###########################################
   # FLOATING BLOCK SUPPORT
-  ###########################################
+  # ================================
   
   # We need to initialize the @floatingBlocks
   # array at populate-time.
@@ -716,7 +721,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   class FloatingBlockRecord
     constructor: (@block, @position) ->
   
-  # # Undo operations
+  # ## Undo operations
   # We have two: FromFloating and ToFloating.
   # They mimick block move pick/drop operations
   # except that they also interact with the @floatingBlocks array.
@@ -830,9 +835,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       record.block.view.draw @mainCtx
 
-  ###########################################
   # PALETTE SUPPORT
-  ###########################################
+  # ================================
 
   # The first thing we will have to do with
   # the palette is install the hierarchical menu.
@@ -940,16 +944,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       bounds = block.view.getBounds()
 
-      hoverDiv.style.top = bounds.y
-      hoverDiv.style.left = bounds.x
-      hoverDiv.style.width = bounds.width
-      hoverDiv.style.height = bounds.height
+      hoverDiv.style.top = "#{bounds.y}px"
+      hoverDiv.style.left = "#{bounds.x}px"
+      hoverDiv.style.width = "#{bounds.width}px"
+      hoverDiv.style.height = "#{bounds.height}px"
 
       @paletteScrollerStuffing.appendChild hoverDiv
 
-  ###########################################
   # TEXT INPUT SUPPORT
-  ###########################################
+  # ================================
 
   # Text input has two undo events: text change
   # and text reparse.
@@ -1012,8 +1015,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           @redrawTextInput()
 
   hook 'resize', 0, ->
-    @aceElement.style.width = @iceElement.offsetWidth
-    @aceElement.style.height = @iceElement.offsetHeight
+    @aceElement.style.width = "#{@iceElement.offsetWidth}px"
+    @aceElement.style.height = "#{@iceElement.offsetHeight}px"
 
   # Redraw function for text input
   Editor::redrawTextInput = ->
@@ -1175,9 +1178,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   hook 'mouseup', 0, (point, event, state) ->
     @textInputSelecting = false
 
-  ###########################################
   # LASSO SELECT SUPPORT
-  ###########################################
+  # ================================
   
   # We need undo operations for create/destroy segment
   # so that other undo operations work properly in
@@ -1398,9 +1400,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       state.consumedHitTest = true
       state.clickedLassoSegment = true
 
-  ###########################################
   # CURSOR OPERATION SUPPORT
-  ###########################################
+  # ================================
   
   hook 'populate', 0, ->
     @cursor = new model.CursorToken()
@@ -1530,6 +1531,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       blockEnd = blockEnd.prev
 
     if blockEnd.type is 'blockEnd'
+      @addMicroUndoOperation 'CAPTURE_POINT'
       @addMicroUndoOperation new PickUpOperation blockEnd.block
 
       blockEnd.block.moveTo null #MUTATION
@@ -1550,9 +1552,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     return true
 
-  ###########################################
   # HANDWRITTEN BLOCK SUPPORT
-  ###########################################
+  # ================================
   
   hook 'populate', 0, ->
     @handwrittenBlocks = []
@@ -1644,9 +1645,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     return null
 
-  ###########################################
   # INDENT CREATE/DESTROY SUPPORT
-  ###########################################
+  # ================================
   
   # CreateIndent undo operation
   class CreateIndentOperation extends UndoOperation
@@ -1744,9 +1744,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       
       @redrawMain()
 
-  ###########################################
   # ANIMATION AND ACE EDITOR SUPPORT
-  ###########################################
+  # ================================
   
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
@@ -2008,9 +2007,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     else
       return @performFreezeAnimation()
 
-  ###########################################
   # SCROLLING SUPPORT
-  ###########################################
+  # ================================
 
   hook 'populate', 0, ->
     @scrollOffsets = {
@@ -2072,9 +2070,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     @paletteScrollerStuffing.style.width = "#{bounds.right()}px"
     @paletteScrollerStuffing.style.height = "#{bounds.bottom()}px"
 
-  ###########################################
   # MULTIPLE FONT SIZE SUPPORT
-  ###########################################
+  # ================================
   hook 'populate', 0, ->
     @fontSize = 15
 
@@ -2082,9 +2079,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     @fontSize = fontSize
     @redrawMain(); @redrawPalette()
 
-  ###########################################
   # MUTATION BUTTON SUPPORT
-  ###########################################
+  # ================================
 
   class MutationButtonOperation extends UndoOperation
     constructor: (button) ->
@@ -2127,9 +2123,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       head = head.next
 
-  ###########################################
   # LINE MARKING SUPPORT
-  ###########################################
+  # ================================
 
   Editor::markLine = (line, style) ->
     @tree.getBlockOnLine(line)?.lineMarkStyles.push style
@@ -2146,9 +2141,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     @redrawMain()
 
-  ###########################################
+  Editor::clearLineMarks = (tag) ->
+    head = @tree.start
+
+    until head is @tree.end
+      if head.type is 'blockStart'
+        for style, i in head.block.lineMarkStyles
+          if style.tag is tag
+            head.block.lineMarkStyles.splice i, 1
+            break
+
+      head = head.next
+
   # LINE HOVER SUPPORT
-  ###########################################
+  # ================================
   
   hook 'mousemove', 0, (point, event, state) ->
     if @onLineHover?
@@ -2158,9 +2164,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         if @tree.view.bounds[line].contains mainPoint
           @onLineHover line: line
 
-  ###########################################
   # GET/SET VALUE SUPPORT
-  ###########################################
+  # ================================
 
   class SetValueOperation extends UndoOperation
     constructor: (@oldValue, @newValue) ->
@@ -2194,9 +2199,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   Editor::getValue = -> @tree.stringify()
   
-  ###########################################
   # CLOSING FOUNDATIONAL STUFF
-  ###########################################
+  # ================================
 
   # Order the arrays correctly.
   for key of unsortedEditorBindings
