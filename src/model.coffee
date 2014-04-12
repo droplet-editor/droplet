@@ -95,7 +95,7 @@ define ['ice-view'], (view) ->
 
       @view = new view.BlockView this
 
-      @lineMarked = []
+      @lineMarkStyles = []
     
     # ## Clone ##
     # Cloning produces a new Block entirely independent
@@ -693,10 +693,12 @@ define ['ice-view'], (view) ->
     # We clone here (as opposed to at construction
     # time) so as to avoid infinite recursion.
     expand: ->
+      console.log @expandValue.stringify()
+
       clone = @expandValue.clone()
       @prev.append clone.start
       clone.end.append @next
-
+      
       clone.remove()
 
   # ## Markup tokens ##

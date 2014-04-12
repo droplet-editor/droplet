@@ -1,74 +1,82 @@
-.palette, .drag, .canvas, .ice-lasso-select {
+.ice-palette-canvas, .ice-drag-canvas, .ice-main-canvas, .ice-lasso-select-canvas {
   position: absolute;
 }
-.canvas, .drag, .ice-lasso-select {
+.ice-main-canvas, .ice-drag-canvas, .ice-lasso-select-canvas {
   left: 300px;
   top: 0;
 }
-.drag {
+.ice-drag-canvas {
   z-index: 2;
   margin-top: -2px;
   margin-left: -1px;
 }
-.palette{
+.ice-palette-canvas {
   z-index: 0;
   width: 300px;
   left: 0;
 }
-.canvas {
+.ice-main-canvas {
   border-left: 1px solid #000;
   background-color:#CCC;
 }
-.canvas, .ice-lasso-select {
+.ice-main-canvas {
   z-index: 1;
   border-right: none;
 }
-.palette{
+.ice-lasso-select-canvas {
+  z-index: 2;
+  border-right: none;
+}
+.ice-palette-canvas {
   background-color:#DDD;
 }
-.ice_editor {
+.ice-wrapper-div {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0; left: 0;
   cursor: default;
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
   background-color: #EEE;
 }
-.trackArea {
+.ice-track-area {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
   height: 100%;
   z-index: 3;
+  cursor: default;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
 }
-.ice_ace {
-  display: none;
+.ice-ace {
   position: absolute;
-  top: 0; left: 0; bottom:0; right:0;
+  top: -9999px; left: -9999px;
   font-family: Courier, monospace;
 }
-.ice_main_scroller {
+.ice-main-scroller {
   position: absolute;
   top: 0; left: 300px; bottom: 0; right: 0;
+  z-index: 0;
   overflow: auto;
 }
-.ice_palette_scroller {
+.ice-palette-scroller {
   position: absolute;
   left: 0; top: 150px; bottom: 0; width: 300px;
+  z-index: 0;
   overflow: auto;
 }
-.palette_header {
+.ice-palette-header {
   z-index: 257;
   position: absolute;
   top: 0;
   left: 0;
-  height: 150px;
   width: 300px;
   background-color: #DDD;
   border-bottom: 2px solid #000;
 }
-.palette_group_header {
+.ice-palette-group-header {
   box-sizing: border-box;
   display: inline-block;
   width: 50%;
@@ -76,18 +84,21 @@
   padding: 5px;
   cursor: pointer;
 }
-.palette_group_header_selected {
+.ice-palette-group-header-selected {
   display: inline-block;
   width: 50%;
   cursor: pointer;
   background-color: #000;
   color: #FFF;
 }
-.hidden_input {
+.ice-hidden-input {
   position: absolute;
   top: -9999px;
   left: -9999px;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+.ice-hover-div {
+  position: absolute;
 }
