@@ -234,10 +234,10 @@ define ['ice-draw'], (draw) ->
     drawPath: (ctx, style) ->
       # Event propagate
       for child in @children
-        unless child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx, style
+        unless child.block.type is 'block' and child.block.lineMarkStyles.length > 0 then child.drawPath ctx, style
 
       for child in @children
-        if child.block.type is 'block' and child.block.lineMarked.length > 0 then child.drawPath ctx, style
+        if child.block.type is 'block' and child.block.lineMarkStyles.length > 0 then child.drawPath ctx, style
 
     # ## SIXTH Pass: draw cursor ##
     drawCursor: (ctx) ->
@@ -521,8 +521,8 @@ define ['ice-draw'], (draw) ->
         @path.unshift new draw.Point @bounds[@lineEnd].x + TAB_OFFSET + TAB_WIDTH, @bounds[@lineEnd].bottom()
 
       @path.style.fillColor = @block.color
-      @path.style.lineWidth = if @block.lineMarked.length > 0 then 2 else 1
-      @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else 'rgba(0, 0, 0, 0.3)'
+      @path.style.lineWidth = if @block.lineMarkStyles.length > 0 then 2 else 1
+      @path.style.strokeColor = if @block.lineMarkStyles.length > 0 then @block.lineMarkStyles[0].color else 'rgba(0, 0, 0, 0.3)'
       
     # ## drawPath ##
     # This just executes that path we constructed in computePath
@@ -542,7 +542,7 @@ define ['ice-draw'], (draw) ->
         ctx.globalAlpha /= 0.3
 
         @path.style.fillColor = @block.color
-        @path.style.strokeColor = if @block.lineMarked.length > 0 then @block.lineMarked[0].color else '#000'
+        @path.style.strokeColor = if @block.lineMarkStyles.length > 0 then @block.lineMarkStyles[0].color else '#000'
 
       super
 

@@ -298,9 +298,9 @@ define ['ice-model'], (model) ->
         
         when 'indent'
           block = new model.Indent object.depth
-
+          
           head = block.start
-
+          
           for child in object.children
             subBlock = parseObj child
             if subBlock.type in ['text', 'newline']
@@ -308,32 +308,33 @@ define ['ice-model'], (model) ->
             else
               head.append subBlock.start
               head = subBlock.end
-
+          
           head.append block.end
-
+          
           return block
         
         when 'mutationButton'
           segment = new model.Segment()
-
+          
           button = new model.MutationButtonToken segment
-
+          
           head = segment.start
           for child in object.expand
             if child is 0
-              subBlock = button
+              subBlock = new model.MutationButtonToken segment
             else
               subBlock = parseObj child
-
+            
             if subBlock.type in ['text', 'newline', 'mutationButton']
               head = head.append subBlock
             else
               head.append subBlock.start
               head = subBlock.end
-
+          
           head.append segment.end
-
+          
+          console.log 'generated', segment.stringify()
+          
           return button
-
-
+  
   return exports
