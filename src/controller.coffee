@@ -186,7 +186,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @paletteCanvas.style.width = "#{@paletteCanvas.width}px"
 
       for binding in editorBindings.resize
-        binding.call this, event
+        binding.call this
     
   # RENDERING CAPABILITIES
   # ================================
@@ -864,7 +864,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
       paletteGroupHeader.className = 'ice-palette-group-header'
-      paletteGroupHeader.innerText = paletteGroup.name
+      paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
 
       @paletteHeader.appendChild paletteGroupHeader
       
@@ -1253,6 +1253,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     @lassoSelectCanvas.height = @iceElement.offsetHeight
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
+
+  Editor::clearLassoSelection = ->
+    @lassoSegment = null
+
+    head = @tree.start
+    needToRedraw = false
+    until head is @tree.end
+      if head.type is 'segmentStart' and head.segment.isLassoSegment
+        next = head.next
+        
+        @addMicroUndoOperation new DestroySegmentOperation head.segment
+        head.segment.remove() #MUTATION
+        needToRedraw = true
+        
+        head = next
+
+      else
+        head = head.next
+
+    if needToRedraw then @redrawMain()
   
   # On mousedown, if nobody has taken
   # a hit test yet, start a lasso select.
@@ -1260,25 +1280,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # Even if someone has taken it, we
     # should remove the lasso segment that is
     # already there.
-    unless state.clickedLassoSegment
-      @lassoSegment = null
-
-      head = @tree.start
-      needToRedraw = false
-      until head is @tree.end
-        if head.type is 'segmentStart' and head.segment.isLassoSegment
-          next = head.next
-          
-          @addMicroUndoOperation new DestroySegmentOperation head.segment
-          head.segment.remove() #MUTATION
-          needToRedraw = true
-          
-          head = next
-
-        else
-          head = head.next
-
-      if needToRedraw then @redrawMain()
+    unless state.clickedLassoSegment then @clearLassoSelection()
     
     if state.consumedHitTest then return
     
@@ -1451,7 +1453,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # Keep scanning forward if this is an improper location.
     unless isValidCursorPosition @cursor then @moveCursorTo @cursor.next
 
-    if attemptReparse then @reparseHandwrittenBlocks()
+    if attemptReparse
+      @reparseHandwrittenBlocks()
 
     @redrawMain()
   
@@ -1480,11 +1483,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   # Pressing the up-arrow moves the cursor up.
   hook 'key.up', 0, ->
+    @clearLassoSelection()
     @setTextInputFocus null
     @moveCursorUp()
   
   # Pressing the down-arrow moves the cursor down.
   hook 'key.down', 0, ->
+    @clearLassoSelection()
     @setTextInputFocus null
     @reparseHandwrittenBlocks()
     @moveCursorTo @cursor.next.next

@@ -535,11 +535,13 @@ define ['ice-draw'], (draw) ->
       if style.selected > 0
         @path.style.fillColor = '#00F'
         @path.style.strokeColor = '#008'
+        
+        oldaAlpha = ctx.globalAlpha
         ctx.globalAlpha *= 0.3
 
         @path.draw ctx
-
-        ctx.globalAlpha /= 0.3
+        
+        ctx.globalAlpha = oldAlpha
 
         @path.style.fillColor = @block.color
         @path.style.strokeColor = if @block.lineMarkStyles.length > 0 then @block.lineMarkStyles[0].color else '#000'
