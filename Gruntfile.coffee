@@ -55,9 +55,10 @@ module.exports = (grunt) ->
             'ice-draw': 'draw'
             'ice-coffee': 'coffee'
             'ice-parser': 'parser'
-          name: 'main'
+            'ice': 'main'
+          name: 'ice'
           optimize: 'none'
-          out: 'example/main.js'
+          out: 'dist/ice.js'
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
