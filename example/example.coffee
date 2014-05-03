@@ -3,7 +3,7 @@
 require.config
   urlArgs: "bust=" + (new Date()).getTime()
 
-require ['main'], (ice) ->
+require ['ice'], (ice) ->
   # Example palette
   window.editor = new ice.Editor document.getElementById('editor'), [
     {

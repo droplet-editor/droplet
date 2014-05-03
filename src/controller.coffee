@@ -352,6 +352,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # all mutation must call addMicroUndoOperation.
     for binding in editorBindings.mutation
       binding.call this
+    
+    # If someone has bound to mutation via
+    # the public API, fire it.
+    @fireEvent 'change', operation
   
   # The undo function pops and undoes
   # operations from the undo stack until
@@ -2151,10 +2155,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     until head is @tree.end
       if head.type is 'blockStart'
-        for style, i in head.block.lineMarkStyles
-          if style.tag is tag
-            head.block.lineMarkStyles.splice i, 1
-            break
+        # If clearLineMarks is called without
+        # a tag to clear, clear all tags.
+        unless tag?
+          head.block.lineMarkStyles.length = 0
+
+        # Otherwise, clear the selected tag.
+        else
+          for style, i in head.block.lineMarkStyles
+            if style.tag is tag
+              head.block.lineMarkStyles.splice i, 1
+              break
 
       head = head.next
 
@@ -2162,12 +2173,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # ================================
   
   hook 'mousemove', 0, (point, event, state) ->
-    if @onLineHover?
+    if @hasEvent event
       mainPoint = @trackerPointToMain point
 
       for line in [@tree.view.lineStart..@tree.view.lineEnd]
         if @tree.view.bounds[line].contains mainPoint
-          @onLineHover line: line
+          @fireEvent 'linehover', [line: line]
 
   # GET/SET VALUE SUPPORT
   # ================================
@@ -2203,6 +2214,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       return success: false, error: e
 
   Editor::getValue = -> @tree.stringify()
+  
+  # PUBLIC EVENT BINDING HOOKS
+  # ===============================
+  
+  hook 'populate', 0, ->
+    @bindings = {}
+
+  Editor::on = (event, handler) ->
+    @bindings[event] = handler
+
+  Editor::once = (event, handler) ->
+    @bindings[event] = ->
+      handler.apply this, arguments
+      @bindings[event] = null
+  
+  Editor::fireEvent = (event, args) ->
+    if event of @bindings
+      @bindings[event].apply this, args
+
+  Editor::hasEvent = (event) -> event of @bindings and @bindings[event]?
   
   # CLOSING FOUNDATIONAL STUFF
   # ================================
