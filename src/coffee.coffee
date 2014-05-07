@@ -193,7 +193,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # Editor; it signifies nothing visual.
         # We pass along to its children
         when 'Value'
-          mark node.base, precedence
+          mark node.base, precedence, wrappingParen
         
         # ### Literal ###
         # Pass for literals.
@@ -273,7 +273,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # A Range has two children and is rendered VALUE.
         # Nothing particularly interesting.
         when 'Range'
-          addBlock node, precedence, colors.VALUE, wrappingParen
+          addBlock node, 7, colors.VALUE, wrappingParen
           addSocket node.from; addSocket node.to
         
         # ### If ###
@@ -339,7 +339,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # we will simply signify to the child node that it must wrap
         # itself in these parentheses.
         when 'Parens'
-          if node.body? then addSocket node.body.unwrap(), 0, node
+          if node.body? then mark node.body.unwrap(), 0, node
         
         # ### Obj ###
         # Objects can be one-line or multiline,

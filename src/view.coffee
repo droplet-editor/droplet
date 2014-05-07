@@ -536,7 +536,7 @@ define ['ice-draw'], (draw) ->
         @path.style.fillColor = '#00F'
         @path.style.strokeColor = '#008'
         
-        oldaAlpha = ctx.globalAlpha
+        oldAlpha = ctx.globalAlpha
         ctx.globalAlpha *= 0.3
 
         @path.draw ctx

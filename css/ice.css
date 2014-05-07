@@ -47,7 +47,11 @@
   z-index: 3;
   cursor: default;
   overflow: hidden;
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
 }
 .ice-ace {
@@ -58,14 +62,15 @@
 .ice-main-scroller {
   position: absolute;
   top: 0; left: 300px; bottom: 0; right: 0;
-  z-index: 0;
+  z-index: 300;
   overflow: auto;
 }
 .ice-palette-scroller {
   position: absolute;
   left: 0; top: 150px; bottom: 0; width: 300px;
-  z-index: 0;
-  overflow: auto;
+  z-index: 300;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .ice-palette-header {
   z-index: 257;
@@ -74,22 +79,26 @@
   left: 0;
   width: 300px;
   background-color: #DDD;
+  line-height: 10px;
   border-bottom: 2px solid #000;
+  font-size: 15px;
+  display: table;
+}
+.ice-palette-header-row {
+  display: table-row;
+  height: 30px;
+  width: 100%;
 }
 .ice-palette-group-header {
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
-  display: inline-block;
+  display: table-cell;
   width: 50%;
-  height: 30px; /* True height should be constant 30px */
-  padding: 5px;
-  font-size: 15px;
   font-family: sans-serif;
-  line-height: auto;
+  line-height: 30px;
   cursor: pointer;
+  overflow: hidden;
 }
 .ice-palette-group-header-selected {
-  display: inline-block;
+  display: table-cell;
   width: 50%;
   cursor: pointer;
   background-color: #000;
@@ -105,4 +114,10 @@
 }
 .ice-hover-div {
   position: absolute;
+}
+
+.ice-palette-scroller-stuffing {
+  /* Temporary hack to prevent bad side-scrolling
+   * behaviour when dragging blocks out of the palette */
+  overflow-x: hidden;
 }

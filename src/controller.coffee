@@ -173,7 +173,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @iceElement.style.width ="#{ @wrapperElement.offsetWidth}px"
 
       @mainCanvas.height = @iceElement.offsetHeight
-      @mainCanvas.width = @iceElement.offsetWidth - PALETTE_WIDTH
+      @mainCanvas.width = @iceElement.offsetWidth
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
@@ -355,7 +355,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     
     # If someone has bound to mutation via
     # the public API, fire it.
-    @fireEvent 'change', operation
+    @fireEvent 'change', [operation]
   
   # The undo function pops and undoes
   # operations from the undo stack until
@@ -510,7 +510,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   # On resize, we will want to size the drag canvas correctly.
   hook 'resize', 0, ->
-    @dragCanvas.width = @iceElement.offsetWidth - PALETTE_WIDTH
+    @dragCanvas.width = @iceElement.offsetWidth * 2 - PALETTE_WIDTH
     @dragCanvas.height = @iceElement.offsetHeight
   
   # On mousedown, we will want to
@@ -706,10 +706,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @draggingBlock = null
       @draggingOffset = null
       @lastHighlight = null
-
-      # Move the drag canvas out of the way
-      @dragCanvas.style.top = "-9999px"
-      @dragCanvas.style.left = "-9999px"
       
       @clearDrag()
       @redrawMain()
@@ -860,6 +856,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # Append the element.
     @iceElement.appendChild @paletteHeader
 
+    # Keep track of the row that we are on
+    # in our table layout
+    paletteHeaderRow = document.createElement 'div'
+    paletteHeaderRow.className = 'ice-palette-header-row'
+
+    @paletteHeader.appendChild paletteHeaderRow
+
     for paletteGroup, i in @paletteGroups then do (paletteGroup) =>
       # Clone all the blocks so as not to
       # intrude on outside stuff
@@ -870,7 +873,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       paletteGroupHeader.className = 'ice-palette-group-header'
       paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
 
-      @paletteHeader.appendChild paletteGroupHeader
+      paletteHeaderRow.appendChild paletteGroupHeader
+      
+      # Start a new row, if we're at that point
+      # in our appending cycle
+      if i % 2 is 1
+        paletteHeaderRow = document.createElement 'div'
+        paletteHeaderRow.className = 'ice-palette-header-row'
+        @paletteHeader.appendChild paletteHeaderRow
       
       # When we click this element,
       # we should switch to it in the palette.
@@ -939,6 +949,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   # We will also have mouseover texts for blocks.
   # This is an experimental feature right now.
   hook 'redraw_palette', 0, ->
+    # Remove the existent blocks
+    @paletteScrollerStuffing.innerHTML = ''
+
+    # Add new blocks
     for block in @currentPaletteBlocks
       hoverDiv = document.createElement 'div'
       hoverDiv.className = 'ice-hover-div'
@@ -950,7 +964,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       hoverDiv.style.top = "#{bounds.y}px"
       hoverDiv.style.left = "#{bounds.x}px"
-      hoverDiv.style.width = "#{bounds.width}px"
+
+      # Clip boxes to the width of the palette to prevent x-scrolling. TODO: fix x-scrolling behaviour.
+      hoverDiv.style.width = "#{Math.min(bounds.width, @paletteScroller.offsetWidth - PALETTE_LEFT_MARGIN)}px"
       hoverDiv.style.height = "#{bounds.height}px"
 
       @paletteScrollerStuffing.appendChild hoverDiv
@@ -1870,7 +1886,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
   Editor::performMeltAnimation = ->
     if @currentlyUsingBlocks and not @currentlyAnimating
       @currentlyUsingBlocks = false
-      @currentAnimating = true
+      @currentlyAnimating = true
 
       @redrawMain()
 
@@ -1956,16 +1972,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       unless setValueResult.success
         return setValueResult
 
+      @setFontSize @aceEditor.getFontSize()
       @redrawMain()
 
       @currentlyUsingBlocks = true
       @currentlyAnimating = true
+      console.log 'set OFF'
 
       @aceElement.style.top = "-9999px"
       @aceElement.style.left = "-9999px"
 
       @iceElement.style.top = "0px"
       @iceElement.style.left = "0px"
+
+      @paletteHeader.style.zIndex = 0
 
       {textElements, translationVectors} = @computePlaintextTranslationVectors()
 
@@ -2011,6 +2031,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       return success: true
 
   Editor::toggleBlocks = ->
+    console.log @currentlyAnimating
     if @currentlyUsingBlocks
       return @performMeltAnimation()
     else
@@ -2027,7 +2048,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     
     @mainScroller = document.createElement 'div'
     @mainScroller.className = 'ice-main-scroller'
+
     @mainScrollerStuffing = document.createElement 'div'
+    @mainScrollerStuffing.className = 'ice-main-scroller-stuffing'
 
     @mainScroller.appendChild @mainScrollerStuffing
     @tracker.appendChild @mainScroller
@@ -2042,14 +2065,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
     @paletteScroller = document.createElement 'div'
     @paletteScroller.className = 'ice-palette-scroller'
+
     @paletteScrollerStuffing = document.createElement 'div'
+    @paletteScrollerStuffing.className = 'ice-palette-scroller-stuffing'
 
     @paletteScroller.appendChild @paletteScrollerStuffing
     @tracker.appendChild @paletteScroller
 
     @paletteScroller.addEventListener 'scroll', =>
       @scrollOffsets.palette.y = @paletteScroller.scrollTop
-      @scrollOffsets.palette.x = @paletteScroller.scrollLeft
+
+      # Temporarily ignoring x-scroll to fix bad x-scrolling behaviour
+      # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
+      #@scrollOffsets.palette.x = @paletteScroller.scrollLeft
 
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
@@ -2075,8 +2103,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     bounds = new draw.NoRectangle()
     for block in @currentPaletteBlocks
       bounds.unite block.view.getBounds()
-
-    @paletteScrollerStuffing.style.width = "#{bounds.right()}px"
+    
+    # For now, we will comment out this line
+    # due to bugs
+    #@paletteScrollerStuffing.style.width = "#{bounds.right()}px"
     @paletteScrollerStuffing.style.height = "#{bounds.bottom()}px"
 
   # MULTIPLE FONT SIZE SUPPORT
@@ -2086,6 +2116,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   Editor::setFontSize = (fontSize) ->
     @fontSize = fontSize
+    @paletteHeader.style.fontSize = "#{fontSize}px"
     @redrawMain(); @redrawPalette()
 
   # MUTATION BUTTON SUPPORT
@@ -2169,16 +2200,32 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       head = head.next
 
+    @redrawMain()
+
   # LINE HOVER SUPPORT
   # ================================
+
+  hook 'populate', 0, ->
+    @lastHoveredLine = null
   
   hook 'mousemove', 0, (point, event, state) ->
-    if @hasEvent event
+    # Do not attempt to detect this if we are currently dragging something,
+    # or no event handlers are bound.
+    if not @draggingBlock? and not @clickedBlock? and @hasEvent 'linehover'
       mainPoint = @trackerPointToMain point
-
+      
+      # Brute force find the hovered line
       for line in [@tree.view.lineStart..@tree.view.lineEnd]
         if @tree.view.bounds[line].contains mainPoint
-          @fireEvent 'linehover', [line: line]
+          # If the hovered line _changed_, fire the event
+          if line isnt @lastHoveredLine then @fireEvent 'linehover', [line: line]
+          @lastHoveredLine = line
+          return
+      
+      # Fire the event with line: null if there was no hovered line,
+      # but again only if this is news.
+      if @lastHoveredLine isnt null then @fireEvent 'linehover', [line: null]
+      @lastHoveredLine = null
 
   # GET/SET VALUE SUPPORT
   # ================================
@@ -2234,6 +2281,44 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @bindings[event].apply this, args
 
   Editor::hasEvent = (event) -> event of @bindings and @bindings[event]?
+
+  # SYNCHRONOUS TOGGLE SUPPORT
+  # ================================
+
+  Editor::setEditorState = (useBlocks) ->
+    if useBlocks
+      @setValue @aceEditor.getValue()
+
+      @iceElement.style.top = @iceElement.style.left = '0px'
+      @aceElement.style.top = @aceElement.style.left = '-9999px'
+      @currentlyUsingBlocks = true
+
+      @resize(); @redrawMain()
+
+    else
+      @aceEditor.setValue @getValue(), -1
+
+      @iceElement.style.top = @iceElement.style.left = '-9999px'
+      @aceElement.style.top = @aceElement.style.left = '0px'
+      @currentlyUsingBlocks = false
+
+      @resize()
+
+  # DRAG CANVS SHOW/HIDE HACK
+  # ================================
+  
+  # On mousedown, bring the drag
+  # canvas to the front so that it
+  # appears to "float" over all other elements
+  hook 'mousedown', 0, ->
+    @dragCanvas.style.zIndex = 300
+  
+  # On mouseup, throw the drag canvas away completely.
+  hook 'mouseup', 0, ->
+    @dragCanvas.style.top =
+      @dragCanvas.style.left = '-9999px'
+
+    @dragCanvas.style.zIndex = 0
   
   # CLOSING FOUNDATIONAL STUFF
   # ================================
