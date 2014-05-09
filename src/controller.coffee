@@ -2242,9 +2242,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       editor.tree = @newValue.clone()
 
       return editor.tree.start
+  
+  # Whitespace trimming hack enable/disable
+  # setter
+  hook 'populate', 0, ->
+    @trimWhitespace = false
+
+  Editor::setTrimWhitespace = (trimWhitespace) ->
+    @trimWhitespace = trimWhitespace
 
   Editor::setValue = (value) ->
     try
+      # Whitespace trimming hack to account
+      # for ACE editor extra line in some applications
+      if @trimWhitespace then value = value.trim()
+
       newParse = coffee.parse value
       
       if value isnt @tree.stringify()
@@ -2304,7 +2316,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @resize()
 
-  # DRAG CANVS SHOW/HIDE HACK
+  # DRAG CANVAS SHOW/HIDE HACK
   # ================================
   
   # On mousedown, bring the drag
