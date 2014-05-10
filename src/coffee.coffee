@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau.
 # MIT License.
 
-define ['ice-model', 'ice-parser'], (model, parser) ->
+define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScript) ->
   # Sample colour scheme.
   colors =
     COMMAND: '#268bd2'
