@@ -52,6 +52,14 @@ module.exports = (grunt) ->
         files:
           'dist/ice.min.js': ['dist/ice.js']
 
+    cssmin:
+      options:
+        banner: '/* ICE Editor stylesheet.\nCopyright (c) 2014 Anthony Bau.\nMIT License.\n*/'
+      minify:
+        src: ['css/ice.css']
+        dest: 'dist/ice.min.css'
+        ext: '.min.css'
+
     concat:
       options:
         banner: '/*! ICE Editor.\n Copyright (c) 2014 Anthony Bau\n MIT License\n*/\n(function() {'
@@ -68,6 +76,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-qunit'
   grunt.loadNpmTasks 'grunt-docco'
   grunt.loadNpmTasks 'grunt-contrib-requirejs'
+  grunt.loadNpmTasks 'grunt-contrib-cssmin'
 
   grunt.registerTask 'default', ['coffee', 'docco', 'requirejs']
   grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
