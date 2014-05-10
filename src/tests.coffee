@@ -1,86 +1,116 @@
-test 'Lisp unity', ->
-  testString = (string) ->
-    equal ICE.lispParse(string).toString({indent:''}), string, "Unity test"
+require ['ice-coffee'], (coffee) ->
+  test 'Parser unity', ->
+    testString = (str) ->
+      equal str, coffee.parse(str).stringify(), 'Unity test on ' + str
 
-  testString '(a b)'
-  testString '(a b (c d (e)))'
-  testString '(a b) (c d e (f g) h (i j k) (l m n) (((o) p)))'
-  testString '''
-    (def Y (lambda (g)
-      ((lambda (f) (g f f)) (lambda (f) (g f f)))))
-  '''
-  testString '''
-    To be thus is nothing,
-    But to be safely thus. Our fears in Banquo
-    Stick deep, and in his royalty of nature
-    Reigns that which would be feared. 'Tis much he
-    dares,
-  '''
-
-test 'Indent unity', ->
-  testString = (string) ->
-    equal ICE.indentParse(string).toString({indent:''}), string, "Unity test"
-  
-  testString 'hello'
-  testString '''
+    testString 'fd 10'
+    testString 'fd 10 + 10'
+    testString 'console.log 10 + 10'
+    testString '''
+    for i in [1..10]
+      console.log 10 + 10
+    '''
+    testString '''
+    array = []
     if a is b
-      b c
-  '''
-  testString '''
-    Stars
-      In your multitudes
-      Scarce to be
-        Counted
-      Filling the 
-        Darkness
-      With
-        Order and light
-      You are the
-        Sentinels
-        Silent and sure
-          Keeping watch in the night
-          Keeping watch in the night
-    You know your place in the sky
-  '''
+      while p is q
+        make spaghetti
+        eat spaghetti
+        array.push spaghetti
+      for i in [1..10]
+        console.log 10 + 10
+    else
+      see 'hi'
+      for key, value in window
+        see key + ' is ' + value
+        see key is value
+        see array[n]
+    '''
 
-test 'Lisp find', ->
-  testString = (string, fn, expected) ->
-    equal ICE.lispParse(string).next.next.next.block.find(fn).toString({indent:''}), expected, "Find test on #{expected}"
+  test 'Get block on line', ->
+    document = coffee.parse '''
+    for i in [1..10]
+      see i
+    if a is b
+      see k
+      if b is c
+        see q
+    else
+      see j
+    '''
 
-  testString '(a b)', (-> true), '(a b)'
-  testString '(a (b c))', (-> true), '(b c)'
-  testString '(a (b (c (d))) e)', (-> true), '(d)'
-  testString '(a (b c) (d e))', (-> true), '(b c)'
-  testString '(a (b c) (d e))', ((block) -> block.start.next.next.value is 'd'), '(d e)'
-  testString '''
-    (def Y (lambda (g)
-      ((lambda (f) (g f f)) (lambda (f) (g f f)))))
-  ''', ((block) -> block.start.next.next.value is 'f'), '(f)'
-  testString '''
-    (def Y (lambda (g)
-      ((lambda (f) (totally-unique f f)) (lambda (f) (g f f)))))
-  ''', ((block) -> block.start.next.next.value is 'totally-unique'), '(totally-unique f f)'
-  testString '''
-    (def Y (lambda (g)
-      ((lambda (f) (totally-unique f f)) (lambda (f) (g f f)))))
-  ''', (-> false), '''
-    (def Y (lambda (g)
-      ((lambda (f) (totally-unique f f)) (lambda (f) (g f f)))))
-  '''
+    equal document.getBlockOnLine(1).stringify(), 'see i', 'line 1'
+    equal document.getBlockOnLine(3).stringify(), 'see k', 'line 3'
+    equal document.getBlockOnLine(5).stringify(), 'see q', 'line 5'
+    equal document.getBlockOnLine(7).stringify(), 'see j', 'line 7'
 
-test 'Lisp tree manipulation', ->
-  start = ICE.lispParse '''
-    (def Y (lambda (g)
-      ((lambda (f) (g f f)) (lambda (f) (g f f)))))
-  '''
+  test 'Location serialization unity', ->
+    document = coffee.parse '''
+    for i in [1..10]
+      console.log hello
+      if a is b
+        console.log world
+    '''
 
-  block = start.next.next.next.block
-  lambda = block.find (x) -> x.start.next.next.value is 'lambda'
+    head = document.start.next
+    until head is document.end
+      equal document.getTokenAtLocation(head.getSerializedLocation()), head, 'Equality for ' + head.type
+      head = head.next
 
-  lambda._moveTo(block.start.next)
+  test 'Block move', ->
+    document = coffee.parse '''
+    for i in [1..10]
+      console.log hello
+      console.log world
+    '''
 
-  equal block.toString({indent:''}), '''
-    ((lambda (f) (g f f))def Y (lambda (g)
-      ( (lambda (f) (g f f)))))
-  ''', 'Y-combinator tree move'
+    document.getBlockOnLine(2).moveTo document.start
 
+    equal document.stringify(), '''
+    console.log world
+    for i in [1..10]
+      console.log hello
+    ''', 'Move console.log world out'
+
+    document.getBlockOnLine(2).moveTo document.start
+
+    equal document.stringify(), '''
+    console.log hello
+    console.log world
+    for i in [1..10]
+      
+    ''', 'Move both out'
+    
+    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.indent.start
+
+    equal document.stringify(), '''
+    console.log world
+    for i in [1..10]
+      console.log hello
+    ''', 'Move hello back in'
+
+    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.socket.start
+
+    equal document.stringify(), '''
+    console.log (for i in [1..10]
+      console.log hello)
+    ''', 'Move for into socket (req. paren wrap)'
+
+  test 'Paren wrap', ->
+    document = coffee.parse '''
+    Math.sqrt 2
+    see 1 + 1
+    '''
+
+    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.socket.start
+
+    equal document.stringify(), '''
+    see 1 + (Math.sqrt 2)
+    ''', 'Wrap'
+
+    block.moveTo document.start
+
+    equal document.stringify(), '''
+    Math.sqrt 2
+    see 1 + 
+    ''', 'Unwrap'

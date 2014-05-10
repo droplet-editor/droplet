@@ -7,9 +7,15 @@ module.exports = (grunt) ->
       build:
         files:
           'js/draw.js': ['src/draw.coffee']
-          'js/ice.js': ['src/ice.coffee', 'src/paper.coffee', 'src/controller.coffee']
-          'js/tests.js': ['src/tests.coffee']
+          'js/model.js': ['src/model.coffee']
+          'js/view.js': ['src/view.coffee']
+          'js/controller.js': ['src/controller.coffee']
           'js/coffee.js': ['src/coffee.coffee']
+          'js/parser.js': ['src/parser.coffee']
+          'js/main.js': ['src/main.coffee']
+
+          'test/tests.js': ['src/tests.coffee']
+          'example/example.js': ['example/example.coffee']
 
     uglify:
       options:
@@ -17,7 +23,6 @@ module.exports = (grunt) ->
         mangle: false
       build:
         files:
-          'js/ice.min.js': 'js/ice.js'
           'js/tests.min.js': 'js/tests.js'
           'js/draw.min.js':'js/draw.js'
 
@@ -31,13 +36,38 @@ module.exports = (grunt) ->
 
     qunit:
       all: ['test/*.html']
+
+    docco:
+      debug:
+        src: ['src/*.coffee']
+        options:
+          output: 'docs/'
+          layout: 'parallel'
+
+    requirejs:
+      compile:
+        options:
+          baseUrl: 'js'
+          paths:
+            'ice-view': 'view'
+            'ice-controller': 'controller'
+            'ice-model': 'model'
+            'ice-draw': 'draw'
+            'ice-coffee': 'coffee'
+            'ice-parser': 'parser'
+            'ice': 'main'
+          name: 'ice'
+          optimize: 'none'
+          out: 'dist/ice.js'
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-concat'
   grunt.loadNpmTasks 'grunt-contrib-qunit'
+  grunt.loadNpmTasks 'grunt-docco'
+  grunt.loadNpmTasks 'grunt-contrib-requirejs'
 
-  grunt.registerTask 'default', ['coffee', 'uglify', 'concat']
+  grunt.registerTask 'default', ['coffee', 'docco', 'requirejs']
   grunt.registerTask 'all', ['coffee', 'uglify', 'concat', 'qunit']
   grunt.registerTask 'test', ['qunit']

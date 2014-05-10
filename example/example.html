@@ -1,73 +1,89 @@
 <html>
   <head>
     <title>ICE Editor Demo</title>
-    <script src="../vendor/underscore-min.js"></script>
+    <script src="../vendor/ace/ace.js"></script>
+    <script src="../vendor/keypress-2.0.1.min.js"></script>
     <script src="../vendor/coffee-script.js"></script>
-    <script src="../js/draw.js"></script>
-    <script src="../js/ice.js"></script>
-    <script src="../js/coffee.js"></script>
-    <script>RUN_PAPER_TESTS=true</script>
-    <!--<script src="../dist/ice.min.js"-->
+    <script src="../vendor/require.js"></script>
+    <script src="example.js"></script>
+    <link rel="stylesheet" href="../css/ice.css"/>
     <style>
-      /* Icy */
-      .palette, .drag, .canvas {
-        position: absolute;
-      }
-      .canvas, .drag {
-        left: 300;
-        top: 0;
-      }
-      .drag {
-        z-index: 2
-      }
-      .palette {
-        width: 300px;
-        top: 0;
-        left: 0;
-      }
-      .palette, .canvas {
-        border: 1px solid #000;
-        background-color:#EEE;
-        z-index: 1;
-      }
-      .palette {
-        background-color:#DDD;
-      }
-      .hidden_input {
-        position: absolute;
-        top: -9999;
-        left: -9999;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-      #editor {
-        position: relative;
-        height: 500px;
-        width: 1300px;
-        cursor: default;
+      body {
+        font-family: sans-serif;
         overflow: hidden;
-        -webkit-user-select: none;
-        user-select: none;
+        margin: 0px; padding: 0px;
       }
-      .trackArea {
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 3;
-      }
-      /* specific */
       #out {
         height: 200px;
         width: 500px;
+      }
+      #editor {
+        position: absolute;
+        top: 0;
+        bottom: 0px;
+        right: 0px;
+        left: 0px;
+        background-color: #EEE;
+        z-index: 0;
+      }
+      #out_wrapper {
+        position: absolute;
+        top: 0px; left: 0; right: 900px; bottom: 0;
+      }
+      #out {
+        width: 100%; height: 100%;
+      }
+      #toolbar {
+        z-index: 9999;
+        position: absolute;
+        height: 70px;
+        width: 320px;
+        top: 0;
+        right: 0;
+      }
+      #message {
+        color: #F00;
+        display: none;
+        font-family: inherit;
+        font-size: 13px;
+        padding-left: 10px;
+      }
+      #which_example {
+        height: 30px;
+        line-height: 30px;
+        vertical-align: top;
+        font-size: 13px;
+        position: absolute;
+        background: #FFF;
+        top: 0;
+        width: 150px;
+        right: 160px;
+        cursor: pointer;
+      }
+      #toggle {
+        height: 30px;
+        line-height: 30px;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 150px;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
     <div id='editor'>
     </div>
-    <textarea id="out"></textarea>
-    <button id='freeze'>Freeze</button>
+    <div id='toolbar'>
+      <button id='toggle'>Toggle Blocks</button>
+      <select id='which_example'>
+        <option value='fizzbuzz'>Fizzbuzz</option>
+        <option value='quicksort'>Quicksort</option>
+        <option value='church'>Church Numerals</option>
+      </select>
+      <span id='message'></span>
+    </div>
+    <div id='logs'><div id="logsContent"></div></div>
+    <div id='closeLogs'>x</div>
   </body>
 </html>
