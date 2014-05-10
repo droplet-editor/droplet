@@ -41,13 +41,12 @@ module.exports = (grunt) ->
             'ice-parser': 'parser'
             'ice': 'main'
           name: 'ice'
-          optimize: 'none'
+          optimize: 'uglify'
           out: 'dist/ice.js'
 
     uglify:
       options:
         banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
-        mangle: false
       build:
         files:
           'dist/ice.min.js': ['dist/ice.js']
