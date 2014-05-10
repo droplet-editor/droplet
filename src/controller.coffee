@@ -2272,7 +2272,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     catch e
       return success: false, error: e
 
-  Editor::getValue = -> @tree.stringify()
+  Editor::getValue = -> if @currentlyUsingBlocks then @tree.stringify() else @aceEditor.getValue()
   
   # PUBLIC EVENT BINDING HOOKS
   # ===============================
