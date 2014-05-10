@@ -1977,7 +1977,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       @currentlyUsingBlocks = true
       @currentlyAnimating = true
-      console.log 'set OFF'
 
       @aceElement.style.top = "-9999px"
       @aceElement.style.left = "-9999px"
@@ -2031,7 +2030,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       return success: true
 
   Editor::toggleBlocks = ->
-    console.log @currentlyAnimating
     if @currentlyUsingBlocks
       return @performMeltAnimation()
     else
