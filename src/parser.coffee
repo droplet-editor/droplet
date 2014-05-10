@@ -333,8 +333,6 @@ define ['ice-model'], (model) ->
           
           head.append segment.end
           
-          console.log 'generated', segment.stringify()
-          
           return button
   
   return exports
