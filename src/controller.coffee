@@ -1885,12 +1885,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
   Editor::performMeltAnimation = ->
     if @currentlyUsingBlocks and not @currentlyAnimating
+      @aceEditor.setValue @getValue(), -1
+
       @currentlyUsingBlocks = false
       @currentlyAnimating = true
 
       @redrawMain()
-
-      @aceEditor.setValue @getValue(), -1
 
       # Move the palette header into the background
       @paletteHeader.style.zIndex = 0
