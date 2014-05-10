@@ -101,7 +101,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # The first of these is indents, where CoffeeScript
       # usually only gives one line. We will instead take
       # the last expression inside the block as the ending bound.
-      if node.constructor.name is 'Block'
+      if node.nodeType() is 'Block'
         unless start.line is 0
           start.line -= 1; start.column = text[start.line].length
         end = getBounds(node.expressions[node.expressions.length - 1]).end
@@ -109,13 +109,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # When CoffeeScript gives an if statement,
       # it only encloses the "if", and not the "else"
       # if it exists. If there is an "else", enclose it too.
-      if node.constructor.name is 'If' and node.elseBody?
+      if node.nodeType() is 'If' and node.elseBody?
         end = getBounds(node.elseBody).end
 
       # CoffeeScript's "while" node location data
       # only encloses the line containing "while".
       # Enclose the body too.
-      if node.constructor.name is 'While'
+      if node.nodeType() is 'While'
         end = getBounds(node.body).end
       
       # Sometimes CoffeeScript can grant blocks
@@ -149,7 +149,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # The core recursive function for adding the markup associated
     # with a parse tree.
     mark = (node, precedence = 0, wrappingParen = null) ->
-      switch node.constructor.name
+      switch node.nodeType()
 
         # ### Block ###
         # A Block is an indented bit of code,

@@ -41,7 +41,7 @@ module.exports = (grunt) ->
             'ice-parser': 'parser'
             'ice': 'main'
           name: 'ice'
-          optimize: 'none'
+          optimize: 'uglify'
           out: 'dist/ice.js'
 
     uglify:
