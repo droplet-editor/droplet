@@ -1302,7 +1302,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # already there.
     unless state.clickedLassoSegment then @clearLassoSelection()
     
-    if state.consumedHitTest then return
+    if state.consumedHitTest or state.suppressLassoSelect then return
     
     # If the point was actually in the main canvas,
     # start a lasso select.
@@ -2341,21 +2341,80 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     'touchmove': 'mousemove'
     'touchend': 'mouseup'
 
+  # A timeout for selection
+  TOUCH_SELECTION_TIMEOUT = 2000
+
   # We will bind the same way as mouse events do,
   # wrapping to be compatible with a mouse event interface.
+  #
+  # When users drag with multiple fingers, we emulate scrolling.
+  # Otherwise, we emulate mousedown/mouseup
   hook 'populate', 0, ->
-    for touchEvent, mouseEvent of touchEvents then do (touchEvent, mouseEvent) =>
-      @tracker.addEventListener touchEvent, (event) =>
-        # We will take the first touch (we do not support multitouch)
-        trackPoint = @getPointRelativeToTracker event.touches[0]
-        
-        # We keep a state object so that handlers
-        # can know about each other.
-        state = {}
-        
-        # Call all the handlers.
-        for handler in editorBindings[mouseEvent]
-          handler.call this, trackPoint, event, state
+    @touchScrollAnchor = new draw.Point 0, 0
+    @lassoSelectStartTimeout = null
+
+    @tracker.addEventListener 'touchstart', (event) =>
+      clearTimeout @lassoSelectStartTimeout
+
+      trackPoint = @getPointRelativeToTracker event.touches[0]
+      
+      # We keep a state object so that handlers
+      # can know about each other.
+      #
+      # We will suppress lasso select to 
+      # allow scrolling.
+      state = {
+        suppressLassoSelect: true
+      }
+      
+      # Call all the handlers.
+      for handler in editorBindings.mousedown
+        handler.call this, trackPoint, event, state
+      
+      # If we did not hit anything,
+      # we may want to start a lasso select
+      # in a little bit.
+      unless state.consumedHitTest
+        @lassoSelectStartTimeout = setTimeout TOUCH_SELECTION_TIMEOUT, ->
+          state = {}
+
+          for handler in editorBindings.mousedown
+            handler.call this, trackPoint, event, state
+      
+      event.preventDefault()
+
+    @tracker.addEventListener 'touchmove', (event) =>
+      clearTimeout @lassoSelectStartTimeout
+
+      trackPoint = @getPointRelativeToTracker event.touches[0]
+      
+      # We keep a state object so that handlers
+      # can know about each other.
+      state = {}
+      
+      # Call all the handlers.
+      for handler in editorBindings.mousedown
+        handler.call this, trackPoint, event, state
+      
+      # If we are in the middle of some action,
+      # prevent scrolling.
+      if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor?
+        event.preventDefault()
+
+    @tracker.addEventListener 'mouseup', (event) =>
+      clearTimeout @lassoSelectStartTimeout
+
+      trackPoint = @getPointRelativeToTracker event.touches[0]
+      
+      # We keep a state object so that handlers
+      # can know about each other.
+      state = {}
+      
+      # Call all the handlers.
+      for handler in editorBindings.mousedown
+        handler.call this, trackPoint, event, state
+      
+      event.preventDefault()
   
   # CLOSING FOUNDATIONAL STUFF
   # ================================
