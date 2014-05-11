@@ -2329,6 +2329,33 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       @dragCanvas.style.left = '-9999px'
 
     @dragCanvas.style.zIndex = 0
+
+  # TOUCHSCREEN SUPPORT
+  # =================================
+  
+  # We will attempt to emulate
+  # mouse events using touchstart/end
+  # data.
+  touchEvents =
+    'touchstart': 'mousedown'
+    'touchmove': 'mousemove'
+    'touchend': 'mouseup'
+
+  # We will bind the same way as mouse events do,
+  # wrapping to be compatible with a mouse event interface.
+  hook 'populate', 0, ->
+    for touchEvent, mouseEvent of touchEvents then do (touchEvent, mouseEvent) =>
+      @tracker.addEventListener touchEvent, (event) =>
+        # We will take the first touch (we do not support multitouch)
+        trackPoint = @getPointRelativeToTracker event.touches[0]
+        
+        # We keep a state object so that handlers
+        # can know about each other.
+        state = {}
+        
+        # Call all the handlers.
+        for handler in editorBindings[mouseEvent]
+          handler.call this, trackPoint, event, state
   
   # CLOSING FOUNDATIONAL STUFF
   # ================================
