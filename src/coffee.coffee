@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau.
 # MIT License.
 
-define ['ice-model', 'ice-parser'], (model, parser) ->
+define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScript) ->
   # Sample colour scheme.
   colors =
     COMMAND: '#268bd2'
@@ -101,7 +101,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
       # The first of these is indents, where CoffeeScript
       # usually only gives one line. We will instead take
       # the last expression inside the block as the ending bound.
-      if node.constructor.name is 'Block'
+      if node.nodeType() is 'Block'
         unless start.line is 0
           start.line -= 1; start.column = text[start.line].length
         end = getBounds(node.expressions[node.expressions.length - 1]).end
@@ -109,13 +109,13 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
       # When CoffeeScript gives an if statement,
       # it only encloses the "if", and not the "else"
       # if it exists. If there is an "else", enclose it too.
-      if node.constructor.name is 'If' and node.elseBody?
+      if node.nodeType() is 'If' and node.elseBody?
         end = getBounds(node.elseBody).end
 
       # CoffeeScript's "while" node location data
       # only encloses the line containing "while".
       # Enclose the body too.
-      if node.constructor.name is 'While'
+      if node.nodeType() is 'While'
         end = getBounds(node.body).end
       
       # Sometimes CoffeeScript can grant blocks
@@ -149,7 +149,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
     # The core recursive function for adding the markup associated
     # with a parse tree.
     mark = (node, precedence = 0, wrappingParen = null) ->
-      switch node.constructor.name
+      switch node.nodeType()
 
         # ### Block ###
         # A Block is an indented bit of code,
@@ -193,7 +193,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # Editor; it signifies nothing visual.
         # We pass along to its children
         when 'Value'
-          mark node.base, precedence
+          mark node.base, precedence, wrappingParen
         
         # ### Literal ###
         # Pass for literals.
@@ -273,7 +273,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # A Range has two children and is rendered VALUE.
         # Nothing particularly interesting.
         when 'Range'
-          addBlock node, precedence, colors.VALUE, wrappingParen
+          addBlock node, 7, colors.VALUE, wrappingParen
           addSocket node.from; addSocket node.to
         
         # ### If ###
@@ -339,7 +339,7 @@ define ['ice-model', 'ice-parser'], (model, parser) ->
         # we will simply signify to the child node that it must wrap
         # itself in these parentheses.
         when 'Parens'
-          if node.body? then addSocket node.body.unwrap(), 0, node
+          if node.body? then mark node.body.unwrap(), 0, node
         
         # ### Obj ###
         # Objects can be one-line or multiline,

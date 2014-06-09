@@ -2,8 +2,10 @@
 # in the require.js 'main' module.
 require.config
   urlArgs: "bust=" + (new Date()).getTime()
+  paths:
+    'ice': '../dist/ice-full.min'
 
-require ['main'], (ice) ->
+require ['ice'], (ice) ->
   # Example palette
   window.editor = new ice.Editor document.getElementById('editor'), [
     {

@@ -17,23 +17,6 @@ module.exports = (grunt) ->
           'test/tests.js': ['src/tests.coffee']
           'example/example.js': ['example/example.coffee']
 
-    uglify:
-      options:
-        banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
-        mangle: false
-      build:
-        files:
-          'js/tests.min.js': 'js/tests.js'
-          'js/draw.min.js':'js/draw.js'
-
-    concat:
-      options:
-        separator: ';'
-      build:
-        files:
-          'dist/ice.min.js': ['vendor/underscore-min.js', 'vendor/coffee-script.js', 'js/draw.min.js', 'js/ice.min.js']
-          'dist/tests.min.js': ['vendor/qunit.min.js', 'js/tests.min.js']
-
     qunit:
       all: ['test/*.html']
 
@@ -42,21 +25,48 @@ module.exports = (grunt) ->
         src: ['src/*.coffee']
         options:
           output: 'docs/'
+          layout: 'parallel'
 
     requirejs:
       compile:
         options:
           baseUrl: 'js'
           paths:
+            'coffee-script': '../vendor/coffee-script'
             'ice-view': 'view'
             'ice-controller': 'controller'
             'ice-model': 'model'
             'ice-draw': 'draw'
             'ice-coffee': 'coffee'
             'ice-parser': 'parser'
-          name: 'main'
-          optimize: 'none'
-          out: 'example/main.js'
+            'ice': 'main'
+          name: 'ice'
+          optimize: 'uglify'
+          out: 'dist/ice.js'
+
+    uglify:
+      options:
+        banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
+      build:
+        files:
+          'dist/ice.min.js': ['dist/ice.js']
+
+    cssmin:
+      options:
+        banner: '/* ICE Editor stylesheet.\nCopyright (c) 2014 Anthony Bau.\nMIT License.\n*/'
+      minify:
+        src: ['css/ice.css']
+        dest: 'dist/ice.min.css'
+        ext: '.min.css'
+
+    concat:
+      options:
+        banner: '/*! ICE Editor.\n Copyright (c) 2014 Anthony Bau\n MIT License\n*/\n(function() {'
+        separator: ';'
+        footer: "}).call(this);;"
+      build:
+        files:
+          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.min.js']
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -65,7 +75,8 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-qunit'
   grunt.loadNpmTasks 'grunt-docco'
   grunt.loadNpmTasks 'grunt-contrib-requirejs'
+  grunt.loadNpmTasks 'grunt-contrib-cssmin'
 
   grunt.registerTask 'default', ['coffee', 'docco', 'requirejs']
-  grunt.registerTask 'all', ['coffee', 'uglify', 'concat', 'qunit']
-  grunt.registerTask 'test', ['qunit']
+  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
+  #grunt.registerTask 'test', ['qunit']

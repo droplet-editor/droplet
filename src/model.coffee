@@ -486,11 +486,11 @@ define ['ice-view'], (view) ->
       head = @start; lineCount = 0
       stack = []
       until lineCount is line or not head?
-        head = head.next
         switch head.type
           when 'newline' then lineCount++
           when 'blockStart' then stack.push head.block
           when 'blockEnd' then stack.pop()
+        head = head.next
 
       while head?.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] then head = head.next
       if head?.type is 'blockStart' then stack.push head.block
