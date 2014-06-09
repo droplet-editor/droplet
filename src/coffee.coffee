@@ -32,11 +32,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     '*': 5
     '/': 5
     '%': 6
+    '**': 7
+    '%%': 7
   
-  # # exports.mark #
+  # # exports.mark #, indentDepth
   # Take some text and the CoffeeScript AST of it and
   # return an array of markup.
-  exports.mark = (nodes, text) ->
+  exports.mark = (nodes, text) ->, indentDepth
     id = 1
 
     markup = []
@@ -45,11 +47,19 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # so we want to deal with text lines and not
     # a bunch of characters.
     text = text.split('\n')
+
+    # In order to detect whether a CoffeeScript AST 'Block' node
+    # is a single- or double- line block, we must know whether
+    # other markup has ben placed on lines. So:
+    hasLineBeenMarked = {}
+
+    for line, i in text
+      hasLineBeenMarked[i] = false
     
     # ## addMarkup ##
     # A utility function for adding markup to our markup array
     # (with location data, id, and start/end flag).
-    addMarkup = (block, node, wrappingParen) ->
+    addMarkup = (block, node, wrappingParen, depth) ->
 
       # If the node is wrapped by a parenthesis,
       # we actually want to enclose the parenthesis by the
@@ -58,22 +68,21 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         bounds = getBounds wrappingParen
       else
         bounds = getBounds node
+
+      hasLineBeenMarked[bounds.start.line] = true
       
       # Push the start and end tokens to the markup array.
       markup.push
         token: block.start
         location: bounds.start
-        id: id
+        depth: depth
         start: true
 
       markup.push
         token: block.end
         location: bounds.end
-        id: id
+        depth: depth
         start: false
-      
-      # Increment the ID.
-      id += 1
     
     # ## getBounds ##
     # Get the wanted visual bounds
@@ -132,68 +141,148 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # ## addBlock ##
     # A simple utility function for adding a block of a given
     # precedence and color. We do a lot of this in (mark).
-    addBlock = (node, precedence, color, wrappingParen) ->
+    addBlock = (node, depth, precedence, color, wrappingParen) ->
       block = new model.Block precedence, color, (color is colors.VALUE)
-      addMarkup block, node, wrappingParen
+      addMarkup block, node, wrappingParen, depth
 
       if wrappingParen?
         block.currentlyParenWrapped = true
-
-    addSocket = (node, precedence = 0, wrappingParen = null) ->
-      socket = new model.Socket null, precedence
-      addMarkup socket, node, wrappingParen
-
-      mark node
     
-    # ## mark ##
+    # ## addSocket ##
+    # A similar utility function for adding sockets.
+    addSocket = (node, depth, precedence) ->
+      socket = new model.Socket null, precedence
+      addMarkup socket, node, null, depth
+    
+    # ## markSocket ##
+    # Adds a socket and marks its children.
+    markSocket = (node, depth, precedence) ->
+      addSocket node, depth, precedence
+
+      mark node, depth + 1, precedence, null, indentDepth
+    
+    # ## dealWithSemicolons ##
+    # Go through a list of expressions. If any of them
+    # are on the same line, surround them with a semicolon block.
+    dealWithSemicolons = (expressions, depth) ->
+      start = end = null
+      startBounds = endBounds = null
+
+      blocksOnThisLine = []
+
+      for expr in expressions
+        if start? and (bounds = getBounds(expr)).start.line is startBounds.end.line
+          end = expr
+          endBounds = bounds
+
+          blocksOnThisLine.push expr
+
+        else
+          # If the line had two or more statements on it, add the semicolon
+          # block per se.
+          if start? and end?
+            block = new model.Block 0, colors.COMMAND, false
+            
+            markup.push
+              token: block.start
+              location: startBounds.start
+              depth: depth + 1
+              start: true
+            
+            markup.push
+              token: block.end
+              location: endBounds.end
+              depth: depth + 1
+              start: false
+        
+            for block in blocksOnThisLine
+              addSocket block, depth + 2, 0
+          
+          # Start the new line.
+          blocksOnThisLine = [start = expr]; startBounds = getBounds expr
+          end = endBounds = null
+
+      if start? and end?
+        block = new model.Block 0, colors.COMMAND, false
+
+        markup.push
+          token: block.start
+          location: startBounds.start
+          depth: depth + 1
+          start: true
+
+        markup.push
+          token: block.end
+          location: endBounds.end
+          depth: depth + 1
+          start: false
+        
+        for block in blocksOnThisLine
+          addSocket block, depth + 2, 0
+    
+    # ## mark ##, indentDepth
     # The core recursive function for adding the markup associated
     # with a parse tree.
-    mark = (node, precedence = 0, wrappingParen = null) ->
+    mark = (node, depth, precedence, wrappingParen, indentDepth) ->, indentDepth
       switch node.nodeType()
 
         # ### Block ###
-        # A Block is an indented bit of code,
-        # so we will surround it with an Indent.
+        # A Block is a group of expressions,
+        # which might be surrounded by an indent.
         when 'Block'
-          indent = new model.Indent 2
-          addMarkup indent, node, wrappingParen
-
+          # First check to see if we want to surround with an indent.
+          # We will surround with an indent iff if it spans multiple lines.
+          bounds = getBounds node
+          
+          # If it is only one line, add a socket.
+          if bounds.start.line is bounds.end.line and hasLineBeenMarked[bounds.start.line]
+            addSocket node, depth, 0
+          
+          # Otherwise, add an indent.
+          else
+            indent = new model.Indent 2
+            addMarkup indent, node, wrappingParen, depth
+          
+          # Mark all children.
           for expr in node.expressions
-            mark expr
+            mark expr, depth + 3, 0, null, indentDepth
+
+          # Mark a semicolons if necessary around lines that run together.
+          dealWithSemicolons node.expressions, depth
         
         # ### Op ###
         # An Operator is represented
         # by a VALUE color block and has
         # children @first and @second
         when 'Op'
-          addBlock node, operatorPrecedences[node.operator], colors.VALUE, wrappingParen
+          addBlock node, depth, operatorPrecedences[node.operator], colors.VALUE, wrappingParen
 
-          addSocket node.first, operatorPrecedences[node.operator]
-          if node.second? then addSocket node.second, operatorPrecedences[node.operator]
+          markSocket node.first, depth + 1, operatorPrecedences[node.operator]
+          if node.second? then markSocket node.second, depth + 1, operatorPrecedences[node.operator]
       
         # ### Existence ###
         # The Existence operator works
         # basically like any other operator;
         # it has highest precedence.
         when 'Existence'
-          addBlock node, 7, colors.VALUE, wrappingParen
-          addSocket node.expression, 7
+          addBlock node, depth, 100, colors.VALUE, wrappingParen
+          markSocket node.expression, depth + 1, 101
         
         # ### In ###
         # The In operator has precedence
         # equivalent to a function call.
         when 'In'
-          addBlock node, 0, colors.VALUE, wrappingParen
+          addBlock node, depth, 0, colors.VALUE, wrappingParen
 
-          addSocket node.object, 0
-          addSocket node.array, 0
+          markSocket node.object, depth + 1, 0
+          markSocket node.array, depth + 1, 0
         
         # ### Value ####
         # A Value is not of much use to the ICE
         # Editor; it signifies nothing visual.
         # We pass along to its children
         when 'Value'
-          mark node.base, precedence, wrappingParen
+          mark node.base, depth + 1, precedence, wrappingParen, indentDepth
         
         # ### Literal ###
         # Pass for literals.
@@ -204,39 +293,39 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Call blocks are blue and
         # have lowest precedence.
         when 'Call'
-          addBlock node, precedence, colors.COMMAND, wrappingParen
+          addBlock node, depth, precedence, colors.COMMAND, wrappingParen
           
           # If the variable name is parseable beyond
           # just some text, parse it. Otherwise, 
           # don't even put a text socket in.
-          unless node.variable.base?.constructor.name is 'Literal'
-            addSocket node.variable
+          unless node.variable.base?.nodeType() is 'Literal'
+            markSocket node.variable, depth + 1, 0
 
-          for arg in node.args then addSocket arg
+          for arg in node.args then markSocket arg, depth + 1, 0
         
         # ### Code ###
         # Code is a function definition.
         # There are two cases here, because
         # functions can be one-line or indented.
         when 'Code'
-          addBlock node, precedence, colors.VALUE, wrappingParen
-          for param in node.params then addSocket param
+          addBlock node, depth, precedence, colors.VALUE, wrappingParen
+          for param in node.params then markSocket param, depth + 1, 0
           
           # If it is a one-line function,
           # unwrap the body.
           if getBounds(node.body).end.line is getBounds(node).start.line
-            addSocket node.body.unwrap()
+            markSocket node.body.unwrap(), depth + 1, 0
 
           # Otherwise, do not.
           else
-            mark node.body
+            mark node.body, depth + 1, 0, null, indentDepth
         
         # ### Param ###
         # A part of Code; it will
         # consist of 'Literal',
         # which is what we want.
         when 'Param'
-          mark node.name
+          mark node.name, depth + 1, 0, null, indentDepth
         
         # ### Assign ###
         # Assign blocks actually cover two cases --
@@ -248,60 +337,46 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # In the future we may want to render these two cases differently,
         # but for now both are blue and have equal precedence.
         when 'Assign'
-          addBlock node, precedence, colors.COMMAND, wrappingParen
-          addSocket node.variable; addSocket node.value
+          addBlock node, depth, precedence, colors.COMMAND, wrappingParen
+          markSocket node.variable, depth + 1, 0; markSocket node.value, depth + 1, 0
         
         # ### For ###
         # A for block has a lot of optional arguments.
         when 'For'
-          addBlock node, precedence, colors.CONTROL, wrappingParen
-          if node.index? then addSocket node.index
-          if node.source? then addSocket node.source
-          if node.name? then addSocket node.name
-          if node.from? then addSocket node.from
+          addBlock node, depth, precedence, colors.CONTROL, wrappingParen
+          if node.index? then markSocket node.index, depth + 1, 0
+          if node.source? then markSocket node.source, depth + 1, 0
+          if node.name? then markSocket node.name, depth + 1, 0
+          if node.from? then markSocket node.from, depth + 1, 0
 
           # If it is a one-line "for",
           # unwrap the body.
           if getBounds(node.body).end.line is getBounds(node).start.line
-            addSocket node.body.unwrap()
+            markSocket node.body.unwrap(), depth + 1, 0
 
           # Otherwise, do not.
           else
-            mark node.body
+            mark node.body, depth + 1, 0, null, indentDepth
         
         # ### Range ###
         # A Range has two children and is rendered VALUE.
         # Nothing particularly interesting.
         when 'Range'
-          addBlock node, 7, colors.VALUE, wrappingParen
-          addSocket node.from; addSocket node.to
+          addBlock node, depth, 100, colors.VALUE, wrappingParen
+          markSocket node.from, depth, 0; markSocket node.to, depth + 1, 0
         
         # ### If ###
         # An If consists of two separate
         # Blocks (possibly), each of which might either be
         # an indent or a one-line.
         when 'If'
-          addBlock node, precedence, colors.CONTROL, wrappingParen
-          addSocket node.condition
+          addBlock node, depth, precedence, colors.CONTROL, wrappingParen
+          markSocket node.condition, depth + 1, 0
 
-          # If it is a one-line "if",
-          # unwrap the body.
-          if getBounds(node.body).end.line is getBounds(node).start.line
-            addSocket node.body.unwrap()
-
-          # Otherwise, do not.
-          else
-            mark node.body
+          mark node.body, depth + 1, 0, null, indentDepth
           
           if node.elseBody?
-            # If it is a one-line "else",
-            # unwrap the body.
-            if getBounds(node.elseBody).end.line is getBounds(node).start.line
-              addSocket node.elseBody.unwrap()
-
-            # Otherwise, do not.
-            else
-              mark node.elseBody
+            mark node.elseBody, depth + 1, 0, null, indentDepth
         
         # ### Arr ###
         # An Array has a bunch of elements. Mark all of them and
@@ -310,28 +385,23 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # In the future, we may want to put a mutation button here
         # for adding more elements.
         when 'Arr'
-          addBlock node, precedence, colors.VALUE, wrappingParen
-          for object in node.objects then mark object
+          addBlock node, depth, 100, colors.VALUE, wrappingParen
+          for object in node.objects then mark object, depth + 1, 0, null, indentDepth
         
         # ### Return ###
         # A return is the only block other than 'break' rendered RETURN.
         when 'Return'
-          addBlock node, precedence, colors.RETURN, wrappingParen
-          if node.expression? then addSocket node.expression
+          addBlock node, depth, precedence, colors.RETURN, wrappingParen
+          if node.expression? then markSocket node.expression, depth + 1, 0
         
         # ### While ###
         when 'While'
-          addBlock node, precedence, colors.CONTROL, wrappingParen
-          addSocket node.condition
+          addBlock node, depth, precedence, colors.CONTROL, wrappingParen
+          markSocket node.condition, depth + 1, 0
 
           # If it is a one-line "while",
           # unwrap the body.
-          if getBounds(node.body).end.line is getBounds(node).start.line
-            mark node.body.unwrap()
-
-          # Otherwise, do not.
-          else
-            mark node.body
+          mark node.body, depth + 1, 0, null, indentDepth
         
         # ### Parens ###
         # Parens are special because they are delegated to the
@@ -339,15 +409,17 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # we will simply signify to the child node that it must wrap
         # itself in these parentheses.
         when 'Parens'
-          if node.body? then mark node.body.unwrap(), 0, node
+          if node.body? then mark node.body.unwrap(), depth + 1, 0, node, indentDepth
         
         # ### Obj ###
         # Objects can be one-line or multiline,
         # and can be surrounded in braces or not.
         # They are rendered VALUE and contain Assign blocks;
         # we may want to change this behaviour in the future.
+        #
+        # TODO: This is unfinished.
         when 'Obj'
-          addBlock node, precedence, colors.VALUE, wrappingParen
+          addBlock node, depth, 0, colors.VALUE, wrappingParen
           
           # We must insert the indent for an object by hand.
           # Get the needed bounds for this indent.
@@ -369,32 +441,43 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             # since this is the only place we do this
             # and we have no utility function.
             indent = new model.Indent 2
-            
+
             markup.push
               token: indent.start
               location: {
-                line: start.start.line-1
-                column: text[start.start.line-1].length
+                line: start.start.line - 1
+                column: text[start.start.line - 1].length
               }
-              id: id
+              depth: depth
               start: true
 
             markup.push
               token: indent.end
               location: end.end
-              id: id
+              depth: depth
               start: false
 
-            id += 1
-          
-            for property in node.properties then mark property
+            for property in node.properties then mark property, depth + 1, 0, null, indentDepth
           else
-            for property in node.properties then addSocket property
+            for property in node.properties then markSocket property, depth + 1, 0
+
+        when 'Switch'
+          addBlock node, depth, 0, colors.CONTROL, wrappingParen
+
+          markSocket node.subject, depth + 1, 0
+
+          for switchCase in node.cases
+            markSocket switchCase[0], depth + 1, 0
+            mark switchCase[1], depth + 1, 0, indentDepth
     
-    # We do not mark the root expression,
+          if node.otherwise? then mark node.otherwise, depth + 1, 0, indentDepth
+
+    # We do not mark the root expression,, indentDepth
     # but rather every child of it.
     for node in nodes
-      mark node
+      mark node, 3, 0, null, 0
+    
+    dealWithSemicolons nodes, 0
     
     return markup
   

@@ -1307,6 +1307,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # If the point was actually in the main canvas,
     # start a lasso select.
     if point.x > PALETTE_WIDTH
+      if @lassoSelectAnchor? then debugger
       @lassoSelectAnchor = @trackerPointToMain point
   
   # On mousemove, if we are in the middle of a
@@ -2401,7 +2402,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor?
         event.preventDefault()
 
-    @tracker.addEventListener 'mouseup', (event) =>
+    @tracker.addEventListener 'touchend', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @getPointRelativeToTracker event.touches[0]

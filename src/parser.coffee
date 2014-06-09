@@ -39,12 +39,12 @@ define ['ice-model'], (model) ->
       # If two pieces of markup are in the same position, and are both start or end,
       # the markup placed earlier gets to go on the outside
       if a.start and b.start
-        if a.id > b.id
+        if a.depth > b.depth
           return 1
         else return -1
 
       if (not a.start) and (not b.start)
-        if a.id > b.id
+        if a.depth > b.depth
           return -1
         else return 1
     
@@ -82,15 +82,8 @@ define ['ice-model'], (model) ->
     indentDepth = 0
 
     # We will also need to keep track of the element stack,
-    # so we know whether or not to autoinsert a socket around
-    # a block. We will also report errors this way.
+    # to report errors.
     stack = []
-
-    # The autoinsert stack contains all the blocks
-    # around which we autoinserted a socket. A block will know
-    # to append the SocketEnd token after its BlockEndToken
-    # if it is the last element of this stack.
-    autoinsertStack = []
 
     # Begin our linked list
     document = new model.Segment()
@@ -132,20 +125,9 @@ define ['ice-model'], (model) ->
             
             when 'blockStart'
               # If the a block is embedded
-              # directly in another block, we should
-              # insert a socket around it automatically.
+              # directly in another block, throw.
               if stack[stack.length - 1]?.type is 'block'
-                # Push the socket to the autoinsertedStack,
-                # so that we know to close it later.
-                autoinsertStack.push mark.token.block
-                autoinsertedSocket = new model.Socket()
-                
-                # Append the socket start.
-                head = head.append autoinsertedSocket.start
-                
-                # Push it to the stack,
-                # so that we can close it later.
-                stack.push autoinsertedSocket
+                throw new Error 'Improper parser: block cannot nest immediately inside another block.'
               
               # Update the stack
               stack.push mark.token.block
@@ -155,23 +137,8 @@ define ['ice-model'], (model) ->
 
             when 'socketStart'
               # A socket is only allowed to be directly inside a block.
-              # Currently, our behaviour will be to auto-repair it in
-              # some cases, but this
-              # might need to be changed in the future.
-              #
-              # We will auto-repair if it is inside an indent,
-              # otherwise we will throw
               unless stack[stack.length - 1]?.type is 'block'
-                if stack.length is 0
-                  throw new Error 'Improper parser: document root cannot be a socket.'
-                else if stack[stack.length - 1].type is 'indent'
-                  autoinsertStack.push mark.token.socket
-
-                  autoinsertedBlock = new model.Block()
-
-                  head = head.append autoinsertedBlock.start
-
-                  stack.push autoinsertedBlock
+                throw new Error 'Improper parser: socket must be immediately insode a block.'
 
               # Update the stack and append the token.
               stack.push mark.token.socket
@@ -200,12 +167,6 @@ define ['ice-model'], (model) ->
               stack.pop()
 
               head = head.append mark.token
-              
-              # If we need to close an autoinserted socket,
-              # close it.
-              if mark.token.block is autoinsertStack[autoinsertStack.length - 1]
-                autoinsertStack.pop()
-                head = head.append stack.pop().end
 
             when 'socketEnd'
               unless mark.token.socket is stack[stack.length - 1]
@@ -215,10 +176,6 @@ define ['ice-model'], (model) ->
               stack.pop()
 
               head = head.append mark.token
-
-              if mark.token.socket is autoinsertStack[autoinsertStack.length - 1]
-                autoinsertStack.pop()
-                head = head.append stack.pop().end
 
           lastIndex = mark.location.column
       
@@ -240,19 +197,6 @@ define ['ice-model'], (model) ->
 
     # Return the document
     return document
-  
-  # ## stringifyMarkup ##
-  # A utility function for printing out produced markup.
-  # Used for debugging only.
-  stringifyMarkup = (markup) ->
-    str = '0: '
-    lastLine = 0
-    for mark in markup
-      if mark.location.line isnt lastLine
-        str += '\n' + mark.location.line + ': '
-        lastLine = mark.location.line
-      str += '<' + mark.token.type + '_' + mark.id + '>'
-    return str
   
   # ## Parser ##
   # The Parser class is a simple

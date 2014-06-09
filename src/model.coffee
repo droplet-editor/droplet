@@ -7,12 +7,6 @@
 define ['ice-view'], (view) ->
   exports = {}
 
-  window.printSegment = (seg) ->
-    head = seg.start
-    until head is seg.end
-      console.log head
-      head = head.next
-
   # ## cloneTokens ##
   # Return a pointer-unrelated start and end tokens whose linkage
   # structure is the same as the given start and end tokens.
@@ -496,6 +490,17 @@ define ['ice-view'], (view) ->
       if head?.type is 'blockStart' then stack.push head.block
 
       return stack[stack.length - 1]
+    
+    serialize: ->
+      head = @start.next
+
+      serializedStr = ''
+
+      until head is @end
+        serializedStr += head.serialize()
+        head = head.next
+
+      return serializedStr
 
   # # Socket
   # A Socket is an inline droppable area for a Block, and
@@ -661,6 +666,8 @@ define ['ice-view'], (view) ->
 
     clone: -> new CursorToken()
 
+    serialize: -> '<cursor/>'
+
   # ## TextToken ##
   # A token representing plain text.
   exports.TextToken = class TextToken extends Token
@@ -673,6 +680,8 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
+    
+    serialize: -> @value
 
   # ## mutationButton token ##
   # A Mutation button is a clickable square that can "expand"
@@ -701,6 +710,8 @@ define ['ice-view'], (view) ->
       
       clone.remove()
 
+    serialize: -> "<mutationButton expand=\"#{@expandValue.serialize()}\""
+
   # ## Markup tokens ##
   # These are the tokens to which we referred earlier when we discussed
   # Blocks, Indents, Segments, and Sockets. They represent the start and end of a piece of markup.
@@ -714,30 +725,42 @@ define ['ice-view'], (view) ->
       @prev = @next = null
       @type = 'blockStart'
 
+    serialize: -> "<block color=\"#{@block.color}\" precedence=\"#{@block.precedence}\">"
+
   exports.BlockEndToken = class BlockEndToken extends Token
     constructor: (@block) ->
       @prev = @next = null
       @type = 'blockEnd'
+
+    serialize: -> "</block>"
 
   exports.SocketStartToken = class SocketStartToken extends Token
     constructor: (@socket) ->
       @prev = @next = null
       @type = 'socketStart'
 
+    serialize: -> "<socket precedence=\"#{@socket.precedence}\">"
+
   exports.SocketEndToken = class SocketEndToken extends Token
     constructor: (@socket) ->
       @prev = @next = null
       @type = 'socketEnd'
+
+    serialize: -> "</socket>"
 
   exports.SegmentStartToken = class SegmentStartToken extends Token
     constructor: (@segment) ->
       @prev = @next = null
       @type = 'segmentStart'
 
+    serialize: -> "<segment>"
+
   exports.SegmentEndToken = class SegmentEndToken extends Token
     constructor: (@segment) ->
       @prev = @next = null
       @type = 'segmentEnd'
+
+    serialize: -> "</segment>"
 
   # ## IndentStart and IndentEnd ##
   # These tokens must increment or decrement the number of spaces
@@ -752,6 +775,8 @@ define ['ice-view'], (view) ->
       state.indent += (' ' for [1..@indent.depth]).join ''
       if @next and @next isnt state.stopToken then @next.stringify(state) else ''
 
+    serialize: -> "<indent depth=\"#{@indent.depth}\">"
+
   exports.IndentEndToken = class IndentEndToken extends Token
     constructor: (@indent) ->
       @prev = @next =  null
@@ -760,6 +785,8 @@ define ['ice-view'], (view) ->
     stringify: (state) ->
       state.indent = state.indent[...-@indent.depth]
       if @next and @next isnt state.stopToken then @next.stringify(state) else ''
+
+    serialize: -> "</indent>"
 
   # ## NewlineToken ##
   # This token represents a newline. When stringifying, it inserts (state.indent) spaces
@@ -773,5 +800,7 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       '\n' + state.indent + if @next and @next isnt state.stopToken then @next.stringify(state) else ''
+
+    serialize: -> "\n"
   
   return exports
