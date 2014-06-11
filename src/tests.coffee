@@ -133,11 +133,24 @@ require ['ice-coffee'], (coffee) ->
       }
       ''',
       '''
-      <block color="#268bd2" precedence="0">foo <socket precedence="0"><block color="#26cf3c" precedence="0">{<indent depth="2">
+      <block color="#268bd2" precedence="0">foo <socket precedence="0"><block color="#26cf3c" precedence="100">{<indent depth="2">
       <block color="#268bd2" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket></block>,
       <block color="#268bd2" precedence="0"><socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></indent>
       }</block></socket></block>
       '''
+
+    testString 'Object literal, no braces or commas',
+      '''
+      foo
+        a: b
+        c: d
+      '''
+      '''
+      <block color="#268bd2" precedence="0">foo<socket precedence="0"><block color="#26cf3c" precedence="0"><indent depth="2">
+      <block color="#268bd2" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket></block>
+      <block color="#268bd2" precedence="0"><socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></indent></block></socket></block>
+      '''
+
 
     # TODO pass other object literal forms
 
@@ -148,6 +161,58 @@ require ['ice-coffee'], (coffee) ->
     testString 'Array',
       '[0, 1]'
       '<block color="#26cf3c" precedence="100">[<socket precedence="0">0</socket>, <socket precedence="0">1</socket>]</block>'
+
+    testString 'Switch, one case, no default',
+      '''
+      switch k
+        when a
+          blah blah
+      ''', '''
+      <block color="#daa520" precedence="0">switch <socket precedence="0">k</socket>
+        when <socket precedence="0">a</socket><indent depth="4">
+      <block color="#268bd2" precedence="0">blah <socket precedence="0">blah</socket></block></indent></block>
+      '''
+
+    testString 'One-line switch, one case, no default',
+      '''
+      switch k
+        when a then b
+      ''',
+      '''
+      <block color="#daa520" precedence="0">switch <socket precedence="0">k</socket>
+        when <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>
+      '''
+
+    testString 'Switch, two cases, with default',
+      '''
+      switch k
+        when a
+          blah blah
+        when b
+          darn it
+        else
+          what ever
+      ''', '''
+      <block color="#daa520" precedence="0">switch <socket precedence="0">k</socket>
+        when <socket precedence="0">a</socket><indent depth="4">
+      <block color="#268bd2" precedence="0">blah <socket precedence="0">blah</socket></block></indent>
+        when <socket precedence="0">b</socket><indent depth="4">
+      <block color="#268bd2" precedence="0">darn <socket precedence="0">it</socket></block></indent>
+        else<indent depth="4">
+      <block color="#268bd2" precedence="0">what <socket precedence="0">ever</socket></block></indent></block>
+      '''
+
+    testString 'Empty function definition', '->', '<block color="#26cf3c" precedence="0">-></block>'
+
+    testString 'Class definition, normal form, constructor only',
+      '''
+      class Duck
+        constructor: ->
+      ''',
+      '''
+      <block color="#daa520" precedence="0">class <socket precedence="0">Duck</socket><indent depth="2">
+      <block color="#268bd2" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="#26cf3c" precedence="0">-></block></socket></block></indent></block>
+      '''
 
     testString 'Operator precedences',
       '''
