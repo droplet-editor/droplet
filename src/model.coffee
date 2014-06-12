@@ -58,6 +58,21 @@ define ['ice-view'], (view) ->
 
     return [clonedStart, clonedEnd]
   
+  # ## stringifyBetween ##
+  stringifyBetween = (start, end) ->
+    str = ''
+
+    head = start
+
+    state =
+      indent: ''
+
+    until head is end
+      str += head.stringify state
+      head = head.next
+
+    return str
+  
   lengthBetween = (start, end) ->
     head = start; len = 1
     until head is end
@@ -249,9 +264,7 @@ define ['ice-view'], (view) ->
     # This one is mainly used for debugging. The string representation ("compiled code")
     # for anything between our start and end tokens. This is computed by stringifying
     # everything, then splicing off everything after the end token.
-    stringify: -> @start.stringify
-        indent: ''
-        stopToken: @end
+    stringify: -> stringifyBetween @start, @end
 
   # # Indent
   # An Indent, like a Block, consists of two tokens, start and end. An Indent also knows its @depth,
@@ -309,9 +322,7 @@ define ['ice-view'], (view) ->
     # This one is mainly used for debugging. Like Block.stringify, computes
     # the compiled code for everything between the two end tokens, by stringifying
     # the start and splicing of the string representation of the end.
-    stringify: -> @start.stringify
-      indent: ''
-      stopToken: @end
+    stringify: -> stringifyBetween @start, @end
 
 
   # # Segment
@@ -440,9 +451,7 @@ define ['ice-view'], (view) ->
     # Segments serve as the root elements of every tree. As with Blocks and Indents,
     # this is computed by stringifying the start token (get all code) and splicing off things after
     # the end token.
-    stringify: -> @start.stringify
-      indent: ''
-      stopToken: @end
+    stringify: -> stringifyBetween @start, @end
     
     # ## getTokenAtLocation ##
     # Get the token at serialized location (location), produced
@@ -584,9 +593,7 @@ define ['ice-view'], (view) ->
       if f this then return this
       else return null
 
-    stringify: -> @start.stringify
-      indent: ''
-      stopToken: @end
+    stringify: -> stringifyBetween @start, @end
    
   # # Token
   # This is the class from which all ICE Editor tokens descend.
@@ -637,7 +644,7 @@ define ['ice-view'], (view) ->
     # ## stringify ##
     # Converting a Token to a string gets you the compilation of this
     # and every token after it. 
-    stringify: (state) -> if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
+    stringify: (state) -> ''
     
     # ## getSerializedLocation ##
     # Get dead data representing this token's position in the tree.
@@ -678,8 +685,7 @@ define ['ice-view'], (view) ->
 
     clone: -> new TextToken @value
 
-    stringify: (state) ->
-      @value + if @next? and @next isnt state.stopToken then @next.stringify(state) else ''
+    stringify: (state) -> @value
     
     serialize: -> @value
 
@@ -773,7 +779,7 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       state.indent += (' ' for [1..@indent.depth]).join ''
-      if @next and @next isnt state.stopToken then @next.stringify(state) else ''
+      return ''
 
     serialize: -> "<indent depth=\"#{@indent.depth}\">"
 
@@ -784,7 +790,7 @@ define ['ice-view'], (view) ->
 
     stringify: (state) ->
       state.indent = state.indent[...-@indent.depth]
-      if @next and @next isnt state.stopToken then @next.stringify(state) else ''
+      return ''
 
     serialize: -> "</indent>"
 
@@ -798,8 +804,7 @@ define ['ice-view'], (view) ->
 
     clone: -> new NewlineToken()
 
-    stringify: (state) ->
-      '\n' + state.indent + if @next and @next isnt state.stopToken then @next.stringify(state) else ''
+    stringify: (state) -> '\n' + state.indent
 
     serialize: -> "\n"
   

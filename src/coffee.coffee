@@ -10,6 +10,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
   OPERATOR_PRECEDENCES =
     '||': 1
     '&&': 2
+    'instanceof': 3
     '===': 3
     '!==': 3
     '>': 3
@@ -27,11 +28,56 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
   class CoffeeScriptTranspiler
     constructor: (@text) ->
       @markup = []
+
       @lines = @text.split '\n'
+
+      # Preprocess comment lines:
+      tokens = CoffeeScript.tokens @text,
+        rewrite: false
+        preserveComments: true
+      
+      # In the @lines record, replace all
+      # comments with spaces, so that blocks
+      # avoid them whenever possible.
+      for token in tokens
+        if token[0] is 'COMMENT'
+
+          if token[2].first_line is token[2].last_line
+            line = @lines[token[2].first_line]
+            @lines[token[2].first_line] =
+              line[...token[2].first_column] +
+              (' ' for [token[2].first_column..token[2].last_column]).join('') +
+              line[token[2].last_column...]
+
+          else
+            line = @lines[token[2].first_line]
+            @lines[token[2].first_line] = line[...token[2].first_column] +
+              (' ' for [token[2].first_column..line.length]).join ''
+
+            @lines[token[2].last_line] = (' ' for [1..@lines[token[2].last_line].length]).join ''
+
+            for i in [(token[2].first_line + 1)...token[2].last_line]
+              @lines[i] = @lines[i].replace /./g, ' '
+
       @hasLineBeenMarked = {}
 
       for line, i in @lines
         @hasLineBeenMarked[i] = false
+
+    locationsAreIdentical: (a, b) ->
+      return a.line is b.line and a.column is b.column
+    
+    boundMin: (a, b) ->
+      if a.line < b.line then a
+      else if b.line < a.line then b
+      else if a.column < b.column then a
+      else b
+
+    boundMax: (a, b) ->
+      if a.line < b.line then b
+      else if b.line < a.line then a
+      else if a.column < b.column then b
+      else a
     
     # ## getBounds ##
     # Get the boundary locations of a CoffeeScript node,
@@ -68,20 +114,29 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # The second is 'If' statements,
       # which do not surround the elseBody
       # when it exists.
-      if node.nodeType() is 'If' and node.elseBody
-        bounds.end = @getBounds(node.elseBody).end
+      if node.nodeType() is 'If'
+        bounds.start = @boundMin bounds.start, @getBounds(node.body).start
+        bounds.end = @boundMax bounds.end, @getBounds(node.body).end
+
+        if node.elseBody?
+          bounds.end = @boundMax bounds.end, @getBounds(node.elseBody).end
       
       # The third is 'While', which
-      # fails to surround the loop body.
+      # fails to surround the loop body,
+      # or sometimes the loop guard.
       if node.nodeType() is 'While'
-        bounds.end = @getBounds(node.body).end
+        bounds.start = @boundMin bounds.start, @getBounds(node.body).start
+        bounds.end = @boundMax bounds.end, @getBounds(node.body).end
+
+        if node.guard?
+          bounds.end = @boundMax bounds.end, @getBounds(node.guard).end
       
       # The fourth is general. Sometimes we get
       # spaces at the start of the next line.
       # We don't want those spaces; discard them.
-      if @lines[bounds.end.line][...bounds.end.column].trim().length is 0
+      while @lines[bounds.end.line][...bounds.end.column].trim().length is 0
         bounds.end.line -= 1
-        bounds.end.column = @lines[bounds.end.line].length
+        bounds.end.column = @lines[bounds.end.line].length + 1
       
       # When we have a 'Value' object,
       # its base may have some exceptions in it,
@@ -222,8 +277,17 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           # whether we want to do it on one line or multiple lines.
           bounds = @getBounds node
           
-          # If it is only one line, wrap it in a socket.
-          if bounds.start.line is bounds.end.line and @hasLineBeenMarked[bounds.end.line]
+          # See if we want to wrap in a socket
+          # rather than an indent.
+          shouldBeOneLine = false
+          
+          # Check to see if any parent node is occupying a line
+          # we are on. If so, we probably want to wrap in
+          # a socket rather than an indent.
+          for line in [bounds.start.line..bounds.end.line]
+            shouldBeOneLine or= @hasLineBeenMarked[line]
+          
+          if shouldBeOneLine
             @addSocket node, depth, 0
           
           # Otherwise, wrap in an indent.
@@ -242,7 +306,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             # Move the boundaries back by one line,
             # as per the standard way to add an Indent.
             bounds.start.line -= 1
-            bounds.start.column = @lines[bounds.start.line].length
+            bounds.start.column = @lines[bounds.start.line].length + 1
             
             # Add the indent per se.
             @addMarkupAtLocation indent, bounds, depth
@@ -270,12 +334,29 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # ### Op ###
         # Color VALUE, sockets @first and (sometimes) @second
         when 'Op'
+          # An addition operator might be
+          # a string interpolation, in which case
+          # we want to ignore it.
+          if node.first? and node.second? and node.operator is '+'
+            # We will search for a literal "+" symbol
+            # between the two operands. If there is none,
+            # we assume string interpolation.
+            firstBounds = @getBounds node.first
+            secondBounds = @getBounds node.second
+
+            lines = @lines[firstBounds.end.line..secondBounds.start.line].join('\n')
+            
+            infix = lines[firstBounds.end.column...-(@lines[secondBounds.start.line].length - secondBounds.start.column)]
+
+            if infix.indexOf('+') is -1
+              return
+
           @addBlock node, depth, OPERATOR_PRECEDENCES[node.operator], COLORS.VALUE, wrappingParen
           
           @addSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
-          if node.second? then @addSocketAndMark node.second, depth + 1,
-            OPERATOR_PRECEDENCES[node.operator], indentDepth
+          if node.second?
+            @addSocketAndMark node.second, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
         
         # ### Existence ###
         # Color VALUE, socket @expression, precedence 100
@@ -351,14 +432,45 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
         # ### If ###
         # Color CONTROL, socket @condition.
-        # indent/socket body, optional indent/socket node.elseBody
+        # indent/socket body, optional indent/socket node.elseBody.
+        #
+        # Special case: "unless" keyword; in this case
+        # we want to skip the Op that wraps the condition.
         when 'If'
           @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen
-          @addSocketAndMark node.condition, depth + 1, 0, indentDepth
+          
+          # Check to see if we are an "unless".
+          # We will deem that we are an unless if:
+          #   - Our starting line contains "unless" and
+          #   - Our condition starts at the same location as
+          #     ourselves.
+
+          # Note: for now, we have hacked CoffeeScript
+          # to give us the raw condition location data.
+          #
+          # Perhaps in the future we should do this at
+          # wrapper level.
+
+          ###
+          bounds = @getBounds node
+          if @lines[bounds.start.line].indexOf('unless') >= 0 and
+              @locationsAreIdentical(bounds.start, @getBounds(node.condition).start) and
+              node.condition.nodeType() is 'Op'
+
+            @addSocketAndMark node.condition.first, depth + 1, 0, indentDepth
+          else
+          ###
+
+          @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
           
           @mark node.body, depth + 1, 0, null, indentDepth
 
           if node.elseBody?
+            # Artificially "mark" the line containing the "else"
+            # token, so that the following body can be single-line
+            # if necessary.
+            @hasLineBeenMarked[node.elseToken.first_line] = true
+
             @mark node.elseBody, depth + 1, 0, null, indentDepth
 
         # ### Arr ###
@@ -379,7 +491,8 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Color CONTROL. Socket @condition, socket/indent @body.
         when 'While'
           @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen
-          @addSocketAndMark node.condition, depth + 1, 0, indentDepth
+          @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
+          if node.guard? then @addSocketAndMark node.guard, depth + 1, 0, indentDepth
           @mark node.body, depth + 1, 0, null, indentDepth
 
         # ### Switch ###

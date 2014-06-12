@@ -60,6 +60,15 @@ require ['ice-coffee'], (coffee) ->
       <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
       '''
 
+    testString 'Unless statement, normal form',
+      '''
+      unless true
+        fd 10
+      ''', '''
+      <block color="#daa520" precedence="0">unless <socket precedence="0">true</socket><indent depth="2">
+      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      '''
+
     testString 'One-line if statement',
       'if a then b',
       '<block color="#daa520" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>'
@@ -165,8 +174,9 @@ require ['ice-coffee'], (coffee) ->
         <socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></socket></block>
       '''
 
-
-    # TODO pass other object literal forms
+    testString 'String interpolation',
+      'foo "#{a}"',
+      '<block color="#268bd2" precedence="0">foo <socket precedence="0">"#{a}"</socket></block>'
 
     testString 'Range',
       '[1..10]',
