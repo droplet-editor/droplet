@@ -1,4 +1,12 @@
 require ['ice-coffee'], (coffee) ->
+  
+  readFile = (name) ->
+    q = new XMLHttpRequest()
+    q.open 'GET', name, false
+    q.send()
+
+    return q.responseText
+
   test 'Parser unity', ->
     testString = (str) ->
       equal str, coffee.parse(str).stringify(), 'Unity test on ' + str
@@ -26,6 +34,12 @@ require ['ice-coffee'], (coffee) ->
         see key is value
         see array[n]
     '''
+    
+    nodes = readFile 'nodes.coffee'
+    console.log nodes
+
+    equal nodes, coffee.parse(nodes).stringify(), 'Unity test on nodes.coffee'
+    
   
   test 'Parser success', ->
     testString = (m, str, expected) ->
@@ -133,9 +147,9 @@ require ['ice-coffee'], (coffee) ->
       }
       ''',
       '''
-      <block color="#268bd2" precedence="0">foo <socket precedence="0"><block color="#26cf3c" precedence="100">{<indent depth="2">
-      <block color="#268bd2" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket></block>,
-      <block color="#268bd2" precedence="0"><socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></indent>
+      <block color="#268bd2" precedence="0">foo <socket precedence="0"><block color="#26cf3c" precedence="0">{
+        <socket precedence="0">a</socket>: <socket precedence="0">b</socket>,
+        <socket precedence="0">c</socket>: <socket precedence="0">d</socket>
       }</block></socket></block>
       '''
 
@@ -146,9 +160,9 @@ require ['ice-coffee'], (coffee) ->
         c: d
       '''
       '''
-      <block color="#268bd2" precedence="0">foo<socket precedence="0"><block color="#26cf3c" precedence="0"><indent depth="2">
-      <block color="#268bd2" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket></block>
-      <block color="#268bd2" precedence="0"><socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></indent></block></socket></block>
+      <block color="#268bd2" precedence="0">foo
+        <socket precedence="0"><block color="#26cf3c" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
+        <socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></socket></block>
       '''
 
 
@@ -211,7 +225,7 @@ require ['ice-coffee'], (coffee) ->
       ''',
       '''
       <block color="#daa520" precedence="0">class <socket precedence="0">Duck</socket><indent depth="2">
-      <block color="#268bd2" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="#26cf3c" precedence="0">-></block></socket></block></indent></block>
+      <block color="#26cf3c" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="#26cf3c" precedence="0">-></block></socket></block></indent></block>
       '''
 
     testString 'Operator precedences',

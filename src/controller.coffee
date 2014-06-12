@@ -2251,7 +2251,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     @trimWhitespace = trimWhitespace
 
   Editor::setValue = (value) ->
-    try
+    #try
       # Whitespace trimming hack to account
       # for ACE editor extra line in some applications
       if @trimWhitespace then value = value.trim()
@@ -2268,8 +2268,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       return success: true
 
-    catch e
-      return success: false, error: e
+    #catch e
+    #  return success: false, error: e
 
   Editor::getValue = -> if @currentlyUsingBlocks then @tree.stringify() else @aceEditor.getValue()
   

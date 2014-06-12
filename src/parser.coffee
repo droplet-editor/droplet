@@ -198,6 +198,27 @@ define ['ice-model'], (model) ->
     # Return the document
     return document
   
+  # ## regenerateMarkup ##
+  # Turn a list of containers into
+  # a list of tags.
+  regenerateMarkup = (markup) ->
+    tags = []
+    
+    for mark in markup
+      tags.push
+        token: mark.container.start
+        location: mark.bounds.start
+        depth: mark.depth
+        start: true
+
+      tags.push
+        token: mark.container.end
+        location: mark.bounds.end
+        depth: mark.depth
+        start: false
+
+    return tags
+  
   # ## Parser ##
   # The Parser class is a simple
   # wrapper on the above functions
@@ -206,7 +227,7 @@ define ['ice-model'], (model) ->
     constructor: (@parseFn) ->
     
     parse: (text, verify = true) ->
-      markup = @parseFn text
+      markup = regenerateMarkup @parseFn text
       sortMarkup markup
       return applyMarkup text, markup
 
