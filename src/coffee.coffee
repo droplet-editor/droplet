@@ -59,6 +59,12 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             for i in [(token[2].first_line + 1)...token[2].last_line]
               @lines[i] = @lines[i].replace /./g, ' '
 
+      # We will leave comments unmarked
+      # until the applyMarkup postprocessing
+      # phase, when they will be surrounded
+      # by blocks if they are outside
+      # anything else.
+
       @hasLineBeenMarked = {}
 
       for line, i in @lines
@@ -286,6 +292,9 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           # a socket rather than an indent.
           for line in [bounds.start.line..bounds.end.line]
             shouldBeOneLine or= @hasLineBeenMarked[line]
+
+          if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
+            shouldBeOneLine = true
           
           if shouldBeOneLine
             @addSocket node, depth, 0
@@ -293,7 +302,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           # Otherwise, wrap in an indent.
           else
             # Determine the new indent depth by literal text inspection
-            textLine = @lines[bounds.start.line]
+            textLine = @lines[node.locationData.first_line]
             trueIndentDepth = textLine.length - textLine.trimLeft().length
 
             # Create the indent with the proper
@@ -303,11 +312,17 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             # Then update indent depth data to reflect.
             indentDepth = trueIndentDepth
             
+            # As a block, we also want to consume as much whitespace above us as possible
+            # (to free it from actual ICE editor blocks).
+            while bounds.start.line > 0 and @lines[bounds.start.line - 1].trim().length is 0
+              bounds.start.line -= 1
+              bounds.start.column = @lines[bounds.start.line].length + 1
+            
             # Move the boundaries back by one line,
             # as per the standard way to add an Indent.
             bounds.start.line -= 1
             bounds.start.column = @lines[bounds.start.line].length + 1
-            
+
             # Add the indent per se.
             @addMarkupAtLocation indent, bounds, depth
 
@@ -387,12 +402,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # is only some text
         when 'Call'
           @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen
-        
+
           if node.variable? and node.variable.base?.nodeType() isnt 'Literal'
             @addSocketAndMark node.variable, depth + 1, 0, indentDepth
           
-          for arg in node.args
-            @addSocketAndMark arg, depth + 1, 0, indentDepth
+          unless node.do
+            for arg in node.args
+              @addSocketAndMark arg, depth + 1, 0, indentDepth
         
         # ### Code ###
         # Function definition. Color VALUE, sockets @params,
@@ -418,7 +434,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'For'
           @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen
           
-          for childName in ['index', 'source', 'name', 'from']
+          for childName in ['index', 'source', 'name', 'from', 'guard']
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
 
           @mark node.body, depth + 1, 0, null, indentDepth
@@ -504,7 +520,11 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           @addSocketAndMark node.subject, depth + 1, 0, indentDepth
           
           for switchCase in node.cases
-            @addSocketAndMark switchCase[0], depth + 1, 0, indentDepth # (condition)
+            if switchCase[0].constructor is Array
+              for condition in switchCase[0]
+                @addSocketAndMark condition, depth + 1, 0, indentDepth # (condition)
+            else
+              @addSocketAndMark switchCase[0], depth + 1, 0, indentDepth # (condition)
             @mark switchCase[1], depth + 1, 0, null, indentDepth # (body)
 
           if node.otherwise?
@@ -558,7 +578,8 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     transpiler = new CoffeeScriptTranspiler text
     return transpiler.transpile()
   
-  exports.parse = (text) ->
-    return coffeeScriptParser.parse text
+  exports.parse = (text, opts) ->
+    opts ?= wrapAtRoot: true
+    return coffeeScriptParser.parse text, opts
   
   return exports

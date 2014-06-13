@@ -10,7 +10,7 @@ require ['ice'], (ice) ->
   window.editor = new ice.Editor document.getElementById('editor'), [
     {
       name: 'Common',
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
         'fd 100'
         'bk 100'
         'rt 90'
@@ -31,7 +31,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Turtle',
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
         'fd 100'
         'bk 100'
         'rt 90'
@@ -47,7 +47,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Control',
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
         '''
         if touches 'red'
           fd 10
@@ -228,7 +228,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Logic'
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
         '1 is 1'
         '1 isnt 2'
         'true and false'
@@ -237,7 +237,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Math'
-      blocks: (ice.parse(paletteElement).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
         '2 + 3'
         '2 - 3'
         '2 * 3'

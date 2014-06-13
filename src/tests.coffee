@@ -9,7 +9,7 @@ require ['ice-coffee'], (coffee) ->
 
   test 'Parser unity', ->
     testString = (str) ->
-      equal str, coffee.parse(str).stringify(), 'Unity test on ' + str
+      equal str, coffee.parse(str, wrapAtRoot: true).stringify(), 'Unity test on ' + str
 
     testString 'fd 10'
     testString 'fd 10 + 10'
@@ -38,12 +38,18 @@ require ['ice-coffee'], (coffee) ->
     nodes = readFile 'nodes.coffee'
     console.log nodes
 
-    equal nodes, coffee.parse(nodes).stringify(), 'Unity test on nodes.coffee'
-    
+    unparsed = coffee.parse(nodes, wrapAtRoot: true).stringify()
+
+
+    nodes = nodes.split '\n'
+    unparsed = unparsed.split '\n'
+
+    for i in [0..nodes.length] by 30
+      equal unparsed[i..i + 30].join('\n'), nodes[i..i + 30].join('\n'), 'Unity test on nodes.coffee:' + i
   
   test 'Parser success', ->
     testString = (m, str, expected) ->
-      equal coffee.parse(str).serialize(), expected, m
+      equal coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
     
     testString 'Function call',
       'fd 10', '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'

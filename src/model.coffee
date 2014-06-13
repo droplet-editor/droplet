@@ -801,10 +801,13 @@ define ['ice-view'], (view) ->
     constructor: ->
       @prev = @next = null
       @type = 'newline'
+      @specialIndent = null
 
     clone: -> new NewlineToken()
 
-    stringify: (state) -> '\n' + state.indent
+    stringify: (state) ->
+      if @specialIndent? then '\n' + @specialIndent
+      else '\n' + state.indent
 
     serialize: -> "\n"
   

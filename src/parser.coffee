@@ -61,7 +61,7 @@ define ['ice-model'], (model) ->
   #
   # Automatically insert sockets around blocks along the way.
 
-  applyMarkup = (text, sortedMarkup) ->
+  applyMarkup = (text, sortedMarkup, opts) ->
     # For convenience, will we
     # separate the markup by the line on which it is placed.
     markupOnLines = {}
@@ -94,8 +94,28 @@ define ['ice-model'], (model) ->
       # simply append the text of this line to the document
       # (stripping things as needed for indent)
       if not (i of markupOnLines)
-        unless indentDepth >= line.length
-          head = head.append new model.TextToken(line[indentDepth...])
+        # If this line is not properly indented,
+        # flag it in the model.
+        if indentDepth >= line.length or line[..indentDepth].trim().length > 0
+          head.specialIndent = (' ' for [0...line.length - line.trimLeft().length]).join ''
+          line = line.trimLeft()
+        else
+          line = line[indentDepth...]
+        
+        # If we have some text here that
+        # is floating (not surrounded by a block),
+        # wrap it in a generic block automatically.
+        if line.length > 0
+          if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
+            block = new model.Block 0, '#ffffff', false
+
+            head = head.append block.start
+            head = head.append new model.TextToken line
+            head = head.append block.end
+
+          else
+            head = head.append new model.TextToken line
+
         head = head.append new model.NewlineToken()
       
       # If there is markup on this line, insert it.
@@ -105,7 +125,15 @@ define ['ice-model'], (model) ->
           # Insert a text token for all the text up until this markup
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
-            head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+            if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
+              block = new model.Block 0, '#ffffff', false
+
+              head = head.append block.start
+              head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+              head = head.append block.end
+
+            else
+              head = head.append new model.TextToken(line[lastIndex...mark.location.column])
 
           # Note, if we have inserted something,
           # the new indent depth and the new stack.
@@ -226,10 +254,10 @@ define ['ice-model'], (model) ->
   exports.Parser = class Parser
     constructor: (@parseFn) ->
     
-    parse: (text, verify = true) ->
+    parse: (text, opts) ->
       markup = regenerateMarkup @parseFn text
       sortMarkup markup
-      return applyMarkup text, markup
+      return applyMarkup text, markup, opts
 
   exports.parseObj = parseObj = (object) ->
     unless object?
