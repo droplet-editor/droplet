@@ -247,7 +247,11 @@ define ->
   # accomplished via ctx.measureText().
   exports.Text = class Text
     constructor: (@point, @value) ->
-      _CTX.font = _FONT_SIZE + 'px Courier New'
+      @wantedFont = _FONT_SIZE + 'px Courier New'
+
+      unless _CTX.font is @wantedFont
+        _CTX.font = _FONT_SIZE + 'px Courier New'
+
       @_bounds = new Rectangle @point.x, @point.y, _CTX.measureText(@value).width, _FONT_SIZE
 
     bounds: -> @_bounds

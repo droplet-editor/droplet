@@ -1083,7 +1083,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       # If we can, try to reparse the focus
       # value.
       try
-        newParse = coffee.parse(unparsedValue = @socketFocus.stringify()).start.next
+        newParse = coffee.parse(unparsedValue = @socketFocus.stringify(), wrapAtRoot: false).start.next
 
         if newParse.type is 'blockStart'
           newParse.block.moveTo @socketFocus.start
@@ -1307,6 +1307,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     # If the point was actually in the main canvas,
     # start a lasso select.
     if point.x > PALETTE_WIDTH
+      if @lassoSelectAnchor? then debugger
       @lassoSelectAnchor = @trackerPointToMain point
   
   # On mousemove, if we are in the middle of a
@@ -1652,7 +1653,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
           not containsCursor head.block
         try
           # Reparse the block.
-          newBlock = coffee.parse(head.block.stringify()).start.next
+          newBlock = coffee.parse(head.block.stringify(), wrapAtRoot: false).start.next
 
           # (we only reparse if it is actually
           # a better parse than a handwritten block).
@@ -1848,7 +1849,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         # plus some indent.
         when 'newline'
           state.y += state.lineHeight
-          state.x = state.indent * @mainCtx.measureText(' ').width + state.leftEdge
+          if head.specialIndent?
+            state.x = state.leftEdge + @mainCtx.measureText(head.specialIndent).width
+          else
+            state.x = state.leftEdge + state.indent * @mainCtx.measureText(' ').width
         
         when 'indentStart'
           state.indent += head.indent.depth
@@ -1935,7 +1939,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @mainCtx.globalAlpha = 1
 
         for element, i in textElements
-          element.view.textElement.draw @mainCtx
+          if element.view.bounds[element.view.lineStart].y < (@scrollOffsets.main.y + @mainCanvas.height)
+            element.view.textElement.draw @mainCtx
           element.view.translate new draw.Point(
             translationVectors[i].x / ANIMATION_FRAME_RATE,
             translationVectors[i].y / ANIMATION_FRAME_RATE
@@ -1988,6 +1993,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       {textElements, translationVectors} = @computePlaintextTranslationVectors()
 
+      textElementsOnScreen = []
+
       for element, i in textElements
         element.view.translate translationVectors[i]
 
@@ -2014,7 +2021,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
         @mainCtx.globalAlpha = 1
         
         for element, i in textElements
-          element.view.textElement.draw @mainCtx
+          if element.view.bounds[element.view.lineStart].y < (@scrollOffsets.main.y + @mainCanvas.height)
+            element.view.textElement.draw @mainCtx
           element.view.translate new draw.Point(
             -translationVectors[i].x / ANIMATION_FRAME_RATE,
             -translationVectors[i].y / ANIMATION_FRAME_RATE
@@ -2250,12 +2258,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
     @trimWhitespace = trimWhitespace
 
   Editor::setValue = (value) ->
-    try
+    #try
       # Whitespace trimming hack to account
       # for ACE editor extra line in some applications
       if @trimWhitespace then value = value.trim()
 
-      newParse = coffee.parse value
+      newParse = coffee.parse value, wrapAtRoot: true
       
       if value isnt @tree.stringify()
         @addMicroUndoOperation 'CAPTURE_POINT'
@@ -2267,8 +2275,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
 
       return success: true
 
-    catch e
-      return success: false, error: e
+    #catch e
+    #  return success: false, error: e
 
   Editor::getValue = -> if @currentlyUsingBlocks then @tree.stringify() else @aceEditor.getValue()
   
@@ -2401,7 +2409,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model'], (coffee, draw, model) ->
       if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor?
         event.preventDefault()
 
-    @tracker.addEventListener 'mouseup', (event) =>
+    @tracker.addEventListener 'touchend', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @getPointRelativeToTracker event.touches[0]

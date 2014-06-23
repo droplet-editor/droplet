@@ -41,7 +41,7 @@ module.exports = (grunt) ->
             'ice-parser': 'parser'
             'ice': 'main'
           name: 'ice'
-          optimize: 'uglify'
+          optimize: 'none'
           out: 'dist/ice.js'
 
     uglify:
@@ -66,7 +66,7 @@ module.exports = (grunt) ->
         footer: "}).call(this);;"
       build:
         files:
-          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.min.js']
+          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.js']
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -79,4 +79,4 @@ module.exports = (grunt) ->
 
   grunt.registerTask 'default', ['coffee', 'docco', 'requirejs']
   grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
-  #grunt.registerTask 'test', ['qunit']
+  grunt.registerTask 'test', ['qunit']
