@@ -95,6 +95,16 @@ define ->
 
     upperLeftCorner: -> new Point @x, @y
 
+    toPath: ->
+      path = new Path()
+      path.push new Point(point[0], point[1]) for point in [
+        [@x, @y]
+        [@x, @bottom()]
+        [@right(), @bottom()]
+        [@right(), @y]
+      ]
+      return path
+
   # ## NoRectangle ##
   # NoRectangle is an alternate constructor for Rectangle which starts
   # the rectangle as nothing (without even a location). It can gain location and size
@@ -144,6 +154,8 @@ define ->
     contains: (point) ->
       @_clearCache()
 
+      if @_points.length is 0 then return false
+
       # "Ray" to the left
       dest = new Point @_bounds.x - 10, point.y
       
@@ -161,6 +173,8 @@ define ->
     # entirely within the other.
     intersects: (rectangle) ->
       @_clearCache()
+
+      if @_points.length is 0 then return false
       
       if not rectangle.overlap @_bounds then return false
       else
@@ -198,6 +212,9 @@ define ->
 
     draw: (ctx) ->
       @_clearCache()
+
+      if @_points.length is 0 then return
+
       ctx.strokeStyle = @style.strokeColor
       ctx.lineWidth = @style.lineWidth
       if @style.fillColor? then ctx.fillStyle = @style.fillColor
@@ -211,9 +228,17 @@ define ->
       if @style.fillColor? then ctx.fill()
       ctx.stroke()
 
+    clone: ->
+      clone = new Path()
+      clone.push el for el in @_points
+      return clone
+
     drawShadow: (ctx, offsetX, offsetY, blur) ->
       @_clearCache()
+
       ctx.fillStyle = @style.fillColor
+
+      if @_points.length is 0 then return
       
       oldValues = {
         shadowColor: ctx.shadowColor

@@ -1,4 +1,4 @@
-require ['ice-coffee'], (coffee) ->
+require ['ice-model', 'ice-coffee'], (model, coffee) ->
   
   readFile = (name) ->
     q = new XMLHttpRequest()
@@ -9,7 +9,7 @@ require ['ice-coffee'], (coffee) ->
 
   test 'Parser unity', ->
     testString = (str) ->
-      equal str, coffee.parse(str, wrapAtRoot: true).stringify(), 'Unity test on ' + str
+      strictEqual str, coffee.parse(str, wrapAtRoot: true).stringify(), 'Unity test on ' + str
 
     testString 'fd 10'
     testString 'fd 10 + 10'
@@ -34,22 +34,25 @@ require ['ice-coffee'], (coffee) ->
         see key is value
         see array[n]
     '''
-    
-    nodes = readFile 'nodes.coffee'
-    console.log nodes
 
-    unparsed = coffee.parse(nodes, wrapAtRoot: true).stringify()
+    testFile = (name) ->
+      nodes = readFile name
 
+      unparsed = coffee.parse(nodes, wrapAtRoot: true).stringify()
 
-    nodes = nodes.split '\n'
-    unparsed = unparsed.split '\n'
+      nodes = nodes.split '\n'
+      unparsed = unparsed.split '\n'
 
-    for i in [0..nodes.length] by 30
-      equal unparsed[i..i + 30].join('\n'), nodes[i..i + 30].join('\n'), 'Unity test on nodes.coffee:' + i
+      for i in [0..nodes.length] by 30
+        strictEqual unparsed[i..i + 30].join('\n'), nodes[i..i + 30].join('\n'), "Unity test on #{name}:#{i}-#{i + 30}"
+
+    #testFile 'nodes.coffee'
+    #testFile 'lexer.coffee'
+    #testFile 'allTests.coffee'
   
   test 'Parser success', ->
     testString = (m, str, expected) ->
-      equal coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
+      strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
     
     testString 'Function call',
       'fd 10', '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'
@@ -244,6 +247,16 @@ require ['ice-coffee'], (coffee) ->
       <block color="#26cf3c" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="#26cf3c" precedence="0">-></block></socket></block></indent></block>
       '''
 
+    testString 'Non-parenthetical function call nested in parenthetical function call',
+      '''
+      a(b
+        x: 1)
+      ''',
+      '''
+      <block color="#268bd2" precedence="0">a(<socket precedence="0"><block color="#268bd2" precedence="0">b
+        <socket precedence="0"><block color="#26cf3c" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
+      '''
+
     testString 'Operator precedences',
       '''
       a or b
@@ -281,6 +294,68 @@ require ['ice-coffee'], (coffee) ->
       <block color="#26cf3c" precedence="100"><socket precedence="101">a</socket>?</block>
       '''
 
+  test 'Basic token operations', ->
+    a = new model.Token()
+    b = new model.Token()
+    c = new model.Token()
+    d = new model.Token()
+
+    strictEqual a.append(b), b, 'append() return argument'
+
+    strictEqual a.prev, null, 'append assembles correct linked list'
+    strictEqual a.next, b, 'append assembles correct linked list'
+    strictEqual b.prev, a, 'append assembles correct linked list'
+    strictEqual b.next, null, 'append assembles correct linked list'
+
+    b.append c
+    b.remove()
+
+    strictEqual a.next, c, 'remove removes token'
+    strictEqual c.prev, a, 'remove removes token'
+
+  test 'Containers and parents', ->
+    cont1 = new model.Container()
+    cont2 = new model.Container()
+
+    a = cont1.start
+    b = new model.Token()
+    c = cont2.start
+    d = new model.Token()
+    e = cont2.end
+    f = cont1.end
+
+    a.append(b).append(c).append(d)
+     .append(e).append(f)
+
+    cont1.correctParentTree()
+    
+    strictEqual a.parent, null, 'correctParentTree() output is correct (a)'
+    strictEqual b.parent, cont1, 'correctParentTree() output is correct (b)'
+    strictEqual c.parent, cont1, 'correctParentTree() output is correct (c)'
+    strictEqual d.parent, cont2, 'correctParentTree() output is correct (d)'
+    strictEqual e.parent, cont1, 'correctParentTree() output is correct (e)'
+    strictEqual f.parent, null, 'correctParentTree() output is correct (f)'
+
+    g = new model.Token()
+    h = new model.Token
+    g.append h
+    d.append g
+    h.append e
+
+    strictEqual a.parent, null, 'splice in parents still work'
+    strictEqual b.parent, cont1, 'splice in parents still work'
+    strictEqual c.parent, cont1, 'splice in parents still work'
+    strictEqual d.parent, cont2, 'splice in parents still work'
+    strictEqual g.parent, cont2, 'splice in parents still work'
+    strictEqual h.parent, cont2, 'splice in parents still work'
+    strictEqual e.parent, cont1, 'splice in parents still work'
+    strictEqual f.parent, null, 'splice in parents still work'
+
+    cont3 = new model.Container()
+    cont3.spliceIn g
+
+    strictEqual h.parent, cont2
+
   test 'Get block on line', ->
     document = coffee.parse '''
     for i in [1..10]
@@ -293,10 +368,10 @@ require ['ice-coffee'], (coffee) ->
       see j
     '''
 
-    equal document.getBlockOnLine(1).stringify(), 'see i', 'line 1'
-    equal document.getBlockOnLine(3).stringify(), 'see k', 'line 3'
-    equal document.getBlockOnLine(5).stringify(), 'see q', 'line 5'
-    equal document.getBlockOnLine(7).stringify(), 'see j', 'line 7'
+    strictEqual document.getBlockOnLine(1).stringify(), 'see i', 'line 1'
+    strictEqual document.getBlockOnLine(3).stringify(), 'see k', 'line 3'
+    strictEqual document.getBlockOnLine(5).stringify(), 'see q', 'line 5'
+    strictEqual document.getBlockOnLine(7).stringify(), 'see j', 'line 7'
 
   test 'Location serialization unity', ->
     document = coffee.parse '''
@@ -308,7 +383,7 @@ require ['ice-coffee'], (coffee) ->
 
     head = document.start.next
     until head is document.end
-      equal document.getTokenAtLocation(head.getSerializedLocation()), head, 'Equality for ' + head.type
+      strictEqual document.getTokenAtLocation(head.getSerializedLocation()), head, 'Equality for ' + head.type
       head = head.next
 
   test 'Block move', ->
@@ -320,7 +395,7 @@ require ['ice-coffee'], (coffee) ->
 
     document.getBlockOnLine(2).moveTo document.start
 
-    equal document.stringify(), '''
+    strictEqual document.stringify(), '''
     console.log world
     for i in [1..10]
       console.log hello
@@ -328,24 +403,24 @@ require ['ice-coffee'], (coffee) ->
 
     document.getBlockOnLine(2).moveTo document.start
 
-    equal document.stringify(), '''
+    strictEqual document.stringify(), '''
     console.log hello
     console.log world
     for i in [1..10]
       
     ''', 'Move both out'
     
-    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.indent.start
+    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
 
-    equal document.stringify(), '''
+    strictEqual document.stringify(), '''
     console.log world
     for i in [1..10]
       console.log hello
     ''', 'Move hello back in'
 
-    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.socket.start
+    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start
 
-    equal document.stringify(), '''
+    strictEqual document.stringify(), '''
     console.log (for i in [1..10]
       console.log hello)
     ''', 'Move for into socket (req. paren wrap)'
@@ -356,15 +431,15 @@ require ['ice-coffee'], (coffee) ->
     see 1 + 1
     '''
 
-    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.socket.start
+    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start
 
-    equal document.stringify(), '''
+    strictEqual document.stringify(), '''
     see 1 + (Math.sqrt 2)
     ''', 'Wrap'
 
     block.moveTo document.start
 
-    equal document.stringify(), '''
+    strictEqual document.stringify(), '''
     Math.sqrt 2
     see 1 + 
     ''', 'Unwrap'

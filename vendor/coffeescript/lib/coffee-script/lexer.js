@@ -387,7 +387,7 @@
           }
           this.outdebt = 0;
           this.pair('OUTDENT');
-          this.token('OUTDENT', moveOut, 0, outdentLength);
+          this.token('OUTDENT', moveOut, 0, 1);
           moveOut -= dent;
         }
       }
