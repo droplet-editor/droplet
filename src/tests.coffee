@@ -1,4 +1,4 @@
-require ['ice-model', 'ice-coffee'], (model, coffee) ->
+require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
   
   readFile = (name) ->
     q = new XMLHttpRequest()
@@ -46,9 +46,8 @@ require ['ice-model', 'ice-coffee'], (model, coffee) ->
       for i in [0..nodes.length] by 30
         strictEqual unparsed[i..i + 30].join('\n'), nodes[i..i + 30].join('\n'), "Unity test on #{name}:#{i}-#{i + 30}"
 
-    #testFile 'nodes.coffee'
-    #testFile 'lexer.coffee'
-    #testFile 'allTests.coffee'
+    testFile 'nodes.coffee'
+    testFile 'allTests.coffee'
   
   test 'Parser success', ->
     testString = (m, str, expected) ->
@@ -354,7 +353,7 @@ require ['ice-model', 'ice-coffee'], (model, coffee) ->
     cont3 = new model.Container()
     cont3.spliceIn g
 
-    strictEqual h.parent, cont2
+    strictEqual h.parent, cont2, 'splice in parents still work'
 
   test 'Get block on line', ->
     document = coffee.parse '''
@@ -443,3 +442,62 @@ require ['ice-model', 'ice-coffee'], (model, coffee) ->
     Math.sqrt 2
     see 1 + 
     ''', 'Unwrap'
+
+  test 'View: compute children', ->
+    view = new view.View
+      padding: 5
+      indentWIdth: 10
+      indentToungeHeight: 10
+      tabOffset: 10
+      tabWidth: 15
+      tabHeight: 5
+      tabSideWidth: 0.125
+      dropAreaHeight: 20
+      indentDropAreaMinWdith: 50
+      emptySocketWidth: 20
+      emptySocketHeight: 25
+      emptyLineHeight: 25
+      
+    document = coffee.parse '''
+    fd 10
+    '''
+
+    documentView = view.getViewFor document
+    
+    documentView.layout()
+
+    strictEqual documentView.lineChildren[0].length, 1, 'Children length 1 in `fd 10`'
+    strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine 0, 'Child matches'
+    strictEqual documentView.lineChildren[0][0].lineStart, 0, 'Child starts on correct line'
+
+    blockView = view.getViewFor document.getBlockOnLine 0
+    strictEqual blockView.lineChildren[0].length, 2, 'Children length 2 in `fd 10` block'
+    strictEqual blockView.lineChildren[0][0].child.type, 'text', 'First child is text'
+    strictEqual blockView.lineChildren[0][1].child.type, 'socket', 'Second child is socket'
+
+    document = coffee.parse '''
+    for [1..10]
+      fd 10
+      bk 10
+      fd 20
+    '''
+
+    blockView = view.getViewFor document.getBlockOnLine 0
+    strictEqual blockView.lineChildren[1].length, 1, 'One child in indent'
+    strictEqual blockView.lineChildren[2][0].startLine, 1, 'Indent start line'
+    strictEqual blockView.indentData[1], 1, 'Indent start data'
+    strictEqual blockView.indentData[2], 2, 'Indent middle data'
+    strictEqual blockView.indentData[3], 3, 'Indent end data'
+
+    indentView = view.getViewFor document.getBlockOnLine(1).start.prev.prev.container
+    strictEqual indentView.lineChildren[0].child.stringify(), 'fd 10', 'Relative line numbers'
+
+    document = coffee.parse '''
+    see (for [1..10]
+      fd 10)
+    '''
+
+    blockView = view.getViewFor document.getBlockOnLine(0).start.next.next.container
+
+    strictEqual blockView.lineChildren[1].length, 1, 'One child in indent in socket'
+    strictEqual blockView.indentData[1], 3, 'Indent end data'

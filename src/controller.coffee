@@ -222,6 +222,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::clearMain = ->
     @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
+
   Editor::redrawMain = ->
     unless @currentlyAnimating
       # Set our draw tool's font size
@@ -237,11 +238,30 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Draw the new tree on the main context
       @view.getViewFor(@tree).layout(); @view.getViewFor(@tree).draw @mainCtx
 
+      # Draw the cursor (if exists, and is inserted)
+      @redrawCursor()
+
       for binding in editorBindings.redraw_main
         binding.call this
+
+  Editor::redrawCursor = ->
+    if @cursor? and @cursor.parent?
+      head = @cursor; line = 0
+      until head is @cursor.parent.start
+        head = head.prev
+        line++ if head.type is 'newline'
+
+      bound = @view.getViewFor(@cursor.parent).bounds[line]
+      if @cursor.nextVisibleToken()?.type is 'indentEnd' or
+         @cursor.next is @tree.end
+        @drawCursor new draw.Point bound.x, bound.bottom()
+      else
+        @drawCursor new draw.Point bound.x, bound.y
     
   Editor::clearPalette = ->
-      @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y, @paletteCanvas.width, @paletteCanvas.height
+      @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+        @paletteCanvas.width, @paletteCanvas.height
+
 
   Editor::redrawPalette = ->
       @clearPalette()
@@ -1096,7 +1116,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::redrawTextInput = ->
     # Set the value in the model to fit
     # the hidden input value.
-    @textFocus.value = @hiddenInput.value
+    @populateSocket @textFocus, @hiddenInput.value
     
     # Redraw the main canvas, on top of
     # which we will draw the cursor and
@@ -1167,7 +1187,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         newParse = coffee.parse(unparsedValue = @socketFocus.stringify(), wrapAtRoot: false).start.next
 
         if newParse.type is 'blockStart'
-          newParse.block.moveTo @socketFocus.start
+          newParse.container.moveTo @socketFocus.start
 
           @addMicroUndoOperation new TextReparseOperation @socketFocus, unparsedValue
 
@@ -1201,8 +1221,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Set the hidden input up to mirror the text.
     @hiddenInput.value = @textFocus.stringify()
     
-    if selectionStart < 0 then selectionStart = @textFocus.value.length - selectionStart
-    if selectionEnd < 0 then selectionEnd = @textFocus.value.length - selectionEnd
+    if selectionStart < 0 then selectionStart = @textFocus.stringify().length - selectionStart
+    if selectionEnd < 0 then selectionEnd = @textFocus.stringify().length - selectionEnd
 
     # Focus the hidden input.
     setTimeout (=>
@@ -1574,12 +1594,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else head.insertBefore @cursor
     
     # Keep scanning forward if this is an improper location.
-    unless isValidCursorPosition @cursor then @moveCursorTo @cursor.next
+    if @cursor.parent.type is 'block' then @moveCursorTo @cursor.next
 
     if attemptReparse
       @reparseHandwrittenBlocks()
 
-    @redrawMain()
+    @redrawCursor()
   
   Editor::moveCursorUp = ->
     # Seek the place we want to move the cursor
@@ -1602,7 +1622,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     unless isValidCursorPosition @cursor then @moveCursorUp()
     
     @reparseHandwrittenBlocks()
-    @redrawMain()
+    @redrawCursor()
 
   # Pressing the up-arrow moves the cursor up.
   hook 'key.up', 0, ->
@@ -1702,8 +1722,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @setTextInputFocus null
       
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket null, -Infinity
-      newBlock.start.append(newSocket.start).append(newSocket.end).append(newBlock.end)
+      newBlock = new model.Block(); newSocket = new model.Socket -Infinity
+      newSocket.spliceIn newBlock.start
       newSocket.handwritten = true
 
       # Add it io our list of handwritten blocks
@@ -1783,6 +1803,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             head.prev.append newBlock
             newBlock.container.end.append head.container.end.next
 
+            newBlock.parent = head.container.parent
+
             newBlock.notifyChange()
             
             head = newBlock.container.end
@@ -1853,10 +1875,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @addMicroUndoOperation new CreateIndentOperation head, DEFAULT_INDENT_DEPTH
 
         newIndent = new model.Indent DEFAULT_INDENT_DEPTH
-        head.prev.append(newIndent.start) #MUTATION
-                 .append(new model.NewlineToken())
-                 .append(newIndent.end)
-                 .append(head)
+        newIndent.start.append(new model.NewlineToken()).append newIndent.end
+        newIndent.spliceIn head.prev
+        newIndent.notifyChange()
         
         head = newIndent.start
 
@@ -1867,7 +1888,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @addMicroUndoOperation new DropOperation @socketFocus.start.prev.container, head
       @socketFocus.start.prev.container.moveTo head #MUTATION
-      
+
       # Move the cursor up to where the block now is.
       @moveCursorTo @socketFocus.start.prev.container.end
       
@@ -1884,9 +1905,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         (indent = @cursor.prev.prev.indent).stringify().trim().length is 0
 
       @addMicroUndoOperation new DestroyIndentOperation indent
-      indent.start.prev.append indent.end.next #MUTATION
-      
       indent.notifyChange()
+
+      indent.start.prev.append indent.end.next #MUTATION
       
       @moveCursorTo indent.end.next
 
@@ -2038,7 +2059,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         # Skip anything that's
         # off the screen the whole time.
         unless 0 < textElement.bounds[0].y + @scrollOffsets.main.y < @mainCanvas.height or
-               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
           continue
 
         div = document.createElement 'div'
@@ -2143,7 +2164,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         # Skip anything that's
         # off the screen the whole time.
         unless 0 < textElement.bounds[0].y + @scrollOffsets.main.y < @mainCanvas.height or
-               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
           continue
 
         div = document.createElement 'div'
@@ -2166,6 +2187,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             x: textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x
             y: textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
           vector: translationVectors[i]
+
+      console.log 'translating', translatingElements.length
 
       tick = (count) =>
         if count < ANIMATION_FRAME_RATE * 2
@@ -2587,6 +2610,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         handler.call this, trackPoint, event, state
       
       event.preventDefault()
+
+  # CURSOR DRAW SUPPORRT
+  # ================================
+  Editor::drawCursor = (point) ->
+    @clearHighlightCanvas()
+
+    @highlightCtx.beginPath()
+
+    @highlightCtx.fillStyle =
+      @highlightCtx.strokeStyle = '#000'
+
+    if point.x >= 5
+      @highlightCtx.moveTo point.x, point.y
+      @highlightCtx.lineTo point.x - 5, point.y - 5
+      @highlightCtx.lineTo point.x - 5, point.y + 5
+    else
+      @highlightCtx.moveTo point.x, point.y
+      @highlightCtx.lineTo point.x + 5, point.y - 5
+      @highlightCtx.lineTo point.x + 5, point.y + 5
+
+    @highlightCtx.stroke()
+    @highlightCtx.fill()
   
   # CLOSING FOUNDATIONAL STUFF
   # ================================
