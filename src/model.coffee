@@ -182,8 +182,11 @@ define ->
           token.append token.container.end
 
       # Literally splice in
-      @end.append token.next; token.append @start
-      @end.parent = @start.parent
+      last = token.next
+
+      token.append @start
+      @start.parent = @end.parent = @parent
+      @end.append last
 
       @notifyChange()
     

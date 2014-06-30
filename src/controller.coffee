@@ -77,10 +77,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # ### Tracker
       # Create the div that will track all the ICE editor mouse movement
 
-      @tracker = document.createElement 'div'
-      @tracker.className = 'ice-track-area'
+      #@iceElement = document.createElement 'div'
+      #@iceElement.className = 'ice-track-area'
 
-      @iceElement.appendChild @tracker
+      #@iceElement.appendChild @iceElement
       
       # ### Canvases
       # Create the palette and main canvases
@@ -91,7 +91,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @mainCtx = @mainCanvas.getContext '2d'
       
-      @tracker.appendChild @mainCanvas
+      @iceElement.appendChild @mainCanvas
 
       @paletteWrapper = document.createElement 'div'
       @paletteWrapper.className = 'ice-palette-wrapper'
@@ -104,7 +104,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @paletteWrapper.appendChild @paletteCanvas
 
-      @tracker.appendChild @paletteWrapper
+      @iceElement.appendChild @paletteWrapper
 
       # Instantiate an ICE editor view
       @view = new view.View
@@ -167,7 +167,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # ## Tracker Events
       # We allow binding to the tracker element.
       for eventName in ['mousedown', 'mouseup', 'mousemove'] then do (eventName) =>
-        @tracker.addEventListener eventName, (event) =>
+        @iceElement.addEventListener eventName, (event) =>
           trackPoint = @getPointRelativeToTracker event
           
           # We keep a state object so that handlers
@@ -316,7 +316,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     return point
   
   Editor::trackerOffset = (el) ->
-    @absoluteOffset(el).from @absoluteOffset @tracker
+    @absoluteOffset(el).from @absoluteOffset @iceElement
     
   # ### Conversion functions
   # Convert a point relative to the tracker into
@@ -540,8 +540,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
     # We append it to the tracker element,
     # so that it can appear in front of the scrollers.
-    @tracker.appendChild @dragCanvas
-    @tracker.appendChild @highlightCanvas
+    @iceElement.appendChild @dragCanvas
+    @iceElement.appendChild @highlightCanvas
 
   Editor::clearHighlightCanvas = ->
     @highlightCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
@@ -902,7 +902,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @paletteHeader.className = 'ice-palette-header'
     
     # Record its height, which is deterministic.
-    @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30
+    @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30 + 2 # NOTE: paramaterize this; it is a border width.
 
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
@@ -1364,7 +1364,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @lassoSelectAnchor = null
     @lassoSegment = null
 
-    @tracker.appendChild @lassoSelectCanvas
+    @iceElement.appendChild @lassoSelectCanvas
   
   # Conveneince function for clearing
   # the lasso select canvas
@@ -1966,8 +1966,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     until head is @tree.end
       switch head.type
         when 'text'
-          translationVectors.push @view.getViewFor(head).computePlaintextTranslationVector state, @mainCtx
-          textElements.push head
+          corner = @view.getViewFor(head).bounds[0].upperLeftCorner()
+
+          translationVectors.push (new draw.Point(state.x, state.y)).from(corner)
+          textElements.push @view.getViewFor head
+
+          state.x += @mainCtx.measureText(head.value).width
 
         # Newline moves the cursor to the next line,
         # plus some indent.
@@ -1979,10 +1983,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             state.x = state.leftEdge + state.indent * @mainCtx.measureText(' ').width
         
         when 'indentStart'
-          state.indent += head.indent.depth
+          state.indent += head.container.depth
 
         when 'indentEnd'
-          state.indent -= head.indent.depth
+          state.indent -= head.container.depth
 
       head = head.next
 
@@ -2014,9 +2018,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::performMeltAnimation = ->
     if @currentlyUsingBlocks and not @currentlyAnimating
       @aceEditor.setValue @getValue(), -1
+      @aceEditor.resize true
 
-      @currentlyUsingBlocks = false
-      @currentlyAnimating = true
+      @currentlyUsingBlocks = false; @currentlyAnimating = true
 
       @redrawMain()
 
@@ -2026,6 +2030,38 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Compute where the text will end up
       # in the ace editor
       {textElements, translationVectors} = @computePlaintextTranslationVectors()
+
+      translatingElements = []
+
+      for textElement, i in textElements
+        
+        # Skip anything that's
+        # off the screen the whole time.
+        unless 0 < textElement.bounds[0].y + @scrollOffsets.main.y < @mainCanvas.height or
+               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+          continue
+
+        div = document.createElement 'div'
+        div.style.whiteSpace = 'pre'
+
+        div.innerText = textElement.model.value
+        
+        div.style.font = @fontSize + ' Courier New'
+        div.style.position = 'absolute'
+        div.style.marginTop = '-1px'
+
+        div.style.left = textElement.bounds[0].x + @scrollOffsets.main.x
+        div.style.top = textElement.bounds[0].y + @scrollOffsets.main.y
+
+        @iceElement.appendChild div
+
+        translatingElements.push
+          div: div
+          position:
+            x: textElement.bounds[0].x + @scrollOffsets.main.x
+            y: textElement.bounds[0].y + @scrollOffsets.main.y
+          vector: translationVectors[i]
+
       animatedColor = new AnimatedColor '#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE
 
       originalOffset = @scrollOffsets.main.y
@@ -2033,48 +2069,27 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       tick = (count) =>
         # Schedule the next animation frame
         # right away
-        if count < ANIMATION_FRAME_RATE
+        if count < ANIMATION_FRAME_RATE * 2
           setTimeout (->
             tick count + 1
           ), 1000 / ANIMATION_FRAME_RATE
         
-        # Fade away the blocks
-        @mainCtx.globalAlpha = Math.max 0, 1 - 2 * count / ANIMATION_FRAME_RATE
+        if count < ANIMATION_FRAME_RATE
+          @paletteWrapper.style.opacity =
+            @mainCanvas.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
         
-        # Animate the main canvas color
-        @iceElement.style.backgroundColor =
-          @mainCanvas.style.backgroundColor = animatedColor.advance()
+        else
+          for element in translatingElements
+            element.position.x += element.vector.x / ANIMATION_FRAME_RATE
+            element.position.y += element.vector.y / ANIMATION_FRAME_RATE
 
-        @mainCanvas.style.left = "#{PALETTE_WIDTH * (1 - count / ANIMATION_FRAME_RATE)}px"
-        @paletteCanvas.style.opacity =
-          @paletteHeader.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
-
-        @clearMain()
-        
-        # Scroll the document to root position
-        # (so as to line up with ACE editor)
-        @mainCtx.translate 0, originalOffset / ANIMATION_FRAME_RATE
-        @scrollOffsets.main.y -= originalOffset / ANIMATION_FRAME_RATE
-        
-        # Redraw the tree (fading)
-        @view.getViewFor(@tree).draw @mainCtx
-        
-        # Redraw all the text elements in animation
-        @mainCtx.globalAlpha = 1
-
-        for element, i in textElements
-          elementView = @view.getViewFor element
-          if elementView.bounds[0].y < (@scrollOffsets.main.y + @mainCanvas.height)
-            elementView.textElement.draw @mainCtx
-          elementView.translate new draw.Point(
-            translationVectors[i].x / ANIMATION_FRAME_RATE,
-            translationVectors[i].y / ANIMATION_FRAME_RATE
-          )
+            element.div.style.left = element.position.x
+            element.div.style.top = element.position.y
 
         # Simultaneously, we will animate
         # the canvas to the left, and fade 
 
-        if count is ANIMATION_FRAME_RATE
+        if count is ANIMATION_FRAME_RATE * 2
           # Translate the ICE editor div out of frame.
           @iceElement.style.top = "-9999px"
           @iceElement.style.left = "-9999px"
@@ -2090,6 +2105,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @currentlyAnimating = false
           @scrollOffsets.main.y = 0
           @mainCtx.setTransform 1, 0, 0, 1, 0, 0
+
+          for element in translatingElements
+            @iceElement.removeChild element.div
 
       tick 0
 
@@ -2118,46 +2136,62 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       {textElements, translationVectors} = @computePlaintextTranslationVectors()
 
-      textElementsOnScreen = []
+      translatingElements = []
 
-      for element, i in textElements
-        @view.getViewFor(element).translate translationVectors[i]
+      for textElement, i in textElements
+        
+        # Skip anything that's
+        # off the screen the whole time.
+        unless 0 < textElement.bounds[0].y + @scrollOffsets.main.y < @mainCanvas.height or
+               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+          continue
 
-      animatedColor = new AnimatedColor '#FFFFFF', '#CCCCCC', ANIMATION_FRAME_RATE
+        div = document.createElement 'div'
+        div.style.whiteSpace = 'pre'
+
+        div.innerText = textElement.model.value
+        
+        div.style.font = @fontSize + ' Courier New'
+        div.style.position = 'absolute'
+        div.style.marginTop = '-1px'
+
+        div.style.left = textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x
+        div.style.top = textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+
+        @iceElement.appendChild div
+
+        translatingElements.push
+          div: div
+          position:
+            x: textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x
+            y: textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+          vector: translationVectors[i]
 
       tick = (count) =>
-        if count < ANIMATION_FRAME_RATE
+        if count < ANIMATION_FRAME_RATE * 2
           setTimeout (->
             tick count + 1
           ), 1000 / ANIMATION_FRAME_RATE
         
-        @mainCanvas.style.left = "#{PALETTE_WIDTH * (count / ANIMATION_FRAME_RATE)}px"
-        @iceElement.style.backgroundColor =
-          @mainCanvas.style.backgroundColor = animatedColor.advance()
-        @paletteCanvas.style.opacity =
-          @paletteHeader.style.opacity = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
+        if count < ANIMATION_FRAME_RATE
+          for element in translatingElements
+            element.position.x += -element.vector.x / ANIMATION_FRAME_RATE
+            element.position.y += -element.vector.y / ANIMATION_FRAME_RATE
+
+            element.div.style.left = element.position.x
+            element.div.style.top = element.position.y
+
+        else
+          @paletteWrapper.style.opacity =
+            @mainCanvas.style.opacity = Math.max 0, 1 - 2 * (2 - count / ANIMATION_FRAME_RATE)
         
-        @clearMain()
-        
-        @mainCtx.globalAlpha = Math.max 0, 1 - 2 * (1 - count / ANIMATION_FRAME_RATE)
-        
-        @view.getViewFor(@tree).draw @mainCtx
-        
-        @mainCtx.globalAlpha = 1
-        
-        for element, i in textElements
-          elementView = @view.getViewFor element
-          if elementView.bounds[0].y < (@scrollOffsets.main.y + @mainCanvas.height)
-            elementView.textElement.draw @mainCtx
-          elementView.translate new draw.Point(
-            -translationVectors[i].x / ANIMATION_FRAME_RATE,
-            -translationVectors[i].y / ANIMATION_FRAME_RATE
-          )
-        
-        if count is ANIMATION_FRAME_RATE
+        if count is ANIMATION_FRAME_RATE * 2
           @currentlyAnimating = false
           @redrawMain()
           @paletteHeader.style.zIndex = 257
+
+          for element in translatingElements
+            @iceElement.removeChild element.div
 
       tick 0
 
@@ -2185,7 +2219,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @mainScrollerStuffing.className = 'ice-main-scroller-stuffing'
 
     @mainScroller.appendChild @mainScrollerStuffing
-    @tracker.appendChild @mainScroller
+    @iceElement.appendChild @mainScroller
 
     @mainScroller.addEventListener 'scroll', =>
       @scrollOffsets.main.y = @mainScroller.scrollTop
@@ -2491,7 +2525,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @touchScrollAnchor = new draw.Point 0, 0
     @lassoSelectStartTimeout = null
 
-    @tracker.addEventListener 'touchstart', (event) =>
+    @iceElement.addEventListener 'touchstart', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @getPointRelativeToTracker event.touches[0]
@@ -2521,7 +2555,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       
       event.preventDefault()
 
-    @tracker.addEventListener 'touchmove', (event) =>
+    @iceElement.addEventListener 'touchmove', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @getPointRelativeToTracker event.touches[0]
@@ -2539,7 +2573,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor?
         event.preventDefault()
 
-    @tracker.addEventListener 'touchend', (event) =>
+    @iceElement.addEventListener 'touchend', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @getPointRelativeToTracker event.touches[0]

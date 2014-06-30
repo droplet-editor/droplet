@@ -356,7 +356,9 @@ require ['ice'], (ice) ->
 
   editor.setValue examplePrograms.fizzbuzz
   editor.clearUndoStack()
-  
+
+  editor.paletteWrapper.style.right = '-300px'
+
   messageElement = document.getElementById 'message'
   displayMessage = (text) ->
     messageElement.style.display = 'inline'
