@@ -66,7 +66,8 @@ module.exports = (grunt) ->
         footer: "}).call(this);;"
       build:
         files:
-          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.js']
+          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.min.js']
+          'dist/ice-full.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.js']
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -77,6 +78,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-requirejs'
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
 
-  grunt.registerTask 'default', ['coffee', 'docco', 'requirejs']
-  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'concat']
+  grunt.registerTask 'default', ['coffee', 'docco', 'requirejs', 'concat']
+  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
   grunt.registerTask 'test', ['qunit']

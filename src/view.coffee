@@ -7,6 +7,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   YES = -> yes
   NO = -> no
 
+  window.drawNumber = 0
+
   exports = {}
 
   exports.View = class View
@@ -16,6 +18,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     constructor: (@opts) ->
       self = this
       draw._setCTX @opts.ctx
+
+    clearCache: -> map = {}
 
     class GenericView
       constructor: (@model) ->
@@ -40,9 +44,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @versions =
           children: -1
           dimensions: -1
-          bounds: -1
+          bounds: {}
 
         @dropArea = @highlightArea = null
+        @boundingBoxFlag = true
 
         @padding = self.opts.padding
 
@@ -51,6 +56,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeDimensions: -> @dimensions
       
       computeBoundingBox: (upperLeft, line) ->
+        if @versions.bounds[line] is @model.version and
+           upperLeft.x is @bounds[line]?.x and
+           upperLeft.y is @bounds[line]?.y
+          return @bounds[line]
+        else
+          @versions.bounds[line] = @model.version
+
         @bounds[line] = new draw.Rectangle(
           upperLeft.x,
           upperLeft.y,
@@ -67,29 +79,36 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeOwnPath: -> @path = new draw.Path()
 
       computeDropAreas: ->
-        @computeOwnDropArea()
-        for childObj in @children
-          self.getViewFor(childObj.child).computeDropAreas()
+        if @boundingBoxFlag
+          @computeOwnDropArea()
+          for childObj in @children
+            self.getViewFor(childObj.child).computeDropAreas()
 
         return null
 
       computeOwnDropArea: ->
 
       computePath: ->
-        @computeOwnPath()
-        for childObj in @children
-          self.getViewFor(childObj.child).computePath()
+        if @boundingBoxFlag
+          @computeOwnPath()
+
+          @totalBounds.unite @path.bounds()
+
+          for childObj in @children
+            self.getViewFor(childObj.child).computePath()
 
         return null
 
       drawSelf: (ctx, style) ->
 
-      draw: (ctx, style) ->
-        style ?= selected: 0
+      draw: (ctx, boundingRect, style) ->
+        if @totalBounds.overlap boundingRect
+          window.drawNumber++
+          style ?= selected: 0
 
-        @drawSelf ctx, style
-        for childObj in @children
-          self.getViewFor(childObj.child).draw ctx, style
+          @drawSelf ctx, style
+          for childObj in @children
+            self.getViewFor(childObj.child).draw ctx, boundingRect, style
 
         return null
 
@@ -112,7 +131,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @lineChildren = [[]]
         @children = []
         @indentData = []
-        @bounds = []
 
         @model.traverseOneLevel (head, isContainer) =>
           # Advance our line counter
@@ -164,6 +182,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # Set @lineLength to reflect
         # what we just found out.
         @lineLength = line + 1
+
+        @bounds = @bounds[...@lineLength]
         
         # Fill in gaps in @indentData with NO_INDENT
         @indentData[i] ?= NO_INDENT for i in [0...@lineLength]
@@ -234,21 +254,29 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       getBounds: -> @totalBounds
       
       computeBoundingBox: (upperLeft, line) ->
-        if @versions.bounds is @model.version and
+        if @versions.bounds[line] is @model.version and
            upperLeft.x is @bounds[line]?.x and
            upperLeft.y is @bounds[line]?.y
           return @bounds[line]
         else
-          @versions.bounds = @model.version
+          @versions.bounds[line] = @model.version
+        
+        unless @bounds[line]? and
+           @bounds[line].x is upperLeft.x and
+           @bounds[line].y is upperLeft.y and
+           @bounds[line].width is @dimensions[line].width and
+           @bounds[line].height is @dimensions[line].height
 
-        # Assign our own bounding box given
-        # this center-left coordinate
-        @bounds[line] = new draw.Rectangle(
-          upperLeft.x
-          upperLeft.y
-          @dimensions[line].width
-          @dimensions[line].height
-        )
+          # Assign our own bounding box given
+          # this center-left coordinate
+          @bounds[line] = new draw.Rectangle(
+            upperLeft.x
+            upperLeft.y
+            @dimensions[line].width
+            @dimensions[line].height
+          )
+
+          @boundingBoxFlag = true
 
         @totalBounds.unite @bounds[line]
         
@@ -260,7 +288,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         for lineChild, i in @lineChildren[line]
           childView = self.getViewFor lineChild.child
           childLine = line - lineChild.startLine
-          
 
           # Indents are special; they are not padded,
           # and are guaranteed to match the top of the block.
@@ -317,6 +344,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @computeBoundingBoxes left, top
         @computePath()
         @computeDropAreas()
+
+        @boundingBoxFlag = false
+
+        return null
       
       addTab: (array, point, invert = false) ->
         @addRectilinear array, new draw.Point(point.x + self.opts.tabOffset + self.opts.tabWidth,
@@ -524,16 +555,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           super
 
       computeBoundingBox: (upperLeft, line) ->
-        if @versions.bounds is @model.version and
+        if @versions.bounds[line] is @model.version and
            upperLeft.x is @bounds[line]?.x and
            upperLeft.y is @bounds[line]?.y
+          if @model.stringify() is '' then debugger
           return @bounds[line]
-        else
-          @versions.bounds = @model.version
         
         # A Socket should copy its content
         # block, if there is a content block
         if @model.start.next.type is 'blockStart'
+          @boundingBoxFlag = true
+
           @bounds[line] =
             self.getViewFor(@model.start.next.container).computeBoundingBox upperLeft, line
 
@@ -603,17 +635,19 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       constructor: -> super; @padding = 0
       computeOwnPath: -> @path = new draw.Path()
       drawSelf: (ctx, style) -> null
-      draw: (ctx, style) ->
-        style ?= selected: 0
+      draw: (ctx, boundingRect, style) ->
+        if @totalBounds.overlap boundingRect
+          style ?= selected: 0
 
-        @drawSelf ctx, style
+          @drawSelf ctx, style
 
-        if @model.isLassoSegment then style.selected++
+          if @model.isLassoSegment then style.selected++
 
-        for childObj in @children
-          self.getViewFor(childObj.child).draw ctx, style
+          for childObj in @children
+            self.getViewFor(childObj.child).draw ctx, boundingRect, style
 
-        if @model.isLassoSegment then style.selected--
+          if @model.isLassoSegment then style.selected--
+        return null
 
       computeOwnDropArea: -> @dropArea = @highlightArea = null
 

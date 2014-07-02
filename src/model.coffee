@@ -28,6 +28,9 @@ define ->
       @parent = null
       @version = 0
       @start.append @end
+      
+      # Line mark colours
+      @lineMarkStyles = []
     
     # _cloneEmpty should simply instantiate
     # a new instance of this Container

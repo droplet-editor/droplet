@@ -54,6 +54,12 @@ define ->
     constructor: (@x, @y, @width, @height) ->
     
     contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
+    
+    identical: (other) ->
+      @x is other.x and
+      @y is other.y and
+      @width is other.width and
+      @height is other.height
 
     copy: (rect) ->
       @x = rect.x; @y = rect.y

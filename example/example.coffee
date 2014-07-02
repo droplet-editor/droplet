@@ -3,7 +3,7 @@
 require.config
   urlArgs: "bust=" + (new Date()).getTime()
   paths:
-    'ice': '../dist/ice-full.min'
+    'ice': '../dist/ice-full'
 
 readFile = (name) ->
   q = new XMLHttpRequest()

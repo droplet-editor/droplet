@@ -236,7 +236,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @clearMain()
 
       # Draw the new tree on the main context
-      @view.getViewFor(@tree).layout(); @view.getViewFor(@tree).draw @mainCtx
+      @view.getViewFor(@tree).layout()
+      @view.getViewFor(@tree).draw @mainCtx, new draw.Rectangle(
+        @scrollOffsets.main.x
+        @scrollOffsets.main.y
+        @mainCanvas.width
+        @mainCanvas.height
+      )
 
       # Draw the cursor (if exists, and is inserted)
       @redrawCursor()
@@ -277,13 +283,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # of the last bottom edge of a palette block.
       lastBottomEdge = PALETTE_TOP_MARGIN
 
+      boundingRect = new draw.Rectangle(
+        @scrollOffsets.palette.x,
+        @scrollOffsets.palette.y,
+        @paletteCanvas.width
+        @paletteCanvas.height
+      )
+
       for paletteBlock in @currentPaletteBlocks
         # Layout this block
         paletteBlockView = @view.getViewFor paletteBlock
         paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
         # Render the block
-        paletteBlockView.draw @paletteCtx
+        paletteBlockView.draw @paletteCtx, boundingRect
         
         # Update lastBottomEdge
         lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
@@ -671,7 +684,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       draggingBlockView = @view.getViewFor @draggingBlock
       draggingBlockView.layout 1, 1
       draggingBlockView.drawShadow @dragCtx, 5, 5
-      draggingBlockView.draw @dragCtx
+      draggingBlockView.draw @dragCtx, new draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
       
       # Translate it immediately into position
       position = new draw.Point(
@@ -770,6 +783,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
             @draggingBlock.moveTo @tree.start #MUTATION
       
+      @redrawMain()
+
       # Move the cursor to the position we just
       # dropped the block
       @moveCursorTo @draggingBlock.end, true
@@ -780,7 +795,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @lastHighlight = null
       
       @clearDrag()
-      @redrawMain()
 
   # FLOATING BLOCK SUPPORT
   # ================================
@@ -901,10 +915,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # On redraw, we draw all the floating blocks
   # in their proper positions.
   hook 'redraw_main', 7, ->
+    boundingRect = new draw.Rectangle(
+      @scrollOffsets.main.x,
+      @scrollOffsets.main.y,
+      @mainCanvas.width,
+      @mainCanvas.height
+    )
     for record in @floatingBlocks
       blockView = @view.getViewFor record.block
       blockView.layout record.position.x, record.position.y
-      blockView.draw @mainCtx
+      blockView.draw @mainCtx, boundingRect
 
   # PALETTE SUPPORT
   # ================================
@@ -1932,7 +1952,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      @setFontSize @aceEditor.getFontSize()
+      @setFontSize_raw @aceEditor.getFontSize()
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
@@ -2306,11 +2326,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
   hook 'populate', 0, ->
     @fontSize = 15
-
-  Editor::setFontSize = (fontSize) ->
+  
+  Editor::setFontSize_raw = (fontSize) ->
     @fontSize = fontSize
     @paletteHeader.style.fontSize = "#{fontSize}px"
+    @view.clearCache()
     @redrawMain(); @redrawPalette()
+
+  Editor::setFontSize = (fontSize) ->
+    @aceEditor.setFontSize fontSize
+    @setFontSize_raw fontSize
 
   # MUTATION BUTTON SUPPORT
   # ================================
