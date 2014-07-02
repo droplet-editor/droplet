@@ -1463,7 +1463,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # If the point was actually in the main canvas,
     # start a lasso select.
     mainPoint = @trackerPointToMain point
-    if 0 < mainPoint.x < @mainCanvas.width and 0 < mainPoint.y < @mainCanvas.height
+    palettePoint = @trackerPointToPalette point
+    if 0 < mainPoint.x < @mainCanvas.width and 0 < mainPoint.y < @mainCanvas.height and not
+       (0 < palettePoint.x < @paletteCanvas.width and 0 < palettePoint.x < @paletteCanvas.height)
       if @lassoSelectAnchor? then debugger
       @lassoSelectAnchor = @trackerPointToMain point
   
@@ -2017,6 +2019,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         when 'text'
           corner = @view.getViewFor(head).bounds[0].upperLeftCorner()
 
+          corner.x -= @scrollOffsets.main.x
+          corner.y -= @scrollOffsets.main.y
+
           translationVectors.push (new draw.Point(state.x, state.y)).from(corner)
           textElements.push @view.getViewFor head
 
@@ -2086,8 +2091,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         
         # Skip anything that's
         # off the screen the whole time.
-        unless 0 < textElement.bounds[0].y + @scrollOffsets.main.y < @mainCanvas.height or
-               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
+        unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y and
+                   textElement.bounds[0].y - @scrollOffsets.main.y < @mainCanvas.height or
+               0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
+                   textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
           continue
 
         div = document.createElement 'div'
@@ -2099,16 +2106,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.position = 'absolute'
         div.style.marginTop = '-1px'
 
-        div.style.left = "#{textElement.bounds[0].x + @scrollOffsets.main.x}px"
-        div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y}px"
+        div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
+        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
 
         @iceElement.appendChild div
 
         translatingElements.push
           div: div
           position:
-            x: textElement.bounds[0].x + @scrollOffsets.main.x
-            y: textElement.bounds[0].y + @scrollOffsets.main.y
+            x: textElement.bounds[0].x - @scrollOffsets.main.x
+            y: textElement.bounds[0].y - @scrollOffsets.main.y
           vector: translationVectors[i]
 
       animatedColor = new AnimatedColor '#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE
@@ -2191,8 +2198,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         
         # Skip anything that's
         # off the screen the whole time.
-        unless 0 < textElement.bounds[0].y + @scrollOffsets.main.y < @mainCanvas.height or
-               0 < textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
+        unless 0 < textElement.bounds[0].y - @scrollOffsets.main.y < @mainCanvas.height or
+               0 < textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
           continue
 
         div = document.createElement 'div'
@@ -2204,7 +2211,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.position = 'absolute'
         div.style.marginTop = '-1px'
 
-        div.style.left = "#{textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x}px"
+        div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
         div.style.top = "textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
 
         @iceElement.appendChild div
@@ -2212,8 +2219,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         translatingElements.push
           div: div
           position:
-            x: textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x
-            y: textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+            x: textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x
+            y: textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y
           vector: translationVectors[i]
 
       @paletteWrapper.style.opacity =
