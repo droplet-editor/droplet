@@ -145,8 +145,8 @@ define ['ice-model'], (model) ->
                 throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
               
               # Update stack and indent depth
-              stack.push mark.token.indent
-              indentDepth += mark.token.indent.depth
+              stack.push mark.token.container
+              indentDepth += mark.token.container.depth
               
               # Append the token itself.
               head = head.append mark.token
@@ -158,7 +158,7 @@ define ['ice-model'], (model) ->
                 throw new Error 'Improper parser: block cannot nest immediately inside another block.'
               
               # Update the stack
-              stack.push mark.token.block
+              stack.push mark.token.container
               
               # Push the token itself.
               head = head.append mark.token
@@ -169,7 +169,7 @@ define ['ice-model'], (model) ->
                 throw new Error 'Improper parser: socket must be immediately insode a block.'
 
               # Update the stack and append the token.
-              stack.push mark.token.socket
+              stack.push mark.token.container
 
               head = head.append mark.token
             
@@ -178,17 +178,18 @@ define ['ice-model'], (model) ->
             # its corresponding Start token; if it is not,
             # we throw.
             when 'indentEnd'
-              unless mark.token.indent is stack[stack.length - 1]
+              unless mark.token.container is stack[stack.length - 1]
                 throw new Error 'Improper parser: indent ended too early.'
               
               # Update stack and indent depth
               stack.pop()
-              indentDepth -= mark.token.indent.depth
+              indentDepth -= mark.token.container.depth
 
               head = head.append mark.token
 
             when 'blockEnd'
-              unless mark.token.block is stack[stack.length - 1]
+              unless mark.token.container is stack[stack.length - 1]
+                debugger
                 throw new Error 'Improper parser: block ended too early.'
               
               # Update stack
@@ -197,7 +198,7 @@ define ['ice-model'], (model) ->
               head = head.append mark.token
 
             when 'socketEnd'
-              unless mark.token.socket is stack[stack.length - 1]
+              unless mark.token.container is stack[stack.length - 1]
                 throw new Error 'Improper parser: socket ended too early.'
 
               # Update stack
@@ -257,7 +258,9 @@ define ['ice-model'], (model) ->
     parse: (text, opts) ->
       markup = regenerateMarkup @parseFn text
       sortMarkup markup
-      return applyMarkup text, markup, opts
+      segment = applyMarkup text, markup, opts
+      segment.correctParentTree()
+      return segment
 
   exports.parseObj = parseObj = (object) ->
     unless object?
@@ -290,7 +293,7 @@ define ['ice-model'], (model) ->
           return new model.Socket parseObj(object.contents), object.precedence
         
         when 'indent'
-          block = new model.Indent object.depth
+          block = new model.Indent (' ' for [1..object.depth]).join ''
           
           head = block.start
           

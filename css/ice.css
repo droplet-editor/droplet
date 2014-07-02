@@ -1,8 +1,7 @@
-.ice-palette-canvas, .ice-drag-canvas, .ice-main-canvas, .ice-lasso-select-canvas {
+.ice-palette-canvas, .ice-drag-canvas, .ice-main-canvas, .ice-lasso-select-canvas, .ice-highlight-canvas {
   position: absolute;
 }
-.ice-main-canvas, .ice-drag-canvas, .ice-lasso-select-canvas {
-  left: 300px;
+.ice-main-canvas, .ice-drag-canvas, .ice-lasso-select-canvas, .ice-highlight-canvas {
   top: 0;
 }
 .ice-drag-canvas {
@@ -11,19 +10,19 @@
   margin-left: -1px;
 }
 .ice-palette-canvas {
-  z-index: 0;
+  z-index: 1;
+  right: 0;
   width: 300px;
-  left: 0;
 }
 .ice-main-canvas {
-  border-left: 1px solid #000;
   background-color:#CCC;
 }
 .ice-main-canvas {
-  z-index: 1;
+  z-index: 0;
   border-right: none;
 }
-.ice-lasso-select-canvas {
+.ice-lasso-select-canvas, .ice-highlight-canvas {
+  left: 0;
   z-index: 2;
   border-right: none;
 }
@@ -34,7 +33,6 @@
   position: absolute;
   top: 0; left: 0;
   cursor: default;
-  overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
   background-color: #EEE;
@@ -46,7 +44,6 @@
   height: 100%;
   z-index: 3;
   cursor: default;
-  overflow: hidden;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -61,16 +58,22 @@
 }
 .ice-main-scroller {
   position: absolute;
-  top: 0; left: 300px; bottom: 0; right: 0;
+  top: 0; left: 0; bottom: 0; right: 0;
   z-index: 300;
   overflow: auto;
 }
 .ice-palette-scroller {
   position: absolute;
-  left: 0; top: 150px; bottom: 0; width: 300px;
+  left: 0; top: 150px; bottom: 0; right: 0;
   z-index: 300;
   overflow-y: auto;
   overflow-x: hidden;
+}
+.ice-palette-wrapper {
+  position: absolute;
+  top: 0; bottom: 0; width: 300px;
+  right: 0;
+  z-index: 257;
 }
 .ice-palette-header {
   z-index: 257;
@@ -115,9 +118,19 @@
 .ice-hover-div {
   position: absolute;
 }
-
+.ice-main-scroller {
+  z-index: 10;
+}
+.ice-main-scroller-stuffing {
+  z-index: 10;
+}
 .ice-palette-scroller-stuffing {
   /* Temporary hack to prevent bad side-scrolling
    * behaviour when dragging blocks out of the palette */
   overflow-x: hidden;
+}
+.ice-transition-container {
+  position: absolute;
+  top: 0; bottom: 0; left: 0; right: 0;
+  overflow: hidden;
 }

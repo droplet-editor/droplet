@@ -3,14 +3,21 @@
 require.config
   urlArgs: "bust=" + (new Date()).getTime()
   paths:
-    'ice': '../dist/ice-full.min'
+    'ice': '../dist/ice-full'
+
+readFile = (name) ->
+  q = new XMLHttpRequest()
+  q.open 'GET', name, false
+  q.send()
+  return q.responseText
+
 
 require ['ice'], (ice) ->
   # Example palette
   window.editor = new ice.Editor document.getElementById('editor'), [
     {
       name: 'Common',
-      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         'fd 100'
         'bk 100'
         'rt 90'
@@ -31,7 +38,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Turtle',
-      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         'fd 100'
         'bk 100'
         'rt 90'
@@ -47,7 +54,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Control',
-      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         '''
         if touches 'red'
           fd 10
@@ -86,18 +93,18 @@ require ['ice'], (ice) ->
               precedence: 0
               contents: 'arg'
             }
-            {
-              type: 'mutationButton'
-              expand: [
-                ', '
-                {
-                  type: 'socket'
-                  precedence: 0
-                  contents: 'arg'
-                }
-                0
-              ]
-            }
+            #{
+            #  type: 'mutationButton'
+            #  expand: [
+            #    ', '
+            #    {
+            #      type: 'socket'
+            #      precedence: 0
+            #      contents: 'arg'
+            #    }
+            #  0
+            #  ]
+            #}
             ') ->'
             {
               type: 'indent'
@@ -121,7 +128,7 @@ require ['ice'], (ice) ->
             }
           ]
         }
-        ice.parse('return arg').start.next.block
+        ice.parse('return arg').start.next.container
         ice.parseObj {
           type: 'block'
           valueByDefault: false
@@ -139,18 +146,18 @@ require ['ice'], (ice) ->
               precedence: 0
               contents: 'arg'
             }
-            {
-              type: 'mutationButton'
-              expand: [
-                ', '
-                {
-                  type: 'socket'
-                  precedence: 0
-                  contents: 'arg'
-                }
-                0
-              ]
-            }
+            #{
+            #  type: 'mutationButton'
+            #  expand: [
+            #    ', '
+            #    {
+            #      type: 'socket'
+            #      precedence: 0
+            #      contents: 'arg'
+            #    }
+            #    0
+            #  ]
+            #}
             ')'
           ]
         }
@@ -171,24 +178,24 @@ require ['ice'], (ice) ->
               precedence: 0
               contents: 'el'
             }
-            {
-              type: 'mutationButton'
-              expand: [
-                ', '
-                {
-                  type: 'socket'
-                  precedence: 0
-                  contents: 'el'
-                }
-                0
-              ]
-            }
+            #{
+            #  type: 'mutationButton'
+            #  expand: [
+            #    ', '
+            #    {
+            #      type: 'socket'
+            #      precedence: 0
+            #      contents: 'el'
+            #    }
+            #    0
+            #  ]
+            #}
             ']'
           ]
         }
-        ice.parse("array.push 'hello'").start.next.block
-        ice.parse("array.sort()").start.next.block
-        ice.parse('{}').start.next.block
+        ice.parse("array.push 'hello'").start.next.container
+        ice.parse("array.sort()").start.next.container
+        ice.parse('{}').start.next.container
         ice.parseObj {
           type: 'block'
           valueByDefault: true
@@ -223,12 +230,12 @@ require ['ice'], (ice) ->
             }
           ]
         }
-        ice.parse("obj['hello'] = 'world'").start.next.block
+        ice.parse("obj['hello'] = 'world'").start.next.container
       ]
     }
     {
       name: 'Logic'
-      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         '1 is 1'
         '1 isnt 2'
         'true and false'
@@ -237,7 +244,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Math'
-      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.block for paletteElement in [
+      blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         '2 + 3'
         '2 - 3'
         '2 * 3'
@@ -334,6 +341,8 @@ require ['ice'], (ice) ->
     see unchurch add church(3), church(10)
     see unchurch sub church(10), church(3)
     '''
+    controller: readFile '/src/controller.coffee'
+    compiler: readFile '/test/nodes.coffee'
   }
 
   # Update textarea on ICE editor change
@@ -348,7 +357,9 @@ require ['ice'], (ice) ->
 
   editor.setValue examplePrograms.fizzbuzz
   editor.clearUndoStack()
-  
+
+  editor.paletteWrapper.style.right = '-300px'
+
   messageElement = document.getElementById 'message'
   displayMessage = (text) ->
     messageElement.style.display = 'inline'

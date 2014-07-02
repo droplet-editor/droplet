@@ -122,7 +122,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # when it exists.
       if node.nodeType() is 'If'
         bounds.start = @boundMin bounds.start, @getBounds(node.body).start
-        bounds.end = @boundMax bounds.end, @getBounds(node.body).end
+        bounds.end = @boundMax @getBounds(node.rawCondition).end, @getBounds(node.body).end
 
         if node.elseBody?
           bounds.end = @boundMax bounds.end, @getBounds(node.elseBody).end
@@ -136,6 +136,11 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
         if node.guard?
           bounds.end = @boundMax bounds.end, @getBounds(node.guard).end
+      
+      # Hack: Functions should end immediately
+      # when their bodies end.
+      if node.nodeType() is 'Code' and node.body?
+        bounds.end = @getBounds(node.body).end
       
       # The fourth is general. Sometimes we get
       # spaces at the start of the next line.
@@ -153,12 +158,18 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       
       return bounds
     
+    flagLineAsMarked: (line) ->
+      @hasLineBeenMarked[line] = true
+      while @lines[line][@lines[line].length - 1] is '\\'
+        line += 1
+        @hasLineBeenMarked[line] = true
+    
     # ## addMarkupAtLocation ##
     # Add a Model container into the markup that we will
     # ultimately return at a given location.
     addMarkupAtLocation: (container, bounds, depth) ->
 
-      @hasLineBeenMarked[bounds.start.line] = true
+      @flagLineAsMarked bounds.start.line
 
       @markup.push
         container: container
@@ -194,7 +205,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # ## addSocket ##
     # A similar utility function for adding sockets.
     addSocket: (node, depth, precedence) ->
-      socket = new model.Socket null, precedence
+      socket = new model.Socket precedence
 
       @addMarkup socket, node, null, depth
 
@@ -307,7 +318,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
             # Create the indent with the proper
             # depth delta
-            indent = new model.Indent trueIndentDepth - indentDepth
+            indent = new model.Indent @lines[node.locationData.first_line][indentDepth...trueIndentDepth]
             
             # Then update indent depth data to reflect.
             indentDepth = trueIndentDepth
@@ -344,7 +355,19 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # then keep that parenthesis when we pass on.
         when 'Parens'
           if node.body?
-            @mark node.body.unwrap(), depth + 1, 0, (wrappingParen ? node), indentDepth
+            unless node.body.nodeType() is 'Block'
+              @mark node.body, depth + 1, 0, (wrappingParen ? node), indentDepth
+            else
+              if node.body.unwrap() is node.body
+                # We are filled with some things
+                # connected by semicolons; wrap them all,
+                @addBlock node, depth, 0, COLORS.COMMAND, null
+
+                for expr in node.body.expressions
+                  @mark expr, depth + 1, 0, null, indentDepth
+
+              else
+                @mark node.body.unwrap(), depth + 1, 0, (wrappingParen ? node), indentDepth
 
         # ### Op ###
         # Color VALUE, sockets @first and (sometimes) @second
@@ -485,7 +508,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             # Artificially "mark" the line containing the "else"
             # token, so that the following body can be single-line
             # if necessary.
-            @hasLineBeenMarked[node.elseToken.first_line] = true
+            @flagLineAsMarked node.elseToken.first_line
 
             @mark node.elseBody, depth + 1, 0, null, indentDepth
 
@@ -517,7 +540,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'Switch'
           @addBlock node, depth, 0, COLORS.CONTROL, wrappingParen
           
-          @addSocketAndMark node.subject, depth + 1, 0, indentDepth
+          if node.subject? then @addSocketAndMark node.subject, depth + 1, 0, indentDepth
           
           for switchCase in node.cases
             if switchCase[0].constructor is Array
@@ -552,8 +575,6 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             if property.nodeType() is 'Assign'
               @addSocketAndMark property.variable, depth + 1, 0, indentDepth
               @addSocketAndMark property.value, depth + 1, 0, indentDepth
-            else
-              @addSocketAndMark property
 
     transpile: ->
       # Get the CoffeeScript AST from the text
