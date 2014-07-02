@@ -1966,6 +1966,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
+
+    @transitionContainer = document.createElement 'div'
+    @transitionContainer.className = 'ice-transition-container'
+
+    @iceElement.appendChild @transitionContainer
   
   # For animation and ace editor,
   # we will need a couple convenience functions
@@ -2109,7 +2114,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
 
-        @iceElement.appendChild div
+        @transitionContainer.appendChild div
 
         translatingElements.push
           div: div
@@ -2163,7 +2168,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
           for element in translatingElements
-            @iceElement.removeChild element.div
+            @transitionContainer.removeChild element.div
 
       tick 0
 
