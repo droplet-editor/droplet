@@ -113,7 +113,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           style ?= selected: 0
 
           @drawSelf ctx, style
-          for childObj in @children
+
+          
+          # Draw our children
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
+            self.getViewFor(childObj.child).draw ctx, boundingRect, style
+          
+          # Draw marked blocks last, so that they
+          # appear on top.
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
             self.getViewFor(childObj.child).draw ctx, boundingRect, style
 
         return null
@@ -501,6 +509,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         super
         @path.style.fillColor = @model.color
         @path.style.strokeColor = '#888'
+        
+        if @model.lineMarkStyles.length > 0
+          @path.style.strokeColor = @model.lineMarkStyles[0].color
+          @path.style.lineWidth = 2
 
         return @path
 
@@ -651,7 +663,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           if @model.isLassoSegment then style.selected++
 
-          for childObj in @children
+          # Draw our children
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
+            self.getViewFor(childObj.child).draw ctx, boundingRect, style
+          
+          # Draw marked blocks last, so that they
+          # appear on top.
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
             self.getViewFor(childObj.child).draw ctx, boundingRect, style
 
           if @model.isLassoSegment then style.selected--

@@ -2406,36 +2406,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
 
   Editor::markLine = (line, style) ->
-    @tree.getBlockOnLine(line)?.lineMarkStyles.push style
+    @tree.getBlockOnLine(line)?.addLineMark style
 
     @redrawMain()
 
   Editor::unmarkLine = (line, tag) ->
-    unless (blockOnLine = @tree.getBlockOnLine(line))? then return
-
-    for style, i in blockOnLine.lineMarkStyles
-      if style.tag is tag
-        blockOnLine.lineMarkStyles.splice i, 1
-        break
+    @tree.getBlockOnLine(line)?.removeLineMark tag
 
     @redrawMain()
 
   Editor::clearLineMarks = (tag) ->
     head = @tree.start
-
+    
     until head is @tree.end
       if head.type is 'blockStart'
         # If clearLineMarks is called without
         # a tag to clear, clear all tags.
         unless tag?
-          head.container.lineMarkStyles.length = 0
+          head.container.clearLineMarks()
 
         # Otherwise, clear the selected tag.
         else
-          for style, i in head.container.lineMarkStyles
-            if style.tag is tag
-              head.container.lineMarkStyles.splice i, 1
-              break
+          head.container.removeLineMark tag
 
       head = head.next
 

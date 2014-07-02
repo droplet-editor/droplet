@@ -292,6 +292,19 @@ define ->
     # start and end tokens.
     traverseOneLevel: (fn) ->
       traverseOneLevel @start.next, fn
+    
+    # Line mark mutators
+    addLineMark: (mark) ->
+      @lineMarkStyles.push mark
+      @notifyChange()
+
+    removeLineMark: (tag) ->
+      @lineMarkStyles = (mark for mark in @lineMarkStyles when mark.tag isnt tag)
+      @notifyChange()
+
+    clearLineMarks: ->
+      @lineMarkStyles = []
+      @notifyChange()
   
   # Token
   # ==================
@@ -370,6 +383,8 @@ define ->
       while head?
         head.version++
         head = head.parent
+
+      return null
     
     getSerializedLocation: ->
       head = this; count = 0
