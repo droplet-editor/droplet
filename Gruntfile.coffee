@@ -79,5 +79,5 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
 
   grunt.registerTask 'default', ['coffee', 'docco', 'requirejs', 'concat']
-  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
+  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'cssmin', 'concat']
   grunt.registerTask 'test', ['qunit']
