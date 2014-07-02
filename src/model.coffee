@@ -412,6 +412,27 @@ define ->
     constructor: (@container) ->
       super; @markup = 'end'
 
+    append: (token) ->
+      @next = token; unless token? then return
+      token.prev = this
+
+      traverseOneLevel token, (head) =>
+        head.parent = @container.parent
+
+      return token
+    
+    insert: (token) ->
+      if token instanceof StartToken or
+         token instanceof EndToken
+       throw new Error '"insert"-ing a container can cause problems'
+
+      token.next = @next; token.prev = this
+      @next.prev = token; @next = token
+
+      token.parent = @container.parent
+
+      return token
+
     serialize: -> '</container>'
 
   # Block
