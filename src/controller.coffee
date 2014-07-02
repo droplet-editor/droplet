@@ -238,9 +238,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Draw the new tree on the main context
       @view.getViewFor(@tree).layout()
       @view.getViewFor(@tree).draw @mainCtx, new draw.Rectangle(
-        @scrollOffsets.main.x
-        @scrollOffsets.main.y
-        @mainCanvas.width
+        @scrollOffsets.main.x,
+        @scrollOffsets.main.y,
+        @mainCanvas.width,
         @mainCanvas.height
       )
 
@@ -349,7 +349,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     return point
   
   Editor::trackerOffset = (el) ->
-    @absoluteOffset(el).from @absoluteOffset @iceElement
+    point = new draw.Point 0, 0
+
+    until el is @iceElement
+      point.x += el.offsetLeft - el.scrollLeft
+      point.y += el.offsetTop - el.scrollTop
+
+      el = el.offsetParent
+
+    return point
     
   # ### Conversion functions
   # Convert a point relative to the tracker into
@@ -2087,12 +2095,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         div.innerText = textElement.model.value
         
-        div.style.font = @fontSize + ' Courier New'
+        div.style.font = @fontSize + 'px Courier New'
         div.style.position = 'absolute'
         div.style.marginTop = '-1px'
 
-        div.style.left = textElement.bounds[0].x + @scrollOffsets.main.x
-        div.style.top = textElement.bounds[0].y + @scrollOffsets.main.y
+        div.style.left = "#{textElement.bounds[0].x + @scrollOffsets.main.x}px"
+        div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y}px"
 
         @iceElement.appendChild div
 
@@ -2124,8 +2132,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             element.position.x += element.vector.x / ANIMATION_FRAME_RATE
             element.position.y += element.vector.y / ANIMATION_FRAME_RATE
 
-            element.div.style.left = element.position.x
-            element.div.style.top = element.position.y
+            element.div.style.left = "#{element.position.x}px"
+            element.div.style.top = "#{element.position.y}px"
 
         # Simultaneously, we will animate
         # the canvas to the left, and fade 
@@ -2192,12 +2200,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         div.innerText = textElement.model.value
         
-        div.style.font = @fontSize + ' Courier New'
+        div.style.font = @fontSize + 'px Courier New'
         div.style.position = 'absolute'
         div.style.marginTop = '-1px'
 
-        div.style.left = textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x
-        div.style.top = textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
+        div.style.left = "#{textElement.bounds[0].x + @scrollOffsets.main.x + translationVectors[i].x}px"
+        div.style.top = "textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
 
         @iceElement.appendChild div
 
@@ -2208,7 +2216,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             y: textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y
           vector: translationVectors[i]
 
-      console.log 'translating', translatingElements.length
+      @paletteWrapper.style.opacity =
+        @mainCanvas.style.opacity = 0
 
       tick = (count) =>
         if count < ANIMATION_FRAME_RATE * 2
@@ -2221,8 +2230,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             element.position.x += -element.vector.x / ANIMATION_FRAME_RATE
             element.position.y += -element.vector.y / ANIMATION_FRAME_RATE
 
-            element.div.style.left = element.position.x
-            element.div.style.top = element.position.y
+            element.div.style.left = "#{element.position.x}px"
+            element.div.style.top = "#{element.position.y}px"
 
         else
           @paletteWrapper.style.opacity =

@@ -44,6 +44,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @versions =
           children: -1
           dimensions: -1
+          path: -1
           bounds: {}
 
         @dropArea = @highlightArea = null
@@ -89,13 +90,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeOwnDropArea: ->
 
       computePath: ->
+        if @versions.path is @model.version and not @boundingBoxFlag
+          return null
+        else
+          @versions.path = @model.version
+
         if @boundingBoxFlag
           @computeOwnPath()
 
-          @totalBounds.unite @path.bounds()
+        @totalBounds.unite @path.bounds()
 
-          for childObj in @children
-            self.getViewFor(childObj.child).computePath()
+        for childObj in @children
+          self.getViewFor(childObj.child).computePath()
 
         return null
 
@@ -182,8 +188,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # Set @lineLength to reflect
         # what we just found out.
         @lineLength = line + 1
-
-        @bounds = @bounds[...@lineLength]
+        
+        if @bounds.length isnt @lineLength
+          @boundingBoxFlag = true
+          @bounds = @bounds[...@lineLength]
         
         # Fill in gaps in @indentData with NO_INDENT
         @indentData[i] ?= NO_INDENT for i in [0...@lineLength]
