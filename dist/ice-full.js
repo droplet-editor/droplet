@@ -3935,7 +3935,7 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
       }
     };
     hook('mousedown', 0, function(point, event, state) {
-      var mainPoint, _ref, _ref1;
+      var mainPoint, palettePoint, _ref, _ref1, _ref2, _ref3;
       if (!state.clickedLassoSegment) {
         this.clearLassoSelection();
       }
@@ -3944,7 +3944,8 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
       }
       console.log('LASSO SELECT CAPTURED MOUSEDOWN');
       mainPoint = this.trackerPointToMain(point);
-      if ((0 < (_ref = mainPoint.x) && _ref < this.mainCanvas.width) && (0 < (_ref1 = mainPoint.y) && _ref1 < this.mainCanvas.height)) {
+      palettePoint = this.trackerPointToPalette(point);
+      if ((0 < (_ref = mainPoint.x) && _ref < this.mainCanvas.width) && (0 < (_ref1 = mainPoint.y) && _ref1 < this.mainCanvas.height) && !((0 < (_ref2 = palettePoint.x) && _ref2 < this.paletteCanvas.width) && (0 < (_ref3 = palettePoint.x) && _ref3 < this.paletteCanvas.height))) {
         if (this.lassoSelectAnchor != null) {
           debugger;
         }
@@ -4427,6 +4428,8 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
         switch (head.type) {
           case 'text':
             corner = this.view.getViewFor(head).bounds[0].upperLeftCorner();
+            corner.x -= this.scrollOffsets.main.x;
+            corner.y -= this.scrollOffsets.main.y;
             translationVectors.push((new draw.Point(state.x, state.y)).from(corner));
             textElements.push(this.view.getViewFor(head));
             state.x += this.mainCtx.measureText(head.value).width;
@@ -4475,7 +4478,7 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
 
     })();
     Editor.prototype.performMeltAnimation = function() {
-      var animatedColor, div, i, originalOffset, textElement, textElements, tick, translatingElements, translationVectors, _i, _len, _ref, _ref1, _ref2,
+      var animatedColor, div, i, originalOffset, textElement, textElements, tick, translatingElements, translationVectors, _i, _len, _ref,
         _this = this;
       if (this.currentlyUsingBlocks && !this.currentlyAnimating) {
         this.aceEditor.setValue(this.getValue(), -1);
@@ -4488,7 +4491,7 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
         translatingElements = [];
         for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
           textElement = textElements[i];
-          if (!((0 < (_ref1 = textElement.bounds[0].y + this.scrollOffsets.main.y) && _ref1 < this.mainCanvas.height) || (0 < (_ref2 = textElement.bounds[0].y + this.scrollOffsets.main.y + translationVectors[i].y) && _ref2 < this.mainCanvas.height))) {
+          if (!(0 < textElement.bounds[0].bottom() - this.scrollOffsets.main.y && textElement.bounds[0].y - this.scrollOffsets.main.y < this.mainCanvas.height || 0 < textElement.bounds[0].bottom() - this.scrollOffsets.main.y + translationVectors[i].y && textElement.bounds[0].y - this.scrollOffsets.main.y + translationVectors[i].y < this.mainCanvas.height)) {
             continue;
           }
           div = document.createElement('div');
@@ -4497,14 +4500,14 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
           div.style.font = this.fontSize + 'px Courier New';
           div.style.position = 'absolute';
           div.style.marginTop = '-1px';
-          div.style.left = "" + (textElement.bounds[0].x + this.scrollOffsets.main.x) + "px";
-          div.style.top = "" + (textElement.bounds[0].y + this.scrollOffsets.main.y) + "px";
+          div.style.left = "" + (textElement.bounds[0].x - this.scrollOffsets.main.x) + "px";
+          div.style.top = "" + (textElement.bounds[0].y - this.scrollOffsets.main.y) + "px";
           this.iceElement.appendChild(div);
           translatingElements.push({
             div: div,
             position: {
-              x: textElement.bounds[0].x + this.scrollOffsets.main.x,
-              y: textElement.bounds[0].y + this.scrollOffsets.main.y
+              x: textElement.bounds[0].x - this.scrollOffsets.main.x,
+              y: textElement.bounds[0].y - this.scrollOffsets.main.y
             },
             vector: translationVectors[i]
           });
@@ -4572,7 +4575,7 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
         translatingElements = [];
         for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
           textElement = textElements[i];
-          if (!((0 < (_ref1 = textElement.bounds[0].y + this.scrollOffsets.main.y) && _ref1 < this.mainCanvas.height) || (0 < (_ref2 = textElement.bounds[0].y + this.scrollOffsets.main.y + translationVectors[i].y) && _ref2 < this.mainCanvas.height))) {
+          if (!((0 < (_ref1 = textElement.bounds[0].y - this.scrollOffsets.main.y) && _ref1 < this.mainCanvas.height) || (0 < (_ref2 = textElement.bounds[0].y - this.scrollOffsets.main.y + translationVectors[i].y) && _ref2 < this.mainCanvas.height))) {
             continue;
           }
           div = document.createElement('div');
@@ -4581,14 +4584,14 @@ if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.cont
           div.style.font = this.fontSize + 'px Courier New';
           div.style.position = 'absolute';
           div.style.marginTop = '-1px';
-          div.style.left = "" + (textElement.bounds[0].x + this.scrollOffsets.main.x + translationVectors[i].x) + "px";
+          div.style.left = "" + (textElement.bounds[0].x - this.scrollOffsets.main.x + translationVectors[i].x) + "px";
           div.style.top = "textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px";
           this.iceElement.appendChild(div);
           translatingElements.push({
             div: div,
             position: {
-              x: textElement.bounds[0].x + this.scrollOffsets.main.x + translationVectors[i].x,
-              y: textElement.bounds[0].y + this.scrollOffsets.main.y + translationVectors[i].y
+              x: textElement.bounds[0].x - this.scrollOffsets.main.x + translationVectors[i].x,
+              y: textElement.bounds[0].y - this.scrollOffsets.main.y + translationVectors[i].y
             },
             vector: translationVectors[i]
           });
