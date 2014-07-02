@@ -39,12 +39,12 @@ define ['ice-model'], (model) ->
       # If two pieces of markup are in the same position, and are both start or end,
       # the markup placed earlier gets to go on the outside
       if a.start and b.start
-        if a.id > b.id
+        if a.depth > b.depth
           return 1
         else return -1
 
       if (not a.start) and (not b.start)
-        if a.id > b.id
+        if a.depth > b.depth
           return -1
         else return 1
     
@@ -61,7 +61,7 @@ define ['ice-model'], (model) ->
   #
   # Automatically insert sockets around blocks along the way.
 
-  applyMarkup = (text, sortedMarkup) ->
+  applyMarkup = (text, sortedMarkup, opts) ->
     # For convenience, will we
     # separate the markup by the line on which it is placed.
     markupOnLines = {}
@@ -82,15 +82,8 @@ define ['ice-model'], (model) ->
     indentDepth = 0
 
     # We will also need to keep track of the element stack,
-    # so we know whether or not to autoinsert a socket around
-    # a block. We will also report errors this way.
+    # to report errors.
     stack = []
-
-    # The autoinsert stack contains all the blocks
-    # around which we autoinserted a socket. A block will know
-    # to append the SocketEnd token after its BlockEndToken
-    # if it is the last element of this stack.
-    autoinsertStack = []
 
     # Begin our linked list
     document = new model.Segment()
@@ -101,8 +94,28 @@ define ['ice-model'], (model) ->
       # simply append the text of this line to the document
       # (stripping things as needed for indent)
       if not (i of markupOnLines)
-        unless indentDepth >= line.length
-          head = head.append new model.TextToken(line[indentDepth...])
+        # If this line is not properly indented,
+        # flag it in the model.
+        if indentDepth >= line.length or line[..indentDepth].trim().length > 0
+          head.specialIndent = (' ' for [0...line.length - line.trimLeft().length]).join ''
+          line = line.trimLeft()
+        else
+          line = line[indentDepth...]
+        
+        # If we have some text here that
+        # is floating (not surrounded by a block),
+        # wrap it in a generic block automatically.
+        if line.length > 0
+          if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
+            block = new model.Block 0, '#ffffff', false
+
+            head = head.append block.start
+            head = head.append new model.TextToken line
+            head = head.append block.end
+
+          else
+            head = head.append new model.TextToken line
+
         head = head.append new model.NewlineToken()
       
       # If there is markup on this line, insert it.
@@ -112,7 +125,15 @@ define ['ice-model'], (model) ->
           # Insert a text token for all the text up until this markup
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
-            head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+            if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
+              block = new model.Block 0, '#ffffff', false
+
+              head = head.append block.start
+              head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+              head = head.append block.end
+
+            else
+              head = head.append new model.TextToken(line[lastIndex...mark.location.column])
 
           # Note, if we have inserted something,
           # the new indent depth and the new stack.
@@ -124,57 +145,31 @@ define ['ice-model'], (model) ->
                 throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
               
               # Update stack and indent depth
-              stack.push mark.token.indent
-              indentDepth += mark.token.indent.depth
+              stack.push mark.token.container
+              indentDepth += mark.token.container.depth
               
               # Append the token itself.
               head = head.append mark.token
             
             when 'blockStart'
               # If the a block is embedded
-              # directly in another block, we should
-              # insert a socket around it automatically.
+              # directly in another block, throw.
               if stack[stack.length - 1]?.type is 'block'
-                # Push the socket to the autoinsertedStack,
-                # so that we know to close it later.
-                autoinsertStack.push mark.token.block
-                autoinsertedSocket = new model.Socket()
-                
-                # Append the socket start.
-                head = head.append autoinsertedSocket.start
-                
-                # Push it to the stack,
-                # so that we can close it later.
-                stack.push autoinsertedSocket
+                throw new Error 'Improper parser: block cannot nest immediately inside another block.'
               
               # Update the stack
-              stack.push mark.token.block
+              stack.push mark.token.container
               
               # Push the token itself.
               head = head.append mark.token
 
             when 'socketStart'
               # A socket is only allowed to be directly inside a block.
-              # Currently, our behaviour will be to auto-repair it in
-              # some cases, but this
-              # might need to be changed in the future.
-              #
-              # We will auto-repair if it is inside an indent,
-              # otherwise we will throw
               unless stack[stack.length - 1]?.type is 'block'
-                if stack.length is 0
-                  throw new Error 'Improper parser: document root cannot be a socket.'
-                else if stack[stack.length - 1].type is 'indent'
-                  autoinsertStack.push mark.token.socket
-
-                  autoinsertedBlock = new model.Block()
-
-                  head = head.append autoinsertedBlock.start
-
-                  stack.push autoinsertedBlock
+                throw new Error 'Improper parser: socket must be immediately insode a block.'
 
               # Update the stack and append the token.
-              stack.push mark.token.socket
+              stack.push mark.token.container
 
               head = head.append mark.token
             
@@ -183,42 +178,33 @@ define ['ice-model'], (model) ->
             # its corresponding Start token; if it is not,
             # we throw.
             when 'indentEnd'
-              unless mark.token.indent is stack[stack.length - 1]
+              unless mark.token.container is stack[stack.length - 1]
                 throw new Error 'Improper parser: indent ended too early.'
               
               # Update stack and indent depth
               stack.pop()
-              indentDepth -= mark.token.indent.depth
+              indentDepth -= mark.token.container.depth
 
               head = head.append mark.token
 
             when 'blockEnd'
-              unless mark.token.block is stack[stack.length - 1]
+              unless mark.token.container is stack[stack.length - 1]
+                debugger
                 throw new Error 'Improper parser: block ended too early.'
               
               # Update stack
               stack.pop()
 
               head = head.append mark.token
-              
-              # If we need to close an autoinserted socket,
-              # close it.
-              if mark.token.block is autoinsertStack[autoinsertStack.length - 1]
-                autoinsertStack.pop()
-                head = head.append stack.pop().end
 
             when 'socketEnd'
-              unless mark.token.socket is stack[stack.length - 1]
+              unless mark.token.container is stack[stack.length - 1]
                 throw new Error 'Improper parser: socket ended too early.'
 
               # Update stack
               stack.pop()
 
               head = head.append mark.token
-
-              if mark.token.socket is autoinsertStack[autoinsertStack.length - 1]
-                autoinsertStack.pop()
-                head = head.append stack.pop().end
 
           lastIndex = mark.location.column
       
@@ -241,18 +227,26 @@ define ['ice-model'], (model) ->
     # Return the document
     return document
   
-  # ## stringifyMarkup ##
-  # A utility function for printing out produced markup.
-  # Used for debugging only.
-  stringifyMarkup = (markup) ->
-    str = '0: '
-    lastLine = 0
+  # ## regenerateMarkup ##
+  # Turn a list of containers into
+  # a list of tags.
+  regenerateMarkup = (markup) ->
+    tags = []
+    
     for mark in markup
-      if mark.location.line isnt lastLine
-        str += '\n' + mark.location.line + ': '
-        lastLine = mark.location.line
-      str += '<' + mark.token.type + '_' + mark.id + '>'
-    return str
+      tags.push
+        token: mark.container.start
+        location: mark.bounds.start
+        depth: mark.depth
+        start: true
+
+      tags.push
+        token: mark.container.end
+        location: mark.bounds.end
+        depth: mark.depth
+        start: false
+
+    return tags
   
   # ## Parser ##
   # The Parser class is a simple
@@ -261,10 +255,12 @@ define ['ice-model'], (model) ->
   exports.Parser = class Parser
     constructor: (@parseFn) ->
     
-    parse: (text, verify = true) ->
-      markup = @parseFn text
+    parse: (text, opts) ->
+      markup = regenerateMarkup @parseFn text
       sortMarkup markup
-      return applyMarkup text, markup
+      segment = applyMarkup text, markup, opts
+      segment.correctParentTree()
+      return segment
 
   exports.parseObj = parseObj = (object) ->
     unless object?
@@ -297,7 +293,7 @@ define ['ice-model'], (model) ->
           return new model.Socket parseObj(object.contents), object.precedence
         
         when 'indent'
-          block = new model.Indent object.depth
+          block = new model.Indent (' ' for [1..object.depth]).join ''
           
           head = block.start
           

@@ -54,6 +54,12 @@ define ->
     constructor: (@x, @y, @width, @height) ->
     
     contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
+    
+    identical: (other) ->
+      @x is other.x and
+      @y is other.y and
+      @width is other.width and
+      @height is other.height
 
     copy: (rect) ->
       @x = rect.x; @y = rect.y
@@ -94,6 +100,16 @@ define ->
       ctx.fillRect @x, @y, @width, @height
 
     upperLeftCorner: -> new Point @x, @y
+
+    toPath: ->
+      path = new Path()
+      path.push new Point(point[0], point[1]) for point in [
+        [@x, @y]
+        [@x, @bottom()]
+        [@right(), @bottom()]
+        [@right(), @y]
+      ]
+      return path
 
   # ## NoRectangle ##
   # NoRectangle is an alternate constructor for Rectangle which starts
@@ -144,6 +160,8 @@ define ->
     contains: (point) ->
       @_clearCache()
 
+      if @_points.length is 0 then return false
+
       # "Ray" to the left
       dest = new Point @_bounds.x - 10, point.y
       
@@ -161,6 +179,8 @@ define ->
     # entirely within the other.
     intersects: (rectangle) ->
       @_clearCache()
+
+      if @_points.length is 0 then return false
       
       if not rectangle.overlap @_bounds then return false
       else
@@ -198,6 +218,9 @@ define ->
 
     draw: (ctx) ->
       @_clearCache()
+
+      if @_points.length is 0 then return
+
       ctx.strokeStyle = @style.strokeColor
       ctx.lineWidth = @style.lineWidth
       if @style.fillColor? then ctx.fillStyle = @style.fillColor
@@ -211,9 +234,17 @@ define ->
       if @style.fillColor? then ctx.fill()
       ctx.stroke()
 
+    clone: ->
+      clone = new Path()
+      clone.push el for el in @_points
+      return clone
+
     drawShadow: (ctx, offsetX, offsetY, blur) ->
       @_clearCache()
+
       ctx.fillStyle = @style.fillColor
+
+      if @_points.length is 0 then return
       
       oldValues = {
         shadowColor: ctx.shadowColor
@@ -247,7 +278,11 @@ define ->
   # accomplished via ctx.measureText().
   exports.Text = class Text
     constructor: (@point, @value) ->
-      _CTX.font = _FONT_SIZE + 'px Courier New'
+      @wantedFont = _FONT_SIZE + 'px Courier New'
+
+      unless _CTX.font is @wantedFont
+        _CTX.font = _FONT_SIZE + 'px Courier New'
+
       @_bounds = new Rectangle @point.x, @point.y, _CTX.measureText(@value).width, _FONT_SIZE
 
     bounds: -> @_bounds
