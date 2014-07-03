@@ -260,7 +260,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         line++ if head.type is 'newline'
 
       bound = @view.getViewFor(@cursor.parent).bounds[line]
-      if @cursor.nextVisibleToken()?.type is 'indentEnd' or
+      if @cursor.nextVisibleToken()?.type is 'indentEnd' and
+         @cursor.prev?.prev.type isnt 'indentStart' or
          @cursor.next is @tree.end
         @drawCursor new draw.Point bound.x, bound.bottom()
       else
