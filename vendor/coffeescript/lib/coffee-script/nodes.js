@@ -2350,6 +2350,7 @@
       }
       if (op === 'new') {
         if (first instanceof Call && !first["do"] && !first.isNew) {
+          first.locationData = void 0;
           return first.newInstance();
         }
         if (first instanceof Code && first.bound || first["do"]) {

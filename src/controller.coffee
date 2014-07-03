@@ -252,6 +252,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::redrawCursor = ->
     if @cursor? and @cursor.parent?
+      @view.getViewFor(@tree).layout()
+
       head = @cursor; line = 0
       until head is @cursor.parent.start
         head = head.prev
@@ -1745,7 +1747,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @keyListener.register_combo
       keys: 'shift'
       on_keydown: => @shiftKeyPressed = true
-      on_keyup: => @shiftkeyPressed = false
+      on_keyup: => @shiftKeyPressed = false
 
   hook 'key.enter', 0, ->
     unless @shiftKeyPressed
@@ -1840,6 +1842,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             head = newBlock.container.end
 
       head = head.next
+
+    @redrawMain()
 
     return null
 

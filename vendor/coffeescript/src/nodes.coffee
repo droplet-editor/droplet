@@ -1648,7 +1648,12 @@ exports.Op = class Op extends Base
     if op is 'do'
       return @generateDo first
     if op is 'new'
-      return first.newInstance() if first instanceof Call and not first.do and not first.isNew
+      if first instanceof Call and not first.do and not first.isNew
+        # Delete location data so that parser
+        # re-assigns location data to ours
+        first.locationData = undefined
+        return first.newInstance()
+
       first = new Parens first   if first instanceof Code and first.bound or first.do
     @operator = CONVERSIONS[op] or op
     @first    = first
