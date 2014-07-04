@@ -508,6 +508,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     class BlockView extends ContainerView
       constructor: -> super
 
+      computeDimensions: ->
+        if @versions.dimensions isnt @model.version
+          super
+
+          for size, i in @dimensions
+            size.width = Math.max size.width, self.opts.tabWidth + self.opts.tabOffset
+
+          return @dimensions
+
       shouldAddTab: ->
         if @model.parent? then @model.parent.type isnt 'socket'
         else not @model.valueByDefault
