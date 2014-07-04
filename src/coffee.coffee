@@ -422,7 +422,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Completely pass through to @base; we do not care
         # about this node.
         when 'Value'
-          @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
+          if node.properties? and node.properties.length > 0
+            @addBlock node, depth, 0, COLORS.VALUE, wrappingParen
+            @addSocketAndMark node.base, depth + 1, precedence, indentDepth
+            for property in node.properties
+              @addSocketAndMark property, depth + 1, precedence, indentDepth
+          else
+            @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
 
         # ### Literal ###
         # No-op. Translate directly to text
