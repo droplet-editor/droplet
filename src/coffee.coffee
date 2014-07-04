@@ -426,7 +426,10 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             @addBlock node, depth, 0, COLORS.VALUE, wrappingParen
             @addSocketAndMark node.base, depth + 1, precedence, indentDepth
             for property in node.properties
-              @addSocketAndMark property, depth + 1, precedence, indentDepth
+              if property.nodeType() is 'Access'
+                @addSocketAndMark property.name, depth + 1, precedence, indentDepth
+              else if property.nodeType() is 'Index'
+                @addSocketAndMark property.index, depth + 1, precedence, indentDepth
           else
             @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
 

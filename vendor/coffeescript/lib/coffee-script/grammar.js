@@ -199,7 +199,7 @@
     ],
     Index: [
       o('INDEX_START IndexValue INDEX_END', function() {
-        return $2;
+        return $2.wipeLocationData();
       }), o('INDEX_SOAK  Index', function() {
         return extend($2, {
           soak: true

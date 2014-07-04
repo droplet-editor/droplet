@@ -272,7 +272,7 @@ grammar =
 
   # Indexing into an object or array using bracket notation.
   Index: [
-    o 'INDEX_START IndexValue INDEX_END',       -> $2
+    o 'INDEX_START IndexValue INDEX_END',       -> $2.wipeLocationData()
     o 'INDEX_SOAK  Index',                      -> extend $2, soak : yes
   ]
 

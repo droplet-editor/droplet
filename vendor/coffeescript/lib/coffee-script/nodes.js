@@ -79,6 +79,11 @@
       return fragmentsToText(this.compileToFragments(o, lvl));
     };
 
+    Base.prototype.wipeLocationData = function() {
+      this.locationData = void 0;
+      return this;
+    };
+
     Base.prototype.compileToFragments = function(o, lvl) {
       var node;
       o = extend({}, o);

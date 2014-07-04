@@ -60,6 +60,10 @@ exports.Base = class Base
   compile: (o, lvl) ->
     fragmentsToText @compileToFragments o, lvl
 
+  wipeLocationData: ->
+    @locationData = undefined
+    return this
+
   # Common logic for determining whether to wrap this node in a closure before
   # compiling it, or to compile directly. We need to wrap if this node is a
   # *statement*, and it's not a *pureStatement*, and we're not at
