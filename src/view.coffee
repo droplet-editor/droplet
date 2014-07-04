@@ -90,6 +90,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           for childObj in @children
             self.getViewFor(childObj.child).computeDropAreas()
 
+        @boundingBoxFlag = false
+
         return null
 
       computeOwnDropArea: ->
@@ -589,10 +591,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # A Socket should copy its content
         # block, if there is a content block
         if @model.start.next.type is 'blockStart'
-          @boundingBoxFlag = true
-
           @bounds[line] =
             self.getViewFor(@model.start.next.container).computeBoundingBox upperLeft, line
+
+          @boundingBoxFlag = self.getViewFor(@model.start.next.container).boundingBoxFlag
 
         else
           super

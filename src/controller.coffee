@@ -25,6 +25,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     'populate': []
 
     'resize': []
+    'resize_palette': []
+
     'redraw_main': []
     'redraw_palette': []
 
@@ -197,6 +199,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
+      
+      @resizePalette()
 
       for binding in editorBindings.resize
         binding.call this
@@ -212,9 +216,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
 
       @redrawMain()
-      
-      @resizePalette()
-
+    
     resizePalette: ->
       @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
       @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeader.offsetHeight
@@ -222,6 +224,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @paletteCanvas.style.height = "#{@paletteCanvas.height}px"
       @paletteCanvas.style.width = "#{@paletteCanvas.width}px"
+
+      for binding in editorBindings.resize_palette
+        binding.call this
 
       @redrawPalette()
 
@@ -266,22 +271,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for binding in editorBindings.redraw_main
         binding.call this
 
-  Editor::redrawCursor = ->
-    if @cursor? and @cursor.parent?
-      @view.getViewFor(@tree).layout()
-
-      head = @cursor; line = 0
-      until head is @cursor.parent.start
-        head = head.prev
-        line++ if head.type is 'newline'
-
-      bound = @view.getViewFor(@cursor.parent).bounds[line]
-      if @cursor.nextVisibleToken()?.type is 'indentEnd' and
-         @cursor.prev?.prev.type isnt 'indentStart' or
-         @cursor.next is @tree.end
-        @drawCursor new draw.Point bound.x, bound.bottom()
-      else
-        @drawCursor new draw.Point bound.x, bound.y
+  Editor::redrawCursor = -> @strokeCursor @determineCursorPosition()
     
   Editor::clearPalette = ->
       @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
@@ -305,7 +295,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       boundingRect = new draw.Rectangle(
         @scrollOffsets.palette.x,
         @scrollOffsets.palette.y,
-        @paletteCanvas.width
+        @paletteCanvas.width,
         @paletteCanvas.height
       )
 
@@ -1646,6 +1636,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @reparseHandwrittenBlocks()
 
     @redrawCursor()
+    @scrollCursorIntoPosition()
   
   Editor::moveCursorUp = ->
     # Seek the place we want to move the cursor
@@ -1669,6 +1660,32 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
     @reparseHandwrittenBlocks()
     @redrawCursor()
+    @scrollCursorIntoPosition()
+
+  Editor::determineCursorPosition = ->
+    if @cursor? and @cursor.parent?
+      @view.getViewFor(@tree).layout()
+
+      head = @cursor; line = 0
+      until head is @cursor.parent.start
+        head = head.prev
+        line++ if head.type is 'newline'
+
+      bound = @view.getViewFor(@cursor.parent).bounds[line]
+      if @cursor.nextVisibleToken()?.type is 'indentEnd' and
+         @cursor.prev?.prev.type isnt 'indentStart' or
+         @cursor.next is @tree.end
+        return new draw.Point bound.x, bound.bottom()
+      else
+        return new draw.Point bound.x, bound.y
+  
+  Editor::scrollCursorIntoPosition = ->
+    axis = @determineCursorPosition().y
+
+    if axis - @scrollOffsets.main.y < 0
+      @mainScroller.scrollTop = axis
+    else if axis - @scrollOffsets.main.y > @mainCanvas.height
+      @mainScroller.scrollTop = axis - @mainCanvas.height
 
   # Pressing the up-arrow moves the cursor up.
   hook 'key.up', 0, ->
@@ -2338,10 +2355,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'resize', 0, ->
     @mainScroller.style.width = "#{@iceElement.offsetWidth}px"
     @mainScroller.style.height = "#{@iceElement.offsetHeight}px"
-    
+  
+  hook 'resize_palette', 0, ->
     @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
-    @paletteScroller.style.width = "#{@paletteWrapper.offsetWdith}px"
-    @paletteScroller.style.height = "#{@paletteWrapper.offsetHeight - @paletteHeader.offsetHeight}px"
+    @paletteScroller.style.width = "#{@paletteCanvas.offsetWidth}px"
+    @paletteScroller.style.height = "#{@paletteCanvas.offsetHeight}px"
 
   hook 'redraw_main', 0, ->
     bounds = @view.getViewFor(@tree).getBounds()
@@ -2669,7 +2687,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # CURSOR DRAW SUPPORRT
   # ================================
-  Editor::drawCursor = (point) ->
+  Editor::strokeCursor = (point) ->
+    return unless point?
+
     @clearHighlightCanvas()
 
     @highlightCtx.beginPath()
