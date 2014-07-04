@@ -1,3 +1,8 @@
+# # ICE Editor view
+#
+# Copyright (c) 2014 Anthony Bau
+# MIT License
+
 define ['ice-draw', 'ice-model'], (draw, model) ->
   NO_INDENT = 0
   INDENT_START = 1

@@ -1,3 +1,8 @@
+# # ICE Editor model
+# 
+# Copyright (c) 2014 Anthony Bau
+# MIT License
+
 define ->
   exports = {}
 

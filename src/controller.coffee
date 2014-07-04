@@ -1,5 +1,6 @@
-# Copyright (c) 2014 Anthony Bau
+# # ICE Editor controller
 #
+# Copyright (c) 2014 Anthony Bau
 # MIT License.
 
 define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model, view) ->
@@ -8,7 +9,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   PALETTE_MARGIN = 5
   MIN_DRAG_DISTANCE = 5
   PALETTE_LEFT_MARGIN = 5
-  PALETTE_WIDTH = 300
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
 
@@ -158,11 +158,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # This stage of ICE editor construction, which is repeated
       # whenever the editor is resized, should adjust the sizes
       # of all the ICE editor componenents to fit the wrapper.
-      window.addEventListener 'resize', =>
-        @resize()
-        @redrawMain(); @redrawPalette()
-
-      @resize()
+      window.addEventListener 'resize', => @resize()
 
       # ## Tracker Events
       # We allow binding to the tracker element.
@@ -182,6 +178,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # We start of with an empty document
       @tree = new model.Segment()
 
+      @resize()
+
       # Now that we've populated everything, immediately redraw.
       @redrawMain(); @redrawPalette()
     
@@ -200,15 +198,33 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
 
-      @paletteCanvas.style.top = "#{@paletteHeaderHeight}px"
-      @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeaderHeight
-      @paletteCanvas.width = PALETTE_WIDTH
+      for binding in editorBindings.resize
+        binding.call this
+      
+      # Re-scroll and redraw main
+      @scrollOffsets.main.y = @mainScroller.scrollTop
+      @scrollOffsets.main.x = @mainScroller.scrollLeft
+
+      @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+
+      # Also update scroll for the highlight ctx, so that
+      # they can match the blocks' positions
+      @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+
+      @redrawMain()
+      
+      @resizePalette()
+
+    resizePalette: ->
+      @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
+      @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeader.offsetHeight
+      @paletteCanvas.width = @paletteWrapper.offsetWidth
 
       @paletteCanvas.style.height = "#{@paletteCanvas.height}px"
       @paletteCanvas.style.width = "#{@paletteCanvas.width}px"
 
-      for binding in editorBindings.resize
-        binding.call this
+      @redrawPalette()
+
     
   # RENDERING CAPABILITIES
   # ================================
@@ -951,9 +967,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
     @paletteHeader.className = 'ice-palette-header'
-    
-    # Record its height, which is deterministic.
-    @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30 + 2 # NOTE: paramaterize this; it is a border width.
 
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
@@ -1356,7 +1369,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @textInputSelecting = false
 
   # LASSO SELECT SUPPORT
-  # ================================
+  # ===============================
   
   # We need undo operations for create/destroy segment
   # so that other undo operations work properly in
@@ -1465,11 +1478,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
     # If the point was actually in the main canvas,
     # start a lasso select.
-    mainPoint = @trackerPointToMain point
-    palettePoint = @trackerPointToPalette point
+    mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
+    palettePoint = @trackerPointToPalette(point).from @scrollOffsets.palette
+
     if 0 < mainPoint.x < @mainCanvas.width and 0 < mainPoint.y < @mainCanvas.height and not
        (0 < palettePoint.x < @paletteCanvas.width and 0 < palettePoint.x < @paletteCanvas.height)
-      if @lassoSelectAnchor? then debugger
       @lassoSelectAnchor = @trackerPointToMain point
   
   # On mousemove, if we are in the middle of a
@@ -2326,9 +2339,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @mainScroller.style.width = "#{@iceElement.offsetWidth}px"
     @mainScroller.style.height = "#{@iceElement.offsetHeight}px"
     
-    @paletteScroller.style.top = "#{@paletteHeaderHeight}px"
-    @paletteScroller.style.width = "#{PALETTE_WIDTH}px"
-    @paletteScroller.style.height = "#{@iceElement.offsetHeight - @paletteHeaderHeight}px"
+    @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
+    @paletteScroller.style.width = "#{@paletteWrapper.offsetWdith}px"
+    @paletteScroller.style.height = "#{@paletteWrapper.offsetHeight - @paletteHeader.offsetHeight}px"
 
   hook 'redraw_main', 0, ->
     bounds = @view.getViewFor(@tree).getBounds()

@@ -1,3 +1,8 @@
+# # ICE Editor CoffeeScript mode
+#
+# Copyright (c) Anthony Bau
+# MIT License
+
 define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScript) ->
   exports = {}
 
