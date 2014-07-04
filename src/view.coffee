@@ -515,7 +515,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           for size, i in @dimensions
             size.width = Math.max size.width, self.opts.tabWidth + self.opts.tabOffset
 
-          return @dimensions
+        return @dimensions
 
       shouldAddTab: ->
         if @model.parent? then @model.parent.type isnt 'socket'
