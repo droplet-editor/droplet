@@ -60,6 +60,10 @@ exports.Base = class Base
   compile: (o, lvl) ->
     fragmentsToText @compileToFragments o, lvl
 
+  wipeLocationData: ->
+    @locationData = undefined
+    return this
+
   # Common logic for determining whether to wrap this node in a closure before
   # compiling it, or to compile directly. We need to wrap if this node is a
   # *statement*, and it's not a *pureStatement*, and we're not at
@@ -1648,7 +1652,12 @@ exports.Op = class Op extends Base
     if op is 'do'
       return @generateDo first
     if op is 'new'
-      return first.newInstance() if first instanceof Call and not first.do and not first.isNew
+      if first instanceof Call and not first.do and not first.isNew
+        # Delete location data so that parser
+        # re-assigns location data to ours
+        first.locationData = undefined
+        return first.newInstance()
+
       first = new Parens first   if first instanceof Code and first.bound or first.do
     @operator = CONVERSIONS[op] or op
     @first    = first

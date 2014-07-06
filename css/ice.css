@@ -80,7 +80,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 300px;
+  width: 100%;
   background-color: #DDD;
   line-height: 10px;
   border-bottom: 2px solid #000;
