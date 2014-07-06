@@ -253,8 +253,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               @dimensions[desiredLine].width += size.width + @padding
               @dimensions[desiredLine].height = Math.max @dimensions[desiredLine].height,
                 size.height +
-                (if @indentData[line] in [NO_INDENT, INDENT_START] then 2 * @padding
-                else if @indentData[line] is INDENT_END then @padding
+                (if @indentData[desiredLine] in [NO_INDENT, INDENT_START] then 2 * @padding
+                else if @indentData[desiredLine] is INDENT_END then @padding
                 else 0)
         
         return @dimensions

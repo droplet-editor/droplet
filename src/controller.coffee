@@ -1265,7 +1265,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     ), 0
 
     # Redraw.
-    @redrawMain()
+    @redrawMain(); @redrawTextInput()
 
   Editor::populateSocket = (socket, string) ->
     lines = string.split '\n'
@@ -2385,10 +2385,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @fontSize = 15
   
   Editor::setFontSize_raw = (fontSize) ->
-    @fontSize = fontSize
-    @paletteHeader.style.fontSize = "#{fontSize}px"
-    @view.clearCache()
-    @redrawMain(); @redrawPalette()
+    unless @fontSize is fontSize
+      @fontSize = fontSize
+      @paletteHeader.style.fontSize = "#{fontSize}px"
+      @view.clearCache()
+      @redrawMain(); @redrawPalette()
 
   Editor::setFontSize = (fontSize) ->
     @aceEditor.setFontSize fontSize
