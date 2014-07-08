@@ -880,7 +880,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       if 0 < palettePoint.x < @paletteCanvas.width and
          0 < palettePoint.y < @paletteCanvas.height or not
          (0 < renderPoint.x < @mainCanvas.width and
-         0 < renderPoint. x < @mainCanvas.height)
+         0 < renderPoint.y < @mainCanvas.height)
         @draggingBlock = null
         @draggingOffset = null
         @lastHighlight = null
