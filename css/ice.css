@@ -111,7 +111,6 @@
   position: absolute;
   top: -9999px;
   left: -9999px;
-  -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
