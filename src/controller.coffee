@@ -1476,8 +1476,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
     if state.consumedHitTest or state.suppressLassoSelect then return
 
-    console.log 'LASSO SELECT CAPTURED MOUSEDOWN'
-    
     # If the point was actually in the main canvas,
     # start a lasso select.
     mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
@@ -2624,7 +2622,22 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     'touchend': 'mouseup'
 
   # A timeout for selection
-  TOUCH_SELECTION_TIMEOUT = 2000
+  TOUCH_SELECTION_TIMEOUT = 1000
+
+  Editor::touchEventToPoint = (event, index) ->
+    absolutePoint = new draw.Point(
+      event.changedTouches[index].pageX,
+      event.changedTouches[index].pageY
+    )
+
+    return absolutePoint.from(@absoluteOffset(@iceElement))
+  
+  Editor::queueLassoMousedown = (trackPoint, event) ->
+    @lassoSelectStartTimeout = setTimeout (=>
+      state = {}
+
+      for handler in editorBindings.mousedown
+        handler.call this, trackPoint, event, state), TOUCH_SELECTION_TIMEOUT
 
   # We will bind the same way as mouse events do,
   # wrapping to be compatible with a mouse event interface.
@@ -2638,7 +2651,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @iceElement.addEventListener 'touchstart', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
-      trackPoint = @getPointRelativeToTracker event.touches[0]
+      trackPoint = @touchEventToPoint event, 0
       
       # We keep a state object so that handlers
       # can know about each other.
@@ -2658,25 +2671,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # in a little bit.
       if state.consumedHitTest
         event.preventDefault()
-
       else
-        @lassoSelectStartTimeout = setTimeout TOUCH_SELECTION_TIMEOUT, ->
-          state = {}
-
-          for handler in editorBindings.mousedown
-            handler.call this, trackPoint, event, state
-
+        @queueLassoMousedown trackPoint, event
+      
     @iceElement.addEventListener 'touchmove', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
-      trackPoint = @getPointRelativeToTracker event.touches[0]
+      trackPoint = @touchEventToPoint event, 0
+      
+      unless @clickedBlock? or @draggingBlock?
+        @queueLassoMousedown trackPoint, event
       
       # We keep a state object so that handlers
       # can know about each other.
       state = {}
       
       # Call all the handlers.
-      for handler in editorBindings.mousedown
+      for handler in editorBindings.mousemove
         handler.call this, trackPoint, event, state
       
       # If we are in the middle of some action,
@@ -2687,14 +2698,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @iceElement.addEventListener 'touchend', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
-      trackPoint = @getPointRelativeToTracker event.touches[0]
+      trackPoint = @touchEventToPoint event, 0
       
       # We keep a state object so that handlers
       # can know about each other.
       state = {}
       
       # Call all the handlers.
-      for handler in editorBindings.mousedown
+      for handler in editorBindings.mouseup
         handler.call this, trackPoint, event, state
       
       event.preventDefault()
