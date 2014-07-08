@@ -868,14 +868,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Before we put this block into our list of floating blocks,
       # we need to figure out where on the main canvas
       # we are going to render it.
-      mainCanvasPoint = @trackerPointToMain point
-      renderPoint = new draw.Point(
-        mainCanvasPoint.x + @draggingOffset.x,
-        mainCanvasPoint.y + @draggingOffset.y
+      trackPoint = new draw.Point(
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
       )
+      renderPoint = @trackerPointToMain trackPoint
+      palettePoint = @trackerPointToPalette trackPoint
       
       # If we dropped it off in the palette, abort (so as to delete the block).
-      if renderPoint.x < 0 then return
+      palettePoint = @trackerPointToPalette point
+      if 0 < palettePoint.x < @paletteCanvas.width and
+         0 < palettePoint.y < @paletteCanvas.height or not
+         (0 < renderPoint.x < @mainCanvas.width and
+         0 < renderPoint. x < @mainCanvas.height)
+        @draggingBlock = null
+        @draggingOffset = null
+        @lastHighlight = null
+        
+        @clearDrag()
+        @redrawMain()
+        return
       
       # Add the undo operation associated
       # with creating this floating block
@@ -2644,14 +2656,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # If we did not hit anything,
       # we may want to start a lasso select
       # in a little bit.
-      unless state.consumedHitTest
+      if state.consumedHitTest
+        event.preventDefault()
+
+      else
         @lassoSelectStartTimeout = setTimeout TOUCH_SELECTION_TIMEOUT, ->
           state = {}
 
           for handler in editorBindings.mousedown
             handler.call this, trackPoint, event, state
-      
-      event.preventDefault()
 
     @iceElement.addEventListener 'touchmove', (event) =>
       clearTimeout @lassoSelectStartTimeout

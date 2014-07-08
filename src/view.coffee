@@ -256,6 +256,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
                 (if @indentData[desiredLine] in [NO_INDENT, INDENT_START] then 2 * @padding
                 else if @indentData[desiredLine] is INDENT_END then @padding
                 else 0)
+
+        for children, line in @lineChildren
+          if children.length is 0
+            @dimensions[line].height = Math.max @dimensions[line].height, self.opts.emptyLineHeight
         
         return @dimensions
       
