@@ -1039,7 +1039,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   
   # The next thing we need to do with the palette
   # is let people pick things up from it.
-  hook 'mousedown', 7, (point, event, state) ->
+  hook 'mousedown', 8, (point, event, state) ->
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
@@ -1052,7 +1052,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clickedPoint = point
         @clickedBlockIsPaletteBlock = true
         return
-
+    
+    console.log 'setting clickedBlock to false'
     @clickedBlockIsPaletteBlock = false
 
   # We also allow people to drop things into
