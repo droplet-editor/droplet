@@ -684,13 +684,12 @@
       };
 
       Container.prototype.addLineMark = function(mark) {
-        this.lineMarkStyles.push(mark);
-        return this.notifyChange();
+        return this.lineMarkStyles.push(mark);
       };
 
       Container.prototype.removeLineMark = function(tag) {
         var mark;
-        this.lineMarkStyles = (function() {
+        return this.lineMarkStyles = (function() {
           var _i, _len, _ref, _results;
           _ref = this.lineMarkStyles;
           _results = [];
@@ -702,12 +701,10 @@
           }
           return _results;
         }).call(this);
-        return this.notifyChange();
       };
 
       Container.prototype.clearLineMarks = function() {
-        this.lineMarkStyles = [];
-        return this.notifyChange();
+        return this.lineMarkStyles = [];
       };
 
       return Container;
@@ -1389,18 +1386,6 @@
           }
         };
 
-        GenericView.prototype.clearDropAreas = function() {
-          var childObj, _i, _len, _ref, _results;
-          this.dropArea = null;
-          _ref = this.children;
-          _results = [];
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            childObj = _ref[_i];
-            _results.push(this.self.getViewFor(childObj.child).computeDropAreas());
-          }
-          return _results;
-        };
-
         GenericView.prototype.computeOwnDropArea = function() {};
 
         GenericView.prototype.computePath = function() {
@@ -1984,6 +1969,18 @@
           return this.path = new draw.Path();
         };
 
+        SegmentView.prototype.computeOwnDropArea = function() {
+          if (this.model.isLassoSegment) {
+            return this.dropArea = null;
+          } else {
+            this.dropArea = new draw.Rectangle(this.bounds[0].x, this.bounds[0].y - this.self.opts.dropAreaHeight / 2, Math.max(this.bounds[0].width, this.self.opts.indentDropAreaMinWidth), this.self.opts.dropAreaHeight).toPath();
+            this.highlightArea = new draw.Rectangle(this.bounds[0].x, this.bounds[0].y - this.self.opts.highlightAreaHeight / 2, Math.max(this.bounds[0].width, this.self.opts.indentDropAreaMinWidth), this.self.opts.highlightAreaHeight).toPath();
+            this.highlightArea.style.fillColor = '#fff';
+            this.highlightArea.style.strokeColor = '#fff';
+            return null;
+          }
+        };
+
         SegmentView.prototype.drawSelf = function(ctx, style) {
           return null;
         };
@@ -2023,10 +2020,6 @@
             }
           }
           return null;
-        };
-
-        SegmentView.prototype.computeOwnDropArea = function() {
-          return this.dropArea = this.highlightArea = null;
         };
 
         return SegmentView;
@@ -3228,6 +3221,9 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       return new draw.Point(point.x - this.trackerOffset(this.mainCanvas).x + this.scrollOffsets.main.x, point.y - this.trackerOffset(this.mainCanvas).y + this.scrollOffsets.main.y);
     };
     Editor.prototype.trackerPointToPalette = function(point) {
+      if (this.paletteCanvas.offsetParent == null) {
+        return new draw.Point(NaN, NaN);
+      }
       return new draw.Point(point.x - this.trackerOffset(this.paletteCanvas).x + this.scrollOffsets.palette.x, point.y - this.trackerOffset(this.paletteCanvas).y + this.scrollOffsets.palette.y);
     };
     Editor.prototype.hitTest = function(point, block) {
@@ -3420,7 +3416,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       hitTestResult = this.hitTest(this.trackerPointToMain(point), this.tree);
       if (hitTestResult != null) {
         this.clickedBlock = hitTestResult;
-        this.moveCursorTo(this.clickedBlock.end);
+        this.moveCursorTo(this.clickedBlock.start.next);
         this.clickedPoint = point;
         return state.consumedHitTest = true;
       }
@@ -3442,6 +3438,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           this.draggingOffset = this.view.getViewFor(this.draggingBlock).bounds[0].upperLeftCorner().from(this.trackerPointToMain(this.clickedPoint));
         }
         this.draggingBlock.ephemeral = true;
+        this.draggingBlock.clearLineMarks();
         draggingBlockView = this.dragView.getViewFor(this.draggingBlock);
         draggingBlockView.layout(1, 1);
         draggingBlockView.drawShadow(this.dragCtx, 5, 5);
@@ -3575,10 +3572,15 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     })();
     hook('mouseup', 0, function(point, event, state) {
       var palettePoint, renderPoint, trackPoint, _ref, _ref1, _ref2, _ref3;
+      console.log(this.draggingBlock, this.lastHighlight);
       if ((this.draggingBlock != null) && (this.lastHighlight == null)) {
         trackPoint = new draw.Point(point.x + this.draggingOffset.x, point.y + this.draggingOffset.y);
         renderPoint = this.trackerPointToMain(trackPoint);
         palettePoint = this.trackerPointToPalette(trackPoint);
+        this.addMicroUndoOperation('CAPTURE_POINT');
+        this.addMicroUndoOperation(new PickUpOperation(this.draggingBlock));
+        this.draggingBlock.spliceOut();
+        console.log('spliced block out');
         palettePoint = this.trackerPointToPalette(point);
         if ((0 < (_ref = palettePoint.x) && _ref < this.paletteCanvas.width) && (0 < (_ref1 = palettePoint.y) && _ref1 < this.paletteCanvas.height) || !((0 < (_ref2 = renderPoint.x) && _ref2 < this.mainCanvas.width) && (0 < (_ref3 = renderPoint.y) && _ref3 < this.mainCanvas.height))) {
           this.draggingBlock = null;
@@ -3588,9 +3590,6 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           this.redrawMain();
           return;
         }
-        this.addMicroUndoOperation('CAPTURE_POINT');
-        this.addMicroUndoOperation(new PickUpOperation(this.draggingBlock));
-        this.draggingBlock.spliceOut();
         this.addMicroUndoOperation(new ToFloatingOperation(this.draggingBlock, renderPoint));
         this.floatingBlocks.push(new FloatingBlockRecord(this.draggingBlock, renderPoint));
         this.draggingBlock = null;
@@ -3732,15 +3731,6 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         }
       }
       return this.clickedBlockIsPaletteBlock = false;
-    });
-    hook('mouseup', 0, function(point, event, state) {
-      var palettePoint, _ref, _ref1;
-      palettePoint = this.trackerPointToPalette(point);
-      if ((0 < (_ref = palettePoint.x) && _ref < this.paletteCanvas.width) && (0 < (_ref1 = palettePoint.y) && _ref1 < this.paletteCanvas.height)) {
-        this.draggingBlock = null;
-        this.draggingOffset = null;
-        return this.clearDrag();
-      }
     });
     hook('redraw_palette', 0, function() {
       var block, bounds, hoverDiv, _i, _len, _ref, _results;
@@ -4944,16 +4934,20 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       }
     });
     Editor.prototype.markLine = function(line, style) {
-      var _ref;
-      if ((_ref = this.tree.getBlockOnLine(line)) != null) {
-        _ref.addLineMark(style);
+      var block;
+      block = this.tree.getBlockOnLine(line);
+      if (block != null) {
+        block.addLineMark(style);
+        this.view.getViewFor(block).computeOwnPath();
       }
       return this.redrawMain();
     };
     Editor.prototype.unmarkLine = function(line, tag) {
-      var _ref;
-      if ((_ref = this.tree.getBlockOnLine(line)) != null) {
-        _ref.removeLineMark(tag);
+      var block;
+      block = this.tree.getBlockOnLine(line);
+      if (block != null) {
+        block.removeLineMark(tag);
+        this.view.getViewFor(block).computeOwnPath();
       }
       return this.redrawMain();
     };
@@ -4962,11 +4956,12 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       head = this.tree.start;
       while (head !== this.tree.end) {
         if (head.type === 'blockStart') {
-          if (tag == null) {
+          if (tag != null) {
             head.container.clearLineMarks();
           } else {
             head.container.removeLineMark(tag);
           }
+          this.view.getViewFor(head.container).computeOwnPath();
         }
         head = head.next;
       }
