@@ -1291,9 +1291,9 @@
       if (hex.length === 4) {
         hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
       }
-      r = Number.parseInt(hex.slice(1, 3), 16);
-      g = Number.parseInt(hex.slice(3, 5), 16);
-      b = Number.parseInt(hex.slice(5, 7), 16);
+      r = parseInt(hex.slice(1, 3), 16);
+      g = parseInt(hex.slice(3, 5), 16);
+      b = parseInt(hex.slice(5, 7), 16);
       r = Math.round((r + 128) / 2);
       g = Math.round((g + 128) / 2);
       b = Math.round((b + 128) / 2);
