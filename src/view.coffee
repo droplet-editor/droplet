@@ -23,9 +23,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     if hex.length is 4
       hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
 
-    r = Number.parseInt hex[1..2], 16
-    g = Number.parseInt hex[3..4], 16
-    b = Number.parseInt hex[5..6], 16
+    r = parseInt hex[1..2], 16
+    g = parseInt hex[3..4], 16
+    b = parseInt hex[5..6], 16
 
     r = Math.round (r + 128) / 2
     g = Math.round (g + 128) / 2
