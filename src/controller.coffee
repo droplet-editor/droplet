@@ -372,15 +372,25 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     return point
   
   Editor::trackerOffset = (el) ->
-    x = y = 0
+    point = new draw.Point 0, 0
+
+    lastX = point.x
+    
+    console.log '(begin)'
 
     until el is @iceElement
-      x += el.offsetLeft - el.scrollLeft
-      y += el.offsetTop - el.scrollTop
+      point.x += el.offsetLeft - el.scrollLeft
+      point.y += el.offsetTop - el.scrollTop
+      
+      lastX = point.x
+
+      console.log 'looping', lastX, point.x
 
       el = el.offsetParent
-    
-    return new draw.Point x, y
+
+    console.log 'done', lastX, point.x
+
+    return point
     
   # ### Conversion functions
   # Convert a point relative to the tracker into
