@@ -111,8 +111,6 @@
   position: absolute;
   top: -9999px;
   left: -9999px;
-  -webkit-user-select: none;
-  user-select: none;
 }
 .ice-hover-div {
   position: absolute;
