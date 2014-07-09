@@ -392,6 +392,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     )
 
   Editor::trackerPointToPalette = (point) ->
+    if not @paletteCanvas.offsetParent?
+      return new draw.Point(
+        NaN,
+        NaN
+      )
+    
     new draw.Point(
       point.x - @trackerOffset(@paletteCanvas).x + @scrollOffsets.palette.x,
       point.y - @trackerOffset(@paletteCanvas).y + @scrollOffsets.palette.y
@@ -646,7 +652,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @clickedBlock = hitTestResult
 
       # Move the cursor somewhere nearby
-      @moveCursorTo @clickedBlock.end
+      @moveCursorTo @clickedBlock.start.next
 
       # Record the point at which is was clicked (for clickedBlock->draggingBlock)
       @clickedPoint = point
@@ -697,6 +703,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @trackerPointToMain(@clickedPoint))
 
       @draggingBlock.ephemeral = true
+      @draggingBlock.clearLineMarks()
 
       # Draw the new dragging block on the drag canvas.
       # 
@@ -880,6 +887,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # We can create floating blocks by dropping
   # blocks without a highlight.
   hook 'mouseup', 0, (point, event, state) ->
+    console.log @draggingBlock, @lastHighlight
     if @draggingBlock? and not @lastHighlight?
       # Before we put this block into our list of floating blocks,
       # we need to figure out where on the main canvas
@@ -891,6 +899,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       renderPoint = @trackerPointToMain trackPoint
       palettePoint = @trackerPointToPalette trackPoint
       
+      @addMicroUndoOperation 'CAPTURE_POINT'
+
+      @addMicroUndoOperation new PickUpOperation @draggingBlock
+
+      # Remove the block from the tree.
+      @draggingBlock.spliceOut() # MUTATION
+
+      console.log 'spliced block out'
+
       # If we dropped it off in the palette, abort (so as to delete the block).
       palettePoint = @trackerPointToPalette point
       if 0 < palettePoint.x < @paletteCanvas.width and
@@ -904,13 +921,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clearDrag()
         @redrawMain()
         return
-
-      @addMicroUndoOperation 'CAPTURE_POINT'
-
-      @addMicroUndoOperation new PickUpOperation @draggingBlock
-
-      # Remove the block from the tree.
-      @draggingBlock.spliceOut() # MUTATION
       
       # Add the undo operation associated
       # with creating this floating block
@@ -1079,15 +1089,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
 
     @clickedBlockIsPaletteBlock = false
-
-  # We also allow people to drop things into
-  # the palette to delete them.
-  hook 'mouseup', 0, (point, event, state) ->
-    palettePoint = @trackerPointToPalette point
-    if 0 < palettePoint.x < @paletteCanvas.width and 0 < palettePoint.y < @paletteCanvas.height
-      @draggingBlock = null
-      @draggingOffset = null
-      @clearDrag()
 
   # We will also have mouseover texts for blocks.
   # This is an experimental feature right now.
@@ -2478,12 +2479,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
 
   Editor::markLine = (line, style) ->
-    @tree.getBlockOnLine(line)?.addLineMark style
+    block = @tree.getBlockOnLine line
+
+    if block?
+      block.addLineMark style
+      @view.getViewFor(block).computeOwnPath()
 
     @redrawMain()
 
   Editor::unmarkLine = (line, tag) ->
-    @tree.getBlockOnLine(line)?.removeLineMark tag
+    block = @tree.getBlockOnLine line
+
+    if block?
+      block.removeLineMark tag
+      @view.getViewFor(block).computeOwnPath()
 
     @redrawMain()
 
@@ -2494,12 +2503,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       if head.type is 'blockStart'
         # If clearLineMarks is called without
         # a tag to clear, clear all tags.
-        unless tag?
+        if tag?
           head.container.clearLineMarks()
 
         # Otherwise, clear the selected tag.
         else
           head.container.removeLineMark tag
+
+        @view.getViewFor(head.container).computeOwnPath()
 
       head = head.next
 

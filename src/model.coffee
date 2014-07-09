@@ -313,15 +313,12 @@ define ->
     # Line mark mutators
     addLineMark: (mark) ->
       @lineMarkStyles.push mark
-      @notifyChange()
 
     removeLineMark: (tag) ->
       @lineMarkStyles = (mark for mark in @lineMarkStyles when mark.tag isnt tag)
-      @notifyChange()
 
     clearLineMarks: ->
       @lineMarkStyles = []
-      @notifyChange()
   
   # Token
   # ==================
