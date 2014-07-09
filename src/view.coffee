@@ -116,11 +116,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @boundingBoxFlag = false
 
           return null
-      
-      clearDropAreas: ->
-        @dropArea = null
-        for childObj in @children
-          @self.getViewFor(childObj.child).computeDropAreas()
 
       computeOwnDropArea: ->
 
@@ -716,6 +711,28 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     class SegmentView extends ContainerView
       constructor: -> super; @padding = 0
       computeOwnPath: -> @path = new draw.Path()
+      computeOwnDropArea: ->
+        if @model.isLassoSegment
+          return @dropArea = null
+        else
+          @dropArea = new draw.Rectangle(
+            @bounds[0].x
+            @bounds[0].y - @self.opts.dropAreaHeight / 2
+            Math.max(@bounds[0].width, @self.opts.indentDropAreaMinWidth)
+            @self.opts.dropAreaHeight
+          ).toPath()
+
+          @highlightArea = new draw.Rectangle(
+            @bounds[0].x
+            @bounds[0].y - @self.opts.highlightAreaHeight / 2
+            Math.max(@bounds[0].width, @self.opts.indentDropAreaMinWidth)
+            @self.opts.highlightAreaHeight
+          ).toPath()
+
+          @highlightArea.style.fillColor = '#fff'
+          @highlightArea.style.strokeColor = '#fff'
+
+          return null
       drawSelf: (ctx, style) -> null
       draw: (ctx, boundingRect, style) ->
         if @totalBounds.overlap boundingRect
@@ -741,8 +758,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             style.grayscale--
           if @model.isLassoSegment then style.selected--
         return null
-
-      computeOwnDropArea: -> @dropArea = @highlightArea = null
 
     class TextView extends GenericView
       constructor: (@model, @self) -> super
