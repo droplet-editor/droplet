@@ -140,18 +140,20 @@ define ->
       #
       # Exception: do not do this if it would collapse
       # and indent to 0 length.
-      if first?.type is 'newline' and
+      while first?.type is 'newline' and
          last?.type in [undefined, 'newline', 'indentEnd'] and
-         not (first.prev?.type is 'indentStart' and last.type is 'indentEnd')
+         not (first.prev?.type is 'indentStart' and last?.type is 'indentEnd')
+        first = first.previousVisibleToken()
+        first.nextVisibleToken().remove()
 
-        first.remove()
-      
       # If the next visible token is a newline,
       # and the previous visible token is the beginning
       # of the document, remove it.
-      else if last?.type is 'newline' and not first?
-        last.remove()
-      
+      while last?.type is 'newline' and
+         (last?.nextVisibleToken().type is 'newline' or
+          not first?)
+        last = last.nextVisibleToken()
+        last.previousVisibleToken().remove()
       
       @notifyChange()
       

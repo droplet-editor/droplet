@@ -181,7 +181,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for eventName in ['mousedown', 'mouseup', 'mousemove'] then do (eventName) =>
         @iceElement.addEventListener eventName, (event) =>
           trackPoint = @getPointRelativeToTracker event
-          
+
           # We keep a state object so that handlers
           # can know about each other.
           state = {}
@@ -372,15 +372,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     return point
   
   Editor::trackerOffset = (el) ->
-    point = new draw.Point 0, 0
+    x = y = 0
 
     until el is @iceElement
-      point.x += el.offsetLeft - el.scrollLeft
-      point.y += el.offsetTop - el.scrollTop
+      x += el.offsetLeft - el.scrollLeft
+      y += el.offsetTop - el.scrollTop
 
       el = el.offsetParent
-
-    return point
+    
+    return new draw.Point x, y
     
   # ### Conversion functions
   # Convert a point relative to the tracker into
@@ -740,7 +740,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         point.x + @draggingOffset.x,
         point.y + @draggingOffset.y
       )
-      
+
       @dragCanvas.style.top = "#{position.y}px"
       @dragCanvas.style.left = "#{position.x}px"
       
@@ -887,7 +887,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # We can create floating blocks by dropping
   # blocks without a highlight.
   hook 'mouseup', 0, (point, event, state) ->
-    console.log @draggingBlock, @lastHighlight
     if @draggingBlock? and not @lastHighlight?
       # Before we put this block into our list of floating blocks,
       # we need to figure out where on the main canvas
@@ -905,8 +904,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # Remove the block from the tree.
       @draggingBlock.spliceOut() # MUTATION
-
-      console.log 'spliced block out'
 
       # If we dropped it off in the palette, abort (so as to delete the block).
       palettePoint = @trackerPointToPalette point
