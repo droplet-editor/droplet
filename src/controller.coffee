@@ -910,10 +910,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # If we dropped it off in the palette, abort (so as to delete the block).
       palettePoint = @trackerPointToPalette point
-      if 0 < palettePoint.x < @paletteCanvas.width and
-         0 < palettePoint.y < @paletteCanvas.height or not
-         (0 < renderPoint.x < @mainCanvas.width and
-         0 < renderPoint.y < @mainCanvas.height)
+      if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
+         0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
+         (0 < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
+         0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
         @draggingBlock = null
         @draggingOffset = null
         @lastHighlight = null
