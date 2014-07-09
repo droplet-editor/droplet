@@ -14,6 +14,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   exports = {}
 
+  extend_ = (a, b) ->
+    obj = {}
+
+    for key, value of a
+      obj[key] = value
+    
+    for key, value of b
+      obj[key] = value
+
+    return obj
+
   # FOUNDATION
   # ================================
 
@@ -108,8 +119,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.appendChild @paletteWrapper
 
-      # Instantiate an ICE editor view
-      @view = new view.View
+      @standardViewSettings =
         padding: 5
         indentWidth: 10
         indentToungeHeight: 10
@@ -125,6 +135,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         highlightAreaHeight: 10
         shadowBlur: 5
         ctx: @mainCtx
+
+      # Instantiate an ICE editor view
+      @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
+      @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
 
       # We also allow binding to keypresses in the element.
       # We will use dmauro's Keypress library for keyboard-shortcut
@@ -681,24 +695,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else
         @draggingOffset = @view.getViewFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToMain(@clickedPoint))
-        
-        # Since we removed this from the tree,
-        # we will need to log an undo operation
-        # to put it back in.
-        unless state.addedCapturePoint
-          @addMicroUndoOperation 'CAPTURE_POINT'
-          state.addedCapturePoint = true
-        @addMicroUndoOperation new PickUpOperation @draggingBlock
-      
-      # Remove the block from the tree.
-      @draggingBlock.moveTo null # MUTATION
+
+      @draggingBlock.ephemeral = true
 
       # Draw the new dragging block on the drag canvas.
       # 
       # When we are dragging things, we draw the shadow.
       # Also, we translate the block 1x1 to the right,
       # so that we can see its borders.
-      draggingBlockView = @view.getViewFor @draggingBlock
+      draggingBlockView = @dragView.getViewFor @draggingBlock
       draggingBlockView.layout 1, 1
       draggingBlockView.drawShadow @dragCtx, 5, 5
       draggingBlockView.draw @dragCtx, new draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
@@ -747,20 +752,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # any Indent, or any Socket that does
       # not contain a block.
       else if @draggingBlock.type is 'block'
-        highlight = @tree.find (block) =>
+        highlight = @tree.find ((block) =>
           (block.parent?.type isnt 'socket') and
             @view.getViewFor(block).dropArea? and
-            @view.getViewFor(block).dropArea.contains mainPoint
+            @view.getViewFor(block).dropArea.contains mainPoint), [@draggingBlock]
       
       # If we are dragging a segment,
       # we also cannot drop ourselves
       # into a socket.
       else if @draggingBlock.type is 'segment'
-        highlight = @tree.find (block) =>
+        highlight = @tree.find ((block) =>
           (block.type isnt 'socket') and
             (block.parent?.type isnt 'socket') and
             @view.getViewFor(block).dropArea? and
-            @view.getViewFor(block).dropArea.contains mainPoint
+            @view.getViewFor(block).dropArea.contains mainPoint), [@draggingBlock]
 
       # For performance reasons,
       # we will only redraw the main canvas
@@ -781,6 +786,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # We will consume this event iff we dropped it successfully
     # in the root tree.
     if @draggingBlock? and @lastHighlight?
+      
+      # Since we removed this from the tree,
+      # we will need to log an undo operation
+      # to put it back in.
+      @addMicroUndoOperation 'CAPTURE_POINT'
+
+      @addMicroUndoOperation new PickUpOperation @draggingBlock
+
+      # Remove the block from the tree.
+      @draggingBlock.spliceOut() # MUTATION
+
       @clearHighlightCanvas()
 
       # Depending on what the highlighted element is,
@@ -791,14 +807,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @draggingBlock.moveTo @lastHighlight.start #MUTATION
+          @draggingBlock.spliceIn @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @draggingBlock.moveTo @lastHighlight.end #MUTATION
+          @draggingBlock.spliceIn @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
-            @draggingBlock.moveTo @tree.start #MUTATION
+            @draggingBlock.spliceIn @tree.start #MUTATION
       
       @redrawMain()
 
@@ -888,6 +904,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clearDrag()
         @redrawMain()
         return
+
+      @addMicroUndoOperation 'CAPTURE_POINT'
+
+      @addMicroUndoOperation new PickUpOperation @draggingBlock
+
+      # Remove the block from the tree.
+      @draggingBlock.spliceOut() # MUTATION
       
       # Add the undo operation associated
       # with creating this floating block
@@ -1051,9 +1074,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clickedBlock = block
         @clickedPoint = point
         @clickedBlockIsPaletteBlock = true
+        state.consumedHitTest = true
         return
     
-    console.log 'setting clickedBlock to false'
+
     @clickedBlockIsPaletteBlock = false
 
   # We also allow people to drop things into
@@ -1756,7 +1780,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @addMicroUndoOperation 'CAPTURE_POINT'
       @addMicroUndoOperation new PickUpOperation blockEnd.container
 
-      blockEnd.container.moveTo null #MUTATION
+      blockEnd.container.spliceOut() #MUTATION
 
       @redrawMain()
 
@@ -1960,10 +1984,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Go through the motions of moving this block into
       # the indent we have just found.
       @addMicroUndoOperation new PickUpOperation @socketFocus.start.prev.container
-      @socketFocus.start.prev.container.moveTo null #MUTATION
+      @socketFocus.start.prev.container.spliceOut() #MUTATION
 
       @addMicroUndoOperation new DropOperation @socketFocus.start.prev.container, head
-      @socketFocus.start.prev.container.moveTo head #MUTATION
+      @socketFocus.start.prev.container.spliceIn head #MUTATION
 
       # Move the cursor up to where the block now is.
       @moveCursorTo @socketFocus.start.prev.container.end
