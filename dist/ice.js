@@ -3582,7 +3582,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         this.draggingBlock.spliceOut();
         console.log('spliced block out');
         palettePoint = this.trackerPointToPalette(point);
-        if ((0 < (_ref = palettePoint.x) && _ref < this.paletteCanvas.width) && (0 < (_ref1 = palettePoint.y) && _ref1 < this.paletteCanvas.height) || !((0 < (_ref2 = renderPoint.x) && _ref2 < this.mainCanvas.width) && (0 < (_ref3 = renderPoint.y) && _ref3 < this.mainCanvas.height))) {
+        if ((0 < (_ref = palettePoint.x - this.scrollOffsets.palette.x) && _ref < this.paletteCanvas.width) && (0 < (_ref1 = palettePoint.y - this.scrollOffsets.palette.y) && _ref1 < this.paletteCanvas.height) || !((0 < (_ref2 = renderPoint.x - this.scrollOffsets.main.x) && _ref2 < this.mainCanvas.width) && (0 < (_ref3 = renderPoint.y - this.scrollOffsets.main.y) && _ref3 < this.mainCanvas.height))) {
           this.draggingBlock = null;
           this.draggingOffset = null;
           this.lastHighlight = null;
