@@ -1,3 +1,8 @@
+# # ICE Editor model
+# 
+# Copyright (c) 2014 Anthony Bau
+# MIT License
+
 define ->
   exports = {}
 
@@ -28,6 +33,8 @@ define ->
       @parent = null
       @version = 0
       @start.append @end
+
+      @ephemeral = false
       
       # Line mark colours
       @lineMarkStyles = []
@@ -149,7 +156,9 @@ define ->
       @notifyChange()
       
       # Literally unsplice
-      @start.prev.append @end.next
+      if @start.prev? then @start.prev.append @end.next
+      else if @end.next? then @end.next.prev = null
+
       @start.prev = @end.next = null
 
       @start.parent = @end.parent = @parent = null
@@ -160,6 +169,9 @@ define ->
     spliceIn: (token) ->
       # Find the previous bit of significant markup
       token = token.prev while token.type is 'cursor'
+      
+      # As soon as we move around, reset our "ephemeral" flag.
+      @ephemeral = false
 
       # Append newlines, etc. to the parent
       # if necessary.
@@ -238,14 +250,19 @@ define ->
     # A utility function for finding the innermost
     # token fitting (fn), assuming there is only
     # one such token.
-    find: (fn) ->
+    find: (fn, excludes = []) ->
       head = @start
+
       until head is @end
         examined = if head instanceof StartToken then head.container else head
-
+        
+        # Skip over things in the excludes array
+        if examined in excludes
+          head = examined.end
+        
         unless head instanceof EndToken or head.type in ['newline', 'cursor']
           if fn(examined) then return examined
-
+        
         head = head.next
 
       if fn(this) then return this
@@ -292,6 +309,19 @@ define ->
     # start and end tokens.
     traverseOneLevel: (fn) ->
       traverseOneLevel @start.next, fn
+    
+    # Line mark mutators
+    addLineMark: (mark) ->
+      @lineMarkStyles.push mark
+      @notifyChange()
+
+    removeLineMark: (tag) ->
+      @lineMarkStyles = (mark for mark in @lineMarkStyles when mark.tag isnt tag)
+      @notifyChange()
+
+    clearLineMarks: ->
+      @lineMarkStyles = []
+      @notifyChange()
   
   # Token
   # ==================
@@ -370,6 +400,8 @@ define ->
       while head?
         head.version++
         head = head.parent
+
+      return null
     
     getSerializedLocation: ->
       head = this; count = 0

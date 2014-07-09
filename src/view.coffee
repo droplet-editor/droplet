@@ -1,3 +1,8 @@
+# # ICE Editor view
+#
+# Copyright (c) 2014 Anthony Bau
+# MIT License
+
 define ['ice-draw', 'ice-model'], (draw, model) ->
   NO_INDENT = 0
   INDENT_START = 1
@@ -11,19 +16,36 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
   exports = {}
 
+  defaultStyleObject = -> {selected: 0, grayscale: 0}
+
+  grayscale = (hex) ->
+    # Convert to 6-char
+    if hex.length is 4
+      hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
+
+    r = Number.parseInt hex[1..2], 16
+    g = Number.parseInt hex[3..4], 16
+    b = Number.parseInt hex[5..6], 16
+
+    r = Math.round (r + 128) / 2
+    g = Math.round (g + 128) / 2
+    b = Math.round (b + 128) / 2
+
+    return '#' + r.toString(16) + g.toString(16) + b.toString(16)
+
   exports.View = class View
-    map = {}
-    self = null
+    @self = null
 
     constructor: (@opts) ->
-      self = this
+      @map = {}
+      @self = this
       draw._setCTX @opts.ctx
 
-    clearCache: -> map = {}
+    clearCache: -> @self.map = {}
 
     class GenericView
-      constructor: (@model) ->
-        map[@model.id] = this
+      constructor: (@model, @self) ->
+        @self.map[@model.id] = this
         
         # First pass
         @lineLength = 0 # How many lines does this take up?
@@ -45,12 +67,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           children: -1
           dimensions: -1
           path: -1
+          dropAreas: -1
           bounds: {}
 
         @dropArea = @highlightArea = null
         @boundingBoxFlag = true
 
-        @padding = self.opts.padding
+        @padding = @self.opts.padding
 
       computeChildren: -> @lineLength
       
@@ -80,12 +103,24 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeOwnPath: -> @path = new draw.Path()
 
       computeDropAreas: ->
-        if @boundingBoxFlag
-          @computeOwnDropArea()
-          for childObj in @children
-            self.getViewFor(childObj.child).computeDropAreas()
+        if @versions.dropAreas is @model.version and not @boundingBoxFlag
+          return null
+        else
+          @versions.dropAreas = @model.version
 
-        return null
+          @computeOwnDropArea()
+
+          for childObj in @children
+            @self.getViewFor(childObj.child).computeDropAreas()
+
+          @boundingBoxFlag = false
+
+          return null
+      
+      clearDropAreas: ->
+        @dropArea = null
+        for childObj in @children
+          @self.getViewFor(childObj.child).computeDropAreas()
 
       computeOwnDropArea: ->
 
@@ -101,7 +136,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @totalBounds.unite @path.bounds()
 
         for childObj in @children
-          self.getViewFor(childObj.child).computePath()
+          @self.getViewFor(childObj.child).computePath()
 
         return null
 
@@ -110,18 +145,31 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       draw: (ctx, boundingRect, style) ->
         if @totalBounds.overlap boundingRect
           window.drawNumber++
-          style ?= selected: 0
+          style ?= defaultStyleObject()
+
+          if @model.ephemeral and @self.opts.respectEphemeral
+            style.grayscale++
 
           @drawSelf ctx, style
-          for childObj in @children
-            self.getViewFor(childObj.child).draw ctx, boundingRect, style
+
+          # Draw our children
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
+            @self.getViewFor(childObj.child).draw ctx, boundingRect, style
+          
+          # Draw marked blocks last, so that they
+          # appear on top.
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
+            @self.getViewFor(childObj.child).draw ctx, boundingRect, style
+
+          if @model.ephemeral and @self.opts.respectEphemeral
+            style.grayscale--
 
         return null
 
       drawShadow: ->
 
     class ContainerView extends GenericView
-      constructor: (@model) ->
+      constructor: (@model, @self) ->
         super
 
       computeChildren: ->
@@ -149,7 +197,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Get the view object associated
             # with this model, and ask it to
             # compute children.
-            view = self.getViewFor(head)
+            view = @self.getViewFor(head)
             childLength = view.computeChildren()
             
             # Construct a childObject,
@@ -210,7 +258,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         ) for [0...@lineLength])
         
         for childObject in @children
-          dimensions = self.getViewFor(childObject.child).computeDimensions()
+          dimensions = @self.getViewFor(childObject.child).computeDimensions()
           
           # We treat children differently if they are Indents,
           # because padding is all off.
@@ -219,7 +267,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               desiredLine = line + childObject.startLine
               
               # An Indent is "padded" by a strip of width opts.indentWidth on the left.
-              @dimensions[desiredLine].width += size.width + self.opts.indentWidth +
+              @dimensions[desiredLine].width += size.width + @self.opts.indentWidth +
                 (if line is (dimensions.length - 1) then @padding else 0)
 
               # An Indent usually has no vertical padding,
@@ -227,7 +275,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               # we add a "tounge" at top and bottom.
               @dimensions[desiredLine].height = Math.max @dimensions[desiredLine].height,
                 size.height +
-                (if line is (dimensions.length - 1) then self.opts.indentToungeHeight # TODO allow for top indent thing
+                (if line is (dimensions.length - 1) then @self.opts.indentToungeHeight # TODO allow for top indent thing
                 else 0)
           
           # Normally, we just render blocks with padding.
@@ -238,9 +286,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               @dimensions[desiredLine].width += size.width + @padding
               @dimensions[desiredLine].height = Math.max @dimensions[desiredLine].height,
                 size.height +
-                (if @indentData[line] in [NO_INDENT, INDENT_START] then 2 * @padding
-                else if @indentData[line] is INDENT_END then @padding
+                (if @indentData[desiredLine] in [NO_INDENT, INDENT_START] then 2 * @padding
+                else if @indentData[desiredLine] is INDENT_END then @padding
                 else 0)
+
+        for children, line in @lineChildren
+          if children.length is 0
+            @dimensions[line].height = Math.max @dimensions[line].height, @self.opts.emptyLineHeight
         
         return @dimensions
       
@@ -294,7 +346,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         axis = upperLeft.y + @dimensions[line].height / 2
         
         for lineChild, i in @lineChildren[line]
-          childView = self.getViewFor lineChild.child
+          childView = @self.getViewFor lineChild.child
           childLine = line - lineChild.startLine
 
           # Indents are special; they are not padded,
@@ -305,11 +357,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # have a "tounge" on top of it.
           if lineChild.child.type is 'indent'
             childView.computeBoundingBox new draw.Point(
-              leftX + self.opts.indentWidth,
+              leftX + @self.opts.indentWidth,
               upperLeft.y
             ), childLine
             
-            leftX += self.opts.indentWidth + childView.dimensions[childLine].width
+            leftX += @self.opts.indentWidth + childView.dimensions[childLine].width
 
           # Special case: when an indent ends
           # on the same line as some other blocks,
@@ -358,13 +410,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return null
       
       addTab: (array, point, invert = false) ->
-        @addRectilinear array, new draw.Point(point.x + self.opts.tabOffset + self.opts.tabWidth,
+        @addRectilinear array, new draw.Point(point.x + @self.opts.tabOffset + @self.opts.tabWidth,
           point.y), if invert then 'y' else 'x'
-        array.push new draw.Point point.x + self.opts.tabOffset + self.opts.tabWidth * (1 - self.opts.tabSideWidth),
-          point.y + self.opts.tabHeight
-        array.push new draw.Point point.x + self.opts.tabOffset + self.opts.tabWidth * self.opts.tabSideWidth,
-          point.y + self.opts.tabHeight
-        array.push new draw.Point point.x + self.opts.tabOffset,
+        array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * (1 - @self.opts.tabSideWidth),
+          point.y + @self.opts.tabHeight
+        array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * @self.opts.tabSideWidth,
+          point.y + @self.opts.tabHeight
+        array.push new draw.Point point.x + @self.opts.tabOffset,
           point.y
         array.push point
 
@@ -406,7 +458,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
             # Add the top tab of the indent if necessary
             if @indentData[line] is INDENT_START
-              @addTab right, new draw.Point(@bounds[line + 1].x + self.opts.indentWidth + @padding, @bounds[line + 1].y), true
+              @addTab right, new draw.Point(@bounds[line + 1].x + @self.opts.indentWidth + @padding, @bounds[line + 1].y), true
 
           # Case 3. Middle of an indent.
           if @indentData[line] is INDENT_MIDDLE
@@ -414,9 +466,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @addRectilinear left, new draw.Point bounds.x, bounds.y
             @addRectilinear left, new draw.Point bounds.x, bounds.bottom()
 
-            @addRectilinear right, new draw.Point bounds.x + self.opts.indentWidth + @padding,
+            @addRectilinear right, new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.y
-            @addRectilinear right, new draw.Point bounds.x + self.opts.indentWidth + @padding,
+            @addRectilinear right, new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.bottom()
           
           # Case 4. End of an indent.
@@ -426,7 +478,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             
             # Find the child that is the indent
             indentChild = @lineChildren[line][0]
-            indentBounds = self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
+            indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
             
             # Avoid the indented area
             @addRectilinear right, new draw.Point indentBounds.x, indentBounds.y
@@ -462,7 +514,16 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       shouldAddTab: NO
 
       drawSelf: (ctx, style) ->
-        @path.draw ctx
+        if style.grayscale > 0
+          oldFill = @path.style.fillColor
+          @path.style.fillColor = grayscale oldFill
+
+          @path.draw ctx
+
+          @path.style.fillColor = oldFill
+
+        else
+          @path.draw ctx
 
         if style.selected > 0
           oldFill = @path.style.fillColor
@@ -483,15 +544,24 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return null
 
       drawShadow: (ctx, x, y) ->
-        @path.drawShadow ctx, x, y, self.opts.shadowBlur
+        @path.drawShadow ctx, x, y, @self.opts.shadowBlur
         
         for childObj in @children
-          self.getViewFor(childObj.child).drawShadow ctx, x, y
+          @self.getViewFor(childObj.child).drawShadow ctx, x, y
 
         return null
 
     class BlockView extends ContainerView
       constructor: -> super
+
+      computeDimensions: ->
+        if @versions.dimensions isnt @model.version
+          super
+
+          for size, i in @dimensions
+            size.width = Math.max size.width, @self.opts.tabWidth + @self.opts.tabOffset
+
+        return @dimensions
 
       shouldAddTab: ->
         if @model.parent? then @model.parent.type isnt 'socket'
@@ -501,6 +571,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         super
         @path.style.fillColor = @model.color
         @path.style.strokeColor = '#888'
+        
+        if @model.lineMarkStyles.length > 0
+          @path.style.strokeColor = @model.lineMarkStyles[0].color
+          @path.style.lineWidth = 2
 
         return @path
 
@@ -511,18 +585,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # positioned at the bottom of our last line.
         @dropArea = new draw.Rectangle(
           @bounds[@lineLength - 1].x,
-          @bounds[@lineLength - 1].bottom() - self.opts.dropAreaHeight / 2,
+          @bounds[@lineLength - 1].bottom() - @self.opts.dropAreaHeight / 2,
           @bounds[@lineLength - 1].width,
-          self.opts.dropAreaHeight
+          @self.opts.dropAreaHeight
         ).toPath()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
         @highlightArea = new draw.Rectangle(
           @bounds[@lineLength - 1].x,
-          @bounds[@lineLength - 1].bottom() - self.opts.highlightAreaHeight / 2,
+          @bounds[@lineLength - 1].bottom() - @self.opts.highlightAreaHeight / 2,
           @bounds[@lineLength - 1].width,
-          self.opts.highlightAreaHeight
+          @self.opts.highlightAreaHeight
         ).toPath()
 
         @highlightArea.style.lineWidth = 0
@@ -541,14 +615,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # An empty Socket should have some size
         if @model.start.nextVisibleToken() is @model.end
           @dimensions = [
-            new draw.Size(self.opts.emptySocketWidth,
-              self.opts.emptySocketHeight)
+            new draw.Size(@self.opts.emptySocketWidth,
+              @self.opts.emptySocketHeight)
           ]
 
         # A Socket should copy its content
         # block, if there is a content block
         else if @model.start.next.type is 'blockStart'
-          view = self.getViewFor @model.start.next.container
+          view = @self.getViewFor @model.start.next.container
           childDimensions = view.computeDimensions()
 
           @dimensions = (k for k in childDimensions)
@@ -572,10 +646,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # A Socket should copy its content
         # block, if there is a content block
         if @model.start.next.type is 'blockStart'
-          @boundingBoxFlag = true
-
           @bounds[line] =
-            self.getViewFor(@model.start.next.container).computeBoundingBox upperLeft, line
+            @self.getViewFor(@model.start.next.container).computeBoundingBox upperLeft, line
+
+          @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
 
         else
           super
@@ -584,7 +658,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       computeOwnPath: ->
         if @model.start.next.type is 'blockStart'
-          view = self.getViewFor @model.start.next.container
+          view = @self.getViewFor @model.start.next.container
           @path = view.computeOwnPath().clone()
         else
           super
@@ -608,8 +682,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         line = @dimensions.length - 1; size = @dimensions[line]
         if @lineChildren[line].length is 0
-          size.height = self.opts.emptyLineHeight
-          size.width = self.opts.indentDropAreaMinWidth
+          size.height = @self.opts.emptyLineHeight
+          size.width = @self.opts.indentDropAreaMinWidth
 
         return @dimensions
       
@@ -621,18 +695,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # positioned at the bottom of our last line.
         @dropArea = new draw.Rectangle(
           @bounds[1].x,
-          @bounds[1].y - self.opts.dropAreaHeight / 2,
-          Math.max(@bounds[1].width, self.opts.indentDropAreaMinWidth),
-          self.opts.dropAreaHeight
+          @bounds[1].y - @self.opts.dropAreaHeight / 2,
+          Math.max(@bounds[1].width, @self.opts.indentDropAreaMinWidth),
+          @self.opts.dropAreaHeight
         ).toPath()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
         @highlightArea = new draw.Rectangle(
           @bounds[1].x,
-          @bounds[1].y - self.opts.highlightAreaHeight / 2,
-          Math.max(@bounds[1].width, self.opts.indentDropAreaMinWidth),
-          self.opts.highlightAreaHeight
+          @bounds[1].y - @self.opts.highlightAreaHeight / 2,
+          Math.max(@bounds[1].width, @self.opts.indentDropAreaMinWidth),
+          @self.opts.highlightAreaHeight
         ).toPath()
 
         @highlightArea.style.lineWidth = 0
@@ -645,22 +719,33 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       drawSelf: (ctx, style) -> null
       draw: (ctx, boundingRect, style) ->
         if @totalBounds.overlap boundingRect
-          style ?= selected: 0
-
-          @drawSelf ctx, style
+          style ?= defaultStyleObject()
 
           if @model.isLassoSegment then style.selected++
 
-          for childObj in @children
-            self.getViewFor(childObj.child).draw ctx, boundingRect, style
+          if @model.ephemeral and @self.opts.respectEphemeral
+            style.grayscale++
 
+          @drawSelf ctx, style
+
+          # Draw our children
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
+            @self.getViewFor(childObj.child).draw ctx, boundingRect, style
+          
+          # Draw marked blocks last, so that they
+          # appear on top.
+          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
+            @self.getViewFor(childObj.child).draw ctx, boundingRect, style
+
+          if @model.ephemeral and @self.opts.respectEphemeral
+            style.grayscale--
           if @model.isLassoSegment then style.selected--
         return null
 
       computeOwnDropArea: -> @dropArea = @highlightArea = null
 
     class TextView extends GenericView
-      constructor: (@model) -> super
+      constructor: (@model, @self) -> super
 
       computeChildren: ->
         @indentData = [0]
@@ -691,7 +776,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return null
 
     class CursorView extends GenericView
-      constructor: (@model) -> super
+      constructor: (@model, @self) -> super
 
       computeChildren: ->
         @indentData = [0]
@@ -704,18 +789,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeBoundingBox: ->
 
     getViewFor: (model) ->
-      if model.id of map
-        return map[model.id]
+      if model.id of @map
+        return @map[model.id]
       else
         return @createView(model)
 
     createView: (model) ->
       switch model.type
-        when 'text' then new TextView model
-        when 'block' then new BlockView model
-        when 'indent' then new IndentView model
-        when 'socket' then new SocketView model
-        when 'segment' then new SegmentView model
-        when 'cursor' then new CursorView model
+        when 'text' then new TextView model, this
+        when 'block' then new BlockView model, this
+        when 'indent' then new IndentView model, this
+        when 'socket' then new SocketView model, this
+        when 'segment' then new SegmentView model, this
+        when 'cursor' then new CursorView model, this
 
   return exports

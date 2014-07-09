@@ -3,7 +3,7 @@
 # Utility functions for defining ICE editor parsers.
 #
 # Copyright (c) 2014 Anthony Bau
-# MIT License.
+# MIT License
 
 define ['ice-model'], (model) ->
   exports = {}

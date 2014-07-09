@@ -79,6 +79,11 @@
       return fragmentsToText(this.compileToFragments(o, lvl));
     };
 
+    Base.prototype.wipeLocationData = function() {
+      this.locationData = void 0;
+      return this;
+    };
+
     Base.prototype.compileToFragments = function(o, lvl) {
       var node;
       o = extend({}, o);
@@ -2350,6 +2355,7 @@
       }
       if (op === 'new') {
         if (first instanceof Call && !first["do"] && !first.isNew) {
+          first.locationData = void 0;
           return first.newInstance();
         }
         if (first instanceof Code && first.bound || first["do"]) {

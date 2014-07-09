@@ -283,26 +283,12 @@ require ['ice'], (ice) ->
             list[i] = list[i + 1]
             list[i + 1] = temp
       return list
-    quicksort = (list) ->
-      if list.length <= 1
-        return list
-      pivotGuess = 0
-      for item in list
-        globalNumberOfComparisons += 1
-        pivotGuess += item / list.length
-      smallerList = []
-      biggerList = []
-      for item in list
-        globalNumberOfComparisons += 1
-        if item < pivotGuess
-          smallerList.push item
-        else
-          biggerList.push item
-      sortedSmallerList = quicksort smallerList
-      sortedBiggerList = quicksort biggerList
-      for item in sortedBiggerList
-        sortedSmallerList.push item
-      return sortedSmallerList
+    quicksort = ([head,tail...]) ->
+      return [] unless head?
+      globalNumberOfComparisons += 1 + tail.length
+      smaller_sorted = quicksort (e for e in tail when e <= head)
+      larger_sorted = quicksort (e for e in tail when e > head)
+      return smaller_sorted.concat([head]).concat(larger_sorted)
     array = [1..1000]
     array.sort (a, b) ->
       if Math.random() > 0.5
@@ -341,7 +327,8 @@ require ['ice'], (ice) ->
     see unchurch add church(3), church(10)
     see unchurch sub church(10), church(3)
     '''
-    controller: readFile '/src/controller.coffee'
+    controller: readFile '../src/controller.coffee'
+    compiler: readFile '../test/nodes.coffee'
   }
 
   # Update textarea on ICE editor change

@@ -1,5 +1,6 @@
-# Copyright (c) 2014 Anthony Bau
+# # ICE Editor controller
 #
+# Copyright (c) 2014 Anthony Bau
 # MIT License.
 
 define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model, view) ->
@@ -8,11 +9,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   PALETTE_MARGIN = 5
   MIN_DRAG_DISTANCE = 5
   PALETTE_LEFT_MARGIN = 5
-  PALETTE_WIDTH = 300
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
 
   exports = {}
+
+  extend_ = (a, b) ->
+    obj = {}
+
+    for key, value of a
+      obj[key] = value
+    
+    for key, value of b
+      obj[key] = value
+
+    return obj
 
   # FOUNDATION
   # ================================
@@ -25,6 +36,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     'populate': []
 
     'resize': []
+    'resize_palette': []
+
     'redraw_main': []
     'redraw_palette': []
 
@@ -106,8 +119,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.appendChild @paletteWrapper
 
-      # Instantiate an ICE editor view
-      @view = new view.View
+      @standardViewSettings =
         padding: 5
         indentWidth: 10
         indentToungeHeight: 10
@@ -123,6 +135,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         highlightAreaHeight: 10
         shadowBlur: 5
         ctx: @mainCtx
+
+      # Instantiate an ICE editor view
+      @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
+      @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
 
       # We also allow binding to keypresses in the element.
       # We will use dmauro's Keypress library for keyboard-shortcut
@@ -158,11 +174,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # This stage of ICE editor construction, which is repeated
       # whenever the editor is resized, should adjust the sizes
       # of all the ICE editor componenents to fit the wrapper.
-      window.addEventListener 'resize', =>
-        @resize()
-        @redrawMain(); @redrawPalette()
-
-      @resize()
+      window.addEventListener 'resize', => @resize()
 
       # ## Tracker Events
       # We allow binding to the tracker element.
@@ -182,6 +194,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # We start of with an empty document
       @tree = new model.Segment()
 
+      @resize()
+
       # Now that we've populated everything, immediately redraw.
       @redrawMain(); @redrawPalette()
     
@@ -199,16 +213,37 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
+      
+      @resizePalette()
 
-      @paletteCanvas.style.top = "#{@paletteHeaderHeight}px"
-      @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeaderHeight
-      @paletteCanvas.width = PALETTE_WIDTH
+      for binding in editorBindings.resize
+        binding.call this
+      
+      # Re-scroll and redraw main
+      @scrollOffsets.main.y = @mainScroller.scrollTop
+      @scrollOffsets.main.x = @mainScroller.scrollLeft
+
+      @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+
+      # Also update scroll for the highlight ctx, so that
+      # they can match the blocks' positions
+      @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+
+      @redrawMain()
+    
+    resizePalette: ->
+      @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
+      @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeader.offsetHeight
+      @paletteCanvas.width = @paletteWrapper.offsetWidth
 
       @paletteCanvas.style.height = "#{@paletteCanvas.height}px"
       @paletteCanvas.style.width = "#{@paletteCanvas.width}px"
 
-      for binding in editorBindings.resize
+      for binding in editorBindings.resize_palette
         binding.call this
+
+      @redrawPalette()
+
     
   # RENDERING CAPABILITIES
   # ================================
@@ -250,19 +285,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for binding in editorBindings.redraw_main
         binding.call this
 
-  Editor::redrawCursor = ->
-    if @cursor? and @cursor.parent?
-      head = @cursor; line = 0
-      until head is @cursor.parent.start
-        head = head.prev
-        line++ if head.type is 'newline'
-
-      bound = @view.getViewFor(@cursor.parent).bounds[line]
-      if @cursor.nextVisibleToken()?.type is 'indentEnd' or
-         @cursor.next is @tree.end
-        @drawCursor new draw.Point bound.x, bound.bottom()
-      else
-        @drawCursor new draw.Point bound.x, bound.y
+  Editor::redrawCursor = -> @strokeCursor @determineCursorPosition()
     
   Editor::clearPalette = ->
       @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
@@ -286,7 +309,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       boundingRect = new draw.Rectangle(
         @scrollOffsets.palette.x,
         @scrollOffsets.palette.y,
-        @paletteCanvas.width
+        @paletteCanvas.width,
         @paletteCanvas.height
       )
 
@@ -672,24 +695,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else
         @draggingOffset = @view.getViewFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToMain(@clickedPoint))
-        
-        # Since we removed this from the tree,
-        # we will need to log an undo operation
-        # to put it back in.
-        unless state.addedCapturePoint
-          @addMicroUndoOperation 'CAPTURE_POINT'
-          state.addedCapturePoint = true
-        @addMicroUndoOperation new PickUpOperation @draggingBlock
-      
-      # Remove the block from the tree.
-      @draggingBlock.moveTo null # MUTATION
+
+      @draggingBlock.ephemeral = true
 
       # Draw the new dragging block on the drag canvas.
       # 
       # When we are dragging things, we draw the shadow.
       # Also, we translate the block 1x1 to the right,
       # so that we can see its borders.
-      draggingBlockView = @view.getViewFor @draggingBlock
+      draggingBlockView = @dragView.getViewFor @draggingBlock
       draggingBlockView.layout 1, 1
       draggingBlockView.drawShadow @dragCtx, 5, 5
       draggingBlockView.draw @dragCtx, new draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
@@ -738,20 +752,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # any Indent, or any Socket that does
       # not contain a block.
       else if @draggingBlock.type is 'block'
-        highlight = @tree.find (block) =>
+        highlight = @tree.find ((block) =>
           (block.parent?.type isnt 'socket') and
             @view.getViewFor(block).dropArea? and
-            @view.getViewFor(block).dropArea.contains mainPoint
+            @view.getViewFor(block).dropArea.contains mainPoint), [@draggingBlock]
       
       # If we are dragging a segment,
       # we also cannot drop ourselves
       # into a socket.
       else if @draggingBlock.type is 'segment'
-        highlight = @tree.find (block) =>
+        highlight = @tree.find ((block) =>
           (block.type isnt 'socket') and
             (block.parent?.type isnt 'socket') and
             @view.getViewFor(block).dropArea? and
-            @view.getViewFor(block).dropArea.contains mainPoint
+            @view.getViewFor(block).dropArea.contains mainPoint), [@draggingBlock]
 
       # For performance reasons,
       # we will only redraw the main canvas
@@ -772,6 +786,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # We will consume this event iff we dropped it successfully
     # in the root tree.
     if @draggingBlock? and @lastHighlight?
+      
+      # Since we removed this from the tree,
+      # we will need to log an undo operation
+      # to put it back in.
+      @addMicroUndoOperation 'CAPTURE_POINT'
+
+      @addMicroUndoOperation new PickUpOperation @draggingBlock
+
+      # Remove the block from the tree.
+      @draggingBlock.spliceOut() # MUTATION
+
       @clearHighlightCanvas()
 
       # Depending on what the highlighted element is,
@@ -782,14 +807,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @draggingBlock.moveTo @lastHighlight.start #MUTATION
+          @draggingBlock.spliceIn @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @draggingBlock.moveTo @lastHighlight.end #MUTATION
+          @draggingBlock.spliceIn @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
-            @draggingBlock.moveTo @tree.start #MUTATION
+            @draggingBlock.spliceIn @tree.start #MUTATION
       
       @redrawMain()
 
@@ -859,14 +884,33 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Before we put this block into our list of floating blocks,
       # we need to figure out where on the main canvas
       # we are going to render it.
-      mainCanvasPoint = @trackerPointToMain point
-      renderPoint = new draw.Point(
-        mainCanvasPoint.x + @draggingOffset.x,
-        mainCanvasPoint.y + @draggingOffset.y
+      trackPoint = new draw.Point(
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
       )
+      renderPoint = @trackerPointToMain trackPoint
+      palettePoint = @trackerPointToPalette trackPoint
       
       # If we dropped it off in the palette, abort (so as to delete the block).
-      if renderPoint.x < 0 then return
+      palettePoint = @trackerPointToPalette point
+      if 0 < palettePoint.x < @paletteCanvas.width and
+         0 < palettePoint.y < @paletteCanvas.height or not
+         (0 < renderPoint.x < @mainCanvas.width and
+         0 < renderPoint.y < @mainCanvas.height)
+        @draggingBlock = null
+        @draggingOffset = null
+        @lastHighlight = null
+        
+        @clearDrag()
+        @redrawMain()
+        return
+
+      @addMicroUndoOperation 'CAPTURE_POINT'
+
+      @addMicroUndoOperation new PickUpOperation @draggingBlock
+
+      # Remove the block from the tree.
+      @draggingBlock.spliceOut() # MUTATION
       
       # Add the undo operation associated
       # with creating this floating block
@@ -948,9 +992,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
     @paletteHeader.className = 'ice-palette-header'
-    
-    # Record its height, which is deterministic.
-    @paletteHeaderHeight = Math.ceil(@paletteGroups.length / 2) * 30 + 2 # NOTE: paramaterize this; it is a border width.
 
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
@@ -1021,7 +1062,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   
   # The next thing we need to do with the palette
   # is let people pick things up from it.
-  hook 'mousedown', 7, (point, event, state) ->
+  hook 'mousedown', 8, (point, event, state) ->
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
@@ -1033,7 +1074,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clickedBlock = block
         @clickedPoint = point
         @clickedBlockIsPaletteBlock = true
+        state.consumedHitTest = true
         return
+    
 
     @clickedBlockIsPaletteBlock = false
 
@@ -1259,7 +1302,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     ), 0
 
     # Redraw.
-    @redrawMain()
+    @redrawMain(); @redrawTextInput()
 
   Editor::populateSocket = (socket, string) ->
     lines = string.split '\n'
@@ -1353,7 +1396,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @textInputSelecting = false
 
   # LASSO SELECT SUPPORT
-  # ================================
+  # ===============================
   
   # We need undo operations for create/destroy segment
   # so that other undo operations work properly in
@@ -1458,15 +1501,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
     if state.consumedHitTest or state.suppressLassoSelect then return
 
-    console.log 'LASSO SELECT CAPTURED MOUSEDOWN'
-    
     # If the point was actually in the main canvas,
     # start a lasso select.
-    mainPoint = @trackerPointToMain point
-    palettePoint = @trackerPointToPalette point
+    mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
+    palettePoint = @trackerPointToPalette(point).from @scrollOffsets.palette
+
     if 0 < mainPoint.x < @mainCanvas.width and 0 < mainPoint.y < @mainCanvas.height and not
        (0 < palettePoint.x < @paletteCanvas.width and 0 < palettePoint.x < @paletteCanvas.height)
-      if @lassoSelectAnchor? then debugger
       @lassoSelectAnchor = @trackerPointToMain point
   
   # On mousemove, if we are in the middle of a
@@ -1630,6 +1671,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @reparseHandwrittenBlocks()
 
     @redrawCursor()
+    @scrollCursorIntoPosition()
   
   Editor::moveCursorUp = ->
     # Seek the place we want to move the cursor
@@ -1653,6 +1695,32 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     
     @reparseHandwrittenBlocks()
     @redrawCursor()
+    @scrollCursorIntoPosition()
+
+  Editor::determineCursorPosition = ->
+    if @cursor? and @cursor.parent?
+      @view.getViewFor(@tree).layout()
+
+      head = @cursor; line = 0
+      until head is @cursor.parent.start
+        head = head.prev
+        line++ if head.type is 'newline'
+
+      bound = @view.getViewFor(@cursor.parent).bounds[line]
+      if @cursor.nextVisibleToken()?.type is 'indentEnd' and
+         @cursor.prev?.prev.type isnt 'indentStart' or
+         @cursor.next is @tree.end
+        return new draw.Point bound.x, bound.bottom()
+      else
+        return new draw.Point bound.x, bound.y
+  
+  Editor::scrollCursorIntoPosition = ->
+    axis = @determineCursorPosition().y
+
+    if axis - @scrollOffsets.main.y < 0
+      @mainScroller.scrollTop = axis
+    else if axis - @scrollOffsets.main.y > @mainCanvas.height
+      @mainScroller.scrollTop = axis - @mainCanvas.height
 
   # Pressing the up-arrow moves the cursor up.
   hook 'key.up', 0, ->
@@ -1712,7 +1780,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @addMicroUndoOperation 'CAPTURE_POINT'
       @addMicroUndoOperation new PickUpOperation blockEnd.container
 
-      blockEnd.container.moveTo null #MUTATION
+      blockEnd.container.spliceOut() #MUTATION
 
       @redrawMain()
 
@@ -1745,7 +1813,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @keyListener.register_combo
       keys: 'shift'
       on_keydown: => @shiftKeyPressed = true
-      on_keyup: => @shiftkeyPressed = false
+      on_keyup: => @shiftKeyPressed = false
 
   hook 'key.enter', 0, ->
     unless @shiftKeyPressed
@@ -1841,6 +1909,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       head = head.next
 
+    @redrawMain()
+
     return null
 
   # INDENT CREATE/DESTROY SUPPORT
@@ -1914,10 +1984,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Go through the motions of moving this block into
       # the indent we have just found.
       @addMicroUndoOperation new PickUpOperation @socketFocus.start.prev.container
-      @socketFocus.start.prev.container.moveTo null #MUTATION
+      @socketFocus.start.prev.container.spliceOut() #MUTATION
 
       @addMicroUndoOperation new DropOperation @socketFocus.start.prev.container, head
-      @socketFocus.start.prev.container.moveTo head #MUTATION
+      @socketFocus.start.prev.container.spliceIn head #MUTATION
 
       # Move the cursor up to where the block now is.
       @moveCursorTo @socketFocus.start.prev.container.end
@@ -1966,6 +2036,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
+
+    @transitionContainer = document.createElement 'div'
+    @transitionContainer.className = 'ice-transition-container'
+
+    @iceElement.appendChild @transitionContainer
   
   # For animation and ace editor,
   # we will need a couple convenience functions
@@ -2109,7 +2184,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
 
-        @iceElement.appendChild div
+        @transitionContainer.appendChild div
 
         translatingElements.push
           div: div
@@ -2163,7 +2238,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
           for element in translatingElements
-            @iceElement.removeChild element.div
+            @transitionContainer.removeChild element.div
 
       tick 0
 
@@ -2315,10 +2390,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'resize', 0, ->
     @mainScroller.style.width = "#{@iceElement.offsetWidth}px"
     @mainScroller.style.height = "#{@iceElement.offsetHeight}px"
-    
-    @paletteScroller.style.top = "#{@paletteHeaderHeight}px"
-    @paletteScroller.style.width = "#{PALETTE_WIDTH}px"
-    @paletteScroller.style.height = "#{@iceElement.offsetHeight - @paletteHeaderHeight}px"
+  
+  hook 'resize_palette', 0, ->
+    @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
+    @paletteScroller.style.width = "#{@paletteCanvas.offsetWidth}px"
+    @paletteScroller.style.height = "#{@paletteCanvas.offsetHeight}px"
 
   hook 'redraw_main', 0, ->
     bounds = @view.getViewFor(@tree).getBounds()
@@ -2344,10 +2420,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @fontSize = 15
   
   Editor::setFontSize_raw = (fontSize) ->
-    @fontSize = fontSize
-    @paletteHeader.style.fontSize = "#{fontSize}px"
-    @view.clearCache()
-    @redrawMain(); @redrawPalette()
+    unless @fontSize is fontSize
+      @fontSize = fontSize
+      @paletteHeader.style.fontSize = "#{fontSize}px"
+      @view.clearCache()
+      @redrawMain(); @redrawPalette()
 
   Editor::setFontSize = (fontSize) ->
     @aceEditor.setFontSize fontSize
@@ -2401,36 +2478,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
 
   Editor::markLine = (line, style) ->
-    @tree.getBlockOnLine(line)?.lineMarkStyles.push style
+    @tree.getBlockOnLine(line)?.addLineMark style
 
     @redrawMain()
 
   Editor::unmarkLine = (line, tag) ->
-    unless (blockOnLine = @tree.getBlockOnLine(line))? then return
-
-    for style, i in blockOnLine.lineMarkStyles
-      if style.tag is tag
-        blockOnLine.lineMarkStyles.splice i, 1
-        break
+    @tree.getBlockOnLine(line)?.removeLineMark tag
 
     @redrawMain()
 
   Editor::clearLineMarks = (tag) ->
     head = @tree.start
-
+    
     until head is @tree.end
       if head.type is 'blockStart'
         # If clearLineMarks is called without
         # a tag to clear, clear all tags.
         unless tag?
-          head.container.lineMarkStyles.length = 0
+          head.container.clearLineMarks()
 
         # Otherwise, clear the selected tag.
         else
-          for style, i in head.container.lineMarkStyles
-            if style.tag is tag
-              head.container.lineMarkStyles.splice i, 1
-              break
+          head.container.removeLineMark tag
 
       head = head.next
 
@@ -2578,7 +2647,22 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     'touchend': 'mouseup'
 
   # A timeout for selection
-  TOUCH_SELECTION_TIMEOUT = 2000
+  TOUCH_SELECTION_TIMEOUT = 1000
+
+  Editor::touchEventToPoint = (event, index) ->
+    absolutePoint = new draw.Point(
+      event.changedTouches[index].pageX,
+      event.changedTouches[index].pageY
+    )
+
+    return absolutePoint.from(@absoluteOffset(@iceElement))
+  
+  Editor::queueLassoMousedown = (trackPoint, event) ->
+    @lassoSelectStartTimeout = setTimeout (=>
+      state = {}
+
+      for handler in editorBindings.mousedown
+        handler.call this, trackPoint, event, state), TOUCH_SELECTION_TIMEOUT
 
   # We will bind the same way as mouse events do,
   # wrapping to be compatible with a mouse event interface.
@@ -2592,7 +2676,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @iceElement.addEventListener 'touchstart', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
-      trackPoint = @getPointRelativeToTracker event.touches[0]
+      trackPoint = @touchEventToPoint event, 0
       
       # We keep a state object so that handlers
       # can know about each other.
@@ -2610,26 +2694,25 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # If we did not hit anything,
       # we may want to start a lasso select
       # in a little bit.
-      unless state.consumedHitTest
-        @lassoSelectStartTimeout = setTimeout TOUCH_SELECTION_TIMEOUT, ->
-          state = {}
-
-          for handler in editorBindings.mousedown
-            handler.call this, trackPoint, event, state
+      if state.consumedHitTest
+        event.preventDefault()
+      else
+        @queueLassoMousedown trackPoint, event
       
-      event.preventDefault()
-
     @iceElement.addEventListener 'touchmove', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
-      trackPoint = @getPointRelativeToTracker event.touches[0]
+      trackPoint = @touchEventToPoint event, 0
+      
+      unless @clickedBlock? or @draggingBlock?
+        @queueLassoMousedown trackPoint, event
       
       # We keep a state object so that handlers
       # can know about each other.
       state = {}
       
       # Call all the handlers.
-      for handler in editorBindings.mousedown
+      for handler in editorBindings.mousemove
         handler.call this, trackPoint, event, state
       
       # If we are in the middle of some action,
@@ -2640,21 +2723,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @iceElement.addEventListener 'touchend', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
-      trackPoint = @getPointRelativeToTracker event.touches[0]
+      trackPoint = @touchEventToPoint event, 0
       
       # We keep a state object so that handlers
       # can know about each other.
       state = {}
       
       # Call all the handlers.
-      for handler in editorBindings.mousedown
+      for handler in editorBindings.mouseup
         handler.call this, trackPoint, event, state
       
       event.preventDefault()
 
   # CURSOR DRAW SUPPORRT
   # ================================
-  Editor::drawCursor = (point) ->
+  Editor::strokeCursor = (point) ->
+    return unless point?
+
     @clearHighlightCanvas()
 
     @highlightCtx.beginPath()

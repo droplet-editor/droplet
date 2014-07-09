@@ -1,3 +1,8 @@
+# # ICE Editor CoffeeScript mode
+#
+# Copyright (c) Anthony Bau
+# MIT License
+
 define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScript) ->
   exports = {}
 
@@ -136,12 +141,12 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
         if node.guard?
           bounds.end = @boundMax bounds.end, @getBounds(node.guard).end
-      
+
       # Hack: Functions should end immediately
       # when their bodies end.
       if node.nodeType() is 'Code' and node.body?
         bounds.end = @getBounds(node.body).end
-      
+
       # The fourth is general. Sometimes we get
       # spaces at the start of the next line.
       # We don't want those spaces; discard them.
@@ -154,7 +159,11 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # in which case we want to pass on to
       # those.
       if node.nodeType() is 'Value'
-        return @getBounds node.base
+        bounds = @getBounds node.base
+
+        if node.properties? and node.properties.length > 0
+          for property in node.properties
+            bounds.end = @boundMax bounds.end, @getBounds(property).end
       
       return bounds
     
@@ -413,7 +422,16 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Completely pass through to @base; we do not care
         # about this node.
         when 'Value'
-          @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
+          if node.properties? and node.properties.length > 0
+            @addBlock node, depth, 0, COLORS.VALUE, wrappingParen
+            @addSocketAndMark node.base, depth + 1, precedence, indentDepth
+            for property in node.properties
+              if property.nodeType() is 'Access'
+                @addSocketAndMark property.name, depth + 1, precedence, indentDepth
+              else if property.nodeType() is 'Index'
+                @addSocketAndMark property.index, depth + 1, precedence, indentDepth
+          else
+            @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
 
         # ### Literal ###
         # No-op. Translate directly to text

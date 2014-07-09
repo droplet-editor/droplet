@@ -252,7 +252,7 @@ case 84:this.$ = yy.addLocationDataFn(_$[$0], _$[$0])(new yy.Access(new yy.Liter
 break;
 case 85:this.$ = $$[$0];
 break;
-case 86:this.$ = yy.addLocationDataFn(_$[$0-2], _$[$0])($$[$0-1]);
+case 86:this.$ = yy.addLocationDataFn(_$[$0-2], _$[$0])($$[$0-1].wipeLocationData());
 break;
 case 87:this.$ = yy.addLocationDataFn(_$[$0-1], _$[$0])(yy.extend($$[$0], {
           soak: true
