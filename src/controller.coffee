@@ -794,15 +794,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # in the root tree.
     if @draggingBlock? and @lastHighlight?
       
-      # Since we removed this from the tree,
-      # we will need to log an undo operation
-      # to put it back in.
-      @addMicroUndoOperation 'CAPTURE_POINT'
+      if @inTree @draggingBlock
+        # Since we removed this from the tree,
+        # we will need to log an undo operation
+        # to put it back in.
+        @addMicroUndoOperation 'CAPTURE_POINT'
 
-      @addMicroUndoOperation new PickUpOperation @draggingBlock
+        @addMicroUndoOperation new PickUpOperation @draggingBlock
 
-      # Remove the block from the tree.
-      @draggingBlock.spliceOut() # MUTATION
+        # Remove the block from the tree.
+        @draggingBlock.spliceOut() # MUTATION
 
       @clearHighlightCanvas()
 
@@ -884,6 +885,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       return null
 
+  Editor::inTree = (block) ->
+    until block is @tree or not block?
+      block = block.parent
+
+    return block is @tree
+
   # We can create floating blocks by dropping
   # blocks without a highlight.
   hook 'mouseup', 0, (point, event, state) ->
@@ -897,13 +904,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       )
       renderPoint = @trackerPointToMain trackPoint
       palettePoint = @trackerPointToPalette trackPoint
+
+      # Move the cursor out of the block first
+      if @inTree @draggingBlock
+        @moveCursorTo @draggingBlock.end
       
-      @addMicroUndoOperation 'CAPTURE_POINT'
+        @addMicroUndoOperation 'CAPTURE_POINT'
 
-      @addMicroUndoOperation new PickUpOperation @draggingBlock
+        @addMicroUndoOperation new PickUpOperation @draggingBlock
 
-      # Remove the block from the tree.
-      @draggingBlock.spliceOut() # MUTATION
+        # Remove the block from the tree.
+        @draggingBlock.spliceOut() # MUTATION
 
       # If we dropped it off in the palette, abort (so as to delete the block).
       palettePoint = @trackerPointToPalette point
@@ -936,6 +947,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       
       @clearDrag()
       @redrawMain()
+      @redrawCursor()
   
   # On mousedown, we can hit test for floating blocks.
   hook 'mousedown', 7, (point, event, state) ->
@@ -1031,7 +1043,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       
       # When we click this element,
       # we should switch to it in the palette.
-      paletteGroupHeader.addEventListener 'click', =>
+      clickHandler = =>
         # Record that we are the selected group now
         @currentPaletteGroup = paletteGroup.name
         @currentPaletteBlocks = paletteGroup.blocks
@@ -1047,6 +1059,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         
         # Redraw the palette.
         @redrawPalette()
+
+      paletteGroupHeader.addEventListener 'click', clickHandler
+      paletteGroupHeader.addEventListener 'touchstart', clickHandler
       
       # If we are the first element, make us the selected palette group.
       if i is 0
@@ -2725,7 +2740,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       
       # If we are in the middle of some action,
       # prevent scrolling.
-      if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor?
+      if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor? or @textInputSelecting
         event.preventDefault()
 
     @iceElement.addEventListener 'touchend', (event) =>
@@ -2766,6 +2781,44 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @highlightCtx.stroke()
     @highlightCtx.fill()
+
+  # ONE MORE DROP CASE
+  # ================================
+
+  # If we drop a block right back onto
+  # its grayed-out spot, cancel the drag.
+  
+  # TODO possibly move this next utility function to view?
+  Editor::mainViewOrChildrenContains = (model, point) ->
+    view = @view.getViewFor model
+    
+    if view.path.contains point
+      return true
+    
+    for childObj in view.children
+      if @mainViewOrChildrenContains childObj.child, point
+        return true
+
+    return false
+
+  hook 'mouseup', 0.5, (point, event) ->
+    if @draggingBlock?
+      trackPoint = new draw.Point(
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
+      )
+      renderPoint = @trackerPointToMain trackPoint
+      
+      if @mainViewOrChildrenContains @draggingBlock, renderPoint
+        @draggingBlock.ephemeral = false
+
+        @draggingBlock = null
+        @draggingOffset = null
+        @lastHighlight = null
+        
+        @clearDrag()
+        @redrawMain()
+
   
   # CLOSING FOUNDATIONAL STUFF
   # ================================
