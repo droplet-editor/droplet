@@ -444,9 +444,9 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     ''', 'Unwrap'
 
   test 'View: compute children', ->
-    view = new view.View
+    view_ = new view.View
       padding: 5
-      indentWIdth: 10
+      indentWidth: 10
       indentToungeHeight: 10
       tabOffset: 10
       tabWidth: 15
@@ -457,20 +457,21 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       emptySocketWidth: 20
       emptySocketHeight: 25
       emptyLineHeight: 25
-      
+      respectEphemeral: true
+      ctx: window.document.querySelector('canvas').getContext('2d')
+
     document = coffee.parse '''
     fd 10
     '''
 
-    documentView = view.getViewFor document
-    
+    documentView = view_.getViewFor document
     documentView.layout()
 
     strictEqual documentView.lineChildren[0].length, 1, 'Children length 1 in `fd 10`'
-    strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine 0, 'Child matches'
-    strictEqual documentView.lineChildren[0][0].lineStart, 0, 'Child starts on correct line'
+    strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine(0), 'Child matches'
+    strictEqual documentView.lineChildren[0][0].startLine, 0, 'Child starts on correct line'
 
-    blockView = view.getViewFor document.getBlockOnLine 0
+    blockView = view_.getViewFor document.getBlockOnLine 0
     strictEqual blockView.lineChildren[0].length, 2, 'Children length 2 in `fd 10` block'
     strictEqual blockView.lineChildren[0][0].child.type, 'text', 'First child is text'
     strictEqual blockView.lineChildren[0][1].child.type, 'socket', 'Second child is socket'
@@ -482,22 +483,129 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       fd 20
     '''
 
-    blockView = view.getViewFor document.getBlockOnLine 0
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    blockView = view_.getViewFor document.getBlockOnLine 0
     strictEqual blockView.lineChildren[1].length, 1, 'One child in indent'
-    strictEqual blockView.lineChildren[2][0].startLine, 1, 'Indent start line'
-    strictEqual blockView.indentData[1], 1, 'Indent start data'
+    strictEqual blockView.lineChildren[2][0].startLine, 0, 'Indent start line'
+    strictEqual blockView.indentData[0], 1, 'Indent start data'
+    strictEqual blockView.indentData[1], 2, 'Indent middle data'
     strictEqual blockView.indentData[2], 2, 'Indent middle data'
     strictEqual blockView.indentData[3], 3, 'Indent end data'
 
-    indentView = view.getViewFor document.getBlockOnLine(1).start.prev.prev.container
-    strictEqual indentView.lineChildren[0].child.stringify(), 'fd 10', 'Relative line numbers'
+    document = coffee.parse '''
+    for [1..10]
+      for [1..10]
+        fd 10
+        fd 20
+    '''
+
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    indentView = view_.getViewFor document.getBlockOnLine(1).end.prev.container
+    strictEqual indentView.lineChildren[1][0].child.stringify(), 'fd 10', 'Relative line numbers'
 
     document = coffee.parse '''
     see (for [1..10]
       fd 10)
     '''
 
-    blockView = view.getViewFor document.getBlockOnLine(0).start.next.next.container
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    blockView = view_.getViewFor document.getBlockOnLine(0).start.next.next.container
 
     strictEqual blockView.lineChildren[1].length, 1, 'One child in indent in socket'
     strictEqual blockView.indentData[1], 3, 'Indent end data'
+
+  test 'View: compute dimensions', ->
+    view_ = new view.View
+      padding: 5
+      indentWidth: 10
+      indentToungeHeight: 10
+      tabOffset: 10
+      tabWidth: 15
+      tabHeight: 5
+      tabSideWidth: 0.125
+      dropAreaHeight: 20
+      indentDropAreaMinWdith: 50
+      emptySocketWidth: 20
+      emptySocketHeight: 25
+      emptyLineHeight: 25
+      respectEphemeral: true
+      ctx: window.document.querySelector('canvas').getContext('2d')
+    
+    document = coffee.parse '''
+    for [1..10]
+      fd 10
+      fd 20
+    '''
+
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    strictEqual documentView.dimensions[0].height, 15 + 6 * view_.opts.padding, 'First line height (block, 3 padding)'
+    strictEqual documentView.dimensions[1].height, 15 + 4 * view_.opts.padding, 'Second line height (single block in indent)'
+    strictEqual documentView.dimensions[2].height, 15 + 4 * view_.opts.padding + view_.opts.indentToungeHeight, 'Third line height (indentEnd at root)'
+
+    document = coffee.parse '''
+    fd (for [1..10]
+      fd 10
+      fd 20)
+    '''
+
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    strictEqual documentView.dimensions[0].height, 15 + 8 * view_.opts.padding, 'First line height (block, 4 padding)'
+    strictEqual documentView.dimensions[1].height, 15 + 4 * view_.opts.padding, 'Second line height (single block in nested indent)'
+    strictEqual documentView.dimensions[2].height, 15 + 5 * view_.opts.padding + view_.opts.indentToungeHeight, 'Third line height (indentEnd with padding)'
+
+    document = coffee.parse '''
+    fd 10
+    
+    fd 20
+    '''
+
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    strictEqual documentView.dimensions[1].height, view_.opts.emptyLineHeight, 'Renders empty lines'
+
+  test 'View: bounding box flag stuff', ->
+    view_ = new view.View
+      padding: 5
+      indentWidth: 10
+      indentToungeHeight: 10
+      tabOffset: 10
+      tabWidth: 15
+      tabHeight: 5
+      tabSideWidth: 0.125
+      dropAreaHeight: 20
+      indentDropAreaMinWdith: 50
+      emptySocketWidth: 20
+      emptySocketHeight: 25
+      emptyLineHeight: 25
+      respectEphemeral: true
+      ctx: window.document.querySelector('canvas').getContext('2d')
+
+    document = coffee.parse '''
+    fd 10
+    fd 20
+    fd 30
+    fd 40
+    '''
+
+    documentView = view_.getViewFor document
+    documentView.layout()
+
+    blockView = view_.getViewFor document.getBlockOnLine 3
+
+    strictEqual blockView.path._points[0].y, 15 * 4 + view_.opts.padding * 16, 'Original path points are O.K.'
+
+    document.getBlockOnLine(2).spliceOut()
+    documentView.layout()
+
+    strictEqual blockView.path._points[0].y, 15 * 3 + view_.opts.padding * 12, 'Final path points are O.K.'
