@@ -1406,7 +1406,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   
   # On mouseup, we want to stop selecting.
   hook 'mouseup', 0, (point, event, state) ->
-    @textInputSelecting = false
+    if @textInputSelecting
+      mainPoint = @trackerPointToMain point
+      
+      @setTextInputHead mainPoint
+
+      @redrawTextInput()
+      
+      @textInputSelecting = false
 
   # LASSO SELECT SUPPORT
   # ===============================
@@ -1638,14 +1645,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # A cursor cannot be inside only a block.
   # Convenience function for this validation:
   isValidCursorPosition = (pos) ->
-    depth = 0
-    until depth is 0 and pos.type in ['blockStart', 'indentStart'] or not pos.prev?
-      switch pos.type
-        when 'blockStart', 'indentStart', 'socketStart' then depth--
-        when 'blockEnd', 'indentEnd', 'socketEnd' then depth++
-      pos = pos.prev
-    
-    return pos.type is 'indentStart' or not pos.prev?
+    return pos.parent.type in ['indent', 'segment']
 
   # A cursor is only allowed to be on a line.
   Editor::moveCursorTo = (destination, attemptReparse = false) ->
@@ -1678,7 +1678,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else head.insertBefore @cursor
     
     # Keep scanning forward if this is an improper location.
-    if @cursor.parent.type is 'block' then @moveCursorTo @cursor.next
+    unless isValidCursorPosition @cursor then @moveCursorTo @cursor.next
 
     if attemptReparse
       @reparseHandwrittenBlocks()
@@ -2769,6 +2769,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @highlightCtx.fillStyle =
       @highlightCtx.strokeStyle = '#000'
+
+    @highlightCtx.lineWidth = 1
 
     if point.x >= 5
       @highlightCtx.moveTo point.x, point.y

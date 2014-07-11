@@ -223,15 +223,23 @@ define ->
 
       ctx.strokeStyle = @style.strokeColor
       ctx.lineWidth = @style.lineWidth
+
       if @style.fillColor? then ctx.fillStyle = @style.fillColor
+
       ctx.beginPath()
       ctx.moveTo @_points[0].x, @_points[0].y
       for point in @_points
         ctx.lineTo point.x, point.y # DEFAULT
       ctx.lineTo @_points[0].x, @_points[0].y
+      
+      # Wrap around again so that the origin
+      # has a normal corner
+      if @_points.length > 1
+        ctx.lineTo @_points[1].x, @_points[1].y
 
       # Fill and stroke
       if @style.fillColor? then ctx.fill()
+
       ctx.stroke()
 
     clone: ->

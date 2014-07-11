@@ -66,6 +66,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @versions =
           children: -1
           dimensions: -1
+          glue: -1
           path: -1
           dropAreas: -1
           bounds: {}
@@ -78,6 +79,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeChildren: -> @lineLength
       
       computeDimensions: -> @dimensions
+
+      computeGlue: -> @glue = [exists: false]
       
       computeBoundingBox: (upperLeft, line) ->
         if @versions.bounds[line] is @model.version and
@@ -160,6 +163,39 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             style.grayscale--
 
         return null
+
+      debugDimensions: (x, y, line, ctx) ->
+        ctx.fillStyle = '#00F'
+        ctx.strokeStyle = '#000'
+        ctx.lineWidth = 1
+        ctx.fillRect x, y, @dimensions[line].width, @dimensions[line].height
+        ctx.strokeRect x, y, @dimensions[line].width, @dimensions[line].height
+        
+        for childObj in @lineChildren[line]
+          x += @padding
+          childView = @self.getViewFor childObj.child
+
+          childView.debugDimensions x, y, line - childObj.startLine, ctx
+          x += childView.dimensions[line - childObj.startLine].width
+      
+      debugAllDimensions: (ctx) ->
+        ctx.globalAlpha = 0.1
+        y = 0
+        for size, line in @dimensions
+          @debugDimensions 0, y, line, ctx
+          y += size.height
+        ctx.globalAlpha = 1
+
+      debugAllBoundingBoxes: (ctx) ->
+        ctx.globalAlpha = 0.1
+        for bound in @bounds
+          bound.fill ctx, '#00F'
+          bound.stroke ctx, '#000'
+
+        for childObj in @children
+          @self.getViewFor(childObj.child).debugAllBoundingBoxes ctx
+
+        ctx.globalAlpha = 1
 
       drawShadow: ->
 
@@ -397,6 +433,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @computeChildren()
         @computeDimensions()
         @computeBoundingBoxes left, top
+        @computeGlue()
         @computePath()
         @computeDropAreas()
 
@@ -405,8 +442,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return null
       
       addTab: (array, point, invert = false) ->
-        @addRectilinear array, new draw.Point(point.x + @self.opts.tabOffset + @self.opts.tabWidth,
-          point.y), if invert then 'y' else 'x'
+        array.push new draw.Point(point.x + @self.opts.tabOffset + @self.opts.tabWidth,
+          point.y)
         array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * (1 - @self.opts.tabSideWidth),
           point.y + @self.opts.tabHeight
         array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * @self.opts.tabSideWidth,
@@ -423,6 +460,61 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             array.push new draw.Point array[array.length - 1].x, point.y
 
         array.push point
+
+      computeGlue: ->
+        if @versions.glue is @model.version and not @boundingBoxFlag
+          return @glue
+        else
+          @versions.glue = @model.version
+
+        for childObj in @children
+          @self.getViewFor(childObj.child).computeGlue()
+
+        @glue = []
+
+        for bound, line in @bounds
+
+          @glue[line] = {
+            exists: false
+            minimize: false
+            left: @bounds[line].bottom()
+            right: @bounds[line].bottom()
+          }
+
+          if line + 1 < @bounds.length and @indentData[line] in [NO_INDENT, INDENT_START]
+            @glue[line].exists = true
+
+            if @bounds[line + 1].right() - @bounds[line].x < @bounds[line].right() - @bounds[line + 1].x or @indentData[line] is INDENT_START
+              overlap = @bounds[line + 1].right() - @bounds[line].x
+              overlapsLeft = true
+            else
+              overlap = @bounds[line].right() - @bounds[line + 1].x
+              overlapsLeft = false
+
+            # If we overlap enough, minimize glue.
+            if overlap > @self.opts.padding and @indentData[line] isnt INDENT_START
+              @glue[line].minimize = true
+            else
+              if overlapsLeft
+                @glue[line].right = @bounds[line + 1].y
+                @glue[line].left = @bounds[line + 1].y - @padding
+              else
+                @glue[line].left = @bounds[line + 1].y
+                @glue[line].left = @bounds[line + 1].y - @padding
+
+            for childObj in @lineChildren[line]
+              childView = @self.getViewFor childObj.child
+              childLine = line - childObj.startLine
+
+              if childView.glue[childLine].exists and not childView.glue[childLine].minimize and childObj.child.type isnt 'indent'
+                if overlapsLeft
+                  @glue[line].left = Math.min @glue[line].left, childView.glue[childLine].left - @padding
+                  @glue[line].right = Math.max @glue[line].right, childView.glue[childLine].right
+                else
+                  @glue[line].right = Math.min @glue[line].right, childView.glue[childLine].right - @padding
+                  @glue[line].left = Math.max @glue[line].left, childView.glue[childLine].left
+
+        return @glue
       
       computeOwnPath: ->
         # There are four kinds of line,
@@ -442,55 +534,65 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @addTab left, new draw.Point @bounds[0].x, @bounds[0].y
 
         for bounds, line in @bounds
-          
           # Cases 1 and 2. Normal rendering.
           if @indentData[line] in [NO_INDENT, INDENT_START]
-            @addRectilinear left, new draw.Point bounds.x, bounds.y
-            @addRectilinear left, new draw.Point bounds.x, bounds.bottom()
+            left.push new draw.Point bounds.x, bounds.y
+            left.push new draw.Point bounds.x, @glue[line].left
 
-            @addRectilinear right, new draw.Point bounds.right(), bounds.y
-            @addRectilinear right, new draw.Point bounds.right(), bounds.bottom()
-
-            # Add the top tab of the indent if necessary
-            if @indentData[line] is INDENT_START
-              @addTab right, new draw.Point(@bounds[line + 1].x + @self.opts.indentWidth + @padding, @bounds[line + 1].y), true
+            right.push new draw.Point bounds.right(), bounds.y
+            right.push new draw.Point bounds.right(), @glue[line].right
 
           # Case 3. Middle of an indent.
           if @indentData[line] is INDENT_MIDDLE
 
-            @addRectilinear left, new draw.Point bounds.x, bounds.y
-            @addRectilinear left, new draw.Point bounds.x, bounds.bottom()
+            left.push new draw.Point bounds.x, bounds.y
+            left.push new draw.Point bounds.x, @glue[line].left
 
-            @addRectilinear right, new draw.Point bounds.x + @self.opts.indentWidth + @padding,
+            right.push new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.y
-            @addRectilinear right, new draw.Point bounds.x + @self.opts.indentWidth + @padding,
+            right.push new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.bottom()
           
           # Case 4. End of an indent.
           if @indentData[line] is INDENT_END
-            @addRectilinear left, new draw.Point bounds.x, bounds.y
-            @addRectilinear left, new draw.Point bounds.x, bounds.bottom()
+            left.push new draw.Point bounds.x, bounds.y
+            left.push new draw.Point bounds.x, @glue[line].left
             
             # Find the child that is the indent
             indentChild = @lineChildren[line][0]
             indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
             
             # Avoid the indented area
-            @addRectilinear right, new draw.Point indentBounds.x, indentBounds.y
-            @addRectilinear right, new draw.Point indentBounds.x, indentBounds.bottom()
+            right.push new draw.Point indentBounds.x, indentBounds.y
+            right.push new draw.Point indentBounds.x, indentBounds.bottom()
 
-            @addRectilinear right, new draw.Point indentBounds.right(), indentBounds.bottom()
+            right.push new draw.Point indentBounds.right(), indentBounds.bottom()
 
             # If we must, make the "G"-shape
             if @lineChildren[line].length > 1
-              @addRectilinear right, new draw.Point indentBounds.right(), indentBounds.y
-              @addRectilinear right, new draw.Point bounds.right(), bounds.y
+              right.push new draw.Point indentBounds.right(), indentBounds.y
+              right.push new draw.Point bounds.right(), bounds.y
             
             # Otherwise, don't.
             else
-              @addRectilinear right, new draw.Point bounds.right(), indentBounds.bottom()
+              right.push new draw.Point bounds.right(), indentBounds.bottom()
 
-            @addRectilinear right, new draw.Point bounds.right(), bounds.bottom()
+            right.push new draw.Point bounds.right(), @glue[line].right
+
+          if @glue[line].exists
+            if @glue[line].minimize
+              left.push new draw.Point Math.max(@bounds[line + 1].x, bounds.x), @bounds[line].bottom()
+              left.push new draw.Point Math.max(@bounds[line + 1].x, bounds.x), @bounds[line + 1].y
+
+              right.push new draw.Point Math.min(@bounds[line + 1].right(), bounds.right()), @bounds[line].bottom()
+              right.push new draw.Point Math.min(@bounds[line + 1].right(), bounds.right()), @bounds[line + 1].y
+            else
+              left.push new draw.Point Math.min(@bounds[line + 1].x, bounds.x), @glue[line].left
+              right.push new draw.Point Math.max(@bounds[line + 1].right(), bounds.right()), @glue[line].right
+
+          # Add the top tab of the indent if necessary
+          if @indentData[line] is INDENT_START
+            @addTab right, new draw.Point(@bounds[line + 1].x + @self.opts.indentWidth + @padding, @bounds[line + 1].y), true
         
         # If necessary, add tab
         # at the bottom.
@@ -594,7 +696,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @self.opts.highlightAreaHeight
         ).toPath()
 
-        @highlightArea.style.lineWidth = 0
+        @highlightArea.style.lineWidth = 1
         @highlightArea.style.strokeColor = '#fff'
         @highlightArea.style.fillColor = '#fff'
       
@@ -667,7 +769,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         if @model.start.next.type is 'blockStart'
           @dropArea = @highlightArea = null
         else
-          @dropArea = @highlightArea = @path
+          @dropArea = @path
+          @highlightArea = @path.clone()
+          @highlightArea.style.strokeColor = '#FFF'
+          @highlightArea.style.lineWidth = @self.opts.padding
 
     class IndentView extends ContainerView
       constructor: -> super; @padding = 0
@@ -704,7 +809,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @self.opts.highlightAreaHeight
         ).toPath()
 
-        @highlightArea.style.lineWidth = 0
+        @highlightArea.style.lineWidth = 1
         @highlightArea.style.strokeColor = '#fff'
         @highlightArea.style.fillColor = '#fff'
 
@@ -789,6 +894,19 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       drawSelf: (ctx, style) ->
         @textElement.draw ctx
         return null
+      
+      debugDimensions: (x, y, line, ctx) ->
+        ctx.globalAlpha = 1
+        oldPoint = @textElement.point
+        @textElement.point = new draw.Point x, y
+        @textElement.draw ctx
+        @textElement.point = oldPoint
+        ctx.globalAlpha = 0.1
+
+      debugAllBoundingBoxes: (ctx) ->
+        ctx.globalAlpha = 1
+        @textElement.draw ctx
+        ctx.globalAlpha = 0.1
 
     class CursorView extends GenericView
       constructor: (@model, @self) -> super
