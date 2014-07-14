@@ -18,7 +18,11 @@ module.exports = (grunt) ->
           'example/example.js': ['example/example.coffee']
 
     qunit:
-      all: ['test/*.html']
+      all:
+        options:
+          urls:
+            (for x in grunt.file.expand('test/*.html')
+              'http://localhost:8942/' + x)
 
     docco:
       debug:
@@ -46,14 +50,19 @@ module.exports = (grunt) ->
 
     uglify:
       options:
-        banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
+        banner: '/*! <%= pkg.name %> ' +
+                '<%= grunt.template.today("yyyy-mm-dd") %> */\n'
       build:
         files:
           'dist/ice.min.js': ['dist/ice.js']
 
     cssmin:
       options:
-        banner: '/* ICE Editor stylesheet.\nCopyright (c) 2014 Anthony Bau.\nMIT License.\n*/'
+        banner: '''
+           /* ICE Editor stylesheet.
+           Copyright (c) 2014 Anthony Bau.
+           MIT License.
+           */'''
       minify:
         src: ['css/ice.css']
         dest: 'dist/ice.min.css'
@@ -61,23 +70,62 @@ module.exports = (grunt) ->
 
     concat:
       options:
-        banner: '/*! ICE Editor.\n Copyright (c) 2014 Anthony Bau\n MIT License\n*/\n(function() {'
+        banner: '''
+           /* ICE Editor.
+           Copyright (c) 2014 Anthony Bau.
+           MIT License.
+           */
+           (function() {'''
         separator: ';'
-        footer: "}).call(this);;"
+        footer: '}).call(this);'
       build:
         files:
-          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.min.js']
-          'dist/ice-full.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.js']
+          'dist/ice-full.min.js': [
+            'vendor/keypress-2.0.1.min.js'
+            'dist/ice.min.js'
+          ]
+          'dist/ice-full.js': [
+            'vendor/keypress-2.0.1.min.js'
+            'dist/ice.js'
+          ]
+
+    connect:
+      testserver:
+        options:
+          hostname: '0.0.0.0'
+      qunitserver:
+        options:
+          hostname: '0.0.0.0'
+          port: 8942
+
+    watch:
+      testserver:
+        files: []
+        tasks: ['connect:testserver']
+        options: { atBegin: true, spawn: false }
   
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
-  grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-concat'
-  grunt.loadNpmTasks 'grunt-contrib-qunit'
-  grunt.loadNpmTasks 'grunt-docco'
-  grunt.loadNpmTasks 'grunt-contrib-requirejs'
+  grunt.loadNpmTasks 'grunt-contrib-connect'
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
+  grunt.loadNpmTasks 'grunt-contrib-requirejs'
+  grunt.loadNpmTasks 'grunt-contrib-qunit'
+  grunt.loadNpmTasks 'grunt-contrib-uglify'
+  grunt.loadNpmTasks 'grunt-contrib-watch'
+  grunt.loadNpmTasks 'grunt-docco'
 
-  grunt.registerTask 'default', ['coffee', 'docco', 'requirejs', 'concat']
-  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
-  grunt.registerTask 'test', ['qunit']
+  grunt.registerTask 'default',
+    ['coffee', 'docco', 'requirejs', 'concat', 'test']
+  grunt.registerTask 'all',
+    ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
+  grunt.task.registerTask 'test',
+    'Run unit tests, or just one test.',
+    (testname) ->
+      if testname
+        grunt.config 'qunit.all', ['test/' + testname + '.html']
+      grunt.task.run 'connect:qunitserver'
+      grunt.task.run 'qunit:all'
+  grunt.registerTask 'testserver',
+    ["watch:testserver"]
+
