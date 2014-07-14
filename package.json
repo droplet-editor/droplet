@@ -2,6 +2,7 @@
   "name": "ice-editor",
   "version": "0.3.0",
   "devDependencies": {
+    "grunt-cli": "latest",
     "grunt": "~0.4.2",
     "grunt-banner": "~0.2.0",
     "grunt-contrib-coffee": "~0.7.0",
