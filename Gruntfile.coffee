@@ -110,7 +110,10 @@ module.exports = (grunt) ->
         files: []
         tasks: ['connect:testserver']
         options: { atBegin: true, spawn: false }
-  
+      sources:
+        files: ['src/*.coffee']
+        tasks: ['quickbuild']
+
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
   grunt.loadNpmTasks 'grunt-contrib-concat'
@@ -124,9 +127,11 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-docco'
 
   grunt.registerTask 'default',
-    ['coffee', 'docco', 'requirejs', 'concat', 'test']
+    ['quickbuild']
+  grunt.registerTask 'quickbuild',
+    ['coffee', 'docco', 'requirejs', 'concat']
   grunt.registerTask 'all',
-    ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
+    ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
   grunt.task.registerTask 'test',
     'Run unit tests, or just one test.',
     (testname) ->
@@ -134,9 +139,6 @@ module.exports = (grunt) ->
         grunt.config 'qunit.all', ['test/' + testname + '.html']
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
-
       grunt.task.run 'mochaTest:test'
-
-  grunt.registerTask 'testserver',
-    ["watch:testserver"]
+  grunt.registerTask 'testserver', ['watch']
 
