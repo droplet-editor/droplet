@@ -12,8 +12,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   YES = -> yes
   NO = -> no
 
-  window.drawNumber = 0
-
   exports = {}
 
   defaultStyleObject = -> {selected: 0, grayscale: 0}

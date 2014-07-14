@@ -13,6 +13,7 @@ module.exports = (grunt) ->
           'js/coffee.js': ['src/coffee.coffee']
           'js/parser.js': ['src/parser.coffee']
           'js/main.js': ['src/main.coffee']
+          'test/parserTest.js': ['src/parserTest.coffee']
 
           'test/tests.js': ['src/tests.coffee']
           'example/example.js': ['example/example.coffee']
@@ -23,8 +24,12 @@ module.exports = (grunt) ->
           urls:
             (for x in grunt.file.expand('test/*.html')
               'http://localhost:8942/' + x)
-          '--remote-debugger-port': '9000'
-          '--remote-debugger-autorun': 'yes'
+
+    mochaTest:
+      test:
+        src: ['test/parserTest.js']
+        options:
+          reporter: 'list'
 
     docco:
       debug:
@@ -113,6 +118,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
   grunt.loadNpmTasks 'grunt-contrib-requirejs'
   grunt.loadNpmTasks 'grunt-contrib-qunit'
+  grunt.loadNpmTasks 'grunt-mocha-test'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-docco'
@@ -128,6 +134,9 @@ module.exports = (grunt) ->
         grunt.config 'qunit.all', ['test/' + testname + '.html']
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
+
+      grunt.task.run 'mochaTest:test'
+
   grunt.registerTask 'testserver',
     ["watch:testserver"]
 
