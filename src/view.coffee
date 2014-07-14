@@ -57,8 +57,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         @dimensions = [] # Dimensions on each line
         @bounds = [] # Bounding boxes on each line
-
-        @totalBounds = new draw.NoRectangle()
         
         # Fourth pass
         @path = new draw.Path()
@@ -111,8 +109,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @bounds[line].y = top
         @bounds[line].height = @dimensions[line].height
 
-        @totalBounds.unite @bounds[line]
-
         return @bounds[line]
       
       computeBoundingBox: (upperLeft, line) ->
@@ -150,8 +146,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         if @boundingBoxFlag
           @computeOwnPath()
-
-        @totalBounds.unite @path.bounds()
+          
+          @totalBounds = new draw.NoRectangle()
+          @totalBounds.unite bound for bound in @bounds
+          @totalBounds.unite @path.bounds()
 
         for childObj in @children
           @self.getViewFor(childObj.child).computePath()
@@ -235,7 +233,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @lineChildren = [[]]
         @children = []
         @indentData = []
-        @totalBounds = new draw.NoRectangle()
 
         @model.traverseOneLevel (head, isContainer) =>
           # Advance our line counter
@@ -414,8 +411,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @bounds[line].height = @dimensions[line].height
 
           @boundingBoxFlag = true
-
-        @totalBounds.unite @bounds[line]
 
         axis = top + @dimensions[line].height / 2
 
@@ -946,7 +941,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       computeChildren: ->
         @indentData = [0]
-        @totalBounds = new draw.NoRectangle()
         return 1
       
       computeDimensions: ->
