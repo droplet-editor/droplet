@@ -1,0 +1,26 @@
+<html>
+<head>
+<style>
+#changebutton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 256;
+}
+#editor {
+  position: absolute;
+  top: 0; right: 0; left: 0; bottom: 0;
+  width: 100%;
+  display: none;
+  z-index; 255;
+}
+</style>
+</head>
+<body>
+<canvas id="main"></canvas>
+<script src="../vendor/require.js"></script>
+<script src="test.js"></script>
+<button id="changebutton">Edit</button>
+<textarea id="editor"></textarea>
+</body>
+</html>

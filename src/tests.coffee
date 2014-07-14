@@ -1,54 +1,5 @@
 require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
   
-  readFile = (name) ->
-    q = new XMLHttpRequest()
-    q.open 'GET', name, false
-    q.send()
-
-    return q.responseText
-
-  test 'Parser unity', ->
-    testString = (str) ->
-      strictEqual str, coffee.parse(str, wrapAtRoot: true).stringify(), 'Unity test on ' + str
-
-    testString 'fd 10'
-    testString 'fd 10 + 10'
-    testString 'console.log 10 + 10'
-    testString '''
-    for i in [1..10]
-      console.log 10 + 10
-    '''
-    testString '''
-    array = []
-    if a is b
-      while p is q
-        make spaghetti
-        eat spaghetti
-        array.push spaghetti
-      for i in [1..10]
-        console.log 10 + 10
-    else
-      see 'hi'
-      for key, value in window
-        see key + ' is ' + value
-        see key is value
-        see array[n]
-    '''
-
-    testFile = (name) ->
-      nodes = readFile name
-
-      unparsed = coffee.parse(nodes, wrapAtRoot: true).stringify()
-
-      nodes = nodes.split '\n'
-      unparsed = unparsed.split '\n'
-
-      for i in [0..nodes.length] by 30
-        strictEqual unparsed[i..i + 30].join('\n'), nodes[i..i + 30].join('\n'), "Unity test on #{name}:#{i}-#{i + 30}"
-
-    testFile 'nodes.coffee'
-    testFile 'allTests.coffee'
-  
   test 'Parser success', ->
     testString = (m, str, expected) ->
       strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
