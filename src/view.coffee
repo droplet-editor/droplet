@@ -41,7 +41,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       @self = this
       draw._setCTX @opts.ctx
 
-    clearCache: -> @self.map = {}
+    clearCache: -> @map = {}
 
     class GenericView
       constructor: (@model, @self) ->
@@ -66,10 +66,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @versions =
           children: -1
           dimensions: -1
-          glue: -1
           path: -1
           dropAreas: -1
-          bounds: {}
+          bounds_x: {}
+          glue: {}
+          bounds_y: {}
 
         @dropArea = @highlightArea = null
         @boundingBoxFlag = true
@@ -80,24 +81,43 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       
       computeDimensions: -> @dimensions
 
-      computeGlue: -> @glue = [exists: false]
-      
-      computeBoundingBox: (upperLeft, line) ->
-        if @versions.bounds[line] is @model.version and
-           upperLeft.x is @bounds[line]?.x and
-           upperLeft.y is @bounds[line]?.y
-          return @bounds[line]
-        else
-          @versions.bounds[line] = @model.version
+      computeGlue: -> @glue = {}
 
-        @bounds[line] = new draw.Rectangle(
-          upperLeft.x,
-          upperLeft.y,
-          @dimensions[line].width,
-          @dimensions[line].height
-        )
+      computeBoundingBoxX: (left, line) ->
+        if @versions.bounds_x[line] is @model.version and
+           left is @bounds[line]?.x
+          return @bounds[line]
+        
+        @versions.bounds_x[line] = @model.version
+        
+        if @bounds[line]?
+          @bounds[line].x = left
+          @bounds[line].width = @dimensions[line].width
+        else
+          @bounds[line] = new draw.Rectangle(
+            left, 0
+            @dimensions[line].width, 0
+          )
+
+        return @bounds[line]
+
+      computeBoundingBoxY: (top, line) ->
+        if @versions.bounds_y[line] is @model.version and
+           top is @bounds[line]?.y
+          return @bounds[line]
+        
+        @versions.bounds_y[line] = @model.version
+        
+        @bounds[line].y = top
+        @bounds[line].height = @dimensions[line].height
 
         @totalBounds.unite @bounds[line]
+
+        return @bounds[line]
+      
+      computeBoundingBox: (upperLeft, line) ->
+        @computeBoundingBoxX upperLeft.x, line
+        @computeBoundingBoxY upperLeft.y, line
 
         return @bounds[line]
 
@@ -142,7 +162,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       draw: (ctx, boundingRect, style) ->
         if @totalBounds.overlap boundingRect
-          window.drawNumber++
           style ?= defaultStyleObject()
 
           if @model.ephemeral and @self.opts.respectEphemeral
@@ -216,6 +235,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @lineChildren = [[]]
         @children = []
         @indentData = []
+        @totalBounds = new draw.NoRectangle()
 
         @model.traverseOneLevel (head, isContainer) =>
           # Advance our line counter
@@ -251,7 +271,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # If this object is an indent,
             # then we know what we want our indent
             # data to be
-            if head.type is 'indent'
+            if view.lineLength > 1 #type is 'indent'
               @indentData[line] = INDENT_START
               @indentData[i] = INDENT_MIDDLE for i in [line + 1...line + childLength - 1]
               @indentData[line + childLength - 1] = INDENT_END
@@ -314,7 +334,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             for size, line in dimensions
               desiredLine = line + childObject.startLine
         
-              @dimensions[desiredLine].width += size.width + @padding
+              @dimensions[desiredLine].width += size.width +
+                (if @indentData[desiredLine] is INDENT_MIDDLE then 0 else @padding)
               @dimensions[desiredLine].height = Math.max @dimensions[desiredLine].height,
                 size.height +
                 (if @indentData[desiredLine] in [NO_INDENT, INDENT_START] then 2 * @padding
@@ -326,55 +347,35 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @dimensions[line].height = Math.max @dimensions[line].height, @self.opts.emptyLineHeight
         
         return @dimensions
-      
-      parentStackMatches: ->
-        head = @model.parent
-        for parent in @parentStack
-          if head isnt parent then return false
-          else head = head.parent
-
-        return not head?
-
-      updateParentStack: ->
-        @parentStack.length = 0
-        head = @model.parent
-        while head?
-          @parentStack.push head
-          head = head.parent
-
-      getBounds: -> @totalBounds
-      
-      computeBoundingBox: (upperLeft, line) ->
-        if @versions.bounds[line] is @model.version and
-           upperLeft.x is @bounds[line]?.x and
-           upperLeft.y is @bounds[line]?.y
-          return @bounds[line]
-        else
-          @versions.bounds[line] = @model.version
         
-        unless @bounds[line]? and
-           @bounds[line].x is upperLeft.x and
-           @bounds[line].y is upperLeft.y and
-           @bounds[line].width is @dimensions[line].width and
-           @bounds[line].height is @dimensions[line].height
+      getBounds: -> @totalBounds
+
+      computeBoundingBoxX: (left, line) ->
+        if @versions.bounds_x[line] is @model.version and
+           left is @bounds[line]?.x
+          return @bounds[line]
+        
+        @versions.bounds_x[line] = @model.version
+        
+        unless @bounds[line]?.x is left and
+           @bounds[line]?.width is @dimensions[line].width
 
           # Assign our own bounding box given
           # this center-left coordinate
-          @bounds[line] = new draw.Rectangle(
-            upperLeft.x
-            upperLeft.y
-            @dimensions[line].width
-            @dimensions[line].height
-          )
+          if @bounds[line]?
+            @bounds[line].x = left
+            @bounds[line].width = @dimensions[line].width
+          else
+            @bounds[line] = new draw.Rectangle(
+              left, 0
+              @dimensions[line].width, 0
+            )
 
           @boundingBoxFlag = true
-
-        @totalBounds.unite @bounds[line]
         
         # Ask all our children to compute bounding
         # boxes as well.
-        leftX = upperLeft.x + @padding
-        axis = upperLeft.y + @dimensions[line].height / 2
+        childLeft = left + @padding
         
         for lineChild, i in @lineChildren[line]
           childView = @self.getViewFor lineChild.child
@@ -387,53 +388,114 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # the top of its surrounding block, but rather
           # have a "tounge" on top of it.
           if lineChild.child.type is 'indent'
-            childView.computeBoundingBox new draw.Point(
-              leftX + @self.opts.indentWidth,
-              upperLeft.y
-            ), childLine
+            childView.computeBoundingBoxX childLeft + @self.opts.indentWidth, childLine
             
-            leftX += @self.opts.indentWidth + childView.dimensions[childLine].width
-
-          # Special case: when an indent ends
-          # on the same line as some other blocks,
-          # make sure it sticks to the top of the line.
-          else if @indentData[line] is INDENT_END and i is 0
-            childView.computeBoundingBox new draw.Point(
-              leftX
-              upperLeft.y
-            ), childLine
-
-            leftX += @padding + childView.dimensions[childLine].width
-
-          # Otherwise, add padding.
+            childLeft += @self.opts.indentWidth + childView.dimensions[childLine].width
           else
-            childView.computeBoundingBox new draw.Point(
-              leftX
-              axis - childView.dimensions[childLine].height / 2
-            ), childLine
+            childView.computeBoundingBoxX childLeft, childLine
 
-            leftX += @padding + childView.dimensions[childLine].width
+            childLeft += @padding + childView.dimensions[childLine].width
 
-        @updateParentStack()
+        return @bounds[line]
+      
+      computeBoundingBoxY: (top, line) ->
+        if @versions.bounds_y[line] is @model.version and
+           top is @bounds[line]?.y
+          return @bounds[line]
+
+        @versions.bounds_y[line] = @model.version
+
+        unless @bounds[line]?.y is top and
+           @bounds[line]?.height is @dimensions[line].height
+
+          # Assign our own bounding box given
+          # this center-left coordinate
+          @bounds[line].y = top
+          @bounds[line].height = @dimensions[line].height
+
+          @boundingBoxFlag = true
+
+        @totalBounds.unite @bounds[line]
+
+        axis = top + @dimensions[line].height / 2
+
+        for lineChild, i in @lineChildren[line]
+          childView = @self.getViewFor lineChild.child
+          childLine = line - lineChild.startLine
+
+          if (lineChild.child.type is 'indent') or (@indentData[line] is INDENT_END and i is 0)
+            childView.computeBoundingBoxY top, childLine
+          else
+            childView.computeBoundingBoxY axis - childView.dimensions[childLine].height / 2, childLine
         
         return @bounds[line]
       
-      computeBoundingBoxes: (left = 0, top = 0) ->
+      computeBoundingBox: (upperLeft, line) ->
+        @computeBoundingBoxX upperLeft.x, line
+        @computeBoundingBoxY upperLeft.y, line
+
+        return @bounds[line]
+      
+      computeAllBoundingBoxX: (left = 0) ->
         for size, line in @dimensions
-          @computeBoundingBox(
-            new draw.Point(left, top),
-            line
-          )
+          @computeBoundingBoxX left, line
 
+        return @bounds
+
+      computeGlue: ->
+        if @versions.glue is @model.version and not @boundingBoxFlag
+          return @glue
+        
+        @versions.glue = @model.version
+
+        for childObj in @children
+          @self.getViewFor(childObj.child).computeGlue()
+
+        @glue = {}
+
+        for box, line in @bounds
+          if @bounds[line + 1]?
+            unless @indentData[line] is INDENT_MIDDLE
+              overlap = Math.min @bounds[line].right() - @bounds[line + 1].x, @bounds[line + 1].right() - @bounds[line].x
+
+              if @indentData[line] is INDENT_START
+                overlap = Math.min overlap, @bounds[line + 1].x + @self.opts.indentWidth - @bounds[line].x
+              
+              if overlap < @self.opts.padding and @model.type isnt 'indent'
+                @glue[line] ?= {
+                  height: @self.opts.padding
+                  draw: true
+                }
+
+            for lineChild in @lineChildren[line]
+              childView = @self.getViewFor lineChild.child
+              childLine = line - lineChild.startLine
+
+              if childLine of childView.glue
+                @glue[line] ?= {
+                  height: childView.glue[childLine].height
+                  draw: true
+                }
+                @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height +
+                  (if @indentData[line] is INDENT_MIDDLE then 0 else @padding)
+                @glue[line].draw = @indentData[line] isnt INDENT_MIDDLE
+
+        return @glue
+
+      computeAllBoundingBoxY: (top = 0) ->
+        for size, line in @dimensions
+          @computeBoundingBoxY top, line
           top += size.height
+          if line of @glue then top += @glue[line].height
 
-        return true
+        return @bounds
 
       layout: (left = 0, top = 0) ->
         @computeChildren()
         @computeDimensions()
-        @computeBoundingBoxes left, top
+        @computeAllBoundingBoxX left
         @computeGlue()
+        @computeAllBoundingBoxY top
         @computePath()
         @computeDropAreas()
 
@@ -460,61 +522,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             array.push new draw.Point array[array.length - 1].x, point.y
 
         array.push point
-
-      computeGlue: ->
-        if @versions.glue is @model.version and not @boundingBoxFlag
-          return @glue
-        else
-          @versions.glue = @model.version
-
-        for childObj in @children
-          @self.getViewFor(childObj.child).computeGlue()
-
-        @glue = []
-
-        for bound, line in @bounds
-
-          @glue[line] = {
-            exists: false
-            minimize: false
-            left: @bounds[line].bottom()
-            right: @bounds[line].bottom()
-          }
-
-          if line + 1 < @bounds.length and @indentData[line] in [NO_INDENT, INDENT_START]
-            @glue[line].exists = true
-
-            if @bounds[line + 1].right() - @bounds[line].x < @bounds[line].right() - @bounds[line + 1].x or @indentData[line] is INDENT_START
-              overlap = @bounds[line + 1].right() - @bounds[line].x
-              overlapsLeft = true
-            else
-              overlap = @bounds[line].right() - @bounds[line + 1].x
-              overlapsLeft = false
-
-            # If we overlap enough, minimize glue.
-            if overlap > @self.opts.padding and @indentData[line] isnt INDENT_START
-              @glue[line].minimize = true
-            else
-              if overlapsLeft
-                @glue[line].right = @bounds[line + 1].y
-                @glue[line].left = @bounds[line + 1].y - @padding
-              else
-                @glue[line].left = @bounds[line + 1].y
-                @glue[line].left = @bounds[line + 1].y - @padding
-
-            for childObj in @lineChildren[line]
-              childView = @self.getViewFor childObj.child
-              childLine = line - childObj.startLine
-
-              if childView.glue[childLine].exists and not childView.glue[childLine].minimize and childObj.child.type isnt 'indent'
-                if overlapsLeft
-                  @glue[line].left = Math.min @glue[line].left, childView.glue[childLine].left - @padding
-                  @glue[line].right = Math.max @glue[line].right, childView.glue[childLine].right
-                else
-                  @glue[line].right = Math.min @glue[line].right, childView.glue[childLine].right - @padding
-                  @glue[line].left = Math.max @glue[line].left, childView.glue[childLine].left
-
-        return @glue
       
       computeOwnPath: ->
         # There are four kinds of line,
@@ -534,19 +541,33 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @addTab left, new draw.Point @bounds[0].x, @bounds[0].y
 
         for bounds, line in @bounds
-          # Cases 1 and 2. Normal rendering.
-          if @indentData[line] in [NO_INDENT, INDENT_START]
+          if @indentData[line] is NO_INDENT
             left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, @glue[line].left
+            left.push new draw.Point bounds.x, bounds.bottom()
 
             right.push new draw.Point bounds.right(), bounds.y
-            right.push new draw.Point bounds.right(), @glue[line].right
+            right.push new draw.Point bounds.right(), bounds.bottom()
+
+          if @indentData[line] is INDENT_START
+            indentChild = @lineChildren[line][@lineChildren[line].length - 1]
+            indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
+
+            left.push new draw.Point bounds.x, bounds.y
+            left.push new draw.Point bounds.x, bounds.bottom()
+
+            right.push new draw.Point bounds.right(), bounds.y
+            if indentBounds.width > 0
+              right.push new draw.Point bounds.right(), indentBounds.y
+              right.push new draw.Point indentBounds.x, indentBounds.y
+              right.push new draw.Point indentBounds.x, bounds.bottom()
+            else
+              right.push new draw.Point bounds.right(), bounds.bottom()
 
           # Case 3. Middle of an indent.
           if @indentData[line] is INDENT_MIDDLE
 
             left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, @glue[line].left
+            left.push new draw.Point bounds.x, bounds.bottom()
 
             right.push new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.y
@@ -556,7 +577,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # Case 4. End of an indent.
           if @indentData[line] is INDENT_END
             left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, @glue[line].left
+            left.push new draw.Point bounds.x, bounds.bottom()
             
             # Find the child that is the indent
             indentChild = @lineChildren[line][0]
@@ -577,23 +598,47 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             else
               right.push new draw.Point bounds.right(), indentBounds.bottom()
 
-            right.push new draw.Point bounds.right(), @glue[line].right
+            right.push new draw.Point bounds.right(), bounds.bottom()
 
-          if @glue[line].exists
-            if @glue[line].minimize
-              left.push new draw.Point Math.max(@bounds[line + 1].x, bounds.x), @bounds[line].bottom()
-              left.push new draw.Point Math.max(@bounds[line + 1].x, bounds.x), @bounds[line + 1].y
+          # "Glue" phase
 
-              right.push new draw.Point Math.min(@bounds[line + 1].right(), bounds.right()), @bounds[line].bottom()
-              right.push new draw.Point Math.min(@bounds[line + 1].right(), bounds.right()), @bounds[line + 1].y
-            else
-              left.push new draw.Point Math.min(@bounds[line + 1].x, bounds.x), @glue[line].left
-              right.push new draw.Point Math.max(@bounds[line + 1].right(), bounds.right()), @glue[line].right
+          if line of @glue and @glue[line].draw
+            glueAxis = @bounds[line + 1].y - @glue[line].height
+            leftmost = Math.min @bounds[line + 1].x, @bounds[line].x
+            rightmost = Math.max @bounds[line + 1].right(), @bounds[line].right()
+
+            left.push new draw.Point @bounds[line].x, glueAxis
+            left.push new draw.Point leftmost, glueAxis
+            left.push new draw.Point leftmost, @bounds[line + 1].y
+            
+            unless @indentData[line] is INDENT_START
+              right.push new draw.Point @bounds[line].right(), glueAxis
+              right.push new draw.Point rightmost, glueAxis
+              right.push new draw.Point rightmost, @bounds[line + 1].y
+
+          else if @bounds[line + 1]? and @indentData[line] isnt INDENT_MIDDLE
+            innerLeft = Math.max @bounds[line + 1].x, @bounds[line].x
+            innerRight = Math.min @bounds[line + 1].right(), @bounds[line].right()
+
+            left.push new draw.Point innerLeft, @bounds[line].bottom()
+            left.push new draw.Point innerLeft, @bounds[line + 1].y
+
+            unless @indentData[line] is INDENT_START
+              right.push new draw.Point innerRight, @bounds[line].bottom()
+              right.push new draw.Point innerRight, @bounds[line + 1].y
+          
+          if @indentData[line] is INDENT_START
+            indentChild = @lineChildren[line][@lineChildren[line].length - 1]
+            indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
+            
+            right.push new draw.Point indentBounds.x, @bounds[line].bottom()
+            right.push new draw.Point indentBounds.x, @bounds[line + 1].y
+
 
           # Add the top tab of the indent if necessary
-          if @indentData[line] is INDENT_START
+          if @indentData[line] is INDENT_START and @lineChildren[line][@lineChildren[line].length - 1].child.type is 'indent'
             @addTab right, new draw.Point(@bounds[line + 1].x + @self.opts.indentWidth + @padding, @bounds[line + 1].y), true
-        
+
         # If necessary, add tab
         # at the bottom.
         if @shouldAddTab()
@@ -719,6 +764,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # A Socket should copy its content
         # block, if there is a content block
         else if @model.start.next.type is 'blockStart'
+          @padding = 0
           view = @self.getViewFor @model.start.next.container
           childDimensions = view.computeDimensions()
 
@@ -727,24 +773,55 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # Otherwise, render
         # as normal (wrap text).
         else
+          @padding = @self.opts.padding
           # Decrement dimension version number
           # to force super to render
           @versions.dimensions--
 
           super
 
-      computeBoundingBox: (upperLeft, line) ->
-        if @versions.bounds[line] is @model.version and
-           upperLeft.x is @bounds[line]?.x and
-           upperLeft.y is @bounds[line]?.y
-          if @model.stringify() is '' then debugger
+      computeGlue: ->
+        if @versions.glue is @model.version and not @boundingBoxFlag
+          return @glue
+        
+        @versions.glue = @model.version
+
+        if @model.start.next.type is 'blockStart'
+          view = @self.getViewFor @model.start.next.container
+          @glue = view.computeGlue()
+        else
+          @versions.glue--
+
+          super
+
+      computeBoundingBoxX: (left, line) ->
+        if @versions.bounds_x[line] is @model.version and
+           left is @bounds[line]?.x
           return @bounds[line]
         
         # A Socket should copy its content
         # block, if there is a content block
         if @model.start.next.type is 'blockStart'
           @bounds[line] =
-            @self.getViewFor(@model.start.next.container).computeBoundingBox upperLeft, line
+            @self.getViewFor(@model.start.next.container).computeBoundingBoxX left, line
+
+          @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
+
+        else
+          super
+
+        return @bounds[line]
+      
+      computeBoundingBoxY: (top, line) ->
+        if @versions.bounds_y[line] is @model.version and
+           top is @bounds[line]?.y
+          return @bounds[line]
+        
+        # A Socket should copy its content
+        # block, if there is a content block
+        if @model.start.next.type is 'blockStart'
+          @bounds[line] =
+            @self.getViewFor(@model.start.next.container).computeBoundingBoxY top, line
 
           @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
 
@@ -869,6 +946,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       computeChildren: ->
         @indentData = [0]
+        @totalBounds = new draw.NoRectangle()
         return 1
       
       computeDimensions: ->
@@ -887,8 +965,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @dimensions
       
-      computeBoundingBox: (upperLeft, line) ->
-        @textElement.point = upperLeft
+      computeBoundingBoxX: (left, line) ->
+        @textElement.point.x = left
+        super
+
+      computeBoundingBoxY: (top, line) ->
+        @textElement.point.y = top
         super
       
       drawSelf: (ctx, style) ->
