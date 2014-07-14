@@ -17,177 +17,358 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   exports = {}
 
   defaultStyleObject = -> {selected: 0, grayscale: 0}
-
-  grayscale = (hex) ->
-    # Convert to 6-char
-    if hex.length is 4
-      hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
-
-    r = parseInt hex[1..2], 16
-    g = parseInt hex[3..4], 16
-    b = parseInt hex[5..6], 16
-
-    r = Math.round (r + 128) / 2
-    g = Math.round (g + 128) / 2
-    b = Math.round (b + 128) / 2
-
-    return '#' + r.toString(16) + g.toString(16) + b.toString(16)
-
+  
+  # # View
+  # The View class contains options and caches
+  # for rendering. The controller instantiates a View
+  # and interacts with things through it.
+  #
+  # Inner classes in the View correspond to Model
+  # types (e.g. SocketView, etc.) all of which
+  # will have access to their View's caches
+  # and options object.
   exports.View = class View
-    @self = null
-
     constructor: (@opts) ->
+      # @map maps Model objects
+      # to corresponding View objects,
+      # so that rerendering the same model
+      # can be fast
       @map = {}
-      @self = this
+
+      # Do our measurement hack
       draw._setCTX @opts.ctx
-
+    
+    # Simple method for clearing caches
     clearCache: -> @map = {}
-
+    
+    # ## getViewFor
+    # Given a model object,
+    # give the corresponding renderer object
+    # under this View. If one does not exist,
+    # create one, then preserve it in our map.
+    getViewFor: (model) ->
+      if model.id of @map
+        return @map[model.id]
+      else
+        return @createView(model)
+    
+    # ## createView
+    # Given a model object, create a renderer object
+    # of the appropriate type.
+    createView: (model) ->
+      switch model.type
+        when 'text' then new TextView model, this
+        when 'block' then new BlockView model, this
+        when 'indent' then new IndentView model, this
+        when 'socket' then new SocketView model, this
+        when 'segment' then new SegmentView model, this
+        when 'cursor' then new CursorView model, this
+    
+    # # GenericView
+    # Class from which all renderer classes will
+    # extend.
     class GenericView
       constructor: (@model, @self) ->
+        # Record ourselves in the map
+        # from model to renderer
         @self.map[@model.id] = this
         
-        # First pass
+        # *First pass variables*
         @lineLength = 0 # How many lines does this take up?
         @children = [] # All children, flat
         @lineChildren = [] # Children who own each line
         @indentData = [] # Where do indents start/end?
 
-        @parentStack = []
-
+        # *Second pass variables*
         @dimensions = [] # Dimensions on each line
-        @bounds = [] # Bounding boxes on each line
         
-        # Fourth pass
+        # *Third/fifth pass variables*
+        @bounds = [] # Bounding boxes on each line
+        @boundingBoxFlag = true # Did any bounding boxes change just now?
+
+        # *Fourth pass variables*
+        @glue = {}
+
+        # *Sixth pass variables*
         @path = new draw.Path()
 
+        # *Seventh pass variables*
+        @dropArea = @highlightArea = null
+        
+        # Versions. The corresponding
+        # Model will keep corresponding version
+        # numbers, and each of our passes can
+        # become a no-op when we are up-to-date (so
+        # that rerendering is fast when there are
+        # few or no changes to the Model).
         @versions =
           children: -1
           dimensions: -1
-          path: -1
-          dropAreas: -1
+
+          # Version objects are per line
           bounds_x: {}
           glue: {}
           bounds_y: {}
 
-        @dropArea = @highlightArea = null
-        @boundingBoxFlag = true
-
+          path: -1
+          dropAreas: -1
+        
+        # Our personal padding, which may differ
+        # from global padding in special cases
+        # (e.g. Indents)
         @padding = @self.opts.padding
-
+      
+      # ## computeChildren
+      # Find out which of our children lie on each line that we
+      # own, and also how many lines we own.
+      #
+      # Return the number of lines we own.
+      #
+      # This is basically a void computeChildren that should be
+      # overridden.
       computeChildren: -> @lineLength
       
+      # ## computeDimensions
+      # Compute the size of our bounding box on each
+      # line that we contain.
+      #
+      # Return an array of our dimensions.
+      #
+      # This is a void computeDimensinos that should be overridden.
       computeDimensions: -> @dimensions
-
-      computeGlue: -> @glue = {}
-
+      
+      # ## computeBoundingBoxX
+      # Given the left edge coordinate for our bounding box on
+      # this line, recursively layout the x-coordinates of us
+      # and all our children on this line.
       computeBoundingBoxX: (left, line) ->
+        # Attempt to use our cache. Because modifications in the parent
+        # can affect the shape of child blocks, we can't only rely
+        # on versioning. For instance, changing `fd 10` to `forward 10`
+        # does not update the version on `10`, but the bounding box for 
+        # `10` still needs to change. So we must also check
+        # that the coordinate we are given to begin the bounding box on matches.
         if @versions.bounds_x[line] is @model.version and
            left is @bounds[line]?.x
           return @bounds[line]
         
+        # Update our version, for caching.
         @versions.bounds_x[line] = @model.version
         
+        # Avoid re-instantiating a Rectangle object,
+        # if possible.
         if @bounds[line]?
           @bounds[line].x = left
           @bounds[line].width = @dimensions[line].width
+
+        # If not, create one.
         else
           @bounds[line] = new draw.Rectangle(
             left, 0
             @dimensions[line].width, 0
           )
-
+        
         return @bounds[line]
-
+      
+      # ## computeGlue
+      # If there are disconnected bounding boxes
+      # that belong to the same block,
+      # insert "glue" spacers between lines
+      # to connect them. For instance:
+      #
+      # ```
+      # someLongFunctionName ''' hello
+      # world '''
+      # ```
+      #
+      # would require glue between 'hello' and 'world'.
+      #
+      # This is a void function that should be overridden.
+      computeGlue: -> @glue = {}
+      
+      # ## computeBoundingBoxY
+      # Like computeBoundingBoxX. We must separate
+      # these passes because glue spacers from `computeGlue`
+      # affect computeBoundingBoxY.
       computeBoundingBoxY: (top, line) ->
+        # Again, we need to check to make sure that the coordinate
+        # we are given matches, since we cannot only rely on
+        # versioning (see computeBoundingBoxX).
         if @versions.bounds_y[line] is @model.version and
            top is @bounds[line]?.y
           return @bounds[line]
         
+        # Update our version
         @versions.bounds_y[line] = @model.version
         
+        # Accept the bounding box edge we were given.
+        # We assume here that computeBoundingBoxX was
+        # already run for this version, so we
+        # should be guaranteed that `@bounds[line]` exists.
         @bounds[line].y = top
         @bounds[line].height = @dimensions[line].height
 
         return @bounds[line]
       
-      computeBoundingBox: (upperLeft, line) ->
-        @computeBoundingBoxX upperLeft.x, line
-        @computeBoundingBoxY upperLeft.y, line
-
-        return @bounds[line]
-
+      # ## getBounds
+      # Deprecated. Access `@totalBounds` directly instead.
       getBounds: -> @totalBounds
-
+      
+      # ## computeOwnPath
+      # Using bounding box data, compute the vertices
+      # of the polygon that will wrap them. This function
+      # will be called from `computePath`, which does this
+      # recursively so as to draw the entire tree.
+      #
+      # Many nodes do not have paths at all,
+      # and so need not override this function.
       computeOwnPath: -> @path = new draw.Path()
-
-      computeDropAreas: ->
-        if @versions.dropAreas is @model.version and not @boundingBoxFlag
-          return null
-        else
-          @versions.dropAreas = @model.version
-
-          @computeOwnDropArea()
-
-          for childObj in @children
-            @self.getViewFor(childObj.child).computeDropAreas()
-
-          @boundingBoxFlag = false
-
-          return null
-
-      computeOwnDropArea: ->
-
+      
+      # ## computePath
+      # Call `@computeOwnPath` and recurse. This function
+      # should never need to be overridden; override `@computeOwnPath`
+      # instead.
       computePath: ->
+        # Here, we cannot just rely on versioning either.
+        # We need to know if any bounding box data changed. So,
+        # look at `@boundingBoxFlag`, which should be set
+        # to `true` whenever a bounding box changed on the bounding box
+        # passes.
         if @versions.path is @model.version and not @boundingBoxFlag
           return null
-        else
-          @versions.path = @model.version
-
+        
+        # Update our version
+        @versions.path = @model.version
+        
+        # It is possible that we have a version increment
+        # without changing bounding boxes. If this is the case,
+        # we don't need to recompute our own path.
         if @boundingBoxFlag
           @computeOwnPath()
           
+          # Recompute `totalBounds`, which is used
+          # to avoid re**drawing** polygons that
+          # are not on-screen. `totalBounds` is the AABB
+          # of the everything that has to do with the element,
+          # and we redraw iff it overlaps the AABB of the viewport.
           @totalBounds = new draw.NoRectangle()
           @totalBounds.unite bound for bound in @bounds
           @totalBounds.unite @path.bounds()
-
+        
+        # Recurse.
         for childObj in @children
           @self.getViewFor(childObj.child).computePath()
 
         return null
+      
+      # ## computeOwnDropArea
+      # Using bounding box data, compute the drop area
+      # for drag-and-drop blocks, if it exists.
+      #
+      # If we cannot drop something on this node
+      # (e.g. a socket that already contains a block),
+      # set `@dropArea` to null.
+      #
+      # Simultaneously, compute `@highlightArea`, which
+      # is the white polygon that lights up
+      # when we hover over a drop area.
+      computeOwnDropArea: ->
 
+      # ## computeDropAreas
+      # Call `@computeOwnDropArea`, and recurse.
+      #
+      # This should never have to be overridden;
+      # override `@computeOwnDropArea` instead.
+      computeDropAreas: ->
+        # Like with `@computePath`, we cannot rely solely on versioning,
+        # so we check the bounding box flag.
+        if @versions.dropAreas is @model.version and not @boundingBoxFlag
+          return null
+
+        else
+          # If we have to recompute, update our version
+          @versions.dropAreas = @model.version
+          
+          # Compute drop and highlight areas for ourself
+          @computeOwnDropArea()
+          
+          # Recurse.
+          for childObj in @children
+            @self.getViewFor(childObj.child).computeDropAreas()
+          
+          # This is the last pass, so we can now
+          # reset the bounding box flag, avoiding work
+          # in the future.
+          @boundingBoxFlag = false
+
+          return null
+      
+      # ## drawSelf
+      # Draw our own polygon on a canvas context.
+      # May require special effects, like graying-out
+      # or blueing for lasso select.
       drawSelf: (ctx, style) ->
-
+      
+      # ## draw
+      # Call `drawSelf` and recurse, if we are in the viewport.
       draw: (ctx, boundingRect, style) ->
+        # First, test to see whether our AABB overlaps
+        # with the viewport
         if @totalBounds.overlap boundingRect
+          # If it does, we want to render. If we are the root
+          # (and have not been passed a style object), create
+          # a style object. This includes things like graying-out
+          # and blueing.
           style ?= defaultStyleObject()
-
+          
+          # The ephemeral flag is set when a block is being dragged
+          # somewhere else at the moment. If we are a model
+          # that wants to gray something out in this situation,
+          # do so.
           if @model.ephemeral and @self.opts.respectEphemeral
             style.grayscale++
-
+          
+          # Call `@drawSelf`
           @drawSelf ctx, style
-
-          # Draw our children
+          
+          # Draw our children. We will want to draw blocks with line marks
+          # last, so that they appear on top, so we will abstain from them
+          # for now.
           for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
             @self.getViewFor(childObj.child).draw ctx, boundingRect, style
           
-          # Draw marked blocks last, so that they
-          # appear on top.
+          # Draw marked blocks.
           for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
             @self.getViewFor(childObj.child).draw ctx, boundingRect, style
-
+          
+          # Decrement our grayscale if necessary
           if @model.ephemeral and @self.opts.respectEphemeral
             style.grayscale--
 
         return null
+      
+      # ## drawShadow
+      # Draw the shadow of our path
+      # on a canvas context. Used
+      # for drop shadow when dragging.
+      drawShadow: (ctx) ->
 
+      # ## Debug output
+
+      # ### debugDimensions
+      # A super-simplified bounding box algorithm
+      # made just to show dimensions in context.
       debugDimensions: (x, y, line, ctx) ->
+        # Draw a rectangle with out dimensions
         ctx.fillStyle = '#00F'
         ctx.strokeStyle = '#000'
         ctx.lineWidth = 1
         ctx.fillRect x, y, @dimensions[line].width, @dimensions[line].height
         ctx.strokeRect x, y, @dimensions[line].width, @dimensions[line].height
         
+        # Recurse on all our children,
+        # advancing x and y so that there
+        # is no overlap between boxes
         for childObj in @lineChildren[line]
           x += @padding
           childView = @self.getViewFor childObj.child
@@ -195,31 +376,49 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           childView.debugDimensions x, y, line - childObj.startLine, ctx
           x += childView.dimensions[line - childObj.startLine].width
       
+      # ### debugAllDimensions
+      # Run `debugDimensions` on all lines.
       debugAllDimensions: (ctx) ->
-        ctx.globalAlpha = 0.1
-        y = 0
+        # Make the context transparent
+        # a bit, so that we can see the stack depth
+        # of each block
+        ctx.globalAlpha = 0.1; y = 0
+
         for size, line in @dimensions
           @debugDimensions 0, y, line, ctx
           y += size.height
+        
         ctx.globalAlpha = 1
-
+      
+      # ### debugAllBoundingBoxes
+      # Draw our bounding box on each line, and ask 
+      # all our children to do so too.
       debugAllBoundingBoxes: (ctx) ->
+        # Make the context transparent for easy depth
+        # perception
         ctx.globalAlpha = 0.1
+
+        # Draw bounding box
         for bound in @bounds
           bound.fill ctx, '#00F'
           bound.stroke ctx, '#000'
-
+        
+        # Recurse
         for childObj in @children
           @self.getViewFor(childObj.child).debugAllBoundingBoxes ctx
-
+        
         ctx.globalAlpha = 1
-
-      drawShadow: ->
-
+    
+    # # ContainerView
+    # Class from which `socketView`, `indentView`, `blockView`, and `segmentView` extend.
+    # Contains function for dealing with multiple children, making polygons to wrap
+    # multiple lines, etc.
     class ContainerView extends GenericView
       constructor: (@model, @self) ->
         super
-
+      
+      # ## computeChildren
+      # Figure out which children lie on each line
       computeChildren: ->
         # If we can, use our cached information.
         if @versions.children is @model.version then return @lineLength
@@ -912,29 +1111,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           return null
       drawSelf: (ctx, style) -> null
       draw: (ctx, boundingRect, style) ->
-        if @totalBounds.overlap boundingRect
-          style ?= defaultStyleObject()
-
-          if @model.isLassoSegment then style.selected++
-
-          if @model.ephemeral and @self.opts.respectEphemeral
-            style.grayscale++
-
-          @drawSelf ctx, style
-
-          # Draw our children
-          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
-            @self.getViewFor(childObj.child).draw ctx, boundingRect, style
-          
-          # Draw marked blocks last, so that they
-          # appear on top.
-          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
-            @self.getViewFor(childObj.child).draw ctx, boundingRect, style
-
-          if @model.ephemeral and @self.opts.respectEphemeral
-            style.grayscale--
-          if @model.isLassoSegment then style.selected--
-        return null
+        if @model.isLassoSegment then style.selected++
+        super
+        if @model.isLassoSegment then style.selected--
 
     class TextView extends GenericView
       constructor: (@model, @self) -> super
@@ -996,20 +1175,27 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return @dimensions
       
       computeBoundingBox: ->
-
-    getViewFor: (model) ->
-      if model.id of @map
-        return @map[model.id]
-      else
-        return @createView(model)
-
-    createView: (model) ->
-      switch model.type
-        when 'text' then new TextView model, this
-        when 'block' then new BlockView model, this
-        when 'indent' then new IndentView model, this
-        when 'socket' then new SocketView model, this
-        when 'segment' then new SegmentView model, this
-        when 'cursor' then new CursorView model, this
+  
+  # ## Grayscale
+  # Brings a colour closer to gray,
+  # for the gray-out effect when dragging or
+  # having floating blocks.
+  grayscale = (hex) ->
+    # Convert to 6-char hex if not already there
+    if hex.length is 4
+      hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
+    
+    # Extract integers from hex
+    r = parseInt hex[1..2], 16
+    g = parseInt hex[3..4], 16
+    b = parseInt hex[5..6], 16
+    
+    # Average with gray
+    r = Math.round (r + 128) / 2
+    g = Math.round (g + 128) / 2
+    b = Math.round (b + 128) / 2
+    
+    # Reassemble hex string
+    return '#' + r.toString(16) + g.toString(16) + b.toString(16)
 
   return exports
