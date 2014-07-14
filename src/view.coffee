@@ -4,10 +4,10 @@
 # MIT License
 
 define ['ice-draw', 'ice-model'], (draw, model) ->
-  NO_INDENT = 0
-  INDENT_START = 1
-  INDENT_MIDDLE = 2
-  INDENT_END = 3
+  NO_MULTILINE = 0
+  MULTILINE_START = 1
+  MULTILINE_MIDDLE = 2
+  MULTILINE_END = 3
 
   YES = -> yes
   NO = -> no
@@ -75,7 +75,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @lineLength = 0 # How many lines does this take up?
         @children = [] # All children, flat
         @lineChildren = [] # Children who own each line
-        @indentData = [] # Where do indents start/end?
+        @multilineChildrenData = [] # Where do indents start/end?
 
         # *Second pass variables*
         @dimensions = [] # Dimensions on each line
@@ -168,6 +168,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         
         return @bounds[line]
       
+      # ## computeAllBoundingBoxX
+      # Call `@computeBoundingBoxX` on all lines,
+      # thus laying out the entire document horizontally.
+      computeAllBoundingBoxX: (left = 0) ->
+        for size, line in @dimensions
+          @computeBoundingBoxX left, line
+
+        return @bounds
+      
       # ## computeGlue
       # If there are disconnected bounding boxes
       # that belong to the same block,
@@ -208,6 +217,19 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @bounds[line]
       
+      # ## computeAllBoundingBoxY
+      # Call `@computeBoundingBoxY` on all lines,
+      # thus laying out the entire document vertically.
+      #
+      # Account for glue spacing between lines.
+      computeAllBoundingBoxY: (top = 0) ->
+        for size, line in @dimensions
+          @computeBoundingBoxY top, line
+          top += size.height
+          if line of @glue then top += @glue[line].height
+
+        return @bounds
+      
       # ## getBounds
       # Deprecated. Access `@totalBounds` directly instead.
       getBounds: -> @totalBounds
@@ -245,7 +267,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @computeOwnPath()
           
           # Recompute `totalBounds`, which is used
-          # to avoid re**drawing** polygons that
+          # to avoid re*drawing* polygons that
           # are not on-screen. `totalBounds` is the AABB
           # of the everything that has to do with the element,
           # and we redraw iff it overlaps the AABB of the viewport.
@@ -357,7 +379,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # A super-simplified bounding box algorithm
       # made just to show dimensions in context.
       debugDimensions: (x, y, line, ctx) ->
-        # Draw a rectangle with out dimensions
+        # Draw a rectangle with our dimensions
         ctx.fillStyle = '#00F'
         ctx.strokeStyle = '#000'
         ctx.lineWidth = 1
@@ -416,31 +438,40 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         super
       
       # ## computeChildren
-      # Figure out which children lie on each line
+      # Figure out which children lie on each line,
+      # and compute `@multilineChildrenData` simultaneously.
+      #
+      # We will do this by going to all of our immediate children,
+      # recursing, then calculating their starting and ending lines
+      # based on their computing line lengths.
       computeChildren: ->
         # If we can, use our cached information.
-        if @versions.children is @model.version then return @lineLength
-        else @versions.children = @model.version
+        if @versions.children is @model.version
+          return @lineLength
+        
+        # Update our version number
+        @versions.children = @model.version
 
         # Otherwise, recompute.
         @lineLength = 0
         @lineChildren = [[]]
         @children = []
-        @indentData = []
+        @multilineChildrenData = []
 
         line = 0
         
+        # Go to all our immediate children.
         @model.traverseOneLevel (head, isContainer) =>
-          # Advance our line counter
-          # if we encounter a newline.
+          # If the child is a newline, simply advance the
+          # line counter.
           if head.type is 'newline'
             line += 1
             @lineChildren[line] ?= []
           
+          # Otherwise, get the view object associated
+          # with this model, and ask it to
+          # compute children.
           else
-            # Get the view object associated
-            # with this model, and ask it to
-            # compute children.
             view = @self.getViewFor(head)
             childLength = view.computeChildren()
             
@@ -451,30 +482,32 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               startLine: line
               endLine: line + childLength - 1
             
-            # Populate @children
+            # Put it into `@children`.
             @children.push childObject
             
-            # Populate @lineChildren
+            # Put it into `@lineChildren`.
             for i in [line...line + childLength]
               @lineChildren[i] ?= []
-
+              
+              # We don't want to store cursor tokens
+              # in `@lineChildren`, as they are inconvenient
+              # to deal with in layout, which is the only
+              # thing `@lineChildren` is used for.
               unless head.type is 'cursor'
                 @lineChildren[i].push childObject
             
-            # If this object is an indent,
-            # then we know what we want our indent
-            # data to be
-            if view.lineLength > 1 #type is 'indent'
-              @indentData[line] = INDENT_START
-              @indentData[i] = INDENT_MIDDLE for i in [line + 1...line + childLength - 1]
-              @indentData[line + childLength - 1] = INDENT_END
-
-            # Otherwise, copy it.
-            else
-              @indentData[i] ?= view.indentData[i - line] for i in [line...line + childLength]
+            # If this object is a multiline child,
+            # update our multiline child data to reflect
+            # where it started and ended.
+            if view.lineLength > 1
+              @multilineChildrenData[line] = MULTILINE_START
+              @multilineChildrenData[i] = MULTILINE_MIDDLE for i in [line + 1...line + childLength - 1]
+              @multilineChildrenData[line + childLength - 1] = MULTILINE_END
             
             # Advance our line counter
-            # by however far our child dictates.
+            # by however long the child was
+            # (i.e. however many newlines
+            # we skipped).
             line += childLength - 1
 
         # Set @lineLength to reflect
@@ -490,21 +523,21 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @boundingBoxFlag = true
           @bounds = @bounds[...@lineLength]
         
-        # Fill in gaps in @indentData with NO_INDENT
-        @indentData[i] ?= NO_INDENT for i in [0...@lineLength]
+        # Fill in gaps in @multilineChildrenData with NO_MULTILINE
+        @multilineChildrenData[i] ?= NO_MULTILINE for i in [0...@lineLength]
 
         return @lineLength
       
       # ## computeDimensions
-      # Compute the size of our bounding box on each line
+      # Compute the size of our bounding box on each line.
       computeDimensions: ->
         # If we can, use cached data.
         if @versions.dimensions is @model.version
           return @dimensions
         
+        # Update our version number.
         @versions.dimensions = @model.version
         
-        # Otherwise, recompute.
         @dimensions = (new draw.Size(
             @padding,
             2 * @padding
@@ -542,15 +575,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               # Unless we are in the middle of an indent,
               # add padding on the right of the child
               @dimensions[desiredLine].width += size.width +
-                (if @indentData[desiredLine] is INDENT_MIDDLE then 0 else @padding)
+                (if @multilineChildrenData[desiredLine] is MULTILINE_MIDDLE then 0 else @padding)
 
               # If we are on a normal line, add padding on top and bottom.
               # If we are at the end of an indent, add padding on bottom.
               # Otherwise (in the middle of in an indent), add no padding.
               @dimensions[desiredLine].height = Math.max @dimensions[desiredLine].height,
                 size.height +
-                (if @indentData[desiredLine] in [NO_INDENT, INDENT_START] then 2 * @padding
-                else if @indentData[desiredLine] is INDENT_END then @padding
+                (if @multilineChildrenData[desiredLine] in [NO_MULTILINE, MULTILINE_START] then 2 * @padding
+                else if @multilineChildrenData[desiredLine] is MULTILINE_END then @padding
                 else 0)
         
         # If there are any empty lines,
@@ -564,13 +597,25 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return @dimensions
 
       # ## computeBoundingBoxX
+      # Layout bounding box positions horizontally.
+      # This needs to be separate from y-coordinate computation
+      # because of glue spacing (the space between lines
+      # that keeps weird-shaped blocks continuous), which 
+      # can shift y-coordinates around.
       computeBoundingBoxX: (left, line) ->
+        # Use cached data if possible
         if @versions.bounds_x[line] is @model.version and
            left is @bounds[line]?.x
           return @bounds[line]
         
+        # Update our version number
         @versions.bounds_x[line] = @model.version
         
+        # If the bounding box we're being asked
+        # to layout is exactly the same,
+        # avoid setting `@boundingBoxFlag`
+        # for performance reasons (also, trivially, 
+        # avoid changing bounding box coords).
         unless @bounds[line]?.x is left and
            @bounds[line]?.width is @dimensions[line].width
 
@@ -587,10 +632,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           @boundingBoxFlag = true
         
-        # Ask all our children to compute bounding
-        # boxes as well.
+        # Now recurse. We will keep track
+        # of a "cursor" as we go along,
+        # placing children down and
+        # adding padding and sizes
+        # to make them not overlap.
         childLeft = left + @padding
         
+        # Get rendering info on each of these children
         for lineChild, i in @lineChildren[line]
           childView = @self.getViewFor lineChild.child
           childLine = line - lineChild.startLine
@@ -605,69 +654,121 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             childView.computeBoundingBoxX childLeft + @self.opts.indentWidth, childLine
             
             childLeft += @self.opts.indentWidth + childView.dimensions[childLine].width
+
+          # Normally, we will just lay down the child box
+          # and keep moving.
           else
             childView.computeBoundingBoxX childLeft, childLine
 
             childLeft += @padding + childView.dimensions[childLine].width
-
+        
+        # Return the bounds we just 
+        # computed.
         return @bounds[line]
       
-      # ## computeAllBoundingBoxX
-      computeAllBoundingBoxX: (left = 0) ->
-        for size, line in @dimensions
-          @computeBoundingBoxX left, line
-
-        return @bounds
-      
       # ## computeGlue
+      # Compute the necessary glue spacing between lines.
+      #
+      # If a block has disconnected blocks, e.g.
+      # ```
+      # someLongFunctionName '''hello
+      # world'''
+      # ```
+      #
+      # it requires glue spacing. Then, any surrounding blocks
+      # must add their padding to that glue spacing, until we
+      # reach an Indent, at which point we can stop.
+      #
+      # Parents outside the indent must stil know that there is
+      # a space between these line, but they wil not have
+      # to colour in that space. This will be flaged
+      # by the `draw` flag on the glue objects.
       computeGlue: ->
+        # Use our cache if possible
         if @versions.glue is @model.version and not @boundingBoxFlag
           return @glue
         
+        # Update our version number
         @versions.glue = @model.version
-
+        
+        # Immediately recurse, as we will
+        # need to know child glue info in order
+        # to compute our own (adding padding, etc.).
         for childObj in @children
           @self.getViewFor(childObj.child).computeGlue()
-
+        
         @glue = {}
+        
+        # Go through every pair of adjacent bounding boxes
+        # to see if they overlap or not
+        for box, line in @bounds when line < @bounds.length - 1
+          # If there is an indent here, don't worry
+          # about overlap. We're guaranteed that 
+          # we overlap exactly on the left side of an indent.
+          unless @multilineChildrenData[line] is MULTILINE_MIDDLE
+            # Find the horizontal overlap between these two bounding rectangles,
+            # which is our right edge minus their left, or vice versa.
+            overlap = Math.min @bounds[line].right() - @bounds[line + 1].x, @bounds[line + 1].right() - @bounds[line].x
+            
+            # If we are starting an indent, then our "bounding box"
+            # on the next line is not actually how we will be visualized;
+            # instead, we must connect to the small rectangle
+            # on the left of a C-shaped indent thing. So,
+            # compute overlap with that as well.
+            if @multilineChildrenData[line] is MULTILINE_START
+              overlap = Math.min overlap, @bounds[line + 1].x + @self.opts.indentWidth - @bounds[line].x
+            
+            # If the overlap is too small, demand glue.
+            if overlap < @self.opts.padding and @model.type isnt 'indent'
+              @glue[line] ?= {
+                height: @self.opts.padding
+                draw: true
+              }
+          
+          # Now update our glue to account for children.
+          # If there is an indent between us and the child that
+          # needs glue, we can just mimic their glue spacing.
+          #
+          # If there is not, we will need to surround their glue
+          # with our padding glue, so we need to increase the 
+          # glue spacing by a padding amount.
+          for lineChild in @lineChildren[line]
+            childView = @self.getViewFor lineChild.child
+            childLine = line - lineChild.startLine
 
-        for box, line in @bounds
-          if @bounds[line + 1]?
-            unless @indentData[line] is INDENT_MIDDLE
-              overlap = Math.min @bounds[line].right() - @bounds[line + 1].x, @bounds[line + 1].right() - @bounds[line].x
+            if childLine of childView.glue
+              @glue[line] ?= {
+                height: childView.glue[childLine].height
+                draw: true
+              }
 
-              if @indentData[line] is INDENT_START
-                overlap = Math.min overlap, @bounds[line + 1].x + @self.opts.indentWidth - @bounds[line].x
+              # Either add padding or not, depending
+              # on whether there is an indent between us.
+              @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height +
+                (if @multilineChildrenData[line] is MULTILINE_MIDDLE then 0 else @padding)
               
-              if overlap < @self.opts.padding and @model.type isnt 'indent'
-                @glue[line] ?= {
-                  height: @self.opts.padding
-                  draw: true
-                }
-
-            for lineChild in @lineChildren[line]
-              childView = @self.getViewFor lineChild.child
-              childLine = line - lineChild.startLine
-
-              if childLine of childView.glue
-                @glue[line] ?= {
-                  height: childView.glue[childLine].height
-                  draw: true
-                }
-                @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height +
-                  (if @indentData[line] is INDENT_MIDDLE then 0 else @padding)
-                @glue[line].draw = @indentData[line] isnt INDENT_MIDDLE
-
+              # Set the `draw` flag iff there is no indent between us.
+              @glue[line].draw = @multilineChildrenData[line] isnt MULTILINE_MIDDLE
+        
+        # Return the glue we just computed.
         return @glue
 
       # ## computeBoundingBoxY
+      # Layout a line vertically.
       computeBoundingBoxY: (top, line) ->
+        # Use our cache if possible.
         if @versions.bounds_y[line] is @model.version and
            top is @bounds[line]?.y
           return @bounds[line]
-
+        
+        # Update our version number.
         @versions.bounds_y[line] = @model.version
-
+        
+        # Avoid setting `@boundingBoxFlag` if our
+        # bounding box has not actually changed,
+        # for performance reasons. (Still need to
+        # recurse, in case children have changed
+        # but not us)
         unless @bounds[line]?.y is top and
            @bounds[line]?.height is @dimensions[line].height
 
@@ -677,30 +778,37 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @bounds[line].height = @dimensions[line].height
 
           @boundingBoxFlag = true
-
+        
+        # We will center the children vertically along this
+        # `axis`, which is the middle of our
+        # bounding box.
         axis = top + @dimensions[line].height / 2
-
+        
+        # Go to each child and lay them out
+        # so that their center lies
+        # along our center, the axis.
         for lineChild, i in @lineChildren[line]
           childView = @self.getViewFor lineChild.child
           childLine = line - lineChild.startLine
-
-          if (lineChild.child.type is 'indent') or (@indentData[line] is INDENT_END and i is 0)
+          
+          # Exception: if an indent is ending on this line,
+          # it must stick to the top of the line. Thus instead of
+          # putting its center on ours, we put its top on ours.
+          if (lineChild.child.type is 'indent') or (@multilineChildrenData[line] is MULTILINE_END and i is 0)
             childView.computeBoundingBoxY top, childLine
+          
+          # Otherwise, match centers.
           else
             childView.computeBoundingBoxY axis - childView.dimensions[childLine].height / 2, childLine
         
+        # Return the bounds we just computed.
         return @bounds[line]
 
-      # ## computeAllBoundingBoxY
-      computeAllBoundingBoxY: (top = 0) ->
-        for size, line in @dimensions
-          @computeBoundingBoxY top, line
-          top += size.height
-          if line of @glue then top += @glue[line].height
-
-        return @bounds
-      
       # ## layout
+      # Run all of these layout steps in order.
+      #
+      # Takes two arguments, which can be changed
+      # to translate the entire document from the upper-left corner.
       layout: (left = 0, top = 0) ->
         @computeChildren()
         @computeDimensions()
@@ -710,19 +818,29 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @computePath()
         @computeDropAreas()
 
-        @boundingBoxFlag = false
-
         return null
+      
+      # ## computeOwnPath
+      # Using bounding box data, compute the polygon
+      # that represents us. This contains a lot of special cases
+      # for glue and multiline starts and ends.
 
       computeOwnPath: ->
         # There are four kinds of line,
         # for the purposes of computing the path.
         #
         # 1. Normal block line; we surround the bounding rectangle.
-        # 2. Beginning of an Indent. Currently we treat this as nothing. TODO. Allow some kind of gravity-bottom hook thing.
-        # 3. Middle or beginning of an Indent. We avoid to the left side.
-        # 4. End of an Indent. We make a tounge, and, if necessary,
-        #    a hook-shaped thing off the right end.
+        # 2. Beginning of a multiline block. Avoid that block on the right and bottom.
+        # 3. Middle of a multiline block. We avoid to the left side
+        # 4. End of a multiline block. We make a G-shape if necessary. If it is an Indent,
+        #    this will leave a thick tounge due to things done in dimension
+        #    computation.
+
+        # We will keep track of two sets of coordinates,
+        # the left side of the polygon and the right side.
+        #
+        # At the end, we will reverse `left` and concatenate these
+        # so as to create a counterclockwise path.
         left = []
         right = []
         
@@ -730,43 +848,61 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # at the top.
         if @shouldAddTab()
           @addTab left, new draw.Point @bounds[0].x, @bounds[0].y
-
+        
         for bounds, line in @bounds
-          if @indentData[line] is NO_INDENT
+          
+          # Case 1. Normal rendering.
+          if @multilineChildrenData[line] is NO_MULTILINE
+            # Draw the left edge of the bounding box.
             left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
 
+            # Draw the right edge of the bounding box.
             right.push new draw.Point bounds.right(), bounds.y
             right.push new draw.Point bounds.right(), bounds.bottom()
-
-          if @indentData[line] is INDENT_START
-            indentChild = @lineChildren[line][@lineChildren[line].length - 1]
-            indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
-
+          
+          # Case 2. Start of a multiline block.
+          if @multilineChildrenData[line] is MULTILINE_START
+            # Draw the left edge normally.
             left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
 
+            # Find the multiline child that's starting on this line,
+            # so that we can know its bounds
+            multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
+            multilineBounds = @self.getViewFor(mutilineChild.child).bounds[line - multilineChild.startLine]
+
+            # Draw the upper-right corner
             right.push new draw.Point bounds.right(), bounds.y
-            if indentBounds.width > 0
-              right.push new draw.Point bounds.right(), indentBounds.y
-              right.push new draw.Point indentBounds.x, indentBounds.y
-              right.push new draw.Point indentBounds.x, bounds.bottom()
-            else
+
+            # If the multiline child here is invisible,
+            # draw the line just normally.
+            if indentBounds.width is 0
               right.push new draw.Point bounds.right(), bounds.bottom()
+            
+            # Otherwise, avoid the block by tracing out its
+            # top and left edges, then going to our bound's bottom.
+            else
+              right.push new draw.Point bounds.right(), multilineBounds.y
+              right.push new draw.Point multilineBounds.x, multilineBounds.y
+              right.push new draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 3. Middle of an indent.
-          if @indentData[line] is INDENT_MIDDLE
-
+          if @multilineChildrenData[line] is MULTILINE_MIDDLE
+            # Draw the left edge normally.
             left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
-
+            
+            # Draw the right edge straight down,
+            # exactly `@self.opts.indentWidth + @padding` away from
+            # the left edge, for the edge of the C-shape.
             right.push new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.y
             right.push new draw.Point bounds.x + @self.opts.indentWidth + @padding,
               bounds.bottom()
           
           # Case 4. End of an indent.
-          if @indentData[line] is INDENT_END
+          if @multilineChildrenData[line] is MULTILINE_END
             left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
             
@@ -792,42 +928,74 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             right.push new draw.Point bounds.right(), bounds.bottom()
 
           # "Glue" phase
-
+          # Here we use our glue spacing data
+          # to draw glue, if necessary.
+          #
+          # If we are being told to draw some glue here,
+          # do so.
           if line of @glue and @glue[line].draw
-            glueAxis = @bounds[line + 1].y - @glue[line].height
+            # Extract information from the glue spacing
+            # and bounding box data combined.
+            #
+            # `glueTop` will be the top of the "glue" box.
+            # `leftmost` and `rightmost` are the leftmost
+            # and rightmost extremes of this and the next line's
+            # bounding boxes.
+            glueTop = @bounds[line + 1].y - @glue[line].height
             leftmost = Math.min @bounds[line + 1].x, @bounds[line].x
             rightmost = Math.max @bounds[line + 1].right(), @bounds[line].right()
-
-            left.push new draw.Point @bounds[line].x, glueAxis
-            left.push new draw.Point leftmost, glueAxis
+            
+            # Bring the left down to the glue top line, then down to the
+            # level of the next line's bounding box. This prepares
+            # it to go straight horizontally over
+            # to the top of the next bounding box,
+            # once the loop reaches that point.
+            left.push new draw.Point @bounds[line].x, glueTop
+            left.push new draw.Point leftmost, glueTop
             left.push new draw.Point leftmost, @bounds[line + 1].y
             
-            unless @indentData[line] is INDENT_START
+            # Do the same for the right side, unless we can't
+            # because we're avoiding intersections with a multiline child that's
+            # in the way.
+            unless @multilineChildrenData[line] is MULTILINE_START
               right.push new draw.Point @bounds[line].right(), glueAxis
               right.push new draw.Point rightmost, glueAxis
               right.push new draw.Point rightmost, @bounds[line + 1].y
-
-          else if @bounds[line + 1]? and @indentData[line] isnt INDENT_MIDDLE
+          
+          # Otherwise, bring us gracefully to the next line
+          # without lots of glue (minimize the extra colour).
+          else if @bounds[line + 1]? and @multilineChildrenData[line] isnt MULTILINE_MIDDLE
+            # Instead of outward extremes, we take inner extremes this time,
+            # to minimize extra colour between lines.
             innerLeft = Math.max @bounds[line + 1].x, @bounds[line].x
             innerRight = Math.min @bounds[line + 1].right(), @bounds[line].right()
-
+            
+            # Drop down to the next line on the left, minimizing extra colour
             left.push new draw.Point innerLeft, @bounds[line].bottom()
             left.push new draw.Point innerLeft, @bounds[line + 1].y
-
-            unless @indentData[line] is INDENT_START
+            
+            # Do the same on the right, unless we need to avoid
+            # a multiline block that's starting here.
+            unless @multilineChildrenData[line] is MULTILINE_START
               right.push new draw.Point innerRight, @bounds[line].bottom()
               right.push new draw.Point innerRight, @bounds[line + 1].y
           
-          if @indentData[line] is INDENT_START
-            indentChild = @lineChildren[line][@lineChildren[line].length - 1]
-            indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
+          # If we're avoiding intersections with a multiline child in the way,
+          # bring us gracefully to the next line's top. We had to keep avoiding
+          # using bounding box right-edge data earlier, because it would have overlapped;
+          # instead, we want to use the left edge of the multiline block that's
+          # starting here.
+          if @multilineChildrenData[line] is MULTILINE_START
+            multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
+            multilineBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
             
-            right.push new draw.Point indentBounds.x, @bounds[line].bottom()
-            right.push new draw.Point indentBounds.x, @bounds[line + 1].y
+            right.push new draw.Point multilineBounds.x, @bounds[line].bottom()
+            right.push new draw.Point multilineBounds.x, @bounds[line + 1].y
 
-
-          # Add the top tab of the indent if necessary
-          if @indentData[line] is INDENT_START and @lineChildren[line][@lineChildren[line].length - 1].child.type is 'indent'
+          # Add the top tab of the indent if necessary. This only occurs
+          # when the last child on this line is an actual Indent node.
+          if @multilineChildrenData[line] is MULTILINE_START and
+             @lineChildren[line][@lineChildren[line].length - 1].child.type is 'indent'
             @addTab right, new draw.Point(@bounds[line + 1].x + @self.opts.indentWidth + @padding, @bounds[line + 1].y), true
 
         # If necessary, add tab
@@ -835,42 +1003,67 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         if @shouldAddTab()
           @addTab right, new draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
         
+        # Reverse the left and concatenate it with the right
+        # to make a counterclockwise path
         path = left.reverse().concat right
-
-        @path = new draw.Path()
-
-        @path.push el for el in path
-
+        
+        # Make a Path object out of these points
+        @path = new draw.Path(); @path.push el for el in path
+        
+        # Return it.
         return @path
       
       # ## addTab
-      addTab: (array, point, invert = false) ->
+      # Add the tab graphic to a path in a given location.
+      addTab: (array, point) ->
+        # Rightmost point of the tab, where it begins to dip down.
         array.push new draw.Point(point.x + @self.opts.tabOffset + @self.opts.tabWidth,
           point.y)
+        # Dip down.
         array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * (1 - @self.opts.tabSideWidth),
           point.y + @self.opts.tabHeight
+        # Bottom plateau.
         array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * @self.opts.tabSideWidth,
           point.y + @self.opts.tabHeight
+        # Rise back up.
         array.push new draw.Point point.x + @self.opts.tabOffset,
           point.y
+        # Move over to the given corner itself.
         array.push point
       
+      # ## computeOwnDropArea
+      # By default, we will not have a
+      # drop area (not be droppable).
       computeOwnDropArea: -> @dropArea = @highlightArea = null
-      shouldAddTab: NO
 
+      # ## shouldAddTab
+      # By default, we will ask
+      # not to have a tab.
+      shouldAddTab: NO
+      
+      # ## drawSelf
+      # Draw our path, with applied
+      # styles if necessary.
       drawSelf: (ctx, style) ->
+        # Upon grayscale style,
+        # apply the gray-out effect
+        # (temporarily).
         if style.grayscale > 0
           oldFill = @path.style.fillColor
           @path.style.fillColor = grayscale oldFill
 
           @path.draw ctx
-
+          
+          # Unset all the things we changed
           @path.style.fillColor = oldFill
-
-        else
+        
+        # Upon selected style,
+        # draw a transparent blue
+        # polygon over the normally-rendered
+        # path (to give "selected" feel).
+        else if style.selected > 0
           @path.draw ctx
 
-        if style.selected > 0
           oldFill = @path.style.fillColor
           @path.style.fillColor = '#00F'
 
@@ -881,13 +1074,21 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           ctx.globalAlpha *= 0.3
 
           @path.draw ctx
-
+          
+          # Unset all the things we changed
           ctx.globalAlpha = oldAlpha
           @path.style.fillColor = oldFill
           @path.style.strokeColor = oldStroke
+        
+        # Normally, just draw the path.
+        else
+          @path.draw ctx
 
         return null
-
+      
+      # ## drawShadow
+      # Draw the drop-shadow of the path on the given
+      # context.
       drawShadow: (ctx, x, y) ->
         @path.drawShadow ctx, x, y, @self.opts.shadowBlur
         
@@ -895,7 +1096,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @self.getViewFor(childObj.child).drawShadow ctx, x, y
 
         return null
-
+    
+    # # BlockView
     class BlockView extends ContainerView
       constructor: -> super
 
@@ -947,24 +1149,34 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @highlightArea.style.lineWidth = 1
         @highlightArea.style.strokeColor = '#fff'
         @highlightArea.style.fillColor = '#fff'
-      
+    
+    # # SocketView
     class SocketView extends ContainerView
       constructor: -> super
 
       shouldAddTab: NO
-
+      
+      # ## computeDimensions
+      # Sockets have a couple exceptions to normal dimension computation.
+      #
+      # 1. Empty sockets have size.
+      # 2. Sockets containing blocks mimic the block exactly.
       computeDimensions: ->
-        if @versions.dimensions is @model.version then return @bounds
-        else @versions.dimensions = @model.version
+        # Use cache if possible.
+        if @versions.dimensions is @model.version
+          return @bounds
         
-        # An empty Socket should have some size
+        # Update version number.
+        @versions.dimensions = @model.version
+        
+        # 1. An empty Socket should have some size
         if @model.start.nextVisibleToken() is @model.end
           @dimensions = [
             new draw.Size(@self.opts.emptySocketWidth,
               @self.opts.emptySocketHeight)
           ]
 
-        # A Socket should copy its content
+        # 2. A Socket should copy its content
         # block, if there is a content block
         else if @model.start.next.type is 'blockStart'
           @padding = 0
@@ -978,29 +1190,20 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         else
           @padding = @self.opts.padding
           # Decrement dimension version number
-          # to force super to render
+          # to force super to recompute
           @versions.dimensions--
 
           super
-
-      computeGlue: ->
-        if @versions.glue is @model.version and not @boundingBoxFlag
-          return @glue
-        
-        @versions.glue = @model.version
-
-        if @model.start.next.type is 'blockStart'
-          view = @self.getViewFor @model.start.next.container
-          @glue = view.computeGlue()
-        else
-          @versions.glue--
-
-          super
-
+      
+      # ## computeBoundingBoxX
       computeBoundingBoxX: (left, line) ->
+        # Use cache if possible.
         if @versions.bounds_x[line] is @model.version and
            left is @bounds[line]?.x
           return @bounds[line]
+        
+        # Update version number.
+        @versions.bounds_x = @model.version
         
         # A Socket should copy its content
         # block, if there is a content block
@@ -1009,16 +1212,53 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @self.getViewFor(@model.start.next.container).computeBoundingBoxX left, line
 
           @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
-
+        
+        # Otherwise, decrement to force super to recompute,
+        # and call super.
         else
+          @versions.bounds_x[line]--
+
           super
 
         return @bounds[line]
       
+      # ## computeGlue
+      # Sockets have one exception to normal glue spacing computation:
+      # sockets containing a block should **not** add padding to
+      # the glue.
+      computeGlue: ->
+        # Use cache if possible
+        if @versions.glue is @model.version and not @boundingBoxFlag
+          return @glue
+        
+        # Update our version number.
+        @versions.glue = @model.version
+        
+        # Do not add padding to the glue
+        # if our child is a block.
+        if @model.start.next.type is 'blockStart'
+          view = @self.getViewFor @model.start.next.container
+          @glue = view.computeGlue()
+
+        # Otherwise, decrement the glue version
+        # to force super to recompute,
+        # and call super.
+        else
+          @versions.glue--
+
+          super
+
+      # ## computeBoundingBoxY
+      # Again exception: sockets containing block
+      # should mimic blocks exactly.
       computeBoundingBoxY: (top, line) ->
+        # Use cache if possible.
         if @versions.bounds_y[line] is @model.version and
            top is @bounds[line]?.y
           return @bounds[line]
+        
+        # Update version number.
+        @versions.bounds_y = @model.version
         
         # A Socket should copy its content
         # block, if there is a content block
@@ -1028,23 +1268,55 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
 
+        # Otherwise, decrement to force super to recompute,
+        # and call super.
         else
+          @versions.bounds_y--
+
           super
 
         return @bounds[line]
-
+      
+      # ## computeOwnPath
+      # Again exception: sockets containing block
+      # should mimic blocks exactly.
+      #
+      # Under normal circumstances this shouldn't
+      # actually be an issue, but if we decide
+      # to change the Block's path,
+      # the socket should not have stuff sticking out,
+      # and should hit-test properly.
       computeOwnPath: ->
+        # Use cache if possible.
+        if @versions.path is @model.version and
+           not @boundingBoxFlag
+          return @path
+        
+        # Update our version number.
+        @versions.path = @model.version
+
         if @model.start.next.type is 'blockStart'
           view = @self.getViewFor @model.start.next.container
           @path = view.computeOwnPath().clone()
+        
+        # Otherwise, call super.
         else
-          super
+          @versions.path--
 
+          super
+        
+        # Make ourselves white, with a
+        # gray border.
         @path.style.fillColor = '#FFF'
         @path.style.strokeColor = '#888'
 
         return @path
-
+      
+      # ## computeOwnDropArea
+      # Socket drop areas are actually the same
+      # shape as the sockets themselves, which
+      # is different from most other
+      # things.
       computeOwnDropArea: ->
         if @model.start.next.type is 'blockStart'
           @dropArea = @highlightArea = null
@@ -1053,7 +1325,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @highlightArea = @path.clone()
           @highlightArea.style.strokeColor = '#FFF'
           @highlightArea.style.lineWidth = @self.opts.padding
-
+    
+    # # IndentView
     class IndentView extends ContainerView
       constructor: -> super; @padding = 0
       computeOwnPath: -> @path = new draw.Path()
@@ -1092,7 +1365,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @highlightArea.style.lineWidth = 1
         @highlightArea.style.strokeColor = '#fff'
         @highlightArea.style.fillColor = '#fff'
-
+    
+    # # SegmentView
     class SegmentView extends ContainerView
       constructor: -> super; @padding = 0
       computeOwnPath: -> @path = new draw.Path()
@@ -1128,7 +1402,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       constructor: (@model, @self) -> super
 
       computeChildren: ->
-        @indentData = [0]
+        @multilineChildrenData = [0]
         return 1
       
       computeDimensions: ->
@@ -1171,12 +1445,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         ctx.globalAlpha = 1
         @textElement.draw ctx
         ctx.globalAlpha = 0.1
-
+    
+    # # CursorView
+    # The Cursor should not be render by the standard view.
+    # Thus everything here is a no-op.
     class CursorView extends GenericView
       constructor: (@model, @self) -> super
 
       computeChildren: ->
-        @indentData = [0]
+        @multilineChildrenData = [0]
         return 1
       
       computeDimensions: ->
