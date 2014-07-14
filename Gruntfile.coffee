@@ -139,6 +139,6 @@ module.exports = (grunt) ->
         grunt.config 'qunit.all', ['test/' + testname + '.html']
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
-      grunt.task.run 'mocha_spawn:test'
+      grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
 
