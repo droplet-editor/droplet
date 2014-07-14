@@ -115,13 +115,17 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-docco'
 
-  grunt.registerTask 'default', ['coffee', 'docco', 'requirejs', 'concat']
-  grunt.registerTask 'all', ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
-  grunt.task.registerTask 'test', 'Run unit tests, or just one test.',
+  grunt.registerTask 'default',
+    ['coffee', 'docco', 'requirejs', 'concat', 'test']
+  grunt.registerTask 'all',
+    ['coffee', 'docco', 'requirejs', 'uglify', 'concat']
+  grunt.task.registerTask 'test',
+    'Run unit tests, or just one test.',
     (testname) ->
       if testname
         grunt.config 'qunit.all', ['test/' + testname + '.html']
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
-  grunt.registerTask 'testserver', ["watch:testserver"]
+  grunt.registerTask 'testserver',
+    ["watch:testserver"]
 
