@@ -7,6 +7,7 @@ requirejs.config
   baseUrl: __dirname
   paths:
     'ice-coffee': '../dist/ice'
+    'coffee-script': '../vendor/coffee-script.js'
 
 describe 'Parser unity', (done) ->
   coffee = null

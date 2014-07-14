@@ -25,7 +25,7 @@ module.exports = (grunt) ->
             (for x in grunt.file.expand('test/*.html')
               'http://localhost:8942/' + x)
 
-    mochaTest:
+    mocha_spawn:
       test:
         src: ['test/parserTest.js']
         options:
@@ -121,7 +121,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
   grunt.loadNpmTasks 'grunt-contrib-requirejs'
   grunt.loadNpmTasks 'grunt-contrib-qunit'
-  grunt.loadNpmTasks 'grunt-mocha-test'
+  grunt.loadNpmTasks 'grunt-mocha-spawn'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-docco'
@@ -139,6 +139,6 @@ module.exports = (grunt) ->
         grunt.config 'qunit.all', ['test/' + testname + '.html']
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
-      grunt.task.run 'mochaTest:test'
+      grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
 
