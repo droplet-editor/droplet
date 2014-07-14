@@ -425,14 +425,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         else @versions.children = @model.version
 
         # Otherwise, recompute.
-        line = 0
-        
-        # Reset fields
         @lineLength = 0
         @lineChildren = [[]]
         @children = []
         @indentData = []
 
+        line = 0
+        
         @model.traverseOneLevel (head, isContainer) =>
           # Advance our line counter
           # if we encounter a newline.
@@ -484,6 +483,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # what we just found out.
         @lineLength = line + 1
         
+        # If we have changed in line length,
+        # there has obviously been a bounding box change.
+        # The bounding box pass as it stands only deals
+        # with lines it knows exists, so we need to chop off
+        # the end of the array.
         if @bounds.length isnt @lineLength
           @boundingBoxFlag = true
           @bounds = @bounds[...@lineLength]
@@ -493,10 +497,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @lineLength
       
+      # ## computeDimensions
+      # Compute the size of our bounding box on each line
       computeDimensions: ->
         # If we can, use cached data.
-        if @versions.dimensions is @model.version then return @dimensions
-        else @versions.dimensions = @model.version
+        if @versions.dimensions is @model.version
+          return @dimensions
+        
+        @versions.dimensions = @model.version
         
         # Otherwise, recompute.
         @dimensions = (new draw.Size(
@@ -504,7 +512,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             2 * @padding
         ) for [0...@lineLength])
         
+        # Recurse on our children, updating
+        # our dimensions as we go to contain them.
         for childObject in @children
+          # Ask the child to compute dimensions
           dimensions = @self.getViewFor(childObject.child).computeDimensions()
           
           # We treat children differently if they are Indents,
@@ -529,23 +540,32 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           else
             for size, line in dimensions
               desiredLine = line + childObject.startLine
-        
+              
+              # Unless we are in the middle of an indent,
+              # add padding on the right of the child
               @dimensions[desiredLine].width += size.width +
                 (if @indentData[desiredLine] is INDENT_MIDDLE then 0 else @padding)
+
+              # If we are on a normal line, add padding on top and bottom.
+              # If we are at the end of an indent, add padding on bottom.
+              # Otherwise (in the middle of in an indent), add no padding.
               @dimensions[desiredLine].height = Math.max @dimensions[desiredLine].height,
                 size.height +
                 (if @indentData[desiredLine] in [NO_INDENT, INDENT_START] then 2 * @padding
                 else if @indentData[desiredLine] is INDENT_END then @padding
                 else 0)
-
+        
+        # If there are any empty lines,
+        # make them the height of an empty line
+        # as specified in View options.
         for children, line in @lineChildren
           if children.length is 0
             @dimensions[line].height = Math.max @dimensions[line].height, @self.opts.emptyLineHeight
         
+        # Return the dimensions we just calculated.
         return @dimensions
-        
-      getBounds: -> @totalBounds
 
+      # ## computeBoundingBoxX
       computeBoundingBoxX: (left, line) ->
         if @versions.bounds_x[line] is @model.version and
            left is @bounds[line]?.x
@@ -594,48 +614,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @bounds[line]
       
-      computeBoundingBoxY: (top, line) ->
-        if @versions.bounds_y[line] is @model.version and
-           top is @bounds[line]?.y
-          return @bounds[line]
-
-        @versions.bounds_y[line] = @model.version
-
-        unless @bounds[line]?.y is top and
-           @bounds[line]?.height is @dimensions[line].height
-
-          # Assign our own bounding box given
-          # this center-left coordinate
-          @bounds[line].y = top
-          @bounds[line].height = @dimensions[line].height
-
-          @boundingBoxFlag = true
-
-        axis = top + @dimensions[line].height / 2
-
-        for lineChild, i in @lineChildren[line]
-          childView = @self.getViewFor lineChild.child
-          childLine = line - lineChild.startLine
-
-          if (lineChild.child.type is 'indent') or (@indentData[line] is INDENT_END and i is 0)
-            childView.computeBoundingBoxY top, childLine
-          else
-            childView.computeBoundingBoxY axis - childView.dimensions[childLine].height / 2, childLine
-        
-        return @bounds[line]
-      
-      computeBoundingBox: (upperLeft, line) ->
-        @computeBoundingBoxX upperLeft.x, line
-        @computeBoundingBoxY upperLeft.y, line
-
-        return @bounds[line]
-      
+      # ## computeAllBoundingBoxX
       computeAllBoundingBoxX: (left = 0) ->
         for size, line in @dimensions
           @computeBoundingBoxX left, line
 
         return @bounds
-
+      
+      # ## computeGlue
       computeGlue: ->
         if @versions.glue is @model.version and not @boundingBoxFlag
           return @glue
@@ -676,6 +662,38 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @glue
 
+      # ## computeBoundingBoxY
+      computeBoundingBoxY: (top, line) ->
+        if @versions.bounds_y[line] is @model.version and
+           top is @bounds[line]?.y
+          return @bounds[line]
+
+        @versions.bounds_y[line] = @model.version
+
+        unless @bounds[line]?.y is top and
+           @bounds[line]?.height is @dimensions[line].height
+
+          # Assign our own bounding box given
+          # this center-left coordinate
+          @bounds[line].y = top
+          @bounds[line].height = @dimensions[line].height
+
+          @boundingBoxFlag = true
+
+        axis = top + @dimensions[line].height / 2
+
+        for lineChild, i in @lineChildren[line]
+          childView = @self.getViewFor lineChild.child
+          childLine = line - lineChild.startLine
+
+          if (lineChild.child.type is 'indent') or (@indentData[line] is INDENT_END and i is 0)
+            childView.computeBoundingBoxY top, childLine
+          else
+            childView.computeBoundingBoxY axis - childView.dimensions[childLine].height / 2, childLine
+        
+        return @bounds[line]
+
+      # ## computeAllBoundingBoxY
       computeAllBoundingBoxY: (top = 0) ->
         for size, line in @dimensions
           @computeBoundingBoxY top, line
@@ -683,7 +701,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           if line of @glue then top += @glue[line].height
 
         return @bounds
-
+      
+      # ## layout
       layout: (left = 0, top = 0) ->
         @computeChildren()
         @computeDimensions()
@@ -696,27 +715,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @boundingBoxFlag = false
 
         return null
-      
-      addTab: (array, point, invert = false) ->
-        array.push new draw.Point(point.x + @self.opts.tabOffset + @self.opts.tabWidth,
-          point.y)
-        array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * (1 - @self.opts.tabSideWidth),
-          point.y + @self.opts.tabHeight
-        array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * @self.opts.tabSideWidth,
-          point.y + @self.opts.tabHeight
-        array.push new draw.Point point.x + @self.opts.tabOffset,
-          point.y
-        array.push point
 
-      addRectilinear: (array, point, first = 'x') ->
-        if array.length > 0 and array[array.length - 1].x isnt point.x
-          if first is 'x'
-            array.push new draw.Point point.x, array[array.length - 1].y
-          else if first is 'y'
-            array.push new draw.Point array[array.length - 1].x, point.y
-
-        array.push point
-      
       computeOwnPath: ->
         # There are four kinds of line,
         # for the purposes of computing the path.
@@ -845,6 +844,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @path.push el for el in path
 
         return @path
+      
+      # ## addTab
+      addTab: (array, point, invert = false) ->
+        array.push new draw.Point(point.x + @self.opts.tabOffset + @self.opts.tabWidth,
+          point.y)
+        array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * (1 - @self.opts.tabSideWidth),
+          point.y + @self.opts.tabHeight
+        array.push new draw.Point point.x + @self.opts.tabOffset + @self.opts.tabWidth * @self.opts.tabSideWidth,
+          point.y + @self.opts.tabHeight
+        array.push new draw.Point point.x + @self.opts.tabOffset,
+          point.y
+        array.push point
       
       computeOwnDropArea: -> @dropArea = @highlightArea = null
       shouldAddTab: NO
