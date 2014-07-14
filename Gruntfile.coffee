@@ -23,6 +23,8 @@ module.exports = (grunt) ->
           urls:
             (for x in grunt.file.expand('test/*.html')
               'http://localhost:8942/' + x)
+          '--remote-debugger-port': '9000'
+          '--remote-debugger-autorun': 'yes'
 
     docco:
       debug:
