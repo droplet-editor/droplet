@@ -170,6 +170,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # This is a void computeDimensinos that should be overridden.
       computeDimensions: ->
         @dimensions[0] = new draw.Size 0, 0
+        @distanceToBase[0] = {above:0, below:0}
         return null
 
 

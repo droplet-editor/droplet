@@ -271,8 +271,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @clearMain()
 
       # Draw the new tree on the main context
-      @view.getViewFor(@tree).layout()
-      @view.getViewFor(@tree).draw @mainCtx, new draw.Rectangle(
+      @view.getViewNodeFor(@tree).layout()
+      @view.getViewNodeFor(@tree).draw @mainCtx, new draw.Rectangle(
         @scrollOffsets.main.x,
         @scrollOffsets.main.y,
         @mainCanvas.width,
@@ -315,7 +315,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       for paletteBlock in @currentPaletteBlocks
         # Layout this block
-        paletteBlockView = @view.getViewFor paletteBlock
+        paletteBlockView = @view.getViewNodeFor paletteBlock
         paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
         # Render the block
@@ -410,7 +410,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     head = block.start; seek = block.end
 
     until head is seek
-      if head.type is 'blockStart' and @view.getViewFor(head.container).path.contains point
+      if head.type is 'blockStart' and @view.getViewNodeFor(head.container).path.contains point
         seek = head.container.end
       head = head.next
 
@@ -421,7 +421,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # If we didn't have a child hit, it's possible
     # that _we_ are the innermost child that hit. See if that's
     # the case.
-    else if block.type is 'block' and @view.getViewFor(block).path.contains point
+    else if block.type is 'block' and @view.getViewNodeFor(block).path.contains point
       return block
 
     # Nope, it's not. Answer is null.
@@ -689,7 +689,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # NOTE: this really falls under "PALETTE SUPPORT", but must
       # go here. Try to organise this better.
       if @clickedBlockIsPaletteBlock
-        @draggingOffset = @view.getViewFor(@draggingBlock).bounds[0].upperLeftCorner().from(
+        @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToPalette(@clickedPoint))
 
         @draggingBlock = @draggingBlock.clone()
@@ -699,7 +699,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         # is needed to destroy it.
 
       else
-        @draggingOffset = @view.getViewFor(@draggingBlock).bounds[0].upperLeftCorner().from(
+        @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToMain(@clickedPoint))
 
       @draggingBlock.ephemeral = true
@@ -710,7 +710,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # When we are dragging things, we draw the shadow.
       # Also, we translate the block 1x1 to the right,
       # so that we can see its borders.
-      draggingBlockView = @dragView.getViewFor @draggingBlock
+      draggingBlockView = @dragView.getViewNodeFor @draggingBlock
       draggingBlockView.layout 1, 1
       draggingBlockView.drawShadow @dragCtx, 5, 5
       draggingBlockView.draw @dragCtx, new draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
@@ -747,7 +747,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       mainPoint = @trackerPointToMain(position)
 
       # If we are below the document, append to the document.
-      if mainPoint.y > @view.getViewFor(@tree).getBounds().bottom() and mainPoint.x > 0
+      if mainPoint.y > @view.getViewNodeFor(@tree).getBounds().bottom() and mainPoint.x > 0
         head = @tree.end
         until head.type is 'blockEnd' or head is @tree.start then head = head.prev
 
@@ -761,8 +761,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else if @draggingBlock.type is 'block'
         highlight = @tree.find ((block) =>
           (block.parent?.type isnt 'socket') and
-            @view.getViewFor(block).dropArea? and
-            @view.getViewFor(block).dropArea.contains mainPoint), [@draggingBlock]
+            @view.getViewNodeFor(block).dropArea? and
+            @view.getViewNodeFor(block).dropArea.contains mainPoint), [@draggingBlock]
 
       # If we are dragging a segment,
       # we also cannot drop ourselves
@@ -771,8 +771,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         highlight = @tree.find ((block) =>
           (block.type isnt 'socket') and
             (block.parent?.type isnt 'socket') and
-            @view.getViewFor(block).dropArea? and
-            @view.getViewFor(block).dropArea.contains mainPoint), [@draggingBlock]
+            @view.getViewNodeFor(block).dropArea? and
+            @view.getViewNodeFor(block).dropArea.contains mainPoint), [@draggingBlock]
 
       # For performance reasons,
       # we will only redraw the main canvas
@@ -785,7 +785,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clearHighlightCanvas()
 
         if highlight?
-          @view.getViewFor(highlight).highlightArea.draw @highlightCtx
+          @view.getViewNodeFor(highlight).highlightArea.draw @highlightCtx
 
         @lastHighlight = highlight
 
@@ -995,7 +995,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @mainCanvas.height
     )
     for record in @floatingBlocks
-      blockView = @view.getViewFor record.block
+      blockView = @view.getViewNodeFor record.block
       blockView.layout record.position.x, record.position.y
       blockView.draw @mainCtx, boundingRect
 
@@ -1118,7 +1118,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # TODO: this should be specified by the API user
       hoverDiv.title = block.stringify()
 
-      bounds = @view.getViewFor(block).getBounds()
+      bounds = @view.getViewNodeFor(block).getBounds()
 
       hoverDiv.style.top = "#{bounds.y}px"
       hoverDiv.style.left = "#{bounds.x}px"
@@ -1209,7 +1209,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # highlights.
     @redrawMain()
 
-    textFocusView = @view.getViewFor @textFocus
+    textFocusView = @view.getViewNodeFor @textFocus
 
     # Determine the coordinate positions
     # of the typing cursor
@@ -1336,7 +1336,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     head = block.start
     while head?
       if head.type is 'socketStart' and head.next.type in ['text', 'socketEnd'] and
-          @view.getViewFor(head.container).path.contains point
+          @view.getViewNodeFor(head.container).path.contains point
         return head.container
       head = head.next
 
@@ -1346,7 +1346,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # the text input selection, given
   # points on the main canvas.
   Editor::getTextPosition = (point) ->
-    textFocusView = @view.getViewFor @textFocus
+    textFocusView = @view.getViewNodeFor @textFocus
 
     row = Math.floor((point.y - textFocusView.bounds[0].y) / (@fontSize + 2 * @view.opts.padding))
 
@@ -1603,11 +1603,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @clearLassoSelectCanvas()
 
       first = @tree.start
-      until (not first?) or first.type is 'blockStart' and @view.getViewFor(first.container).path.intersects lassoRectangle
+      until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
         first = first.next
 
       last = @tree.end
-      until (not last?) or last.type is 'blockEnd' and @view.getViewFor(last.container).path.intersects lassoRectangle
+      until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
         last = last.prev
 
       unless first? and last? then return
@@ -1714,14 +1714,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::determineCursorPosition = ->
     if @cursor? and @cursor.parent?
-      @view.getViewFor(@tree).layout()
+      @view.getViewNodeFor(@tree).layout()
 
       head = @cursor; line = 0
       until head is @cursor.parent.start
         head = head.prev
         line++ if head.type is 'newline'
 
-      bound = @view.getViewFor(@cursor.parent).bounds[line]
+      bound = @view.getViewNodeFor(@cursor.parent).bounds[line]
       if @cursor.nextVisibleToken()?.type is 'indentEnd' and
          @cursor.prev?.prev.type isnt 'indentStart' or
          @cursor.next is @tree.end
@@ -2107,13 +2107,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     until head is @tree.end
       switch head.type
         when 'text'
-          corner = @view.getViewFor(head).bounds[0].upperLeftCorner()
+          corner = @view.getViewNodeFor(head).bounds[0].upperLeftCorner()
 
           corner.x -= @scrollOffsets.main.x
           corner.y -= @scrollOffsets.main.y
 
           translationVectors.push (new draw.Point(state.x, state.y)).from(corner)
-          textElements.push @view.getViewFor head
+          textElements.push @view.getViewNodeFor head
 
           state.x += @mainCtx.measureText(head.value).width
 
@@ -2412,9 +2412,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @paletteScroller.style.height = "#{@paletteCanvas.offsetHeight}px"
 
   hook 'redraw_main', 0, ->
-    bounds = @view.getViewFor(@tree).getBounds()
+    bounds = @view.getViewNodeFor(@tree).getBounds()
     for record in @floatingBlocks
-      bounds.unite @view.getViewFor(record.block).getBounds()
+      bounds.unite @view.getViewNodeFor(record.block).getBounds()
 
     @mainScrollerStuffing.style.width = "#{bounds.right()}px"
     @mainScrollerStuffing.style.height = "#{bounds.bottom()}px"
@@ -2422,7 +2422,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'redraw_palette', 0, ->
     bounds = new draw.NoRectangle()
     for block in @currentPaletteBlocks
-      bounds.unite @view.getViewFor(block).getBounds()
+      bounds.unite @view.getViewNodeFor(block).getBounds()
 
     # For now, we will comment out this line
     # due to bugs
@@ -2478,7 +2478,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     head = @tree.start
     until head is @tree.end
-      if head.type is 'mutationButton' and @view.getViewFor(head).bounds[0].contains mainPoint
+      if head.type is 'mutationButton' and @view.getViewNodeFor(head).bounds[0].contains mainPoint
         @addMicroUndoOperation new MutationButtonOperation head
         head.expand() #MUTATION
 
@@ -2497,7 +2497,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     if block?
       block.addLineMark style
-      @view.getViewFor(block).computeOwnPath()
+      @view.getViewNodeFor(block).computeOwnPath()
 
     @redrawMain()
 
@@ -2506,7 +2506,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     if block?
       block.removeLineMark tag
-      @view.getViewFor(block).computeOwnPath()
+      @view.getViewNodeFor(block).computeOwnPath()
 
     @redrawMain()
 
@@ -2524,7 +2524,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         else
           head.container.removeLineMark tag
 
-        @view.getViewFor(head.container).computeOwnPath()
+        @view.getViewNodeFor(head.container).computeOwnPath()
 
       head = head.next
 
@@ -2543,8 +2543,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       mainPoint = @trackerPointToMain point
 
       # Brute force find the hovered line
-      for line in [0...@view.getViewFor(@tree).lineLength]
-        if @view.getViewFor(@tree).bounds[line].contains mainPoint
+      for line in [0...@view.getViewNodeFor(@tree).lineLength]
+        if @view.getViewNodeFor(@tree).bounds[line].contains mainPoint
           # If the hovered line _changed_, fire the event
           if line isnt @lastHoveredLine then @fireEvent 'linehover', [line: line]
           @lastHoveredLine = line
@@ -2794,7 +2794,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # TODO possibly move this next utility function to view?
   Editor::mainViewOrChildrenContains = (model, point) ->
-    view = @view.getViewFor model
+    view = @view.getViewNodeFor model
 
     if view.path.contains point
       return true
