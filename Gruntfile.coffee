@@ -1,4 +1,5 @@
 child_process = require 'child_process'
+path = require 'path'
 
 module.exports = (grunt) ->
   grunt.initConfig
@@ -106,13 +107,15 @@ module.exports = (grunt) ->
           port: 8942
 
     watch:
+      options:
+        nospawn: true
       testserver:
         files: []
         tasks: ['connect:testserver']
         options: { atBegin: true, spawn: false }
       sources:
         files: ['src/*.coffee']
-        tasks: ['notify-begin', 'quickbuild', 'notify-done']
+        tasks: ['quickbuild']
 
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -141,7 +144,9 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
-  grunt.registerTask 'notify-begin', ->
-    child_process.spawn 'notify-send', ['Recompiling...', '--urgency=low']
-  grunt.registerTask 'notify-done', ->
-    child_process.spawn 'notify-send', ['Recompiled.', '--urgency=low']
+
+  grunt.event.on 'watch', (action, filepath) ->
+    if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
+      destination = (path.dirname(path.dirname(filepath)) + 'js/' + path.basename(filepath))
+      coffeeFiles = {}; coffeeFiles[destination] = filepath
+      grunt.config 'coffee.build.files', coffeeFiles

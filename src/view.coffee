@@ -1431,6 +1431,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # on all of its children during
       # the draw phase.
       draw: (ctx, boundingRect, style) ->
+        style ?= defaultStyleObject()
+
         if @model.isLassoSegment then style.selected++
         super
         if @model.isLassoSegment then style.selected--
