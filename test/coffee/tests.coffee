@@ -1,15 +1,15 @@
 require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
-  
+
   test 'Parser success', ->
     testString = (m, str, expected) ->
       strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
-    
+
     testString 'Function call',
       'fd 10', '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'
-    
+
     testString 'Variable assignment',
       'a = b', '<block color="#268bd2" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
-    
+
     testString 'If statement, normal form',
       '''
       if true
@@ -78,7 +78,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     testString 'Inverted one-line for-in',
       'fd 10 for i in list',
       '<block color="#daa520" precedence="0"><socket precedence="0"><block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
-    
+
     testString 'Semicolons at the root',
       'fd 10; bk 10',
       '<block color="#268bd2" precedence="0"><socket precedence="0">'+
@@ -278,7 +278,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
      .append(e).append(f)
 
     cont1.correctParentTree()
-    
+
     strictEqual a.parent, null, 'correctParentTree() output is correct (a)'
     strictEqual b.parent, cont1, 'correctParentTree() output is correct (b)'
     strictEqual c.parent, cont1, 'correctParentTree() output is correct (c)'
@@ -356,10 +356,8 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     strictEqual document.stringify(), '''
     console.log hello
     console.log world
-    for i in [1..10]
-      
-    ''', 'Move both out'
-    
+    for i in [1..10]\n  ''', 'Move both out'
+
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
 
     strictEqual document.stringify(), '''
@@ -391,14 +389,13 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
 
     strictEqual document.stringify(), '''
     Math.sqrt 2
-    see 1 + 
-    ''', 'Unwrap'
+    see 1 + ''', 'Unwrap'
 
   test 'View: compute children', ->
     view_ = new view.View
       padding: 5
       indentWidth: 10
-      indentToungeHeight: 10
+      indentTongueHeight: 10
       tabOffset: 10
       tabWidth: 15
       tabHeight: 5
@@ -415,14 +412,14 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     fd 10
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
     strictEqual documentView.lineChildren[0].length, 1, 'Children length 1 in `fd 10`'
     strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine(0), 'Child matches'
     strictEqual documentView.lineChildren[0][0].startLine, 0, 'Child starts on correct line'
 
-    blockView = view_.getViewFor document.getBlockOnLine 0
+    blockView = view_.getViewNodeFor document.getBlockOnLine 0
     strictEqual blockView.lineChildren[0].length, 2, 'Children length 2 in `fd 10` block'
     strictEqual blockView.lineChildren[0][0].child.type, 'text', 'First child is text'
     strictEqual blockView.lineChildren[0][1].child.type, 'socket', 'Second child is socket'
@@ -434,10 +431,10 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       fd 20
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    blockView = view_.getViewFor document.getBlockOnLine 0
+    blockView = view_.getViewNodeFor document.getBlockOnLine 0
     strictEqual blockView.lineChildren[1].length, 1, 'One child in indent'
     strictEqual blockView.lineChildren[2][0].startLine, 0, 'Indent start line'
     strictEqual blockView.multilineChildrenData[0], 1, 'Indent start data'
@@ -452,10 +449,10 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
         fd 20
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    indentView = view_.getViewFor document.getBlockOnLine(1).end.prev.container
+    indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
     strictEqual indentView.lineChildren[1][0].child.stringify(), 'fd 10', 'Relative line numbers'
 
     document = coffee.parse '''
@@ -463,10 +460,10 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       fd 10)
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    blockView = view_.getViewFor document.getBlockOnLine(0).start.next.next.container
+    blockView = view_.getViewNodeFor document.getBlockOnLine(0).start.next.next.container
 
     strictEqual blockView.lineChildren[1].length, 1, 'One child in indent in socket'
     strictEqual blockView.multilineChildrenData[1], 3, 'Indent end data'
@@ -475,7 +472,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     view_ = new view.View
       padding: 5
       indentWidth: 10
-      indentToungeHeight: 10
+      indentTongueHeight: 10
       tabOffset: 10
       tabWidth: 15
       tabHeight: 5
@@ -487,19 +484,19 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       emptyLineHeight: 25
       respectEphemeral: true
       ctx: window.document.querySelector('canvas').getContext('2d')
-    
+
     document = coffee.parse '''
     for [1..10]
       fd 10
       fd 20
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
     strictEqual documentView.dimensions[0].height, 15 + 6 * view_.opts.padding, 'First line height (block, 3 padding)'
     strictEqual documentView.dimensions[1].height, 15 + 4 * view_.opts.padding, 'Second line height (single block in indent)'
-    strictEqual documentView.dimensions[2].height, 15 + 4 * view_.opts.padding + view_.opts.indentToungeHeight, 'Third line height (indentEnd at root)'
+    strictEqual documentView.dimensions[2].height, 15 + 4 * view_.opts.padding + view_.opts.indentTongueHeight, 'Third line height (indentEnd at root)'
 
     document = coffee.parse '''
     fd (for [1..10]
@@ -507,20 +504,20 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       fd 20)
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
     strictEqual documentView.dimensions[0].height, 15 + 8 * view_.opts.padding, 'First line height (block, 4 padding)'
     strictEqual documentView.dimensions[1].height, 15 + 4 * view_.opts.padding, 'Second line height (single block in nested indent)'
-    strictEqual documentView.dimensions[2].height, 15 + 5 * view_.opts.padding + view_.opts.indentToungeHeight, 'Third line height (indentEnd with padding)'
+    strictEqual documentView.dimensions[2].height, 15 + 5 * view_.opts.padding + view_.opts.indentTongueHeight, 'Third line height (indentEnd with padding)'
 
     document = coffee.parse '''
     fd 10
-    
+
     fd 20
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
     strictEqual documentView.dimensions[1].height, view_.opts.emptyLineHeight, 'Renders empty lines'
@@ -529,7 +526,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     view_ = new view.View
       padding: 5
       indentWidth: 10
-      indentToungeHeight: 10
+      indentTongueHeight: 10
       tabOffset: 10
       tabWidth: 15
       tabHeight: 5
@@ -549,10 +546,10 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     fd 40
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    blockView = view_.getViewFor document.getBlockOnLine 3
+    blockView = view_.getViewNodeFor document.getBlockOnLine 3
 
     strictEqual blockView.path._points[0].y, 15 * 4 + view_.opts.padding * 16, 'Original path points are O.K.'
 
@@ -565,7 +562,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     view_ = new view.View
       padding: 5
       indentWidth: 10
-      indentToungeHeight: 10
+      indentTongueHeight: 10
       tabOffset: 10
       tabWidth: 15
       tabHeight: 5
@@ -583,10 +580,10 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       fd 10
     '''
 
-    documentView = view_.getViewFor document
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    socketView = view_.getViewFor document.getTokenAtLocation(8).container
+    socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
 
     strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
 

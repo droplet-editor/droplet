@@ -122,7 +122,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @standardViewSettings =
         padding: 5
         indentWidth: 10
-        indentToungeHeight: 10
+        indentTongueHeight: 10
         tabOffset: 10
         tabWidth: 15
         tabHeight: 5
