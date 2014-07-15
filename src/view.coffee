@@ -781,27 +781,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           @boundingBoxFlag = true
 
-        # We will center the children vertically along this
-        # `axis`, which is the middle of our
-        # bounding box.
-        axis = top + @dimensions[line].height / 2
-
-        # Go to each child and lay them out
-        # so that their center lies
-        # along our center, the axis.
+        # Go to each child and lay them out so that their distanceToBase
+        # lines up.
+        above = @distanceToBase[line].above
         for lineChild, i in @lineChildren[line]
           childView = @view.getViewNodeFor lineChild.child
           childLine = line - lineChild.startLine
-
-          # Exception: if an indent is ending on this line,
-          # it must stick to the top of the line. Thus instead of
-          # putting its center on ours, we put its top on ours.
-          if (lineChild.child.type is 'indent') or (@multilineChildrenData[line] is MULTILINE_END and i is 0)
-            childView.computeBoundingBoxY top, childLine
-
-          # Otherwise, match centers.
-          else
-            childView.computeBoundingBoxY axis - childView.dimensions[childLine].height / 2, childLine
+          childAbove = childView.distanceToBase[childLine].above
+          childView.computeBoundingBoxY top + above - childAbove, childLine
 
         # Return the bounds we just computed.
         return @bounds[line]
@@ -1204,30 +1191,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # and call super.
         else
           super
-
-      # ## computeBoundingBoxY
-      # Again exception: sockets containing block
-      # should mimic blocks exactly.
-      computeBoundingBoxY: (top, line) ->
-        # Use cache if possible.
-        if @computedVersion is @model.version and
-            top is @bounds[line]?.y
-          return @bounds[line]
-
-        # A Socket should copy its content
-        # block, if there is a content block
-        if @model.start.next.type is 'blockStart'
-          @bounds[line] =
-            @view.getViewNodeFor(@model.start.next.container).computeBoundingBoxY(top, line).clone()
-
-          @boundingBoxFlag = @view.getViewNodeFor(@model.start.next.container).boundingBoxFlag
-
-        # Otherwise, decrement to force super to recompute,
-        # and call super.
-        else
-          super
-
-        return @bounds[line]
 
       # ## computeOwnPath
       # Again, exception: sockets containing block
