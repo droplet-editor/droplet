@@ -1,6 +1,6 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
-# 
+#
 # Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.
 
 ## Private (convenience) functions
@@ -52,9 +52,9 @@ define ->
   # and rectangle or point union (point union is called "swallow").
   exports.Rectangle = class Rectangle
     constructor: (@x, @y, @width, @height) ->
-    
+
     contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
-    
+
     identical: (other) ->
       @x is other.x and
       @y is other.y and
@@ -138,7 +138,7 @@ define ->
         'lineWidth': 1
         'fillColor': null
       }
-    
+
     _clearCache: ->
       if @_cacheFlag
         for point in @_points
@@ -146,12 +146,12 @@ define ->
         @_bounds.translate @_cachedTranslation
         @_cachedTranslation.clear()
         @_cacheFlag = false
-    
+
     recompute: ->
       @_bounds = new NoRectangle()
       for point in @_points
         @_bounds.swallow point
-    
+
     push: (point) ->
       @_points.push point
       @_bounds.swallow point
@@ -159,7 +159,7 @@ define ->
     unshift: (point) ->
       @_points.unshift point
       @_bounds.swallow point
-    
+
     # ### Point containment ###
     # Accomplished with ray-casting
     contains: (point) ->
@@ -169,7 +169,7 @@ define ->
 
       # "Ray" to the left
       dest = new Point @_bounds.x - 10, point.y
-      
+
       # Count intersections
       count = 0
       last = @_points[@_points.length - 1]
@@ -178,7 +178,7 @@ define ->
         last = end
 
       return count % 2 is 1
-    
+
     # ### Rectangular intersection ###
     # Succeeds if any edges intersect or either shape is
     # entirely within the other.
@@ -186,7 +186,7 @@ define ->
       @_clearCache()
 
       if @_points.length is 0 then return false
-      
+
       if not rectangle.overlap @_bounds then return false
       else
         # Try each pair of edges for intersections
@@ -211,7 +211,7 @@ define ->
 
         # We don't contain the rectangle; see if it contains us.
         if rectangle.contains @_points[0] then return true
-        
+
         # No luck
         return false
 
@@ -236,7 +236,7 @@ define ->
       for point in @_points
         ctx.lineTo point.x, point.y # DEFAULT
       ctx.lineTo @_points[0].x, @_points[0].y
-      
+
       # Wrap around again so that the origin
       # has a normal corner
       if @_points.length > 1
@@ -258,7 +258,7 @@ define ->
       ctx.fillStyle = @style.fillColor
 
       if @_points.length is 0 then return
-      
+
       oldValues = {
         shadowColor: ctx.shadowColor
         shadowBlur: ctx.shadowBlur
@@ -266,13 +266,13 @@ define ->
         shadowOffsetX: ctx.shadowOffsetX
         globalAlpha: ctx.globalAlpha
       }
-      
+
       ctx.globalAlpha = 0.5
       ctx.shadowColor = '#000'; ctx.shadowBlur = blur
       ctx.shadowOffsetX = offsetX; ctx.shadowOffsetY = offsetY
 
       ctx.beginPath()
-      
+
       ctx.moveTo @_points[0].x, @_points[0].y
       for point in @_points
         ctx.lineTo point.x, point.y # DEFAULT
@@ -300,13 +300,13 @@ define ->
 
     bounds: -> @_bounds
     contains: (point) -> @_bounds.contains point
-     
+
     translate: (vector) ->
       @point.translate vector
       @_bounds.translate vector
 
     setPosition: (point) -> @translate point.from @point
-    
+
     draw: (ctx) ->
       ctx.textBaseline = 'top'
       ctx.font = _FONT_SIZE + 'px Courier New'
