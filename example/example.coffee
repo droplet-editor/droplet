@@ -1,9 +1,15 @@
 # Cache bust, since most of our changed code is
 # in the require.js 'main' module.
 require.config
-  urlArgs: "bust=" + (new Date()).getTime()
   paths:
-    'ice': '../dist/ice-full'
+    'ice': '../js/main'
+    'ice-coffee': '../js/coffee'
+    'ice-model': '../js/model'
+    'ice-view': '../js/view'
+    'ice-parser': '../js/parser'
+    'ice-draw': '../js/draw'
+    'ice-controller': '../js/controller'
+    'coffee-script': '../vendor/coffee-script'
 
 readFile = (name) ->
   q = new XMLHttpRequest()

@@ -1171,7 +1171,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         
         # 1. An empty Socket should have some size
         if @model.start.nextVisibleToken() is @model.end
-          debugger
           @dimensions = [
             new draw.Size(@self.opts.emptySocketWidth,
               @self.opts.emptySocketHeight)
@@ -1475,15 +1474,16 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @dimensions
       
-      # ## computeOwnPath
+      # ## computeBoundingBox (x and y)
       #
-      # Position the TextElement we point to
-      # to match our bounding box position.
-      computeOwnPath: ->
-        @textElement.point.x = @bounds[0].x
-        @textElement.point.y = @bounds[0].y
-        super
-      
+      # Assign the position of our textElement
+      # to match our laid out bounding box position.
+      computeBoundingBoxX: (left, line) ->
+        @textElement.point.x = left; super
+
+      computeBoundingBoxY: (top, line) ->
+        @textElement.point.y = top; super
+
       # ## drawSelf
       #
       # Draw the text element itself.

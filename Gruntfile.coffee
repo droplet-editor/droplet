@@ -1,3 +1,5 @@
+child_process = require 'child_process'
+
 module.exports = (grunt) ->
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
@@ -110,7 +112,7 @@ module.exports = (grunt) ->
         options: { atBegin: true, spawn: false }
       sources:
         files: ['src/*.coffee']
-        tasks: ['quickbuild']
+        tasks: ['quickbuild', 'notify-done']
 
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -127,7 +129,7 @@ module.exports = (grunt) ->
   grunt.registerTask 'default',
     ['quickbuild']
   grunt.registerTask 'quickbuild',
-    ['coffee', 'docco', 'requirejs', 'concat']
+    ['coffee']
   grunt.registerTask 'all',
     ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
   grunt.task.registerTask 'test',
@@ -139,3 +141,5 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
+  grunt.registerTask 'notify-done', ->
+    child_process.spawn 'notify-send', ['Coffeescript recompiled.', '--urgency=low']
