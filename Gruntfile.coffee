@@ -112,7 +112,7 @@ module.exports = (grunt) ->
         options: { atBegin: true, spawn: false }
       sources:
         files: ['src/*.coffee']
-        tasks: ['quickbuild', 'notify-done']
+        tasks: ['notify-begin', 'quickbuild', 'notify-done']
 
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -141,5 +141,7 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
+  grunt.registerTask 'notify-begin', ->
+    child_process.spawn 'notify-send', ['Recompiling...', '--urgency=low']
   grunt.registerTask 'notify-done', ->
-    child_process.spawn 'notify-send', ['Coffeescript recompiled.', '--urgency=low']
+    child_process.spawn 'notify-send', ['Recompiled.', '--urgency=low']
