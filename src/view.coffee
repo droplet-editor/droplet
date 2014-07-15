@@ -618,7 +618,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return null
 
-      # ## computeBoundingBoxX
+      # ## computeBoundingBoxX (ContainerViewNode)
       # Layout bounding box positions horizontally.
       # This needs to be separate from y-coordinate computation
       # because of glue spacing (the space between lines
@@ -656,30 +656,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # placing children down and
         # adding padding and sizes
         # to make them not overlap.
-        childLeft = left + @padding
+        childLeft = left
 
         # Get rendering info on each of these children
         for lineChild, i in @lineChildren[line]
           childView = @view.getViewNodeFor lineChild.child
           childLine = line - lineChild.startLine
 
-          # Indents are special; they are not padded,
-          # and are guaranteed to match the top of the block.
-          #
-          # Exception: the first line of an indent should not match
-          # the top of its surrounding block, but rather
-          # have a "tounge" on top of it.
-          if lineChild.child.type is 'indent'
-            childView.computeBoundingBoxX childLeft + @view.opts.indentWidth, childLine
-
-            childLeft += @view.opts.indentWidth + childView.dimensions[childLine].width
-
-          # Normally, we will just lay down the child box
-          # and keep moving.
-          else
-            childView.computeBoundingBoxX childLeft, childLine
-
-            childLeft += @padding + childView.dimensions[childLine].width
+          childLeft += childView.margins.left
+          childView.computeBoundingBoxX childLeft, childLine
+          childLeft +=
+            childView.dimensions[childLine].width + childView.margins.right
 
         # Return the bounds we just
         # computed.
@@ -1194,28 +1181,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           dimension.width =
               Math.max(dimension.width, @view.opts.emptySocketWidth)
         return null
-
-      # ## computeBoundingBoxX
-      computeBoundingBoxX: (left, line) ->
-        # Use cache if possible.
-        if @computedVersion is @model.version and
-            left is @bounds[line]?.x
-          return @bounds[line]
-
-        # A Socket should copy its content
-        # block, if there is a content block
-        if @model.start.next.type is 'blockStart'
-          @bounds[line] =
-            @view.getViewNodeFor(@model.start.next.container).computeBoundingBoxX(left, line).clone()
-
-          @boundingBoxFlag = @view.getViewNodeFor(@model.start.next.container).boundingBoxFlag
-
-        # Otherwise, decrement to force super to recompute,
-        # and call super.
-        else
-          super
-
-        return @bounds[line]
 
       # ## computeGlue
       # Sockets have one exception to normal glue spacing computation:
