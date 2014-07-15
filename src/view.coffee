@@ -1279,7 +1279,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return @bounds[line]
       
       # ## computeOwnPath
-      # Again exception: sockets containing block
+      # Again, exception: sockets containing block
       # should mimic blocks exactly.
       #
       # Under normal circumstances this shouldn't
@@ -1289,14 +1289,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # and should hit-test properly.
       computeOwnPath: ->
         # Use cache if possible.
-        ###
         if @versions.path is @model.version and
            not @boundingBoxFlag
           return @path
         
         # Update our version number.
         @versions.path = @model.version
-        ###
 
         if @model.start.next.type is 'blockStart'
           view = @self.getViewFor @model.start.next.container
@@ -1332,7 +1330,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     # # IndentView
     class IndentView extends ContainerView
       constructor: -> super; @padding = 0
+      
+      # ## computeOwnPath
+      # An Indent should also have no drawn
+      # or hit-tested path.
       computeOwnPath: -> @path = new draw.Path()
+      
+      # ## computeDimensions
+      # An Indent should put some
+      # height in for empty lines.
       computeDimensions: ->
         super
 
@@ -1343,12 +1349,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @dimensions
       
+      # ## drawSelf
+      #
+      # Again, an Indent should draw nothing.
       drawSelf: -> null
+      
+      # ## computeOwnDropArea
+      #
+      # Our drop area is a rectangle of
+      # height dropAreaHeight and a width
+      # equal to our last line width,
+      # positioned at the bottom of our last line.
       computeOwnDropArea: ->
-        # Our drop area is a rectangle of
-        # height dropAreaHeight and a width
-        # equal to our last line width,
-        # positioned at the bottom of our last line.
         @dropArea = new draw.Rectangle(
           @bounds[1].x,
           @bounds[1].y - @self.opts.dropAreaHeight / 2,
@@ -1370,9 +1382,20 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @highlightArea.style.fillColor = '#fff'
     
     # # SegmentView
+    # Represents a Segment. Draws little, but
+    # recurses.
     class SegmentView extends ContainerView
       constructor: -> super; @padding = 0
+
+      # ## computeOwnPath
+      #
       computeOwnPath: -> @path = new draw.Path()
+      
+      # ## computeOwnDropArea
+      #
+      # Lasso segments are not droppable;
+      # root segments of documents
+      # can be dropped at their beginning.
       computeOwnDropArea: ->
         if @model.isLassoSegment
           return @dropArea = null
@@ -1395,19 +1418,45 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @highlightArea.style.strokeColor = '#fff'
 
           return null
+
+      # ## drawSelf
+      #
+      # A Segment has no drawn representation.
       drawSelf: (ctx, style) -> null
+
+      # ## draw
+      #
+      # A Segment can be a lasso select
+      # container, in which case it
+      # should set the "selected" style
+      # on all of its children during
+      # the draw phase.
       draw: (ctx, boundingRect, style) ->
         if @model.isLassoSegment then style.selected++
         super
         if @model.isLassoSegment then style.selected--
-
+    
+    # # TextView
+    #
+    # TextView does not extend ContainerView.
+    # We contain a draw.TextElement to measure
+    # bounding boxes and draw text.
     class TextView extends GenericView
       constructor: (@model, @self) -> super
-
+      
+      # ## computeChildren
+      #
+      # Text elements are one line
+      # and contain no children (and thus
+      # no multiline children, either)
       computeChildren: ->
-        @multilineChildrenData = [0]
+        @multilineChildrenData = [NO_MULTILINE]
         return 1
       
+      # ## computeDimensinos
+      #
+      # Set our dimensions to the measured dimensinos
+      # of our text value.
       computeDimensions: ->
         if @versions.dimensions is @model.version
           return @dimensions
@@ -1426,18 +1475,27 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @dimensions
       
-      computeBoundingBoxX: (left, line) ->
-        @textElement.point.x = left
-        super
-
-      computeBoundingBoxY: (top, line) ->
-        @textElement.point.y = top
+      # ## computeOwnPath
+      #
+      # Position the TextElement we point to
+      # to match our bounding box position.
+      computeOwnPath: ->
+        @textElement.point.x = @bounds[0].x
+        @textElement.point.y = @bounds[0].y
         super
       
+      # ## drawSelf
+      #
+      # Draw the text element itself.
       drawSelf: (ctx, style) ->
         @textElement.draw ctx
         return null
       
+      # ## Debug output
+
+      # ### debugDimensions
+      #
+      # Draw the text element wherever we're told.
       debugDimensions: (x, y, line, ctx) ->
         ctx.globalAlpha = 1
         oldPoint = @textElement.point
@@ -1445,9 +1503,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @textElement.draw ctx
         @textElement.point = oldPoint
         ctx.globalAlpha = 0.1
-
+      
+      # ### debugAllBoundingBoxes
+      # Draw our text element
       debugAllBoundingBoxes: (ctx) ->
         ctx.globalAlpha = 1
+        @computeOwnPath()
         @textElement.draw ctx
         ctx.globalAlpha = 0.1
     
