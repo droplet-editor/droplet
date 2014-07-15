@@ -65,6 +65,11 @@ define ->
       @x = rect.x; @y = rect.y
       @width = rect.width; @height = rect.height
 
+    clone: ->
+      rect = new Rectangle(0, 0, 0, 0)
+      rect.copy this
+      return rect
+
     clear: -> @width = @height = 0; @x = @y = null
 
     bottom: -> @y + @height

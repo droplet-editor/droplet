@@ -803,7 +803,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @addMicroUndoOperation new PickUpOperation @draggingBlock
 
         # Remove the block from the tree.
+        console.log 'Spliced out the normal way', @draggingBlock.version, _oldParent_ = @draggingBlock.parent
         @draggingBlock.spliceOut() # MUTATION
+        console.log 'Version is now', @draggingBlock.version, _oldParent_.version
 
       @clearHighlightCanvas()
 

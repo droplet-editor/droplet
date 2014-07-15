@@ -13,9 +13,9 @@ module.exports = (grunt) ->
           'js/coffee.js': ['src/coffee.coffee']
           'js/parser.js': ['src/parser.coffee']
           'js/main.js': ['src/main.coffee']
-          'test/parserTest.js': ['src/parserTest.coffee']
+          'test/js/parserTests.js': ['test/coffee/parserTests.coffee']
 
-          'test/tests.js': ['src/tests.coffee']
+          'test/js/tests.js': ['test/coffee/tests.coffee']
           'example/example.js': ['example/example.coffee']
 
     qunit:
@@ -27,7 +27,7 @@ module.exports = (grunt) ->
 
     mocha_spawn:
       test:
-        src: ['test/parserTest.js']
+        src: ['test/js/parserTests.js']
         options:
           reporter: 'list'
 
@@ -55,14 +55,6 @@ module.exports = (grunt) ->
           optimize: 'none'
           out: 'dist/ice.js'
 
-    uglify:
-      options:
-        banner: '/*! <%= pkg.name %> ' +
-                '<%= grunt.template.today("yyyy-mm-dd") %> */\n'
-      build:
-        files:
-          'dist/ice.min.js': ['dist/ice.js']
-
     cssmin:
       options:
         banner: '''
@@ -87,14 +79,20 @@ module.exports = (grunt) ->
         footer: '}).call(this);'
       build:
         files:
-          'dist/ice-full.min.js': [
-            'vendor/keypress-2.0.1.min.js'
-            'dist/ice.min.js'
-          ]
           'dist/ice-full.js': [
             'vendor/keypress-2.0.1.min.js'
             'dist/ice.js'
           ]
+
+    uglify:
+      options:
+        banner: '/*! <%= pkg.name %> ' +
+                '<%= grunt.template.today("yyyy-mm-dd") %> */\n'
+        sourceMap: true
+
+      build:
+        files:
+          'dist/ice-full.min.js': ['vendor/keypress-2.0.1.min.js', 'dist/ice.js']
 
     connect:
       testserver:
@@ -141,4 +139,3 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
-

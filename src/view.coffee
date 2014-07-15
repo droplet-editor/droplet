@@ -105,9 +105,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           # Version objects are per line
           bounds_x: {}
-          glue: {}
           bounds_y: {}
 
+          glue: -1
           path: -1
           dropAreas: -1
         
@@ -617,7 +617,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # for performance reasons (also, trivially, 
         # avoid changing bounding box coords).
         unless @bounds[line]?.x is left and
-           @bounds[line]?.width is @dimensions[line].width
+               @bounds[line]?.width is @dimensions[line].width
 
           # Assign our own bounding box given
           # this center-left coordinate
@@ -631,7 +631,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             )
 
           @boundingBoxFlag = true
-        
+
         # Now recurse. We will keep track
         # of a "cursor" as we go along,
         # placing children down and
@@ -870,14 +870,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Find the multiline child that's starting on this line,
             # so that we can know its bounds
             multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
-            multilineBounds = @self.getViewFor(mutilineChild.child).bounds[line - multilineChild.startLine]
+            multilineBounds = @self.getViewFor(multilineChild.child).bounds[line - multilineChild.startLine]
 
             # Draw the upper-right corner
             right.push new draw.Point bounds.right(), bounds.y
 
             # If the multiline child here is invisible,
             # draw the line just normally.
-            if indentBounds.width is 0
+            if multilineBounds.width is 0
               right.push new draw.Point bounds.right(), bounds.bottom()
             
             # Otherwise, avoid the block by tracing out its
@@ -907,23 +907,23 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             left.push new draw.Point bounds.x, bounds.bottom()
             
             # Find the child that is the indent
-            indentChild = @lineChildren[line][0]
-            indentBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
+            multilineChild = @lineChildren[line][0]
+            multilineBounds = @self.getViewFor(multilineChild.child).bounds[line - multilineChild.startLine]
             
             # Avoid the indented area
-            right.push new draw.Point indentBounds.x, indentBounds.y
-            right.push new draw.Point indentBounds.x, indentBounds.bottom()
+            right.push new draw.Point multilineBounds.x, multilineBounds.y
+            right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
 
-            right.push new draw.Point indentBounds.right(), indentBounds.bottom()
+            right.push new draw.Point multilineBounds.right(), multilineBounds.bottom()
 
             # If we must, make the "G"-shape
             if @lineChildren[line].length > 1
-              right.push new draw.Point indentBounds.right(), indentBounds.y
+              right.push new draw.Point multilineBounds.right(), multilineBounds.y
               right.push new draw.Point bounds.right(), bounds.y
             
             # Otherwise, don't.
             else
-              right.push new draw.Point bounds.right(), indentBounds.bottom()
+              right.push new draw.Point bounds.right(), multilineBounds.bottom()
 
             right.push new draw.Point bounds.right(), bounds.bottom()
 
@@ -958,8 +958,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # because we're avoiding intersections with a multiline child that's
             # in the way.
             unless @multilineChildrenData[line] is MULTILINE_START
-              right.push new draw.Point @bounds[line].right(), glueAxis
-              right.push new draw.Point rightmost, glueAxis
+              right.push new draw.Point @bounds[line].right(), glueTop
+              right.push new draw.Point rightmost, glueTop
               right.push new draw.Point rightmost, @bounds[line + 1].y
           
           # Otherwise, bring us gracefully to the next line
@@ -987,7 +987,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # starting here.
           if @multilineChildrenData[line] is MULTILINE_START
             multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
-            multilineBounds = @self.getViewFor(indentChild.child).bounds[line - indentChild.startLine]
+            multilineBounds = @self.getViewFor(multilineChild.child).bounds[line - multilineChild.startLine]
             
             right.push new draw.Point multilineBounds.x, @bounds[line].bottom()
             right.push new draw.Point multilineBounds.x, @bounds[line + 1].y
@@ -1164,13 +1164,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeDimensions: ->
         # Use cache if possible.
         if @versions.dimensions is @model.version
-          return @bounds
+          return @dimensions
         
         # Update version number.
         @versions.dimensions = @model.version
         
         # 1. An empty Socket should have some size
         if @model.start.nextVisibleToken() is @model.end
+          debugger
           @dimensions = [
             new draw.Size(@self.opts.emptySocketWidth,
               @self.opts.emptySocketHeight)
@@ -1203,13 +1204,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           return @bounds[line]
         
         # Update version number.
-        @versions.bounds_x = @model.version
+        @versions.bounds_x[line] = @model.version
         
         # A Socket should copy its content
         # block, if there is a content block
         if @model.start.next.type is 'blockStart'
           @bounds[line] =
-            @self.getViewFor(@model.start.next.container).computeBoundingBoxX left, line
+            @self.getViewFor(@model.start.next.container).computeBoundingBoxX(left, line).clone()
 
           @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
         
@@ -1258,20 +1259,20 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           return @bounds[line]
         
         # Update version number.
-        @versions.bounds_y = @model.version
+        @versions.bounds_y[line] = @model.version
         
         # A Socket should copy its content
         # block, if there is a content block
         if @model.start.next.type is 'blockStart'
           @bounds[line] =
-            @self.getViewFor(@model.start.next.container).computeBoundingBoxY top, line
+            @self.getViewFor(@model.start.next.container).computeBoundingBoxY(top, line).clone()
 
           @boundingBoxFlag = @self.getViewFor(@model.start.next.container).boundingBoxFlag
 
         # Otherwise, decrement to force super to recompute,
         # and call super.
         else
-          @versions.bounds_y--
+          @versions.bounds_y[line]--
 
           super
 
@@ -1288,12 +1289,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # and should hit-test properly.
       computeOwnPath: ->
         # Use cache if possible.
+        ###
         if @versions.path is @model.version and
            not @boundingBoxFlag
           return @path
         
         # Update our version number.
         @versions.path = @model.version
+        ###
 
         if @model.start.next.type is 'blockStart'
           view = @self.getViewFor @model.start.next.container
@@ -1406,8 +1409,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return 1
       
       computeDimensions: ->
-        if @versions.dimensions is @model.version then return @bounds
-        else @versions.dimensions = @model.version
+        if @versions.dimensions is @model.version
+          return @dimensions
+        
+        @versions.dimensions = @model.version
 
         @textElement = new draw.Text(
           new draw.Point(0, 0),
