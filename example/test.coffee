@@ -1,6 +1,13 @@
 require.config
   paths:
-    'ice': '../dist/ice-full'
+    'ice': '../js/main'
+    'ice-coffee': '../js/coffee'
+    'ice-model': '../js/model'
+    'ice-view': '../js/view'
+    'ice-parser': '../js/parser'
+    'ice-draw': '../js/draw'
+    'ice-controller': '../js/controller'
+    'coffee-script': '../vendor/coffee-script'
 
 require ['ice'], (ice) ->
   resize = ->
@@ -41,7 +48,7 @@ require ['ice'], (ice) ->
   view = new ice.view.View
     padding: 5
     indentWidth: 10
-    indentToungeHeight: 10
+    indentTongueHeight: 10
     tabOffset: 10
     tabWidth: 15
     tabHeight: 5
@@ -55,7 +62,7 @@ require ['ice'], (ice) ->
     shadowBlur: 5
     ctx: document.querySelector('canvas').getContext '2d'
 
-  modelView = view.getViewFor(model)
+  modelView = view.getViewNodeFor(model)
 
   pos = 0
   

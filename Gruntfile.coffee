@@ -20,6 +20,7 @@ module.exports = (grunt) ->
 
           'test/js/tests.js': ['test/coffee/tests.coffee']
           'example/example.js': ['example/example.coffee']
+          'example/test.js': ['example/test.coffee']
 
     qunit:
       all:
