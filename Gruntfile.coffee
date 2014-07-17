@@ -20,6 +20,7 @@ module.exports = (grunt) ->
 
           'test/js/tests.js': ['test/coffee/tests.coffee']
           'example/example.js': ['example/example.coffee']
+          'example/test.js': ['example/test.coffee']
 
     qunit:
       all:
@@ -115,7 +116,7 @@ module.exports = (grunt) ->
         options: { atBegin: true, spawn: false }
       sources:
         files: ['src/*.coffee']
-        tasks: ['quickbuild']
+        tasks: ['quickbuild', 'notify-done']
 
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -135,6 +136,10 @@ module.exports = (grunt) ->
     ['coffee']
   grunt.registerTask 'all',
     ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
+
+  grunt.registerTask 'notify-done', ->
+    child_process.spawn 'notify-send', ['Compilation completed.']
+
   grunt.task.registerTask 'test',
     'Run unit tests, or just one test.',
     (testname) ->
@@ -148,5 +153,5 @@ module.exports = (grunt) ->
   grunt.event.on 'watch', (action, filepath) ->
     if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
       destination = (path.dirname(path.dirname(filepath)) + '/js/' + path.basename(filepath).replace('.coffee', '.js'))
-      coffeeFiles = {}; coffeeFiles[destination] = filepath
+      coffeeFiles = {}; coffeeFiles[destination] = [filepath]
       grunt.config 'coffee.build.files', coffeeFiles
