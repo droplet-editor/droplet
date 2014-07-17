@@ -144,7 +144,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @margins =
             top: padding
             bottom: @view.opts.indentTongueHeight
-            left: @view.opts.indentWidth
+            left: @view.opts.indentWidth + @view.opts.padding
             right: 0
         else if parenttype is 'block' or (
             parenttype is 'socket' and @model.type is 'text')
@@ -571,7 +571,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           return null
 
         @dimensions = (new draw.Size(0, 0) for [0...@lineLength])
-        @distanceToBase = ({above:0, below:0} for [0...@lineLength])
+        @distanceToBase = ({above:@view.opts.emptyLineHeight, below:0} for [0...@lineLength])
 
         # Recurse on our children, updating
         # our dimensions as we go to contain them.
@@ -588,11 +588,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             firstTop = if line is 0 then childNode.margins.top else 0
             lastBottom = if line is dimensions.length - 1
                 childNode.margins.bottom
-              else
-                0
-            if isNaN lastBottom
-              throw new Error('gotcha ' + childNode.margins.bottom)
-
+              else 0
 
             # Unless we are in the middle of an indent,
             # add padding on the right of the child
@@ -612,10 +608,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           dimension.height = Math.max(@view.opts.emptyLineHeight,
             @distanceToBase[line].above +
             @distanceToBase[line].below)
-          if isNaN dimension.height
-            throw new Error('whoo boy - above:' +
-              @distanceToBase[line].above + 'below:' +
-              @distanceToBase[line].below)
 
         return null
 
@@ -1244,17 +1236,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # An Indent should also have no drawn
       # or hit-tested path.
       computeOwnPath: -> @path = new draw.Path()
-
-      # ## computeDimensions
-      # An Indent should put some
-      # height in for empty lines.
-      computeDimensions: ->
-        super
-        for dimension in @dimensions
-          dimension.width = Math.max(dimension.width,
-            @view.opts.indentDropAreaMinWidth)
-
-        return null
 
       # ## drawSelf
       #

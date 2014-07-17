@@ -98,33 +98,33 @@ require ['ice'], (ice) ->
           view.opts.ctx.globalAlpha = 1
         when 38
           view.clearCache()
-          modelView = view.getViewFor model
+          modelView = view.getViewNodeFor model
         when 74
           pos--
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
-            view.getViewFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
-            view.getViewFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
         when 75
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
-            view.getViewFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
-            view.getViewFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
         when 76
           pos++
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
-            view.getViewFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
-            view.getViewFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
 
   shown = false
   document.querySelector('#changebutton').addEventListener 'click', (event) ->
     model = ice.parse document.querySelector('#editor').value
     model.correctParentTree()
-    modelView = view.getViewFor(model)
+    modelView = view.getViewNodeFor(model)
 
     if shown
       shown = false
