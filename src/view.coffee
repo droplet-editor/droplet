@@ -571,7 +571,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           return null
 
         @dimensions = (new draw.Size(0, 0) for [0...@lineLength])
-        @distanceToBase = ({above:@view.opts.emptyLineHeight, below:0} for [0...@lineLength])
+        @distanceToBase = ({above:0, below:0} for [0...@lineLength])
 
         # Recurse on our children, updating
         # our dimensions as we go to contain them.
@@ -603,11 +603,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               @distanceToBase[desiredLine].below,
               distanceToBase[line].below + lastBottom)
 
-        # height is just the sum of the above-base and below-base counts
+        # Height is just the sum of the above-base and below-base counts.
+        # Empty lines should have some height.
         for dimension, line in @dimensions
-          dimension.height = Math.max(@view.opts.emptyLineHeight,
+          if @lineChildren[line].length is 0
+            @distanceToBase[line].above = @view.opts.emptyLineHeight
+
+          dimension.height =
             @distanceToBase[line].above +
-            @distanceToBase[line].below)
+            @distanceToBase[line].below
 
         return null
 
@@ -1155,11 +1159,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           return null
 
         super
+        
+        # If it is 
+        if @model.start.next is @model.end
+          @dimensions[0].height =
+            (@distanceToBase[0].above = @view.opts.emptySocketHeight - @view.opts.padding) +
+            (@distanceToBase[0].below = @view.opts.padding)
+
         for dimension in @dimensions
-          dimension.height =
-              Math.max(dimension.height, @view.opts.emptySocketHeight)
           dimension.width =
               Math.max(dimension.width, @view.opts.emptySocketWidth)
+
         return null
 
       # ## computeGlue
