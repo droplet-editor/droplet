@@ -145,7 +145,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             top: padding
             bottom: @view.opts.indentTongueHeight
             left: @view.opts.indentWidth + @view.opts.padding
-            right: 0
+            right: padding
         else if parenttype is 'block' or (
             parenttype is 'socket' and @model.type is 'text')
           @margins =
@@ -591,9 +591,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               else 0
 
             # Unless we are in the middle of an indent,
-            # add padding on the right of the child
-            @dimensions[desiredLine].width += size.width +
-              childNode.margins.left + childNode.margins.right
+            # add padding on the right of the child.
+            #
+            # Exception: Children with invisible bounding boxes
+            # should remain invisible. This matters
+            # mainly for indents starting at the end of a line.
+            unless size.width is 0
+              @dimensions[desiredLine].width += size.width +
+                childNode.margins.left + childNode.margins.right
 
             # Compute max distance above and below text
             @distanceToBase[desiredLine].above = Math.max(
@@ -659,11 +664,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         for lineChild, i in @lineChildren[line]
           childView = @view.getViewNodeFor lineChild.child
           childLine = line - lineChild.startLine
-
-          childLeft += childView.margins.left
-          childView.computeBoundingBoxX childLeft, childLine
-          childLeft +=
-            childView.dimensions[childLine].width + childView.margins.right
+          
+          if childView.dimensions[childLine].width is 0
+            childView.computeBoundingBoxX childLeft, childLine
+          else
+            childLeft += childView.margins.left
+            childView.computeBoundingBoxX childLeft, childLine
+            childLeft +=
+              childView.dimensions[childLine].width + childView.margins.right
 
         # Return the bounds we just
         # computed.
