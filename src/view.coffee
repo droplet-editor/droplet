@@ -708,12 +708,32 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         @glue = {}
 
+
         # Go through every pair of adjacent bounding boxes
         # to see if they overlap or not
         for box, line in @bounds when line < @bounds.length - 1
-          # If there is an indent here, don't worry
-          # about overlap. We're guaranteed that
-          # we overlap exactly on the left side of an indent.
+
+          @glue[line] = {
+            height: 0
+            draw: false
+          }
+          
+          # We will always have glue spacing at least as big
+          # as the biggest child's glue spacing.
+          for lineChild in @lineChildren[line]
+            childView = @view.getViewNodeFor lineChild.child
+            childLine = line - lineChild.startLine
+
+            if childLine of childView.glue
+              # Either add padding or not, depending
+              # on whether there is an indent between us.
+              @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height
+
+              # Set the `draw` flag iff there is no indent between us.
+              @glue[line].draw = @multilineChildrenData[line] isnt MULTILINE_MIDDLE
+          
+          # Additionally, we add glue spacing padding if we are disconnected
+          # from the bounding box on the next line.
           unless @multilineChildrenData[line] is MULTILINE_MIDDLE
             # Find the horizontal overlap between these two bounding rectangles,
             # which is our right edge minus their left, or vice versa.
@@ -729,35 +749,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
             # If the overlap is too small, demand glue.
             if overlap < @view.opts.padding and @model.type isnt 'indent'
-              @glue[line] ?= {
-                height: @view.opts.padding
-                draw: true
-              }
-
-          # Now update our glue to account for children.
-          # If there is an indent between us and the child that
-          # needs glue, we can just mimic their glue spacing.
-          #
-          # If there is not, we will need to surround their glue
-          # with our padding glue, so we need to increase the
-          # glue spacing by a padding amount.
-          for lineChild in @lineChildren[line]
-            childView = @view.getViewNodeFor lineChild.child
-            childLine = line - lineChild.startLine
-
-            if childLine of childView.glue
-              @glue[line] ?= {
-                height: childView.glue[childLine].height
-                draw: true
-              }
-
-              # Either add padding or not, depending
-              # on whether there is an indent between us.
-              @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height +
-                (if @multilineChildrenData[line] is MULTILINE_MIDDLE then 0 else @padding)
-
-              # Set the `draw` flag iff there is no indent between us.
-              @glue[line].draw = @multilineChildrenData[line] isnt MULTILINE_MIDDLE
+              @glue[line].height += @view.opts.padding
 
         # Return the glue we just computed.
         return @glue
