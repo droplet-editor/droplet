@@ -45,34 +45,21 @@ require ['ice'], (ice) ->
 
   model.correctParentTree()
 
-  view = new ice.view.View
-    padding: 5
-    indentWidth: 10
-    indentTongueHeight: 10
-    tabOffset: 10
-    tabWidth: 15
-    tabHeight: 5
-    tabSideWidth: 0.125
-    dropAreaHeight: 20
-    indentDropAreaMinWidth: 50
-    emptySocketWidth: 20
-    emptySocketHeight: 25
-    emptyLineHeight: 25
-    highlightAreaHeight: 10
-    shadowBlur: 5
-    ctx: document.querySelector('canvas').getContext '2d'
+  view = new ice.view.View()
 
   modelView = view.getViewNodeFor(model)
 
   pos = 0
   
   document.body.addEventListener 'keydown', (event) ->
-    if event.which in [37, 38, 39, 40, 74, 75, 76]
+    if event.which in [37, 38, 39, 40, 74, 75, 76, 8]
       modelView.layout()
       view.opts.ctx.clearRect(0, 0,
         document.querySelector('canvas').width,
         document.querySelector('canvas').height
       )
+
+      event.preventDefault()
 
       if event.which in [74, 75, 76]
         view.opts.ctx.globalAlpha = 0.2
@@ -119,6 +106,15 @@ require ['ice'], (ice) ->
             view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
             view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+        when 8
+          head = model.getTokenAtLocation(pos)
+          if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
+            head.container.spliceOut()
+          else
+            head.remove()
+
+          modelView.layout()
+
 
   shown = false
   document.querySelector('#changebutton').addEventListener 'click', (event) ->

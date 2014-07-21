@@ -9,6 +9,24 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   MULTILINE_MIDDLE = 2
   MULTILINE_END = 3
 
+  DEFAULT_OPTIONS =
+    padding: 5
+    indentWidth: 10
+    indentTongueHeight: 10
+    tabOffset: 10
+    tabWidth: 15
+    tabHeight: 5
+    tabSideWidth: 0.125
+    dropAreaHeight: 20
+    indentDropAreaMinWidth: 50
+    emptySocketWidth: 20
+    emptySocketHeight: 25
+    emptyLineHeight: 25
+    emptyLineWidth: 50
+    highlightAreaHeight: 10
+    shadowBlur: 5
+    ctx: document.createElement('canvas').getContext('2d')
+
   YES = -> yes
   NO = -> no
 
@@ -26,12 +44,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   # will have access to their View's caches
   # and options object.
   exports.View = class View
-    constructor: (@opts) ->
+    constructor: (@opts = {}) ->
       # @map maps Model objects
       # to corresponding View objects,
       # so that rerendering the same model
       # can be fast
       @map = {}
+      
+      # Apply default options
+      for option of DEFAULT_OPTIONS
+        unless option of @opts
+          @opts[option] = DEFAULT_OPTIONS[option]
 
       # Do our measurement hack
       draw._setCTX @opts.ctx
@@ -876,17 +899,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           # Case 3. Middle of an indent.
           if @multilineChildrenData[line] is MULTILINE_MIDDLE
+            multilineChild = @lineChildren[line][0]
+            multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine]
+
             # Draw the left edge normally.
             left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge straight down,
-            # exactly `@view.opts.indentWidth + @padding` away from
-            # the left edge, for the edge of the C-shape.
-            right.push new draw.Point bounds.x + @view.opts.indentWidth + @padding,
-              bounds.y
-            right.push new draw.Point bounds.x + @view.opts.indentWidth + @padding,
-              bounds.bottom()
+            # exactly to the left of the multiline child.
+            right.push new draw.Point multilineBounds.x, bounds.y
+            right.push new draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 4. End of an indent.
           if @multilineChildrenData[line] is MULTILINE_END
@@ -1246,6 +1269,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # An Indent should also have no drawn
       # or hit-tested path.
       computeOwnPath: -> @path = new draw.Path()
+
+
+      # ## computeDimensions
+      #
+      # Give width to any empty lines
+      # in the Indent.
+      computeDimensions: ->
+        super
+        
+        for size, line in @dimensions[1..] when size.width is 0
+          size.width = @view.opts.emptyLineWidth
 
       # ## drawSelf
       #
