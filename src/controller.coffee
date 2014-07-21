@@ -1218,39 +1218,42 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     lines = @textFocus.stringify().split '\n'
 
-    startPosition = textFocusView.bounds[startRow].x + @view.opts.padding +
+    startPosition = textFocusView.bounds[startRow].x +
       @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionStart].split('\n'))).width
 
-    endPosition = textFocusView.bounds[endRow].x + @view.opts.padding +
+    endPosition = textFocusView.bounds[endRow].x +
       @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n'))).width
 
     # Now draw the highlight/typing cursor
     #
     # Draw a line if it is just a cursor
     if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
-      @mainCtx.strokeRect startPosition, textFocusView.bounds[startRow].y + @view.opts.padding, 0, @fontSize
+      @mainCtx.strokeStyle = '#888'
+      @mainCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
+        0, @fontSize
 
     # Draw a translucent rectangle if there is a selection.
     else
       @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
 
       if startRow is endRow
-        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.padding,
+        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y +
+          textFocusView.getMargins(startRow).top,
           endPosition - startPosition, @fontSize
 
       else
-        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.padding,
-          textFocusView.bounds[startRow].right() - @view.opts.padding - startPosition, @fontSize
+        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y +
+          textFocusView.bounds[startRow].right() - textFocusView.getMargins(startRow).right - startPosition, @fontSize
 
         for i in [startRow + 1...endRow]
-          @mainCtx.fillRect textFocusView.bounds[i].x + @view.opts.padding,
-            textFocusView.bounds[i].y + @view.opts.padding,
-            textFocusView.bounds[i].width - 2 * @view.opts.padding,
+          @mainCtx.fillRect textFocusView.bounds[i].x,
+            textFocusView.bounds[i].y ,
+            textFocusView.bounds[i].width,
             @fontSize
 
-        @mainCtx.fillRect textFocusView.bounds[endRow].x + @view.opts.padding,
-          textFocusView.bounds[endRow].y + @view.opts.padding,
-          endPosition - (textFocusView.bounds[endRow].x + @view.opts.padding),
+        @mainCtx.fillRect textFocusView.bounds[endRow].x,
+          textFocusView.bounds[endRow].y,
+          endPosition - textFocusView.bounds[endRow].x,
           @fontSize
 
 

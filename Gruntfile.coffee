@@ -113,7 +113,7 @@ module.exports = (grunt) ->
       testserver:
         files: []
         tasks: ['connect:testserver']
-        options: { atBegin: true, spawn: false }
+        options: { atBegin: true, spawn: true, interrupt: true }
       sources:
         files: ['src/*.coffee']
         tasks: ['quickbuild', 'notify-done']

@@ -311,6 +311,14 @@ define ->
     # start and end tokens.
     traverseOneLevel: (fn) ->
       traverseOneLevel @start.next, fn
+
+    isFirstOnLine: ->
+      return @start.previousVisibleToken() is @parent?.start or
+        @start.previousVisibleToken()?.type is 'newline'
+
+    isLastOnLine: ->
+      return @end.nextVisibleToken() is @parent?.end or
+        @end.nextVisibleToken()?.type in ['newline', 'indentStart']
     
     # Line mark mutators
     addLineMark: (mark) ->
@@ -401,6 +409,14 @@ define ->
         head = head.parent
 
       return null
+    
+    isFirstOnLine: ->
+      return @previousVisibleToken() is @parent?.start or
+        @previousVisibleToken()?.type is 'newline'
+
+    isLastOnLine: ->
+      return @nextVisibleToken() is @parent?.end or
+        @nextVisibleToken()?.type in ['newline', 'indentStart']
     
     getSerializedLocation: ->
       head = this; count = 0

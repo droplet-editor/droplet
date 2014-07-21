@@ -160,9 +160,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeMargins: ->
         if @computedVersion is @model.version
           return @margins
+        
         # the margins I need depend on the type of my parent
         parenttype = @model.parent?.type
         padding = @view.opts.padding
+        
+        left = if @model.isFirstOnLine() or @lineLength > 1 then padding else 0
+        right = if @model.isLastOnLine() or @lineLength > 1 then padding else 0
+
         if parenttype is 'block' and @model.type is 'indent'
           @margins =
             top: padding
@@ -176,19 +181,44 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             midRight: 0
             lastRight: padding
 
-        else if parenttype is 'block' or (
-            parenttype is 'socket' and @model.type is 'text')
+        else if @model.type is 'text' and parenttype is 'socket'
+          @margins =
+            top: 0
+            bottom: 0
+
+            firstLeft: 3 #padding
+            midLeft: 3 #padding
+            lastLeft: 3 #padding
+
+            firstRight: 3 #padding
+            midRight: 3 #padding
+            lastRight: 3 #padding
+
+        else if @model.type is 'text' and parenttype is 'block'
           @margins =
             top: padding
             bottom: padding
 
-            firstLeft: padding
+            firstLeft: left
+            midLeft: left
+            lastLeft: left
+
+            firstRight: right
+            midRight: right
+            lastRight: right
+
+        else if parenttype is 'block'
+          @margins =
+            top: padding
+            bottom: padding
+
+            firstLeft: left
             midLeft: padding
             lastLeft: padding
 
-            firstRight: padding
-            midRight: padding
-            lastRight: padding
+            firstRight: right
+            midRight: 0
+            lastRight: right
         else
           @margins = {
             firstLeft: 0, midLeft:0, lastLeft: 0
@@ -208,15 +238,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           top: 0
           bottom: 0
 
-        if line is 0
-          margins.top = @margins.top
-          margins.left = @margins.firstLeft
-          margins.right = @margins.firstRight
-
         if line is @lineLength - 1
           margins.bottom = @margins.bottom
           margins.left = @margins.lastLeft
           margins.right = @margins.lastRight
+
+        if line is 0
+          margins.top = @margins.top
+          margins.left = @margins.firstLeft
+          margins.right = @margins.firstRight
 
         return margins
 
@@ -487,11 +517,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # advancing x and y so that there
         # is no overlap between boxes
         for childObj in @lineChildren[line]
-          x += @padding
           childView = @view.getViewNodeFor childObj.child
 
+          x += childView.getMargins(line).left
           childView.debugDimensions x, y, line - childObj.startLine, ctx
-          x += childView.dimensions[line - childObj.startLine].width
+          x += childView.dimensions[line - childObj.startLine].width + childView.getMargins(line).right
 
       # ### debugAllDimensions
       # Run `debugDimensions` on all lines.
@@ -675,6 +705,24 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @distanceToBase[line].below
 
         return null
+      
+      # ## computeFlush
+      # Correct dimensinos 
+      computeFlush: ->
+        if @computedVersion is @model.version
+          return null
+        
+        for dimension, line in @dimensions
+          if @multilineChildrenData[line] is MULTILINE_END or @model.type is 'indent' and line is @lineLength - 1
+            childView = @view.getViewNodeFor @lineChildren[line][0].child
+            childLine = line - @lineChildren[line][0].startLine
+
+            childView.distanceToBase[childLine].above = @distanceToBase[line].above
+            childView.computeFlush()
+
+          dimension.height =
+            @distanceToBase[line].above +
+            @distanceToBase[line].below
 
       # ## computeBoundingBoxX (ContainerViewNode)
       # Layout bounding box positions horizontally.
@@ -782,9 +830,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               # Either add padding or not, depending
               # on whether there is an indent between us.
               @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height
-
-              # Set the `draw` flag iff there is no indent between us.
-              @glue[line].draw = @multilineChildrenData[line] isnt MULTILINE_MIDDLE
           
           # Additionally, we add glue spacing padding if we are disconnected
           # from the bounding box on the next line.
@@ -804,6 +849,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # If the overlap is too small, demand glue.
             if overlap < @view.opts.padding and @model.type isnt 'indent'
               @glue[line].height += @view.opts.padding
+              @glue[line].draw = true
 
         # Return the glue we just computed.
         return @glue
@@ -852,6 +898,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @computeChildren()
         @computeMargins()
         @computeDimensions()
+        @computeFlush()
         @computeAllBoundingBoxX left
         @computeGlue()
         @computeAllBoundingBoxY top
@@ -911,7 +958,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Find the multiline child that's starting on this line,
             # so that we can know its bounds
             multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
-            multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine]
+            multilineView = @view.getViewNodeFor multilineChild.child
+            multilineBounds = multilineView.bounds[line - multilineChild.startLine]
 
             # Draw the upper-right corner
             right.push new draw.Point bounds.right(), bounds.y
@@ -926,7 +974,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             else
               right.push new draw.Point bounds.right(), multilineBounds.y
               right.push new draw.Point multilineBounds.x, multilineBounds.y
-              right.push new draw.Point multilineBounds.x, bounds.bottom()
+              right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
 
           # Case 3. Middle of an indent.
           if @multilineChildrenData[line] is MULTILINE_MIDDLE
@@ -1274,7 +1322,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # Make ourselves white, with a
         # gray border.
         @path.style.fillColor = '#FFF'
-        @path.style.strokeColor = '#888'
+        @path.style.strokeColor = '#FFF'
 
         return @path
 
