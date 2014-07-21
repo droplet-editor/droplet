@@ -403,7 +403,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       dropAreaHeight: 20
       indentDropAreaMinWdith: 50
       emptySocketWidth: 20
-      emptySocketHeight: 25
+      textHeight: 15
       emptyLineHeight: 25
       respectEphemeral: true
       ctx: window.document.querySelector('canvas').getContext('2d')
@@ -480,7 +480,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       dropAreaHeight: 20
       indentDropAreaMinWdith: 50
       emptySocketWidth: 20
-      emptySocketHeight: 25
+      textHeight: 15
       emptyLineHeight: 25
       respectEphemeral: true
       ctx: window.document.querySelector('canvas').getContext('2d')
@@ -494,9 +494,16 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    strictEqual documentView.dimensions[0].height, 15 + 6 * view_.opts.padding, 'First line height (block, 3 padding)'
-    strictEqual documentView.dimensions[1].height, 15 + 4 * view_.opts.padding, 'Second line height (single block in indent)'
-    strictEqual documentView.dimensions[2].height, 15 + 4 * view_.opts.padding + view_.opts.indentTongueHeight, 'Third line height (indentEnd at root)'
+    strictEqual documentView.dimensions[0].height,
+      view_.opts.textHeight + 4 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'First line height (block, 2 padding)'
+    strictEqual documentView.dimensions[1].height,
+      view_.opts.textHeight + 2 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'Second line height (single block in indent)'
+    strictEqual documentView.dimensions[2].height,
+      view_.opts.textHeight + 2 * view_.opts.padding + 2 * view_.opts.textPadding +
+      view_.opts.indentTongueHeight,
+      'Third line height (indentEnd at root)'
 
     document = coffee.parse '''
     fd (for [1..10]
@@ -507,9 +514,16 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    strictEqual documentView.dimensions[0].height, 15 + 8 * view_.opts.padding, 'First line height (block, 4 padding)'
-    strictEqual documentView.dimensions[1].height, 15 + 4 * view_.opts.padding, 'Second line height (single block in nested indent)'
-    strictEqual documentView.dimensions[2].height, 15 + 5 * view_.opts.padding + view_.opts.indentTongueHeight, 'Third line height (indentEnd with padding)'
+    strictEqual documentView.dimensions[0].height,
+      view_.opts.textHeight + 5 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'First line height (block, 3.5 padding)'
+    strictEqual documentView.dimensions[1].height,
+      view_.opts.textHeight + 2 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'Second line height (single block in nested indent)'
+    strictEqual documentView.dimensions[2].height,
+      view_.opts.textHeight + 3 * view_.opts.padding +
+      view_.opts.indentTongueHeight + 2 * view_.opts.textPadding,
+      'Third line height (indentEnd with padding)'
 
     document = coffee.parse '''
     fd 10
@@ -520,7 +534,9 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    strictEqual documentView.dimensions[1].height, view_.opts.emptyLineHeight, 'Renders empty lines'
+    strictEqual documentView.dimensions[1].height,
+      view_.opts.textHeight,
+      'Renders empty lines'
 
   test 'View: bounding box flag stuff', ->
     view_ = new view.View
@@ -534,7 +550,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       dropAreaHeight: 20
       indentDropAreaMinWdith: 50
       emptySocketWidth: 20
-      emptySocketHeight: 25
+      textHeight: 15
       emptyLineHeight: 25
       respectEphemeral: true
       ctx: window.document.querySelector('canvas').getContext('2d')
@@ -551,12 +567,16 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
 
     blockView = view_.getViewNodeFor document.getBlockOnLine 3
 
-    strictEqual blockView.path._points[0].y, 15 * 4 + view_.opts.padding * 16, 'Original path points are O.K.'
+    strictEqual blockView.path._points[0].y,
+      view_.opts.textHeight * 4 + view_.opts.padding * 8 + view_.opts.textPadding * 8,
+      'Original path points are O.K.'
 
     document.getBlockOnLine(2).spliceOut()
     documentView.layout()
 
-    strictEqual blockView.path._points[0].y, 15 * 3 + view_.opts.padding * 12, 'Final path points are O.K.'
+    strictEqual blockView.path._points[0].y,
+      view_.opts.textHeight * 3 + view_.opts.padding * 6 + view_.opts.textPadding * 6,
+      'Final path points are O.K.'
 
   test 'View: sockets caching', ->
     view_ = new view.View
@@ -570,7 +590,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       dropAreaHeight: 20
       indentDropAreaMinWdith: 50
       emptySocketWidth: 20
-      emptySocketHeight: 25
+      textHeight: 15
       emptyLineHeight: 25
       respectEphemeral: true
       ctx: window.document.querySelector('canvas').getContext('2d')
@@ -587,10 +607,14 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
 
     strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
 
-    strictEqual socketView.dimensions[0].height, 15 + 6 * view_.opts.padding, 'Original bounding box points are O.K.'
+    strictEqual socketView.dimensions[0].height,
+      view_.opts.textHeight + 6 * view_.opts.padding,
+      'Original height is O.K.'
 
     (block = document.getTokenAtLocation(9).container).spliceOut()
     block.spliceIn(document.getBlockOnLine(1).start.prev.prev)
     documentView.layout()
 
-    strictEqual socketView.dimensions[0].height, view_.opts.emptySocketHeight, 'Final bounding box points are O.K.'
+    strictEqual socketView.dimensions[0].height,
+      view_.opts.textHeight + 2 * view_.opts.textPadding,
+      'Final height is O.K.'

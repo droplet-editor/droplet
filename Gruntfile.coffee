@@ -138,7 +138,6 @@ module.exports = (grunt) ->
     ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
 
   grunt.registerTask 'notify-done', ->
-    child_process.spawn 'notify-send', ['Compilation completed.']
 
   grunt.task.registerTask 'test',
     'Run unit tests, or just one test.',

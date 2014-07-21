@@ -33,19 +33,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # These are different events associated with the Editor
   # that features will want to bind to.
   unsortedEditorBindings = {
-    'populate': []
+    'populate': []          # after an empty editor is created
 
-    'resize': []
-    'resize_palette': []
+    'resize': []            # after the window is resized
+    'resize_palette': []    # after the palette is resized
 
-    'redraw_main': []
-    'redraw_palette': []
+    'redraw_main': []       # whenever we need to redraw the main canvas
+    'redraw_palette': []    # whenever we need to redraw the palette
 
     'mousedown': []
     'mousemove': []
     'mouseup': []
-
-    'mutation': []
   }
 
   unsortedEditorKeyBindings = {}
@@ -74,6 +72,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # ## DOM Population
       # This stage of ICE Editor construction populates the given wrapper
       # element with all the necessary ICE editor components.
+      @debugging = true
 
       # ### Wrapper
       # Create the div that will contain all the ICE Editor graphics
@@ -130,7 +129,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         dropAreaHeight: 20
         indentDropAreaMinWidth: 50
         emptySocketWidth: 20
-        emptySocketHeight: 25
+        textHeight: 15
         emptyLineHeight: 25
         highlightAreaHeight: 10
         shadowBlur: 5
@@ -451,11 +450,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::addMicroUndoOperation = (operation) ->
     @undoStack.push operation
 
-    # We allow binding to mutation;
-    # all mutation must call addMicroUndoOperation.
-    for binding in editorBindings.mutation
-      binding.call this
-
     # If someone has bound to mutation via
     # the public API, fire it.
     @fireEvent 'change', [operation]
@@ -638,12 +632,24 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   #
   # We do not do anything until the user
   # drags their mouse five pixels
-  hook 'mousedown', 3, (point, event, state) ->
+  hook 'mousedown', 1, (point, event, state) ->
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
     # Hit test against the tree.
-    hitTestResult = @hitTest @trackerPointToMain(point), @tree
+    mainPoint = @trackerPointToMain(point)
+    hitTestResult = @hitTest mainPoint, @tree
+
+    # Produce debugging output
+    if @debugging and event.shiftKey
+      line = null
+      node = @view.getViewNodeFor(hitTestResult)
+      for box, i in node.bounds
+        if box.contains(mainPoint)
+          line = i
+          break
+      @dumpNodeForDebug(hitTestResult, line)
+
 
     # If it came back positive,
     # deal with the click.
@@ -952,7 +958,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @redrawCursor()
 
   # On mousedown, we can hit test for floating blocks.
-  hook 'mousedown', 7, (point, event, state) ->
+  hook 'mousedown', 5, (point, event, state) ->
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
@@ -1086,7 +1092,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # The next thing we need to do with the palette
   # is let people pick things up from it.
-  hook 'mousedown', 8, (point, event, state) ->
+  hook 'mousedown', 6, (point, event, state) ->
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
@@ -1374,7 +1380,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # On mousedown, we will want to start
   # selections and focus text inputs
   # if we apply.
-  hook 'mousedown', 6, (point, event, state) ->
+  hook 'mousedown', 2, (point, event, state) ->
     # If someone else already took this click, return.
     if state.consumedHitTest then return
 
@@ -1631,7 +1637,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # On mousedown, we might want to
   # pick a selected segment up; check.
-  hook 'mousedown', 6.5, (point, event, state) ->
+  hook 'mousedown', 3, (point, event, state) ->
     if state.consumedHitTest then return
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
@@ -2474,7 +2480,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     redo: (editor) ->
       editor.tree.getTokenAtLocation(@location).expand()
 
-  hook 'mousedown', 6.9, (point, event, state) ->
+  hook 'mousedown', 4, (point, event, state) ->
     if state.consumedHitTest then return
 
     mainPoint = @trackerPointToMain point
@@ -2826,6 +2832,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clearDrag()
         @redrawMain()
 
+
+  # DEBUG CODE
+  # ================================
+  Editor::dumpNodeForDebug = (hitTestResult, line) ->
+    console.log('Model node:')
+    console.log(hitTestResult.serialize())
+    console.log('View node:')
+    console.log(@view.getViewNodeFor(hitTestResult).serialize(line))
 
   # CLOSING FOUNDATIONAL STUFF
   # ================================

@@ -19,8 +19,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     tabSideWidth: 0.125
     dropAreaHeight: 20
     indentDropAreaMinWidth: 50
-    emptySocketWidth: 20
-    emptySocketHeight: 25
+    minSocketWidth: 10
+    textHeight: 15
+    textPadding: 1
     emptyLineHeight: 25
     emptyLineWidth: 50
     highlightAreaHeight: 10
@@ -50,7 +51,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # so that rerendering the same model
       # can be fast
       @map = {}
-      
+
       # Apply default options
       for option of DEFAULT_OPTIONS
         unless option of @opts
@@ -104,6 +105,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # *First pass variables*
         # computeMargins
         @margins = {left:0, right:0, top:0, bottom:0}
+        @topLineSticksToBottom = false
+        @bottomLineSticksToTop = false
+
+        # *Pre-second pass variables*
+        # computeMinDimensions
+        # draw.Size type, {width:n, height:m}
+        @minDimensions = [] # Dimensions on each line
+        @minDistanceToBase = [] # {above:n, below:n}
 
         # *Second pass variables*
         # computeDimensions
@@ -115,7 +124,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # computeBoundingBoxX, computeBoundingBoxY
         # draw.Rectangle type, {x:0, y:0, width:200, height:100}
         @bounds = [] # Bounding boxes on each line
-        @boundingBoxFlag = true # Did any bounding boxes change just now?
+        @changedBoundingBox = true # Did any bounding boxes change just now?
 
         # *Fourth pass variables*
         # computeGlue
@@ -142,7 +151,38 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # TODO: remove
         @padding = @view.opts.padding
 
-      # ## computeChildren
+      serialize: (line) ->
+        result = []
+        for prop in [
+            'lineLength'
+            'margins'
+            'topLineSticksToBottom'
+            'bottomLineSticksToTop'
+            'changedBoundingBox'
+            'path'
+            'highlightArea'
+            'computedVersion']
+          result.push(prop + ': ' + JSON.stringify(@[prop]))
+        for child, i in @children
+          result.push("child #{i}: {startLine: #{child.startLine}, " +
+                      "endLine: #{child.endLine}}")
+        if line isnt null
+          for prop in [
+              'multilineChildrenData'
+              'minDimensions'
+              'minDistanceToBase'
+              'dimensions'
+              'distanceToBase'
+              'bounds'
+              'glue']
+            result.push("#{prop} #{line}: #{JSON.stringify(@[prop][line])}")
+          for child, i in @lineChildren[line]
+            result.push("line #{line} child #{i}: " +
+                        "{startLine: #{child.startLine}, " +
+                        "endLine: #{child.endLine}}}")
+        return result.join('\n')
+
+      # ## computeChildren (GenericViewNode)
       # Find out which of our children lie on each line that we
       # own, and also how many lines we own.
       #
@@ -152,7 +192,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # overridden.
       computeChildren: -> @lineLength
 
-      # ## computeMargins
+      # ## computeMargins (GenericViewNode)
       # Compute the amount of margin required outside the child
       # on the top, bottom, left, and right.
       #
@@ -160,19 +200,19 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeMargins: ->
         if @computedVersion is @model.version
           return @margins
-        
+
         # the margins I need depend on the type of my parent
         parenttype = @model.parent?.type
         padding = @view.opts.padding
-        
+
         left = if @model.isFirstOnLine() or @lineLength > 1 then padding else 0
         right = if @model.isLastOnLine() or @lineLength > 1 then padding else 0
 
         if parenttype is 'block' and @model.type is 'indent'
           @margins =
-            top: padding
+            top: 0
             bottom: @view.opts.indentTongueHeight
-            
+
             firstLeft: 0
             midLeft: @view.opts.indentWidth + @view.opts.padding
             lastLeft: @view.opts.indentWidth + @view.opts.padding
@@ -183,16 +223,16 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         else if @model.type is 'text' and parenttype is 'socket'
           @margins =
-            top: 0
-            bottom: 0
+            top: @view.opts.textPadding
+            bottom: @view.opts.textPadding
 
-            firstLeft: 3 #padding
-            midLeft: 3 #padding
-            lastLeft: 3 #padding
+            firstLeft: @view.opts.textPadding
+            midLeft: @view.opts.textPadding
+            lastLeft: @view.opts.textPadding
 
-            firstRight: 3 #padding
-            midRight: 3 #padding
-            lastRight: 3 #padding
+            firstRight: @view.opts.textPadding
+            midRight: @view.opts.textPadding
+            lastRight: @view.opts.textPadding
 
         else if @model.type is 'text' and parenttype is 'block'
           @margins =
@@ -230,7 +270,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @view.getViewNodeFor(childObj.child).computeMargins()
 
         return null
-      
+
       getMargins: (line) ->
         margins =
           left: @margins.midLeft
@@ -250,20 +290,73 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return margins
 
-      # ## computeDimensions
+      # ## computeMinDimensions (GenericViewNode)
       # Compute the size of our bounding box on each
       # line that we contain.
       #
       # Return child node.
       #
       # This is a void computeDimensinos that should be overridden.
-      computeDimensions: ->
-        @dimensions[0] = new draw.Size 0, 0
-        @distanceToBase[0] = {above:0, below:0}
+      computeMinDimensions: ->
+        @minDimensions = (new draw.Size(0, 0) for [0...@lineLength])
+        @minDistanceToBase = ({above:0, below:0} for [0...@lineLength])
         return null
 
 
-      # ## computeBoundingBoxX
+      # ## computeDimensions (GenericViewNode)
+      # Compute the size of our bounding box on each
+      # line that we contain.
+      #
+      # Return child node.
+      #
+      # This is a void computeDimensinos that should be overridden.
+      computeDimensions: (startLine, force) ->
+        if @computedVersion is @model.version and not force
+          return
+
+        oldDimensions = @dimensions
+        oldDistanceToBase = @distanceToBase
+
+        # copy min dimensions
+        @dimensions = (draw.Size.copy(k) for k in @minDimensions)
+        @distanceToBase = (
+            {above: k.above, below: k.below} for k in @minDistanceToBase)
+
+        if @model.parent and (@topLineSticksToBottom or @bottomLineSticksToTop)
+          parentNode = @view.getViewNodeFor(@model.parent)
+          # grow below if "stick to bottom" is set.
+          if @topLineSticksToBottom
+            distance = @distanceToBase[0]
+            distance.below = Math.max(distance.below,
+                parentNode.distanceToBase[startLine].below)
+            @dimensions[0] = new draw.Size(
+                @dimensions[0].width,
+                distance.below + distance.above)
+          # grow above if "stick to top" is set.
+          if @bottomLineSticksToTop
+            lineCount = @distanceToBase.length
+            distance = @distanceToBase[lineCount - 1]
+            distance.above = Math.max(distance.above,
+                parentNode.distanceToBase[startLine + lineCount - 1].above)
+            @dimensions[lineCount - 1] = new draw.Size(
+                @dimensions[lineCount - 1].width,
+                distance.below + distance.above)
+
+        changed = (oldDimensions.length != @lineLength)
+        if not changed then for line in [0...@lineLength]
+          if !oldDimensions[line].equals(@dimensions[line]) or
+              oldDistanceToBase[line].above != @distanceToBase[line].above or
+              oldDistanceToBase[line].below != @distanceToBase[line].below
+            changed = true
+            break
+        @changedBoundingBox or= changed
+        for childObj in @children
+          @view.getViewNodeFor(childObj.child).computeDimensions(
+              childObj.startLine, changed)
+
+        return null
+
+      # ## computeBoundingBoxX (GenericViewNode)
       # Given the left edge coordinate for our bounding box on
       # this line, recursively layout the x-coordinates of us
       # and all our children on this line.
@@ -275,7 +368,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # `10` still needs to change. So we must also check
         # that the coordinate we are given to begin the bounding box on matches.
         if @computedVersion is @model.version and
-           left is @bounds[line]?.x
+           left is @bounds[line]?.x and not @changedBoundingBox
           return @bounds[line]
 
         # Avoid re-instantiating a Rectangle object,
@@ -293,7 +386,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @bounds[line]
 
-      # ## computeAllBoundingBoxX
+      # ## computeAllBoundingBoxX (GenericViewNode)
       # Call `@computeBoundingBoxX` on all lines,
       # thus laying out the entire document horizontally.
       computeAllBoundingBoxX: (left = 0) ->
@@ -302,7 +395,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @bounds
 
-      # ## computeGlue
+      # ## computeGlue (GenericViewNode)
       # If there are disconnected bounding boxes
       # that belong to the same block,
       # insert "glue" spacers between lines
@@ -318,7 +411,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # This is a void function that should be overridden.
       computeGlue: -> @glue = {}
 
-      # ## computeBoundingBoxY
+      # ## computeBoundingBoxY (GenericViewNode)
       # Like computeBoundingBoxX. We must separate
       # these passes because glue spacers from `computeGlue`
       # affect computeBoundingBoxY.
@@ -327,7 +420,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # we are given matches, since we cannot only rely on
         # versioning (see computeBoundingBoxX).
         if @computedVersion is @model.version and
-           top is @bounds[line]?.y
+           top is @bounds[line]?.y and not @changedBoundingBox
           return @bounds[line]
 
         # Accept the bounding box edge we were given.
@@ -339,7 +432,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @bounds[line]
 
-      # ## computeAllBoundingBoxY
+      # ## computeAllBoundingBoxY (GenericViewNode)
       # Call `@computeBoundingBoxY` on all lines,
       # thus laying out the entire document vertically.
       #
@@ -352,7 +445,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @bounds
 
-      # ## getBounds
+      # ## getBounds (GenericViewNode)
       # Deprecated. Access `@totalBounds` directly instead.
       getBounds: -> @totalBounds
 
@@ -366,24 +459,24 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # and so need not override this function.
       computeOwnPath: -> @path = new draw.Path()
 
-      # ## computePath
+      # ## computePath (GenericViewNode)
       # Call `@computeOwnPath` and recurse. This function
       # should never need to be overridden; override `@computeOwnPath`
       # instead.
       computePath: ->
         # Here, we cannot just rely on versioning either.
         # We need to know if any bounding box data changed. So,
-        # look at `@boundingBoxFlag`, which should be set
+        # look at `@changedBoundingBox`, which should be set
         # to `true` whenever a bounding box changed on the bounding box
         # passes.
         if @computedVersion is @model.version and
-             not @boundingBoxFlag
+             not @changedBoundingBox
           return null
 
         # It is possible that we have a version increment
         # without changing bounding boxes. If this is the case,
         # we don't need to recompute our own path.
-        if @boundingBoxFlag
+        if @changedBoundingBox
           @computeOwnPath()
 
           # Recompute `totalBounds`, which is used
@@ -401,7 +494,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return null
 
-      # ## computeOwnDropArea
+      # ## computeOwnDropArea (GenericViewNode)
       # Using bounding box data, compute the drop area
       # for drag-and-drop blocks, if it exists.
       #
@@ -414,7 +507,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # when we hover over a drop area.
       computeOwnDropArea: ->
 
-      # ## computeDropAreas
+      # ## computeDropAreas (GenericViewNode)
       # Call `@computeOwnDropArea`, and recurse.
       #
       # This should never have to be overridden;
@@ -423,7 +516,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # Like with `@computePath`, we cannot rely solely on versioning,
         # so we check the bounding box flag.
         if @computedVersion is @model.version and
-            not @boundingBoxFlag
+            not @changedBoundingBox
           return null
 
         # Compute drop and highlight areas for ourself
@@ -437,10 +530,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       computeNewVersionNumber: ->
         if @computedVersion is @model.version and
-            not @boundingBoxFlag
+            not @changedBoundingBox
           return null
 
-        @boundingBoxFlag = false
+        @changedBoundingBox = false
         @computedVersion = @model.version
 
         # Recurse.
@@ -450,13 +543,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return null
 
 
-      # ## drawSelf
+      # ## drawSelf (GenericViewNode)
       # Draw our own polygon on a canvas context.
       # May require special effects, like graying-out
       # or blueing for lasso select.
       drawSelf: (ctx, style) ->
 
-      # ## draw
+      # ## draw (GenericViewNode)
       # Call `drawSelf` and recurse, if we are in the viewport.
       draw: (ctx, boundingRect, style) ->
         # First, test to see whether our AABB overlaps
@@ -494,7 +587,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return null
 
-      # ## drawShadow
+      # ## drawShadow (GenericViewNode)
       # Draw the shadow of our path
       # on a canvas context. Used
       # for drop shadow when dragging.
@@ -502,7 +595,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       # ## Debug output
 
-      # ### debugDimensions
+      # ### debugDimensions (GenericViewNode)
       # A super-simplified bounding box algorithm
       # made just to show dimensions in context.
       debugDimensions: (x, y, line, ctx) ->
@@ -523,7 +616,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           childView.debugDimensions x, y, line - childObj.startLine, ctx
           x += childView.dimensions[line - childObj.startLine].width + childView.getMargins(line).right
 
-      # ### debugAllDimensions
+      # ### debugAllDimensions (GenericViewNode)
       # Run `debugDimensions` on all lines.
       debugAllDimensions: (ctx) ->
         # Make the context transparent
@@ -537,7 +630,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         ctx.globalAlpha = 1
 
-      # ### debugAllBoundingBoxes
+      # ### debugAllBoundingBoxes (GenericViewNode)
       # Draw our bounding box on each line, and ask
       # all our children to do so too.
       debugAllBoundingBoxes: (ctx) ->
@@ -564,7 +657,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       constructor: (@model, @view) ->
         super
 
-      # ## computeChildren
+      # ## computeChildren (ContainerViewNode)
       # Figure out which children lie on each line,
       # and compute `@multilineChildrenData` simultaneously.
       #
@@ -634,9 +727,16 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # we skipped).
             line += childLength - 1
 
+            if isNaN line
+              debugger
+
         # Set @lineLength to reflect
         # what we just found out.
         @lineLength = line + 1
+
+        if @lineLength > 1
+          @topLineSticksToBottom = true
+          @bottomLineSticksToTop = true
 
         # If we have changed in line length,
         # there has obviously been a bounding box change.
@@ -644,7 +744,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # with lines it knows exists, so we need to chop off
         # the end of the array.
         if @bounds.length isnt @lineLength
-          @boundingBoxFlag = true
+          @changedBoundingBox = true
           @bounds = @bounds[...@lineLength]
 
         # Fill in gaps in @multilineChildrenData with NO_MULTILINE
@@ -654,25 +754,25 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       # ## computeDimensions (ContainerViewNode)
       # Compute the size of our bounding box on each line.
-      computeDimensions: ->
+      computeMinDimensions: ->
         # If we can, use cached data.
         if @computedVersion is @model.version
           return null
 
-        @dimensions = (new draw.Size(0, 0) for [0...@lineLength])
-        @distanceToBase = ({above:0, below:0} for [0...@lineLength])
+        # start at zero min dimensions
+        super
 
         # Recurse on our children, updating
         # our dimensions as we go to contain them.
         for childObject in @children
           # Ask the child to compute dimensions
           childNode = @view.getViewNodeFor(childObject.child)
-          childNode.computeDimensions()
-          dimensions = childNode.dimensions
-          distanceToBase = childNode.distanceToBase
+          childNode.computeMinDimensions()
+          minDimensions = childNode.minDimensions
+          minDistanceToBase = childNode.minDistanceToBase
 
           # Horizontal margins get added to every line.
-          for size, line in dimensions
+          for size, line in minDimensions
             desiredLine = line + childObject.startLine
             margins = childNode.getMargins line
 
@@ -682,47 +782,29 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Exception: Children with invisible bounding boxes
             # should remain invisible. This matters
             # mainly for indents starting at the end of a line.
-            @dimensions[desiredLine].width += size.width +
+            @minDimensions[desiredLine].width += size.width +
               margins.left +
               margins.right
 
             # Compute max distance above and below text
-            @distanceToBase[desiredLine].above = Math.max(
-              @distanceToBase[desiredLine].above,
-              distanceToBase[line].above + margins.top)
-            @distanceToBase[desiredLine].below = Math.max(
-              @distanceToBase[desiredLine].below,
-              distanceToBase[line].below + margins.bottom)
+            @minDistanceToBase[desiredLine].above = Math.max(
+              @minDistanceToBase[desiredLine].above,
+              minDistanceToBase[line].above + margins.top)
+            @minDistanceToBase[desiredLine].below = Math.max(
+              @minDistanceToBase[desiredLine].below,
+              minDistanceToBase[line].below + margins.bottom)
 
         # Height is just the sum of the above-base and below-base counts.
         # Empty lines should have some height.
-        for dimension, line in @dimensions
+        for minDimension, line in @minDimensions
           if @lineChildren[line].length is 0
-            @distanceToBase[line].above = @view.opts.emptyLineHeight
+            @minDistanceToBase[line].above = @view.opts.textHeight
 
-          dimension.height =
-            @distanceToBase[line].above +
-            @distanceToBase[line].below
+          minDimension.height =
+            @minDistanceToBase[line].above +
+            @minDistanceToBase[line].below
 
         return null
-      
-      # ## computeFlush
-      # Correct dimensinos 
-      computeFlush: ->
-        if @computedVersion is @model.version
-          return null
-        
-        for dimension, line in @dimensions
-          if @multilineChildrenData[line] is MULTILINE_END or @model.type is 'indent' and line is @lineLength - 1
-            childView = @view.getViewNodeFor @lineChildren[line][0].child
-            childLine = line - @lineChildren[line][0].startLine
-
-            childView.distanceToBase[childLine].above = @distanceToBase[line].above
-            childView.computeFlush()
-
-          dimension.height =
-            @distanceToBase[line].above +
-            @distanceToBase[line].below
 
       # ## computeBoundingBoxX (ContainerViewNode)
       # Layout bounding box positions horizontally.
@@ -733,12 +815,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeBoundingBoxX: (left, line) ->
         # Use cached data if possible
         if @computedVersion is @model.version and
-            left is @bounds[line]?.x
+            left is @bounds[line]?.x and not @changedBoundingBox
           return @bounds[line]
 
         # If the bounding box we're being asked
         # to layout is exactly the same,
-        # avoid setting `@boundingBoxFlag`
+        # avoid setting `@changedBoundingBox`
         # for performance reasons (also, trivially,
         # avoid changing bounding box coords).
         unless @bounds[line]?.x is left and
@@ -755,7 +837,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               @dimensions[line].width, 0
             )
 
-          @boundingBoxFlag = true
+          @changedBoundingBox = true
 
         # Now recurse. We will keep track
         # of a "cursor" as we go along,
@@ -799,7 +881,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeGlue: ->
         # Use our cache if possible
         if @computedVersion is @model.version and
-            not @boundingBoxFlag
+            not @changedBoundingBox
           return @glue
 
         # Immediately recurse, as we will
@@ -819,7 +901,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             height: 0
             draw: false
           }
-          
+
           # We will always have glue spacing at least as big
           # as the biggest child's glue spacing.
           for lineChild in @lineChildren[line]
@@ -830,7 +912,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               # Either add padding or not, depending
               # on whether there is an indent between us.
               @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height
-          
+
           # Additionally, we add glue spacing padding if we are disconnected
           # from the bounding box on the next line.
           unless @multilineChildrenData[line] is MULTILINE_MIDDLE
@@ -859,10 +941,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeBoundingBoxY: (top, line) ->
         # Use our cache if possible.
         if @computedVersion is @model.version and
-            top is @bounds[line]?.y
+            top is @bounds[line]?.y and not @changedBoundingBox
           return @bounds[line]
 
-        # Avoid setting `@boundingBoxFlag` if our
+        # Avoid setting `@changedBoundingBox` if our
         # bounding box has not actually changed,
         # for performance reasons. (Still need to
         # recurse, in case children have changed
@@ -875,7 +957,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @bounds[line].y = top
           @bounds[line].height = @dimensions[line].height
 
-          @boundingBoxFlag = true
+          @changedBoundingBox = true
 
         # Go to each child and lay them out so that their distanceToBase
         # lines up.
@@ -897,8 +979,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       layout: (left = 0, top = 0) ->
         @computeChildren()
         @computeMargins()
-        @computeDimensions()
-        @computeFlush()
+        @computeMinDimensions()
+        @computeDimensions(0)
         @computeAllBoundingBoxX left
         @computeGlue()
         @computeAllBoundingBoxY top
@@ -1190,7 +1272,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     class BlockViewNode extends ContainerViewNode
       constructor: -> super
 
-      computeDimensions: ->
+      computeMinDimensions: ->
         if @computedVersion is @model.version
           return null
 
@@ -1198,7 +1280,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # Blocks have a shape including a lego nubby "tab", and so
         # they need to be at least wide enough for tabWidth+tabOffset.
-        for size, i in @dimensions
+        for size, i in @minDimensions
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
@@ -1250,27 +1332,32 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       shouldAddTab: NO
 
-      # ## computeDimensions
+      # ## computeDimensions (SocketViewNode)
       # Sockets have a couple exceptions to normal dimension computation.
       #
-      # 1. Empty sockets have size.
+      # 1. Sockets have minimum dimensions even if empty.
       # 2. Sockets containing blocks mimic the block exactly.
-      computeDimensions: ->
+      computeMinDimensions: ->
         # Use cache if possible.
         if @computedVersion is @model.version
           return null
 
         super
-        
-        # If it is 
-        if @model.start.next is @model.end
-          @dimensions[0].height =
-            (@distanceToBase[0].above = @view.opts.emptySocketHeight - @view.opts.padding) +
-            (@distanceToBase[0].below = @view.opts.padding)
 
-        for dimension in @dimensions
+        @minDistanceToBase[0].above = Math.max(@minDistanceToBase[0].above,
+            @view.opts.textHeight + @view.opts.textPadding)
+        @minDistanceToBase[0].below = Math.max(@minDistanceToBase[0].below,
+            @view.opts.textPadding)
+
+        if @minDistanceToBase[0].above is 25
+          debugger
+
+        @minDimensions[0].height =
+            @minDistanceToBase[0].above + @minDistanceToBase[0].below
+
+        for dimension in @minDimensions
           dimension.width =
-              Math.max(dimension.width, @view.opts.emptySocketWidth)
+              Math.max(dimension.width, @view.opts.minSocketWidth)
 
         return null
 
@@ -1281,7 +1368,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeGlue: ->
         # Use cache if possible
         if @computedVersion is @model.version and
-            not @boundingBoxFlag
+            not @changedBoundingBox
           return @glue
 
         # Do not add padding to the glue
@@ -1308,7 +1395,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeOwnPath: ->
         # Use cache if possible.
         if @computedVersion is @model.version and
-            not @boundingBoxFlag
+            not @changedBoundingBox
           return @path
 
         if @model.start.next.type is 'blockStart'
@@ -1350,14 +1437,28 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       computeOwnPath: -> @path = new draw.Path()
 
 
-      # ## computeDimensions
+      # ## computeChildren
+      computeChildren: ->
+        super
+
+        for childRef in @lineChildren[0]
+          childView = @view.getViewNodeFor(childRef.child)
+          childView.topLineSticksToBottom = true
+        for childRef in @lineChildren[@lineChildren.length - 1]
+          childView = @view.getViewNodeFor(childRef.child)
+          childView.bottomLineSticksToTop = true
+
+        return @lineLength
+
+
+      # ## computeDimensions (IndentViewNode)
       #
       # Give width to any empty lines
       # in the Indent.
-      computeDimensions: ->
+      computeMinDimensions: ->
         super
-        
-        for size, line in @dimensions[1..] when size.width is 0
+
+        for size, line in @minDimensions[1..] when size.width is 0
           size.width = @view.opts.emptyLineWidth
 
       # ## drawSelf
@@ -1466,11 +1567,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @multilineChildrenData = [NO_MULTILINE]
         return @lineLength = 1
 
-      # ## computeDimensinos
+      # ## computeMinDimensions (TextViewNode)
       #
       # Set our dimensions to the measured dimensinos
       # of our text value.
-      computeDimensions: ->
+      computeMinDimensions: ->
         if @computedVersion is @model.version
           return null
 
@@ -1479,9 +1580,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @model.value
         )
 
-        height = @textElement.bounds().height
-        @dimensions[0] = new draw.Size(@textElement.bounds().width, height)
-        @distanceToBase[0] = {above: height, below: 0}
+        height = @view.opts.textHeight
+        @minDimensions[0] = new draw.Size(@textElement.bounds().width, height)
+        @minDistanceToBase[0] = {above: height, below: 0}
 
         return null
 

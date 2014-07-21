@@ -45,6 +45,10 @@ define ->
   # A Size knows its width and height.
   exports.Size = class Size
     constructor: (@width, @height) ->
+    equals: (size) ->
+      @width is size.width and @height is size.height
+    @copy: (size) ->
+      new Size(size.width, size.height)
 
   # ## Rectangle ##
   # A Rectangle knows its upper-left corner, width, and height,
