@@ -167,22 +167,58 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @margins =
             top: padding
             bottom: @view.opts.indentTongueHeight
-            left: @view.opts.indentWidth + @view.opts.padding
-            right: padding
+            
+            firstLeft: 0
+            midLeft: @view.opts.indentWidth + @view.opts.padding
+            lastLeft: @view.opts.indentWidth + @view.opts.padding
+
+            firstRight: 0
+            midRight: 0
+            lastRight: padding
+
         else if parenttype is 'block' or (
             parenttype is 'socket' and @model.type is 'text')
           @margins =
             top: padding
             bottom: padding
-            left: padding
-            right: padding
+
+            firstLeft: padding
+            midLeft: padding
+            lastLeft: padding
+
+            firstRight: padding
+            midRight: padding
+            lastRight: padding
         else
-          @margins = {left:0, right:0, top:0, bottom:0}
+          @margins = {
+            firstLeft: 0, midLeft:0, lastLeft: 0
+            firstRight: 0, midRight:0, lastRight: 0
+            top:0, bottom:0
+          }
 
         for childObj in @children
           @view.getViewNodeFor(childObj.child).computeMargins()
 
         return null
+      
+      getMargins: (line) ->
+        margins =
+          left: @margins.midLeft
+          right: @margins.midRight
+          top: 0
+          bottom: 0
+
+        if line is 0
+          margins.top = @margins.top
+          margins.left = @margins.firstLeft
+          margins.right = @margins.firstRight
+
+        if line is @lineLength - 1
+          margins.bottom = @margins.bottom
+          margins.left = @margins.lastLeft
+          margins.right = @margins.lastRight
+
+        return margins
 
       # ## computeDimensions
       # Compute the size of our bounding box on each
@@ -608,10 +644,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # Horizontal margins get added to every line.
           for size, line in dimensions
             desiredLine = line + childObject.startLine
-            firstTop = if line is 0 then childNode.margins.top else 0
-            lastBottom = if line is dimensions.length - 1
-                childNode.margins.bottom
-              else 0
+            margins = childNode.getMargins line
 
             # Unless we are in the middle of an indent,
             # add padding on the right of the child.
@@ -619,17 +652,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Exception: Children with invisible bounding boxes
             # should remain invisible. This matters
             # mainly for indents starting at the end of a line.
-            unless size.width is 0
-              @dimensions[desiredLine].width += size.width +
-                childNode.margins.left + childNode.margins.right
+            @dimensions[desiredLine].width += size.width +
+              margins.left +
+              margins.right
 
             # Compute max distance above and below text
             @distanceToBase[desiredLine].above = Math.max(
               @distanceToBase[desiredLine].above,
-              distanceToBase[line].above + firstTop)
+              distanceToBase[line].above + margins.top)
             @distanceToBase[desiredLine].below = Math.max(
               @distanceToBase[desiredLine].below,
-              distanceToBase[line].below + lastBottom)
+              distanceToBase[line].below + margins.bottom)
 
         # Height is just the sum of the above-base and below-base counts.
         # Empty lines should have some height.
@@ -687,14 +720,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         for lineChild, i in @lineChildren[line]
           childView = @view.getViewNodeFor lineChild.child
           childLine = line - lineChild.startLine
-          
-          if childView.dimensions[childLine].width is 0
-            childView.computeBoundingBoxX childLeft, childLine
-          else
-            childLeft += childView.margins.left
-            childView.computeBoundingBoxX childLeft, childLine
-            childLeft +=
-              childView.dimensions[childLine].width + childView.margins.right
+          childMargins = childView.getMargins childLine
+
+          childLeft += childMargins.left
+          childView.computeBoundingBoxX childLeft, childLine
+          childLeft +=
+            childView.dimensions[childLine].width + childMargins.right
 
         # Return the bounds we just
         # computed.
@@ -1385,7 +1416,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # no multiline children, either)
       computeChildren: ->
         @multilineChildrenData = [NO_MULTILINE]
-        return 1
+        return @lineLength = 1
 
       # ## computeDimensinos
       #
