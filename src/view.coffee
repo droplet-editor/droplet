@@ -123,6 +123,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @dimensions = [] # Dimensions on each line
         @distanceToBase = [] # {above:n, below:n}
 
+        @bevels =
+          topLeft: false
+          topRight: false
+          bottomLeft: false
+          bottomRight: false
+
         # *Third/fifth pass variables*
         # computeBoundingBoxX, computeBoundingBoxY
         # draw.Rectangle type, {x:0, y:0, width:200, height:100}
@@ -293,6 +299,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return margins
 
+      computeBevels: ->
+        @bevels =
+          topLeft: false
+          topRight: false
+          bottomLeft: false
+          bottomRight: false
+
+      
       # ## computeMinDimensions (GenericViewNode)
       # Compute the size of our bounding box on each
       # line that we contain.
@@ -762,6 +776,25 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         return @lineLength
 
+      computeBevels: ->
+        @bevels =
+          topLeft: false
+          topRight: true
+          bottomLeft: false
+          bottomRight: true
+
+        if (not @model.parent?) or
+           (not @view.hasViewNodeFor(@model.parent)) or
+           (@model.parent.type in ['block', 'socket'])
+          @bevels.topLeft = @bevels.bottomLeft =
+            @bevels.topRight = @bevels.bottomRight = true
+
+        for childObj in @children
+          @view.getViewNodeFor(childObj.child).computeBevels()
+
+        return null
+
+
       # ## computeDimensions (ContainerViewNode)
       # Compute the size of our bounding box on each line.
       computeMinDimensions: ->
@@ -989,6 +1022,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       layout: (left = 0, top = 0) ->
         @computeChildren()
         @computeMargins()
+        @computeBevels()
         @computeMinDimensions()
         @computeDimensions(0)
         @computeAllBoundingBoxX left
@@ -1034,22 +1068,35 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # Case 1. Normal rendering.
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
-            left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
-            left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
-            left.push new draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
-            left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
+            if @bevels.topLeft and line is 0
+              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
+              left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
+            else
+              left.push new draw.Point bounds.x, bounds.y
+            
+            if @bevels.bottomLeft and line is @lineLength - 1
+              left.push new draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
+              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
+            else
+              left.push new draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
-            right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-            right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
-            right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-            right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+            if @bevels.topRight and line is 0
+              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+              right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+            else
+              right.push new draw.Point bounds.right(), bounds.y
+
+            if @bevels.bottomRight and line is @lineLength - 1
+              right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+            else
+              right.push new draw.Point bounds.right(), bounds.bottom()
 
           # Case 2. Start of a multiline block.
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge normally.
-            left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
-            left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
+            left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
@@ -1064,10 +1111,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # If the multiline child here is invisible,
             # draw the line just normally.
             if multilineBounds.width is 0
-              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-              right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
-              right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+              right.push new draw.Point bounds.right(), bounds.y
+              right.push new draw.Point bounds.right(), bounds.bottom()
 
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.
