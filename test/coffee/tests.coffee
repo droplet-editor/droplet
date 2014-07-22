@@ -596,6 +596,9 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     socketView.model.start.append new model.TextToken('\'hi\'')
       .append socketView.model.end
 
+    socketView.model.notifyChange()
+    documentView.layout()
+
     socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
 
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
