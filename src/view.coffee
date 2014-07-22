@@ -1081,13 +1081,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               left.push new draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
-            if @bevels.topRight and line is 0
+            if @bevels.topRight
               right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
               right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
             else
               right.push new draw.Point bounds.right(), bounds.y
 
-            if @bevels.bottomRight and line is @lineLength - 1
+            if @bevels.bottomRight
               right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
               right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
             else
@@ -1095,9 +1095,18 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           # Case 2. Start of a multiline block.
           if @multilineChildrenData[line] is MULTILINE_START
-            # Draw the left edge normally.
-            left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, bounds.bottom()
+            # Draw the left edge of the bounding box.
+            if @bevels.topLeft and line is 0
+              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
+              left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
+            else
+              left.push new draw.Point bounds.x, bounds.y
+            
+            if @bevels.bottomLeft and line is @lineLength - 1
+              left.push new draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
+              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
+            else
+              left.push new draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
             # so that we can know its bounds
@@ -1111,8 +1120,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # If the multiline child here is invisible,
             # draw the line just normally.
             if multilineBounds.width is 0
-              right.push new draw.Point bounds.right(), bounds.y
-              right.push new draw.Point bounds.right(), bounds.bottom()
+              if @bevels.topRight
+                right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+                right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+              else
+                right.push new draw.Point bounds.right(), bounds.y
+
+              if @bevels.bottomRight
+                right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+                right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+              else
+                right.push new draw.Point bounds.right(), bounds.bottom()
 
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.

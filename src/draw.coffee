@@ -263,7 +263,7 @@ define ->
             ctx.moveTo point.x, point.y
           else
             ctx.lineTo point.x, point.y
-        if @_points[0].x > @_points[@_points.length - 1].x or
+        unless @_points[0].x > @_points[@_points.length - 1].x or
             @_points[0].y < @_points[@_points.length - 1].y
           ctx.lineTo @_points[0].x, @_points[0].y
 
@@ -280,7 +280,7 @@ define ->
             ctx.lineTo point.x, point.y
           else
             ctx.moveTo point.x, point.y
-        unless @_points[0].x > @_points[@_points.length - 1].x or
+        if @_points[0].x > @_points[@_points.length - 1].x or
             @_points[0].y < @_points[@_points.length - 1].y
           ctx.lineTo @_points[0].x, @_points[0].y
 
