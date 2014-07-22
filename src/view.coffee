@@ -1225,44 +1225,25 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # Draw our path, with applied
       # styles if necessary.
       drawSelf: (ctx, style) ->
-        # Upon grayscale style,
-        # apply the gray-out effect
-        # (temporarily).
+        # We might want to apply some
+        # temporary color changes,
+        # so store the old colors
+        oldFill = @path.style.fillColor
+        oldStroke = @path.style.strokeColor
+
         if style.grayscale > 0
-          oldFill = @path.style.fillColor
-          @path.style.fillColor = grayscale oldFill
+          @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
+          @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
-          @path.draw ctx
+        if style.selected > 0
+          @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
+          @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
-          # Unset all the things we changed
-          @path.style.fillColor = oldFill
+        @path.draw ctx
 
-        # Upon selected style,
-        # draw a transparent blue
-        # polygon over the normally-rendered
-        # path (to give "selected" feel).
-        else if style.selected > 0
-          @path.draw ctx
-
-          oldFill = @path.style.fillColor
-          @path.style.fillColor = '#00F'
-
-          oldStroke = @path.style.strokeColor
-          @path.style.strokeColor = '#008'
-
-          oldAlpha = ctx.globalAlpha
-          ctx.globalAlpha *= 0.3
-
-          @path.draw ctx
-
-          # Unset all the things we changed
-          ctx.globalAlpha = oldAlpha
-          @path.style.fillColor = oldFill
-          @path.style.strokeColor = oldStroke
-
-        # Normally, just draw the path.
-        else
-          @path.draw ctx
+        # Unset all the things we changed
+        @path.style.fillColor = oldFill
+        @path.style.strokeColor = oldStroke
 
         return null
 
@@ -1644,27 +1625,41 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return 1
 
       computeBoundingBox: ->
-
-  # ## Grayscale
-  # Brings a colour closer to gray,
-  # for the gray-out effect when dragging or
-  # having floating blocks.
-  grayscale = (hex) ->
+  toRGB = (hex) ->
     # Convert to 6-char hex if not already there
     if hex.length is 4
-      hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3]
+      hex = (c + c for c in hex).join('')[1..]
+
+    console.log hex
 
     # Extract integers from hex
     r = parseInt hex[1..2], 16
     g = parseInt hex[3..4], 16
     b = parseInt hex[5..6], 16
 
-    # Average with gray
-    r = Math.round (r + 128) / 2
-    g = Math.round (g + 128) / 2
-    b = Math.round (b + 128) / 2
+    return [r, g, b]
+  
+  zeroPad = (str, len) ->
+    if str.length < len
+      ('0' for [str.length...len]).join('') + str
+    else
+      str
 
-    # Reassemble hex string
-    return '#' + r.toString(16) + g.toString(16) + b.toString(16)
+  twoDigitHex = (n) -> zeroPad Math.round(n).toString(16), 2
+
+  toHex = (rgb) ->
+    return '#' + (twoDigitHex(k) for k in rgb).join ''
+
+  # ## Grayscale
+  # Brings a colour closer to gray,
+  # for the gray-out effect when dragging or
+  # having floating blocks.
+  avgColor = (a, factor, b) ->
+    a = toRGB a
+    b = toRGB b
+
+    newRGB = (a[i] * factor + b[i] * (1 - factor) for k, i in a)
+
+    return toHex newRGB
 
   return exports
