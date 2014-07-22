@@ -681,6 +681,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @lineChildren = [[]]
         @children = []
         @multilineChildrenData = []
+        @topLineSticksToBottom = false
+        @bottomLineSticksToTop = false
 
         line = 0
 

@@ -392,21 +392,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     see 1 + ''', 'Unwrap'
 
   test 'View: compute children', ->
-    view_ = new view.View
-      padding: 5
-      indentWidth: 10
-      indentTongueHeight: 10
-      tabOffset: 10
-      tabWidth: 15
-      tabHeight: 5
-      tabSideWidth: 0.125
-      dropAreaHeight: 20
-      indentDropAreaMinWdith: 50
-      emptySocketWidth: 20
-      textHeight: 15
-      emptyLineHeight: 25
-      respectEphemeral: true
-      ctx: window.document.querySelector('canvas').getContext('2d')
+    view_ = new view.View()
 
     document = coffee.parse '''
     fd 10
@@ -469,21 +455,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     strictEqual blockView.multilineChildrenData[1], 3, 'Indent end data'
 
   test 'View: compute dimensions', ->
-    view_ = new view.View
-      padding: 5
-      indentWidth: 10
-      indentTongueHeight: 10
-      tabOffset: 10
-      tabWidth: 15
-      tabHeight: 5
-      tabSideWidth: 0.125
-      dropAreaHeight: 20
-      indentDropAreaMinWdith: 50
-      emptySocketWidth: 20
-      textHeight: 15
-      emptyLineHeight: 25
-      respectEphemeral: true
-      ctx: window.document.querySelector('canvas').getContext('2d')
+    view_ = new view.View()
 
     document = coffee.parse '''
     for [1..10]
@@ -539,21 +511,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       'Renders empty lines'
 
   test 'View: bounding box flag stuff', ->
-    view_ = new view.View
-      padding: 5
-      indentWidth: 10
-      indentTongueHeight: 10
-      tabOffset: 10
-      tabWidth: 15
-      tabHeight: 5
-      tabSideWidth: 0.125
-      dropAreaHeight: 20
-      indentDropAreaMinWdith: 50
-      emptySocketWidth: 20
-      textHeight: 15
-      emptyLineHeight: 25
-      respectEphemeral: true
-      ctx: window.document.querySelector('canvas').getContext('2d')
+    view_ = new view.View()
 
     document = coffee.parse '''
     fd 10
@@ -579,21 +537,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       'Final path points are O.K.'
 
   test 'View: sockets caching', ->
-    view_ = new view.View
-      padding: 5
-      indentWidth: 10
-      indentTongueHeight: 10
-      tabOffset: 10
-      tabWidth: 15
-      tabHeight: 5
-      tabSideWidth: 0.125
-      dropAreaHeight: 20
-      indentDropAreaMinWdith: 50
-      emptySocketWidth: 20
-      textHeight: 15
-      emptyLineHeight: 25
-      respectEphemeral: true
-      ctx: window.document.querySelector('canvas').getContext('2d')
+    view_ = new view.View()
 
     document = coffee.parse '''
     for i in [[[]]]
@@ -618,3 +562,41 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     strictEqual socketView.dimensions[0].height,
       view_.opts.textHeight + 2 * view_.opts.textPadding,
       'Final height is O.K.'
+
+  test 'View: triple-quote sockets caching issue', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    see 'hi'
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+
+    strictEqual socketView.model.stringify(), '\'hi\'', 'Correct block selected'
+    strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
+    strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
+
+    socketView.model.start.append socketView.model.end
+    socketView.model.start.append(new model.TextToken('"""'))
+      .append(new model.NewlineToken())
+      .append(new model.TextToken('hello'))
+      .append(new model.NewlineToken())
+      .append(new model.TextToken('world"""'))
+      .append(socketView.model.end)
+    
+    socketView.model.notifyChange()
+
+    documentView.layout()
+
+    strictEqual socketView.topLineSticksToBottom, true, 'Intermediate topstick O.K.'
+
+    socketView.model.start.append new model.TextToken('\'hi\'')
+      .append socketView.model.end
+
+    socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+
+    strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
+    strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'

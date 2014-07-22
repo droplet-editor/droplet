@@ -1222,10 +1222,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     lines = @textFocus.stringify().split '\n'
 
-    startPosition = textFocusView.bounds[startRow].x +
+    startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
       @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionStart].split('\n'))).width
 
-    endPosition = textFocusView.bounds[endRow].x +
+    endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
       @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n'))).width
 
     # Now draw the highlight/typing cursor
@@ -1241,22 +1241,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
 
       if startRow is endRow
-        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y +
-          textFocusView.getMargins(startRow).top,
+        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
           endPosition - startPosition, @fontSize
 
       else
-        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y +
-          textFocusView.bounds[startRow].right() - textFocusView.getMargins(startRow).right - startPosition, @fontSize
+        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
+          textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @fontSize
 
         for i in [startRow + 1...endRow]
           @mainCtx.fillRect textFocusView.bounds[i].x,
-            textFocusView.bounds[i].y ,
+            textFocusView.bounds[i].y + @view.opts.textPadding,
             textFocusView.bounds[i].width,
             @fontSize
 
         @mainCtx.fillRect textFocusView.bounds[endRow].x,
-          textFocusView.bounds[endRow].y,
+          textFocusView.bounds[endRow].y + @view.opts.textPadding,
           endPosition - textFocusView.bounds[endRow].x,
           @fontSize
 
