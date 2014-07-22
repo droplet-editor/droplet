@@ -74,6 +74,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       else
         return @createView(model)
 
+    hasViewNodeFor: (model) -> model? and model.id of @map
+
     # ## createView
     # Given a model object, create a renderer object
     # of the appropriate type.
@@ -322,8 +324,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @distanceToBase = (
             {above: k.above, below: k.below} for k in @minDistanceToBase)
 
-        if @model.parent and (@topLineSticksToBottom or @bottomLineSticksToTop)
-          parentNode = @view.getViewNodeFor(@model.parent)
+        if @view.hasViewNodeFor(@model.parent) and
+            (@topLineSticksToBottom or @bottomLineSticksToTop)
+          parentNode = @view.getViewNodeFor @model.parent
+
           # grow below if "stick to bottom" is set.
           if @topLineSticksToBottom
             distance = @distanceToBase[0]
@@ -332,6 +336,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @dimensions[0] = new draw.Size(
                 @dimensions[0].width,
                 distance.below + distance.above)
+
           # grow above if "stick to top" is set.
           if @bottomLineSticksToTop
             lineCount = @distanceToBase.length
@@ -349,7 +354,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               oldDistanceToBase[line].below != @distanceToBase[line].below
             changed = true
             break
+
         @changedBoundingBox or= changed
+
         for childObj in @children
           @view.getViewNodeFor(childObj.child).computeDimensions(
               childObj.startLine, changed)

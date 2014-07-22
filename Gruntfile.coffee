@@ -1,6 +1,9 @@
 child_process = require 'child_process'
 path = require 'path'
 
+notify = (message) ->
+  child_process.spawn 'notify-send', [message, '--urgency=low']
+
 module.exports = (grunt) ->
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
@@ -138,6 +141,7 @@ module.exports = (grunt) ->
     ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
 
   grunt.registerTask 'notify-done', ->
+    notify 'Compilation complete.'
 
   grunt.task.registerTask 'test',
     'Run unit tests, or just one test.',
