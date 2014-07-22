@@ -238,7 +238,7 @@ define ->
       ctx.beginPath()
       ctx.moveTo @_points[0].x, @_points[0].y
       for point in @_points
-        ctx.lineTo point.x, point.y # DEFAULT
+        ctx.lineTo point.x, point.y
       ctx.lineTo @_points[0].x, @_points[0].y
 
       # Wrap around again so that the origin
@@ -249,7 +249,46 @@ define ->
       # Fill and stroke
       if @style.fillColor? then ctx.fill()
 
-      ctx.stroke()
+      ctx.save()
+      ctx.clip()
+      if @bevel
+        ctx.shadowBlur = 5
+        ctx.shadowColor = 'black'
+        ctx.shadowOffsetX = ctx.shadowOffsetY = 0
+
+        ctx.beginPath()
+        ctx.moveTo @_points[0].x, @_points[0].y
+        for point, i in @_points[1..]
+          if point.x > @_points[i].x or point.y < @_points[i].y
+            ctx.moveTo point.x, point.y
+          else
+            ctx.lineTo point.x, point.y
+        if @_points[0].x > @_points[@_points.length - 1].x or
+            @_points[0].y < @_points[@_points.length - 1].y
+          ctx.lineTo @_points[0].x, @_points[0].y
+
+        ctx.stroke()
+
+        ctx.shadowBlur = 5
+        ctx.shadowColor = 'white'
+        ctx.shadowOffsetX = ctx.shadowOffsetY = 0
+
+        ctx.beginPath()
+        ctx.moveTo @_points[0].x, @_points[0].y
+        for point, i in @_points[1..]
+          if point.x > @_points[i].x or point.y < @_points[i].y
+            ctx.lineTo point.x, point.y
+          else
+            ctx.moveTo point.x, point.y
+        unless @_points[0].x > @_points[@_points.length - 1].x or
+            @_points[0].y < @_points[@_points.length - 1].y
+          ctx.lineTo @_points[0].x, @_points[0].y
+
+        ctx.stroke()
+
+      else
+        ctx.stroke()
+      ctx.restore()
 
     clone: ->
       clone = new Path()

@@ -25,6 +25,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     emptyLineHeight: 25
     emptyLineWidth: 50
     highlightAreaHeight: 10
+    bevelClip: 3
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
 
@@ -1026,24 +1027,29 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # If necessary, add tab
         # at the top.
         if @shouldAddTab()
-          @addTab left, new draw.Point @bounds[0].x, @bounds[0].y
+          @addTab left, new draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
 
           # Case 1. Normal rendering.
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
-            left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, bounds.bottom()
+            left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
+            left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
+            left.push new draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
+            left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
 
             # Draw the right edge of the bounding box.
-            right.push new draw.Point bounds.right(), bounds.y
-            right.push new draw.Point bounds.right(), bounds.bottom()
+            right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+            right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+            right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+            right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
 
           # Case 2. Start of a multiline block.
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge normally.
-            left.push new draw.Point bounds.x, bounds.y
+            left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
+            left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
             left.push new draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
@@ -1058,7 +1064,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # If the multiline child here is invisible,
             # draw the line just normally.
             if multilineBounds.width is 0
-              right.push new draw.Point bounds.right(), bounds.bottom()
+              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+              right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+              right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
 
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.
@@ -1176,12 +1185,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # when the last child on this line is an actual Indent node.
           if @multilineChildrenData[line] is MULTILINE_START and
              @lineChildren[line][@lineChildren[line].length - 1].child.type is 'indent'
-            @addTab right, new draw.Point(@bounds[line + 1].x + @view.opts.indentWidth + @padding, @bounds[line + 1].y), true
+            @addTab right, new draw.Point(@bounds[line + 1].x +
+              @view.opts.indentWidth +
+              @padding +
+              @view.opts.tabOffset, @bounds[line + 1].y), true
 
         # If necessary, add tab
         # at the bottom.
         if @shouldAddTab()
-          @addTab right, new draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
+          @addTab right, new draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset, @bounds[@lineLength - 1].bottom()
 
         # Reverse the left and concatenate it with the right
         # to make a counterclockwise path
@@ -1197,17 +1209,16 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # Add the tab graphic to a path in a given location.
       addTab: (array, point) ->
         # Rightmost point of the tab, where it begins to dip down.
-        array.push new draw.Point(point.x + @view.opts.tabOffset + @view.opts.tabWidth,
+        array.push new draw.Point(point.x + @view.opts.tabWidth,
           point.y)
         # Dip down.
-        array.push new draw.Point point.x + @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+        array.push new draw.Point point.x +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
           point.y + @view.opts.tabHeight
         # Bottom plateau.
-        array.push new draw.Point point.x + @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
+        array.push new draw.Point point.x + @view.opts.tabWidth * @view.opts.tabSideWidth,
           point.y + @view.opts.tabHeight
         # Rise back up.
-        array.push new draw.Point point.x + @view.opts.tabOffset,
-          point.y
+        array.push new draw.Point point.x, point.y
         # Move over to the given corner itself.
         array.push point
 
@@ -1288,6 +1299,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         if @model.lineMarkStyles.length > 0
           @path.style.strokeColor = @model.lineMarkStyles[0].color
           @path.style.lineWidth = 2
+
+        @path.bevel = true
 
         return @path
 
