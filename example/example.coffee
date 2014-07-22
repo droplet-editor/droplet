@@ -334,7 +334,7 @@ require ['ice'], (ice) ->
     see unchurch sub church(10), church(3)
     '''
     controller: readFile '../src/controller.coffee'
-    compiler: readFile '../test/nodes.coffee'
+    compiler: readFile '../test/data/nodes.coffee'
   }
 
   # Update textarea on ICE editor change

@@ -1,6 +1,9 @@
 child_process = require 'child_process'
 path = require 'path'
 
+notify = (message) ->
+  child_process.spawn 'notify-send', [message, '--urgency=low']
+
 module.exports = (grunt) ->
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
@@ -20,6 +23,7 @@ module.exports = (grunt) ->
 
           'test/js/tests.js': ['test/coffee/tests.coffee']
           'example/example.js': ['example/example.coffee']
+          'example/test.js': ['example/test.coffee']
 
     qunit:
       all:
@@ -112,10 +116,10 @@ module.exports = (grunt) ->
       testserver:
         files: []
         tasks: ['connect:testserver']
-        options: { atBegin: true, spawn: false }
+        options: { atBegin: true, spawn: true, interrupt: true }
       sources:
         files: ['src/*.coffee']
-        tasks: ['quickbuild']
+        tasks: ['quickbuild', 'notify-done']
 
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -135,6 +139,10 @@ module.exports = (grunt) ->
     ['coffee']
   grunt.registerTask 'all',
     ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
+
+  grunt.registerTask 'notify-done', ->
+    notify 'Compilation complete.'
+
   grunt.task.registerTask 'test',
     'Run unit tests, or just one test.',
     (testname) ->
@@ -147,6 +155,6 @@ module.exports = (grunt) ->
 
   grunt.event.on 'watch', (action, filepath) ->
     if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
-      destination = (path.dirname(path.dirname(filepath)) + 'js/' + path.basename(filepath))
-      coffeeFiles = {}; coffeeFiles[destination] = filepath
+      destination = (path.dirname(path.dirname(filepath)) + '/js/' + path.basename(filepath).replace('.coffee', '.js'))
+      coffeeFiles = {}; coffeeFiles[destination] = [filepath]
       grunt.config 'coffee.build.files', coffeeFiles
