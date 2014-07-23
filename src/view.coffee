@@ -8,11 +8,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   MULTILINE_START = 1
   MULTILINE_MIDDLE = 2
   MULTILINE_END = 3
+  MULTILINE_END_START = 4
 
   DEFAULT_OPTIONS =
     padding: 5
     indentWidth: 10
-    indentTongueHeight: 15
+    indentTongueHeight: 10
     tabOffset: 10
     tabWidth: 15
     tabHeight: 5
@@ -740,7 +741,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # update our multiline child data to reflect
             # where it started and ended.
             if view.lineLength > 1
-              @multilineChildrenData[line] = MULTILINE_START
+              if @multilineChildrenData[line] is MULTILINE_END
+                @multilineChildrenData[line] = MULTILINE_END_START
+              else
+                @multilineChildrenData[line] = MULTILINE_START
+
               @multilineChildrenData[i] = MULTILINE_MIDDLE for i in [line + 1...line + childLength - 1]
               @multilineChildrenData[line + childLength - 1] = MULTILINE_END
 
@@ -990,7 +995,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # instead, we must connect to the small rectangle
             # on the left of a C-shaped indent thing. So,
             # compute overlap with that as well.
-            if @multilineChildrenData[line] is MULTILINE_START
+            if @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
               overlap = Math.min overlap, @bounds[line + 1].x + @view.opts.indentWidth - @bounds[line].x
 
             # If the overlap is too small, demand glue.
@@ -1179,7 +1184,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             right.push new draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 4. End of an indent.
-          if @multilineChildrenData[line] is MULTILINE_END
+          if @multilineChildrenData[line] in [MULTILINE_END, MULTILINE_END_START]
             left.push new draw.Point bounds.x, bounds.y
             left.push new draw.Point bounds.x, bounds.bottom()
 
@@ -1199,8 +1204,42 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # If we must, make the "G"-shape
             if @lineChildren[line].length > 1
               right.push new draw.Point multilineBounds.right(), multilineBounds.y
-              right.push new draw.Point bounds.right(), bounds.y
-              right.push new draw.Point bounds.right(), bounds.bottom()
+
+              if @multilineChildrenData[line] is MULTILINE_END
+                right.push new draw.Point bounds.right(), bounds.y
+                right.push new draw.Point bounds.right(), bounds.bottom()
+              else
+                # Find the multiline child that's starting on this line,
+                # so that we can know its bounds
+                multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
+                multilineView = @view.getViewNodeFor multilineChild.child
+                multilineBounds = multilineView.bounds[line - multilineChild.startLine]
+
+                # Draw the upper-right corner
+                right.push new draw.Point bounds.right(), bounds.y
+
+                # If the multiline child here is invisible,
+                # draw the line just normally.
+                if multilineBounds.width is 0
+                  if @bevels.topRight
+                    right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+                    right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+                  else
+                    right.push new draw.Point bounds.right(), bounds.y
+
+                  if @bevels.bottomRight and not @glue[line]?.draw
+                    right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+                    right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+                  else
+                    right.push new draw.Point bounds.right(), bounds.bottom()
+
+                # Otherwise, avoid the block by tracing out its
+                # top and left edges, then going to our bound's bottom.
+                else
+                  right.push new draw.Point bounds.right(), multilineBounds.y
+                  right.push new draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
+                  right.push new draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
+                  right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
 
             # Otherwise, don't.
             else if line is @lineLength - 1
@@ -1211,6 +1250,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             else
               right.push new draw.Point bounds.right(), multilineBounds.bottom()
               right.push new draw.Point bounds.right(), bounds.bottom()
+
 
           # "Glue" phase
           # Here we use our glue spacing data

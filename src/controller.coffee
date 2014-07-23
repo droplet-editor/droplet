@@ -119,7 +119,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @iceElement.appendChild @paletteWrapper
 
       @standardViewSettings =
-        padding: 4
+        padding: 5
         indentWidth: 15
         indentTongueHeight: 20
         tabOffset: 10
@@ -2903,6 +2903,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       renderPoint = @trackerPointToMain trackPoint
 
       if @mainViewOrChildrenContains @draggingBlock, renderPoint
+        console.log 'dropped back on gray spot'
         @draggingBlock.ephemeral = false
 
         @draggingBlock = null
@@ -2941,6 +2942,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     lineDiv.style.height =  treeView.bounds[line].height
     lineDiv.style.fontSize = @view.opts.textHeight
     lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight
+
+    lineDiv.addEventListener 'mouseover', =>
+      treeView.bounds[line].stroke @lassoSelectCtx, '#000'
+
+    lineDiv.addEventListener 'mouseout', =>
+      @clearLassoSelectCanvas()
 
     @gutter.appendChild lineDiv
 
