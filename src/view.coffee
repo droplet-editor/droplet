@@ -326,7 +326,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # Return child node.
       #
       # This is a void computeDimensinos that should be overridden.
-      computeDimensions: (startLine, force) ->
+      computeDimensions: (startLine, force, root = false) ->
         if @computedVersion is @model.version and not force
           return
 
@@ -338,7 +338,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @distanceToBase = (
             {above: k.above, below: k.below} for k in @minDistanceToBase)
 
-        if @view.hasViewNodeFor(@model.parent) and
+        if @model.parent? and not root and
             (@topLineSticksToBottom or @bottomLineSticksToTop)
           parentNode = @view.getViewNodeFor @model.parent
 
@@ -1046,7 +1046,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @computeMargins()
         @computeBevels()
         @computeMinDimensions()
-        @computeDimensions(0)
+        @computeDimensions 0, false, true
         @computeAllBoundingBoxX left
         @computeGlue()
         @computeAllBoundingBoxY top
@@ -1700,7 +1700,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       #
       # Draw the text element itself.
       drawSelf: (ctx, style) ->
-        @textElement.draw ctx
+        unless style.noText
+          @textElement.draw ctx
         return null
 
       # ## Debug output

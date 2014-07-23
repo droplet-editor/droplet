@@ -257,7 +257,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
 
-  Editor::redrawMain = ->
+  Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating
       # Set our draw tool's font size
       # to the font size we want
@@ -276,7 +276,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @scrollOffsets.main.y,
         @mainCanvas.width,
         @mainCanvas.height
-      )
+      ), {
+        grayscale: 0
+        selected: 0
+        noText: (opts.noText ? false)
+      }
 
       # Draw the cursor (if exists, and is inserted)
       @redrawCursor()
@@ -2170,9 +2174,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @aceEditor.setValue @getValue(), -1
       @aceEditor.resize true
 
-      @currentlyUsingBlocks = false; @currentlyAnimating = true
+      @redrawMain noText: true
 
-      @redrawMain()
+      @currentlyUsingBlocks = false; @currentlyAnimating = true
 
       # Move the palette header into the background
       @paletteHeader.style.zIndex = 0
@@ -2203,7 +2207,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.marginTop = '-1px'
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
+
+        # TODO figure out why this one-pixel offset is necessary
+        # for smooth animation
+        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + 1}px"
 
         @transitionContainer.appendChild div
 
@@ -2273,7 +2280,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         return setValueResult
 
       @setFontSize @aceEditor.getFontSize()
-      @redrawMain()
+      @redrawMain noText: true
 
       @currentlyUsingBlocks = true
       @currentlyAnimating = true
@@ -2308,7 +2315,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.marginTop = '-1px'
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
-        div.style.top = "textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
+        div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
 
         @iceElement.appendChild div
 
@@ -2334,7 +2341,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             element.position.y += -element.vector.y / ANIMATION_FRAME_RATE
 
             element.div.style.left = "#{element.position.x}px"
-            element.div.style.top = "#{element.position.y}px"
+
+            # TODO figure out why this one-pixel offset is necessary for smooth animation
+            element.div.style.top = "#{element.position.y + 1}px"
 
         else
           @paletteWrapper.style.opacity =
