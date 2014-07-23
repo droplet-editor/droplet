@@ -2967,7 +2967,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'redraw_main', 0, (changedBox) ->
     treeView = @view.getViewNodeFor @tree
 
-    @gutterVersion = @tree.version
     top = @findLineNumberAtCoordinate @scrollOffsets.main.y
     bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.height
 
@@ -2978,6 +2977,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       if line < top or line > bottom
         @lineNumberTags[line].parentNode.removeChild @lineNumberTags[line]
         delete @lineNumberTags[line]
+
+    if changedBox
+      @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
 
   # DEBUG CODE
   # ================================

@@ -1301,7 +1301,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
             # Do the same on the right, unless we need to avoid
             # a multiline block that's starting here.
-            unless @multilineChildrenData[line] is MULTILINE_START
+            unless @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
               right.push new draw.Point innerRight, @bounds[line].bottom()
               right.push new draw.Point innerRight, @bounds[line + 1].y
 
@@ -1310,7 +1310,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # using bounding box right-edge data earlier, because it would have overlapped;
           # instead, we want to use the left edge of the multiline block that's
           # starting here.
-          if @multilineChildrenData[line] is MULTILINE_START
+          if @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
             multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
             multilineNode = @view.getViewNodeFor multilineChild.child
             multilineBounds = multilineNode.bounds[line - multilineChild.startLine]
