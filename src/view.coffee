@@ -22,7 +22,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     minSocketWidth: 10
     textHeight: 15
     textPadding: 1
-    emptyLineHeight: 25
     emptyLineWidth: 50
     highlightAreaHeight: 10
     bevelClip: 3
@@ -804,7 +803,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # start at zero min dimensions
         super
-
+        
+        # Lines immediately after the end of Indents
+        # have to be extended to a minimum width.
+        # Record the lines that need to be extended here.
+        linesToExtend = []
+        
         # Recurse on our children, updating
         # our dimensions as we go to contain them.
         for childObject in @children
@@ -830,12 +834,24 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               margins.right
 
             # Compute max distance above and below text
+            # 
+            # Exception: do not add the bottom padding on an
+            # Indent if we own the next line as well.
+            
+            if childObject.child.type is 'indent' and
+                line is minDimensions.length - 1 and
+                desiredLine < @lineLength - 1
+              bottomMargin = 0
+              linesToExtend.push desiredLine + 1
+            else
+              bottomMargin = margins.bottom
+
             @minDistanceToBase[desiredLine].above = Math.max(
               @minDistanceToBase[desiredLine].above,
               minDistanceToBase[line].above + margins.top)
             @minDistanceToBase[desiredLine].below = Math.max(
               @minDistanceToBase[desiredLine].below,
-              minDistanceToBase[line].below + margins.bottom)
+              minDistanceToBase[line].below + bottomMargin)
 
         # Height is just the sum of the above-base and below-base counts.
         # Empty lines should have some height.
@@ -846,6 +862,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           minDimension.height =
             @minDistanceToBase[line].above +
             @minDistanceToBase[line].below
+
+        # Go through and adjust the width of rectangles
+        # immediately after the end of an indent to
+        # be as long as necessary
+        for line in linesToExtend
+          @minDimensions[line].width = Math.max @minDimensions[line].width, @minDimensions[line - 1].width
 
         return null
 
@@ -1047,7 +1069,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # 2. Beginning of a multiline block. Avoid that block on the right and bottom.
         # 3. Middle of a multiline block. We avoid to the left side
         # 4. End of a multiline block. We make a G-shape if necessary. If it is an Indent,
-        #    this will leave a thick tounge due to things done in dimension
+        #    this will leave a thick tongue due to things done in dimension
         #    computation.
 
         # We will keep track of two sets of coordinates,
@@ -1126,7 +1148,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               else
                 right.push new draw.Point bounds.right(), bounds.y
 
-              if @bevels.bottomRight
+              if @bevels.bottomRight and not @glue[line]?.draw
                 right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
                 right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
               else
@@ -1136,7 +1158,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # top and left edges, then going to our bound's bottom.
             else
               right.push new draw.Point bounds.right(), multilineBounds.y
-              right.push new draw.Point multilineBounds.x, multilineBounds.y
+              right.push new draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
+              right.push new draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
               right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
 
           # Case 3. Middle of an indent.
@@ -1172,12 +1195,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             if @lineChildren[line].length > 1
               right.push new draw.Point multilineBounds.right(), multilineBounds.y
               right.push new draw.Point bounds.right(), bounds.y
+              right.push new draw.Point bounds.right(), bounds.bottom()
 
             # Otherwise, don't.
+            else if line is @lineLength - 1
+              right.push new draw.Point bounds.right() - @view.opts.bevelClip, multilineBounds.bottom()
+              right.push new draw.Point bounds.right(), multilineBounds.bottom() + @view.opts.bevelClip
+              right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
             else
               right.push new draw.Point bounds.right(), multilineBounds.bottom()
-
-            right.push new draw.Point bounds.right(), bounds.bottom()
+              right.push new draw.Point bounds.right(), bounds.bottom()
 
           # "Glue" phase
           # Here we use our glue spacing data
@@ -1204,7 +1232,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # once the loop reaches that point.
             left.push new draw.Point @bounds[line].x, glueTop
             left.push new draw.Point leftmost, glueTop
-            left.push new draw.Point leftmost, @bounds[line + 1].y
+            left.push new draw.Point leftmost, glueTop + @view.opts.padding
 
             # Do the same for the right side, unless we can't
             # because we're avoiding intersections with a multiline child that's
@@ -1212,7 +1240,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             unless @multilineChildrenData[line] is MULTILINE_START
               right.push new draw.Point @bounds[line].right(), glueTop
               right.push new draw.Point rightmost, glueTop
-              right.push new draw.Point rightmost, @bounds[line + 1].y
+              right.push new draw.Point rightmost, glueTop + @view.opts.padding
 
           # Otherwise, bring us gracefully to the next line
           # without lots of glue (minimize the extra colour).
@@ -1239,19 +1267,25 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # starting here.
           if @multilineChildrenData[line] is MULTILINE_START
             multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
-            multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine]
+            multilineNode = @view.getViewNodeFor multilineChild.child
+            multilineBounds = multilineNode.bounds[line - multilineChild.startLine]
+            
+            if @glue[line]?.draw
+              glueTop = @bounds[line + 1].y - @glue[line].height + @view.opts.padding
+            else
+              glueTop = @bounds[line].bottom()
+            
+            right.push new draw.Point multilineBounds.x, glueTop
 
-            right.push new draw.Point multilineBounds.x, @bounds[line].bottom()
-            right.push new draw.Point multilineBounds.x, @bounds[line + 1].y
+            # Draw the tab at the top of the indent if necessary
+            if multilineChild.child.type is 'indent'
+              @addTab right, new draw.Point(@bounds[line + 1].x +
+                @view.opts.indentWidth +
+                @padding +
+                @view.opts.tabOffset, @bounds[line + 1].y), true
 
-          # Add the top tab of the indent if necessary. This only occurs
-          # when the last child on this line is an actual Indent node.
-          if @multilineChildrenData[line] is MULTILINE_START and
-             @lineChildren[line][@lineChildren[line].length - 1].child.type is 'indent'
-            @addTab right, new draw.Point(@bounds[line + 1].x +
-              @view.opts.indentWidth +
-              @padding +
-              @view.opts.tabOffset, @bounds[line + 1].y), true
+            right.push new draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop
+            right.push new draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, @bounds[line + 1].y
 
         # If necessary, add tab
         # at the bottom.
