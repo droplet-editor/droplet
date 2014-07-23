@@ -16,6 +16,37 @@ define ->
   _intersects = (a, b, c, d) ->
     ((_area(a, b, c) > 0) != (_area(a, b, d) > 0)) and ((_area(c, d, a) > 0) != (_area(c, d, b) > 0))
 
+  toRGB = (hex) ->
+    # Convert to 6-char hex if not already there
+    if hex.length is 4
+      hex = (c + c for c in hex).join('')[1..]
+
+    # Extract integers from hex
+    r = parseInt hex[1..2], 16
+    g = parseInt hex[3..4], 16
+    b = parseInt hex[5..6], 16
+
+    return [r, g, b]
+  
+  zeroPad = (str, len) ->
+    if str.length < len
+      ('0' for [str.length...len]).join('') + str
+    else
+      str
+
+  twoDigitHex = (n) -> zeroPad Math.round(n).toString(16), 2
+
+  toHex = (rgb) ->
+    return '#' + (twoDigitHex(k) for k in rgb).join ''
+
+  avgColor = (a, factor, b) ->
+    a = toRGB a
+    b = toRGB b
+
+    newRGB = (a[i] * factor + b[i] * (1 - factor) for k, i in a)
+
+    return toHex newRGB
+
   ## Public functions
 
   exports = {}
@@ -252,38 +283,54 @@ define ->
       ctx.save()
       ctx.clip()
       if @bevel
-        ctx.shadowBlur = 5
-        ctx.shadowColor = 'black'
-        ctx.shadowOffsetX = ctx.shadowOffsetY = 0
+        #ctx.shadowBlur = 5
+        #ctx.shadowColor = 'black'
+        #ctx.shadowOffsetX = ctx.shadowOffsetY = 0
 
         ctx.beginPath()
         ctx.moveTo @_points[0].x, @_points[0].y
         for point, i in @_points[1..]
-          if point.x > @_points[i].x or point.y < @_points[i].y
-            ctx.moveTo point.x, point.y
-          else
+          if (point.x < @_points[i].x and point.y >= @_points[i].y) or
+             (point.y > @_points[i].y and point.x <= @_points[i].x)
             ctx.lineTo point.x, point.y
+          else
+            ctx.moveTo point.x, point.y
+
         unless @_points[0].x > @_points[@_points.length - 1].x or
             @_points[0].y < @_points[@_points.length - 1].y
           ctx.lineTo @_points[0].x, @_points[0].y
 
+        ctx.lineWidth = 4
+        ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#000'
         ctx.stroke()
 
-        ctx.shadowBlur = 5
-        ctx.shadowColor = 'white'
-        ctx.shadowOffsetX = ctx.shadowOffsetY = 0
+        ctx.lineWidth = 2
+        ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
+        ctx.stroke()
+
+        ctx.strokeStyle = 'white'
+        #ctx.shadowBlur = 5
+        #ctx.shadowColor = 'white'
+        #ctx.shadowOffsetX = ctx.shadowOffsetY = 0
 
         ctx.beginPath()
         ctx.moveTo @_points[0].x, @_points[0].y
         for point, i in @_points[1..]
-          if point.x > @_points[i].x or point.y < @_points[i].y
+          if (point.x > @_points[i].x and point.y <= @_points[i].y) or
+             (point.y < @_points[i].y and point.x >= @_points[i].x)
             ctx.lineTo point.x, point.y
           else
             ctx.moveTo point.x, point.y
         if @_points[0].x > @_points[@_points.length - 1].x or
             @_points[0].y < @_points[@_points.length - 1].y
           ctx.lineTo @_points[0].x, @_points[0].y
+        
+        ctx.lineWidth = 4
+        ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#FFF'
+        ctx.stroke()
 
+        ctx.lineWidth = 2
+        ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#FFF'
         ctx.stroke()
 
       else

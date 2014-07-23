@@ -390,8 +390,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # `10` still needs to change. So we must also check
         # that the coordinate we are given to begin the bounding box on matches.
         if @computedVersion is @model.version and
-           left is @bounds[line]?.x and not @changedBoundingBox
+           left is @bounds[line]?.x and not @changedBoundingBox or
+           @bounds[line]?.x is left and
+           @bounds[line]?.width is @dimensions[line].width
           return @bounds[line]
+        
+        @changedBoundingBox = true
 
         # Avoid re-instantiating a Rectangle object,
         # if possible.
@@ -442,8 +446,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # we are given matches, since we cannot only rely on
         # versioning (see computeBoundingBoxX).
         if @computedVersion is @model.version and
-           top is @bounds[line]?.y and not @changedBoundingBox
+           top is @bounds[line]?.y and not @changedBoundingBox or
+           @bounds[line].y is top and
+           @bounds[line].height is @dimensions[line].height
           return @bounds[line]
+        
+        @changedBoundingBox = true
 
         # Accept the bounding box edge we were given.
         # We assume here that computeBoundingBoxX was
@@ -1814,10 +1822,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   toHex = (rgb) ->
     return '#' + (twoDigitHex(k) for k in rgb).join ''
 
-  # ## Grayscale
-  # Brings a colour closer to gray,
-  # for the gray-out effect when dragging or
-  # having floating blocks.
   avgColor = (a, factor, b) ->
     a = toRGB a
     b = toRGB b

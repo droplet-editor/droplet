@@ -2902,7 +2902,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       )
       renderPoint = @trackerPointToMain trackPoint
 
-      if @mainViewOrChildrenContains @draggingBlock, renderPoint
+      if @inTree(@draggingBlock) and @mainViewOrChildrenContains @draggingBlock, renderPoint
         console.log 'dropped back on gray spot'
         @draggingBlock.ephemeral = false
 
