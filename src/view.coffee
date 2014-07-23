@@ -12,7 +12,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   DEFAULT_OPTIONS =
     padding: 5
     indentWidth: 10
-    indentTongueHeight: 10
+    indentTongueHeight: 15
     tabOffset: 10
     tabWidth: 15
     tabHeight: 5
@@ -750,9 +750,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # we skipped).
             line += childLength - 1
 
-            if isNaN line
-              debugger
-
         # Set @lineLength to reflect
         # what we just found out.
         @lineLength = line + 1
@@ -776,6 +773,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return @lineLength
 
       computeBevels: ->
+        if @computedVersion is @model.version
+          return null
+        
         @bevels =
           topLeft: false
           topRight: true
@@ -1052,9 +1052,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @computeAllBoundingBoxY top
         @computePath()
         @computeDropAreas()
+
+        changedBoundingBox = @changedBoundingBox
         @computeNewVersionNumber()
 
-        return null
+        return changedBoundingBox
 
       # ## computeOwnPath
       # Using bounding box data, compute the polygon
@@ -1188,6 +1190,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Avoid the indented area
             right.push new draw.Point multilineBounds.x, multilineBounds.y
             right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
+          
+            if multilineChild.child.type is 'indent'
+              @addTabReverse right, new draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.bottom()
 
             right.push new draw.Point multilineBounds.right(), multilineBounds.bottom()
 
@@ -1318,6 +1323,19 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         array.push new draw.Point point.x, point.y
         # Move over to the given corner itself.
         array.push point
+      
+      # ## addTabReverse
+      # Add the tab in reverse order
+      addTabReverse: (array, point) ->
+        array.push point
+        array.push new draw.Point point.x, point.y
+        array.push new draw.Point point.x + @view.opts.tabWidth * @view.opts.tabSideWidth,
+          point.y + @view.opts.tabHeight
+        array.push new draw.Point point.x +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+          point.y + @view.opts.tabHeight
+        array.push new draw.Point(point.x + @view.opts.tabWidth,
+          point.y)
+
 
       # ## computeOwnDropArea
       # By default, we will not have a
@@ -1448,9 +1466,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @view.opts.textHeight + @view.opts.textPadding)
         @minDistanceToBase[0].below = Math.max(@minDistanceToBase[0].below,
             @view.opts.textPadding)
-
-        if @minDistanceToBase[0].above is 25
-          debugger
 
         @minDimensions[0].height =
             @minDistanceToBase[0].above + @minDistanceToBase[0].below
@@ -1740,8 +1755,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     # Convert to 6-char hex if not already there
     if hex.length is 4
       hex = (c + c for c in hex).join('')[1..]
-
-    console.log hex
 
     # Extract integers from hex
     r = parseInt hex[1..2], 16

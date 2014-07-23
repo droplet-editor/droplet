@@ -119,9 +119,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @iceElement.appendChild @paletteWrapper
 
       @standardViewSettings =
-        padding: 5
-        indentWidth: 10
-        indentTongueHeight: 10
+        padding: 4
+        indentWidth: 15
+        indentTongueHeight: 20
         tabOffset: 10
         tabWidth: 15
         tabHeight: 5
@@ -208,10 +208,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @iceElement.style.width ="#{@wrapperElement.offsetWidth}px"
 
       @mainCanvas.height = @iceElement.offsetHeight
-      @mainCanvas.width = @iceElement.offsetWidth
+      @mainCanvas.width = @iceElement.offsetWidth - @gutter.offsetWidth
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
+      @mainCanvas.style.left = "#{@gutter.offsetWidth}px"
+      @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
 
       @resizePalette()
 
@@ -270,7 +272,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @clearMain()
 
       # Draw the new tree on the main context
-      @view.getViewNodeFor(@tree).layout()
+      layoutResult = @view.getViewNodeFor(@tree).layout()
       @view.getViewNodeFor(@tree).draw @mainCtx, new draw.Rectangle(
         @scrollOffsets.main.x,
         @scrollOffsets.main.y,
@@ -286,7 +288,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @redrawCursor()
 
       for binding in editorBindings.redraw_main
-        binding.call this
+        binding.call this, layoutResult
 
   Editor::redrawCursor = -> @strokeCursor @determineCursorPosition()
 
@@ -453,7 +455,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # and might possibly do some bureaucracy in the future.
   Editor::addMicroUndoOperation = (operation) ->
     @undoStack.push operation
-
+    
     # If someone has bound to mutation via
     # the public API, fire it.
     @fireEvent 'change', [operation]
@@ -629,6 +631,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @highlightCanvas.height = @iceElement.offsetHeight
     @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
+
+    @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
   # On mousedown, we will want to
   # hit test blocks in the root tree to
@@ -1503,6 +1507,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @lassoSelectCanvas.height = @iceElement.offsetHeight
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
 
+    @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
+
   Editor::clearLassoSelection = ->
     @lassoSegment = null
 
@@ -2099,7 +2105,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # determined by ACE editor configuration.
       x: (@aceEditor.container.getBoundingClientRect().left -
           getOffsetLeft(@aceElement) +
-          @aceEditor.renderer.$gutterLayer.gutterWidth)
+          @aceEditor.renderer.$gutterLayer.gutterWidth) -
+          @gutter.offsetWidth + 5 # TODO find out where this 5 comes from
       y: (@aceEditor.container.getBoundingClientRect().top -
           getOffsetTop(@aceElement))
 
@@ -2111,7 +2118,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       lineHeight: @aceEditor.renderer.layerConfig.lineHeight
       leftEdge: (@aceEditor.container.getBoundingClientRect().left -
           getOffsetLeft(@aceElement) +
-          @aceEditor.renderer.$gutterLayer.gutterWidth)
+          @aceEditor.renderer.$gutterLayer.gutterWidth) -
+          @gutter.offsetWidth + 5 # TODO see above
     }
 
     until head is @tree.end
@@ -2204,13 +2212,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         div.style.font = @fontSize + 'px Courier New'
         div.style.position = 'absolute'
-        div.style.marginTop = '-1px'
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-
-        # TODO figure out why this one-pixel offset is necessary
-        # for smooth animation
-        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + 1}px"
+        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
 
         @transitionContainer.appendChild div
 
@@ -2220,6 +2224,43 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             x: textElement.bounds[0].x - @scrollOffsets.main.x
             y: textElement.bounds[0].y - @scrollOffsets.main.y
           vector: translationVectors[i]
+
+      top = @findLineNumberAtCoordinate @scrollOffsets.main.y
+      bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.height
+
+      treeView = @view.getViewNodeFor @tree
+      lineHeight = @aceEditor.renderer.layerConfig.lineHeight
+
+      for line in [top..bottom]
+        div = document.createElement 'div'
+        div.style.whiteSpace = 'pre'
+
+        div.innerText = line + 1
+
+        div.style.font = @fontSize + 'px Courier New'
+        div.style.boxSizing = 'border-box'
+        div.style.position = 'absolute'
+        div.style.zIndex = 300
+        div.style.width = "#{@gutter.offsetWidth}px"
+        div.style.textAlign = 'right'
+        div.style.paddingRight = '10px'
+
+        div.style.left = 0
+        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
+
+        translatingElements.push
+          div: div
+          position:
+            x: 0
+            y: treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize
+          vector: new draw.Point(
+            0,
+            lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize)
+          )
+        @iceElement.appendChild div
+
+      @gutter.style.left = '-9999px'
+      @gutter.style.top = '-9999px'
 
       animatedColor = new AnimatedColor '#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE
 
@@ -2266,7 +2307,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
           for element in translatingElements
-            @transitionContainer.removeChild element.div
+            element.div.parentNode.removeChild element.div
 
       tick 0
 
@@ -2312,12 +2353,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         div.style.font = @fontSize + 'px Courier New'
         div.style.position = 'absolute'
-        div.style.marginTop = '-1px'
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
         div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
 
-        @iceElement.appendChild div
+        @transitionContainer.appendChild div
 
         translatingElements.push
           div: div
@@ -2325,6 +2365,40 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             x: textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x
             y: textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y
           vector: translationVectors[i]
+
+      top = @findLineNumberAtCoordinate @scrollOffsets.main.y
+      bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.height
+
+      treeView = @view.getViewNodeFor @tree
+      lineHeight = @aceEditor.renderer.layerConfig.lineHeight
+
+      for line in [top..bottom]
+        div = document.createElement 'div'
+        div.style.whiteSpace = 'pre'
+
+        div.innerText = line + 1
+
+        div.style.font = @fontSize + 'px Courier New'
+        div.style.boxSizing = 'border-box'
+        div.style.position = 'absolute'
+        div.style.zIndex = 300
+        div.style.width = "#{editor.aceEditor.renderer.$gutter.offsetWidth}px"
+        div.style.textAlign = 'right'
+        div.style.paddingRight = '10px'
+
+        div.style.left = 0
+        div.style.top = "#{lineHeight * line}px"
+
+        translatingElements.push
+          div: div
+          position:
+            x: 0
+            y: lineHeight * line
+          vector: new draw.Point(
+            0,
+            lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize)
+          )
+        @iceElement.appendChild div
 
       @paletteWrapper.style.opacity =
         @mainCanvas.style.opacity = 0
@@ -2341,9 +2415,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             element.position.y += -element.vector.y / ANIMATION_FRAME_RATE
 
             element.div.style.left = "#{element.position.x}px"
-
-            # TODO figure out why this one-pixel offset is necessary for smooth animation
-            element.div.style.top = "#{element.position.y + 1}px"
+            element.div.style.top = "#{element.position.y}px"
 
         else
           @paletteWrapper.style.opacity =
@@ -2351,11 +2423,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         if count is ANIMATION_FRAME_RATE * 2
           @currentlyAnimating = false
+          @gutter.style.left = '0'
+          @gutter.style.top = '0'
           @redrawMain()
           @paletteHeader.style.zIndex = 257
 
           for element in translatingElements
-            @iceElement.removeChild element.div
+            element.div.parentNode.removeChild element.div
 
       tick 0
 
@@ -2370,7 +2444,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # SCROLLING SUPPORT
   # ================================
 
-  hook 'populate', 0, ->
+  hook 'populate', 0.1, ->
     @scrollOffsets = {
       main: new draw.Point 0, 0
       palette: new draw.Point 0, 0
@@ -2426,7 +2500,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @paletteScroller.style.width = "#{@paletteCanvas.offsetWidth}px"
     @paletteScroller.style.height = "#{@paletteCanvas.offsetHeight}px"
 
-  hook 'redraw_main', 0, ->
+  hook 'redraw_main', 1, ->
     bounds = @view.getViewNodeFor(@tree).getBounds()
     for record in @floatingBlocks
       bounds.unite @view.getViewNodeFor(record.block).getBounds()
@@ -2606,7 +2680,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @addMicroUndoOperation 'CAPTURE_POINT'
       @addMicroUndoOperation new SetValueOperation @tree, newParse
 
-      @tree = newParse
+      @tree = newParse; @gutterVersion = -1
       @tree.start.insert @cursor
       @redrawMain()
 
@@ -2837,7 +2911,66 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         @clearDrag()
         @redrawMain()
+    
+  # LINE NUMBER GUTTER CODE
+  # ================================
+  hook 'populate', 0, ->
+    @gutter = document.createElement 'div'
+    @gutter.className = 'ice-gutter'
 
+    @gutterVersion = -1
+
+    @lineNumberTags = {}
+
+    @mainScrollerStuffing.appendChild @gutter
+
+  Editor::addLineNumberForLine = (line) ->
+    treeView = @view.getViewNodeFor @tree
+
+    if line of @lineNumberTags
+      lineDiv = @lineNumberTags[line]
+
+    else
+      lineDiv = document.createElement 'div'
+      lineDiv.className = 'ice-gutter-line'
+      lineDiv.innerText = line + 1
+
+      @lineNumberTags[line] = lineDiv
+
+    lineDiv.style.top =  "#{treeView.bounds[line].y}px"
+    lineDiv.style.height =  treeView.bounds[line].height
+    lineDiv.style.fontSize = @view.opts.textHeight
+    lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight
+
+    @gutter.appendChild lineDiv
+
+  Editor::findLineNumberAtCoordinate = (coord) ->
+    treeView = @view.getViewNodeFor @tree
+    start = 0; end = treeView.bounds.length - 1
+    pivot = Math.floor (start + end) / 2
+
+    while treeView.bounds[pivot].y isnt coord and start < end
+      end = pivot - 1 if treeView.bounds[pivot].y > coord
+      start = pivot + 1 if treeView.bounds[pivot].y < coord
+
+      pivot = Math.floor (start + end) / 2
+
+    return pivot
+
+  hook 'redraw_main', 0, (changedBox) ->
+    treeView = @view.getViewNodeFor @tree
+
+    @gutterVersion = @tree.version
+    top = @findLineNumberAtCoordinate @scrollOffsets.main.y
+    bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.height
+
+    for line in [top..bottom]
+      @addLineNumberForLine line
+
+    for line, tag of @lineNumberTags
+      if line < top or line > bottom
+        @lineNumberTags[line].parentNode.removeChild @lineNumberTags[line]
+        delete @lineNumberTags[line]
 
   # DEBUG CODE
   # ================================
