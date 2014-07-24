@@ -993,7 +993,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
           # Additionally, we add glue spacing padding if we are disconnected
           # from the bounding box on the next line.
-          unless @multilineChildrenData[line] is MULTILINE_MIDDLE
+          unless @multilineChildrenData[line] is MULTILINE_MIDDLE or @model.type is 'segment'
             # Find the horizontal overlap between these two bounding rectangles,
             # which is our right edge minus their left, or vice versa.
             overlap = Math.min @bounds[line].right() - @bounds[line + 1].x, @bounds[line + 1].right() - @bounds[line].x
@@ -1451,7 +1451,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         return null
 
       shouldAddTab: ->
-        if @model.parent? then @model.parent.type isnt 'socket'
+        if @model.parent?
+          parent = @model.parent
+          while parent?.type is 'segment' then parent = parent.parent
+          parent?.type isnt 'socket'
         else not @model.valueByDefault
 
       computeOwnPath: ->
@@ -1536,7 +1539,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # Do not add padding to the glue
         # if our child is a block.
-        if @model.start.next.type is 'blockStart'
+        if @model.start.nextVisibleToken().type is 'blockStart'
           view = @view.getViewNodeFor @model.start.next.container
           @glue = view.computeGlue()
 
