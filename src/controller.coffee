@@ -11,6 +11,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   PALETTE_LEFT_MARGIN = 5
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
+  TOP_TAB_HEIGHT = 20
 
   exports = {}
 
@@ -258,6 +259,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::clearMain = ->
     @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
+  hook 'resize', 0, ->
+    @topNubbyPath = new draw.Path()
+
+    @topNubbyPath.bevel = true
+
+    @topNubbyPath.push new draw.Point @mainCanvas.width, 0
+    @topNubbyPath.push new draw.Point @mainCanvas.width, TOP_TAB_HEIGHT
+
+    @topNubbyPath.push new draw.Point @view.opts.tabOffset + @view.opts.tabWidth, TOP_TAB_HEIGHT
+    @topNubbyPath.push new draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+        @view.opts.tabHeight + TOP_TAB_HEIGHT
+    @topNubbyPath.push new draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
+        @view.opts.tabHeight + TOP_TAB_HEIGHT
+    @topNubbyPath.push new draw.Point @view.opts.tabOffset, TOP_TAB_HEIGHT
+
+    @topNubbyPath.push new draw.Point 0, TOP_TAB_HEIGHT
+    @topNubbyPath.push new draw.Point 0, 0
+
+    @topNubbyPath.style.fillColor = '#EBEBEB'
+
 
   Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating
@@ -271,8 +292,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Clear the main canvas
       @clearMain()
 
+      @topNubbyPath.draw @mainCtx
+
       # Draw the new tree on the main context
-      layoutResult = @view.getViewNodeFor(@tree).layout()
+      layoutResult = @view.getViewNodeFor(@tree).layout 0, TOP_TAB_HEIGHT
       @view.getViewNodeFor(@tree).draw @mainCtx, new draw.Rectangle(
         @scrollOffsets.main.x,
         @scrollOffsets.main.y,
@@ -1730,7 +1753,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::determineCursorPosition = ->
     if @cursor? and @cursor.parent?
-      @view.getViewNodeFor(@tree).layout()
+      @view.getViewNodeFor(@tree).layout 0, TOP_TAB_HEIGHT
 
       head = @cursor; line = 0
       until head is @cursor.parent.start
@@ -2960,7 +2983,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       end = pivot - 1 if treeView.bounds[pivot].y > coord
       start = pivot + 1 if treeView.bounds[pivot].y < coord
 
+      if end < 0 then return 0
+      if start >= treeView.bounds.length then return treeView.bounds.length - 1
+
       pivot = Math.floor (start + end) / 2
+
 
     return pivot
 

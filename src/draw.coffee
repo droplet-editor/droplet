@@ -38,14 +38,19 @@ define ->
 
   toHex = (rgb) ->
     return '#' + (twoDigitHex(k) for k in rgb).join ''
+  
+  memoizedAvgColor = {}
 
   avgColor = (a, factor, b) ->
+    c = (a + ',' + factor + ',' + b)
+    if c of memoizedAvgColor
+      return memoizedAvgColor[c]
     a = toRGB a
     b = toRGB b
 
     newRGB = (a[i] * factor + b[i] * (1 - factor) for k, i in a)
 
-    return toHex newRGB
+    return memoizedAvgColor[c] = toHex newRGB
 
   ## Public functions
 
@@ -71,6 +76,8 @@ define ->
     from: (point) -> new Point @x - point.x, @y - point.y
 
     clear: -> @x = @y = 0
+
+    equals: (point) -> point.x is @x and point.y is @y
 
   # ## Size ##
   # A Size knows its width and height.
@@ -293,7 +300,7 @@ define ->
           if (point.x < @_points[i].x and point.y >= @_points[i].y) or
              (point.y > @_points[i].y and point.x <= @_points[i].x)
             ctx.lineTo point.x, point.y
-          else
+          else unless point.equals(@_points[i])
             ctx.moveTo point.x, point.y
 
         unless @_points[0].x > @_points[@_points.length - 1].x or
@@ -319,7 +326,7 @@ define ->
           if (point.x > @_points[i].x and point.y <= @_points[i].y) or
              (point.y < @_points[i].y and point.x >= @_points[i].x)
             ctx.lineTo point.x, point.y
-          else
+          else unless point.equals(@_points[i])
             ctx.moveTo point.x, point.y
         if @_points[0].x > @_points[@_points.length - 1].x or
             @_points[0].y < @_points[@_points.length - 1].y

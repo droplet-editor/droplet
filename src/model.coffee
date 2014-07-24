@@ -150,7 +150,8 @@ define ->
       # and the previous visible token is the beginning
       # of the document, remove it.
       while last?.type is 'newline' and
-         (last?.nextVisibleToken().type is 'newline' or
+          last?.nextVisibleToken()? and
+          (last.nextVisibleToken().type is 'newline' or
           not first?)
         last = last.nextVisibleToken()
         last.previousVisibleToken().remove()
