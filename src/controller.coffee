@@ -2299,7 +2299,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         if count < ANIMATION_FRAME_RATE
           @paletteWrapper.style.opacity =
-            @mainCanvas.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
+            @mainCanvas.style.opacity =
+            @highlightCanvas.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
 
         else
           for element in translatingElements
@@ -2424,7 +2425,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @iceElement.appendChild div
 
       @paletteWrapper.style.opacity =
-        @mainCanvas.style.opacity = 0
+        @mainCanvas.style.opacity =
+        @highlightCanvas.style.opacity = 0
 
       tick = (count) =>
         if count < ANIMATION_FRAME_RATE * 2
@@ -2442,7 +2444,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         else
           @paletteWrapper.style.opacity =
-            @mainCanvas.style.opacity = Math.max 0, 1 - 2 * (2 - count / ANIMATION_FRAME_RATE)
+            @mainCanvas.style.opacity =
+            @highlightCanvas.style.opacity = Math.max 0, 1 - 2 * (2 - count / ANIMATION_FRAME_RATE)
 
         if count is ANIMATION_FRAME_RATE * 2
           @currentlyAnimating = false
