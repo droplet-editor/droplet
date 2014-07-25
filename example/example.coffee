@@ -335,6 +335,7 @@ require ['ice'], (ice) ->
     '''
     controller: readFile '../src/controller.coffee'
     compiler: readFile '../test/data/nodes.coffee'
+    empty: ''
   }
 
   # Update textarea on ICE editor change
