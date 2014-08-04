@@ -1390,7 +1390,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     row = Math.max row, 0
     row = Math.min row, textFocusView.lineLength - 1
 
-    column = Math.round((point.x - textFocusView.bounds[row].x - @view.opts.padding) / @mainCtx.measureText(' ').width)
+    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.padding) / @mainCtx.measureText(' ').width)
 
     lines = @textFocus.stringify().split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
