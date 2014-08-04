@@ -1081,6 +1081,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       paletteGroupHeader = document.createElement 'div'
       paletteGroupHeader.className = 'ice-palette-group-header'
       paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
+      if paletteGroup.color
+        paletteGroupHeader.className += ' ' + paletteGroup.color
 
       paletteHeaderRow.appendChild paletteGroupHeader
 
@@ -1099,13 +1101,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @currentPaletteBlocks = paletteGroup.blocks
 
         # Unapply the "selected" style to the current palette group header
-        @currentPaletteGroupHeader.className = 'ice-palette-group-header'
+        @currentPaletteGroupHeader.className =
+            @currentPaletteGroupHeader.className.replace(
+                /\s[-\w]*-selected\b/, '');
 
         # Now we are the current palette group header
         @currentPaletteGroupHeader = paletteGroupHeader
 
         # Apply the "selected" style to us
-        @currentPaletteGroupHeader.className = 'ice-palette-group-header ice-palette-group-header-selected'
+        @currentPaletteGroupHeader.className +=
+            ' ice-palette-group-header-selected'
 
         # Redraw the palette.
         @redrawPalette()
@@ -1117,11 +1122,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       if i is 0
         @currentPaletteGroup = paletteGroup.name
         @currentPaletteBlocks = paletteGroup.blocks
-
         @currentPaletteGroupHeader = paletteGroupHeader
 
         # Apply the "selected" style to us
-        @currentPaletteGroupHeader.className = 'ice-palette-group-header ice-palette-group-header-selected'
+        @currentPaletteGroupHeader.className +=
+            ' ice-palette-group-header-selected'
 
   # The palette hierarchical menu is on top of the track div
   # so that we can click it. However, we do not want this to happen
