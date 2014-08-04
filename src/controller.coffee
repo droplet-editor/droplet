@@ -1738,7 +1738,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @reparseHandwrittenBlocks()
 
     @redrawCursor()
-    @scrollCursorIntoPosition()
 
   Editor::moveCursorUp = ->
     # Seek the place we want to move the cursor
@@ -1801,6 +1800,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @setTextInputFocus null
     @reparseHandwrittenBlocks()
     @moveCursorTo @cursor.next.next
+    @scrollCursorIntoPosition()
 
   hook 'key.left', 0, ->
     if @socketFocus?
@@ -2579,6 +2579,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     unless @fontSize is fontSize
       @fontSize = fontSize
       @paletteHeader.style.fontSize = "#{fontSize}px"
+      @view.opts.textHeight = fontSize
       @view.clearCache()
       @redrawMain(); @redrawPalette()
 
