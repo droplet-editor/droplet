@@ -19,8 +19,9 @@ readFile = (name) ->
 
 
 require ['ice'], (ice) ->
+  $('#palette_dialog').dialog()
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), [
+  window.editor = new ice.Editor document.getElementById('editor'), document.getElementById('palette'), [
     {
       name: 'Common',
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
@@ -350,8 +351,6 @@ require ['ice'], (ice) ->
 
   editor.setValue examplePrograms.fizzbuzz
   editor.clearUndoStack()
-
-  editor.paletteWrapper.style.right = '-300px'
 
   messageElement = document.getElementById 'message'
   displayMessage = (text) ->
