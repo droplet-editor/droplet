@@ -207,7 +207,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       #
       # This is a void computeMargins that should be overridden.
       computeMargins: ->
-        if @computedVersion is @model.version
+        if @computedVersion is @model.version and
+           (not @model.parent? or
+           @model.parent.version is @view.getViewNodeFor(@model.parent).computedVersion)
           return @margins
 
         # the margins I need depend on the type of my parent
@@ -1615,6 +1617,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         else
           @dropArea = @path
           @highlightArea = @path.clone()
+          @highlightArea.noclip = true
           @highlightArea.style.strokeColor = '#FFF'
           @highlightArea.style.lineWidth = @view.opts.padding
 

@@ -297,7 +297,8 @@ define ->
       if @style.fillColor? then ctx.fill()
 
       ctx.save()
-      ctx.clip()
+      unless @noclip
+        ctx.clip()
       if @bevel
         #ctx.shadowBlur = 5
         #ctx.shadowColor = 'black'
