@@ -349,6 +349,8 @@ require ['ice'], (ice) ->
   $('#palette_dialog').dialog
     resize: -> editor.resizePalette()
 
+  editor.resizePalette()
+
   # Update textarea on ICE editor change
   editor.onChange = ->
     # Currently empty function

@@ -855,6 +855,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         @lastHighlight = highlight
 
+      # Make the canvas transparent if
+      # we would delete the block
+      palettePoint = @trackerPointToPalette position
+
+      if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
+         0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
+         (0 < mainPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
+         0 < mainPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
+        @dragCanvas.style.opacity = 0.7
+      else
+        @dragCanvas.style.opacity = 1
+
   hook 'mouseup', 0, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
