@@ -1,6 +1,9 @@
 <html>
   <head>
     <title>ICE Editor Demo</title>
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/themes/smoothness/jquery-ui.css" />
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js"></script>
     <script src="../vendor/ace/ace.js"></script>
     <script src="../vendor/keypress-2.0.1.min.js"></script>
     <script src="../vendor/require.js"></script>
@@ -21,7 +24,7 @@
         position: absolute;
         top: 0px;
         bottom: 0px;
-        right: 300px;
+        right: 0px;
         left: 0px;
         background-color: #EEE;
         z-index: 0;
@@ -69,10 +72,22 @@
         width: 150px;
         cursor: pointer;
       }
+      #palette_dialog {
+        height: 500px !important;
+        z-index: 1 !important;
+        padding: 0px !important;
+      }
+      #palette {
+        height: 100%;
+      }
     </style>
   </head>
   <body>
     <div id='editor'>
+    </div>
+    <div id="palette_dialog">
+      <div id='palette'>
+      </div>
     </div>
     <div id='toolbar'>
       <button id='toggle'>Toggle Blocks</button>
