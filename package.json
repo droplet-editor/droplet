@@ -2,16 +2,20 @@
   "name": "ice-editor",
   "version": "0.3.0",
   "devDependencies": {
+    "grunt-cli": "latest",
     "grunt": "~0.4.2",
     "grunt-banner": "~0.2.0",
     "grunt-contrib-coffee": "~0.7.0",
-    "grunt-contrib-uglify": "~0.2.2",
-    "grunt-contrib-concat": "~0.1.0",
-    "grunt-contrib-qunit": "~0.3.0",
+    "grunt-contrib-uglify": "latest",
+    "grunt-contrib-qunit": "latest",
     "grunt-contrib-requirejs": "latest",
     "grunt-docco":"~0.3.0",
     "grunt-contrib-cssmin": "~0.9.0",
-    "grunt-contrib-requirejs": "latest"
+    "grunt-contrib-connect": "latest",
+    "grunt-contrib-watch": "latest",
+    "grunt-contrib-concat": "latest",
+    "grunt-mocha-spawn": "latest",
+    "requirejs": "latest"
   },
   "description": "A transparent block editor",
   "main": "dist/ice.min.js",
@@ -20,7 +24,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "grunt all"
   },
   "repository": {
     "type": "git",

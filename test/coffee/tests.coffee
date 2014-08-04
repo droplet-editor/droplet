@@ -1,64 +1,15 @@
 require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
-  
-  readFile = (name) ->
-    q = new XMLHttpRequest()
-    q.open 'GET', name, false
-    q.send()
 
-    return q.responseText
-
-  test 'Parser unity', ->
-    testString = (str) ->
-      strictEqual str, coffee.parse(str, wrapAtRoot: true).stringify(), 'Unity test on ' + str
-
-    testString 'fd 10'
-    testString 'fd 10 + 10'
-    testString 'console.log 10 + 10'
-    testString '''
-    for i in [1..10]
-      console.log 10 + 10
-    '''
-    testString '''
-    array = []
-    if a is b
-      while p is q
-        make spaghetti
-        eat spaghetti
-        array.push spaghetti
-      for i in [1..10]
-        console.log 10 + 10
-    else
-      see 'hi'
-      for key, value in window
-        see key + ' is ' + value
-        see key is value
-        see array[n]
-    '''
-
-    testFile = (name) ->
-      nodes = readFile name
-
-      unparsed = coffee.parse(nodes, wrapAtRoot: true).stringify()
-
-      nodes = nodes.split '\n'
-      unparsed = unparsed.split '\n'
-
-      for i in [0..nodes.length] by 30
-        strictEqual unparsed[i..i + 30].join('\n'), nodes[i..i + 30].join('\n'), "Unity test on #{name}:#{i}-#{i + 30}"
-
-    testFile 'nodes.coffee'
-    testFile 'allTests.coffee'
-  
   test 'Parser success', ->
     testString = (m, str, expected) ->
       strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
-    
+
     testString 'Function call',
       'fd 10', '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'
-    
+
     testString 'Variable assignment',
       'a = b', '<block color="#268bd2" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
-    
+
     testString 'If statement, normal form',
       '''
       if true
@@ -127,7 +78,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     testString 'Inverted one-line for-in',
       'fd 10 for i in list',
       '<block color="#daa520" precedence="0"><socket precedence="0"><block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
-    
+
     testString 'Semicolons at the root',
       'fd 10; bk 10',
       '<block color="#268bd2" precedence="0"><socket precedence="0">'+
@@ -327,7 +278,7 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
      .append(e).append(f)
 
     cont1.correctParentTree()
-    
+
     strictEqual a.parent, null, 'correctParentTree() output is correct (a)'
     strictEqual b.parent, cont1, 'correctParentTree() output is correct (b)'
     strictEqual c.parent, cont1, 'correctParentTree() output is correct (c)'
@@ -405,10 +356,8 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
     strictEqual document.stringify(), '''
     console.log hello
     console.log world
-    for i in [1..10]
-      
-    ''', 'Move both out'
-    
+    for i in [1..10]\n  ''', 'Move both out'
+
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
 
     strictEqual document.stringify(), '''
@@ -440,37 +389,23 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
 
     strictEqual document.stringify(), '''
     Math.sqrt 2
-    see 1 + 
-    ''', 'Unwrap'
+    see 1 + ''', 'Unwrap'
 
   test 'View: compute children', ->
-    view = new view.View
-      padding: 5
-      indentWIdth: 10
-      indentToungeHeight: 10
-      tabOffset: 10
-      tabWidth: 15
-      tabHeight: 5
-      tabSideWidth: 0.125
-      dropAreaHeight: 20
-      indentDropAreaMinWdith: 50
-      emptySocketWidth: 20
-      emptySocketHeight: 25
-      emptyLineHeight: 25
-      
+    view_ = new view.View()
+
     document = coffee.parse '''
     fd 10
     '''
 
-    documentView = view.getViewFor document
-    
+    documentView = view_.getViewNodeFor document
     documentView.layout()
 
     strictEqual documentView.lineChildren[0].length, 1, 'Children length 1 in `fd 10`'
-    strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine 0, 'Child matches'
-    strictEqual documentView.lineChildren[0][0].lineStart, 0, 'Child starts on correct line'
+    strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine(0), 'Child matches'
+    strictEqual documentView.lineChildren[0][0].startLine, 0, 'Child starts on correct line'
 
-    blockView = view.getViewFor document.getBlockOnLine 0
+    blockView = view_.getViewNodeFor document.getBlockOnLine 0
     strictEqual blockView.lineChildren[0].length, 2, 'Children length 2 in `fd 10` block'
     strictEqual blockView.lineChildren[0][0].child.type, 'text', 'First child is text'
     strictEqual blockView.lineChildren[0][1].child.type, 'socket', 'Second child is socket'
@@ -482,22 +417,189 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       fd 20
     '''
 
-    blockView = view.getViewFor document.getBlockOnLine 0
-    strictEqual blockView.lineChildren[1].length, 1, 'One child in indent'
-    strictEqual blockView.lineChildren[2][0].startLine, 1, 'Indent start line'
-    strictEqual blockView.indentData[1], 1, 'Indent start data'
-    strictEqual blockView.indentData[2], 2, 'Indent middle data'
-    strictEqual blockView.indentData[3], 3, 'Indent end data'
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
 
-    indentView = view.getViewFor document.getBlockOnLine(1).start.prev.prev.container
-    strictEqual indentView.lineChildren[0].child.stringify(), 'fd 10', 'Relative line numbers'
+    blockView = view_.getViewNodeFor document.getBlockOnLine 0
+    strictEqual blockView.lineChildren[1].length, 1, 'One child in indent'
+    strictEqual blockView.lineChildren[2][0].startLine, 0, 'Indent start line'
+    strictEqual blockView.multilineChildrenData[0], 1, 'Indent start data'
+    strictEqual blockView.multilineChildrenData[1], 2, 'Indent middle data'
+    strictEqual blockView.multilineChildrenData[2], 2, 'Indent middle data'
+    strictEqual blockView.multilineChildrenData[3], 3, 'Indent end data'
+
+    document = coffee.parse '''
+    for [1..10]
+      for [1..10]
+        fd 10
+        fd 20
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
+    strictEqual indentView.lineChildren[1][0].child.stringify(), 'fd 10', 'Relative line numbers'
 
     document = coffee.parse '''
     see (for [1..10]
       fd 10)
     '''
 
-    blockView = view.getViewFor document.getBlockOnLine(0).start.next.next.container
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    blockView = view_.getViewNodeFor document.getBlockOnLine(0).start.next.next.container
 
     strictEqual blockView.lineChildren[1].length, 1, 'One child in indent in socket'
-    strictEqual blockView.indentData[1], 3, 'Indent end data'
+    strictEqual blockView.multilineChildrenData[1], 3, 'Indent end data'
+
+  test 'View: compute dimensions', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    for [1..10]
+      fd 10
+      fd 20
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    strictEqual documentView.dimensions[0].height,
+      view_.opts.textHeight + 4 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'First line height (block, 2 padding)'
+    strictEqual documentView.dimensions[1].height,
+      view_.opts.textHeight + 2 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'Second line height (single block in indent)'
+    strictEqual documentView.dimensions[2].height,
+      view_.opts.textHeight + 2 * view_.opts.padding + 2 * view_.opts.textPadding +
+      view_.opts.indentTongueHeight,
+      'Third line height (indentEnd at root)'
+
+    document = coffee.parse '''
+    fd (for [1..10]
+      fd 10
+      fd 20)
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    strictEqual documentView.dimensions[0].height,
+      view_.opts.textHeight + 5 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'First line height (block, 3.5 padding)'
+    strictEqual documentView.dimensions[1].height,
+      view_.opts.textHeight + 2 * view_.opts.padding + 2 * view_.opts.textPadding,
+      'Second line height (single block in nested indent)'
+    strictEqual documentView.dimensions[2].height,
+      view_.opts.textHeight + 3 * view_.opts.padding +
+      view_.opts.indentTongueHeight + 2 * view_.opts.textPadding,
+      'Third line height (indentEnd with padding)'
+
+    document = coffee.parse '''
+    fd 10
+
+    fd 20
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    strictEqual documentView.dimensions[1].height,
+      view_.opts.textHeight,
+      'Renders empty lines'
+
+  test 'View: bounding box flag stuff', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    fd 10
+    fd 20
+    fd 30
+    fd 40
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    blockView = view_.getViewNodeFor document.getBlockOnLine 3
+
+    strictEqual blockView.path._points[0].y,
+      view_.opts.textHeight * 4 + view_.opts.padding * 8 + view_.opts.textPadding * 8,
+      'Original path points are O.K.'
+
+    document.getBlockOnLine(2).spliceOut()
+    documentView.layout()
+
+    strictEqual blockView.path._points[0].y,
+      view_.opts.textHeight * 3 + view_.opts.padding * 6 + view_.opts.textPadding * 6,
+      'Final path points are O.K.'
+
+  test 'View: sockets caching', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    for i in [[[]]]
+      fd 10
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
+
+    strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
+
+    strictEqual socketView.dimensions[0].height,
+      view_.opts.textHeight + 6 * view_.opts.padding,
+      'Original height is O.K.'
+
+    (block = document.getTokenAtLocation(9).container).spliceOut()
+    block.spliceIn(document.getBlockOnLine(1).start.prev.prev)
+    documentView.layout()
+
+    strictEqual socketView.dimensions[0].height,
+      view_.opts.textHeight + 2 * view_.opts.textPadding,
+      'Final height is O.K.'
+
+  test 'View: triple-quote sockets caching issue', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    see 'hi'
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+
+    strictEqual socketView.model.stringify(), '\'hi\'', 'Correct block selected'
+    strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
+    strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
+
+    socketView.model.start.append socketView.model.end
+    socketView.model.start.append(new model.TextToken('"""'))
+      .append(new model.NewlineToken())
+      .append(new model.TextToken('hello'))
+      .append(new model.NewlineToken())
+      .append(new model.TextToken('world"""'))
+      .append(socketView.model.end)
+    
+    socketView.model.notifyChange()
+
+    documentView.layout()
+
+    strictEqual socketView.topLineSticksToBottom, true, 'Intermediate topstick O.K.'
+
+    socketView.model.start.append new model.TextToken('\'hi\'')
+      .append socketView.model.end
+
+    socketView.model.notifyChange()
+    documentView.layout()
+
+    socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+
+    strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
+    strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'

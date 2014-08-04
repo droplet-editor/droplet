@@ -1,11 +1,21 @@
 <html>
   <head>
     <link rel="stylesheet" href="../vendor/qunit.css"/>
+    <style>
+      #hidden {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+    </style>
   </head>
   <div id="qunit"></div>
   <div id="qunit-fixture"></div>
+  <div id="hidden">
+    <canvas id="main"></canvas>
+  </div>
   <script src="../vendor/require.js"></script>
   <script src="../dist/ice-full.min.js"></script>
   <script src="../vendor/qunit.min.js"></script>
-  <script src="../test/tests.js"></script>
+  <script src="js/tests.js"></script>
 </html>

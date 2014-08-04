@@ -1,6 +1,6 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
-# 
+#
 # Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.
 
 ## Private (convenience) functions
@@ -15,6 +15,42 @@ define ->
   # Test the intersection of two line segments
   _intersects = (a, b, c, d) ->
     ((_area(a, b, c) > 0) != (_area(a, b, d) > 0)) and ((_area(c, d, a) > 0) != (_area(c, d, b) > 0))
+
+  toRGB = (hex) ->
+    # Convert to 6-char hex if not already there
+    if hex.length is 4
+      hex = (c + c for c in hex).join('')[1..]
+
+    # Extract integers from hex
+    r = parseInt hex[1..2], 16
+    g = parseInt hex[3..4], 16
+    b = parseInt hex[5..6], 16
+
+    return [r, g, b]
+  
+  zeroPad = (str, len) ->
+    if str.length < len
+      ('0' for [str.length...len]).join('') + str
+    else
+      str
+
+  twoDigitHex = (n) -> zeroPad Math.round(n).toString(16), 2
+
+  toHex = (rgb) ->
+    return '#' + (twoDigitHex(k) for k in rgb).join ''
+  
+  memoizedAvgColor = {}
+
+  avgColor = (a, factor, b) ->
+    c = (a + ',' + factor + ',' + b)
+    if c of memoizedAvgColor
+      return memoizedAvgColor[c]
+    a = toRGB a
+    b = toRGB b
+
+    newRGB = (a[i] * factor + b[i] * (1 - factor) for k, i in a)
+
+    return memoizedAvgColor[c] = toHex newRGB
 
   ## Public functions
 
@@ -41,10 +77,16 @@ define ->
 
     clear: -> @x = @y = 0
 
+    equals: (point) -> point.x is @x and point.y is @y
+
   # ## Size ##
   # A Size knows its width and height.
   exports.Size = class Size
     constructor: (@width, @height) ->
+    equals: (size) ->
+      @width is size.width and @height is size.height
+    @copy: (size) ->
+      new Size(size.width, size.height)
 
   # ## Rectangle ##
   # A Rectangle knows its upper-left corner, width, and height,
@@ -52,9 +94,9 @@ define ->
   # and rectangle or point union (point union is called "swallow").
   exports.Rectangle = class Rectangle
     constructor: (@x, @y, @width, @height) ->
-    
+
     contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
-    
+
     identical: (other) ->
       @x is other.x and
       @y is other.y and
@@ -64,6 +106,11 @@ define ->
     copy: (rect) ->
       @x = rect.x; @y = rect.y
       @width = rect.width; @height = rect.height
+
+    clone: ->
+      rect = new Rectangle(0, 0, 0, 0)
+      rect.copy this
+      return rect
 
     clear: -> @width = @height = 0; @x = @y = null
 
@@ -133,7 +180,7 @@ define ->
         'lineWidth': 1
         'fillColor': null
       }
-    
+
     _clearCache: ->
       if @_cacheFlag
         for point in @_points
@@ -141,12 +188,12 @@ define ->
         @_bounds.translate @_cachedTranslation
         @_cachedTranslation.clear()
         @_cacheFlag = false
-    
+
     recompute: ->
       @_bounds = new NoRectangle()
       for point in @_points
         @_bounds.swallow point
-    
+
     push: (point) ->
       @_points.push point
       @_bounds.swallow point
@@ -154,7 +201,7 @@ define ->
     unshift: (point) ->
       @_points.unshift point
       @_bounds.swallow point
-    
+
     # ### Point containment ###
     # Accomplished with ray-casting
     contains: (point) ->
@@ -164,7 +211,7 @@ define ->
 
       # "Ray" to the left
       dest = new Point @_bounds.x - 10, point.y
-      
+
       # Count intersections
       count = 0
       last = @_points[@_points.length - 1]
@@ -173,7 +220,7 @@ define ->
         last = end
 
       return count % 2 is 1
-    
+
     # ### Rectangular intersection ###
     # Succeeds if any edges intersect or either shape is
     # entirely within the other.
@@ -181,7 +228,7 @@ define ->
       @_clearCache()
 
       if @_points.length is 0 then return false
-      
+
       if not rectangle.overlap @_bounds then return false
       else
         # Try each pair of edges for intersections
@@ -206,7 +253,7 @@ define ->
 
         # We don't contain the rectangle; see if it contains us.
         if rectangle.contains @_points[0] then return true
-        
+
         # No luck
         return false
 
@@ -223,16 +270,79 @@ define ->
 
       ctx.strokeStyle = @style.strokeColor
       ctx.lineWidth = @style.lineWidth
+
       if @style.fillColor? then ctx.fillStyle = @style.fillColor
+
       ctx.beginPath()
       ctx.moveTo @_points[0].x, @_points[0].y
       for point in @_points
-        ctx.lineTo point.x, point.y # DEFAULT
+        ctx.lineTo point.x, point.y
       ctx.lineTo @_points[0].x, @_points[0].y
+
+      # Wrap around again so that the origin
+      # has a normal corner
+      if @_points.length > 1
+        ctx.lineTo @_points[1].x, @_points[1].y
 
       # Fill and stroke
       if @style.fillColor? then ctx.fill()
-      ctx.stroke()
+
+      ctx.save()
+      ctx.clip()
+      if @bevel
+        #ctx.shadowBlur = 5
+        #ctx.shadowColor = 'black'
+        #ctx.shadowOffsetX = ctx.shadowOffsetY = 0
+
+        ctx.beginPath()
+        ctx.moveTo @_points[0].x, @_points[0].y
+        for point, i in @_points[1..]
+          if (point.x < @_points[i].x and point.y >= @_points[i].y) or
+             (point.y > @_points[i].y and point.x <= @_points[i].x)
+            ctx.lineTo point.x, point.y
+          else unless point.equals(@_points[i])
+            ctx.moveTo point.x, point.y
+
+        unless @_points[0].x > @_points[@_points.length - 1].x or
+            @_points[0].y < @_points[@_points.length - 1].y
+          ctx.lineTo @_points[0].x, @_points[0].y
+
+        ctx.lineWidth = 4
+        ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#000'
+        ctx.stroke()
+
+        ctx.lineWidth = 2
+        ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
+        ctx.stroke()
+
+        ctx.strokeStyle = 'white'
+        #ctx.shadowBlur = 5
+        #ctx.shadowColor = 'white'
+        #ctx.shadowOffsetX = ctx.shadowOffsetY = 0
+
+        ctx.beginPath()
+        ctx.moveTo @_points[0].x, @_points[0].y
+        for point, i in @_points[1..]
+          if (point.x > @_points[i].x and point.y <= @_points[i].y) or
+             (point.y < @_points[i].y and point.x >= @_points[i].x)
+            ctx.lineTo point.x, point.y
+          else unless point.equals(@_points[i])
+            ctx.moveTo point.x, point.y
+        if @_points[0].x > @_points[@_points.length - 1].x or
+            @_points[0].y < @_points[@_points.length - 1].y
+          ctx.lineTo @_points[0].x, @_points[0].y
+        
+        ctx.lineWidth = 4
+        ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#FFF'
+        ctx.stroke()
+
+        ctx.lineWidth = 2
+        ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#FFF'
+        ctx.stroke()
+
+      else
+        ctx.stroke()
+      ctx.restore()
 
     clone: ->
       clone = new Path()
@@ -245,7 +355,7 @@ define ->
       ctx.fillStyle = @style.fillColor
 
       if @_points.length is 0 then return
-      
+
       oldValues = {
         shadowColor: ctx.shadowColor
         shadowBlur: ctx.shadowBlur
@@ -253,13 +363,13 @@ define ->
         shadowOffsetX: ctx.shadowOffsetX
         globalAlpha: ctx.globalAlpha
       }
-      
+
       ctx.globalAlpha = 0.5
       ctx.shadowColor = '#000'; ctx.shadowBlur = blur
       ctx.shadowOffsetX = offsetX; ctx.shadowOffsetY = offsetY
 
       ctx.beginPath()
-      
+
       ctx.moveTo @_points[0].x, @_points[0].y
       for point in @_points
         ctx.lineTo point.x, point.y # DEFAULT
@@ -287,13 +397,13 @@ define ->
 
     bounds: -> @_bounds
     contains: (point) -> @_bounds.contains point
-     
+
     translate: (vector) ->
       @point.translate vector
       @_bounds.translate vector
 
     setPosition: (point) -> @translate point.from @point
-    
+
     draw: (ctx) ->
       ctx.textBaseline = 'top'
       ctx.font = _FONT_SIZE + 'px Courier New'

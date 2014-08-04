@@ -3,12 +3,79 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define('ice-draw',[],function() {
-    var NoRectangle, Path, Point, Rectangle, Size, Text, exports, _CTX, _FONT_SIZE, _area, _intersects;
+    var NoRectangle, Path, Point, Rectangle, Size, Text, avgColor, exports, memoizedAvgColor, toHex, toRGB, twoDigitHex, zeroPad, _CTX, _FONT_SIZE, _area, _intersects;
     _area = function(a, b, c) {
       return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
     };
     _intersects = function(a, b, c, d) {
       return ((_area(a, b, c) > 0) !== (_area(a, b, d) > 0)) && ((_area(c, d, a) > 0) !== (_area(c, d, b) > 0));
+    };
+    toRGB = function(hex) {
+      var b, c, g, r;
+      if (hex.length === 4) {
+        hex = ((function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = hex.length; _i < _len; _i++) {
+            c = hex[_i];
+            _results.push(c + c);
+          }
+          return _results;
+        })()).join('').slice(1);
+      }
+      r = parseInt(hex.slice(1, 3), 16);
+      g = parseInt(hex.slice(3, 5), 16);
+      b = parseInt(hex.slice(5, 7), 16);
+      return [r, g, b];
+    };
+    zeroPad = function(str, len) {
+      if (str.length < len) {
+        return ((function() {
+          var _i, _ref, _results;
+          _results = [];
+          for (_i = _ref = str.length; _ref <= len ? _i < len : _i > len; _ref <= len ? _i++ : _i--) {
+            _results.push('0');
+          }
+          return _results;
+        })()).join('') + str;
+      } else {
+        return str;
+      }
+    };
+    twoDigitHex = function(n) {
+      return zeroPad(Math.round(n).toString(16), 2);
+    };
+    toHex = function(rgb) {
+      var k;
+      return '#' + ((function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = rgb.length; _i < _len; _i++) {
+          k = rgb[_i];
+          _results.push(twoDigitHex(k));
+        }
+        return _results;
+      })()).join('');
+    };
+    memoizedAvgColor = {};
+    avgColor = function(a, factor, b) {
+      var c, i, k, newRGB;
+      c = a + ',' + factor + ',' + b;
+      if (c in memoizedAvgColor) {
+        return memoizedAvgColor[c];
+      }
+      a = toRGB(a);
+      b = toRGB(b);
+      newRGB = (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (i = _i = 0, _len = a.length; _i < _len; i = ++_i) {
+          k = a[i];
+          _results.push(a[i] * factor + b[i] * (1 - factor));
+        }
+        return _results;
+      })();
+      return memoizedAvgColor[c] = toHex(newRGB);
     };
     exports = {};
     exports.Point = Point = (function() {
@@ -48,6 +115,10 @@
         return this.x = this.y = 0;
       };
 
+      Point.prototype.equals = function(point) {
+        return point.x === this.x && point.y === this.y;
+      };
+
       return Point;
 
     })();
@@ -56,6 +127,14 @@
         this.width = width;
         this.height = height;
       }
+
+      Size.prototype.equals = function(size) {
+        return this.width === size.width && this.height === size.height;
+      };
+
+      Size.copy = function(size) {
+        return new Size(size.width, size.height);
+      };
 
       return Size;
 
@@ -81,6 +160,13 @@
         this.y = rect.y;
         this.width = rect.width;
         return this.height = rect.height;
+      };
+
+      Rectangle.prototype.clone = function() {
+        var rect;
+        rect = new Rectangle(0, 0, 0, 0);
+        rect.copy(this);
+        return rect;
       };
 
       Rectangle.prototype.clear = function() {
@@ -280,7 +366,7 @@
       };
 
       Path.prototype.draw = function(ctx) {
-        var point, _i, _len, _ref;
+        var i, point, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2;
         this._clearCache();
         if (this._points.length === 0) {
           return;
@@ -298,10 +384,60 @@
           ctx.lineTo(point.x, point.y);
         }
         ctx.lineTo(this._points[0].x, this._points[0].y);
+        if (this._points.length > 1) {
+          ctx.lineTo(this._points[1].x, this._points[1].y);
+        }
         if (this.style.fillColor != null) {
           ctx.fill();
         }
-        return ctx.stroke();
+        ctx.save();
+        ctx.clip();
+        if (this.bevel) {
+          ctx.beginPath();
+          ctx.moveTo(this._points[0].x, this._points[0].y);
+          _ref1 = this._points.slice(1);
+          for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
+            point = _ref1[i];
+            if ((point.x < this._points[i].x && point.y >= this._points[i].y) || (point.y > this._points[i].y && point.x <= this._points[i].x)) {
+              ctx.lineTo(point.x, point.y);
+            } else if (!point.equals(this._points[i])) {
+              ctx.moveTo(point.x, point.y);
+            }
+          }
+          if (!(this._points[0].x > this._points[this._points.length - 1].x || this._points[0].y < this._points[this._points.length - 1].y)) {
+            ctx.lineTo(this._points[0].x, this._points[0].y);
+          }
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = avgColor(this.style.fillColor, 0.85, '#000');
+          ctx.stroke();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = avgColor(this.style.fillColor, 0.7, '#000');
+          ctx.stroke();
+          ctx.strokeStyle = 'white';
+          ctx.beginPath();
+          ctx.moveTo(this._points[0].x, this._points[0].y);
+          _ref2 = this._points.slice(1);
+          for (i = _k = 0, _len2 = _ref2.length; _k < _len2; i = ++_k) {
+            point = _ref2[i];
+            if ((point.x > this._points[i].x && point.y <= this._points[i].y) || (point.y < this._points[i].y && point.x >= this._points[i].x)) {
+              ctx.lineTo(point.x, point.y);
+            } else if (!point.equals(this._points[i])) {
+              ctx.moveTo(point.x, point.y);
+            }
+          }
+          if (this._points[0].x > this._points[this._points.length - 1].x || this._points[0].y < this._points[this._points.length - 1].y) {
+            ctx.lineTo(this._points[0].x, this._points[0].y);
+          }
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = avgColor(this.style.fillColor, 0.85, '#FFF');
+          ctx.stroke();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = avgColor(this.style.fillColor, 0.7, '#FFF');
+          ctx.stroke();
+        } else {
+          ctx.stroke();
+        }
+        return ctx.restore();
       };
 
       Path.prototype.clone = function() {
@@ -513,10 +649,13 @@
         var first, last, _ref, _ref1;
         first = this.start.previousVisibleToken();
         last = this.end.nextVisibleToken();
-        if ((first != null ? first.type : void 0) === 'newline' && ((_ref = last != null ? last.type : void 0) === (void 0) || _ref === 'newline' || _ref === 'indentEnd') && !(((_ref1 = first.prev) != null ? _ref1.type : void 0) === 'indentStart' && last.type === 'indentEnd')) {
-          first.remove();
-        } else if ((last != null ? last.type : void 0) === 'newline' && (first == null)) {
-          last.remove();
+        while ((first != null ? first.type : void 0) === 'newline' && ((_ref = last != null ? last.type : void 0) === (void 0) || _ref === 'newline' || _ref === 'indentEnd') && !(((_ref1 = first.prev) != null ? _ref1.type : void 0) === 'indentStart' && (last != null ? last.type : void 0) === 'indentEnd')) {
+          first = first.previousVisibleToken();
+          first.nextVisibleToken().remove();
+        }
+        while ((last != null ? last.type : void 0) === 'newline' && ((last != null ? last.nextVisibleToken() : void 0) != null) && (last.nextVisibleToken().type === 'newline' || (first == null))) {
+          last = last.nextVisibleToken();
+          last.previousVisibleToken().remove();
         }
         this.notifyChange();
         if (this.start.prev != null) {
@@ -683,6 +822,16 @@
         return traverseOneLevel(this.start.next, fn);
       };
 
+      Container.prototype.isFirstOnLine = function() {
+        var _ref, _ref1;
+        return this.start.previousVisibleToken() === ((_ref = this.parent) != null ? _ref.start : void 0) || ((_ref1 = this.start.previousVisibleToken()) != null ? _ref1.type : void 0) === 'newline';
+      };
+
+      Container.prototype.isLastOnLine = function() {
+        var _ref, _ref1, _ref2;
+        return this.end.nextVisibleToken() === ((_ref = this.parent) != null ? _ref.end : void 0) || ((_ref1 = (_ref2 = this.end.nextVisibleToken()) != null ? _ref2.type : void 0) === 'newline' || _ref1 === 'indentStart');
+      };
+
       Container.prototype.addLineMark = function(mark) {
         return this.lineMarkStyles.push(mark);
       };
@@ -791,6 +940,16 @@
           head = head.parent;
         }
         return null;
+      };
+
+      Token.prototype.isFirstOnLine = function() {
+        var _ref, _ref1;
+        return this.previousVisibleToken() === ((_ref = this.parent) != null ? _ref.start : void 0) || ((_ref1 = this.previousVisibleToken()) != null ? _ref1.type : void 0) === 'newline';
+      };
+
+      Token.prototype.isLastOnLine = function() {
+        var _ref, _ref1, _ref2;
+        return this.nextVisibleToken() === ((_ref = this.parent) != null ? _ref.end : void 0) || ((_ref1 = (_ref2 = this.nextVisibleToken()) != null ? _ref2.type : void 0) === 'newline' || _ref1 === 'indentStart');
       };
 
       Token.prototype.getSerializedLocation = function() {
@@ -1267,18 +1426,37 @@
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   define('ice-view',['ice-draw', 'ice-model'], function(draw, model) {
-    var INDENT_END, INDENT_MIDDLE, INDENT_START, NO, NO_INDENT, View, YES, defaultStyleObject, exports, grayscale;
-    NO_INDENT = 0;
-    INDENT_START = 1;
-    INDENT_MIDDLE = 2;
-    INDENT_END = 3;
+    var DEFAULT_OPTIONS, MULTILINE_END, MULTILINE_END_START, MULTILINE_MIDDLE, MULTILINE_START, NO, NO_MULTILINE, View, YES, avgColor, defaultStyleObject, exports, toHex, toRGB, twoDigitHex, zeroPad;
+    NO_MULTILINE = 0;
+    MULTILINE_START = 1;
+    MULTILINE_MIDDLE = 2;
+    MULTILINE_END = 3;
+    MULTILINE_END_START = 4;
+    DEFAULT_OPTIONS = {
+      padding: 5,
+      indentWidth: 10,
+      indentTongueHeight: 10,
+      tabOffset: 10,
+      tabWidth: 15,
+      tabHeight: 5,
+      tabSideWidth: 0.125,
+      dropAreaHeight: 20,
+      indentDropAreaMinWidth: 50,
+      minSocketWidth: 10,
+      textHeight: 15,
+      textPadding: 1,
+      emptyLineWidth: 50,
+      highlightAreaHeight: 10,
+      bevelClip: 3,
+      shadowBlur: 5,
+      ctx: document.createElement('canvas').getContext('2d')
+    };
     YES = function() {
       return true;
     };
     NO = function() {
       return false;
     };
-    window.drawNumber = 0;
     exports = {};
     defaultStyleObject = function() {
       return {
@@ -1286,137 +1464,444 @@
         grayscale: 0
       };
     };
-    grayscale = function(hex) {
-      var b, g, r;
-      if (hex.length === 4) {
-        hex = hex[0] + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
-      }
-      r = parseInt(hex.slice(1, 3), 16);
-      g = parseInt(hex.slice(3, 5), 16);
-      b = parseInt(hex.slice(5, 7), 16);
-      r = Math.round((r + 128) / 2);
-      g = Math.round((g + 128) / 2);
-      b = Math.round((b + 128) / 2);
-      return '#' + r.toString(16) + g.toString(16) + b.toString(16);
-    };
     exports.View = View = (function() {
-      var BlockView, ContainerView, CursorView, GenericView, IndentView, SegmentView, SocketView, TextView;
-
-      View.self = null;
+      var BlockViewNode, ContainerViewNode, CursorViewNode, GenericViewNode, IndentViewNode, SegmentViewNode, SocketViewNode, TextViewNode;
 
       function View(opts) {
-        this.opts = opts;
+        var option;
+        this.opts = opts != null ? opts : {};
         this.map = {};
-        this.self = this;
+        for (option in DEFAULT_OPTIONS) {
+          if (!(option in this.opts)) {
+            this.opts[option] = DEFAULT_OPTIONS[option];
+          }
+        }
         draw._setCTX(this.opts.ctx);
       }
 
       View.prototype.clearCache = function() {
-        return this.self.map = {};
+        return this.map = {};
       };
 
-      GenericView = (function() {
-        function GenericView(model, self) {
+      View.prototype.getViewNodeFor = function(model) {
+        if (model.id in this.map) {
+          return this.map[model.id];
+        } else {
+          return this.createView(model);
+        }
+      };
+
+      View.prototype.hasViewNodeFor = function(model) {
+        return (model != null) && model.id in this.map;
+      };
+
+      View.prototype.createView = function(model) {
+        switch (model.type) {
+          case 'text':
+            return new TextViewNode(model, this);
+          case 'block':
+            return new BlockViewNode(model, this);
+          case 'indent':
+            return new IndentViewNode(model, this);
+          case 'socket':
+            return new SocketViewNode(model, this);
+          case 'segment':
+            return new SegmentViewNode(model, this);
+          case 'cursor':
+            return new CursorViewNode(model, this);
+        }
+      };
+
+      GenericViewNode = (function() {
+        function GenericViewNode(model, view) {
           this.model = model;
-          this.self = self;
-          this.self.map[this.model.id] = this;
+          this.view = view;
+          this.view.map[this.model.id] = this;
           this.lineLength = 0;
           this.children = [];
           this.lineChildren = [];
-          this.indentData = [];
-          this.parentStack = [];
-          this.dimensions = [];
-          this.bounds = [];
-          this.totalBounds = new draw.NoRectangle();
-          this.path = new draw.Path();
-          this.versions = {
-            children: -1,
-            dimensions: -1,
-            path: -1,
-            dropAreas: -1,
-            bounds: {}
+          this.multilineChildrenData = [];
+          this.margins = {
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0
           };
+          this.topLineSticksToBottom = false;
+          this.bottomLineSticksToTop = false;
+          this.minDimensions = [];
+          this.minDistanceToBase = [];
+          this.dimensions = [];
+          this.distanceToBase = [];
+          this.bevels = {
+            topLeft: false,
+            topRight: false,
+            bottomLeft: false,
+            bottomRight: false
+          };
+          this.bounds = [];
+          this.changedBoundingBox = true;
+          this.glue = {};
+          this.path = new draw.Path();
           this.dropArea = this.highlightArea = null;
-          this.boundingBoxFlag = true;
-          this.padding = this.self.opts.padding;
+          this.computedVersion = -1;
+          this.padding = this.view.opts.padding;
         }
 
-        GenericView.prototype.computeChildren = function() {
+        GenericViewNode.prototype.serialize = function(line) {
+          var child, i, prop, result, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2, _ref3;
+          result = [];
+          _ref = ['lineLength', 'margins', 'topLineSticksToBottom', 'bottomLineSticksToTop', 'changedBoundingBox', 'path', 'highlightArea', 'computedVersion'];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            prop = _ref[_i];
+            result.push(prop + ': ' + JSON.stringify(this[prop]));
+          }
+          _ref1 = this.children;
+          for (i = _j = 0, _len1 = _ref1.length; _j < _len1; i = ++_j) {
+            child = _ref1[i];
+            result.push(("child " + i + ": {startLine: " + child.startLine + ", ") + ("endLine: " + child.endLine + "}"));
+          }
+          if (line !== null) {
+            _ref2 = ['multilineChildrenData', 'minDimensions', 'minDistanceToBase', 'dimensions', 'distanceToBase', 'bounds', 'glue'];
+            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+              prop = _ref2[_k];
+              result.push("" + prop + " " + line + ": " + (JSON.stringify(this[prop][line])));
+            }
+            _ref3 = this.lineChildren[line];
+            for (i = _l = 0, _len3 = _ref3.length; _l < _len3; i = ++_l) {
+              child = _ref3[i];
+              result.push(("line " + line + " child " + i + ": ") + ("{startLine: " + child.startLine + ", ") + ("endLine: " + child.endLine + "}}"));
+            }
+          }
+          return result.join('\n');
+        };
+
+        GenericViewNode.prototype.computeChildren = function() {
           return this.lineLength;
         };
 
-        GenericView.prototype.computeDimensions = function() {
-          return this.dimensions;
-        };
-
-        GenericView.prototype.computeBoundingBox = function(upperLeft, line) {
-          var _ref, _ref1;
-          if (this.versions.bounds[line] === this.model.version && upperLeft.x === ((_ref = this.bounds[line]) != null ? _ref.x : void 0) && upperLeft.y === ((_ref1 = this.bounds[line]) != null ? _ref1.y : void 0)) {
-            return this.bounds[line];
+        GenericViewNode.prototype.computeMargins = function() {
+          var childObj, left, padding, parenttype, right, _i, _len, _ref, _ref1;
+          if (this.computedVersion === this.model.version) {
+            return this.margins;
+          }
+          parenttype = (_ref = this.model.parent) != null ? _ref.type : void 0;
+          padding = this.view.opts.padding;
+          left = this.model.isFirstOnLine() || this.lineLength > 1 ? padding : 0;
+          right = this.model.isLastOnLine() || this.lineLength > 1 ? padding : 0;
+          if (parenttype === 'block' && this.model.type === 'indent') {
+            this.margins = {
+              top: 0,
+              bottom: this.view.opts.indentTongueHeight,
+              firstLeft: 0,
+              midLeft: this.view.opts.indentWidth + this.view.opts.padding,
+              lastLeft: this.view.opts.indentWidth + this.view.opts.padding,
+              firstRight: 0,
+              midRight: 0,
+              lastRight: padding
+            };
+          } else if (this.model.type === 'text' && parenttype === 'socket') {
+            this.margins = {
+              top: this.view.opts.textPadding,
+              bottom: this.view.opts.textPadding,
+              firstLeft: this.view.opts.textPadding,
+              midLeft: this.view.opts.textPadding,
+              lastLeft: this.view.opts.textPadding,
+              firstRight: this.view.opts.textPadding,
+              midRight: this.view.opts.textPadding,
+              lastRight: this.view.opts.textPadding
+            };
+          } else if (this.model.type === 'text' && parenttype === 'block') {
+            this.margins = {
+              top: padding,
+              bottom: padding,
+              firstLeft: left,
+              midLeft: left,
+              lastLeft: left,
+              firstRight: right,
+              midRight: right,
+              lastRight: right
+            };
+          } else if (parenttype === 'block') {
+            this.margins = {
+              top: padding,
+              bottom: padding,
+              firstLeft: left,
+              midLeft: padding,
+              lastLeft: padding,
+              firstRight: right,
+              midRight: 0,
+              lastRight: right
+            };
           } else {
-            this.versions.bounds[line] = this.model.version;
+            this.margins = {
+              firstLeft: 0,
+              midLeft: 0,
+              lastLeft: 0,
+              firstRight: 0,
+              midRight: 0,
+              lastRight: 0,
+              top: 0,
+              bottom: 0
+            };
           }
-          this.bounds[line] = new draw.Rectangle(upperLeft.x, upperLeft.y, this.dimensions[line].width, this.dimensions[line].height);
-          this.totalBounds.unite(this.bounds[line]);
-          return this.bounds[line];
-        };
-
-        GenericView.prototype.getBounds = function() {
-          return this.totalBounds;
-        };
-
-        GenericView.prototype.computeOwnPath = function() {
-          return this.path = new draw.Path();
-        };
-
-        GenericView.prototype.computeDropAreas = function() {
-          var childObj, _i, _len, _ref;
-          if (this.versions.dropAreas === this.model.version && !this.boundingBoxFlag) {
-            return null;
-          } else {
-            this.versions.dropAreas = this.model.version;
-            this.computeOwnDropArea();
-            _ref = this.children;
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              childObj = _ref[_i];
-              this.self.getViewFor(childObj.child).computeDropAreas();
-            }
-            this.boundingBoxFlag = false;
-            return null;
-          }
-        };
-
-        GenericView.prototype.computeOwnDropArea = function() {};
-
-        GenericView.prototype.computePath = function() {
-          var childObj, _i, _len, _ref;
-          if (this.versions.path === this.model.version && !this.boundingBoxFlag) {
-            return null;
-          } else {
-            this.versions.path = this.model.version;
-          }
-          if (this.boundingBoxFlag) {
-            this.computeOwnPath();
-          }
-          this.totalBounds.unite(this.path.bounds());
-          _ref = this.children;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            childObj = _ref[_i];
-            this.self.getViewFor(childObj.child).computePath();
+          _ref1 = this.children;
+          for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+            childObj = _ref1[_i];
+            this.view.getViewNodeFor(childObj.child).computeMargins();
           }
           return null;
         };
 
-        GenericView.prototype.drawSelf = function(ctx, style) {};
+        GenericViewNode.prototype.getMargins = function(line) {
+          var margins;
+          margins = {
+            left: this.margins.midLeft,
+            right: this.margins.midRight,
+            top: 0,
+            bottom: 0
+          };
+          if (line === this.lineLength - 1) {
+            margins.bottom = this.margins.bottom;
+            margins.left = this.margins.lastLeft;
+            margins.right = this.margins.lastRight;
+          }
+          if (line === 0) {
+            margins.top = this.margins.top;
+            margins.left = this.margins.firstLeft;
+            margins.right = this.margins.firstRight;
+          }
+          return margins;
+        };
 
-        GenericView.prototype.draw = function(ctx, boundingRect, style) {
+        GenericViewNode.prototype.computeBevels = function() {
+          return this.bevels = {
+            topLeft: false,
+            topRight: false,
+            bottomLeft: false,
+            bottomRight: false
+          };
+        };
+
+        GenericViewNode.prototype.computeMinDimensions = function() {
+          this.minDimensions = (function() {
+            var _i, _ref, _results;
+            _results = [];
+            for (_i = 0, _ref = this.lineLength; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--) {
+              _results.push(new draw.Size(0, 0));
+            }
+            return _results;
+          }).call(this);
+          this.minDistanceToBase = (function() {
+            var _i, _ref, _results;
+            _results = [];
+            for (_i = 0, _ref = this.lineLength; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--) {
+              _results.push({
+                above: 0,
+                below: 0
+              });
+            }
+            return _results;
+          }).call(this);
+          return null;
+        };
+
+        GenericViewNode.prototype.computeDimensions = function(startLine, force, root) {
+          var changed, childObj, distance, k, line, lineCount, oldDimensions, oldDistanceToBase, parentNode, _i, _j, _len, _ref, _ref1;
+          if (root == null) {
+            root = false;
+          }
+          if (this.computedVersion === this.model.version && !force) {
+            return;
+          }
+          oldDimensions = this.dimensions;
+          oldDistanceToBase = this.distanceToBase;
+          this.dimensions = (function() {
+            var _i, _len, _ref, _results;
+            _ref = this.minDimensions;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              k = _ref[_i];
+              _results.push(draw.Size.copy(k));
+            }
+            return _results;
+          }).call(this);
+          this.distanceToBase = (function() {
+            var _i, _len, _ref, _results;
+            _ref = this.minDistanceToBase;
+            _results = [];
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              k = _ref[_i];
+              _results.push({
+                above: k.above,
+                below: k.below
+              });
+            }
+            return _results;
+          }).call(this);
+          if ((this.model.parent != null) && !root && (this.topLineSticksToBottom || this.bottomLineSticksToTop)) {
+            parentNode = this.view.getViewNodeFor(this.model.parent);
+            if (this.topLineSticksToBottom) {
+              distance = this.distanceToBase[0];
+              distance.below = Math.max(distance.below, parentNode.distanceToBase[startLine].below);
+              this.dimensions[0] = new draw.Size(this.dimensions[0].width, distance.below + distance.above);
+            }
+            if (this.bottomLineSticksToTop) {
+              lineCount = this.distanceToBase.length;
+              distance = this.distanceToBase[lineCount - 1];
+              distance.above = Math.max(distance.above, parentNode.distanceToBase[startLine + lineCount - 1].above);
+              this.dimensions[lineCount - 1] = new draw.Size(this.dimensions[lineCount - 1].width, distance.below + distance.above);
+            }
+          }
+          changed = oldDimensions.length !== this.lineLength;
+          if (!changed) {
+            for (line = _i = 0, _ref = this.lineLength; 0 <= _ref ? _i < _ref : _i > _ref; line = 0 <= _ref ? ++_i : --_i) {
+              if (!oldDimensions[line].equals(this.dimensions[line]) || oldDistanceToBase[line].above !== this.distanceToBase[line].above || oldDistanceToBase[line].below !== this.distanceToBase[line].below) {
+                changed = true;
+                break;
+              }
+            }
+          }
+          this.changedBoundingBox || (this.changedBoundingBox = changed);
+          _ref1 = this.children;
+          for (_j = 0, _len = _ref1.length; _j < _len; _j++) {
+            childObj = _ref1[_j];
+            this.view.getViewNodeFor(childObj.child).computeDimensions(childObj.startLine, changed);
+          }
+          return null;
+        };
+
+        GenericViewNode.prototype.computeBoundingBoxX = function(left, line) {
+          var _ref, _ref1, _ref2;
+          if (this.computedVersion === this.model.version && left === ((_ref = this.bounds[line]) != null ? _ref.x : void 0) && !this.changedBoundingBox || ((_ref1 = this.bounds[line]) != null ? _ref1.x : void 0) === left && ((_ref2 = this.bounds[line]) != null ? _ref2.width : void 0) === this.dimensions[line].width) {
+            return this.bounds[line];
+          }
+          this.changedBoundingBox = true;
+          if (this.bounds[line] != null) {
+            this.bounds[line].x = left;
+            this.bounds[line].width = this.dimensions[line].width;
+          } else {
+            this.bounds[line] = new draw.Rectangle(left, 0, this.dimensions[line].width, 0);
+          }
+          return this.bounds[line];
+        };
+
+        GenericViewNode.prototype.computeAllBoundingBoxX = function(left) {
+          var line, size, _i, _len, _ref;
+          if (left == null) {
+            left = 0;
+          }
+          _ref = this.dimensions;
+          for (line = _i = 0, _len = _ref.length; _i < _len; line = ++_i) {
+            size = _ref[line];
+            this.computeBoundingBoxX(left, line);
+          }
+          return this.bounds;
+        };
+
+        GenericViewNode.prototype.computeGlue = function() {
+          return this.glue = {};
+        };
+
+        GenericViewNode.prototype.computeBoundingBoxY = function(top, line) {
+          var _ref;
+          if (this.computedVersion === this.model.version && top === ((_ref = this.bounds[line]) != null ? _ref.y : void 0) && !this.changedBoundingBox || this.bounds[line].y === top && this.bounds[line].height === this.dimensions[line].height) {
+            return this.bounds[line];
+          }
+          this.changedBoundingBox = true;
+          this.bounds[line].y = top;
+          this.bounds[line].height = this.dimensions[line].height;
+          return this.bounds[line];
+        };
+
+        GenericViewNode.prototype.computeAllBoundingBoxY = function(top) {
+          var line, size, _i, _len, _ref;
+          if (top == null) {
+            top = 0;
+          }
+          _ref = this.dimensions;
+          for (line = _i = 0, _len = _ref.length; _i < _len; line = ++_i) {
+            size = _ref[line];
+            this.computeBoundingBoxY(top, line);
+            top += size.height;
+            if (line in this.glue) {
+              top += this.glue[line].height;
+            }
+          }
+          return this.bounds;
+        };
+
+        GenericViewNode.prototype.getBounds = function() {
+          return this.totalBounds;
+        };
+
+        GenericViewNode.prototype.computeOwnPath = function() {
+          return this.path = new draw.Path();
+        };
+
+        GenericViewNode.prototype.computePath = function() {
+          var bound, childObj, _i, _j, _len, _len1, _ref, _ref1;
+          if (this.computedVersion === this.model.version && !this.changedBoundingBox) {
+            return null;
+          }
+          if (this.changedBoundingBox) {
+            this.computeOwnPath();
+            this.totalBounds = new draw.NoRectangle();
+            _ref = this.bounds;
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+              bound = _ref[_i];
+              this.totalBounds.unite(bound);
+            }
+            this.totalBounds.unite(this.path.bounds());
+          }
+          _ref1 = this.children;
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            childObj = _ref1[_j];
+            this.view.getViewNodeFor(childObj.child).computePath();
+          }
+          return null;
+        };
+
+        GenericViewNode.prototype.computeOwnDropArea = function() {};
+
+        GenericViewNode.prototype.computeDropAreas = function() {
+          var childObj, _i, _len, _ref;
+          if (this.computedVersion === this.model.version && !this.changedBoundingBox) {
+            return null;
+          }
+          this.computeOwnDropArea();
+          _ref = this.children;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            childObj = _ref[_i];
+            this.view.getViewNodeFor(childObj.child).computeDropAreas();
+          }
+          return null;
+        };
+
+        GenericViewNode.prototype.computeNewVersionNumber = function() {
+          var childObj, _i, _len, _ref;
+          if (this.computedVersion === this.model.version && !this.changedBoundingBox) {
+            return null;
+          }
+          this.changedBoundingBox = false;
+          this.computedVersion = this.model.version;
+          _ref = this.children;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            childObj = _ref[_i];
+            this.view.getViewNodeFor(childObj.child).computeNewVersionNumber();
+          }
+          return null;
+        };
+
+        GenericViewNode.prototype.drawSelf = function(ctx, style) {};
+
+        GenericViewNode.prototype.draw = function(ctx, boundingRect, style) {
           var childObj, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
           if (this.totalBounds.overlap(boundingRect)) {
-            window.drawNumber++;
             if (style == null) {
               style = defaultStyleObject();
             }
-            if (this.model.ephemeral && this.self.opts.respectEphemeral) {
+            if (this.model.ephemeral && this.view.opts.respectEphemeral) {
               style.grayscale++;
             }
             this.drawSelf(ctx, style);
@@ -1424,58 +1909,107 @@
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               childObj = _ref[_i];
               if (((_ref1 = (_ref2 = childObj.child.lineMarkStyles) != null ? _ref2.length : void 0) != null ? _ref1 : 0) === 0) {
-                this.self.getViewFor(childObj.child).draw(ctx, boundingRect, style);
+                this.view.getViewNodeFor(childObj.child).draw(ctx, boundingRect, style);
               }
             }
             _ref3 = this.children;
             for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
               childObj = _ref3[_j];
               if (((_ref4 = (_ref5 = childObj.child.lineMarkStyles) != null ? _ref5.length : void 0) != null ? _ref4 : 0) > 0) {
-                this.self.getViewFor(childObj.child).draw(ctx, boundingRect, style);
+                this.view.getViewNodeFor(childObj.child).draw(ctx, boundingRect, style);
               }
             }
-            if (this.model.ephemeral && this.self.opts.respectEphemeral) {
+            if (this.model.ephemeral && this.view.opts.respectEphemeral) {
               style.grayscale--;
             }
           }
           return null;
         };
 
-        GenericView.prototype.drawShadow = function() {};
+        GenericViewNode.prototype.drawShadow = function(ctx) {};
 
-        return GenericView;
+        GenericViewNode.prototype.debugDimensions = function(x, y, line, ctx) {
+          var childObj, childView, _i, _len, _ref, _results;
+          ctx.fillStyle = '#00F';
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 1;
+          ctx.fillRect(x, y, this.dimensions[line].width, this.dimensions[line].height);
+          ctx.strokeRect(x, y, this.dimensions[line].width, this.dimensions[line].height);
+          _ref = this.lineChildren[line];
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            childObj = _ref[_i];
+            childView = this.view.getViewNodeFor(childObj.child);
+            x += childView.getMargins(line).left;
+            childView.debugDimensions(x, y, line - childObj.startLine, ctx);
+            _results.push(x += childView.dimensions[line - childObj.startLine].width + childView.getMargins(line).right);
+          }
+          return _results;
+        };
+
+        GenericViewNode.prototype.debugAllDimensions = function(ctx) {
+          var line, size, y, _i, _len, _ref;
+          ctx.globalAlpha = 0.1;
+          y = 0;
+          _ref = this.dimensions;
+          for (line = _i = 0, _len = _ref.length; _i < _len; line = ++_i) {
+            size = _ref[line];
+            this.debugDimensions(0, y, line, ctx);
+            y += size.height;
+          }
+          return ctx.globalAlpha = 1;
+        };
+
+        GenericViewNode.prototype.debugAllBoundingBoxes = function(ctx) {
+          var bound, childObj, _i, _j, _len, _len1, _ref, _ref1;
+          ctx.globalAlpha = 0.1;
+          _ref = this.bounds;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            bound = _ref[_i];
+            bound.fill(ctx, '#00F');
+            bound.stroke(ctx, '#000');
+          }
+          _ref1 = this.children;
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            childObj = _ref1[_j];
+            this.view.getViewNodeFor(childObj.child).debugAllBoundingBoxes(ctx);
+          }
+          return ctx.globalAlpha = 1;
+        };
+
+        return GenericViewNode;
 
       })();
 
-      ContainerView = (function(_super) {
-        __extends(ContainerView, _super);
+      ContainerViewNode = (function(_super) {
+        __extends(ContainerViewNode, _super);
 
-        function ContainerView(model, self) {
+        function ContainerViewNode(model, view) {
           this.model = model;
-          this.self = self;
-          ContainerView.__super__.constructor.apply(this, arguments);
+          this.view = view;
+          ContainerViewNode.__super__.constructor.apply(this, arguments);
         }
 
-        ContainerView.prototype.computeChildren = function() {
+        ContainerViewNode.prototype.computeChildren = function() {
           var i, line, _base, _i, _ref,
             _this = this;
-          if (this.versions.children === this.model.version) {
+          if (this.computedVersion === this.model.version) {
             return this.lineLength;
-          } else {
-            this.versions.children = this.model.version;
           }
-          line = 0;
           this.lineLength = 0;
           this.lineChildren = [[]];
           this.children = [];
-          this.indentData = [];
+          this.multilineChildrenData = [];
+          this.topLineSticksToBottom = false;
+          this.bottomLineSticksToTop = false;
+          line = 0;
           this.model.traverseOneLevel(function(head, isContainer) {
-            var childLength, childObject, i, view, _base, _base1, _base2, _i, _j, _k, _ref, _ref1, _ref2, _ref3;
+            var childLength, childObject, i, view, _base, _base1, _i, _j, _ref, _ref1, _ref2;
             if (head.type === 'newline') {
               line += 1;
               return (_base = _this.lineChildren)[line] != null ? (_base = _this.lineChildren)[line] : _base[line] = [];
             } else {
-              view = _this.self.getViewFor(head);
+              view = _this.view.getViewNodeFor(head);
               childLength = view.computeChildren();
               childObject = {
                 child: head,
@@ -1491,163 +2025,199 @@
                   _this.lineChildren[i].push(childObject);
                 }
               }
-              if (head.type === 'indent') {
-                _this.indentData[line] = INDENT_START;
+              if (view.lineLength > 1) {
+                if (_this.multilineChildrenData[line] === MULTILINE_END) {
+                  _this.multilineChildrenData[line] = MULTILINE_END_START;
+                } else {
+                  _this.multilineChildrenData[line] = MULTILINE_START;
+                }
                 for (i = _j = _ref1 = line + 1, _ref2 = line + childLength - 1; _ref1 <= _ref2 ? _j < _ref2 : _j > _ref2; i = _ref1 <= _ref2 ? ++_j : --_j) {
-                  _this.indentData[i] = INDENT_MIDDLE;
+                  _this.multilineChildrenData[i] = MULTILINE_MIDDLE;
                 }
-                _this.indentData[line + childLength - 1] = INDENT_END;
-              } else {
-                for (i = _k = line, _ref3 = line + childLength; line <= _ref3 ? _k < _ref3 : _k > _ref3; i = line <= _ref3 ? ++_k : --_k) {
-                  if ((_base2 = _this.indentData)[i] == null) {
-                    _base2[i] = view.indentData[i - line];
-                  }
-                }
+                _this.multilineChildrenData[line + childLength - 1] = MULTILINE_END;
               }
               return line += childLength - 1;
             }
           });
           this.lineLength = line + 1;
+          if (this.lineLength > 1) {
+            this.topLineSticksToBottom = true;
+            this.bottomLineSticksToTop = true;
+          }
           if (this.bounds.length !== this.lineLength) {
-            this.boundingBoxFlag = true;
+            this.changedBoundingBox = true;
             this.bounds = this.bounds.slice(0, this.lineLength);
           }
           for (i = _i = 0, _ref = this.lineLength; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-            if ((_base = this.indentData)[i] == null) {
-              _base[i] = NO_INDENT;
+            if ((_base = this.multilineChildrenData)[i] == null) {
+              _base[i] = NO_MULTILINE;
             }
           }
           return this.lineLength;
         };
 
-        ContainerView.prototype.computeDimensions = function() {
-          var childObject, children, desiredLine, dimensions, line, size, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1, _ref2;
-          if (this.versions.dimensions === this.model.version) {
-            return this.dimensions;
-          } else {
-            this.versions.dimensions = this.model.version;
+        ContainerViewNode.prototype.computeBevels = function() {
+          var childObj, _i, _len, _ref, _ref1;
+          if (this.computedVersion === this.model.version) {
+            return null;
           }
-          this.dimensions = (function() {
-            var _i, _ref, _results;
-            _results = [];
-            for (_i = 0, _ref = this.lineLength; 0 <= _ref ? _i < _ref : _i > _ref; 0 <= _ref ? _i++ : _i--) {
-              _results.push(new draw.Size(this.padding, 2 * this.padding));
-            }
-            return _results;
-          }).call(this);
+          this.bevels = {
+            topLeft: false,
+            topRight: true,
+            bottomLeft: false,
+            bottomRight: true
+          };
+          if ((this.model.parent == null) || (!this.view.hasViewNodeFor(this.model.parent)) || ((_ref = this.model.parent.type) === 'block' || _ref === 'socket')) {
+            this.bevels.topLeft = this.bevels.bottomLeft = this.bevels.topRight = this.bevels.bottomRight = true;
+          }
+          _ref1 = this.children;
+          for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+            childObj = _ref1[_i];
+            this.view.getViewNodeFor(childObj.child).computeBevels();
+          }
+          return null;
+        };
+
+        ContainerViewNode.prototype.computeMinDimensions = function() {
+          var bottomMargin, childNode, childObject, desiredLine, line, linesToExtend, margins, minDimension, minDimensions, minDistanceToBase, size, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref, _ref1;
+          if (this.computedVersion === this.model.version) {
+            return null;
+          }
+          ContainerViewNode.__super__.computeMinDimensions.apply(this, arguments);
+          linesToExtend = [];
           _ref = this.children;
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             childObject = _ref[_i];
-            dimensions = this.self.getViewFor(childObject.child).computeDimensions();
-            if (childObject.child.type === 'indent') {
-              for (line = _j = 0, _len1 = dimensions.length; _j < _len1; line = ++_j) {
-                size = dimensions[line];
-                desiredLine = line + childObject.startLine;
-                this.dimensions[desiredLine].width += size.width + this.self.opts.indentWidth + (line === (dimensions.length - 1) ? this.padding : 0);
-                this.dimensions[desiredLine].height = Math.max(this.dimensions[desiredLine].height, size.height + (line === (dimensions.length - 1) ? this.self.opts.indentToungeHeight : 0));
+            childNode = this.view.getViewNodeFor(childObject.child);
+            childNode.computeMinDimensions();
+            minDimensions = childNode.minDimensions;
+            minDistanceToBase = childNode.minDistanceToBase;
+            for (line = _j = 0, _len1 = minDimensions.length; _j < _len1; line = ++_j) {
+              size = minDimensions[line];
+              desiredLine = line + childObject.startLine;
+              margins = childNode.getMargins(line);
+              this.minDimensions[desiredLine].width += size.width + margins.left + margins.right;
+              if (childObject.child.type === 'indent' && line === minDimensions.length - 1 && desiredLine < this.lineLength - 1) {
+                bottomMargin = 0;
+                linesToExtend.push(desiredLine + 1);
+              } else {
+                bottomMargin = margins.bottom;
               }
-            } else {
-              for (line = _k = 0, _len2 = dimensions.length; _k < _len2; line = ++_k) {
-                size = dimensions[line];
-                desiredLine = line + childObject.startLine;
-                this.dimensions[desiredLine].width += size.width + this.padding;
-                this.dimensions[desiredLine].height = Math.max(this.dimensions[desiredLine].height, size.height + ((_ref1 = this.indentData[desiredLine]) === NO_INDENT || _ref1 === INDENT_START ? 2 * this.padding : this.indentData[desiredLine] === INDENT_END ? this.padding : 0));
-              }
+              this.minDistanceToBase[desiredLine].above = Math.max(this.minDistanceToBase[desiredLine].above, minDistanceToBase[line].above + margins.top);
+              this.minDistanceToBase[desiredLine].below = Math.max(this.minDistanceToBase[desiredLine].below, minDistanceToBase[line].below + bottomMargin);
             }
           }
-          _ref2 = this.lineChildren;
-          for (line = _l = 0, _len3 = _ref2.length; _l < _len3; line = ++_l) {
-            children = _ref2[line];
-            if (children.length === 0) {
-              this.dimensions[line].height = Math.max(this.dimensions[line].height, this.self.opts.emptyLineHeight);
+          _ref1 = this.minDimensions;
+          for (line = _k = 0, _len2 = _ref1.length; _k < _len2; line = ++_k) {
+            minDimension = _ref1[line];
+            if (this.lineChildren[line].length === 0) {
+              this.minDistanceToBase[line].above = this.view.opts.textHeight;
             }
+            minDimension.height = this.minDistanceToBase[line].above + this.minDistanceToBase[line].below;
           }
-          return this.dimensions;
-        };
-
-        ContainerView.prototype.parentStackMatches = function() {
-          var head, parent, _i, _len, _ref;
-          head = this.model.parent;
-          _ref = this.parentStack;
-          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-            parent = _ref[_i];
-            if (head !== parent) {
-              return false;
-            } else {
-              head = head.parent;
-            }
+          for (_l = 0, _len3 = linesToExtend.length; _l < _len3; _l++) {
+            line = linesToExtend[_l];
+            this.minDimensions[line].width = Math.max(this.minDimensions[line].width, this.minDimensions[line - 1].width);
           }
-          return head == null;
+          return null;
         };
 
-        ContainerView.prototype.updateParentStack = function() {
-          var head, _results;
-          this.parentStack.length = 0;
-          head = this.model.parent;
-          _results = [];
-          while (head != null) {
-            this.parentStack.push(head);
-            _results.push(head = head.parent);
-          }
-          return _results;
-        };
-
-        ContainerView.prototype.getBounds = function() {
-          return this.totalBounds;
-        };
-
-        ContainerView.prototype.computeBoundingBox = function(upperLeft, line) {
-          var axis, childLine, childView, i, leftX, lineChild, _i, _len, _ref, _ref1, _ref2;
-          if (this.versions.bounds[line] === this.model.version && upperLeft.x === ((_ref = this.bounds[line]) != null ? _ref.x : void 0) && upperLeft.y === ((_ref1 = this.bounds[line]) != null ? _ref1.y : void 0)) {
+        ContainerViewNode.prototype.computeBoundingBoxX = function(left, line) {
+          var childLeft, childLine, childMargins, childView, i, lineChild, _i, _len, _ref, _ref1, _ref2, _ref3;
+          if (this.computedVersion === this.model.version && left === ((_ref = this.bounds[line]) != null ? _ref.x : void 0) && !this.changedBoundingBox) {
             return this.bounds[line];
-          } else {
-            this.versions.bounds[line] = this.model.version;
           }
-          if (!((this.bounds[line] != null) && this.bounds[line].x === upperLeft.x && this.bounds[line].y === upperLeft.y && this.bounds[line].width === this.dimensions[line].width && this.bounds[line].height === this.dimensions[line].height)) {
-            this.bounds[line] = new draw.Rectangle(upperLeft.x, upperLeft.y, this.dimensions[line].width, this.dimensions[line].height);
-            this.boundingBoxFlag = true;
-          }
-          this.totalBounds.unite(this.bounds[line]);
-          leftX = upperLeft.x + this.padding;
-          axis = upperLeft.y + this.dimensions[line].height / 2;
-          _ref2 = this.lineChildren[line];
-          for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
-            lineChild = _ref2[i];
-            childView = this.self.getViewFor(lineChild.child);
-            childLine = line - lineChild.startLine;
-            if (lineChild.child.type === 'indent') {
-              childView.computeBoundingBox(new draw.Point(leftX + this.self.opts.indentWidth, upperLeft.y), childLine);
-              leftX += this.self.opts.indentWidth + childView.dimensions[childLine].width;
-            } else if (this.indentData[line] === INDENT_END && i === 0) {
-              childView.computeBoundingBox(new draw.Point(leftX, upperLeft.y), childLine);
-              leftX += this.padding + childView.dimensions[childLine].width;
+          if (!(((_ref1 = this.bounds[line]) != null ? _ref1.x : void 0) === left && ((_ref2 = this.bounds[line]) != null ? _ref2.width : void 0) === this.dimensions[line].width)) {
+            if (this.bounds[line] != null) {
+              this.bounds[line].x = left;
+              this.bounds[line].width = this.dimensions[line].width;
             } else {
-              childView.computeBoundingBox(new draw.Point(leftX, axis - childView.dimensions[childLine].height / 2), childLine);
-              leftX += this.padding + childView.dimensions[childLine].width;
+              this.bounds[line] = new draw.Rectangle(left, 0, this.dimensions[line].width, 0);
             }
+            this.changedBoundingBox = true;
           }
-          this.updateParentStack();
+          childLeft = left;
+          _ref3 = this.lineChildren[line];
+          for (i = _i = 0, _len = _ref3.length; _i < _len; i = ++_i) {
+            lineChild = _ref3[i];
+            childView = this.view.getViewNodeFor(lineChild.child);
+            childLine = line - lineChild.startLine;
+            childMargins = childView.getMargins(childLine);
+            childLeft += childMargins.left;
+            childView.computeBoundingBoxX(childLeft, childLine);
+            childLeft += childView.dimensions[childLine].width + childMargins.right;
+          }
           return this.bounds[line];
         };
 
-        ContainerView.prototype.computeBoundingBoxes = function(left, top) {
-          var line, size, _i, _len, _ref;
-          if (left == null) {
-            left = 0;
+        ContainerViewNode.prototype.computeGlue = function() {
+          var box, childLine, childObj, childView, line, lineChild, overlap, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3;
+          if (this.computedVersion === this.model.version && !this.changedBoundingBox) {
+            return this.glue;
           }
-          if (top == null) {
-            top = 0;
+          _ref = this.children;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            childObj = _ref[_i];
+            this.view.getViewNodeFor(childObj.child).computeGlue();
           }
-          _ref = this.dimensions;
-          for (line = _i = 0, _len = _ref.length; _i < _len; line = ++_i) {
-            size = _ref[line];
-            this.computeBoundingBox(new draw.Point(left, top), line);
-            top += size.height;
+          this.glue = {};
+          _ref1 = this.bounds;
+          for (line = _j = 0, _len1 = _ref1.length; _j < _len1; line = ++_j) {
+            box = _ref1[line];
+            if (!(line < this.bounds.length - 1)) {
+              continue;
+            }
+            this.glue[line] = {
+              height: 0,
+              draw: false
+            };
+            _ref2 = this.lineChildren[line];
+            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+              lineChild = _ref2[_k];
+              childView = this.view.getViewNodeFor(lineChild.child);
+              childLine = line - lineChild.startLine;
+              if (childLine in childView.glue) {
+                this.glue[line].height = Math.max(this.glue[line].height, childView.glue[childLine].height);
+              }
+            }
+            if (!(this.multilineChildrenData[line] === MULTILINE_MIDDLE || this.model.type === 'segment')) {
+              overlap = Math.min(this.bounds[line].right() - this.bounds[line + 1].x, this.bounds[line + 1].right() - this.bounds[line].x);
+              if ((_ref3 = this.multilineChildrenData[line]) === MULTILINE_START || _ref3 === MULTILINE_END_START) {
+                overlap = Math.min(overlap, this.bounds[line + 1].x + this.view.opts.indentWidth - this.bounds[line].x);
+              }
+              if (overlap < this.view.opts.padding && this.model.type !== 'indent') {
+                this.glue[line].height += this.view.opts.padding;
+                this.glue[line].draw = true;
+              }
+            }
           }
-          return true;
+          return this.glue;
         };
 
-        ContainerView.prototype.layout = function(left, top) {
+        ContainerViewNode.prototype.computeBoundingBoxY = function(top, line) {
+          var above, childAbove, childLine, childView, i, lineChild, _i, _len, _ref, _ref1, _ref2, _ref3;
+          if (this.computedVersion === this.model.version && top === ((_ref = this.bounds[line]) != null ? _ref.y : void 0) && !this.changedBoundingBox) {
+            return this.bounds[line];
+          }
+          if (!(((_ref1 = this.bounds[line]) != null ? _ref1.y : void 0) === top && ((_ref2 = this.bounds[line]) != null ? _ref2.height : void 0) === this.dimensions[line].height)) {
+            this.bounds[line].y = top;
+            this.bounds[line].height = this.dimensions[line].height;
+            this.changedBoundingBox = true;
+          }
+          above = this.distanceToBase[line].above;
+          _ref3 = this.lineChildren[line];
+          for (i = _i = 0, _len = _ref3.length; _i < _len; i = ++_i) {
+            lineChild = _ref3[i];
+            childView = this.view.getViewNodeFor(lineChild.child);
+            childLine = line - lineChild.startLine;
+            childAbove = childView.distanceToBase[childLine].above;
+            childView.computeBoundingBoxY(top + above - childAbove, childLine);
+          }
+          return this.bounds[line];
+        };
+
+        ContainerViewNode.prototype.layout = function(left, top) {
+          var changedBoundingBox;
           if (left == null) {
             left = 0;
           }
@@ -1655,83 +2225,193 @@
             top = 0;
           }
           this.computeChildren();
-          this.computeDimensions();
-          this.computeBoundingBoxes(left, top);
+          this.computeMargins();
+          this.computeBevels();
+          this.computeMinDimensions();
+          this.computeDimensions(0, false, true);
+          this.computeAllBoundingBoxX(left);
+          this.computeGlue();
+          this.computeAllBoundingBoxY(top);
           this.computePath();
           this.computeDropAreas();
-          this.boundingBoxFlag = false;
-          return null;
+          changedBoundingBox = this.changedBoundingBox;
+          this.computeNewVersionNumber();
+          return changedBoundingBox;
         };
 
-        ContainerView.prototype.addTab = function(array, point, invert) {
-          if (invert == null) {
-            invert = false;
-          }
-          this.addRectilinear(array, new draw.Point(point.x + this.self.opts.tabOffset + this.self.opts.tabWidth, point.y), invert ? 'y' : 'x');
-          array.push(new draw.Point(point.x + this.self.opts.tabOffset + this.self.opts.tabWidth * (1 - this.self.opts.tabSideWidth), point.y + this.self.opts.tabHeight));
-          array.push(new draw.Point(point.x + this.self.opts.tabOffset + this.self.opts.tabWidth * this.self.opts.tabSideWidth, point.y + this.self.opts.tabHeight));
-          array.push(new draw.Point(point.x + this.self.opts.tabOffset, point.y));
-          return array.push(point);
-        };
-
-        ContainerView.prototype.addRectilinear = function(array, point, first) {
-          if (first == null) {
-            first = 'x';
-          }
-          if (array.length > 0 && array[array.length - 1].x !== point.x) {
-            if (first === 'x') {
-              array.push(new draw.Point(point.x, array[array.length - 1].y));
-            } else if (first === 'y') {
-              array.push(new draw.Point(array[array.length - 1].x, point.y));
-            }
-          }
-          return array.push(point);
-        };
-
-        ContainerView.prototype.computeOwnPath = function() {
-          var bounds, el, indentBounds, indentChild, left, line, path, right, _i, _j, _len, _len1, _ref, _ref1;
+        ContainerViewNode.prototype.computeOwnPath = function() {
+          var bounds, el, glueTop, innerLeft, innerRight, left, leftmost, line, multilineBounds, multilineChild, multilineNode, multilineView, path, right, rightmost, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
           left = [];
           right = [];
           if (this.shouldAddTab()) {
-            this.addTab(left, new draw.Point(this.bounds[0].x, this.bounds[0].y));
+            this.addTab(left, new draw.Point(this.bounds[0].x + this.view.opts.tabOffset, this.bounds[0].y));
           }
           _ref = this.bounds;
           for (line = _i = 0, _len = _ref.length; _i < _len; line = ++_i) {
             bounds = _ref[line];
-            if ((_ref1 = this.indentData[line]) === NO_INDENT || _ref1 === INDENT_START) {
-              this.addRectilinear(left, new draw.Point(bounds.x, bounds.y));
-              this.addRectilinear(left, new draw.Point(bounds.x, bounds.bottom()));
-              this.addRectilinear(right, new draw.Point(bounds.right(), bounds.y));
-              this.addRectilinear(right, new draw.Point(bounds.right(), bounds.bottom()));
-              if (this.indentData[line] === INDENT_START) {
-                this.addTab(right, new draw.Point(this.bounds[line + 1].x + this.self.opts.indentWidth + this.padding, this.bounds[line + 1].y), true);
-              }
-            }
-            if (this.indentData[line] === INDENT_MIDDLE) {
-              this.addRectilinear(left, new draw.Point(bounds.x, bounds.y));
-              this.addRectilinear(left, new draw.Point(bounds.x, bounds.bottom()));
-              this.addRectilinear(right, new draw.Point(bounds.x + this.self.opts.indentWidth + this.padding, bounds.y));
-              this.addRectilinear(right, new draw.Point(bounds.x + this.self.opts.indentWidth + this.padding, bounds.bottom()));
-            }
-            if (this.indentData[line] === INDENT_END) {
-              this.addRectilinear(left, new draw.Point(bounds.x, bounds.y));
-              this.addRectilinear(left, new draw.Point(bounds.x, bounds.bottom()));
-              indentChild = this.lineChildren[line][0];
-              indentBounds = this.self.getViewFor(indentChild.child).bounds[line - indentChild.startLine];
-              this.addRectilinear(right, new draw.Point(indentBounds.x, indentBounds.y));
-              this.addRectilinear(right, new draw.Point(indentBounds.x, indentBounds.bottom()));
-              this.addRectilinear(right, new draw.Point(indentBounds.right(), indentBounds.bottom()));
-              if (this.lineChildren[line].length > 1) {
-                this.addRectilinear(right, new draw.Point(indentBounds.right(), indentBounds.y));
-                this.addRectilinear(right, new draw.Point(bounds.right(), bounds.y));
+            if (this.multilineChildrenData[line] === NO_MULTILINE) {
+              if (this.bevels.topLeft && line === 0) {
+                left.push(new draw.Point(bounds.x + this.view.opts.bevelClip, bounds.y));
+                left.push(new draw.Point(bounds.x, bounds.y + this.view.opts.bevelClip));
               } else {
-                this.addRectilinear(right, new draw.Point(bounds.right(), indentBounds.bottom()));
+                left.push(new draw.Point(bounds.x, bounds.y));
               }
-              this.addRectilinear(right, new draw.Point(bounds.right(), bounds.bottom()));
+              if (this.bevels.bottomLeft && line === this.lineLength - 1) {
+                left.push(new draw.Point(bounds.x, bounds.bottom() - this.view.opts.bevelClip));
+                left.push(new draw.Point(bounds.x + this.view.opts.bevelClip, bounds.bottom()));
+              } else {
+                left.push(new draw.Point(bounds.x, bounds.bottom()));
+              }
+              if (this.bevels.topRight) {
+                right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.y));
+                right.push(new draw.Point(bounds.right(), bounds.y + this.view.opts.bevelClip));
+              } else {
+                right.push(new draw.Point(bounds.right(), bounds.y));
+              }
+              if (this.bevels.bottomRight) {
+                right.push(new draw.Point(bounds.right(), bounds.bottom() - this.view.opts.bevelClip));
+                right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.bottom()));
+              } else {
+                right.push(new draw.Point(bounds.right(), bounds.bottom()));
+              }
+            }
+            if (this.multilineChildrenData[line] === MULTILINE_START) {
+              if (this.bevels.topLeft && line === 0) {
+                left.push(new draw.Point(bounds.x + this.view.opts.bevelClip, bounds.y));
+                left.push(new draw.Point(bounds.x, bounds.y + this.view.opts.bevelClip));
+              } else {
+                left.push(new draw.Point(bounds.x, bounds.y));
+              }
+              if (this.bevels.bottomLeft && line === this.lineLength - 1) {
+                left.push(new draw.Point(bounds.x, bounds.bottom() - this.view.opts.bevelClip));
+                left.push(new draw.Point(bounds.x + this.view.opts.bevelClip, bounds.bottom()));
+              } else {
+                left.push(new draw.Point(bounds.x, bounds.bottom()));
+              }
+              multilineChild = this.lineChildren[line][this.lineChildren[line].length - 1];
+              multilineView = this.view.getViewNodeFor(multilineChild.child);
+              multilineBounds = multilineView.bounds[line - multilineChild.startLine];
+              right.push(new draw.Point(bounds.right(), bounds.y));
+              if (multilineBounds.width === 0) {
+                if (this.bevels.topRight) {
+                  right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.y));
+                  right.push(new draw.Point(bounds.right(), bounds.y + this.view.opts.bevelClip));
+                } else {
+                  right.push(new draw.Point(bounds.right(), bounds.y));
+                }
+                if (this.bevels.bottomRight && !((_ref1 = this.glue[line]) != null ? _ref1.draw : void 0)) {
+                  right.push(new draw.Point(bounds.right(), bounds.bottom() - this.view.opts.bevelClip));
+                  right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.bottom()));
+                } else {
+                  right.push(new draw.Point(bounds.right(), bounds.bottom()));
+                }
+              } else {
+                right.push(new draw.Point(bounds.right(), multilineBounds.y));
+                right.push(new draw.Point(multilineBounds.x + this.view.opts.bevelClip, multilineBounds.y));
+                right.push(new draw.Point(multilineBounds.x, multilineBounds.y + this.view.opts.bevelClip));
+                right.push(new draw.Point(multilineBounds.x, multilineBounds.bottom()));
+              }
+            }
+            if (this.multilineChildrenData[line] === MULTILINE_MIDDLE) {
+              multilineChild = this.lineChildren[line][0];
+              multilineBounds = this.view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine];
+              left.push(new draw.Point(bounds.x, bounds.y));
+              left.push(new draw.Point(bounds.x, bounds.bottom()));
+              right.push(new draw.Point(multilineBounds.x, bounds.y));
+              right.push(new draw.Point(multilineBounds.x, bounds.bottom()));
+            }
+            if ((_ref2 = this.multilineChildrenData[line]) === MULTILINE_END || _ref2 === MULTILINE_END_START) {
+              left.push(new draw.Point(bounds.x, bounds.y));
+              left.push(new draw.Point(bounds.x, bounds.bottom()));
+              multilineChild = this.lineChildren[line][0];
+              multilineBounds = this.view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine];
+              right.push(new draw.Point(multilineBounds.x, multilineBounds.y));
+              right.push(new draw.Point(multilineBounds.x, multilineBounds.bottom()));
+              if (multilineChild.child.type === 'indent') {
+                this.addTabReverse(right, new draw.Point(multilineBounds.x + this.view.opts.tabOffset, multilineBounds.bottom()));
+              }
+              right.push(new draw.Point(multilineBounds.right(), multilineBounds.bottom()));
+              if (this.lineChildren[line].length > 1) {
+                right.push(new draw.Point(multilineBounds.right(), multilineBounds.y));
+                if (this.multilineChildrenData[line] === MULTILINE_END) {
+                  right.push(new draw.Point(bounds.right(), bounds.y));
+                  right.push(new draw.Point(bounds.right(), bounds.bottom()));
+                } else {
+                  multilineChild = this.lineChildren[line][this.lineChildren[line].length - 1];
+                  multilineView = this.view.getViewNodeFor(multilineChild.child);
+                  multilineBounds = multilineView.bounds[line - multilineChild.startLine];
+                  right.push(new draw.Point(bounds.right(), bounds.y));
+                  if (multilineBounds.width === 0) {
+                    if (this.bevels.topRight) {
+                      right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.y));
+                      right.push(new draw.Point(bounds.right(), bounds.y + this.view.opts.bevelClip));
+                    } else {
+                      right.push(new draw.Point(bounds.right(), bounds.y));
+                    }
+                    if (this.bevels.bottomRight && !((_ref3 = this.glue[line]) != null ? _ref3.draw : void 0)) {
+                      right.push(new draw.Point(bounds.right(), bounds.bottom() - this.view.opts.bevelClip));
+                      right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.bottom()));
+                    } else {
+                      right.push(new draw.Point(bounds.right(), bounds.bottom()));
+                    }
+                  } else {
+                    right.push(new draw.Point(bounds.right(), multilineBounds.y));
+                    right.push(new draw.Point(multilineBounds.x + this.view.opts.bevelClip, multilineBounds.y));
+                    right.push(new draw.Point(multilineBounds.x, multilineBounds.y + this.view.opts.bevelClip));
+                    right.push(new draw.Point(multilineBounds.x, multilineBounds.bottom()));
+                  }
+                }
+              } else if (line === this.lineLength - 1) {
+                right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, multilineBounds.bottom()));
+                right.push(new draw.Point(bounds.right(), multilineBounds.bottom() + this.view.opts.bevelClip));
+                right.push(new draw.Point(bounds.right(), bounds.bottom() - this.view.opts.bevelClip));
+                right.push(new draw.Point(bounds.right() - this.view.opts.bevelClip, bounds.bottom()));
+              } else {
+                right.push(new draw.Point(bounds.right(), multilineBounds.bottom()));
+                right.push(new draw.Point(bounds.right(), bounds.bottom()));
+              }
+            }
+            if (line in this.glue && this.glue[line].draw) {
+              glueTop = this.bounds[line + 1].y - this.glue[line].height;
+              leftmost = Math.min(this.bounds[line + 1].x, this.bounds[line].x);
+              rightmost = Math.max(this.bounds[line + 1].right(), this.bounds[line].right());
+              left.push(new draw.Point(this.bounds[line].x, glueTop));
+              left.push(new draw.Point(leftmost, glueTop));
+              left.push(new draw.Point(leftmost, glueTop + this.view.opts.padding));
+              if (this.multilineChildrenData[line] !== MULTILINE_START) {
+                right.push(new draw.Point(this.bounds[line].right(), glueTop));
+                right.push(new draw.Point(rightmost, glueTop));
+                right.push(new draw.Point(rightmost, glueTop + this.view.opts.padding));
+              }
+            } else if ((this.bounds[line + 1] != null) && this.multilineChildrenData[line] !== MULTILINE_MIDDLE) {
+              innerLeft = Math.max(this.bounds[line + 1].x, this.bounds[line].x);
+              innerRight = Math.min(this.bounds[line + 1].right(), this.bounds[line].right());
+              left.push(new draw.Point(innerLeft, this.bounds[line].bottom()));
+              left.push(new draw.Point(innerLeft, this.bounds[line + 1].y));
+              if ((_ref4 = this.multilineChildrenData[line]) !== MULTILINE_START && _ref4 !== MULTILINE_END_START) {
+                right.push(new draw.Point(innerRight, this.bounds[line].bottom()));
+                right.push(new draw.Point(innerRight, this.bounds[line + 1].y));
+              }
+            }
+            if ((_ref5 = this.multilineChildrenData[line]) === MULTILINE_START || _ref5 === MULTILINE_END_START) {
+              multilineChild = this.lineChildren[line][this.lineChildren[line].length - 1];
+              multilineNode = this.view.getViewNodeFor(multilineChild.child);
+              multilineBounds = multilineNode.bounds[line - multilineChild.startLine];
+              if ((_ref6 = this.glue[line]) != null ? _ref6.draw : void 0) {
+                glueTop = this.bounds[line + 1].y - this.glue[line].height + this.view.opts.padding;
+              } else {
+                glueTop = this.bounds[line].bottom();
+              }
+              right.push(new draw.Point(multilineBounds.x, glueTop));
+              if (multilineChild.child.type === 'indent') {
+                this.addTab(right, new draw.Point(this.bounds[line + 1].x + this.view.opts.indentWidth + this.padding + this.view.opts.tabOffset, this.bounds[line + 1].y), true);
+              }
+              right.push(new draw.Point(multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop));
+              right.push(new draw.Point(multilineNode.bounds[line - multilineChild.startLine + 1].x, this.bounds[line + 1].y));
             }
           }
           if (this.shouldAddTab()) {
-            this.addTab(right, new draw.Point(this.bounds[this.lineLength - 1].x, this.bounds[this.lineLength - 1].bottom()));
+            this.addTab(right, new draw.Point(this.bounds[this.lineLength - 1].x + this.view.opts.tabOffset, this.bounds[this.lineLength - 1].bottom()));
           }
           path = left.reverse().concat(right);
           this.path = new draw.Path();
@@ -1742,382 +2422,446 @@
           return this.path;
         };
 
-        ContainerView.prototype.computeOwnDropArea = function() {
+        ContainerViewNode.prototype.addTab = function(array, point) {
+          array.push(new draw.Point(point.x + this.view.opts.tabWidth, point.y));
+          array.push(new draw.Point(point.x + this.view.opts.tabWidth * (1 - this.view.opts.tabSideWidth), point.y + this.view.opts.tabHeight));
+          array.push(new draw.Point(point.x + this.view.opts.tabWidth * this.view.opts.tabSideWidth, point.y + this.view.opts.tabHeight));
+          array.push(new draw.Point(point.x, point.y));
+          return array.push(point);
+        };
+
+        ContainerViewNode.prototype.addTabReverse = function(array, point) {
+          array.push(point);
+          array.push(new draw.Point(point.x, point.y));
+          array.push(new draw.Point(point.x + this.view.opts.tabWidth * this.view.opts.tabSideWidth, point.y + this.view.opts.tabHeight));
+          array.push(new draw.Point(point.x + this.view.opts.tabWidth * (1 - this.view.opts.tabSideWidth), point.y + this.view.opts.tabHeight));
+          return array.push(new draw.Point(point.x + this.view.opts.tabWidth, point.y));
+        };
+
+        ContainerViewNode.prototype.computeOwnDropArea = function() {
           return this.dropArea = this.highlightArea = null;
         };
 
-        ContainerView.prototype.shouldAddTab = NO;
+        ContainerViewNode.prototype.shouldAddTab = NO;
 
-        ContainerView.prototype.drawSelf = function(ctx, style) {
-          var oldAlpha, oldFill, oldStroke;
+        ContainerViewNode.prototype.drawSelf = function(ctx, style) {
+          var oldFill, oldStroke;
+          oldFill = this.path.style.fillColor;
+          oldStroke = this.path.style.strokeColor;
           if (style.grayscale > 0) {
-            oldFill = this.path.style.fillColor;
-            this.path.style.fillColor = grayscale(oldFill);
-            this.path.draw(ctx);
-            this.path.style.fillColor = oldFill;
-          } else {
-            this.path.draw(ctx);
+            this.path.style.fillColor = avgColor(this.path.style.fillColor, 0.5, '#888');
+            this.path.style.strokeColor = avgColor(this.path.style.strokeColor, 0.5, '#888');
           }
           if (style.selected > 0) {
-            oldFill = this.path.style.fillColor;
-            this.path.style.fillColor = '#00F';
-            oldStroke = this.path.style.strokeColor;
-            this.path.style.strokeColor = '#008';
-            oldAlpha = ctx.globalAlpha;
-            ctx.globalAlpha *= 0.3;
-            this.path.draw(ctx);
-            ctx.globalAlpha = oldAlpha;
-            this.path.style.fillColor = oldFill;
-            this.path.style.strokeColor = oldStroke;
+            this.path.style.fillColor = avgColor(this.path.style.fillColor, 0.7, '#00F');
+            this.path.style.strokeColor = avgColor(this.path.style.strokeColor, 0.7, '#00F');
           }
+          this.path.draw(ctx);
+          this.path.style.fillColor = oldFill;
+          this.path.style.strokeColor = oldStroke;
           return null;
         };
 
-        ContainerView.prototype.drawShadow = function(ctx, x, y) {
+        ContainerViewNode.prototype.drawShadow = function(ctx, x, y) {
           var childObj, _i, _len, _ref;
-          this.path.drawShadow(ctx, x, y, this.self.opts.shadowBlur);
+          this.path.drawShadow(ctx, x, y, this.view.opts.shadowBlur);
           _ref = this.children;
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             childObj = _ref[_i];
-            this.self.getViewFor(childObj.child).drawShadow(ctx, x, y);
+            this.view.getViewNodeFor(childObj.child).drawShadow(ctx, x, y);
           }
           return null;
         };
 
-        return ContainerView;
+        return ContainerViewNode;
 
-      })(GenericView);
+      })(GenericViewNode);
 
-      BlockView = (function(_super) {
-        __extends(BlockView, _super);
+      BlockViewNode = (function(_super) {
+        __extends(BlockViewNode, _super);
 
-        function BlockView() {
-          BlockView.__super__.constructor.apply(this, arguments);
+        function BlockViewNode() {
+          BlockViewNode.__super__.constructor.apply(this, arguments);
         }
 
-        BlockView.prototype.computeDimensions = function() {
+        BlockViewNode.prototype.computeMinDimensions = function() {
           var i, size, _i, _len, _ref;
-          if (this.versions.dimensions !== this.model.version) {
-            BlockView.__super__.computeDimensions.apply(this, arguments);
-            _ref = this.dimensions;
-            for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
-              size = _ref[i];
-              size.width = Math.max(size.width, this.self.opts.tabWidth + this.self.opts.tabOffset);
-            }
+          if (this.computedVersion === this.model.version) {
+            return null;
           }
-          return this.dimensions;
+          BlockViewNode.__super__.computeMinDimensions.apply(this, arguments);
+          _ref = this.minDimensions;
+          for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+            size = _ref[i];
+            size.width = Math.max(size.width, this.view.opts.tabWidth + this.view.opts.tabOffset);
+          }
+          return null;
         };
 
-        BlockView.prototype.shouldAddTab = function() {
+        BlockViewNode.prototype.shouldAddTab = function() {
+          var parent;
           if (this.model.parent != null) {
-            return this.model.parent.type !== 'socket';
+            parent = this.model.parent;
+            while ((parent != null ? parent.type : void 0) === 'segment') {
+              parent = parent.parent;
+            }
+            return (parent != null ? parent.type : void 0) !== 'socket';
           } else {
             return !this.model.valueByDefault;
           }
         };
 
-        BlockView.prototype.computeOwnPath = function() {
-          BlockView.__super__.computeOwnPath.apply(this, arguments);
+        BlockViewNode.prototype.computeOwnPath = function() {
+          BlockViewNode.__super__.computeOwnPath.apply(this, arguments);
           this.path.style.fillColor = this.model.color;
           this.path.style.strokeColor = '#888';
           if (this.model.lineMarkStyles.length > 0) {
             this.path.style.strokeColor = this.model.lineMarkStyles[0].color;
             this.path.style.lineWidth = 2;
           }
+          this.path.bevel = true;
           return this.path;
         };
 
-        BlockView.prototype.computeOwnDropArea = function() {
-          this.dropArea = new draw.Rectangle(this.bounds[this.lineLength - 1].x, this.bounds[this.lineLength - 1].bottom() - this.self.opts.dropAreaHeight / 2, this.bounds[this.lineLength - 1].width, this.self.opts.dropAreaHeight).toPath();
-          this.highlightArea = new draw.Rectangle(this.bounds[this.lineLength - 1].x, this.bounds[this.lineLength - 1].bottom() - this.self.opts.highlightAreaHeight / 2, this.bounds[this.lineLength - 1].width, this.self.opts.highlightAreaHeight).toPath();
-          this.highlightArea.style.lineWidth = 0;
+        BlockViewNode.prototype.computeOwnDropArea = function() {
+          this.dropArea = new draw.Rectangle(this.bounds[this.lineLength - 1].x, this.bounds[this.lineLength - 1].bottom() - this.view.opts.dropAreaHeight / 2, this.bounds[this.lineLength - 1].width, this.view.opts.dropAreaHeight).toPath();
+          this.highlightArea = new draw.Rectangle(this.bounds[this.lineLength - 1].x, this.bounds[this.lineLength - 1].bottom() - this.view.opts.highlightAreaHeight / 2, this.bounds[this.lineLength - 1].width, this.view.opts.highlightAreaHeight).toPath();
+          this.highlightArea.style.lineWidth = 1;
           this.highlightArea.style.strokeColor = '#fff';
           return this.highlightArea.style.fillColor = '#fff';
         };
 
-        return BlockView;
+        return BlockViewNode;
 
-      })(ContainerView);
+      })(ContainerViewNode);
 
-      SocketView = (function(_super) {
-        __extends(SocketView, _super);
+      SocketViewNode = (function(_super) {
+        __extends(SocketViewNode, _super);
 
-        function SocketView() {
-          SocketView.__super__.constructor.apply(this, arguments);
+        function SocketViewNode() {
+          SocketViewNode.__super__.constructor.apply(this, arguments);
         }
 
-        SocketView.prototype.shouldAddTab = NO;
+        SocketViewNode.prototype.shouldAddTab = NO;
 
-        SocketView.prototype.computeDimensions = function() {
-          var childDimensions, k, view;
-          if (this.versions.dimensions === this.model.version) {
-            return this.bounds;
-          } else {
-            this.versions.dimensions = this.model.version;
+        SocketViewNode.prototype.computeMinDimensions = function() {
+          var dimension, _i, _len, _ref;
+          if (this.computedVersion === this.model.version) {
+            return null;
           }
-          if (this.model.start.nextVisibleToken() === this.model.end) {
-            return this.dimensions = [new draw.Size(this.self.opts.emptySocketWidth, this.self.opts.emptySocketHeight)];
-          } else if (this.model.start.next.type === 'blockStart') {
-            view = this.self.getViewFor(this.model.start.next.container);
-            childDimensions = view.computeDimensions();
-            return this.dimensions = (function() {
-              var _i, _len, _results;
-              _results = [];
-              for (_i = 0, _len = childDimensions.length; _i < _len; _i++) {
-                k = childDimensions[_i];
-                _results.push(k);
-              }
-              return _results;
-            })();
-          } else {
-            this.versions.dimensions--;
-            return SocketView.__super__.computeDimensions.apply(this, arguments);
+          SocketViewNode.__super__.computeMinDimensions.apply(this, arguments);
+          this.minDistanceToBase[0].above = Math.max(this.minDistanceToBase[0].above, this.view.opts.textHeight + this.view.opts.textPadding);
+          this.minDistanceToBase[0].below = Math.max(this.minDistanceToBase[0].below, this.view.opts.textPadding);
+          this.minDimensions[0].height = this.minDistanceToBase[0].above + this.minDistanceToBase[0].below;
+          _ref = this.minDimensions;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            dimension = _ref[_i];
+            dimension.width = Math.max(dimension.width, this.view.opts.minSocketWidth);
           }
-        };
-
-        SocketView.prototype.computeBoundingBox = function(upperLeft, line) {
-          var _ref, _ref1;
-          if (this.versions.bounds[line] === this.model.version && upperLeft.x === ((_ref = this.bounds[line]) != null ? _ref.x : void 0) && upperLeft.y === ((_ref1 = this.bounds[line]) != null ? _ref1.y : void 0)) {
-            if (this.model.stringify() === '') {
-              debugger;
-            }
-            return this.bounds[line];
-          }
-          if (this.model.start.next.type === 'blockStart') {
-            this.bounds[line] = this.self.getViewFor(this.model.start.next.container).computeBoundingBox(upperLeft, line);
-            this.boundingBoxFlag = this.self.getViewFor(this.model.start.next.container).boundingBoxFlag;
-          } else {
-            SocketView.__super__.computeBoundingBox.apply(this, arguments);
-          }
-          return this.bounds[line];
-        };
-
-        SocketView.prototype.computeOwnPath = function() {
-          var view;
-          if (this.model.start.next.type === 'blockStart') {
-            view = this.self.getViewFor(this.model.start.next.container);
-            this.path = view.computeOwnPath().clone();
-          } else {
-            SocketView.__super__.computeOwnPath.apply(this, arguments);
-          }
-          this.path.style.fillColor = '#FFF';
-          this.path.style.strokeColor = '#888';
-          return this.path;
-        };
-
-        SocketView.prototype.computeOwnDropArea = function() {
-          if (this.model.start.next.type === 'blockStart') {
-            return this.dropArea = this.highlightArea = null;
-          } else {
-            return this.dropArea = this.highlightArea = this.path;
-          }
-        };
-
-        return SocketView;
-
-      })(ContainerView);
-
-      IndentView = (function(_super) {
-        __extends(IndentView, _super);
-
-        function IndentView() {
-          IndentView.__super__.constructor.apply(this, arguments);
-          this.padding = 0;
-        }
-
-        IndentView.prototype.computeOwnPath = function() {
-          return this.path = new draw.Path();
-        };
-
-        IndentView.prototype.computeDimensions = function() {
-          var line, size;
-          IndentView.__super__.computeDimensions.apply(this, arguments);
-          line = this.dimensions.length - 1;
-          size = this.dimensions[line];
-          if (this.lineChildren[line].length === 0) {
-            size.height = this.self.opts.emptyLineHeight;
-            size.width = this.self.opts.indentDropAreaMinWidth;
-          }
-          return this.dimensions;
-        };
-
-        IndentView.prototype.drawSelf = function() {
           return null;
         };
 
-        IndentView.prototype.computeOwnDropArea = function() {
-          this.dropArea = new draw.Rectangle(this.bounds[1].x, this.bounds[1].y - this.self.opts.dropAreaHeight / 2, Math.max(this.bounds[1].width, this.self.opts.indentDropAreaMinWidth), this.self.opts.dropAreaHeight).toPath();
-          this.highlightArea = new draw.Rectangle(this.bounds[1].x, this.bounds[1].y - this.self.opts.highlightAreaHeight / 2, Math.max(this.bounds[1].width, this.self.opts.indentDropAreaMinWidth), this.self.opts.highlightAreaHeight).toPath();
-          this.highlightArea.style.lineWidth = 0;
+        SocketViewNode.prototype.computeGlue = function() {
+          var view;
+          if (this.computedVersion === this.model.version && !this.changedBoundingBox) {
+            return this.glue;
+          }
+          if (this.model.start.nextVisibleToken().type === 'blockStart') {
+            view = this.view.getViewNodeFor(this.model.start.next.container);
+            return this.glue = view.computeGlue();
+          } else {
+            return SocketViewNode.__super__.computeGlue.apply(this, arguments);
+          }
+        };
+
+        SocketViewNode.prototype.computeOwnPath = function() {
+          var view;
+          if (this.computedVersion === this.model.version && !this.changedBoundingBox) {
+            return this.path;
+          }
+          if (this.model.start.next.type === 'blockStart') {
+            view = this.view.getViewNodeFor(this.model.start.next.container);
+            this.path = view.computeOwnPath().clone();
+          } else {
+            SocketViewNode.__super__.computeOwnPath.apply(this, arguments);
+          }
+          this.path.style.fillColor = '#FFF';
+          this.path.style.strokeColor = '#FFF';
+          return this.path;
+        };
+
+        SocketViewNode.prototype.computeOwnDropArea = function() {
+          if (this.model.start.next.type === 'blockStart') {
+            return this.dropArea = this.highlightArea = null;
+          } else {
+            this.dropArea = this.path;
+            this.highlightArea = this.path.clone();
+            this.highlightArea.style.strokeColor = '#FFF';
+            return this.highlightArea.style.lineWidth = this.view.opts.padding;
+          }
+        };
+
+        return SocketViewNode;
+
+      })(ContainerViewNode);
+
+      IndentViewNode = (function(_super) {
+        __extends(IndentViewNode, _super);
+
+        function IndentViewNode() {
+          IndentViewNode.__super__.constructor.apply(this, arguments);
+          this.padding = 0;
+        }
+
+        IndentViewNode.prototype.computeOwnPath = function() {
+          return this.path = new draw.Path();
+        };
+
+        IndentViewNode.prototype.computeChildren = function() {
+          var childRef, childView, _i, _j, _len, _len1, _ref, _ref1;
+          IndentViewNode.__super__.computeChildren.apply(this, arguments);
+          _ref = this.lineChildren[0];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            childRef = _ref[_i];
+            childView = this.view.getViewNodeFor(childRef.child);
+            childView.topLineSticksToBottom = true;
+          }
+          _ref1 = this.lineChildren[this.lineChildren.length - 1];
+          for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+            childRef = _ref1[_j];
+            childView = this.view.getViewNodeFor(childRef.child);
+            childView.bottomLineSticksToTop = true;
+          }
+          return this.lineLength;
+        };
+
+        IndentViewNode.prototype.computeMinDimensions = function() {
+          var line, size, _i, _len, _ref, _results;
+          IndentViewNode.__super__.computeMinDimensions.apply(this, arguments);
+          _ref = this.minDimensions.slice(1);
+          _results = [];
+          for (line = _i = 0, _len = _ref.length; _i < _len; line = ++_i) {
+            size = _ref[line];
+            if (size.width === 0) {
+              _results.push(size.width = this.view.opts.emptyLineWidth);
+            }
+          }
+          return _results;
+        };
+
+        IndentViewNode.prototype.drawSelf = function() {
+          return null;
+        };
+
+        IndentViewNode.prototype.computeOwnDropArea = function() {
+          this.dropArea = new draw.Rectangle(this.bounds[1].x, this.bounds[1].y - this.view.opts.dropAreaHeight / 2, Math.max(this.bounds[1].width, this.view.opts.indentDropAreaMinWidth), this.view.opts.dropAreaHeight).toPath();
+          this.highlightArea = new draw.Rectangle(this.bounds[1].x, this.bounds[1].y - this.view.opts.highlightAreaHeight / 2, Math.max(this.bounds[1].width, this.view.opts.indentDropAreaMinWidth), this.view.opts.highlightAreaHeight).toPath();
+          this.highlightArea.style.lineWidth = 1;
           this.highlightArea.style.strokeColor = '#fff';
           return this.highlightArea.style.fillColor = '#fff';
         };
 
-        return IndentView;
+        return IndentViewNode;
 
-      })(ContainerView);
+      })(ContainerViewNode);
 
-      SegmentView = (function(_super) {
-        __extends(SegmentView, _super);
+      SegmentViewNode = (function(_super) {
+        __extends(SegmentViewNode, _super);
 
-        function SegmentView() {
-          SegmentView.__super__.constructor.apply(this, arguments);
+        function SegmentViewNode() {
+          SegmentViewNode.__super__.constructor.apply(this, arguments);
           this.padding = 0;
         }
 
-        SegmentView.prototype.computeOwnPath = function() {
+        SegmentViewNode.prototype.computeOwnPath = function() {
           return this.path = new draw.Path();
         };
 
-        SegmentView.prototype.computeOwnDropArea = function() {
+        SegmentViewNode.prototype.computeOwnDropArea = function() {
           if (this.model.isLassoSegment) {
             return this.dropArea = null;
           } else {
-            this.dropArea = new draw.Rectangle(this.bounds[0].x, this.bounds[0].y - this.self.opts.dropAreaHeight / 2, Math.max(this.bounds[0].width, this.self.opts.indentDropAreaMinWidth), this.self.opts.dropAreaHeight).toPath();
-            this.highlightArea = new draw.Rectangle(this.bounds[0].x, this.bounds[0].y - this.self.opts.highlightAreaHeight / 2, Math.max(this.bounds[0].width, this.self.opts.indentDropAreaMinWidth), this.self.opts.highlightAreaHeight).toPath();
+            this.dropArea = new draw.Rectangle(this.bounds[0].x, this.bounds[0].y - this.view.opts.dropAreaHeight / 2, Math.max(this.bounds[0].width, this.view.opts.indentDropAreaMinWidth), this.view.opts.dropAreaHeight).toPath();
+            this.highlightArea = new draw.Rectangle(this.bounds[0].x, this.bounds[0].y - this.view.opts.highlightAreaHeight / 2, Math.max(this.bounds[0].width, this.view.opts.indentDropAreaMinWidth), this.view.opts.highlightAreaHeight).toPath();
             this.highlightArea.style.fillColor = '#fff';
             this.highlightArea.style.strokeColor = '#fff';
             return null;
           }
         };
 
-        SegmentView.prototype.drawSelf = function(ctx, style) {
+        SegmentViewNode.prototype.drawSelf = function(ctx, style) {
           return null;
         };
 
-        SegmentView.prototype.draw = function(ctx, boundingRect, style) {
-          var childObj, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-          if (this.totalBounds.overlap(boundingRect)) {
-            if (style == null) {
-              style = defaultStyleObject();
-            }
-            if (this.model.isLassoSegment) {
-              style.selected++;
-            }
-            if (this.model.ephemeral && this.self.opts.respectEphemeral) {
-              style.grayscale++;
-            }
-            this.drawSelf(ctx, style);
-            _ref = this.children;
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-              childObj = _ref[_i];
-              if (((_ref1 = (_ref2 = childObj.child.lineMarkStyles) != null ? _ref2.length : void 0) != null ? _ref1 : 0) === 0) {
-                this.self.getViewFor(childObj.child).draw(ctx, boundingRect, style);
-              }
-            }
-            _ref3 = this.children;
-            for (_j = 0, _len1 = _ref3.length; _j < _len1; _j++) {
-              childObj = _ref3[_j];
-              if (((_ref4 = (_ref5 = childObj.child.lineMarkStyles) != null ? _ref5.length : void 0) != null ? _ref4 : 0) > 0) {
-                this.self.getViewFor(childObj.child).draw(ctx, boundingRect, style);
-              }
-            }
-            if (this.model.ephemeral && this.self.opts.respectEphemeral) {
-              style.grayscale--;
-            }
-            if (this.model.isLassoSegment) {
-              style.selected--;
-            }
+        SegmentViewNode.prototype.draw = function(ctx, boundingRect, style) {
+          if (style == null) {
+            style = defaultStyleObject();
           }
-          return null;
+          if (this.model.isLassoSegment) {
+            style.selected++;
+          }
+          SegmentViewNode.__super__.draw.apply(this, arguments);
+          if (this.model.isLassoSegment) {
+            return style.selected--;
+          }
         };
 
-        return SegmentView;
+        return SegmentViewNode;
 
-      })(ContainerView);
+      })(ContainerViewNode);
 
-      TextView = (function(_super) {
-        __extends(TextView, _super);
+      TextViewNode = (function(_super) {
+        __extends(TextViewNode, _super);
 
-        function TextView(model, self) {
+        function TextViewNode(model, view) {
           this.model = model;
-          this.self = self;
-          TextView.__super__.constructor.apply(this, arguments);
+          this.view = view;
+          TextViewNode.__super__.constructor.apply(this, arguments);
         }
 
-        TextView.prototype.computeChildren = function() {
-          this.indentData = [0];
-          return 1;
+        TextViewNode.prototype.computeChildren = function() {
+          this.multilineChildrenData = [NO_MULTILINE];
+          return this.lineLength = 1;
         };
 
-        TextView.prototype.computeDimensions = function() {
-          if (this.versions.dimensions === this.model.version) {
-            return this.bounds;
-          } else {
-            this.versions.dimensions = this.model.version;
+        TextViewNode.prototype.computeMinDimensions = function() {
+          var height;
+          if (this.computedVersion === this.model.version) {
+            return null;
           }
           this.textElement = new draw.Text(new draw.Point(0, 0), this.model.value);
-          this.dimensions[0] = new draw.Size(this.textElement.bounds().width, this.textElement.bounds().height);
-          return this.dimensions;
-        };
-
-        TextView.prototype.computeBoundingBox = function(upperLeft, line) {
-          this.textElement.point = upperLeft;
-          return TextView.__super__.computeBoundingBox.apply(this, arguments);
-        };
-
-        TextView.prototype.drawSelf = function(ctx, style) {
-          this.textElement.draw(ctx);
+          height = this.view.opts.textHeight;
+          this.minDimensions[0] = new draw.Size(this.textElement.bounds().width, height);
+          this.minDistanceToBase[0] = {
+            above: height,
+            below: 0
+          };
           return null;
         };
 
-        return TextView;
+        TextViewNode.prototype.computeBoundingBoxX = function(left, line) {
+          this.textElement.point.x = left;
+          return TextViewNode.__super__.computeBoundingBoxX.apply(this, arguments);
+        };
 
-      })(GenericView);
+        TextViewNode.prototype.computeBoundingBoxY = function(top, line) {
+          this.textElement.point.y = top;
+          return TextViewNode.__super__.computeBoundingBoxY.apply(this, arguments);
+        };
 
-      CursorView = (function(_super) {
-        __extends(CursorView, _super);
+        TextViewNode.prototype.drawSelf = function(ctx, style) {
+          if (!style.noText) {
+            this.textElement.draw(ctx);
+          }
+          return null;
+        };
 
-        function CursorView(model, self) {
+        TextViewNode.prototype.debugDimensions = function(x, y, line, ctx) {
+          var oldPoint;
+          ctx.globalAlpha = 1;
+          oldPoint = this.textElement.point;
+          this.textElement.point = new draw.Point(x, y);
+          this.textElement.draw(ctx);
+          this.textElement.point = oldPoint;
+          return ctx.globalAlpha = 0.1;
+        };
+
+        TextViewNode.prototype.debugAllBoundingBoxes = function(ctx) {
+          ctx.globalAlpha = 1;
+          this.computeOwnPath();
+          this.textElement.draw(ctx);
+          return ctx.globalAlpha = 0.1;
+        };
+
+        return TextViewNode;
+
+      })(GenericViewNode);
+
+      CursorViewNode = (function(_super) {
+        __extends(CursorViewNode, _super);
+
+        function CursorViewNode(model, view) {
           this.model = model;
-          this.self = self;
-          CursorView.__super__.constructor.apply(this, arguments);
+          this.view = view;
+          CursorViewNode.__super__.constructor.apply(this, arguments);
         }
 
-        CursorView.prototype.computeChildren = function() {
-          this.indentData = [0];
+        CursorViewNode.prototype.computeChildren = function() {
+          this.multilineChildrenData = [0];
           return 1;
         };
 
-        CursorView.prototype.computeDimensions = function() {
-          this.dimensions[0] = new draw.Size(0, 0);
-          return this.dimensions;
-        };
+        CursorViewNode.prototype.computeBoundingBox = function() {};
 
-        CursorView.prototype.computeBoundingBox = function() {};
+        return CursorViewNode;
 
-        return CursorView;
-
-      })(GenericView);
-
-      View.prototype.getViewFor = function(model) {
-        if (model.id in this.map) {
-          return this.map[model.id];
-        } else {
-          return this.createView(model);
-        }
-      };
-
-      View.prototype.createView = function(model) {
-        switch (model.type) {
-          case 'text':
-            return new TextView(model, this);
-          case 'block':
-            return new BlockView(model, this);
-          case 'indent':
-            return new IndentView(model, this);
-          case 'socket':
-            return new SocketView(model, this);
-          case 'segment':
-            return new SegmentView(model, this);
-          case 'cursor':
-            return new CursorView(model, this);
-        }
-      };
+      })(GenericViewNode);
 
       return View;
 
     })();
+    toRGB = function(hex) {
+      var b, c, g, r;
+      if (hex.length === 4) {
+        hex = ((function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = hex.length; _i < _len; _i++) {
+            c = hex[_i];
+            _results.push(c + c);
+          }
+          return _results;
+        })()).join('').slice(1);
+      }
+      r = parseInt(hex.slice(1, 3), 16);
+      g = parseInt(hex.slice(3, 5), 16);
+      b = parseInt(hex.slice(5, 7), 16);
+      return [r, g, b];
+    };
+    zeroPad = function(str, len) {
+      if (str.length < len) {
+        return ((function() {
+          var _i, _ref, _results;
+          _results = [];
+          for (_i = _ref = str.length; _ref <= len ? _i < len : _i > len; _ref <= len ? _i++ : _i--) {
+            _results.push('0');
+          }
+          return _results;
+        })()).join('') + str;
+      } else {
+        return str;
+      }
+    };
+    twoDigitHex = function(n) {
+      return zeroPad(Math.round(n).toString(16), 2);
+    };
+    toHex = function(rgb) {
+      var k;
+      return '#' + ((function() {
+        var _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = rgb.length; _i < _len; _i++) {
+          k = rgb[_i];
+          _results.push(twoDigitHex(k));
+        }
+        return _results;
+      })()).join('');
+    };
+    avgColor = function(a, factor, b) {
+      var i, k, newRGB;
+      a = toRGB(a);
+      b = toRGB(b);
+      newRGB = (function() {
+        var _i, _len, _results;
+        _results = [];
+        for (i = _i = 0, _len = a.length; _i < _len; i = ++_i) {
+          k = a[i];
+          _results.push(a[i] * factor + b[i] * (1 - factor));
+        }
+        return _results;
+      })();
+      return toHex(newRGB);
+    };
     return exports;
   });
 
@@ -2418,6 +3162,7 @@ break;case 32:this.$=i.addLocationDataFn(s[a],s[a])(new i.Undefined);break;case 
 this.trace(e)},parse:function(e){function t(){var e;return e=n.lexer.lex()||p,"number"!=typeof e&&(e=n.symbols_[e]||e),e}var n=this,i=[0],r=[null],o=[],s=this.table,a="",c=0,h=0,u=0,l=2,p=1,d=o.slice.call(arguments,1);this.lexer.setInput(e),this.lexer.yy=this.yy,this.yy.lexer=this.lexer,this.yy.parser=this,this.lexer.yylloc===void 0&&(this.lexer.yylloc={});var f=this.lexer.yylloc;o.push(f);var m=this.lexer.options&&this.lexer.options.ranges;this.parseError="function"==typeof this.yy.parseError?this.yy.parseError:Object.getPrototypeOf(this).parseError;for(var y,b,g,k,v,w,T,C,F,L={};;){if(g=i[i.length-1],this.defaultActions[g]?k=this.defaultActions[g]:((null===y||y===void 0)&&(y=t()),k=s[g]&&s[g][y]),k===void 0||!k.length||!k[0]){var N="";F=[];for(w in s[g])this.terminals_[w]&&w>l&&F.push("'"+this.terminals_[w]+"'");N=this.lexer.showPosition?"Parse error on line "+(c+1)+":\n"+this.lexer.showPosition()+"\nExpecting "+F.join(", ")+", got '"+(this.terminals_[y]||y)+"'":"Parse error on line "+(c+1)+": Unexpected "+(y==p?"end of input":"'"+(this.terminals_[y]||y)+"'"),this.parseError(N,{text:this.lexer.match,token:this.terminals_[y]||y,line:this.lexer.yylineno,loc:f,expected:F})}if(k[0]instanceof Array&&k.length>1)throw Error("Parse Error: multiple actions possible at state: "+g+", token: "+y);switch(k[0]){case 1:i.push(y),r.push(this.lexer.yytext),o.push(this.lexer.yylloc),i.push(k[1]),y=null,b?(y=b,b=null):(h=this.lexer.yyleng,a=this.lexer.yytext,c=this.lexer.yylineno,f=this.lexer.yylloc,u>0&&u--);break;case 2:if(T=this.productions_[k[1]][1],L.$=r[r.length-T],L._$={first_line:o[o.length-(T||1)].first_line,last_line:o[o.length-1].last_line,first_column:o[o.length-(T||1)].first_column,last_column:o[o.length-1].last_column},m&&(L._$.range=[o[o.length-(T||1)].range[0],o[o.length-1].range[1]]),v=this.performAction.apply(L,[a,h,c,this.yy,k[1],r,o].concat(d)),v!==void 0)return v;T&&(i=i.slice(0,2*-1*T),r=r.slice(0,-1*T),o=o.slice(0,-1*T)),i.push(this.productions_[k[1]][0]),r.push(L.$),o.push(L._$),C=s[i[i.length-2]][i[i.length-1]],i.push(C);break;case 3:return!0}}return!0}};return e.prototype=t,t.Parser=e,new e}();return require!==void 0&&e!==void 0&&(e.parser=n,e.Parser=n.Parser,e.parse=function(){return n.parse.apply(n,arguments)},e.main=function(t){t[1]||(console.log("Usage: "+t[0]+" FILE"),process.exit(1));var n=require("fs").readFileSync(require("path").normalize(t[1]),"utf8");return e.parser.parse(n)},t!==void 0&&require.main===t&&e.main(process.argv.slice(1))),t.exports}(),require["./scope"]=function(){var e={},t={exports:e};return function(){var t,n,i,r;r=require("./helpers"),n=r.extend,i=r.last,e.Scope=t=function(){function e(t,n,i){this.parent=t,this.expressions=n,this.method=i,this.variables=[{name:"arguments",type:"arguments"}],this.positions={},this.parent||(e.root=this)}return e.root=null,e.prototype.add=function(e,t,n){return this.shared&&!n?this.parent.add(e,t,n):Object.prototype.hasOwnProperty.call(this.positions,e)?this.variables[this.positions[e]].type=t:this.positions[e]=this.variables.push({name:e,type:t})-1},e.prototype.namedMethod=function(){var e;return(null!=(e=this.method)?e.name:void 0)||!this.parent?this.method:this.parent.namedMethod()},e.prototype.find=function(e){return this.check(e)?!0:(this.add(e,"var"),!1)},e.prototype.parameter=function(e){return this.shared&&this.parent.check(e,!0)?void 0:this.add(e,"param")},e.prototype.check=function(e){var t;return!!(this.type(e)||(null!=(t=this.parent)?t.check(e):void 0))},e.prototype.temporary=function(e,t){return e.length>1?"_"+e+(t>1?t-1:""):"_"+(t+parseInt(e,36)).toString(36).replace(/\d/g,"a")},e.prototype.type=function(e){var t,n,i,r;for(r=this.variables,n=0,i=r.length;i>n;n++)if(t=r[n],t.name===e)return t.type;return null},e.prototype.freeVariable=function(e,t){var n,i;for(null==t&&(t=!0),n=0;this.check(i=this.temporary(e,n));)n++;return t&&this.add(i,"var",!0),i},e.prototype.assign=function(e,t){return this.add(e,{value:t,assigned:!0},!0),this.hasAssignments=!0},e.prototype.hasDeclarations=function(){return!!this.declaredVariables().length},e.prototype.declaredVariables=function(){var e,t,n,i,r,o;for(e=[],t=[],o=this.variables,i=0,r=o.length;r>i;i++)n=o[i],"var"===n.type&&("_"===n.name.charAt(0)?t:e).push(n.name);return e.sort().concat(t.sort())},e.prototype.assignedVariables=function(){var e,t,n,i,r;for(i=this.variables,r=[],t=0,n=i.length;n>t;t++)e=i[t],e.type.assigned&&r.push(""+e.name+" = "+e.type.value);return r},e}()}.call(this),t.exports}(),require["./nodes"]=function(){var e={},t={exports:e};return function(){var t,n,i,r,o,s,a,c,h,u,l,p,d,f,m,y,b,g,k,v,w,T,C,F,L,N,E,x,D,S,R,A,I,_,$,O,j,M,B,V,P,U,H,q,G,W,X,Y,z,K,J,Z,Q,et,tt,nt,it,rt,ot,st,at,ct,ht,ut,lt,pt,dt,ft,mt,yt,bt,gt,kt,vt,wt,Tt={}.hasOwnProperty,Ct=function(e,t){function n(){this.constructor=e}for(var i in t)Tt.call(t,i)&&(e[i]=t[i]);return n.prototype=t.prototype,e.prototype=new n,e.__super__=t.prototype,e},Ft=[].indexOf||function(e){for(var t=0,n=this.length;n>t;t++)if(t in this&&this[t]===e)return t;return-1},Lt=[].slice;Error.stackTraceLimit=1/0,H=require("./scope").Scope,vt=require("./lexer"),M=vt.RESERVED,U=vt.STRICT_PROSCRIBED,wt=require("./helpers"),nt=wt.compact,st=wt.flatten,ot=wt.extend,pt=wt.merge,it=wt.del,yt=wt.starts,rt=wt.ends,ut=wt.last,mt=wt.some,tt=wt.addLocationDataFn,lt=wt.locationDataToString,bt=wt.throwSyntaxError,e.extend=ot,e.addLocationDataFn=tt,et=function(){return!0},A=function(){return!1},Y=function(){return this},R=function(){return this.negated=!this.negated,this},e.CodeFragment=h=function(){function e(e,t){var n;this.code=""+t,this.locationData=null!=e?e.locationData:void 0,this.type=(null!=e?null!=(n=e.constructor)?n.name:void 0:void 0)||"unknown"}return e.prototype.nodeType=function(){return"CodeFragment"},e.prototype.toString=function(){return""+this.code+(this.locationData?": "+lt(this.locationData):"")},e}(),at=function(e){var t;return function(){var n,i,r;for(r=[],n=0,i=e.length;i>n;n++)t=e[n],r.push(t.code);return r}().join("")},e.Base=r=function(){function e(){}return e.prototype.nodeType=function(){return"Base"},e.prototype.compile=function(e,t){return at(this.compileToFragments(e,t))},e.prototype.wipeLocationData=function(){return this.locationData=void 0,this},e.prototype.compileToFragments=function(e,t){var n;return e=ot({},e),t&&(e.level=t),n=this.unfoldSoak(e)||this,n.tab=e.indent,e.level!==x&&n.isStatement(e)?n.compileClosure(e):n.compileNode(e)},e.prototype.compileClosure=function(e){var n,i,r,a,h;return(a=this.jumps())&&a.error("cannot use a pure statement in an expression"),e.sharedScope=!0,r=new c([],o.wrap([this])),n=[],((i=this.contains(ct))||this.contains(ht))&&(n=[new D("this")],i?(h="apply",n.push(new D("arguments"))):h="call",r=new Z(r,[new t(new D(h))])),new s(r,n).compileNode(e)},e.prototype.cache=function(e,t,n){var r,o;return this.isComplex()?(r=new D(n||e.scope.freeVariable("ref")),o=new i(r,this),t?[o.compileToFragments(e,t),[this.makeCode(r.value)]]:[o,r]):(r=t?this.compileToFragments(e,t):this,[r,r])},e.prototype.cacheToCodeFragments=function(e){return[at(e[0]),at(e[1])]},e.prototype.makeReturn=function(e){var t;return t=this.unwrapAll(),e?new s(new D(""+e+".push"),[t]):new V(t)},e.prototype.contains=function(e){var t;return t=void 0,this.traverseChildren(!1,function(n){return e(n)?(t=n,!1):void 0}),t},e.prototype.lastNonComment=function(e){var t;for(t=e.length;t--;)if(!(e[t]instanceof u))return e[t];return null},e.prototype.toString=function(e,t){var n;return null==e&&(e=""),null==t&&(t=this.constructor.name),n="\n"+e+t,this.soak&&(n+="?"),this.eachChild(function(t){return n+=t.toString(e+X)}),n},e.prototype.eachChild=function(e){var t,n,i,r,o,s,a,c;if(!this.children)return this;for(a=this.children,i=0,o=a.length;o>i;i++)if(t=a[i],this[t])for(c=st([this[t]]),r=0,s=c.length;s>r;r++)if(n=c[r],e(n)===!1)return this;return this},e.prototype.traverseChildren=function(e,t){return this.eachChild(function(n){var i;return i=t(n),i!==!1?n.traverseChildren(e,t):void 0})},e.prototype.invert=function(){return new $("!",this)},e.prototype.unwrapAll=function(){var e;for(e=this;e!==(e=e.unwrap()););return e},e.prototype.children=[],e.prototype.isStatement=A,e.prototype.jumps=A,e.prototype.isComplex=et,e.prototype.isChainable=A,e.prototype.isAssignable=A,e.prototype.unwrap=Y,e.prototype.unfoldSoak=A,e.prototype.assigns=A,e.prototype.updateLocationDataIfMissing=function(e){return this.locationData?this:(this.locationData=e,this.eachChild(function(t){return t.updateLocationDataIfMissing(e)}))},e.prototype.error=function(e){return bt(e,this.locationData)},e.prototype.makeCode=function(e){return new h(this,e)},e.prototype.wrapInBraces=function(e){return[].concat(this.makeCode("("),e,this.makeCode(")"))},e.prototype.joinFragmentArrays=function(e,t){var n,i,r,o,s;for(n=[],r=o=0,s=e.length;s>o;r=++o)i=e[r],r&&n.push(this.makeCode(t)),n=n.concat(i);return n},e}(),e.Block=o=function(e){function t(e){this.expressions=nt(st(e||[]))}return Ct(t,e),t.prototype.nodeType=function(){return"Block"},t.prototype.children=["expressions"],t.prototype.push=function(e){return this.expressions.push(e),this},t.prototype.pop=function(){return this.expressions.pop()},t.prototype.unshift=function(e){return this.expressions.unshift(e),this},t.prototype.unwrap=function(){return 1===this.expressions.length?this.expressions[0]:this},t.prototype.isEmpty=function(){return!this.expressions.length},t.prototype.isStatement=function(e){var t,n,i,r;for(r=this.expressions,n=0,i=r.length;i>n;n++)if(t=r[n],t.isStatement(e))return!0;return!1},t.prototype.jumps=function(e){var t,n,i,r,o;for(o=this.expressions,i=0,r=o.length;r>i;i++)if(t=o[i],n=t.jumps(e))return n},t.prototype.makeReturn=function(e){var t,n;for(n=this.expressions.length;n--;)if(t=this.expressions[n],!(t instanceof u)){this.expressions[n]=t.makeReturn(e),t instanceof V&&!t.expression&&this.expressions.splice(n,1);break}return this},t.prototype.compileToFragments=function(e,n){return null==e&&(e={}),e.scope?t.__super__.compileToFragments.call(this,e,n):this.compileRoot(e)},t.prototype.compileNode=function(e){var n,i,r,o,s,a,c,h,u;for(this.tab=e.indent,a=e.level===x,i=[],u=this.expressions,o=c=0,h=u.length;h>c;o=++c)s=u[o],s=s.unwrapAll(),s=s.unfoldSoak(e)||s,s instanceof t?i.push(s.compileNode(e)):a?(s.front=!0,r=s.compileToFragments(e),s.isStatement(e)||(r.unshift(this.makeCode(""+this.tab)),r.push(this.makeCode(";"))),i.push(r)):i.push(s.compileToFragments(e,L));return a?this.spaced?[].concat(this.joinFragmentArrays(i,"\n\n"),this.makeCode("\n")):this.joinFragmentArrays(i,"\n"):(n=i.length?this.joinFragmentArrays(i,", "):[this.makeCode("void 0")],i.length>1&&e.level>=L?this.wrapInBraces(n):n)},t.prototype.compileRoot=function(e){var t,n,i,r,o,s,a,c,h,l;for(e.indent=e.bare?"":X,e.level=x,this.spaced=!0,e.scope=new H(null,this,null),l=e.locals||[],c=0,h=l.length;h>c;c++)r=l[c],e.scope.parameter(r);return o=[],e.bare||(s=function(){var e,n,r,o;for(r=this.expressions,o=[],i=e=0,n=r.length;n>e&&(t=r[i],t.unwrap()instanceof u);i=++e)o.push(t);return o}.call(this),a=this.expressions.slice(s.length),this.expressions=s,s.length&&(o=this.compileNode(pt(e,{indent:""})),o.push(this.makeCode("\n"))),this.expressions=a),n=this.compileWithDeclarations(e),e.bare?n:[].concat(o,this.makeCode("(function() {\n"),n,this.makeCode("\n}).call(this);\n"))},t.prototype.compileWithDeclarations=function(e){var t,n,i,r,o,s,a,c,h,l,p,d,f,m;for(r=[],s=[],d=this.expressions,o=l=0,p=d.length;p>l&&(i=d[o],i=i.unwrap(),i instanceof u||i instanceof D);o=++l);return e=pt(e,{level:x}),o&&(a=this.expressions.splice(o,9e9),f=[this.spaced,!1],h=f[0],this.spaced=f[1],m=[this.compileNode(e),h],r=m[0],this.spaced=m[1],this.expressions=a),s=this.compileNode(e),c=e.scope,c.expressions===this&&(n=e.scope.hasDeclarations(),t=c.hasAssignments,n||t?(o&&r.push(this.makeCode("\n")),r.push(this.makeCode(""+this.tab+"var ")),n&&r.push(this.makeCode(c.declaredVariables().join(", "))),t&&(n&&r.push(this.makeCode(",\n"+(this.tab+X))),r.push(this.makeCode(c.assignedVariables().join(",\n"+(this.tab+X))))),r.push(this.makeCode(";\n"+(this.spaced?"\n":"")))):r.length&&s.length&&r.push(this.makeCode("\n"))),r.concat(s)},t.wrap=function(e){return 1===e.length&&e[0]instanceof t?e[0]:new t(e)},t}(r),e.Literal=D=function(e){function t(e){this.value=e}return Ct(t,e),t.prototype.nodeType=function(){return"Literal"},t.prototype.makeReturn=function(){return this.isStatement()?this:t.__super__.makeReturn.apply(this,arguments)},t.prototype.isAssignable=function(){return y.test(this.value)},t.prototype.isStatement=function(){var e;return"break"===(e=this.value)||"continue"===e||"debugger"===e},t.prototype.isComplex=A,t.prototype.assigns=function(e){return e===this.value},t.prototype.jumps=function(e){return"break"!==this.value||(null!=e?e.loop:void 0)||(null!=e?e.block:void 0)?"continue"!==this.value||(null!=e?e.loop:void 0)?void 0:this:this},t.prototype.compileNode=function(e){var t,n,i;return n="this"===this.value?(null!=(i=e.scope.method)?i.bound:void 0)?e.scope.method.context:this.value:this.value.reserved?'"'+this.value+'"':this.value,t=this.isStatement()?""+this.tab+n+";":n,[this.makeCode(t)]},t.prototype.toString=function(){return' "'+this.value+'"'},t}(r),e.Undefined=function(e){function t(){return t.__super__.constructor.apply(this,arguments)}return Ct(t,e),t.prototype.isAssignable=A,t.prototype.isComplex=A,t.prototype.compileNode=function(e){return[this.makeCode(e.level>=C?"(void 0)":"void 0")]},t}(r),e.Null=function(e){function t(){return t.__super__.constructor.apply(this,arguments)}return Ct(t,e),t.prototype.isAssignable=A,t.prototype.isComplex=A,t.prototype.compileNode=function(){return[this.makeCode("null")]},t}(r),e.Bool=function(e){function t(e){this.val=e}return Ct(t,e),t.prototype.isAssignable=A,t.prototype.isComplex=A,t.prototype.compileNode=function(){return[this.makeCode(this.val)]},t}(r),e.Return=V=function(e){function t(e){this.expression=e}return Ct(t,e),t.prototype.nodeType=function(){return"Return"},t.prototype.children=["expression"],t.prototype.isStatement=et,t.prototype.makeReturn=Y,t.prototype.jumps=Y,t.prototype.compileToFragments=function(e,n){var i,r;return i=null!=(r=this.expression)?r.makeReturn():void 0,!i||i instanceof t?t.__super__.compileToFragments.call(this,e,n):i.compileToFragments(e,n)},t.prototype.compileNode=function(e){var t;return t=[],t.push(this.makeCode(this.tab+("return"+(this.expression?" ":"")))),this.expression&&(t=t.concat(this.expression.compileToFragments(e,E))),t.push(this.makeCode(";")),t},t}(r),e.Value=Z=function(e){function t(e,n,i){return!n&&e instanceof t?e:(this.base=e,this.properties=n||[],i&&(this[i]=!0),this)}return Ct(t,e),t.prototype.nodeType=function(){return"Value"},t.prototype.children=["base","properties"],t.prototype.add=function(e){return this.properties=this.properties.concat(e),this},t.prototype.hasProperties=function(){return!!this.properties.length},t.prototype.bareLiteral=function(e){return!this.properties.length&&this.base instanceof e},t.prototype.isArray=function(){return this.bareLiteral(n)},t.prototype.isRange=function(){return this.bareLiteral(B)},t.prototype.isComplex=function(){return this.hasProperties()||this.base.isComplex()},t.prototype.isAssignable=function(){return this.hasProperties()||this.base.isAssignable()},t.prototype.isSimpleNumber=function(){return this.bareLiteral(D)&&P.test(this.base.value)},t.prototype.isString=function(){return this.bareLiteral(D)&&k.test(this.base.value)},t.prototype.isRegex=function(){return this.bareLiteral(D)&&g.test(this.base.value)},t.prototype.isAtomic=function(){var e,t,n,i;for(i=this.properties.concat(this.base),t=0,n=i.length;n>t;t++)if(e=i[t],e.soak||e instanceof s)return!1;return!0},t.prototype.isNotCallable=function(){return this.isSimpleNumber()||this.isString()||this.isRegex()||this.isArray()||this.isRange()||this.isSplice()||this.isObject()},t.prototype.isStatement=function(e){return!this.properties.length&&this.base.isStatement(e)},t.prototype.assigns=function(e){return!this.properties.length&&this.base.assigns(e)},t.prototype.jumps=function(e){return!this.properties.length&&this.base.jumps(e)},t.prototype.isObject=function(e){return this.properties.length?!1:this.base instanceof _&&(!e||this.base.generated)},t.prototype.isSplice=function(){return ut(this.properties)instanceof q},t.prototype.looksStatic=function(e){var t;return this.base.value===e&&this.properties.length&&"prototype"!==(null!=(t=this.properties[0].name)?t.value:void 0)},t.prototype.unwrap=function(){return this.properties.length?this:this.base},t.prototype.cacheReference=function(e){var n,r,o,s;return o=ut(this.properties),2>this.properties.length&&!this.base.isComplex()&&!(null!=o?o.isComplex():void 0)?[this,this]:(n=new t(this.base,this.properties.slice(0,-1)),n.isComplex()&&(r=new D(e.scope.freeVariable("base")),n=new t(new j(new i(r,n)))),o?(o.isComplex()&&(s=new D(e.scope.freeVariable("name")),o=new T(new i(s,o.index)),s=new T(s)),[n.add(o),new t(r||n.base,[s||o])]):[n,r])},t.prototype.compileNode=function(e){var t,n,i,r,o;for(this.base.front=this.front,i=this.properties,t=this.base.compileToFragments(e,i.length?C:null),(this.base instanceof j||i.length)&&P.test(at(t))&&t.push(this.makeCode(".")),r=0,o=i.length;o>r;r++)n=i[r],t.push.apply(t,n.compileToFragments(e));return t},t.prototype.unfoldSoak=function(e){return null!=this.unfoldedSoak?this.unfoldedSoak:this.unfoldedSoak=function(n){return function(){var r,o,s,a,c,h,u,p,d,f;if(s=n.base.unfoldSoak(e))return(d=s.body.properties).push.apply(d,n.properties),s;for(f=n.properties,o=u=0,p=f.length;p>u;o=++u)if(a=f[o],a.soak)return a.soak=!1,r=new t(n.base,n.properties.slice(0,o)),h=new t(n.base,n.properties.slice(o)),r.isComplex()&&(c=new D(e.scope.freeVariable("ref")),r=new j(new i(c,r)),h.base=c),new v(new l(r),h,{soak:!0});return!1}}(this)()},t}(r),e.Comment=u=function(e){function t(e){this.comment=e}return Ct(t,e),t.prototype.nodeType=function(){return"Comment"},t.prototype.isStatement=et,t.prototype.makeReturn=Y,t.prototype.compileNode=function(e,t){var n,i;return i=this.comment.replace(/^(\s*)#/gm,"$1 *"),n="/*"+dt(i,this.tab)+(Ft.call(i,"\n")>=0?"\n"+this.tab:"")+" */",(t||e.level)===x&&(n=e.indent+n),[this.makeCode("\n"),this.makeCode(n)]},t}(r),e.Call=s=function(e){function n(e,t,n){this.args=null!=t?t:[],this.soak=n,this.isNew=!1,this.isSuper="super"===e,this.variable=this.isSuper?null:e,e instanceof Z&&e.isNotCallable()&&e.error("literal is not a function")}return Ct(n,e),n.prototype.nodeType=function(){return"Call"},n.prototype.children=["variable","args"],n.prototype.newInstance=function(){var e,t;return e=(null!=(t=this.variable)?t.base:void 0)||this.variable,e instanceof n&&!e.isNew?e.newInstance():this.isNew=!0,this},n.prototype.superReference=function(e){var n,i;return i=e.scope.namedMethod(),(null!=i?i.klass:void 0)?(n=[new t(new D("__super__"))],i["static"]&&n.push(new t(new D("constructor"))),n.push(new t(new D(i.name))),new Z(new D(i.klass),n).compile(e)):(null!=i?i.ctor:void 0)?""+i.name+".__super__.constructor":this.error("cannot call super outside of an instance method.")},n.prototype.superThis=function(e){var t;return t=e.scope.method,t&&!t.klass&&t.context||"this"},n.prototype.unfoldSoak=function(e){var t,i,r,o,s,a,c,h,u;if(this.soak){if(this.variable){if(i=gt(e,this,"variable"))return i;h=new Z(this.variable).cacheReference(e),r=h[0],s=h[1]}else r=new D(this.superReference(e)),s=new Z(r);return s=new n(s,this.args),s.isNew=this.isNew,r=new D("typeof "+r.compile(e)+' === "function"'),new v(r,new Z(s),{soak:!0})}for(t=this,o=[];;)if(t.variable instanceof n)o.push(t),t=t.variable;else{if(!(t.variable instanceof Z))break;if(o.push(t),!((t=t.variable.base)instanceof n))break}for(u=o.reverse(),a=0,c=u.length;c>a;a++)t=u[a],i&&(t.variable instanceof n?t.variable=i:t.variable.base=i),i=gt(e,t,"variable");return i},n.prototype.compileNode=function(e){var t,n,i,r,o,s,a,c,h,u;if(null!=(h=this.variable)&&(h.front=this.front),r=G.compileSplattedArray(e,this.args,!0),r.length)return this.compileSplat(e,r);for(i=[],u=this.args,n=a=0,c=u.length;c>a;n=++a)t=u[n],n&&i.push(this.makeCode(", ")),i.push.apply(i,t.compileToFragments(e,L));return o=[],this.isSuper?(s=this.superReference(e)+(".call("+this.superThis(e)),i.length&&(s+=", "),o.push(this.makeCode(s))):(this.isNew&&o.push(this.makeCode("new ")),o.push.apply(o,this.variable.compileToFragments(e,C)),o.push(this.makeCode("("))),o.push.apply(o,i),o.push(this.makeCode(")")),o},n.prototype.compileSplat=function(e,t){var n,i,r,o,s,a;return this.isSuper?[].concat(this.makeCode(""+this.superReference(e)+".apply("+this.superThis(e)+", "),t,this.makeCode(")")):this.isNew?(o=this.tab+X,[].concat(this.makeCode("(function(func, args, ctor) {\n"+o+"ctor.prototype = func.prototype;\n"+o+"var child = new ctor, result = func.apply(child, args);\n"+o+"return Object(result) === result ? result : child;\n"+this.tab+"})("),this.variable.compileToFragments(e,L),this.makeCode(", "),t,this.makeCode(", function(){})"))):(n=[],i=new Z(this.variable),(s=i.properties.pop())&&i.isComplex()?(a=e.scope.freeVariable("ref"),n=n.concat(this.makeCode("("+a+" = "),i.compileToFragments(e,L),this.makeCode(")"),s.compileToFragments(e))):(r=i.compileToFragments(e,C),P.test(at(r))&&(r=this.wrapInBraces(r)),s?(a=at(r),r.push.apply(r,s.compileToFragments(e))):a="null",n=n.concat(r)),n=n.concat(this.makeCode(".apply("+a+", "),t,this.makeCode(")")))},n}(r),e.Extends=d=function(e){function t(e,t){this.child=e,this.parent=t}return Ct(t,e),t.prototype.nodeType=function(){return"Extends"},t.prototype.children=["child","parent"],t.prototype.compileToFragments=function(e){return new s(new Z(new D(kt("extends"))),[this.child,this.parent]).compileToFragments(e)},t}(r),e.Access=t=function(e){function t(e,t){this.name=e,this.name.asKey=!0,this.soak="soak"===t}return Ct(t,e),t.prototype.nodeType=function(){return"Access"},t.prototype.children=["name"],t.prototype.compileToFragments=function(e){var t;return t=this.name.compileToFragments(e),y.test(at(t))?t.unshift(this.makeCode(".")):(t.unshift(this.makeCode("[")),t.push(this.makeCode("]"))),t},t.prototype.isComplex=A,t}(r),e.Index=T=function(e){function t(e){this.index=e}return Ct(t,e),t.prototype.nodeType=function(){return"Index"},t.prototype.children=["index"],t.prototype.compileToFragments=function(e){return[].concat(this.makeCode("["),this.index.compileToFragments(e,E),this.makeCode("]"))},t.prototype.isComplex=function(){return this.index.isComplex()},t}(r),e.Range=B=function(e){function t(e,t,n){this.from=e,this.to=t,this.exclusive="exclusive"===n,this.equals=this.exclusive?"":"="}return Ct(t,e),t.prototype.nodeType=function(){return"Range"},t.prototype.children=["from","to"],t.prototype.compileVariables=function(e){var t,n,i,r,o;return e=pt(e,{top:!0}),n=this.cacheToCodeFragments(this.from.cache(e,L)),this.fromC=n[0],this.fromVar=n[1],i=this.cacheToCodeFragments(this.to.cache(e,L)),this.toC=i[0],this.toVar=i[1],(t=it(e,"step"))&&(r=this.cacheToCodeFragments(t.cache(e,L)),this.step=r[0],this.stepVar=r[1]),o=[this.fromVar.match(I),this.toVar.match(I)],this.fromNum=o[0],this.toNum=o[1],this.stepVar?this.stepNum=this.stepVar.match(I):void 0},t.prototype.compileNode=function(e){var t,n,i,r,o,s,a,c,h,u,l,p,d,f;return this.fromVar||this.compileVariables(e),e.index?(a=this.fromNum&&this.toNum,o=it(e,"index"),s=it(e,"name"),h=s&&s!==o,p=""+o+" = "+this.fromC,this.toC!==this.toVar&&(p+=", "+this.toC),this.step!==this.stepVar&&(p+=", "+this.step),d=[""+o+" <"+this.equals,""+o+" >"+this.equals],c=d[0],r=d[1],n=this.stepNum?ft(this.stepNum[0])>0?""+c+" "+this.toVar:""+r+" "+this.toVar:a?(f=[ft(this.fromNum[0]),ft(this.toNum[0])],i=f[0],l=f[1],f,l>=i?""+c+" "+l:""+r+" "+l):(t=this.stepVar?""+this.stepVar+" > 0":""+this.fromVar+" <= "+this.toVar,""+t+" ? "+c+" "+this.toVar+" : "+r+" "+this.toVar),u=this.stepVar?""+o+" += "+this.stepVar:a?h?l>=i?"++"+o:"--"+o:l>=i?""+o+"++":""+o+"--":h?""+t+" ? ++"+o+" : --"+o:""+t+" ? "+o+"++ : "+o+"--",h&&(p=""+s+" = "+p),h&&(u=""+s+" = "+u),[this.makeCode(""+p+"; "+n+"; "+u)]):this.compileArray(e)},t.prototype.compileArray=function(e){var t,n,i,r,o,s,a,c,h,u,l,p,d;return this.fromNum&&this.toNum&&20>=Math.abs(this.fromNum-this.toNum)?(h=function(){d=[];for(var e=p=+this.fromNum,t=+this.toNum;t>=p?t>=e:e>=t;t>=p?e++:e--)d.push(e);return d}.apply(this),this.exclusive&&h.pop(),[this.makeCode("["+h.join(", ")+"]")]):(s=this.tab+X,o=e.scope.freeVariable("i"),u=e.scope.freeVariable("results"),c="\n"+s+u+" = [];",this.fromNum&&this.toNum?(e.index=o,n=at(this.compileNode(e))):(l=""+o+" = "+this.fromC+(this.toC!==this.toVar?", "+this.toC:""),i=""+this.fromVar+" <= "+this.toVar,n="var "+l+"; "+i+" ? "+o+" <"+this.equals+" "+this.toVar+" : "+o+" >"+this.equals+" "+this.toVar+"; "+i+" ? "+o+"++ : "+o+"--"),a="{ "+u+".push("+o+"); }\n"+s+"return "+u+";\n"+e.indent,r=function(e){return null!=e?e.contains(ct):void 0},(r(this.from)||r(this.to))&&(t=", arguments"),[this.makeCode("(function() {"+c+"\n"+s+"for ("+n+")"+a+"}).apply(this"+(null!=t?t:"")+")")])},t}(r),e.Slice=q=function(e){function t(e){this.range=e,t.__super__.constructor.call(this)}return Ct(t,e),t.prototype.nodeType=function(){return"Slice"},t.prototype.children=["range"],t.prototype.compileNode=function(e){var t,n,i,r,o,s,a;return a=this.range,o=a.to,i=a.from,r=i&&i.compileToFragments(e,E)||[this.makeCode("0")],o&&(t=o.compileToFragments(e,E),n=at(t),(this.range.exclusive||-1!==+n)&&(s=", "+(this.range.exclusive?n:P.test(n)?""+(+n+1):(t=o.compileToFragments(e,C),"+"+at(t)+" + 1 || 9e9")))),[this.makeCode(".slice("+at(r)+(s||"")+")")]},t}(r),e.Obj=_=function(e){function t(e,t){this.generated=null!=t?t:!1,this.objects=this.properties=e||[]}return Ct(t,e),t.prototype.nodeType=function(){return"Obj"},t.prototype.children=["properties"],t.prototype.compileNode=function(e){var t,n,r,o,s,a,c,h,l,p,d,f,m;if(l=this.properties,!l.length)return[this.makeCode(this.front?"({})":"{}")];if(this.generated)for(p=0,f=l.length;f>p;p++)c=l[p],c instanceof Z&&c.error("cannot have an implicit value in an implicit object");for(r=e.indent+=X,a=this.lastNonComment(this.properties),t=[],n=d=0,m=l.length;m>d;n=++d)h=l[n],s=n===l.length-1?"":h===a||h instanceof u?"\n":",\n",o=h instanceof u?"":r,h instanceof i&&h.variable instanceof Z&&h.variable.hasProperties()&&h.variable.error("Invalid object key"),h instanceof Z&&h["this"]&&(h=new i(h.properties[0].name,h,"object")),h instanceof u||(h instanceof i||(h=new i(h,h,"object")),(h.variable.base||h.variable).asKey=!0),o&&t.push(this.makeCode(o)),t.push.apply(t,h.compileToFragments(e,x)),s&&t.push(this.makeCode(s));return t.unshift(this.makeCode("{"+(l.length&&"\n"))),t.push(this.makeCode(""+(l.length&&"\n"+this.tab)+"}")),this.front?this.wrapInBraces(t):t},t.prototype.assigns=function(e){var t,n,i,r;for(r=this.properties,n=0,i=r.length;i>n;n++)if(t=r[n],t.assigns(e))return!0;return!1},t}(r),e.Arr=n=function(e){function t(e){this.objects=e||[]}return Ct(t,e),t.prototype.nodeType=function(){return"Arr"},t.prototype.children=["objects"],t.prototype.compileNode=function(e){var t,n,i,r,o,s,a;if(!this.objects.length)return[this.makeCode("[]")];if(e.indent+=X,t=G.compileSplattedArray(e,this.objects),t.length)return t;for(t=[],n=function(){var t,n,i,r;for(i=this.objects,r=[],t=0,n=i.length;n>t;t++)o=i[t],r.push(o.compileToFragments(e,L));return r}.call(this),r=s=0,a=n.length;a>s;r=++s)i=n[r],r&&t.push(this.makeCode(", ")),t.push.apply(t,i);return at(t).indexOf("\n")>=0?(t.unshift(this.makeCode("[\n"+e.indent)),t.push(this.makeCode("\n"+this.tab+"]"))):(t.unshift(this.makeCode("[")),t.push(this.makeCode("]"))),t},t.prototype.assigns=function(e){var t,n,i,r;for(r=this.objects,n=0,i=r.length;i>n;n++)if(t=r[n],t.assigns(e))return!0;return!1},t}(r),e.Class=a=function(e){function n(e,t,n){this.variable=e,this.parent=t,this.body=null!=n?n:new o,this.boundFuncs=[],this.body.classBody=!0}return Ct(n,e),n.prototype.nodeType=function(){return"Class"},n.prototype.children=["variable","parent","body"],n.prototype.determineName=function(){var e,n;return this.variable?(e=(n=ut(this.variable.properties))?n instanceof t&&n.name.value:this.variable.base.value,Ft.call(U,e)>=0&&this.variable.error("class variable name may not be "+e),e&&(e=y.test(e)&&e)):null},n.prototype.setContext=function(e){return this.body.traverseChildren(!1,function(t){return t.classBody?!1:t instanceof D&&"this"===t.value?t.value=e:t instanceof c&&(t.klass=e,t.bound)?t.context=e:void 0})},n.prototype.addBoundFunctions=function(e){var n,i,r,o,s;for(s=this.boundFuncs,r=0,o=s.length;o>r;r++)n=s[r],i=new Z(new D("this"),[new t(n)]).compile(e),this.ctor.body.unshift(new D(""+i+" = "+kt("bind")+"("+i+", this)"))},n.prototype.addProperties=function(e,n,r){var o,s,a,h,u;return u=e.base.properties.slice(0),a=function(){var e;for(e=[];o=u.shift();)o instanceof i&&(s=o.variable.base,delete o.context,h=o.value,"constructor"===s.value?(this.ctor&&o.error("cannot define more than one constructor in a class"),h.bound&&o.error("cannot define a constructor as a bound function"),h instanceof c?o=this.ctor=h:(this.externalCtor=r.classScope.freeVariable("class"),o=new i(new D(this.externalCtor),h))):o.variable["this"]?h["static"]=!0:(o.variable=new Z(new D(n),[new t(new D("prototype")),new t(s)]),h instanceof c&&h.bound&&(this.boundFuncs.push(s),h.bound=!1))),e.push(o);return e}.call(this),nt(a)},n.prototype.walkBody=function(e,t){return this.traverseChildren(!1,function(r){return function(s){var a,c,h,u,l,p,d;if(a=!0,s instanceof n)return!1;if(s instanceof o){for(d=c=s.expressions,h=l=0,p=d.length;p>l;h=++l)u=d[h],u instanceof i&&u.variable.looksStatic(e)?u.value["static"]=!0:u instanceof Z&&u.isObject(!0)&&(a=!1,c[h]=r.addProperties(u,e,t));s.expressions=c=st(c)}return a&&!(s instanceof n)}}(this))},n.prototype.hoistDirectivePrologue=function(){var e,t,n;for(t=0,e=this.body.expressions;(n=e[t])&&n instanceof u||n instanceof Z&&n.isString();)++t;return this.directives=e.splice(0,t)},n.prototype.ensureConstructor=function(e){return this.ctor||(this.ctor=new c,this.externalCtor?this.ctor.body.push(new D(""+this.externalCtor+".apply(this, arguments)")):this.parent&&this.ctor.body.push(new D(""+e+".__super__.constructor.apply(this, arguments)")),this.ctor.body.makeReturn(),this.body.expressions.unshift(this.ctor)),this.ctor.ctor=this.ctor.name=e,this.ctor.klass=null,this.ctor.noReturn=!0},n.prototype.compileNode=function(e){var t,n,r,a,h,u,l,p,f;return(a=this.body.jumps())&&a.error("Class bodies cannot contain pure statements"),(n=this.body.contains(ct))&&n.error("Class bodies shouldn't reference arguments"),l=this.determineName()||"_Class",l.reserved&&(l="_"+l),u=new D(l),r=new c([],o.wrap([this.body])),t=[],e.classScope=r.makeScope(e.scope),this.hoistDirectivePrologue(),this.setContext(l),this.walkBody(l,e),this.ensureConstructor(l),this.addBoundFunctions(e),this.body.spaced=!0,this.body.expressions.push(u),this.parent&&(p=new D(e.classScope.freeVariable("super",!1)),this.body.expressions.unshift(new d(u,p)),r.params.push(new O(p)),t.push(this.parent)),(f=this.body.expressions).unshift.apply(f,this.directives),h=new j(new s(r,t)),this.variable&&(h=new i(this.variable,h)),h.compileToFragments(e)},n}(r),e.Assign=i=function(e){function n(e,t,n,i){var r,o,s;this.variable=e,this.value=t,this.context=n,this.param=i&&i.param,this.subpattern=i&&i.subpattern,s=o=this.variable.unwrapAll().value,r=Ft.call(U,s)>=0,r&&"object"!==this.context&&this.variable.error('variable name may not be "'+o+'"')}return Ct(n,e),n.prototype.nodeType=function(){return"Assign"},n.prototype.children=["variable","value"],n.prototype.isStatement=function(e){return(null!=e?e.level:void 0)===x&&null!=this.context&&Ft.call(this.context,"?")>=0},n.prototype.assigns=function(e){return this["object"===this.context?"value":"variable"].assigns(e)},n.prototype.unfoldSoak=function(e){return gt(e,this,"variable")},n.prototype.compileNode=function(e){var t,n,i,r,o,s,a,h,u,l,p;
 if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObject())return this.compilePatternMatch(e);if(this.variable.isSplice())return this.compileSplice(e);if("||="===(h=this.context)||"&&="===h||"?="===h)return this.compileConditional(e);if("**="===(u=this.context)||"//="===u||"%%="===u)return this.compileSpecialMath(e)}return n=this.variable.compileToFragments(e,L),o=at(n),this.context||(a=this.variable.unwrapAll(),a.isAssignable()||this.variable.error('"'+this.variable.compile(e)+'" cannot be assigned'),("function"==typeof a.hasProperties?a.hasProperties():void 0)||(this.param?e.scope.add(o,"var"):e.scope.find(o))),this.value instanceof c&&(r=S.exec(o))&&(r[2]&&(this.value.klass=r[1]),this.value.name=null!=(l=null!=(p=r[3])?p:r[4])?l:r[5]),s=this.value.compileToFragments(e,L),"object"===this.context?n.concat(this.makeCode(": "),s):(t=n.concat(this.makeCode(" "+(this.context||"=")+" "),s),L>=e.level?t:this.wrapInBraces(t))},n.prototype.compilePatternMatch=function(e){var i,r,o,s,a,c,h,u,l,d,f,m,b,g,k,v,w,C,F,E,S,R,A,I,_,$,O,B;if(v=e.level===x,C=this.value,m=this.variable.base.objects,!(b=m.length))return o=C.compileToFragments(e),e.level>=N?this.wrapInBraces(o):o;if(u=this.variable.isObject(),v&&1===b&&!((f=m[0])instanceof G))return f instanceof n?(A=f,I=A.variable,h=I.base,f=A.value):h=u?f["this"]?f.properties[0].name:f:new D(0),i=y.test(h.unwrap().value||0),C=new Z(C),C.properties.push(new(i?t:T)(h)),_=f.unwrap().value,Ft.call(M,_)>=0&&f.error("assignment to a reserved word: "+f.compile(e)),new n(f,C,null,{param:this.param}).compileToFragments(e,x);for(F=C.compileToFragments(e,L),E=at(F),r=[],s=!1,(!y.test(E)||this.variable.assigns(E))&&(r.push([this.makeCode(""+(g=e.scope.freeVariable("ref"))+" = ")].concat(Lt.call(F))),F=[this.makeCode(g)],E=g),c=S=0,R=m.length;R>S;c=++S){if(f=m[c],h=c,u&&(f instanceof n?($=f,O=$.variable,h=O.base,f=$.value):f.base instanceof j?(B=new Z(f.unwrapAll()).cacheReference(e),f=B[0],h=B[1]):h=f["this"]?f.properties[0].name:f),!s&&f instanceof G)d=f.name.unwrap().value,f=f.unwrap(),w=""+b+" <= "+E+".length ? "+kt("slice")+".call("+E+", "+c,(k=b-c-1)?(l=e.scope.freeVariable("i"),w+=", "+l+" = "+E+".length - "+k+") : ("+l+" = "+c+", [])"):w+=") : []",w=new D(w),s=""+l+"++";else{if(!s&&f instanceof p){(k=b-c-1)&&(1===k?s=""+E+".length - 1":(l=e.scope.freeVariable("i"),w=new D(""+l+" = "+E+".length - "+k),s=""+l+"++",r.push(w.compileToFragments(e,L))));continue}d=f.unwrap().value,(f instanceof G||f instanceof p)&&f.error("multiple splats/expansions are disallowed in an assignment"),"number"==typeof h?(h=new D(s||h),i=!1):i=u&&y.test(h.unwrap().value||0),w=new Z(new D(E),[new(i?t:T)(h)])}null!=d&&Ft.call(M,d)>=0&&f.error("assignment to a reserved word: "+f.compile(e)),r.push(new n(f,w,null,{param:this.param,subpattern:!0}).compileToFragments(e,L))}return v||this.subpattern||r.push(F),a=this.joinFragmentArrays(r,", "),L>e.level?a:this.wrapInBraces(a)},n.prototype.compileConditional=function(e){var t,i,r,o;return o=this.variable.cacheReference(e),i=o[0],r=o[1],!i.properties.length&&i.base instanceof D&&"this"!==i.base.value&&!e.scope.check(i.base.value)&&this.variable.error('the variable "'+i.base.value+"\" can't be assigned with "+this.context+" because it has not been declared before"),Ft.call(this.context,"?")>=0?(e.isExistentialEquals=!0,new v(new l(i),r,{type:"if"}).addElse(new n(r,this.value,"=")).compileToFragments(e)):(t=new $(this.context.slice(0,-1),i,new n(r,this.value,"=")).compileToFragments(e),L>=e.level?t:this.wrapInBraces(t))},n.prototype.compileSpecialMath=function(e){var t,i,r;return r=this.variable.cacheReference(e),t=r[0],i=r[1],new n(t,new $(this.context.slice(0,-1),i,this.value)).compileToFragments(e)},n.prototype.compileSplice=function(e){var t,n,i,r,o,s,a,c,h,u,l,p;return u=this.variable.properties.pop().range,i=u.from,a=u.to,n=u.exclusive,s=this.variable.compile(e),i?(l=this.cacheToCodeFragments(i.cache(e,N)),r=l[0],o=l[1]):r=o="0",a?i instanceof Z&&i.isSimpleNumber()&&a instanceof Z&&a.isSimpleNumber()?(a=a.compile(e)-o,n||(a+=1)):(a=a.compile(e,C)+" - "+o,n||(a+=" + 1")):a="9e9",p=this.value.cache(e,L),c=p[0],h=p[1],t=[].concat(this.makeCode("[].splice.apply("+s+", ["+r+", "+a+"].concat("),c,this.makeCode(")), "),h),e.level>x?this.wrapInBraces(t):t},n}(r),e.Code=c=function(e){function t(e,t,n){this.params=e||[],this.body=t||new o,this.bound="boundfunc"===n}return Ct(t,e),t.prototype.nodeType=function(){return"Code"},t.prototype.children=["params","body"],t.prototype.isStatement=function(){return!!this.ctor},t.prototype.jumps=A,t.prototype.makeScope=function(e){return new H(e,this.body,this)},t.prototype.compileNode=function(e){var r,a,c,h,u,l,d,f,m,y,b,g,k,w,T,F,L,N,E,x,S,R,A,I,_,j,M,B,V,P,U,H,q;if(this.bound&&(null!=(B=e.scope.method)?B.bound:void 0)&&(this.context=e.scope.method.context),this.bound&&!this.context)return this.context="_this",T=new t([new O(new D(this.context))],new o([this])),a=new s(T,[new D("this")]),a.updateLocationDataIfMissing(this.locationData),a.compileNode(e);for(e.scope=it(e,"classScope")||this.makeScope(e.scope),e.scope.shared=it(e,"sharedScope"),e.indent+=X,delete e.bare,delete e.isExistentialEquals,m=[],h=[],V=this.params,F=0,x=V.length;x>F;F++)f=V[F],f instanceof p||e.scope.parameter(f.asReference(e));for(P=this.params,L=0,S=P.length;S>L;L++)if(f=P[L],f.splat||f instanceof p){for(U=this.params,N=0,R=U.length;R>N;N++)d=U[N].name,f instanceof p||(d["this"]&&(d=d.properties[0].name),d.value&&e.scope.add(d.value,"var",!0));b=new i(new Z(new n(function(){var t,n,i,r;for(i=this.params,r=[],t=0,n=i.length;n>t;t++)d=i[t],r.push(d.asReference(e));return r}.call(this))),new Z(new D("arguments")));break}for(H=this.params,E=0,A=H.length;A>E;E++)f=H[E],f.isComplex()?(k=y=f.asReference(e),f.value&&(k=new $("?",y,f.value)),h.push(new i(new Z(f.name),k,"=",{param:!0}))):(y=f,f.value&&(l=new D(y.name.value+" == null"),k=new i(new Z(f.name),f.value,"="),h.push(new v(l,k)))),b||m.push(y);for(w=this.body.isEmpty(),b&&h.unshift(b),h.length&&(q=this.body.expressions).unshift.apply(q,h),u=j=0,I=m.length;I>j;u=++j)d=m[u],m[u]=d.compileToFragments(e),e.scope.parameter(at(m[u]));for(g=[],this.eachParamName(function(e,t){return Ft.call(g,e)>=0&&t.error("multiple parameters named '"+e+"'"),g.push(e)}),w||this.noReturn||this.body.makeReturn(),c="function",this.ctor&&(c+=" "+this.name),c+="(",r=[this.makeCode(c)],u=M=0,_=m.length;_>M;u=++M)d=m[u],u&&r.push(this.makeCode(", ")),r.push.apply(r,d);return r.push(this.makeCode(") {")),this.body.isEmpty()||(r=r.concat(this.makeCode("\n"),this.body.compileWithDeclarations(e),this.makeCode("\n"+this.tab))),r.push(this.makeCode("}")),this.ctor?[this.makeCode(this.tab)].concat(Lt.call(r)):this.front||e.level>=C?this.wrapInBraces(r):r},t.prototype.eachParamName=function(e){var t,n,i,r,o;for(r=this.params,o=[],n=0,i=r.length;i>n;n++)t=r[n],o.push(t.eachName(e));return o},t.prototype.traverseChildren=function(e,n){return e?t.__super__.traverseChildren.call(this,e,n):void 0},t}(r),e.Param=O=function(e){function t(e,t,n){var i;this.name=e,this.value=t,this.splat=n,i=e=this.name.unwrapAll().value,Ft.call(U,i)>=0&&this.name.error('parameter name "'+e+'" is not allowed')}return Ct(t,e),t.prototype.nodeType=function(){return"Param"},t.prototype.children=["name","value"],t.prototype.compileToFragments=function(e){return this.name.compileToFragments(e,L)},t.prototype.asReference=function(e){var t;return this.reference?this.reference:(t=this.name,t["this"]?(t=t.properties[0].name,t.value.reserved&&(t=new D(e.scope.freeVariable(t.value)))):t.isComplex()&&(t=new D(e.scope.freeVariable("arg"))),t=new Z(t),this.splat&&(t=new G(t)),t.updateLocationDataIfMissing(this.locationData),this.reference=t)},t.prototype.isComplex=function(){return this.name.isComplex()},t.prototype.eachName=function(e,t){var n,r,o,s,a,c;if(null==t&&(t=this.name),n=function(t){var n;return n=t.properties[0].name,n.value.reserved?void 0:e(n.value,n)},t instanceof D)return e(t.value,t);if(t instanceof Z)return n(t);for(c=t.objects,s=0,a=c.length;a>s;s++)o=c[s],o instanceof i?this.eachName(e,o.value.unwrap()):o instanceof G?(r=o.name.unwrap(),e(r.value,r)):o instanceof Z?o.isArray()||o.isObject()?this.eachName(e,o.base):o["this"]?n(o):e(o.base.value,o.base):o instanceof p||o.error("illegal parameter "+o.compile())},t}(r),e.Splat=G=function(e){function t(e){this.name=e.compile?e:new D(e)}return Ct(t,e),t.prototype.nodeType=function(){return"Splat"},t.prototype.children=["name"],t.prototype.isAssignable=et,t.prototype.assigns=function(e){return this.name.assigns(e)},t.prototype.compileToFragments=function(e){return this.name.compileToFragments(e)},t.prototype.unwrap=function(){return this.name},t.compileSplattedArray=function(e,n,i){var r,o,s,a,c,h,u,l,p,d;for(u=-1;(l=n[++u])&&!(l instanceof t););if(u>=n.length)return[];if(1===n.length)return l=n[0],c=l.compileToFragments(e,L),i?c:[].concat(l.makeCode(""+kt("slice")+".call("),c,l.makeCode(")"));for(r=n.slice(u),h=p=0,d=r.length;d>p;h=++p)l=r[h],s=l.compileToFragments(e,L),r[h]=l instanceof t?[].concat(l.makeCode(""+kt("slice")+".call("),s,l.makeCode(")")):[].concat(l.makeCode("["),s,l.makeCode("]"));return 0===u?(l=n[0],a=l.joinFragmentArrays(r.slice(1),", "),r[0].concat(l.makeCode(".concat("),a,l.makeCode(")"))):(o=function(){var t,i,r,o;for(r=n.slice(0,u),o=[],t=0,i=r.length;i>t;t++)l=r[t],o.push(l.compileToFragments(e,L));return o}(),o=n[0].joinFragmentArrays(o,", "),a=n[u].joinFragmentArrays(r,", "),[].concat(n[0].makeCode("["),o,n[u].makeCode("].concat("),a,ut(n).makeCode(")")))},t}(r),e.Expansion=p=function(e){function t(){return t.__super__.constructor.apply(this,arguments)}return Ct(t,e),t.prototype.nodeType=function(){return"Expansion"},t.prototype.isComplex=A,t.prototype.compileNode=function(){return this.error("Expansion must be used inside a destructuring assignment or parameter list")},t.prototype.asReference=function(){return this},t.prototype.eachName=function(){},t}(r),e.While=Q=function(e){function t(e,t){this.rawCondition=e,this.condition=(null!=t?t.invert:void 0)?e.invert():e,this.guard=null!=t?t.guard:void 0}return Ct(t,e),t.prototype.nodeType=function(){return"While"},t.prototype.children=["condition","guard","body"],t.prototype.isStatement=et,t.prototype.makeReturn=function(e){return e?t.__super__.makeReturn.apply(this,arguments):(this.returns=!this.jumps({loop:!0}),this)},t.prototype.addBody=function(e){return this.body=e,this},t.prototype.jumps=function(){var e,t,n,i,r;if(e=this.body.expressions,!e.length)return!1;for(i=0,r=e.length;r>i;i++)if(n=e[i],t=n.jumps({loop:!0}))return t;return!1},t.prototype.compileNode=function(e){var t,n,i,r;return e.indent+=X,r="",n=this.body,n.isEmpty()?n=this.makeCode(""):(this.returns&&(n.makeReturn(i=e.scope.freeVariable("results")),r=""+this.tab+i+" = [];\n"),this.guard&&(n.expressions.length>1?n.expressions.unshift(new v(new j(this.guard).invert(),new D("continue"))):this.guard&&(n=o.wrap([new v(this.guard,n)]))),n=[].concat(this.makeCode("\n"),n.compileToFragments(e,x),this.makeCode("\n"+this.tab))),t=[].concat(this.makeCode(r+this.tab+"while ("),this.condition.compileToFragments(e,E),this.makeCode(") {"),n,this.makeCode("}")),this.returns&&t.push(this.makeCode("\n"+this.tab+"return "+i+";")),t},t}(r),e.Op=$=function(e){function n(e,t,n,i){if("in"===e)return new w(t,n);if("do"===e)return this.generateDo(t);if("new"===e){if(t instanceof s&&!t["do"]&&!t.isNew)return t.locationData=void 0,t.newInstance();(t instanceof c&&t.bound||t["do"])&&(t=new j(t))}return this.operator=r[e]||e,this.first=t,this.second=n,this.flip=!!i,this}var r,o;return Ct(n,e),n.prototype.nodeType=function(){return"Op"},r={"==":"===","!=":"!==",of:"in"},o={"!==":"===","===":"!=="},n.prototype.children=["first","second"],n.prototype.isSimpleNumber=A,n.prototype.isUnary=function(){return!this.second},n.prototype.isComplex=function(){var e;return!(this.isUnary()&&("+"===(e=this.operator)||"-"===e))||this.first.isComplex()},n.prototype.isChainable=function(){var e;return"<"===(e=this.operator)||">"===e||">="===e||"<="===e||"==="===e||"!=="===e},n.prototype.invert=function(){var e,t,i,r,s;if(this.isChainable()&&this.first.isChainable()){for(e=!0,t=this;t&&t.operator;)e&&(e=t.operator in o),t=t.first;if(!e)return new j(this).invert();for(t=this;t&&t.operator;)t.invert=!t.invert,t.operator=o[t.operator],t=t.first;return this}return(r=o[this.operator])?(this.operator=r,this.first.unwrap()instanceof n&&this.first.invert(),this):this.second?new j(this).invert():"!"===this.operator&&(i=this.first.unwrap())instanceof n&&("!"===(s=i.operator)||"in"===s||"instanceof"===s)?i:new n("!",this)},n.prototype.unfoldSoak=function(e){var t;return("++"===(t=this.operator)||"--"===t||"delete"===t)&&gt(e,this,"first")},n.prototype.generateDo=function(e){var t,n,r,o,a,h,u,l;for(o=[],n=e instanceof i&&(a=e.value.unwrap())instanceof c?a:e,l=n.params||[],h=0,u=l.length;u>h;h++)r=l[h],r.value?(o.push(r.value),delete r.value):o.push(r);return t=new s(e,o),t["do"]=!0,t},n.prototype.compileNode=function(e){var t,n,i,r,o,s;if(n=this.isChainable()&&this.first.isChainable(),n||(this.first.front=this.front),"delete"===this.operator&&e.scope.check(this.first.unwrapAll().value)&&this.error("delete operand may not be argument or var"),("--"===(o=this.operator)||"++"===o)&&(s=this.first.unwrapAll().value,Ft.call(U,s)>=0)&&this.error('cannot increment/decrement "'+this.first.unwrapAll().value+'"'),this.isUnary())return this.compileUnary(e);if(n)return this.compileChain(e);switch(this.operator){case"?":return this.compileExistence(e);case"**":return this.compilePower(e);case"//":return this.compileFloorDivision(e);case"%%":return this.compileModulo(e);default:return i=this.first.compileToFragments(e,N),r=this.second.compileToFragments(e,N),t=[].concat(i,this.makeCode(" "+this.operator+" "),r),N>=e.level?t:this.wrapInBraces(t)}},n.prototype.compileChain=function(e){var t,n,i,r;return r=this.first.second.cache(e),this.first.second=r[0],i=r[1],n=this.first.compileToFragments(e,N),t=n.concat(this.makeCode(" "+(this.invert?"&&":"||")+" "),i.compileToFragments(e),this.makeCode(" "+this.operator+" "),this.second.compileToFragments(e,N)),this.wrapInBraces(t)},n.prototype.compileExistence=function(e){var t,n;return this.first.isComplex()?(n=new D(e.scope.freeVariable("ref")),t=new j(new i(n,this.first))):(t=this.first,n=t),new v(new l(t),n,{type:"if"}).addElse(this.second).compileToFragments(e)},n.prototype.compileUnary=function(e){var t,i,r;return i=[],t=this.operator,i.push([this.makeCode(t)]),"!"===t&&this.first instanceof l?(this.first.negated=!this.first.negated,this.first.compileToFragments(e)):e.level>=C?new j(this).compileToFragments(e):(r="+"===t||"-"===t,("new"===t||"typeof"===t||"delete"===t||r&&this.first instanceof n&&this.first.operator===t)&&i.push([this.makeCode(" ")]),(r&&this.first instanceof n||"new"===t&&this.first.isStatement(e))&&(this.first=new j(this.first)),i.push(this.first.compileToFragments(e,N)),this.flip&&i.reverse(),this.joinFragmentArrays(i,""))},n.prototype.compilePower=function(e){var n;return n=new Z(new D("Math"),[new t(new D("pow"))]),new s(n,[this.first,this.second]).compileToFragments(e)},n.prototype.compileFloorDivision=function(e){var i,r;return r=new Z(new D("Math"),[new t(new D("floor"))]),i=new n("/",this.first,this.second),new s(r,[i]).compileToFragments(e)},n.prototype.compileModulo=function(e){var t;return t=new Z(new D(kt("modulo"))),new s(t,[this.first,this.second]).compileToFragments(e)},n.prototype.toString=function(e){return n.__super__.toString.call(this,e,this.constructor.name+" "+this.operator)},n}(r),e.In=w=function(e){function t(e,t){this.object=e,this.array=t}return Ct(t,e),t.prototype.nodeType=function(){return"In"},t.prototype.children=["object","array"],t.prototype.invert=R,t.prototype.compileNode=function(e){var t,n,i,r,o;if(this.array instanceof Z&&this.array.isArray()&&this.array.base.objects.length){for(o=this.array.base.objects,i=0,r=o.length;r>i;i++)if(n=o[i],n instanceof G){t=!0;break}if(!t)return this.compileOrTest(e)}return this.compileLoopTest(e)},t.prototype.compileOrTest=function(e){var t,n,i,r,o,s,a,c,h,u,l,p;for(u=this.object.cache(e,N),s=u[0],o=u[1],l=this.negated?[" !== "," && "]:[" === "," || "],t=l[0],n=l[1],a=[],p=this.array.base.objects,i=c=0,h=p.length;h>c;i=++c)r=p[i],i&&a.push(this.makeCode(n)),a=a.concat(i?o:s,this.makeCode(t),r.compileToFragments(e,C));return N>e.level?a:this.wrapInBraces(a)},t.prototype.compileLoopTest=function(e){var t,n,i,r;return r=this.object.cache(e,L),i=r[0],n=r[1],t=[].concat(this.makeCode(kt("indexOf")+".call("),this.array.compileToFragments(e,L),this.makeCode(", "),n,this.makeCode(") "+(this.negated?"< 0":">= 0"))),at(i)===at(n)?t:(t=i.concat(this.makeCode(", "),t),L>e.level?t:this.wrapInBraces(t))},t.prototype.toString=function(e){return t.__super__.toString.call(this,e,this.constructor.name+(this.negated?"!":""))},t}(r),e.Try=K=function(e){function t(e,t,n,i){this.attempt=e,this.errorVariable=t,this.recovery=n,this.ensure=i}return Ct(t,e),t.prototype.nodeType=function(){return"Try"},t.prototype.children=["attempt","recovery","ensure"],t.prototype.isStatement=et,t.prototype.jumps=function(e){var t;return this.attempt.jumps(e)||(null!=(t=this.recovery)?t.jumps(e):void 0)},t.prototype.makeReturn=function(e){return this.attempt&&(this.attempt=this.attempt.makeReturn(e)),this.recovery&&(this.recovery=this.recovery.makeReturn(e)),this},t.prototype.compileNode=function(e){var t,n,r,o;return e.indent+=X,o=this.attempt.compileToFragments(e,x),t=this.recovery?(r=new D("_error"),this.errorVariable?this.recovery.unshift(new i(this.errorVariable,r)):void 0,[].concat(this.makeCode(" catch ("),r.compileToFragments(e),this.makeCode(") {\n"),this.recovery.compileToFragments(e,x),this.makeCode("\n"+this.tab+"}"))):this.ensure||this.recovery?[]:[this.makeCode(" catch (_error) {}")],n=this.ensure?[].concat(this.makeCode(" finally {\n"),this.ensure.compileToFragments(e,x),this.makeCode("\n"+this.tab+"}")):[],[].concat(this.makeCode(""+this.tab+"try {\n"),o,this.makeCode("\n"+this.tab+"}"),t,n)},t}(r),e.Throw=z=function(e){function t(e){this.expression=e}return Ct(t,e),t.prototype.nodeType=function(){return"Throw"},t.prototype.children=["expression"],t.prototype.isStatement=et,t.prototype.jumps=A,t.prototype.makeReturn=Y,t.prototype.compileNode=function(e){return[].concat(this.makeCode(this.tab+"throw "),this.expression.compileToFragments(e),this.makeCode(";"))},t}(r),e.Existence=l=function(e){function t(e){this.expression=e}return Ct(t,e),t.prototype.nodeType=function(){return"Existence"},t.prototype.children=["expression"],t.prototype.invert=R,t.prototype.compileNode=function(e){var t,n,i,r;return this.expression.front=this.front,i=this.expression.compile(e,N),y.test(i)&&!e.scope.check(i)?(r=this.negated?["===","||"]:["!==","&&"],t=r[0],n=r[1],i="typeof "+i+" "+t+' "undefined" '+n+" "+i+" "+t+" null"):i=""+i+" "+(this.negated?"==":"!=")+" null",[this.makeCode(F>=e.level?i:"("+i+")")]},t}(r),e.Parens=j=function(e){function t(e){this.body=e}return Ct(t,e),t.prototype.nodeType=function(){return"Parens"},t.prototype.children=["body"],t.prototype.unwrap=function(){return this.body},t.prototype.isComplex=function(){return this.body.isComplex()},t.prototype.compileNode=function(e){var t,n,i;return n=this.body.unwrap(),n instanceof Z&&n.isAtomic()?(n.front=this.front,n.compileToFragments(e)):(i=n.compileToFragments(e,E),t=N>e.level&&(n instanceof $||n instanceof s||n instanceof f&&n.returns),t?i:this.wrapInBraces(i))},t}(r),e.For=f=function(e){function t(e,t){var n;this.source=t.source,this.guard=t.guard,this.step=t.step,this.name=t.name,this.index=t.index,this.body=o.wrap([e]),this.own=!!t.own,this.object=!!t.object,this.object&&(n=[this.index,this.name],this.name=n[0],this.index=n[1]),this.index instanceof Z&&this.index.error("index cannot be a pattern matching expression"),this.range=this.source instanceof Z&&this.source.base instanceof B&&!this.source.properties.length,this.pattern=this.name instanceof Z,this.range&&this.index&&this.index.error("indexes do not apply to range loops"),this.range&&this.pattern&&this.name.error("cannot pattern match over range loops"),this.own&&!this.object&&this.name.error("cannot use own with for-in"),this.returns=!1}return Ct(t,e),t.prototype.nodeType=function(){return"For"},t.prototype.children=["body","source","guard","step"],t.prototype.compileNode=function(e){var t,n,r,s,a,c,h,u,l,p,d,f,m,b,g,k,w,T,C,F,N,E,S,R,A,_,$,O,M,B,P,U,H,q;return t=o.wrap([this.body]),T=null!=(H=ut(t.expressions))?H.jumps():void 0,T&&T instanceof V&&(this.returns=!1),$=this.range?this.source.base:this.source,_=e.scope,this.pattern||(F=this.name&&this.name.compile(e,L)),b=this.index&&this.index.compile(e,L),F&&!this.pattern&&_.find(F),b&&_.find(b),this.returns&&(A=_.freeVariable("results")),g=this.object&&b||_.freeVariable("i"),k=this.range&&F||b||g,w=k!==g?""+k+" = ":"",this.step&&!this.range&&(q=this.cacheToCodeFragments(this.step.cache(e,L)),O=q[0],B=q[1],M=B.match(I)),this.pattern&&(F=g),U="",d="",h="",f=this.tab+X,this.range?p=$.compileToFragments(pt(e,{index:g,name:F,step:this.step})):(P=this.source.compile(e,L),!F&&!this.own||y.test(P)||(h+=""+this.tab+(E=_.freeVariable("ref"))+" = "+P+";\n",P=E),F&&!this.pattern&&(N=""+F+" = "+P+"["+k+"]"),this.object||(O!==B&&(h+=""+this.tab+O+";\n"),this.step&&M&&(l=0>ft(M[0]))||(C=_.freeVariable("len")),a=""+w+g+" = 0, "+C+" = "+P+".length",c=""+w+g+" = "+P+".length - 1",r=""+g+" < "+C,s=""+g+" >= 0",this.step?(M?l&&(r=s,a=c):(r=""+B+" > 0 ? "+r+" : "+s,a="("+B+" > 0 ? ("+a+") : "+c+")"),m=""+g+" += "+B):m=""+(k!==g?"++"+g:""+g+"++"),p=[this.makeCode(""+a+"; "+r+"; "+w+m)])),this.returns&&(S=""+this.tab+A+" = [];\n",R="\n"+this.tab+"return "+A+";",t.makeReturn(A)),this.guard&&(t.expressions.length>1?t.expressions.unshift(new v(new j(this.guard).invert(),new D("continue"))):this.guard&&(t=o.wrap([new v(this.guard,t)]))),this.pattern&&t.expressions.unshift(new i(this.name,new D(""+P+"["+k+"]"))),u=[].concat(this.makeCode(h),this.pluckDirectCall(e,t)),N&&(U="\n"+f+N+";"),this.object&&(p=[this.makeCode(""+k+" in "+P)],this.own&&(d="\n"+f+"if (!"+kt("hasProp")+".call("+P+", "+k+")) continue;")),n=t.compileToFragments(pt(e,{indent:f}),x),n&&n.length>0&&(n=[].concat(this.makeCode("\n"),n,this.makeCode("\n"))),[].concat(u,this.makeCode(""+(S||"")+this.tab+"for ("),p,this.makeCode(") {"+d+U),n,this.makeCode(""+this.tab+"}"+(R||"")))},t.prototype.pluckDirectCall=function(e,t){var n,r,o,a,h,u,l,p,d,f,m,y,b,g,k,v;for(r=[],f=t.expressions,h=p=0,d=f.length;d>p;h=++p)o=f[h],o=o.unwrapAll(),o instanceof s&&(l=null!=(m=o.variable)?m.unwrapAll():void 0,(l instanceof c||l instanceof Z&&(null!=(y=l.base)?y.unwrapAll():void 0)instanceof c&&1===l.properties.length&&("call"===(b=null!=(g=l.properties[0].name)?g.value:void 0)||"apply"===b))&&(a=(null!=(k=l.base)?k.unwrapAll():void 0)||l,u=new D(e.scope.freeVariable("fn")),n=new Z(u),l.base&&(v=[n,l],l.base=v[0],n=v[1]),t.expressions[h]=new s(n,o.args),r=r.concat(this.makeCode(this.tab),new i(u,a).compileToFragments(e,x),this.makeCode(";\n"))));return r},t}(Q),e.Switch=W=function(e){function t(e,t,n){this.subject=e,this.cases=t,this.otherwise=n}return Ct(t,e),t.prototype.nodeType=function(){return"Switch"},t.prototype.children=["subject","cases","otherwise"],t.prototype.isStatement=et,t.prototype.jumps=function(e){var t,n,i,r,o,s,a,c;for(null==e&&(e={block:!0}),s=this.cases,r=0,o=s.length;o>r;r++)if(a=s[r],n=a[0],t=a[1],i=t.jumps(e))return i;return null!=(c=this.otherwise)?c.jumps(e):void 0},t.prototype.makeReturn=function(e){var t,n,i,r,s;for(r=this.cases,n=0,i=r.length;i>n;n++)t=r[n],t[1].makeReturn(e);return e&&(this.otherwise||(this.otherwise=new o([new D("void 0")]))),null!=(s=this.otherwise)&&s.makeReturn(e),this},t.prototype.compileNode=function(e){var t,n,i,r,o,s,a,c,h,u,l,p,d,f,m,y;for(c=e.indent+X,h=e.indent=c+X,s=[].concat(this.makeCode(this.tab+"switch ("),this.subject?this.subject.compileToFragments(e,E):this.makeCode("false"),this.makeCode(") {\n")),f=this.cases,a=u=0,p=f.length;p>u;a=++u){for(m=f[a],r=m[0],t=m[1],y=st([r]),l=0,d=y.length;d>l;l++)i=y[l],this.subject||(i=i.invert()),s=s.concat(this.makeCode(c+"case "),i.compileToFragments(e,E),this.makeCode(":\n"));if((n=t.compileToFragments(e,x)).length>0&&(s=s.concat(n,this.makeCode("\n"))),a===this.cases.length-1&&!this.otherwise)break;o=this.lastNonComment(t.expressions),o instanceof V||o instanceof D&&o.jumps()&&"debugger"!==o.value||s.push(i.makeCode(h+"break;\n"))}return this.otherwise&&this.otherwise.expressions.length&&s.push.apply(s,[this.makeCode(c+"default:\n")].concat(Lt.call(this.otherwise.compileToFragments(e,x)),[this.makeCode("\n")])),s.push(this.makeCode(this.tab+"}")),s},t}(r),e.If=v=function(e){function t(e,t,n){this.body=t,null==n&&(n={}),this.rawCondition=e,this.condition="unless"===n.type?e.invert():e,this.elseBody=null,this.elseToken=null,this.isChain=!1,this.soak=n.soak}return Ct(t,e),t.prototype.nodeType=function(){return"If"},t.prototype.children=["condition","body","elseBody"],t.prototype.bodyNode=function(){var e;return null!=(e=this.body)?e.unwrap():void 0},t.prototype.elseBodyNode=function(){var e;return null!=(e=this.elseBody)?e.unwrap():void 0},t.prototype.addElse=function(e,n){return this.isChain?this.elseBodyNode().addElse(e,n):(this.isChain=e instanceof t,this.elseBody=this.ensureBlock(e),this.elseBody.updateLocationDataIfMissing(e.locationData),this.elseToken=n),this},t.prototype.isStatement=function(e){var t;return(null!=e?e.level:void 0)===x||this.bodyNode().isStatement(e)||(null!=(t=this.elseBodyNode())?t.isStatement(e):void 0)},t.prototype.jumps=function(e){var t;return this.body.jumps(e)||(null!=(t=this.elseBody)?t.jumps(e):void 0)},t.prototype.compileNode=function(e){return this.isStatement(e)?this.compileStatement(e):this.compileExpression(e)},t.prototype.makeReturn=function(e){return e&&(this.elseBody||(this.elseBody=new o([new D("void 0")]))),this.body&&(this.body=new o([this.body.makeReturn(e)])),this.elseBody&&(this.elseBody=new o([this.elseBody.makeReturn(e)])),this},t.prototype.ensureBlock=function(e){return e instanceof o?e:new o([e])},t.prototype.compileStatement=function(e){var n,i,r,o,s,a,c;return r=it(e,"chainChild"),(s=it(e,"isExistentialEquals"))?new t(this.condition.invert(),this.elseBodyNode(),{type:"if"}).compileToFragments(e):(c=e.indent+X,o=this.condition.compileToFragments(e,E),i=this.ensureBlock(this.body).compileToFragments(pt(e,{indent:c})),a=[].concat(this.makeCode("if ("),o,this.makeCode(") {\n"),i,this.makeCode("\n"+this.tab+"}")),r||a.unshift(this.makeCode(this.tab)),this.elseBody?(n=a.concat(this.makeCode(" else ")),this.isChain?(e.chainChild=!0,n=n.concat(this.elseBody.unwrap().compileToFragments(e,x))):n=n.concat(this.makeCode("{\n"),this.elseBody.compileToFragments(pt(e,{indent:c}),x),this.makeCode("\n"+this.tab+"}")),n):a)},t.prototype.compileExpression=function(e){var t,n,i,r;return i=this.condition.compileToFragments(e,F),n=this.bodyNode().compileToFragments(e,L),t=this.elseBodyNode()?this.elseBodyNode().compileToFragments(e,L):[this.makeCode("void 0")],r=i.concat(this.makeCode(" ? "),n,this.makeCode(" : "),t),e.level>=F?this.wrapInBraces(r):r},t.prototype.unfoldSoak=function(){return this.soak&&this},t}(r),J={"extends":function(){return"function(child, parent) { for (var key in parent) { if ("+kt("hasProp")+".call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; }"},bind:function(){return"function(fn, me){ return function(){ return fn.apply(me, arguments); }; }"},indexOf:function(){return"[].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; }"},modulo:function(){return"function(a, b) { return (+a % (b = +b) + b) % b; }"},hasProp:function(){return"{}.hasOwnProperty"},slice:function(){return"[].slice"}},x=1,E=2,L=3,F=4,N=5,C=6,X="  ",b="[$A-Za-z_\\x7f-\\uffff][$\\w\\x7f-\\uffff]*",y=RegExp("^"+b+"$"),P=/^[+-]?\d+$/,m=/^[+-]?0x[\da-f]+/i,I=/^[+-]?(?:0x[\da-f]+|\d*\.?\d+(?:e[+-]?\d+)?)$/i,S=RegExp("^("+b+")(\\.prototype)?(?:\\.("+b+")|\\[(\"(?:[^\\\\\"\\r\\n]|\\\\.)*\"|'(?:[^\\\\'\\r\\n]|\\\\.)*')\\]|\\[(0x[\\da-fA-F]+|\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)\\])$"),k=/^['"]/,g=/^\//,kt=function(e){var t;return t="__"+e,H.root.assign(t,J[e]()),t},dt=function(e,t){return e=e.replace(/\n/g,"$&"+t),e.replace(/\s+$/,"")},ft=function(e){return null==e?0:e.match(m)?parseInt(e,16):parseFloat(e)},ct=function(e){return e instanceof D&&"arguments"===e.value&&!e.asKey},ht=function(e){return e instanceof D&&"this"===e.value&&!e.asKey||e instanceof c&&e.bound||e instanceof s&&e.isSuper},gt=function(e,t,n){var i;if(i=t[n].unfoldSoak(e))return t[n]=i.body,i.body=new Z(t),i}}.call(this),t.exports}(),require["./sourcemap"]=function(){var e={},t={exports:e};return function(){var e,n;e=function(){function e(e){this.line=e,this.columns=[]}return e.prototype.add=function(e,t,n){var i,r;return r=t[0],i=t[1],null==n&&(n={}),this.columns[e]&&n.noReplace?void 0:this.columns[e]={line:this.line,column:e,sourceLine:r,sourceColumn:i}},e.prototype.sourceLocation=function(e){for(var t;!((t=this.columns[e])||0>=e);)e--;return t&&[t.sourceLine,t.sourceColumn]},e}(),n=function(){function t(){this.lines=[]}var n,i,r,o;return t.prototype.add=function(t,n,i){var r,o,s,a;return null==i&&(i={}),o=n[0],r=n[1],s=(a=this.lines)[o]||(a[o]=new e(o)),s.add(r,t,i)},t.prototype.sourceLocation=function(e){var t,n,i;for(n=e[0],t=e[1];!((i=this.lines[n])||0>=n);)n--;return i&&i.sourceLocation(t)},t.prototype.generate=function(e,t){var n,i,r,o,s,a,c,h,u,l,p,d,f,m,y,b;for(null==e&&(e={}),null==t&&(t=null),l=0,i=0,o=0,r=0,h=!1,n="",y=this.lines,a=p=0,f=y.length;f>p;a=++p)if(s=y[a])for(b=s.columns,d=0,m=b.length;m>d;d++)if(c=b[d]){for(;c.line>l;)i=0,h=!1,n+=";",l++;h&&(n+=",",h=!1),n+=this.encodeVlq(c.column-i),i=c.column,n+=this.encodeVlq(0),n+=this.encodeVlq(c.sourceLine-o),o=c.sourceLine,n+=this.encodeVlq(c.sourceColumn-r),r=c.sourceColumn,h=!0}return u={version:3,file:e.generatedFile||"",sourceRoot:e.sourceRoot||"",sources:e.sourceFiles||[""],names:[],mappings:n},e.inline&&(u.sourcesContent=[t]),JSON.stringify(u,null,2)},r=5,i=1<<r,o=i-1,t.prototype.encodeVlq=function(e){var t,n,s,a;for(t="",s=0>e?1:0,a=(Math.abs(e)<<1)+s;a||!t;)n=a&o,a>>=r,a&&(n|=i),t+=this.encodeBase64(n);return t},n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",t.prototype.encodeBase64=function(e){return n[e]||function(){throw Error("Cannot Base64 encode value: "+e)}()},t}(),t.exports=n}.call(this),t.exports}(),require["./coffee-script"]=function(){var e={},t={exports:e};return function(){var t,n,i,r,o,s,a,c,h,u,l,p,d,f,m,y,b,g,k={}.hasOwnProperty,v=[].indexOf||function(e){for(var t=0,n=this.length;n>t;t++)if(t in this&&this[t]===e)return t;return-1};if(s=require("fs"),d=require("vm"),l=require("path"),t=require("./lexer").Lexer,u=require("./parser").parser,c=require("./helpers"),n=require("./sourcemap"),e.VERSION="1.7.1",e.FILE_EXTENSIONS=[".coffee",".litcoffee",".coffee.md"],e.helpers=c,f=function(e){return function(t,n){var i;null==n&&(n={});try{return e.call(this,t,n)}catch(r){throw i=r,c.updateSyntaxError(i,t,n.filename)}}},e.compile=i=f(function(e,t){var i,r,o,s,a,l,p,d,f,m,y,b,g;for(m=c.merge,s=c.extend,t=s({},t),t.sourceMap&&(f=new n),l=u.parse(h.tokenize(e,t)).compileToFragments(t),o=0,t.header&&(o+=1),t.shiftLine&&(o+=1),r=0,d="",b=0,g=l.length;g>b;b++)a=l[b],t.sourceMap&&(a.locationData&&f.add([a.locationData.first_line,a.locationData.first_column],[o,r],{noReplace:!0}),y=c.count(a.code,"\n"),o+=y,y?r=a.code.length-(a.code.lastIndexOf("\n")+1):r+=a.code.length),d+=a.code;return t.header&&(p="Generated by CoffeeScript "+this.VERSION,d="// "+p+"\n"+d),t.sourceMap?(i={js:d},i.sourceMap=f,i.v3SourceMap=f.generate(t,e),i):d
 }),e.tokens=f(function(e,t){return h.tokenize(e,t)}),e.nodes=f(function(e,t){return"string"==typeof e?u.parse(h.tokenize(e,t)):u.parse(e)}),e.run=function(e,t){var n,r,o,a;return null==t&&(t={}),o=require.main,o.filename=process.argv[1]=t.filename?s.realpathSync(t.filename):".",o.moduleCache&&(o.moduleCache={}),r=t.filename?l.dirname(s.realpathSync(t.filename)):s.realpathSync("."),o.paths=require("module")._nodeModulePaths(r),(!c.isCoffee(o.filename)||require.extensions)&&(n=i(e,t),e=null!=(a=n.js)?a:n),o._compile(e,o.filename)},e.eval=function(e,t){var n,r,o,s,a,c,h,u,p,f,m,y,b,g;if(null==t&&(t={}),e=e.trim()){if(r=d.Script){if(null!=t.sandbox){if(t.sandbox instanceof r.createContext().constructor)h=t.sandbox;else{h=r.createContext(),y=t.sandbox;for(s in y)k.call(y,s)&&(u=y[s],h[s]=u)}h.global=h.root=h.GLOBAL=h}else h=global;if(h.__filename=t.filename||"eval",h.__dirname=l.dirname(h.__filename),h===global&&!h.module&&!h.require){for(n=require("module"),h.module=m=new n(t.modulename||"eval"),h.require=g=function(e){return n._load(e,m,!0)},m.filename=h.__filename,b=Object.getOwnPropertyNames(require),p=0,f=b.length;f>p;p++)c=b[p],"paths"!==c&&(g[c]=require[c]);g.paths=m.paths=n._nodeModulePaths(process.cwd()),g.resolve=function(e){return n._resolveFilename(e,m)}}}a={};for(s in t)k.call(t,s)&&(u=t[s],a[s]=u);return a.bare=!0,o=i(e,a),h===global?d.runInThisContext(o):d.runInContext(o,h)}},e.register=function(){return require("./register")},require.extensions)for(g=this.FILE_EXTENSIONS,y=0,b=g.length;b>y;y++)r=g[y],null==(m=require.extensions)[r]&&(m[r]=function(){throw Error("Use CoffeeScript.register() or require the coffee-script/register module to require "+r+" files.")});e._compileFile=function(e,t){var n,r,o,a;null==t&&(t=!1),o=s.readFileSync(e,"utf8"),a=65279===o.charCodeAt(0)?o.substring(1):o;try{n=i(a,{filename:e,sourceMap:t,literate:c.isLiterate(e)})}catch(h){throw r=h,c.updateSyntaxError(r,a,e)}return n},h=new t,u.lexer={lex:function(){var e,t;return t=this.tokens[this.pos++],t?(e=t[0],this.yytext=t[1],this.yylloc=t[2],this.errorToken=t.origin||t,this.yylineno=this.yylloc.first_line):e="",e},setInput:function(e){return this.tokens=e,this.pos=0},upcomingInput:function(){return""}},u.yy=require("./nodes"),u.yy.parseError=function(e,t){var n,i,r,o,s,a,h;return s=t.token,h=u.lexer,o=h.errorToken,a=h.tokens,i=o[0],r=o[1],n=o[2],r=o===a[a.length-1]?"end of input":"INDENT"===i||"OUTDENT"===i?"indentation":c.nameWhitespaceCharacter(r),c.throwSyntaxError("unexpected "+r,n)},o=function(e,t){var n,i,r,o,s,a,c,h,u,l,p,d;return o=void 0,r="",e.isNative()?r="native":(e.isEval()?(o=e.getScriptNameOrSourceURL(),o||(r=""+e.getEvalOrigin()+", ")):o=e.getFileName(),o||(o="<anonymous>"),h=e.getLineNumber(),i=e.getColumnNumber(),l=t(o,h,i),r=l?""+o+":"+l[0]+":"+l[1]:""+o+":"+h+":"+i),s=e.getFunctionName(),a=e.isConstructor(),c=!(e.isToplevel()||a),c?(u=e.getMethodName(),d=e.getTypeName(),s?(p=n="",d&&s.indexOf(d)&&(p=""+d+"."),u&&s.indexOf("."+u)!==s.length-u.length-1&&(n=" [as "+u+"]"),""+p+s+n+" ("+r+")"):""+d+"."+(u||"<anonymous>")+" ("+r+")"):a?"new "+(s||"<anonymous>")+" ("+r+")":s?""+s+" ("+r+")":r},p={},a=function(t){var n,i;if(p[t])return p[t];if(i=null!=l?l.extname(t):void 0,!(0>v.call(e.FILE_EXTENSIONS,i)))return n=e._compileFile(t,!0),p[t]=n.sourceMap},Error.prepareStackTrace=function(t,n){var i,r,s;return s=function(e,t,n){var i,r;return r=a(e),r&&(i=r.sourceLocation([t-1,n-1])),i?[i[0]+1,i[1]+1]:null},r=function(){var t,r,a;for(a=[],t=0,r=n.length;r>t&&(i=n[t],i.getFunction()!==e.run);t++)a.push("  at "+o(i,s));return a}(),""+(""+t)+"\n"+r.join("\n")+"\n"}}.call(this),t.exports}(),require["./browser"]=function(){var exports={},module={exports:exports};return function(){var CoffeeScript,compile,runScripts,__indexOf=[].indexOf||function(e){for(var t=0,n=this.length;n>t;t++)if(t in this&&this[t]===e)return t;return-1};CoffeeScript=require("./coffee-script"),CoffeeScript.require=require,compile=CoffeeScript.compile,CoffeeScript.eval=function(code,options){return null==options&&(options={}),null==options.bare&&(options.bare=!0),eval(compile(code,options))},CoffeeScript.run=function(e,t){return null==t&&(t={}),t.bare=!0,t.shiftLine=!0,Function(compile(e,t))()},"undefined"!=typeof window&&null!==window&&("undefined"!=typeof btoa&&null!==btoa&&"undefined"!=typeof JSON&&null!==JSON&&"undefined"!=typeof unescape&&null!==unescape&&"undefined"!=typeof encodeURIComponent&&null!==encodeURIComponent&&(compile=function(e,t){var n,i,r;return null==t&&(t={}),t.sourceMap=!0,t.inline=!0,r=CoffeeScript.compile(e,t),n=r.js,i=r.v3SourceMap,""+n+"\n//# sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(i)))+"\n//# sourceURL=coffeescript"}),CoffeeScript.load=function(e,t,n,i){var r;return null==n&&(n={}),null==i&&(i=!1),n.sourceFiles=[e],r=window.ActiveXObject?new window.ActiveXObject("Microsoft.XMLHTTP"):new window.XMLHttpRequest,r.open("GET",e,!0),"overrideMimeType"in r&&r.overrideMimeType("text/plain"),r.onreadystatechange=function(){var o,s;if(4===r.readyState){if(0!==(s=r.status)&&200!==s)throw Error("Could not load "+e);if(o=[r.responseText,n],i||CoffeeScript.run.apply(CoffeeScript,o),t)return t(o)}},r.send(null)},runScripts=function(){var e,t,n,i,r,o,s,a,c,h,u;for(a=window.document.getElementsByTagName("script"),t=["text/coffeescript","text/literate-coffeescript"],e=function(){var e,n,i,r;for(r=[],e=0,n=a.length;n>e;e++)o=a[e],i=o.type,__indexOf.call(t,i)>=0&&r.push(o);return r}(),r=0,n=function(){var t;return t=e[r],t instanceof Array?(CoffeeScript.run.apply(CoffeeScript,t),r++,n()):void 0},c=function(i,r){var o;return o={literate:i.type===t[1]},i.src?CoffeeScript.load(i.src,function(t){return e[r]=t,n()},o,!0):(o.sourceFiles=["embedded"],e[r]=[i.innerHTML,o])},i=h=0,u=e.length;u>h;i=++h)s=e[i],c(s,i);return n()},window.addEventListener?window.addEventListener("DOMContentLoaded",runScripts,!1):window.attachEvent("onload",runScripts))}.call(this),module.exports}(),require["./coffee-script"]}();"function"==typeof define&&define.amd?define('coffee-script',[],function(){return CoffeeScript}):root.CoffeeScript=CoffeeScript})(this);
+
 (function() {
   define('ice-coffee',['ice-model', 'ice-parser', 'coffee-script'], function(model, parser, CoffeeScript) {
     var COLORS, CoffeeScriptTranspiler, OPERATOR_PRECEDENCES, coffeeScriptParser, exports;
@@ -2950,13 +3695,14 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define('ice-controller',['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], function(coffee, draw, model, view) {
-    var ANIMATION_FRAME_RATE, AnimatedColor, CreateIndentOperation, CreateSegmentOperation, DEFAULT_INDENT_DEPTH, DestroyIndentOperation, DestroySegmentOperation, DropOperation, Editor, FloatingBlockRecord, FromFloatingOperation, MIN_DRAG_DISTANCE, MutationButtonOperation, PALETTE_LEFT_MARGIN, PALETTE_MARGIN, PALETTE_TOP_MARGIN, PickUpOperation, ReparseOperation, SetValueOperation, TOUCH_SELECTION_TIMEOUT, TextChangeOperation, TextReparseOperation, ToFloatingOperation, UndoOperation, binding, containsCursor, editorBindings, exports, extend_, getOffsetLeft, getOffsetTop, hook, isValidCursorPosition, key, last_, touchEvents, unsortedEditorBindings, unsortedEditorKeyBindings, validateLassoSelection, _i, _j, _len, _len1, _ref, _ref1;
+    var ANIMATION_FRAME_RATE, AnimatedColor, CreateIndentOperation, CreateSegmentOperation, DEFAULT_INDENT_DEPTH, DestroyIndentOperation, DestroySegmentOperation, DropOperation, Editor, FloatingBlockRecord, FromFloatingOperation, MIN_DRAG_DISTANCE, MutationButtonOperation, PALETTE_LEFT_MARGIN, PALETTE_MARGIN, PALETTE_TOP_MARGIN, PickUpOperation, ReparseOperation, SetValueOperation, TOP_TAB_HEIGHT, TOUCH_SELECTION_TIMEOUT, TextChangeOperation, TextReparseOperation, ToFloatingOperation, UndoOperation, binding, containsCursor, editorBindings, exports, extend_, getOffsetLeft, getOffsetTop, hook, isValidCursorPosition, key, last_, touchEvents, unsortedEditorBindings, unsortedEditorKeyBindings, validateLassoSelection, _i, _j, _len, _len1, _ref, _ref1;
     PALETTE_TOP_MARGIN = 5;
     PALETTE_MARGIN = 5;
     MIN_DRAG_DISTANCE = 5;
     PALETTE_LEFT_MARGIN = 5;
     DEFAULT_INDENT_DEPTH = '  ';
     ANIMATION_FRAME_RATE = 60;
+    TOP_TAB_HEIGHT = 20;
     exports = {};
     extend_ = function(a, b) {
       var key, obj, value;
@@ -2979,8 +3725,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       'redraw_palette': [],
       'mousedown': [],
       'mousemove': [],
-      'mouseup': [],
-      'mutation': []
+      'mouseup': []
     };
     unsortedEditorKeyBindings = {};
     editorBindings = {};
@@ -3007,6 +3752,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           _this = this;
         this.wrapperElement = wrapperElement;
         this.paletteGroups = paletteGroups;
+        this.debugging = true;
         this.iceElement = document.createElement('div');
         this.iceElement.className = 'ice-wrapper-div';
         this.iceElement.tabIndex = 0;
@@ -3024,8 +3770,8 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         this.iceElement.appendChild(this.paletteWrapper);
         this.standardViewSettings = {
           padding: 5,
-          indentWidth: 10,
-          indentToungeHeight: 10,
+          indentWidth: 15,
+          indentTongueHeight: 20,
           tabOffset: 10,
           tabWidth: 15,
           tabHeight: 5,
@@ -3033,7 +3779,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           dropAreaHeight: 20,
           indentDropAreaMinWidth: 50,
           emptySocketWidth: 20,
-          emptySocketHeight: 25,
+          textHeight: 15,
           emptyLineHeight: 25,
           highlightAreaHeight: 10,
           shadowBlur: 5,
@@ -3103,9 +3849,11 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         this.iceElement.style.height = "" + this.wrapperElement.offsetHeight + "px";
         this.iceElement.style.width = "" + this.wrapperElement.offsetWidth + "px";
         this.mainCanvas.height = this.iceElement.offsetHeight;
-        this.mainCanvas.width = this.iceElement.offsetWidth;
+        this.mainCanvas.width = this.iceElement.offsetWidth - this.gutter.offsetWidth;
         this.mainCanvas.style.height = "" + this.mainCanvas.height + "px";
         this.mainCanvas.style.width = "" + this.mainCanvas.width + "px";
+        this.mainCanvas.style.left = "" + this.gutter.offsetWidth + "px";
+        this.transitionContainer.style.left = "" + this.gutter.offsetWidth + "px";
         this.resizePalette();
         _ref = editorBindings.resize;
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -3140,20 +3888,41 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     Editor.prototype.clearMain = function() {
       return this.mainCtx.clearRect(this.scrollOffsets.main.x, this.scrollOffsets.main.y, this.mainCanvas.width, this.mainCanvas.height);
     };
-    Editor.prototype.redrawMain = function() {
-      var binding, _i, _len, _ref, _results;
+    hook('resize', 0, function() {
+      this.topNubbyPath = new draw.Path();
+      this.topNubbyPath.bevel = true;
+      this.topNubbyPath.push(new draw.Point(this.mainCanvas.width, 0));
+      this.topNubbyPath.push(new draw.Point(this.mainCanvas.width, TOP_TAB_HEIGHT));
+      this.topNubbyPath.push(new draw.Point(this.view.opts.tabOffset + this.view.opts.tabWidth, TOP_TAB_HEIGHT));
+      this.topNubbyPath.push(new draw.Point(this.view.opts.tabOffset + this.view.opts.tabWidth * (1 - this.view.opts.tabSideWidth), this.view.opts.tabHeight + TOP_TAB_HEIGHT));
+      this.topNubbyPath.push(new draw.Point(this.view.opts.tabOffset + this.view.opts.tabWidth * this.view.opts.tabSideWidth, this.view.opts.tabHeight + TOP_TAB_HEIGHT));
+      this.topNubbyPath.push(new draw.Point(this.view.opts.tabOffset, TOP_TAB_HEIGHT));
+      this.topNubbyPath.push(new draw.Point(0, TOP_TAB_HEIGHT));
+      this.topNubbyPath.push(new draw.Point(0, 0));
+      return this.topNubbyPath.style.fillColor = '#EBEBEB';
+    });
+    Editor.prototype.redrawMain = function(opts) {
+      var binding, layoutResult, _i, _len, _ref, _ref1, _results;
+      if (opts == null) {
+        opts = {};
+      }
       if (!this.currentlyAnimating) {
         draw._setGlobalFontSize(this.fontSize);
         draw._setCTX(this.mainCtx);
         this.clearMain();
-        this.view.getViewFor(this.tree).layout();
-        this.view.getViewFor(this.tree).draw(this.mainCtx, new draw.Rectangle(this.scrollOffsets.main.x, this.scrollOffsets.main.y, this.mainCanvas.width, this.mainCanvas.height));
+        this.topNubbyPath.draw(this.mainCtx);
+        layoutResult = this.view.getViewNodeFor(this.tree).layout(0, TOP_TAB_HEIGHT);
+        this.view.getViewNodeFor(this.tree).draw(this.mainCtx, new draw.Rectangle(this.scrollOffsets.main.x, this.scrollOffsets.main.y, this.mainCanvas.width, this.mainCanvas.height), {
+          grayscale: 0,
+          selected: 0,
+          noText: (_ref = opts.noText) != null ? _ref : false
+        });
         this.redrawCursor();
-        _ref = editorBindings.redraw_main;
+        _ref1 = editorBindings.redraw_main;
         _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          binding = _ref[_i];
-          _results.push(binding.call(this));
+        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+          binding = _ref1[_i];
+          _results.push(binding.call(this, layoutResult));
         }
         return _results;
       }
@@ -3174,7 +3943,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       _ref = this.currentPaletteBlocks;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         paletteBlock = _ref[_i];
-        paletteBlockView = this.view.getViewFor(paletteBlock);
+        paletteBlockView = this.view.getViewNodeFor(paletteBlock);
         paletteBlockView.layout(PALETTE_LEFT_MARGIN, lastBottomEdge);
         paletteBlockView.draw(this.paletteCtx, boundingRect);
         lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN;
@@ -3208,14 +3977,14 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       return point;
     };
     Editor.prototype.trackerOffset = function(el) {
-      var point;
-      point = new draw.Point(0, 0);
+      var x, y;
+      x = y = 0;
       while (el !== this.iceElement) {
-        point.x += el.offsetLeft - el.scrollLeft;
-        point.y += el.offsetTop - el.scrollTop;
+        x += el.offsetLeft - el.scrollLeft;
+        y += el.offsetTop - el.scrollTop;
         el = el.offsetParent;
       }
-      return point;
+      return new draw.Point(x, y);
     };
     Editor.prototype.trackerPointToMain = function(point) {
       return new draw.Point(point.x - this.trackerOffset(this.mainCanvas).x + this.scrollOffsets.main.x, point.y - this.trackerOffset(this.mainCanvas).y + this.scrollOffsets.main.y);
@@ -3231,14 +4000,14 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       head = block.start;
       seek = block.end;
       while (head !== seek) {
-        if (head.type === 'blockStart' && this.view.getViewFor(head.container).path.contains(point)) {
+        if (head.type === 'blockStart' && this.view.getViewNodeFor(head.container).path.contains(point)) {
           seek = head.container.end;
         }
         head = head.next;
       }
       if (head !== block.end) {
         return head.container;
-      } else if (block.type === 'block' && this.view.getViewFor(block).path.contains(point)) {
+      } else if (block.type === 'block' && this.view.getViewNodeFor(block).path.contains(point)) {
         return block;
       } else {
         return null;
@@ -3262,13 +4031,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
 
     })();
     Editor.prototype.addMicroUndoOperation = function(operation) {
-      var binding, _i, _len, _ref;
       this.undoStack.push(operation);
-      _ref = editorBindings.mutation;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        binding = _ref[_i];
-        binding.call(this);
-      }
       return this.fireEvent('change', [operation]);
     };
     Editor.prototype.undo = function() {
@@ -3406,14 +4169,29 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       this.highlightCanvas.width = this.iceElement.offsetWidth;
       this.highlightCanvas.style.width = "" + this.highlightCanvas.width + "px";
       this.highlightCanvas.height = this.iceElement.offsetHeight;
-      return this.highlightCanvas.style.height = "" + this.highlightCanvas.height + "px";
+      this.highlightCanvas.style.height = "" + this.highlightCanvas.height + "px";
+      return this.highlightCanvas.style.left = "" + this.mainCanvas.offsetLeft + "px";
     });
-    hook('mousedown', 3, function(point, event, state) {
-      var hitTestResult;
+    hook('mousedown', 1, function(point, event, state) {
+      var box, hitTestResult, i, line, mainPoint, node, _i, _len, _ref;
       if (state.consumedHitTest) {
         return;
       }
-      hitTestResult = this.hitTest(this.trackerPointToMain(point), this.tree);
+      mainPoint = this.trackerPointToMain(point);
+      hitTestResult = this.hitTest(mainPoint, this.tree);
+      if (this.debugging && event.shiftKey) {
+        line = null;
+        node = this.view.getViewNodeFor(hitTestResult);
+        _ref = node.bounds;
+        for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+          box = _ref[i];
+          if (box.contains(mainPoint)) {
+            line = i;
+            break;
+          }
+        }
+        this.dumpNodeForDebug(hitTestResult, line);
+      }
       if (hitTestResult != null) {
         this.clickedBlock = hitTestResult;
         this.moveCursorTo(this.clickedBlock.start.next);
@@ -3432,14 +4210,14 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       if (!state.capturedPickup && (this.clickedBlock != null) && point.from(this.clickedPoint).magnitude() > MIN_DRAG_DISTANCE) {
         this.draggingBlock = this.clickedBlock;
         if (this.clickedBlockIsPaletteBlock) {
-          this.draggingOffset = this.view.getViewFor(this.draggingBlock).bounds[0].upperLeftCorner().from(this.trackerPointToPalette(this.clickedPoint));
+          this.draggingOffset = this.view.getViewNodeFor(this.draggingBlock).bounds[0].upperLeftCorner().from(this.trackerPointToPalette(this.clickedPoint));
           this.draggingBlock = this.draggingBlock.clone();
         } else {
-          this.draggingOffset = this.view.getViewFor(this.draggingBlock).bounds[0].upperLeftCorner().from(this.trackerPointToMain(this.clickedPoint));
+          this.draggingOffset = this.view.getViewNodeFor(this.draggingBlock).bounds[0].upperLeftCorner().from(this.trackerPointToMain(this.clickedPoint));
         }
         this.draggingBlock.ephemeral = true;
         this.draggingBlock.clearLineMarks();
-        draggingBlockView = this.dragView.getViewFor(this.draggingBlock);
+        draggingBlockView = this.dragView.getViewNodeFor(this.draggingBlock);
         draggingBlockView.layout(1, 1);
         draggingBlockView.drawShadow(this.dragCtx, 5, 5);
         draggingBlockView.draw(this.dragCtx, new draw.Rectangle(0, 0, this.dragCanvas.width, this.dragCanvas.height));
@@ -3458,7 +4236,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         this.dragCanvas.style.top = "" + position.y + "px";
         this.dragCanvas.style.left = "" + position.x + "px";
         mainPoint = this.trackerPointToMain(position);
-        if (mainPoint.y > this.view.getViewFor(this.tree).getBounds().bottom() && mainPoint.x > 0) {
+        if (mainPoint.y > this.view.getViewNodeFor(this.tree).getBounds().bottom() && mainPoint.x > 0) {
           head = this.tree.end;
           while (!(head.type === 'blockEnd' || head === this.tree.start)) {
             head = head.prev;
@@ -3471,18 +4249,18 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         } else if (this.draggingBlock.type === 'block') {
           highlight = this.tree.find((function(block) {
             var _ref;
-            return (((_ref = block.parent) != null ? _ref.type : void 0) !== 'socket') && (_this.view.getViewFor(block).dropArea != null) && _this.view.getViewFor(block).dropArea.contains(mainPoint);
+            return (((_ref = block.parent) != null ? _ref.type : void 0) !== 'socket') && (_this.view.getViewNodeFor(block).dropArea != null) && _this.view.getViewNodeFor(block).dropArea.contains(mainPoint);
           }), [this.draggingBlock]);
         } else if (this.draggingBlock.type === 'segment') {
           highlight = this.tree.find((function(block) {
             var _ref;
-            return (block.type !== 'socket') && (((_ref = block.parent) != null ? _ref.type : void 0) !== 'socket') && (_this.view.getViewFor(block).dropArea != null) && _this.view.getViewFor(block).dropArea.contains(mainPoint);
+            return (block.type !== 'socket') && (((_ref = block.parent) != null ? _ref.type : void 0) !== 'socket') && (_this.view.getViewNodeFor(block).dropArea != null) && _this.view.getViewNodeFor(block).dropArea.contains(mainPoint);
           }), [this.draggingBlock]);
         }
         if (highlight !== this.lastHighlight) {
           this.clearHighlightCanvas();
           if (highlight != null) {
-            this.view.getViewFor(highlight).highlightArea.draw(this.highlightCtx);
+            this.view.getViewNodeFor(highlight).highlightArea.draw(this.highlightCtx);
           }
           return this.lastHighlight = highlight;
         }
@@ -3490,9 +4268,11 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     });
     hook('mouseup', 0, function(point, event, state) {
       if ((this.draggingBlock != null) && (this.lastHighlight != null)) {
-        this.addMicroUndoOperation('CAPTURE_POINT');
-        this.addMicroUndoOperation(new PickUpOperation(this.draggingBlock));
-        this.draggingBlock.spliceOut();
+        if (this.inTree(this.draggingBlock)) {
+          this.addMicroUndoOperation('CAPTURE_POINT');
+          this.addMicroUndoOperation(new PickUpOperation(this.draggingBlock));
+          this.draggingBlock.spliceOut();
+        }
         this.clearHighlightCanvas();
         switch (this.lastHighlight.type) {
           case 'indent':
@@ -3570,17 +4350,24 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       return FromFloatingOperation;
 
     })();
+    Editor.prototype.inTree = function(block) {
+      while (!(block === this.tree || (block == null))) {
+        block = block.parent;
+      }
+      return block === this.tree;
+    };
     hook('mouseup', 0, function(point, event, state) {
       var palettePoint, renderPoint, trackPoint, _ref, _ref1, _ref2, _ref3;
-      console.log(this.draggingBlock, this.lastHighlight);
       if ((this.draggingBlock != null) && (this.lastHighlight == null)) {
         trackPoint = new draw.Point(point.x + this.draggingOffset.x, point.y + this.draggingOffset.y);
         renderPoint = this.trackerPointToMain(trackPoint);
         palettePoint = this.trackerPointToPalette(trackPoint);
-        this.addMicroUndoOperation('CAPTURE_POINT');
-        this.addMicroUndoOperation(new PickUpOperation(this.draggingBlock));
-        this.draggingBlock.spliceOut();
-        console.log('spliced block out');
+        if (this.inTree(this.draggingBlock)) {
+          this.moveCursorTo(this.draggingBlock.end);
+          this.addMicroUndoOperation('CAPTURE_POINT');
+          this.addMicroUndoOperation(new PickUpOperation(this.draggingBlock));
+          this.draggingBlock.spliceOut();
+        }
         palettePoint = this.trackerPointToPalette(point);
         if ((0 < (_ref = palettePoint.x - this.scrollOffsets.palette.x) && _ref < this.paletteCanvas.width) && (0 < (_ref1 = palettePoint.y - this.scrollOffsets.palette.y) && _ref1 < this.paletteCanvas.height) || !((0 < (_ref2 = renderPoint.x - this.scrollOffsets.main.x) && _ref2 < this.mainCanvas.width) && (0 < (_ref3 = renderPoint.y - this.scrollOffsets.main.y) && _ref3 < this.mainCanvas.height))) {
           this.draggingBlock = null;
@@ -3596,10 +4383,11 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         this.draggingOffset = null;
         this.lastHighlight = null;
         this.clearDrag();
-        return this.redrawMain();
+        this.redrawMain();
+        return this.redrawCursor();
       }
     });
-    hook('mousedown', 7, function(point, event, state) {
+    hook('mousedown', 5, function(point, event, state) {
       var hitTestResult, i, record, _i, _len, _ref, _results;
       if (state.consumedHitTest) {
         return;
@@ -3646,7 +4434,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         record = _ref[_i];
-        blockView = this.view.getViewFor(record.block);
+        blockView = this.view.getViewNodeFor(record.block);
         blockView.layout(record.position.x, record.position.y);
         _results.push(blockView.draw(this.mainCtx, boundingRect));
       }
@@ -3668,7 +4456,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         paletteGroup = _ref[i];
         _results.push((function(paletteGroup) {
-          var block, paletteGroupHeader;
+          var block, clickHandler, paletteGroupHeader;
           paletteGroup.blocks = (function() {
             var _j, _len1, _ref1, _results1;
             _ref1 = paletteGroup.blocks;
@@ -3688,14 +4476,16 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
             paletteHeaderRow.className = 'ice-palette-header-row';
             _this.paletteHeader.appendChild(paletteHeaderRow);
           }
-          paletteGroupHeader.addEventListener('click', function() {
+          clickHandler = function() {
             _this.currentPaletteGroup = paletteGroup.name;
             _this.currentPaletteBlocks = paletteGroup.blocks;
             _this.currentPaletteGroupHeader.className = 'ice-palette-group-header';
             _this.currentPaletteGroupHeader = paletteGroupHeader;
             _this.currentPaletteGroupHeader.className = 'ice-palette-group-header ice-palette-group-header-selected';
             return _this.redrawPalette();
-          });
+          };
+          paletteGroupHeader.addEventListener('click', clickHandler);
+          paletteGroupHeader.addEventListener('touchstart', clickHandler);
           if (i === 0) {
             _this.currentPaletteGroup = paletteGroup.name;
             _this.currentPaletteBlocks = paletteGroup.blocks;
@@ -3712,7 +4502,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     hook('mouseup', 0, function() {
       return this.paletteHeader.style.zIndex = 257;
     });
-    hook('mousedown', 8, function(point, event, state) {
+    hook('mousedown', 6, function(point, event, state) {
       var block, hitTestResult, palettePoint, _i, _len, _ref;
       if (state.consumedHitTest) {
         return;
@@ -3742,7 +4532,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         hoverDiv = document.createElement('div');
         hoverDiv.className = 'ice-hover-div';
         hoverDiv.title = block.stringify();
-        bounds = this.view.getViewFor(block).getBounds();
+        bounds = this.view.getViewNodeFor(block).getBounds();
         hoverDiv.style.top = "" + bounds.y + "px";
         hoverDiv.style.left = "" + bounds.x + "px";
         hoverDiv.style.width = "" + (Math.min(bounds.width, this.paletteScroller.offsetWidth - PALETTE_LEFT_MARGIN)) + "px";
@@ -3841,24 +4631,25 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       var endPosition, endRow, i, lines, startPosition, startRow, textFocusView, _i, _ref;
       this.populateSocket(this.textFocus, this.hiddenInput.value);
       this.redrawMain();
-      textFocusView = this.view.getViewFor(this.textFocus);
+      textFocusView = this.view.getViewNodeFor(this.textFocus);
       startRow = this.textFocus.stringify().slice(0, this.hiddenInput.selectionStart).split('\n').length - 1;
       endRow = this.textFocus.stringify().slice(0, this.hiddenInput.selectionEnd).split('\n').length - 1;
       lines = this.textFocus.stringify().split('\n');
-      startPosition = textFocusView.bounds[startRow].x + this.view.opts.padding + this.mainCtx.measureText(last_(this.textFocus.stringify().slice(0, this.hiddenInput.selectionStart).split('\n'))).width;
-      endPosition = textFocusView.bounds[endRow].x + this.view.opts.padding + this.mainCtx.measureText(last_(this.textFocus.stringify().slice(0, this.hiddenInput.selectionEnd).split('\n'))).width;
+      startPosition = textFocusView.bounds[startRow].x + this.view.opts.textPadding + this.mainCtx.measureText(last_(this.textFocus.stringify().slice(0, this.hiddenInput.selectionStart).split('\n'))).width;
+      endPosition = textFocusView.bounds[endRow].x + this.view.opts.textPadding + this.mainCtx.measureText(last_(this.textFocus.stringify().slice(0, this.hiddenInput.selectionEnd).split('\n'))).width;
       if (this.hiddenInput.selectionStart === this.hiddenInput.selectionEnd) {
-        return this.mainCtx.strokeRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.padding, 0, this.fontSize);
+        this.mainCtx.strokeStyle = '#888';
+        return this.mainCtx.strokeRect(startPosition, textFocusView.bounds[startRow].y, 0, this.fontSize);
       } else {
         this.mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3)';
         if (startRow === endRow) {
-          return this.mainCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.padding, endPosition - startPosition, this.fontSize);
+          return this.mainCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.textPadding, endPosition - startPosition, this.fontSize);
         } else {
-          this.mainCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.padding, textFocusView.bounds[startRow].right() - this.view.opts.padding - startPosition, this.fontSize);
+          this.mainCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.textPadding, textFocusView.bounds[startRow].right() - this.view.opts.textPadding - startPosition, this.fontSize);
           for (i = _i = _ref = startRow + 1; _ref <= endRow ? _i < endRow : _i > endRow; i = _ref <= endRow ? ++_i : --_i) {
-            this.mainCtx.fillRect(textFocusView.bounds[i].x + this.view.opts.padding, textFocusView.bounds[i].y + this.view.opts.padding, textFocusView.bounds[i].width - 2 * this.view.opts.padding, this.fontSize);
+            this.mainCtx.fillRect(textFocusView.bounds[i].x, textFocusView.bounds[i].y + this.view.opts.textPadding, textFocusView.bounds[i].width, this.fontSize);
           }
-          return this.mainCtx.fillRect(textFocusView.bounds[endRow].x + this.view.opts.padding, textFocusView.bounds[endRow].y + this.view.opts.padding, endPosition - (textFocusView.bounds[endRow].x + this.view.opts.padding), this.fontSize);
+          return this.mainCtx.fillRect(textFocusView.bounds[endRow].x, textFocusView.bounds[endRow].y + this.view.opts.textPadding, endPosition - textFocusView.bounds[endRow].x, this.fontSize);
         }
       }
     };
@@ -3929,7 +4720,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       var head, _ref;
       head = block.start;
       while (head != null) {
-        if (head.type === 'socketStart' && ((_ref = head.next.type) === 'text' || _ref === 'socketEnd') && this.view.getViewFor(head.container).path.contains(point)) {
+        if (head.type === 'socketStart' && ((_ref = head.next.type) === 'text' || _ref === 'socketEnd') && this.view.getViewNodeFor(head.container).path.contains(point)) {
           return head.container;
         }
         head = head.next;
@@ -3938,7 +4729,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     };
     Editor.prototype.getTextPosition = function(point) {
       var column, lines, row, textFocusView;
-      textFocusView = this.view.getViewFor(this.textFocus);
+      textFocusView = this.view.getViewNodeFor(this.textFocus);
       row = Math.floor((point.y - textFocusView.bounds[0].y) / (this.fontSize + 2 * this.view.opts.padding));
       row = Math.max(row, 0);
       row = Math.min(row, textFocusView.lineLength - 1);
@@ -3955,7 +4746,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       this.textInputHead = this.getTextPosition(point);
       return this.hiddenInput.setSelectionRange(Math.min(this.textInputAnchor, this.textInputHead), Math.max(this.textInputAnchor, this.textInputHead));
     };
-    hook('mousedown', 6, function(point, event, state) {
+    hook('mousedown', 2, function(point, event, state) {
       var hitTestResult, mainPoint,
         _this = this;
       if (state.consumedHitTest) {
@@ -3983,7 +4774,13 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       }
     });
     hook('mouseup', 0, function(point, event, state) {
-      return this.textInputSelecting = false;
+      var mainPoint;
+      if (this.textInputSelecting) {
+        mainPoint = this.trackerPointToMain(point);
+        this.setTextInputHead(mainPoint);
+        this.redrawTextInput();
+        return this.textInputSelecting = false;
+      }
     });
     CreateSegmentOperation = (function(_super) {
       __extends(CreateSegmentOperation, _super);
@@ -4052,7 +4849,8 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       this.lassoSelectCanvas.width = this.iceElement.offsetWidth;
       this.lassoSelectCanvas.style.width = "" + this.lassoSelectCanvas.width + "px";
       this.lassoSelectCanvas.height = this.iceElement.offsetHeight;
-      return this.lassoSelectCanvas.style.height = "" + this.lassoSelectCanvas.height + "px";
+      this.lassoSelectCanvas.style.height = "" + this.lassoSelectCanvas.height + "px";
+      return this.lassoSelectCanvas.style.left = "" + this.mainCanvas.offsetLeft + "px";
     });
     Editor.prototype.clearLassoSelection = function() {
       var head, needToRedraw, next;
@@ -4140,11 +4938,11 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         this.lassoSelectAnchor = null;
         this.clearLassoSelectCanvas();
         first = this.tree.start;
-        while (!((first == null) || first.type === 'blockStart' && this.view.getViewFor(first.container).path.intersects(lassoRectangle))) {
+        while (!((first == null) || first.type === 'blockStart' && this.view.getViewNodeFor(first.container).path.intersects(lassoRectangle))) {
           first = first.next;
         }
         last = this.tree.end;
-        while (!((last == null) || last.type === 'blockEnd' && this.view.getViewFor(last.container).path.intersects(lassoRectangle))) {
+        while (!((last == null) || last.type === 'blockEnd' && this.view.getViewNodeFor(last.container).path.intersects(lassoRectangle))) {
           last = last.prev;
         }
         if (!((first != null) && (last != null))) {
@@ -4159,7 +4957,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         return this.redrawMain();
       }
     });
-    hook('mousedown', 6.5, function(point, event, state) {
+    hook('mousedown', 3, function(point, event, state) {
       if (state.consumedHitTest) {
         return;
       }
@@ -4174,23 +4972,8 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       return this.cursor = new model.CursorToken();
     });
     isValidCursorPosition = function(pos) {
-      var depth, _ref;
-      depth = 0;
-      while (!(depth === 0 && ((_ref = pos.type) === 'blockStart' || _ref === 'indentStart') || (pos.prev == null))) {
-        switch (pos.type) {
-          case 'blockStart':
-          case 'indentStart':
-          case 'socketStart':
-            depth--;
-            break;
-          case 'blockEnd':
-          case 'indentEnd':
-          case 'socketEnd':
-            depth++;
-        }
-        pos = pos.prev;
-      }
-      return pos.type === 'indentStart' || (pos.prev == null);
+      var _ref;
+      return (_ref = pos.parent.type) === 'indent' || _ref === 'segment';
     };
     Editor.prototype.moveCursorTo = function(destination, attemptReparse) {
       var head, _ref;
@@ -4221,7 +5004,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           head.insertBefore(this.cursor);
         }
       }
-      if (this.cursor.parent.type === 'block') {
+      if (!isValidCursorPosition(this.cursor)) {
         this.moveCursorTo(this.cursor.next);
       }
       if (attemptReparse) {
@@ -4255,7 +5038,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
     Editor.prototype.determineCursorPosition = function() {
       var bound, head, line, _ref, _ref1;
       if ((this.cursor != null) && (this.cursor.parent != null)) {
-        this.view.getViewFor(this.tree).layout();
+        this.view.getViewNodeFor(this.tree).layout(0, TOP_TAB_HEIGHT);
         head = this.cursor;
         line = 0;
         while (head !== this.cursor.parent.start) {
@@ -4264,7 +5047,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
             line++;
           }
         }
-        bound = this.view.getViewFor(this.cursor.parent).bounds[line];
+        bound = this.view.getViewNodeFor(this.cursor.parent).bounds[line];
         if (((_ref = this.cursor.nextVisibleToken()) != null ? _ref.type : void 0) === 'indentEnd' && ((_ref1 = this.cursor.prev) != null ? _ref1.prev.type : void 0) !== 'indentStart' || this.cursor.next === this.tree.end) {
           return new draw.Point(bound.x, bound.bottom());
         } else {
@@ -4589,20 +5372,20 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       translationVectors = [];
       head = this.tree.start;
       state = {
-        x: this.aceEditor.container.getBoundingClientRect().left - getOffsetLeft(this.aceElement) + this.aceEditor.renderer.$gutterLayer.gutterWidth,
-        y: this.aceEditor.container.getBoundingClientRect().top - getOffsetTop(this.aceElement),
+        x: (this.aceEditor.container.getBoundingClientRect().left - getOffsetLeft(this.aceElement) + this.aceEditor.renderer.$gutterLayer.gutterWidth) - this.gutter.offsetWidth + 5,
+        y: (this.aceEditor.container.getBoundingClientRect().top - getOffsetTop(this.aceElement)) - this.aceEditor.session.getScrollTop(),
         indent: 0,
         lineHeight: this.aceEditor.renderer.layerConfig.lineHeight,
-        leftEdge: this.aceEditor.container.getBoundingClientRect().left - getOffsetLeft(this.aceElement) + this.aceEditor.renderer.$gutterLayer.gutterWidth
+        leftEdge: (this.aceEditor.container.getBoundingClientRect().left - getOffsetLeft(this.aceElement) + this.aceEditor.renderer.$gutterLayer.gutterWidth) - this.gutter.offsetWidth + 5
       };
       while (head !== this.tree.end) {
         switch (head.type) {
           case 'text':
-            corner = this.view.getViewFor(head).bounds[0].upperLeftCorner();
+            corner = this.view.getViewNodeFor(head).bounds[0].upperLeftCorner();
             corner.x -= this.scrollOffsets.main.x;
             corner.y -= this.scrollOffsets.main.y;
             translationVectors.push((new draw.Point(state.x, state.y)).from(corner));
-            textElements.push(this.view.getViewFor(head));
+            textElements.push(this.view.getViewNodeFor(head));
             state.x += this.mainCtx.measureText(head.value).width;
             break;
           case 'newline':
@@ -4649,14 +5432,18 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
 
     })();
     Editor.prototype.performMeltAnimation = function() {
-      var animatedColor, div, i, originalOffset, textElement, textElements, tick, translatingElements, translationVectors, _i, _len, _ref,
+      var aceScrollTop, animatedColor, bottom, div, i, line, lineHeight, originalOffset, textElement, textElements, tick, top, translatingElements, translationVectors, treeView, _i, _j, _len, _ref,
         _this = this;
       if (this.currentlyUsingBlocks && !this.currentlyAnimating) {
         this.aceEditor.setValue(this.getValue(), -1);
+        top = this.findLineNumberAtCoordinate(this.scrollOffsets.main.y);
+        this.aceEditor.scrollToLine(top);
         this.aceEditor.resize(true);
+        this.redrawMain({
+          noText: true
+        });
         this.currentlyUsingBlocks = false;
         this.currentlyAnimating = true;
-        this.redrawMain();
         this.paletteHeader.style.zIndex = 0;
         _ref = this.computePlaintextTranslationVectors(), textElements = _ref.textElements, translationVectors = _ref.translationVectors;
         translatingElements = [];
@@ -4670,7 +5457,6 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           div.innerText = textElement.model.value;
           div.style.font = this.fontSize + 'px Courier New';
           div.style.position = 'absolute';
-          div.style.marginTop = '-1px';
           div.style.left = "" + (textElement.bounds[0].x - this.scrollOffsets.main.x) + "px";
           div.style.top = "" + (textElement.bounds[0].y - this.scrollOffsets.main.y) + "px";
           this.transitionContainer.appendChild(div);
@@ -4683,20 +5469,50 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
             vector: translationVectors[i]
           });
         }
+        top = this.aceEditor.getFirstVisibleRow();
+        bottom = this.aceEditor.getLastVisibleRow();
+        aceScrollTop = this.aceEditor.session.getScrollTop();
+        treeView = this.view.getViewNodeFor(this.tree);
+        lineHeight = this.aceEditor.renderer.layerConfig.lineHeight;
+        for (line = _j = top; top <= bottom ? _j <= bottom : _j >= bottom; line = top <= bottom ? ++_j : --_j) {
+          div = document.createElement('div');
+          div.style.whiteSpace = 'pre';
+          div.innerText = line + 1;
+          div.style.font = this.fontSize + 'px Courier New';
+          div.style.boxSizing = 'border-box';
+          div.style.position = 'absolute';
+          div.style.zIndex = 300;
+          div.style.width = "" + this.gutter.offsetWidth + "px";
+          div.style.textAlign = 'right';
+          div.style.paddingRight = '10px';
+          div.style.left = 0;
+          div.style.top = "" + (treeView.bounds[line].y + treeView.distanceToBase[line].above - this.fontSize) + "px";
+          translatingElements.push({
+            div: div,
+            position: {
+              x: 0,
+              y: treeView.bounds[line].y + treeView.distanceToBase[line].above - this.fontSize
+            },
+            vector: new draw.Point(0, lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - this.fontSize) - aceScrollTop + this.scrollOffsets.main.y)
+          });
+          this.mainScrollerStuffing.appendChild(div);
+        }
+        this.gutter.style.left = '-9999px';
+        this.gutter.style.top = '-9999px';
         animatedColor = new AnimatedColor('#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE);
         originalOffset = this.scrollOffsets.main.y;
         tick = function(count) {
-          var element, _j, _k, _len1, _len2, _results;
+          var element, _k, _l, _len1, _len2, _results;
           if (count < ANIMATION_FRAME_RATE * 2) {
             setTimeout((function() {
               return tick(count + 1);
             }), 1000 / ANIMATION_FRAME_RATE);
           }
           if (count < ANIMATION_FRAME_RATE) {
-            _this.paletteWrapper.style.opacity = _this.mainCanvas.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
+            _this.paletteWrapper.style.opacity = _this.mainCanvas.style.opacity = _this.highlightCanvas.style.opacity = Math.max(0, 1 - 2 * (count / ANIMATION_FRAME_RATE));
           } else {
-            for (_j = 0, _len1 = translatingElements.length; _j < _len1; _j++) {
-              element = translatingElements[_j];
+            for (_k = 0, _len1 = translatingElements.length; _k < _len1; _k++) {
+              element = translatingElements[_k];
               element.position.x += element.vector.x / ANIMATION_FRAME_RATE;
               element.position.y += element.vector.y / ANIMATION_FRAME_RATE;
               element.div.style.left = "" + element.position.x + "px";
@@ -4712,9 +5528,9 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
             _this.scrollOffsets.main.y = 0;
             _this.mainCtx.setTransform(1, 0, 0, 1, 0, 0);
             _results = [];
-            for (_k = 0, _len2 = translatingElements.length; _k < _len2; _k++) {
-              element = translatingElements[_k];
-              _results.push(_this.transitionContainer.removeChild(element.div));
+            for (_l = 0, _len2 = translatingElements.length; _l < _len2; _l++) {
+              element = translatingElements[_l];
+              _results.push(element.div.parentNode.removeChild(element.div));
             }
             return _results;
           }
@@ -4726,79 +5542,114 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       }
     };
     Editor.prototype.performFreezeAnimation = function() {
-      var div, i, setValueResult, textElement, textElements, tick, translatingElements, translationVectors, _i, _len, _ref, _ref1, _ref2,
+      var setValueResult,
         _this = this;
       if (!this.currentlyUsingBlocks && !this.currentlyAnimating) {
         setValueResult = this.setValue(this.aceEditor.getValue());
         if (!setValueResult.success) {
           return setValueResult;
         }
-        this.setFontSize(this.aceEditor.getFontSize());
-        this.redrawMain();
-        this.currentlyUsingBlocks = true;
-        this.currentlyAnimating = true;
-        this.aceElement.style.top = "-9999px";
-        this.aceElement.style.left = "-9999px";
-        this.iceElement.style.top = "0px";
-        this.iceElement.style.left = "0px";
-        this.paletteHeader.style.zIndex = 0;
-        _ref = this.computePlaintextTranslationVectors(), textElements = _ref.textElements, translationVectors = _ref.translationVectors;
-        translatingElements = [];
-        for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
-          textElement = textElements[i];
-          if (!((0 < (_ref1 = textElement.bounds[0].y - this.scrollOffsets.main.y) && _ref1 < this.mainCanvas.height) || (0 < (_ref2 = textElement.bounds[0].y - this.scrollOffsets.main.y + translationVectors[i].y) && _ref2 < this.mainCanvas.height))) {
-            continue;
-          }
-          div = document.createElement('div');
-          div.style.whiteSpace = 'pre';
-          div.innerText = textElement.model.value;
-          div.style.font = this.fontSize + 'px Courier New';
-          div.style.position = 'absolute';
-          div.style.marginTop = '-1px';
-          div.style.left = "" + (textElement.bounds[0].x - this.scrollOffsets.main.x + translationVectors[i].x) + "px";
-          div.style.top = "textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px";
-          this.iceElement.appendChild(div);
-          translatingElements.push({
-            div: div,
-            position: {
-              x: textElement.bounds[0].x - this.scrollOffsets.main.x + translationVectors[i].x,
-              y: textElement.bounds[0].y - this.scrollOffsets.main.y + translationVectors[i].y
-            },
-            vector: translationVectors[i]
+        this.mainScroller.scrollTop = this.view.getViewNodeFor(this.tree).bounds[this.aceEditor.getFirstVisibleRow()].y;
+        setTimeout((function() {
+          var aceScrollTop, bottom, div, i, line, lineHeight, textElement, textElements, tick, top, translatingElements, translationVectors, treeView, _i, _j, _len, _ref, _ref1, _ref2;
+          _this.setFontSize(_this.aceEditor.getFontSize());
+          _this.redrawMain({
+            noText: true
           });
-        }
-        this.paletteWrapper.style.opacity = this.mainCanvas.style.opacity = 0;
-        tick = function(count) {
-          var element, _j, _k, _len1, _len2, _results;
-          if (count < ANIMATION_FRAME_RATE * 2) {
-            setTimeout((function() {
-              return tick(count + 1);
-            }), 1000 / ANIMATION_FRAME_RATE);
-          }
-          if (count < ANIMATION_FRAME_RATE) {
-            for (_j = 0, _len1 = translatingElements.length; _j < _len1; _j++) {
-              element = translatingElements[_j];
-              element.position.x += -element.vector.x / ANIMATION_FRAME_RATE;
-              element.position.y += -element.vector.y / ANIMATION_FRAME_RATE;
-              element.div.style.left = "" + element.position.x + "px";
-              element.div.style.top = "" + element.position.y + "px";
+          _this.currentlyUsingBlocks = true;
+          _this.currentlyAnimating = true;
+          _this.aceElement.style.top = "-9999px";
+          _this.aceElement.style.left = "-9999px";
+          _this.iceElement.style.top = "0px";
+          _this.iceElement.style.left = "0px";
+          _this.paletteHeader.style.zIndex = 0;
+          _ref = _this.computePlaintextTranslationVectors(), textElements = _ref.textElements, translationVectors = _ref.translationVectors;
+          translatingElements = [];
+          for (i = _i = 0, _len = textElements.length; _i < _len; i = ++_i) {
+            textElement = textElements[i];
+            if (!((0 < (_ref1 = textElement.bounds[0].y - _this.scrollOffsets.main.y) && _ref1 < _this.mainCanvas.height) || (0 < (_ref2 = textElement.bounds[0].y - _this.scrollOffsets.main.y + translationVectors[i].y) && _ref2 < _this.mainCanvas.height))) {
+              continue;
             }
-          } else {
-            _this.paletteWrapper.style.opacity = _this.mainCanvas.style.opacity = Math.max(0, 1 - 2 * (2 - count / ANIMATION_FRAME_RATE));
+            div = document.createElement('div');
+            div.style.whiteSpace = 'pre';
+            div.innerText = textElement.model.value;
+            div.style.font = _this.fontSize + 'px Courier New';
+            div.style.position = 'absolute';
+            div.style.left = "" + (textElement.bounds[0].x - _this.scrollOffsets.main.x + translationVectors[i].x) + "px";
+            div.style.top = "" + (textElement.bounds[0].y + _this.scrollOffsets.main.y + translationVectors[i].y) + "px";
+            _this.transitionContainer.appendChild(div);
+            translatingElements.push({
+              div: div,
+              position: {
+                x: textElement.bounds[0].x - _this.scrollOffsets.main.x + translationVectors[i].x,
+                y: textElement.bounds[0].y - _this.scrollOffsets.main.y + translationVectors[i].y
+              },
+              vector: translationVectors[i]
+            });
           }
-          if (count === ANIMATION_FRAME_RATE * 2) {
-            _this.currentlyAnimating = false;
-            _this.redrawMain();
-            _this.paletteHeader.style.zIndex = 257;
-            _results = [];
-            for (_k = 0, _len2 = translatingElements.length; _k < _len2; _k++) {
-              element = translatingElements[_k];
-              _results.push(_this.iceElement.removeChild(element.div));
+          top = _this.aceEditor.getFirstVisibleRow();
+          bottom = _this.aceEditor.getLastVisibleRow();
+          treeView = _this.view.getViewNodeFor(_this.tree);
+          lineHeight = _this.aceEditor.renderer.layerConfig.lineHeight;
+          aceScrollTop = _this.aceEditor.session.getScrollTop();
+          for (line = _j = top; top <= bottom ? _j <= bottom : _j >= bottom; line = top <= bottom ? ++_j : --_j) {
+            div = document.createElement('div');
+            div.style.whiteSpace = 'pre';
+            div.innerText = line + 1;
+            div.style.font = _this.fontSize + 'px Courier New';
+            div.style.boxSizing = 'border-box';
+            div.style.position = 'absolute';
+            div.style.zIndex = 300;
+            div.style.width = "" + editor.aceEditor.renderer.$gutter.offsetWidth + "px";
+            div.style.textAlign = 'right';
+            div.style.paddingRight = '10px';
+            div.style.left = 0;
+            div.style.top = "" + (lineHeight * line) + "px";
+            translatingElements.push({
+              div: div,
+              position: {
+                x: 0,
+                y: lineHeight * line
+              },
+              vector: new draw.Point(0, lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - _this.fontSize) - aceScrollTop + _this.scrollOffsets.main.y)
+            });
+            _this.mainScrollerStuffing.appendChild(div);
+          }
+          _this.paletteWrapper.style.opacity = _this.mainCanvas.style.opacity = _this.highlightCanvas.style.opacity = 0;
+          tick = function(count) {
+            var element, _k, _l, _len1, _len2, _results;
+            if (count < ANIMATION_FRAME_RATE * 2) {
+              setTimeout((function() {
+                return tick(count + 1);
+              }), 1000 / ANIMATION_FRAME_RATE);
             }
-            return _results;
-          }
-        };
-        tick(0);
+            if (count < ANIMATION_FRAME_RATE) {
+              for (_k = 0, _len1 = translatingElements.length; _k < _len1; _k++) {
+                element = translatingElements[_k];
+                element.position.x += -element.vector.x / ANIMATION_FRAME_RATE;
+                element.position.y += -element.vector.y / ANIMATION_FRAME_RATE;
+                element.div.style.left = "" + element.position.x + "px";
+                element.div.style.top = "" + element.position.y + "px";
+              }
+            } else {
+              _this.paletteWrapper.style.opacity = _this.mainCanvas.style.opacity = _this.highlightCanvas.style.opacity = Math.max(0, 1 - 2 * (2 - count / ANIMATION_FRAME_RATE));
+            }
+            if (count === ANIMATION_FRAME_RATE * 2) {
+              _this.currentlyAnimating = false;
+              _this.gutter.style.left = '0';
+              _this.gutter.style.top = '0';
+              _this.redrawMain();
+              _this.paletteHeader.style.zIndex = 257;
+              _results = [];
+              for (_l = 0, _len2 = translatingElements.length; _l < _len2; _l++) {
+                element = translatingElements[_l];
+                _results.push(element.div.parentNode.removeChild(element.div));
+              }
+              return _results;
+            }
+          };
+          return tick(0);
+        }), 0);
         return {
           success: true
         };
@@ -4811,7 +5662,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
         return this.performFreezeAnimation();
       }
     };
-    hook('populate', 0, function() {
+    hook('populate', 0.1, function() {
       var _this = this;
       this.scrollOffsets = {
         main: new draw.Point(0, 0),
@@ -4851,13 +5702,13 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       this.paletteScroller.style.width = "" + this.paletteCanvas.offsetWidth + "px";
       return this.paletteScroller.style.height = "" + this.paletteCanvas.offsetHeight + "px";
     });
-    hook('redraw_main', 0, function() {
+    hook('redraw_main', 1, function() {
       var bounds, record, _i, _len, _ref;
-      bounds = this.view.getViewFor(this.tree).getBounds();
+      bounds = this.view.getViewNodeFor(this.tree).getBounds();
       _ref = this.floatingBlocks;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         record = _ref[_i];
-        bounds.unite(this.view.getViewFor(record.block).getBounds());
+        bounds.unite(this.view.getViewNodeFor(record.block).getBounds());
       }
       this.mainScrollerStuffing.style.width = "" + (bounds.right()) + "px";
       return this.mainScrollerStuffing.style.height = "" + (bounds.bottom()) + "px";
@@ -4868,7 +5719,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       _ref = this.currentPaletteBlocks;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         block = _ref[_i];
-        bounds.unite(this.view.getViewFor(block).getBounds());
+        bounds.unite(this.view.getViewNodeFor(block).getBounds());
       }
       return this.paletteScrollerStuffing.style.height = "" + (bounds.bottom()) + "px";
     });
@@ -4915,7 +5766,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       return MutationButtonOperation;
 
     })(UndoOperation);
-    hook('mousedown', 6.9, function(point, event, state) {
+    hook('mousedown', 4, function(point, event, state) {
       var head, mainPoint;
       if (state.consumedHitTest) {
         return;
@@ -4923,7 +5774,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       mainPoint = this.trackerPointToMain(point);
       head = this.tree.start;
       while (head !== this.tree.end) {
-        if (head.type === 'mutationButton' && this.view.getViewFor(head).bounds[0].contains(mainPoint)) {
+        if (head.type === 'mutationButton' && this.view.getViewNodeFor(head).bounds[0].contains(mainPoint)) {
           this.addMicroUndoOperation(new MutationButtonOperation(head));
           head.expand();
           this.redrawMain();
@@ -4938,7 +5789,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       block = this.tree.getBlockOnLine(line);
       if (block != null) {
         block.addLineMark(style);
-        this.view.getViewFor(block).computeOwnPath();
+        this.view.getViewNodeFor(block).computeOwnPath();
       }
       return this.redrawMain();
     };
@@ -4947,7 +5798,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       block = this.tree.getBlockOnLine(line);
       if (block != null) {
         block.removeLineMark(tag);
-        this.view.getViewFor(block).computeOwnPath();
+        this.view.getViewNodeFor(block).computeOwnPath();
       }
       return this.redrawMain();
     };
@@ -4961,7 +5812,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           } else {
             head.container.removeLineMark(tag);
           }
-          this.view.getViewFor(head.container).computeOwnPath();
+          this.view.getViewNodeFor(head.container).computeOwnPath();
         }
         head = head.next;
       }
@@ -4974,8 +5825,8 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       var line, mainPoint, _i, _ref;
       if ((this.draggingBlock == null) && (this.clickedBlock == null) && this.hasEvent('linehover')) {
         mainPoint = this.trackerPointToMain(point);
-        for (line = _i = 0, _ref = this.view.getViewFor(this.tree).lineLength; 0 <= _ref ? _i < _ref : _i > _ref; line = 0 <= _ref ? ++_i : --_i) {
-          if (this.view.getViewFor(this.tree).bounds[line].contains(mainPoint)) {
+        for (line = _i = 0, _ref = this.view.getViewNodeFor(this.tree).lineLength; 0 <= _ref ? _i < _ref : _i > _ref; line = 0 <= _ref ? ++_i : --_i) {
+          if (this.view.getViewNodeFor(this.tree).bounds[line].contains(mainPoint)) {
             if (line !== this.lastHoveredLine) {
               this.fireEvent('linehover', [
                 {
@@ -5037,6 +5888,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       }
       this.addMicroUndoOperation(new SetValueOperation(this.tree, newParse));
       this.tree = newParse;
+      this.gutterVersion = -1;
       this.tree.start.insert(this.cursor);
       this.redrawMain();
       return {
@@ -5153,7 +6005,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
           handler = _ref[_i];
           handler.call(_this, trackPoint, event, state);
         }
-        if ((_this.clickedBlock != null) || (_this.draggingBlock != null) || (_this.lassoSelectAnchor != null)) {
+        if ((_this.clickedBlock != null) || (_this.draggingBlock != null) || (_this.lassoSelectAnchor != null) || _this.textInputSelecting) {
           return event.preventDefault();
         }
       });
@@ -5177,6 +6029,7 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       this.clearHighlightCanvas();
       this.highlightCtx.beginPath();
       this.highlightCtx.fillStyle = this.highlightCtx.strokeStyle = '#000';
+      this.highlightCtx.lineWidth = 1;
       if (point.x >= 5) {
         this.highlightCtx.moveTo(point.x, point.y);
         this.highlightCtx.lineTo(point.x - 5, point.y - 5);
@@ -5188,6 +6041,116 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
       }
       this.highlightCtx.stroke();
       return this.highlightCtx.fill();
+    };
+    Editor.prototype.mainViewOrChildrenContains = function(model, point) {
+      var childObj, _i, _len, _ref;
+      view = this.view.getViewNodeFor(model);
+      if (view.path.contains(point)) {
+        return true;
+      }
+      _ref = view.children;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        childObj = _ref[_i];
+        if (this.mainViewOrChildrenContains(childObj.child, point)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    hook('mouseup', 0.5, function(point, event) {
+      var renderPoint, trackPoint;
+      if (this.draggingBlock != null) {
+        trackPoint = new draw.Point(point.x + this.draggingOffset.x, point.y + this.draggingOffset.y);
+        renderPoint = this.trackerPointToMain(trackPoint);
+        if (this.inTree(this.draggingBlock) && this.mainViewOrChildrenContains(this.draggingBlock, renderPoint)) {
+          this.draggingBlock.ephemeral = false;
+          this.draggingBlock = null;
+          this.draggingOffset = null;
+          this.lastHighlight = null;
+          this.clearDrag();
+          return this.redrawMain();
+        }
+      }
+    });
+    hook('populate', 0, function() {
+      this.gutter = document.createElement('div');
+      this.gutter.className = 'ice-gutter';
+      this.gutterVersion = -1;
+      this.lineNumberTags = {};
+      return this.mainScrollerStuffing.appendChild(this.gutter);
+    });
+    Editor.prototype.addLineNumberForLine = function(line) {
+      var lineDiv, treeView,
+        _this = this;
+      treeView = this.view.getViewNodeFor(this.tree);
+      if (line in this.lineNumberTags) {
+        lineDiv = this.lineNumberTags[line];
+      } else {
+        lineDiv = document.createElement('div');
+        lineDiv.className = 'ice-gutter-line';
+        lineDiv.innerText = line + 1;
+        this.lineNumberTags[line] = lineDiv;
+      }
+      lineDiv.style.top = "" + treeView.bounds[line].y + "px";
+      lineDiv.style.height = treeView.bounds[line].height;
+      lineDiv.style.fontSize = this.view.opts.textHeight;
+      lineDiv.style.paddingTop = treeView.distanceToBase[line].above - this.view.opts.textHeight;
+      lineDiv.addEventListener('mouseover', function() {
+        return treeView.bounds[line].stroke(_this.lassoSelectCtx, '#000');
+      });
+      lineDiv.addEventListener('mouseout', function() {
+        return _this.clearLassoSelectCanvas();
+      });
+      return this.gutter.appendChild(lineDiv);
+    };
+    Editor.prototype.findLineNumberAtCoordinate = function(coord) {
+      var end, pivot, start, treeView;
+      treeView = this.view.getViewNodeFor(this.tree);
+      start = 0;
+      end = treeView.bounds.length - 1;
+      pivot = Math.floor((start + end) / 2);
+      while (treeView.bounds[pivot].y !== coord && start < end) {
+        if (treeView.bounds[pivot].y > coord) {
+          end = pivot - 1;
+        }
+        if (treeView.bounds[pivot].y < coord) {
+          start = pivot + 1;
+        }
+        if (end < 0) {
+          return 0;
+        }
+        if (start >= treeView.bounds.length) {
+          return treeView.bounds.length - 1;
+        }
+        pivot = Math.floor((start + end) / 2);
+      }
+      return pivot;
+    };
+    hook('redraw_main', 0, function(changedBox) {
+      var bottom, line, tag, top, treeView, _i, _ref;
+      treeView = this.view.getViewNodeFor(this.tree);
+      top = this.findLineNumberAtCoordinate(this.scrollOffsets.main.y);
+      bottom = this.findLineNumberAtCoordinate(this.scrollOffsets.main.y + this.mainCanvas.height);
+      for (line = _i = top; top <= bottom ? _i <= bottom : _i >= bottom; line = top <= bottom ? ++_i : --_i) {
+        this.addLineNumberForLine(line);
+      }
+      _ref = this.lineNumberTags;
+      for (line in _ref) {
+        tag = _ref[line];
+        if (line < top || line > bottom) {
+          this.lineNumberTags[line].parentNode.removeChild(this.lineNumberTags[line]);
+          delete this.lineNumberTags[line];
+        }
+      }
+      if (changedBox) {
+        return this.gutter.style.height = "" + (Math.max(this.mainScroller.offsetHeight, treeView.totalBounds.height)) + "px";
+      }
+    });
+    Editor.prototype.dumpNodeForDebug = function(hitTestResult, line) {
+      console.log('Model node:');
+      console.log(hitTestResult.serialize());
+      console.log('View node:');
+      return console.log(this.view.getViewNodeFor(hitTestResult).serialize(line));
     };
     for (key in unsortedEditorBindings) {
       unsortedEditorBindings[key].sort(function(a, b) {
@@ -5229,9 +6192,10 @@ if(i=this.variable instanceof Z){if(this.variable.isArray()||this.variable.isObj
 //@ sourceMappingURL=controller.js.map
 */;
 (function() {
-  define('ice',['ice-view', 'ice-model', 'ice-coffee', 'ice-controller', 'ice-parser'], function(view, model, coffee, controller, parser) {
+  define('ice',['ice-draw', 'ice-view', 'ice-model', 'ice-coffee', 'ice-controller', 'ice-parser'], function(draw, view, model, coffee, controller, parser) {
     return {
       view: view,
+      draw: draw,
       model: model,
       parse: coffee.parse,
       parseObj: parser.parseObj,

@@ -1,5 +1,5 @@
 # # ICE Editor model
-# 
+#
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
@@ -35,15 +35,15 @@ define ->
       @start.append @end
 
       @ephemeral = false
-      
+
       # Line mark colours
       @lineMarkStyles = []
-    
+
     # _cloneEmpty should simply instantiate
     # a new instance of this Container
     # with the same metadata.
     _cloneEmpty: -> new Container()
-    
+
     # ## clone ##
     # Clone this container, with all the token inside,
     # but with no linked-list pointers in common.
@@ -74,7 +74,7 @@ define ->
       selfClone.correctParentTree()
 
       return selfClone
-    
+
     # ## stringify ##
     # Get a string representation of us,
     # using the `stringify()` method on all of
@@ -91,21 +91,21 @@ define ->
         head = head.next
 
       return str
-    
+
     # ## serialize ##
     # Simple debugging output representation
     # of the tokens in this Container. Like XML.
     serialize: ->
       str = ''
-      
+
       head = @start.next
-      
+
       until head is @end
         str += head.serialize()
         head = head.next
 
       return str
-    
+
     # ## contents ##
     # Get a cloned version of a
     # linked list with our contents.
@@ -114,13 +114,13 @@ define ->
 
       if clone.start.next is clone.end
         return null
-      
+
       else
         clone.start.next.prev = null
         clone.end.prev.next = null
 
         return clone.start.next
-    
+
     # ## spliceOut ##
     # Remove ourselves from the linked
     # list that we are in.
@@ -140,21 +140,24 @@ define ->
       #
       # Exception: do not do this if it would collapse
       # and indent to 0 length.
-      if first?.type is 'newline' and
+      while first?.type is 'newline' and
          last?.type in [undefined, 'newline', 'indentEnd'] and
-         not (first.prev?.type is 'indentStart' and last.type is 'indentEnd')
+         not (first.prev?.type is 'indentStart' and last?.type is 'indentEnd')
+        first = first.previousVisibleToken()
+        first.nextVisibleToken().remove()
 
-        first.remove()
-      
       # If the next visible token is a newline,
       # and the previous visible token is the beginning
       # of the document, remove it.
-      else if last?.type is 'newline' and not first?
-        last.remove()
-      
-      
+      while last?.type is 'newline' and
+          last?.nextVisibleToken()? and
+          (last.nextVisibleToken().type is 'newline' or
+          not first?)
+        last = last.nextVisibleToken()
+        last.previousVisibleToken().remove()
+
       @notifyChange()
-      
+
       # Literally unsplice
       if @start.prev? then @start.prev.append @end.next
       else if @end.next? then @end.next.prev = null
@@ -169,7 +172,7 @@ define ->
     spliceIn: (token) ->
       # Find the previous bit of significant markup
       token = token.prev while token.type is 'cursor'
-      
+
       # As soon as we move around, reset our "ephemeral" flag.
       @ephemeral = false
 
@@ -204,14 +207,14 @@ define ->
       @end.append last
 
       @notifyChange()
-    
+
     # ## moveTo ##
     # Convenience function for testing;
     # splice out then splice in.
     moveTo: (token) ->
       if @start.prev? or @end.next? then @spliceOut()
       if token? then @spliceIn token
-    
+
     # ## notifyChange ##
     # Increase version number (for caching purposes)
     notifyChange: ->
@@ -219,7 +222,7 @@ define ->
       while head?
         head.version++
         head = head.parent
-    
+
     # ## wrap ##
     # Insert ourselves _around_ some other
     # tokens.
@@ -245,7 +248,7 @@ define ->
         if isContainer
           head.start.parent = head.end.parent = this
           head.correctParentTree()
-    
+
     # ## find ##
     # A utility function for finding the innermost
     # token fitting (fn), assuming there is only
@@ -255,18 +258,18 @@ define ->
 
       until head is @end
         examined = if head instanceof StartToken then head.container else head
-        
+
         # Skip over things in the excludes array
         if examined in excludes
           head = examined.end
-        
+
         unless head instanceof EndToken or head.type in ['newline', 'cursor']
           if fn(examined) then return examined
-        
+
         head = head.next
 
       if fn(this) then return this
-    
+
     # ## getTokenAtLocation ##
     # Get the `loc`th token from the start.
     getTokenAtLocation: (loc) ->
@@ -279,11 +282,11 @@ define ->
         until count is loc or head is @end
           unless head?.type is 'cursor' then count++
           head = head.next
-        
+
         head = head.next while head?.type is 'cursor'
-        
+
         return head
-    
+
     # ## getBlockOnLine ##
     # Get the innermost block that contains
     # the given line.
@@ -297,19 +300,27 @@ define ->
           when 'blockStart' then stack.push head.container
           when 'blockEnd' then stack.pop()
         head = head.next
-      
+
       while head?.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] then head = head.next
       if head?.type is 'blockStart' then stack.push head.container
 
       return stack[stack.length - 1]
-    
+
     # ## traverseOneLevel ##
     # Identical to the utility function below;
     # traverse one tree level between our
     # start and end tokens.
     traverseOneLevel: (fn) ->
       traverseOneLevel @start.next, fn
-    
+
+    isFirstOnLine: ->
+      return @start.previousVisibleToken() is @parent?.start or
+        @start.previousVisibleToken()?.type is 'newline'
+
+    isLastOnLine: ->
+      return @end.nextVisibleToken() is @parent?.end or
+        @end.nextVisibleToken()?.type in ['newline', 'indentStart']
+
     # Line mark mutators
     addLineMark: (mark) ->
       @lineMarkStyles.push mark
@@ -319,7 +330,7 @@ define ->
 
     clearLineMarks: ->
       @lineMarkStyles = []
-  
+
   # Token
   # ==================
   # Base class from which all other
@@ -332,7 +343,7 @@ define ->
       @prev = @next = @parent = null
 
       @version = 0
-    
+
     # ## append ##
     # Link this token to another
     # in the linked list.
@@ -347,27 +358,27 @@ define ->
           head.parent = @parent
 
       return token
-    
+
     # ## insert ##
     insert: (token) ->
       if token instanceof StartToken or
          token instanceof EndToken
         console.warn '"insert"-ing a container can cause problems'
-      
+
       token.next = @next; token.prev = this
       @next.prev = token; @next = token
 
       token.parent = @parent
 
       return token
-    
+
     insertBefore: (token) ->
       if @prev? then @prev.insert token
       else
         @prev = token
         token.next = this
         token.parent = @parent
-    
+
     # ## remove ##
     # Splice this token out of the
     # linked list.
@@ -376,7 +387,7 @@ define ->
       else @next.prev = null
 
       @prev = @next = @parent = null
-    
+
     # ## isVisible ##
     isVisible: YES
 
@@ -399,7 +410,15 @@ define ->
         head = head.parent
 
       return null
-    
+
+    isFirstOnLine: ->
+      return @previousVisibleToken() is @parent?.start or
+        @previousVisibleToken()?.type is 'newline'
+
+    isLastOnLine: ->
+      return @nextVisibleToken() is @parent?.end or
+        @nextVisibleToken()?.type in ['newline', 'indentStart']
+
     getSerializedLocation: ->
       head = this; count = 0
       until head is null
@@ -422,7 +441,7 @@ define ->
         head.parent = @container
 
       return token
-    
+
     insert: (token) ->
       if token instanceof StartToken or
          token instanceof EndToken
@@ -449,7 +468,7 @@ define ->
         head.parent = @container.parent
 
       return token
-    
+
     insert: (token) ->
       if token instanceof StartToken or
          token instanceof EndToken
@@ -466,7 +485,7 @@ define ->
 
   # Block
   # ==================
-  
+
   exports.BlockStartToken = class BlockStartToken extends StartToken
     constructor: (@container) -> super; @type = 'blockStart'
     serialize: -> "<block color=\"#{@container.color}\" precedence=\"#{@container.precedence}\">"
@@ -474,7 +493,7 @@ define ->
   exports.BlockEndToken = class BlockEndToken extends EndToken
     constructor: (@container) -> super; @type = 'blockEnd'
     serialize: -> "</block>"
-  
+
   exports.Block = class Block extends Container
     constructor: (@precedence = 0, @color = '#ddf', @valueByDefault = false) ->
       @start = new BlockStartToken this
@@ -489,7 +508,7 @@ define ->
       clone.currentlyParenWrapped = @currentlyParenWrapped
 
       return clone
-    
+
     # ## checkparenWrap ##
     # Insert or remove wrapping parentheses as necessary.
     checkParenWrap: ->
@@ -507,7 +526,7 @@ define ->
         if @end.prev.value.length is 0 then @end.prev.remove()
 
         @currentlyParenWrapped = false
-    
+
     # ## spliceOut and spliceIn ##
     # We need to also check paren wrap
     # after these change-of-context things.
@@ -567,12 +586,12 @@ define ->
 
   # Segment
   # ==================
-  
+
   exports.SegmentStartToken = class SegmentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'segmentStart'
     isVisible: NO
     serialize: -> "<segment>"
-  
+
   exports.SegmentEndToken = class SegmentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'segmentStart'
     isVisible: NO
@@ -597,11 +616,11 @@ define ->
 
       @start.remove(); @end.remove()
 
-  
+
   # Text
   exports.TextToken = class TextToken extends Token
     constructor: (@_value) -> super; @type = 'text'
-    
+
     # We will define getter/setter for the @value property
     # of TextToken, which is meant to be mutable but
     # also causes content change.
@@ -636,7 +655,7 @@ define ->
       else if head instanceof StartToken
         fn head.container, true; head = head.container.end
       else fn head, false
-      
+
       head = head.next
 
   return exports
