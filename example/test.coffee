@@ -45,7 +45,7 @@ require ['ice'], (ice) ->
 
   model.correctParentTree()
 
-  view = new ice.view.View()
+  view = new ice.view.View ctx: document.getElementById('main').getContext '2d'
 
   modelView = view.getViewNodeFor(model)
 
