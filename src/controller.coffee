@@ -178,8 +178,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # ## Tracker Events
       # We allow binding to the tracker element.
-      for eventName in ['mousedown', 'mouseup', 'mousemove'] then do (eventName) =>
-        @iceElement.addEventListener eventName, (event) =>
+      for eventName, element of {
+          mousedown: @iceElement
+          mouseup: window
+          mousemove: window } then do (eventName, element) =>
+        element.addEventListener eventName, (event) =>
           trackPoint = @getPointRelativeToTracker event
 
           # We keep a state object so that handlers
@@ -402,10 +405,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::trackerOffset = (el) ->
     x = y = 0
 
+    subtractIceElementOffset = =>
+      el = @iceElement
+      until el is null
+        x -= el.offsetLeft - el.scrollLeft
+        y -= el.offsetTop - el.scrollTop
+        el = el.offsetParent
+
     until el is @iceElement
+      if el is null
+        # if outside iceElement, then subtract iceElement's offset.
+        do subtractIceElementOffset
+        break
       x += el.offsetLeft - el.scrollLeft
       y += el.offsetTop - el.scrollTop
-
       el = el.offsetParent
 
     return new draw.Point x, y
