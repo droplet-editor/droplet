@@ -11,7 +11,6 @@
 }
 .ice-palette-canvas {
   z-index: 1;
-  right: 0;
   width: 300px;
 }
 .ice-main-canvas {
@@ -33,18 +32,7 @@
   position: absolute;
   top: 0; left: 0;
   cursor: default;
-  -webkit-user-select: none;
-  user-select: none;
   background-color: #FFF;
-}
-.ice-track-area {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 3;
-  cursor: default;
-  -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
@@ -72,8 +60,12 @@
 .ice-palette-wrapper {
   position: absolute;
   top: 0; bottom: 0; width: 300px;
-  right: 0;
   z-index: 257;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 .ice-palette-header {
   z-index: 257;
@@ -83,6 +75,7 @@
   width: 100%;
   background-color: #DDD;
   line-height: 10px;
+  border-spacing: 4px;
   border-bottom: 2px solid #000;
   font-size: 15px;
   display: table;
@@ -99,6 +92,9 @@
   line-height: 30px;
   cursor: pointer;
   overflow: hidden;
+  padding-left: 10px;
+  border-left: 10px solid;
+  color: dimgray;
 }
 .ice-palette-group-header-selected {
   display: table-cell;
@@ -106,7 +102,23 @@
   cursor: pointer;
   background-color: #000;
   color: #FFF;
+  font-weight: bold;
 }
+.ice-palette-group-header.common { border-left: 10px solid blue; }
+.ice-palette-group-header-selected.common { background-color: blue; }
+.ice-palette-group-header.turtle { border-left: 10px solid green; }
+.ice-palette-group-header-selected.turtle { background-color: green; }
+.ice-palette-group-header.control { border-left: 10px solid orange; }
+.ice-palette-group-header-selected.control { background-color: orange; }
+.ice-palette-group-header.functions { border-left: 10px solid red; }
+.ice-palette-group-header-selected.functions { background-color: red; }
+.ice-palette-group-header.containers { border-left: 10px solid purple; }
+.ice-palette-group-header-selected.containers { background-color: purple; }
+.ice-palette-group-header.logic { border-left: 10px solid gold; }
+.ice-palette-group-header-selected.logic { background-color: gold; }
+.ice-palette-group-header.math { border-left: 10px solid lightgreen; }
+.ice-palette-group-header-selected.math { background-color: lightgreen; }
+
 .ice-hidden-input {
   position: absolute;
   top: -9999px;

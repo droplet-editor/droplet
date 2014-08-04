@@ -19,10 +19,12 @@ readFile = (name) ->
 
 
 require ['ice'], (ice) ->
+  $('#palette_dialog').dialog()
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), [
+  window.editor = new ice.Editor document.getElementById('editor'), document.getElementById('palette'), [
     {
-      name: 'Common',
+      name: 'Common'
+      color: 'common'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         'fd 100'
         'bk 100'
@@ -43,7 +45,8 @@ require ['ice'], (ice) ->
       ])
     }
     {
-      name: 'Turtle',
+      name: 'Turtle'
+      color: 'turtle'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         'fd 100'
         'bk 100'
@@ -59,7 +62,8 @@ require ['ice'], (ice) ->
       ])
     }
     {
-      name: 'Control',
+      name: 'Control'
+      color: 'control'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         '''
         if touches 'red'
@@ -86,7 +90,8 @@ require ['ice'], (ice) ->
       ])
     }
     {
-      name: 'Functions',
+      name: 'Functions'
+      color: 'functions'
       blocks: [
         ice.parseObj {
           type: 'block'
@@ -170,7 +175,8 @@ require ['ice'], (ice) ->
       ]
     }
     {
-      name: 'Containers',
+      name: 'Containers'
+      color: 'containers'
       blocks: [
         ice.parseObj {
           type: 'block'
@@ -241,6 +247,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Logic'
+      color: 'logic'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         '1 is 1'
         '1 isnt 2'
@@ -250,6 +257,7 @@ require ['ice'], (ice) ->
     }
     {
       name: 'Math'
+      color: 'math'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
         '2 + 3'
         '2 - 3'
@@ -350,8 +358,6 @@ require ['ice'], (ice) ->
 
   editor.setValue examplePrograms.fizzbuzz
   editor.clearUndoStack()
-
-  editor.paletteWrapper.style.right = '-300px'
 
   messageElement = document.getElementById 'message'
   displayMessage = (text) ->
