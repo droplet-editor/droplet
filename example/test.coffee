@@ -1,6 +1,13 @@
 require.config
   paths:
-    'ice': '../dist/ice-full'
+    'ice': '../js/main'
+    'ice-coffee': '../js/coffee'
+    'ice-model': '../js/model'
+    'ice-view': '../js/view'
+    'ice-parser': '../js/parser'
+    'ice-draw': '../js/draw'
+    'ice-controller': '../js/controller'
+    'coffee-script': '../vendor/coffee-script'
 
 require ['ice'], (ice) ->
   resize = ->
@@ -38,34 +45,21 @@ require ['ice'], (ice) ->
 
   model.correctParentTree()
 
-  view = new ice.view.View
-    padding: 5
-    indentWidth: 10
-    indentToungeHeight: 10
-    tabOffset: 10
-    tabWidth: 15
-    tabHeight: 5
-    tabSideWidth: 0.125
-    dropAreaHeight: 20
-    indentDropAreaMinWidth: 50
-    emptySocketWidth: 20
-    emptySocketHeight: 25
-    emptyLineHeight: 25
-    highlightAreaHeight: 10
-    shadowBlur: 5
-    ctx: document.querySelector('canvas').getContext '2d'
+  view = new ice.view.View ctx: document.getElementById('main').getContext '2d'
 
-  modelView = view.getViewFor(model)
+  modelView = view.getViewNodeFor(model)
 
   pos = 0
   
   document.body.addEventListener 'keydown', (event) ->
-    if event.which in [37, 38, 39, 40, 74, 75, 76]
+    if event.which in [37, 38, 39, 40, 74, 75, 76, 8]
       modelView.layout()
       view.opts.ctx.clearRect(0, 0,
         document.querySelector('canvas').width,
         document.querySelector('canvas').height
       )
+
+      event.preventDefault()
 
       if event.which in [74, 75, 76]
         view.opts.ctx.globalAlpha = 0.2
@@ -91,33 +85,42 @@ require ['ice'], (ice) ->
           view.opts.ctx.globalAlpha = 1
         when 38
           view.clearCache()
-          modelView = view.getViewFor model
+          modelView = view.getViewNodeFor model
         when 74
           pos--
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
-            view.getViewFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
-            view.getViewFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
         when 75
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
-            view.getViewFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
-            view.getViewFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
         when 76
           pos++
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
-            view.getViewFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
-            view.getViewFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+            view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
+        when 8
+          head = model.getTokenAtLocation(pos)
+          if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
+            head.container.spliceOut()
+          else
+            head.remove()
+
+          modelView.layout()
+
 
   shown = false
   document.querySelector('#changebutton').addEventListener 'click', (event) ->
     model = ice.parse document.querySelector('#editor').value
     model.correctParentTree()
-    modelView = view.getViewFor(model)
+    modelView = view.getViewNodeFor(model)
 
     if shown
       shown = false
