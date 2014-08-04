@@ -1178,8 +1178,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             multilineView = @view.getViewNodeFor multilineChild.child
             multilineBounds = multilineView.bounds[line - multilineChild.startLine]
 
-            # Draw the upper-right corner
-            right.push new draw.Point bounds.right(), bounds.y
 
             # If the multiline child here is invisible,
             # draw the line just normally.
@@ -1199,6 +1197,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.
             else
+              right.push new draw.Point bounds.right(), bounds.y
               right.push new draw.Point bounds.right(), multilineBounds.y
               right.push new draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
               right.push new draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
@@ -1355,7 +1354,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             else
               glueTop = @bounds[line].bottom()
             
-            right.push new draw.Point multilineBounds.x, glueTop
+            unless multilineChild.child.type is 'indent'
+              right.push new draw.Point multilineBounds.x, glueTop
 
             # Draw the tab at the top of the indent if necessary
             if multilineChild.child.type is 'indent'
