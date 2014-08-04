@@ -16,6 +16,9 @@ define ->
   _intersects = (a, b, c, d) ->
     ((_area(a, b, c) > 0) != (_area(a, b, d) > 0)) and ((_area(c, d, a) > 0) != (_area(c, d, b) > 0))
 
+  max = (a, b) -> `(a > b ? a : b)`
+  min = (a, b) -> `(b > a ? a : b)`
+
   toRGB = (hex) ->
     # Convert to 6-char hex if not already there
     if hex.length is 4
@@ -123,15 +126,16 @@ define ->
 
     unite: (rectangle) ->
       unless @x? and @y? then @copy rectangle
+      else unless rectangle.x? and rectangle.y? then return
       else
-        @width = Math.max(@right(), rectangle.right()) - (@x = Math.min @x, rectangle.x)
-        @height = Math.max(@bottom(), rectangle.bottom()) - (@y = Math.min @y, rectangle.y)
+        @width = max(@right(), rectangle.right()) - (@x = min @x, rectangle.x)
+        @height = max(@bottom(), rectangle.bottom()) - (@y = min @y, rectangle.y)
 
     swallow: (point) ->
       unless @x? and @y? then @copy new Rectangle point.x, point.y, 0, 0
       else
-        @width = Math.max(@right(), point.x) - (@x = Math.min @x, point.x)
-        @height = Math.max(@bottom(), point.y) - (@y = Math.min @y, point.y)
+        @width = max(@right(), point.x) - (@x = min @x, point.x)
+        @height = max(@bottom(), point.y) - (@y = min @y, point.y)
 
     overlap: (rectangle) -> @x? and @y? and not ((rectangle.right()) < @x or (rectangle.bottom() < @y) or (rectangle.x > @right()) or (rectangle.y > @bottom()))
 
@@ -183,24 +187,27 @@ define ->
 
     _clearCache: ->
       if @_cacheFlag
+        minX = minY = Infinity
+        maxX = maxY = 0
         for point in @_points
-          point.translate @_cachedTranslation
-        @_bounds.translate @_cachedTranslation
-        @_cachedTranslation.clear()
-        @_cacheFlag = false
+          minX = min minX, point.x
+          maxX = max maxX, point.x
 
-    recompute: ->
-      @_bounds = new NoRectangle()
-      for point in @_points
-        @_bounds.swallow point
+          minY = min minY, point.y
+          maxY = max maxY, point.y
+        
+        @_bounds.x = minX; @_bounds.y = minY
+        @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
+
+        @_cacheFlag = false
 
     push: (point) ->
       @_points.push point
-      @_bounds.swallow point
+      @_cacheFlag = true
 
     unshift: (point) ->
       @_points.unshift point
-      @_bounds.swallow point
+      @_cacheFlag = true
 
     # ### Point containment ###
     # Accomplished with ray-casting
@@ -208,6 +215,8 @@ define ->
       @_clearCache()
 
       if @_points.length is 0 then return false
+
+      unless @_bounds.contains point then return false
 
       # "Ray" to the left
       dest = new Point @_bounds.x - 10, point.y

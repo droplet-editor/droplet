@@ -2981,12 +2981,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     lineDiv.style.fontSize = @view.opts.textHeight
     lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight
 
-    lineDiv.addEventListener 'mouseover', =>
-      treeView.bounds[line].stroke @lassoSelectCtx, '#000'
-
-    lineDiv.addEventListener 'mouseout', =>
-      @clearLassoSelectCanvas()
-
     @gutter.appendChild lineDiv
 
   Editor::findLineNumberAtCoordinate = (coord) ->

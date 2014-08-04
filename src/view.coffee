@@ -275,29 +275,33 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             top:0, bottom:0
           }
 
+        @firstMargins =
+          left: @margins.firstLeft
+          right: @margins.firstRight
+          top: @margins.top
+          bottom: if @lineLength is 1 then @margins.bottom else 0
+
+        @midMargins =
+          left: @margins.midLeft
+          right: @margins.midRight
+          top: 0
+          bottom: 0
+
+        @lastMargins =
+          left: @margins.lastLeft
+          right: @margins.lastRight
+          top: if @lineLength is 1 then @margins.top else 0
+          bottom: @margins.bottom
+
         for childObj in @children
           @view.getViewNodeFor(childObj.child).computeMargins()
 
         return null
 
       getMargins: (line) ->
-        margins =
-          left: @margins.midLeft
-          right: @margins.midRight
-          top: 0
-          bottom: 0
-
-        if line is @lineLength - 1
-          margins.bottom = @margins.bottom
-          margins.left = @margins.lastLeft
-          margins.right = @margins.lastRight
-
-        if line is 0
-          margins.top = @margins.top
-          margins.left = @margins.firstLeft
-          margins.right = @margins.firstRight
-
-        return margins
+        if line is 0 then @firstMargins
+        else if line is @lineLength - 1 then @lastMargins
+        else @midMargins
 
       computeBevels: ->
         @bevels =
@@ -315,8 +319,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       #
       # This is a void computeDimensinos that should be overridden.
       computeMinDimensions: ->
-        @minDimensions = (new draw.Size(0, 0) for [0...@lineLength])
-        @minDistanceToBase = ({above:0, below:0} for [0...@lineLength])
+        if @minDimensions.length > @lineLength
+          @minDimensions.length = @minDistanceToBase.length = @lineLength
+        else
+          until @minDimensions.length is @lineLength
+            @minDimensions.push new draw.Size 0, 0
+            @minDistanceToBase.push {above: 0, below: 0}
+
+        for i in [0...@lineLength]
+          @minDimensions[i].width = @minDimensions[i].height = 0
+          @minDistanceToBase[i].above = @minDistanceToBase[i].below = 0
+
         return null
 
 
@@ -335,9 +348,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         oldDistanceToBase = @distanceToBase
 
         # copy min dimensions
-        @dimensions = (draw.Size.copy(k) for k in @minDimensions)
-        @distanceToBase = (
-            {above: k.above, below: k.below} for k in @minDistanceToBase)
+        if @dimensions.length > @lineLength
+          @dimensions.length = @distanceToBase.length = @lineLength
+        else
+          until @dimensions.length is @lineLength
+            @dimensions.push new draw.Size 0, 0
+            @distanceToBase.push {above: 0, below: 0}
+
+        for size, i in @minDimensions
+          @dimensions[i].width = size.width; @dimensions[i].height = size.height
+          @distanceToBase[i].above = @minDistanceToBase[i].above
+          @distanceToBase[i].below = @minDistanceToBase[i].below
 
         if @model.parent? and not root and
             (@topLineSticksToBottom or @bottomLineSticksToTop)
@@ -515,7 +536,9 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # of the everything that has to do with the element,
           # and we redraw iff it overlaps the AABB of the viewport.
           @totalBounds = new draw.NoRectangle()
-          @totalBounds.unite bound for bound in @bounds
+          if @bounds.length > 0
+            @totalBounds.unite @bounds[0]
+            @totalBounds.unite @bounds[@bounds.length - 1]
           @totalBounds.unite @path.bounds()
 
         # Recurse.
@@ -813,6 +836,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # If we can, use cached data.
         if @computedVersion is @model.version
           return null
+        
+        #console.log 'recomputing', @model.type, @model.stringify()[..500]
 
         # start at zero min dimensions
         super
