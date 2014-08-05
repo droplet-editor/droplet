@@ -262,6 +262,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for binding in editorBindings.resize_palette
         binding.call this
 
+      @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+
       @redrawPalette()
 
 
@@ -496,6 +498,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # Nope, it's not. Answer is null.
     else return null
+  
+  hook 'mousedown', 10, ->
+    @iceElement.focus()
 
   # UNDO STACK SUPPORT
   # ================================
