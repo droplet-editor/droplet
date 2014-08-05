@@ -2136,6 +2136,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @aceEditor.on 'change', =>
       @setFontSize_raw @aceEditor.getFontSize()
+      @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+      @resize()
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
@@ -2449,7 +2451,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             vector: translationVectors[i]
 
         top = Math.max @aceEditor.getFirstVisibleRow(), 0
-        bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewFor(@tree).lineLength - 1
+        bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
 
         treeView = @view.getViewNodeFor @tree
         lineHeight = @aceEditor.renderer.layerConfig.lineHeight
@@ -2621,7 +2623,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::setFontSize = (fontSize) ->
     @aceEditor.setFontSize fontSize
+    @aceEditor.resize()
     @setFontSize_raw fontSize
+    @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+    @resize()
 
   # MUTATION BUTTON SUPPORT
   # ================================

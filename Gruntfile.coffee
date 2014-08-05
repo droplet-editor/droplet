@@ -138,7 +138,7 @@ module.exports = (grunt) ->
   grunt.registerTask 'quickbuild',
     ['coffee']
   grunt.registerTask 'all',
-    ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'test']
+    ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'cssmin', 'test']
 
   grunt.registerTask 'notify-done', ->
     notify 'Compilation complete.'
