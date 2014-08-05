@@ -3045,10 +3045,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @lineNumberTags[line] = lineDiv
 
-    lineDiv.style.top =  "#{treeView.bounds[line].y}px"
-    lineDiv.style.height =  treeView.bounds[line].height
-    lineDiv.style.fontSize = @view.opts.textHeight
-    lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight
+    lineDiv.style.top =  treeView.bounds[line].y + 'px'
+    lineDiv.style.height =  treeView.bounds[line].height + 'px'
+    lineDiv.style.fontSize = @view.opts.textHeight + 'px'
+    lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight + 'px'
 
     @gutter.appendChild lineDiv
 
