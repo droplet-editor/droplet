@@ -2448,8 +2448,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
               y: textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y
             vector: translationVectors[i]
 
-      top = Math.max @aceEditor.getFirstVisibleRow(), 0
-      bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewFor(@tree).lineLength - 1
+        top = Math.max @aceEditor.getFirstVisibleRow(), 0
+        bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewFor(@tree).lineLength - 1
 
         treeView = @view.getViewNodeFor @tree
         lineHeight = @aceEditor.renderer.layerConfig.lineHeight
