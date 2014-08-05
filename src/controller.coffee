@@ -2984,68 +2984,69 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'populate', 0, ->
     @touchScrollAnchor = new draw.Point 0, 0
     @lassoSelectStartTimeout = null
+  
+    for element in [@iceElement, @paletteWrapper] then do (element) =>
+      element.addEventListener 'touchstart', (event) =>
+        clearTimeout @lassoSelectStartTimeout
 
-    @iceElement.addEventListener 'touchstart', (event) =>
-      clearTimeout @lassoSelectStartTimeout
+        trackPoint = @touchEventToPoint event, 0
 
-      trackPoint = @touchEventToPoint event, 0
+        # We keep a state object so that handlers
+        # can know about each other.
+        #
+        # We will suppress lasso select to
+        # allow scrolling.
+        state = {
+          suppressLassoSelect: true
+        }
 
-      # We keep a state object so that handlers
-      # can know about each other.
-      #
-      # We will suppress lasso select to
-      # allow scrolling.
-      state = {
-        suppressLassoSelect: true
-      }
+        # Call all the handlers.
+        for handler in editorBindings.mousedown
+          handler.call this, trackPoint, event, state
 
-      # Call all the handlers.
-      for handler in editorBindings.mousedown
-        handler.call this, trackPoint, event, state
+        # If we did not hit anything,
+        # we may want to start a lasso select
+        # in a little bit.
+        if state.consumedHitTest
+          event.preventDefault()
+        else
+          @queueLassoMousedown trackPoint, event
 
-      # If we did not hit anything,
-      # we may want to start a lasso select
-      # in a little bit.
-      if state.consumedHitTest
+      window.addEventListener 'touchmove', (event) =>
+        clearTimeout @lassoSelectStartTimeout
+
+        trackPoint = @touchEventToPoint event, 0
+
+        unless @clickedBlock? or @draggingBlock?
+          @queueLassoMousedown trackPoint, event
+
+        # We keep a state object so that handlers
+        # can know about each other.
+        state = {}
+
+        # Call all the handlers.
+        for handler in editorBindings.mousemove
+          handler.call this, trackPoint, event, state
+
+        # If we are in the middle of some action,
+        # prevent scrolling.
+        if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor? or @textInputSelecting
+          event.preventDefault()
+
+      window.addEventListener 'touchend', (event) =>
+        clearTimeout @lassoSelectStartTimeout
+
+        trackPoint = @touchEventToPoint event, 0
+
+        # We keep a state object so that handlers
+        # can know about each other.
+        state = {}
+
+        # Call all the handlers.
+        for handler in editorBindings.mouseup
+          handler.call this, trackPoint, event, state
+
         event.preventDefault()
-      else
-        @queueLassoMousedown trackPoint, event
-
-    @iceElement.addEventListener 'touchmove', (event) =>
-      clearTimeout @lassoSelectStartTimeout
-
-      trackPoint = @touchEventToPoint event, 0
-
-      unless @clickedBlock? or @draggingBlock?
-        @queueLassoMousedown trackPoint, event
-
-      # We keep a state object so that handlers
-      # can know about each other.
-      state = {}
-
-      # Call all the handlers.
-      for handler in editorBindings.mousemove
-        handler.call this, trackPoint, event, state
-
-      # If we are in the middle of some action,
-      # prevent scrolling.
-      if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor? or @textInputSelecting
-        event.preventDefault()
-
-    @iceElement.addEventListener 'touchend', (event) =>
-      clearTimeout @lassoSelectStartTimeout
-
-      trackPoint = @touchEventToPoint event, 0
-
-      # We keep a state object so that handlers
-      # can know about each other.
-      state = {}
-
-      # Call all the handlers.
-      for handler in editorBindings.mouseup
-        handler.call this, trackPoint, event, state
-
-      event.preventDefault()
 
   # CURSOR DRAW SUPPORRT
   # ================================
