@@ -318,8 +318,7 @@ define ->
         ctx.stroke()
 
         ctx.lineWidth = 2
-        #ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
-        ctx.strokeStyle = '#000'
+        ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
         ctx.stroke()
 
         ctx.beginPath()

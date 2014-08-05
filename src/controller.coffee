@@ -2466,7 +2466,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           div.style.boxSizing = 'border-box'
           div.style.position = 'absolute'
           div.style.zIndex = 300
-          div.style.width = "#{editor.aceEditor.renderer.$gutter.offsetWidth}px"
+          div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
           div.style.textAlign = 'right'
           div.style.paddingRight = '10px'
 
