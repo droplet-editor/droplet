@@ -348,7 +348,7 @@ require ['ice'], (ice) ->
 
   $('#palette_dialog').dialog
     resize: -> editor.resizePalette()
-
+  
   editor.resizePalette()
 
   # Update textarea on ICE editor change
@@ -373,8 +373,8 @@ require ['ice'], (ice) ->
     ), 2000
 
   document.getElementById('toggle').addEventListener 'click', ->
-    unless editor.toggleBlocks().success
-      # If we were unsuccessful at toggling,
-      # put up a message.
-      unless editor.currentlyUsingBlocks or editor.currentlyAnimating
-        displayMessage 'Syntax error'
+    editor.toggleBlocks()
+    if $('#palette_dialog').dialog 'isOpen'
+      $('#palette_dialog').dialog 'close'
+    else
+      $("#palette_dialog").dialog 'open'
