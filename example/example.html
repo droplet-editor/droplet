@@ -13,7 +13,7 @@
     <style>
       body {
         font-family: sans-serif;
-        overflow: hidden;
+        overflow: auto;
         margin: 0px; padding: 0px;
       }
       #out {
@@ -85,6 +85,9 @@
         position: absolute;
         top: 0; bottom: 0; right: 0; left: 0;
       }
+      #closeLogs {
+        height: 1000px;
+      }
     </style>
   </head>
   <body>
@@ -107,6 +110,6 @@
       <span id='message'></span>
     </div>
     <div id='logs'><div id="logsContent"></div></div>
-    <div id='closeLogs'>x</div>
+    <div id='closeLogs'></div>
   </body>
 </html>

@@ -2260,7 +2260,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     top = element.offsetTop
 
     while (element = element.offsetParent)?
-      top += element.offsetTop
+      top += element.offsetTop - element.scrollTop
 
     return top
 
@@ -2268,7 +2268,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     left = element.offsetLeft
 
     while (element = element.offsetParent)?
-      left += element.offsetLeft
+      left += element.offsetLeft - element.scrollLeft
 
     return left
 
