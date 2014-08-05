@@ -2411,8 +2411,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       unless setValueResult.success
         return setValueResult
-
-      @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
+      
+      if @aceEditor.getFirstVisibleRow() is 0
+        @mainScroller.scrollTop = 0
+      else
+        @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
       setTimeout (=>
         @setFontSize @aceEditor.getFontSize()
