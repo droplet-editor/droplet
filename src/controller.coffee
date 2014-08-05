@@ -2828,7 +2828,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.style.top = @iceElement.style.left = '0px'
       @aceElement.style.top = @aceElement.style.left = '-9999px'
-      @gutter.style.display = 'block'
+      @gutter.style.left = @gutter.style.top = '0px'
       @currentlyUsingBlocks = true
 
       @resize(); @redrawMain()
@@ -2838,7 +2838,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.style.top = @iceElement.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
-      @gutter.style.display = 'none'
+      @gutter.style.left = @gutter.style.top = '-9999px'
       @currentlyUsingBlocks = false
 
       @resize()
