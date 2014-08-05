@@ -407,9 +407,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     )
 
   Editor::absoluteOffset = (el) ->
-    point = new draw.Point 0, 0
+    point = new draw.Point el.offsetLeft, el.offsetTop
+    el = el.offsetParent
 
-    until el is document.body
+    until el is document.body or not el?
       point.x += el.offsetLeft - el.scrollLeft
       point.y += el.offsetTop - el.scrollTop
 
@@ -418,22 +419,29 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     return point
 
   Editor::trackerOffset = (el) ->
-    x = y = 0
+    x = el.offsetLeft
+    y = el.offsetTop
+    el = el.offsetParent
 
     subtractIceElementOffset = =>
-      el = @iceElement
-      until el is null
+      el = @iceElement.offsetParent
+
+      x -= @iceElement.offsetLeft
+      y -= @iceElement.offsetTop
+      
+      while el?
         x -= el.offsetLeft - el.scrollLeft
         y -= el.offsetTop - el.scrollTop
         el = el.offsetParent
 
     until el is @iceElement
-      if el is null
+      unless el?
         # if outside iceElement, then subtract iceElement's offset.
         do subtractIceElementOffset
         break
       x += el.offsetLeft - el.scrollLeft
       y += el.offsetTop - el.scrollTop
+
       el = el.offsetParent
 
     return new draw.Point x, y
