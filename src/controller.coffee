@@ -206,7 +206,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # ## Tracker Events
       # We allow binding to the tracker element.
       for eventName, elements of {
-          mousedown: [@iceElement, @paletteElement]
+          mousedown: [@iceElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
         
@@ -2946,7 +2946,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # appears to "float" over all other elements
   hook 'mousedown', -1, ->
     if @clickedBlock?
-      @dragCover.display = 'block'
+      @dragCover.style.display = 'block'
       @dragCanvas.style.zIndex = 300
 
   # On mouseup, throw the drag canvas away completely.
