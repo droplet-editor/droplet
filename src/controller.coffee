@@ -2934,11 +2934,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # DRAG CANVAS SHOW/HIDE HACK
   # ================================
 
+  hook 'populate', 0, ->
+    @dragCover = document.createElement 'div'
+    @dragCover.className = 'ice-drag-cover'
+    @dragCover.style.display = 'none'
+
+    document.body.appendChild @dragCover
+
   # On mousedown, bring the drag
   # canvas to the front so that it
   # appears to "float" over all other elements
-  hook 'mousedown', 0, ->
-    @dragCanvas.style.zIndex = 300
+  hook 'mousedown', -1, ->
+    if @clickedBlock?
+      @dragCover.display = 'block'
+      @dragCanvas.style.zIndex = 300
 
   # On mouseup, throw the drag canvas away completely.
   hook 'mouseup', 0, ->
@@ -2946,6 +2955,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @dragCanvas.style.left = '-9999px'
 
     @dragCanvas.style.zIndex = 0
+    @dragCover.style.display = 'none'
 
   # TOUCHSCREEN SUPPORT
   # =================================
