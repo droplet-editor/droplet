@@ -806,8 +806,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if @draggingBlock?
       # Translate the drag canvas into position.
       position = new draw.Point(
-        point.x + @draggingOffset.x + getOffsetLeft(@iceElement),
-        point.y + @draggingOffset.y + getOffsetTop(@iceElement)
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
       )
 
       @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
@@ -2619,7 +2619,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::setFontSize_raw = (fontSize) ->
     unless @fontSize is fontSize
       @fontSize = fontSize
+
       @paletteHeader.style.fontSize = "#{fontSize}px"
+      @gutter.style.fontSize = "#{fontSize}px"
+
       @view.opts.textHeight = fontSize
       @view.clearCache()
 
