@@ -325,14 +325,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         noText: (opts.noText ? false)
       }
 
-      # Draw the cursor (if exists, and is inserted)
-      @redrawCursor()
-
       # Draw highlights around marked lines
       @clearHighlightCanvas()
 
       for line, path of @markedLines
         path.draw @highlightCtx
+
+      # Draw the cursor (if exists, and is inserted)
+      @redrawCursor()
 
       for binding in editorBindings.redraw_main
         binding.call this, layoutResult
@@ -2828,6 +2828,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.style.top = @iceElement.style.left = '0px'
       @aceElement.style.top = @aceElement.style.left = '-9999px'
+      @gutter.style.display = 'block'
       @currentlyUsingBlocks = true
 
       @resize(); @redrawMain()
@@ -2837,6 +2838,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.style.top = @iceElement.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
+      @gutter.style.display = 'none'
       @currentlyUsingBlocks = false
 
       @resize()
