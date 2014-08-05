@@ -1483,6 +1483,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # to match the mouse.
   hook 'mousemove', 0, (point, event, state) ->
     if @textInputSelecting
+      unless @textFocus?
+        @textInputSelecting = false; return
+
       mainPoint = @trackerPointToMain point
 
       @setTextInputHead mainPoint

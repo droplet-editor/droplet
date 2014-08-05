@@ -1188,11 +1188,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               else
                 right.push new draw.Point bounds.right(), bounds.y
 
-              if @bevels.bottomRight and not @glue[line]?.draw
-                right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-                right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
-              else
-                right.push new draw.Point bounds.right(), bounds.bottom()
+              # The bevels for this case will be handled
+              # in the glue phase, so we don't draw them now.
 
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.
