@@ -2303,7 +2303,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           vector: translationVectors[i]
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
-      bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewFor(@tree).lineLength - 1
+      bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
       aceScrollTop = @aceEditor.session.getScrollTop()
 
       treeView = @view.getViewNodeFor @tree
