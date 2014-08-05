@@ -786,12 +786,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # Translate it immediately into position
       position = new draw.Point(
-        point.x + @draggingOffset.x + getOffsetTop(@iceElement),
-        point.y + @draggingOffset.y + getOffsetLeft(@iceElement)
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
       )
 
-      @dragCanvas.style.top = "#{position.y}px"
-      @dragCanvas.style.left = "#{position.x}px"
+      @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
+      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
@@ -810,8 +810,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         point.y + @draggingOffset.y + getOffsetTop(@iceElement)
       )
 
-      @dragCanvas.style.top = "#{position.y}px"
-      @dragCanvas.style.left = "#{position.x}px"
+      @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
+      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
 
       mainPoint = @trackerPointToMain(position)
 
