@@ -2383,9 +2383,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         # Skip anything that's
         # off the screen the whole time.
-        unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y and
-                   textElement.bounds[0].y - @scrollOffsets.main.y < @mainCanvas.height or
-               0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
+        unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
                    textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
           continue
 
@@ -2395,19 +2393,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.innerText = textElement.model.value
 
         div.style.font = @fontSize + 'px Courier New'
-        div.style.position = 'absolute'
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
 
-        @transitionContainer.appendChild div
+        div.className = 'ice-transitioning-element'
+        translatingElements.push div
 
-        translatingElements.push
-          div: div
-          position:
-            x: textElement.bounds[0].x - @scrollOffsets.main.x
-            y: textElement.bounds[0].y - @scrollOffsets.main.y
-          vector: translationVectors[i]
+        @transitionContainer.appendChild div
+        
+        do (div, textElement, translationVectors, i) =>
+          setTimeout (=>
+            div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
+            div.style.top = (textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y) + 'px'
+          ), 500
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
       bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
@@ -2422,80 +2421,52 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         div.innerText = line + 1
 
-        div.style.font = @fontSize + 'px Courier New'
-        div.style.boxSizing = 'border-box'
-        div.style.position = 'absolute'
-        div.style.zIndex = 300
-        div.style.width = "#{@gutter.offsetWidth}px"
-        div.style.textAlign = 'right'
-        div.style.paddingRight = '10px'
-
         div.style.left = 0
         div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
 
-        translatingElements.push
-          div: div
-          position:
-            x: 0
-            y: treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize
-          vector: new draw.Point(
-            0,
-            lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize) - aceScrollTop + @scrollOffsets.main.y
-          )
+        div.style.font = @fontSize + 'px Courier New'
+        div.style.width = "#{@gutter.offsetWidth}px"
+        translatingElements.push div
+
+        div.className = 'ice-transitioning-element ice-transitioning-gutter'
+
         @mainScrollerStuffing.appendChild div
+        
+        do (div, line) =>
+          # Set off the css transition
+          setTimeout (=>
+            div.style.left = '0px'
+            div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
+          ), 500
 
       @gutter.style.left = '-9999px'
       @gutter.style.top = '-9999px'
+      
+      # Kick off fade-out transition
+      @paletteWrapper.style.opacity =
+        @mainCanvas.style.opacity =
+        @highlightCanvas.style.opacity = 0
+      
+      setTimeout (=>
+        # Translate the ICE editor div out of frame.
+        @iceElement.style.top = "-9999px"
+        @iceElement.style.left = "-9999px"
 
-      animatedColor = new AnimatedColor '#CCCCCC', '#FFFFFF', ANIMATION_FRAME_RATE
+        # Translate the ACE editor div into frame.
+        @aceElement.style.top = "0px"
+        @aceElement.style.left = "0px"
 
-      originalOffset = @scrollOffsets.main.y
+        # Finalize a bunch of animations
+        # that should be complete by now,
+        # but might not actually be due to
+        # floating point stuff.
+        @currentlyAnimating = false
+        @scrollOffsets.main.y = 0
+        @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
-      tick = (count) =>
-        # Schedule the next animation frame
-        # right away
-        if count < ANIMATION_FRAME_RATE * 2
-          setTimeout (->
-            tick count + 1
-          ), 1000 / ANIMATION_FRAME_RATE
-
-        if count < ANIMATION_FRAME_RATE
-          @paletteWrapper.style.opacity =
-            @mainCanvas.style.opacity =
-            @highlightCanvas.style.opacity = Math.max 0, 1 - 2 * (count / ANIMATION_FRAME_RATE)
-
-        else
-          for element in translatingElements
-            element.position.x += element.vector.x / ANIMATION_FRAME_RATE
-            element.position.y += element.vector.y / ANIMATION_FRAME_RATE
-
-            element.div.style.left = "#{element.position.x}px"
-            element.div.style.top = "#{element.position.y}px"
-
-        # Simultaneously, we will animate
-        # the canvas to the left, and fade
-
-        if count is ANIMATION_FRAME_RATE * 2
-          # Translate the ICE editor div out of frame.
-          @iceElement.style.top = "-9999px"
-          @iceElement.style.left = "-9999px"
-
-          # Translate the ACE editor div into frame.
-          @aceElement.style.top = "0px"
-          @aceElement.style.left = "0px"
-
-          # Finalize a bunch of animations
-          # that should be complete by now,
-          # but might not actually be due to
-          # floating point stuff.
-          @currentlyAnimating = false
-          @scrollOffsets.main.y = 0
-          @mainCtx.setTransform 1, 0, 0, 1, 0, 0
-
-          for element in translatingElements
-            element.div.parentNode.removeChild element.div
-
-      tick 0
+        for div in translatingElements
+          div.parentNode.removeChild div
+      ), 1500
 
       return success: true
 
@@ -2549,14 +2520,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
           div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
 
-          @transitionContainer.appendChild div
+          div.className = 'ice-transitioning-element'
+          translatingElements.push div
 
-          translatingElements.push
-            div: div
-            position:
-              x: textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x
-              y: textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y
-            vector: translationVectors[i]
+          @transitionContainer.appendChild div
+          
+          do (div, textElement) =>
+            setTimeout (=>
+              div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
+              div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y}px"
+            ), 0
 
         top = Math.max @aceEditor.getFirstVisibleRow(), 0
         bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
@@ -2573,62 +2546,47 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           div.innerText = line + 1
 
           div.style.font = @fontSize + 'px Courier New'
-          div.style.boxSizing = 'border-box'
-          div.style.position = 'absolute'
-          div.style.zIndex = 300
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
-          div.style.textAlign = 'right'
-          div.style.paddingRight = '10px'
 
           div.style.left = 0
-          div.style.top = "#{lineHeight * line}px"
+          div.style.top = "#{lineHeight * line - aceScrollTop + @scrollOffsets.main.y}px"
 
-          translatingElements.push
-            div: div
-            position:
-              x: 0
-              y: lineHeight * line - aceScrollTop + @scrollOffsets.main.y
-            vector: new draw.Point(
-              0,
-              lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize) - aceScrollTop + @scrollOffsets.main.y
-            )
+          div.className = 'ice-transitioning-element ice-transitioning-gutter'
+          translatingElements.push div
 
           @mainScrollerStuffing.appendChild div
+          
+          do (div, line) =>
+            setTimeout (=>
+              div.style.left = 0
+              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
+            ), 0
 
         @paletteWrapper.style.opacity =
           @mainCanvas.style.opacity =
           @highlightCanvas.style.opacity = 0
 
-        tick = (count) =>
-          if count < ANIMATION_FRAME_RATE * 2
-            setTimeout (->
-              tick count + 1
-            ), 1000 / ANIMATION_FRAME_RATE
+        setTimeout (=>
+          @paletteWrapper.style.opacity =
+          @mainCanvas.style.opacity =
+          @highlightCanvas.style.opacity = 1
+        ), 500
+        
+        setTimeout (=>
+          @paletteWrapper.className.replace /\ ice-fade-in/, ''
+          @mainCanvas.className.replace /\ ice-fade-in/, ''
+          @highlightCanvas.className.replace /\ ice-fade-in/, ''
 
-          if count < ANIMATION_FRAME_RATE
-            for element in translatingElements
-              element.position.x += -element.vector.x / ANIMATION_FRAME_RATE
-              element.position.y += -element.vector.y / ANIMATION_FRAME_RATE
+          @currentlyAnimating = false
+          @gutter.style.left = '0'
+          @gutter.style.top = '0'
+          @redrawMain()
+          @paletteHeader.style.zIndex = 257
 
-              element.div.style.left = "#{element.position.x}px"
-              element.div.style.top = "#{element.position.y}px"
+          for div in translatingElements
+            div.parentNode.removeChild div
+        ), 1000
 
-          else
-            @paletteWrapper.style.opacity =
-              @mainCanvas.style.opacity =
-              @highlightCanvas.style.opacity = Math.max 0, 1 - 2 * (2 - count / ANIMATION_FRAME_RATE)
-
-          if count is ANIMATION_FRAME_RATE * 2
-            @currentlyAnimating = false
-            @gutter.style.left = '0'
-            @gutter.style.top = '0'
-            @redrawMain()
-            @paletteHeader.style.zIndex = 257
-
-            for element in translatingElements
-              element.div.parentNode.removeChild element.div
-
-        tick 0
       ), 0
 
       return success: true
