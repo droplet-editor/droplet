@@ -626,14 +626,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # Call `@drawSelf`
           @drawSelf ctx, style
 
-          # Draw our children. We will want to draw blocks with line marks
-          # last, so that they appear on top, so we will abstain from them
-          # for now.
-          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) is 0
-            @view.getViewNodeFor(childObj.child).draw ctx, boundingRect, style
-
-          # Draw marked blocks.
-          for childObj in @children when (childObj.child.lineMarkStyles?.length ? 0) > 0
+          # Draw our children.
+          for childObj in @children
             @view.getViewNodeFor(childObj.child).draw ctx, boundingRect, style
 
           # Decrement our grayscale if necessary
@@ -1486,10 +1480,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         super
         @path.style.fillColor = @model.color
         @path.style.strokeColor = '#888'
-
-        if @model.lineMarkStyles.length > 0
-          @path.style.strokeColor = @model.lineMarkStyles[0].color
-          @path.style.lineWidth = 2
 
         @path.bevel = true
 

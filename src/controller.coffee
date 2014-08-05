@@ -328,6 +328,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # Draw the cursor (if exists, and is inserted)
       @redrawCursor()
 
+      # Draw highlights around marked lines
+      @clearHighlightCanvas()
+
+      for line, path of @markedLines
+        path.draw @highlightCtx
+
       for binding in editorBindings.redraw_main
         binding.call this, layoutResult
 
@@ -2695,41 +2701,29 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # LINE MARKING SUPPORT
   # ================================
 
-  Editor::markLine = (line, style) ->
+  hook 'populate', 0, ->
+    @markedLines = {}
+
+  Editor::markLine = (line) ->
     block = @tree.getBlockOnLine line
 
     if block?
-      block.addLineMark style
-      @view.getViewNodeFor(block).computeOwnPath()
+      path = @markedLines[line] = @view.getViewNodeFor(block).path.clone()
+
+      path.style.fillColor = null
+      path.style.strokeColor = '#FFF'
+      path.style.lineWidth = 2
+      path.noclip = true; path.bevel = false
 
     @redrawMain()
 
-  Editor::unmarkLine = (line, tag) ->
-    block = @tree.getBlockOnLine line
-
-    if block?
-      block.removeLineMark tag
-      @view.getViewNodeFor(block).computeOwnPath()
+  Editor::unmarkLine = (line) ->
+    delete @markedLines[line]
 
     @redrawMain()
 
   Editor::clearLineMarks = (tag) ->
-    head = @tree.start
-
-    until head is @tree.end
-      if head.type is 'blockStart'
-        # If clearLineMarks is called without
-        # a tag to clear, clear all tags.
-        if tag?
-          head.container.clearLineMarks()
-
-        # Otherwise, clear the selected tag.
-        else
-          head.container.removeLineMark tag
-
-        @view.getViewNodeFor(head.container).computeOwnPath()
-
-      head = head.next
+    @markedLines = {}
 
     @redrawMain()
 
