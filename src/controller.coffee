@@ -2490,7 +2490,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             div: div
             position:
               x: 0
-              y: lineHeight * line
+              y: lineHeight * line - aceScrollTop + @scrollOffsets.main.y
             vector: new draw.Point(
               0,
               lineHeight * line - (treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize) - aceScrollTop + @scrollOffsets.main.y
