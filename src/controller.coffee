@@ -339,7 +339,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for binding in editorBindings.redraw_main
         binding.call this, layoutResult
 
-  Editor::redrawCursor = -> @clearHIghlightCanvas(); @drawCursor()
+  Editor::redrawCursor = -> @clearHighlightCanvas(); @drawCursor()
 
   Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
