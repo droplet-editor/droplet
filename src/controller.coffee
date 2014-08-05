@@ -2750,14 +2750,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'populate', 0, ->
     @markedLines = {}
 
-  Editor::markLine = (line) ->
+  Editor::markLine = (line, style) ->
     block = @tree.getBlockOnLine line
 
     if block?
       path = @markedLines[line] = @view.getViewNodeFor(block).path.clone()
 
       path.style.fillColor = null
-      path.style.strokeColor = '#FFF'
+      path.style.strokeColor = style.color
       path.style.lineWidth = 2
       path.noclip = true; path.bevel = false
 
