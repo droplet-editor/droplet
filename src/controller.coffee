@@ -2505,8 +2505,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
           # Skip anything that's
           # off the screen the whole time.
-          unless 0 < textElement.bounds[0].y - @scrollOffsets.main.y < @mainCanvas.height or
-                 0 < textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
+          unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
+                   textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
             continue
 
           div = document.createElement 'div'
@@ -2518,7 +2518,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           div.style.position = 'absolute'
 
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
-          div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y + translationVectors[i].y}px"
+          div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
 
           div.className = 'ice-transitioning-element'
           translatingElements.push div
@@ -2528,7 +2528,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           do (div, textElement) =>
             setTimeout (=>
               div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-              div.style.top = "#{textElement.bounds[0].y + @scrollOffsets.main.y}px"
+              div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
             ), 0
 
         top = Math.max @aceEditor.getFirstVisibleRow(), 0
