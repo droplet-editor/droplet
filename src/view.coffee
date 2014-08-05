@@ -1354,15 +1354,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             if multilineChild.child.type is 'indent'
               right.push new draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
               right.push new draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
-            else
-              right.push new draw.Point multilineBounds.x, glueTop
 
-            # Draw the tab at the top of the indent if necessary
-            if multilineChild.child.type is 'indent'
               @addTab right, new draw.Point(@bounds[line + 1].x +
                 @view.opts.indentWidth +
                 @padding +
                 @view.opts.tabOffset, @bounds[line + 1].y), true
+            else
+              right.push new draw.Point multilineBounds.x, glueTop
 
             right.push new draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop
             right.push new draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, @bounds[line + 1].y
