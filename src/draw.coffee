@@ -110,6 +110,10 @@ define ->
       @x = rect.x; @y = rect.y
       @width = rect.width; @height = rect.height
 
+    clip: (ctx) ->
+      ctx.rect @x, @y, @width, @height
+      ctx.clip()
+
     clone: ->
       rect = new Rectangle(0, 0, 0, 0)
       rect.copy this

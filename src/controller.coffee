@@ -25,6 +25,33 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       obj[key] = value
 
     return obj
+  
+  deepCopy = (a) ->
+    if a instanceof Object
+      newObject = {}
+
+      for key, val of a
+        newObject[key] = deepCopy val
+
+      return newObject
+    
+    else
+      return a
+
+  deepEquals = (a, b) ->
+    if a instanceof Object
+      for own key, val of a
+        unless deepEquals b[key], val
+          console.log key, b[key], val, 'false'
+          return false
+      
+      for own key, val of b when not key of a
+        unless deepEquals a[key], val
+          return false
+
+      return true
+    else
+      return a is b
 
   # FOUNDATION
   # ================================
@@ -276,8 +303,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   #
   # Redrawing simply involves issuing a call to the View.
 
-  Editor::clearMain = ->
-    @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
+  Editor::clearMain = (opts) ->
+    if opts.boundingRectangle?
+      @mainCtx.clearRect opts.boundingRectangle.x, opts.boundingRectangle.y,
+        opts.boundingRectangle.width, opts.boundingRectangle.height
+    else
+      @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
   hook 'resize', 0, ->
     @topNubbyPath = new draw.Path()
@@ -310,13 +341,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       draw._setCTX @mainCtx
 
       # Clear the main canvas
-      @clearMain()
+      @clearMain(opts)
 
       @topNubbyPath.draw @mainCtx
+      
+      if opts.boundingRectangle?
+        @mainCtx.save()
+        opts.boundingRectangle.clip @mainCtx
 
       # Draw the new tree on the main context
       layoutResult = @view.getViewNodeFor(@tree).layout 0, TOP_TAB_HEIGHT
-      @view.getViewNodeFor(@tree).draw @mainCtx, new draw.Rectangle(
+      @view.getViewNodeFor(@tree).draw @mainCtx, opts.boundingRectangle ? new draw.Rectangle(
         @scrollOffsets.main.x,
         @scrollOffsets.main.y,
         @mainCanvas.width,
@@ -335,6 +370,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # Draw the cursor (if exists, and is inserted)
       @drawCursor()
+
+      if opts.boundingRectangle?
+        @mainCtx.restore()
 
       for binding in editorBindings.redraw_main
         binding.call this, layoutResult
@@ -1305,14 +1343,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # Redraw function for text input
   Editor::redrawTextInput = ->
+    sameLength = @textFocus.stringify().split('\n').length is @hiddenInput.value.split('\n').length
+
     # Set the value in the model to fit
     # the hidden input value.
     @populateSocket @textFocus, @hiddenInput.value
-
-    # Redraw the main canvas, on top of
-    # which we will draw the cursor and
-    # highlights.
-    @redrawMain()
 
     textFocusView = @view.getViewNodeFor @textFocus
 
@@ -1320,6 +1355,52 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # of the typing cursor
     startRow = @textFocus.stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
     endRow = @textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
+
+    # Redraw the main canvas, on top of
+    # which we will draw the cursor and
+    # highlights.
+    if sameLength and startRow is endRow
+      line = endRow
+      head = @textFocus.start
+
+      until head is @tree.start
+        head = head.prev
+        if head.type is 'newline' then line++
+
+      treeView = @view.getViewNodeFor @tree
+      
+      oldp = deepCopy [
+        treeView.glue[line - 1],
+        treeView.glue[line],
+        treeView.bounds[line].height
+      ]
+
+      treeView.layout 0, TOP_TAB_HEIGHT
+
+      newp = deepCopy [
+        treeView.glue[line - 1],
+        treeView.glue[line],
+        treeView.bounds[line].height
+      ]
+      
+      # If the layout has not changed enough to affect
+      # anything non-local, only redraw locally.
+      if deepEquals newp, oldp
+        rect = new draw.NoRectangle()
+        rect.unite treeView.bounds[line - 1] if line > 0
+        rect.unite treeView.bounds[line]
+        rect.unite treeView.bounds[line + 1] if line + 1 < treeView.bounds.length
+
+        rect.width = @mainCanvas.width
+
+        @redrawMain
+          boundingRectangle: rect
+
+      else @redrawMain()
+      
+    # Otherwise, redraw the whole thing
+    else
+      @redrawMain()
 
     lines = @textFocus.stringify().split '\n'
 
