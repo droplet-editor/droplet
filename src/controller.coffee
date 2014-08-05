@@ -651,6 +651,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @dragCanvas = document.createElement 'canvas'
     @dragCanvas.className = 'ice-drag-canvas'
 
+    @dragCanvas.style.left = '-9999px'
+    @dragCanvas.style.top = '-9999px'
+
     @dragCtx = @dragCanvas.getContext '2d'
 
     # And the canvas for drawing highlights
