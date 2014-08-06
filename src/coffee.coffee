@@ -251,7 +251,6 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # If there are mutliple expressions we have on the same line,
     # add a semicolon block around them.
     wrapSemicolons: (expressions, depth) ->
-      
       # We will keep track of the first and last
       # nodes on the current line, and their bounds.
       firstNode = lastNode =
@@ -375,7 +374,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
                 @addBlock node, depth, 0, COLORS.COMMAND, null
 
                 for expr in node.body.expressions
-                  @mark expr, depth + 1, 0, null, indentDepth
+                  @addSocketAndMark expr, depth + 1, 0, indentDepth
 
               else
                 @mark node.body.unwrap(), depth + 1, 0, (wrappingParen ? node), indentDepth
