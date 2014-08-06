@@ -885,6 +885,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
 
       mainPoint = @trackerPointToMain(position)
+      mainPoint.x +=@view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth)
+      mainPoint.y += @view.opts.tabHeight
 
       # If we are dragging a block,
       # we can drop on any Block not in a socket,

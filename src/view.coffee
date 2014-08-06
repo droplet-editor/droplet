@@ -1499,12 +1499,19 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
-        @highlightArea = new draw.Rectangle(
-          @bounds[@lineLength - 1].x,
-          @bounds[@lineLength - 1].bottom() - @view.opts.highlightAreaHeight / 2,
-          @bounds[@lineLength - 1].width,
-          @view.opts.highlightAreaHeight
-        ).toPath()
+
+        @highlightArea = new draw.Path()
+        highlightAreaPoints = []
+        lastBounds = @bounds[@lineLength - 1]
+
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+
+        @highlightArea.push point for point in highlightAreaPoints
 
         @highlightArea.style.lineWidth = 1
         @highlightArea.style.strokeColor = '#fff'
@@ -1664,12 +1671,22 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
-        @highlightArea = new draw.Rectangle(
-          @bounds[1].x,
-          @bounds[1].y - @view.opts.highlightAreaHeight / 2,
-          Math.max(@bounds[1].width, @view.opts.indentDropAreaMinWidth),
-          @view.opts.highlightAreaHeight
-        ).toPath()
+
+        @highlightArea = new draw.Path()
+        highlightAreaPoints = []
+
+        lastBounds = new draw.NoRectangle()
+        lastBounds.copy @bounds[1]
+        lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
+
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2
+        @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2
+
+        @highlightArea.push point for point in highlightAreaPoints
 
         @highlightArea.style.lineWidth = 1
         @highlightArea.style.strokeColor = '#fff'
