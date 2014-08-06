@@ -230,7 +230,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # block around a given node.
     addBlock: (node, depth, precedence, color, wrappingParen, socketLevel) ->
       # Create the block.
-      block = new model.Block precedence, color, socketLevel
+      block = new model.Block precedence, color, node.nodeType(), socketLevel
       
       # Add it
       @addMarkup block, node, wrappingParen, depth
@@ -469,7 +469,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'Call'
 
           if node.variable?
-            if node.variable in BLOCK_FUNCTIONS
+            if node.variable.compile() in BLOCK_FUNCTIONS
               @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen, MOSTLY_BLOCK
             else if node.variable in VALUE_FUNCTIONS
               @addBlock node, depth, precedence, COLORS.VALUE, wrappingParen, MOSTLY_VALUE

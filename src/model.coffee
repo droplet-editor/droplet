@@ -495,7 +495,7 @@ define ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = '#ddf', @socketLevel = null) ->
+    constructor: (@precedence = 0, @color = '#ddf', @nodeType = null, @socketLevel = null) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -504,7 +504,7 @@ define ->
       super
 
     _cloneEmpty: ->
-      clone = new Block @precedence, @color, @valueByDefault
+      clone = new Block @precedence, @color, @nodeType, @socketLevel
       clone.currentlyParenWrapped = @currentlyParenWrapped
 
       return clone

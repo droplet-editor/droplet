@@ -1510,12 +1510,21 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         highlightAreaPoints = []
         lastBounds = @bounds[@lineLength - 1]
 
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+
         @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+
+        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+
         @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+
+        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
         @highlightArea.push point for point in highlightAreaPoints
 
@@ -1685,12 +1694,21 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         lastBounds.copy @bounds[1]
         lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+
         @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2
+
+        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+
+        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+
         @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2
+
+        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
         @highlightArea.push point for point in highlightAreaPoints
 

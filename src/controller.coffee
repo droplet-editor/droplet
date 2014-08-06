@@ -12,6 +12,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
   TOP_TAB_HEIGHT = 20
+  DISCOURAGE_DROP_TIMEOUT = 1000
 
   ANY_DROP = 0
   BLOCK_ONLY = 1
@@ -48,7 +49,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if a instanceof Object
       for own key, val of a
         unless deepEquals b[key], val
-          console.log key, b[key], val, 'false'
           return false
       
       for own key, val of b when not key of a
@@ -891,8 +891,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
 
       mainPoint = @trackerPointToMain(position)
-      mainPoint.x +=@view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth)
-      mainPoint.y += @view.opts.tabHeight
 
       # If we are dragging a block,
       # we can drop on any Block not in a socket,
@@ -921,13 +919,35 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       #
       # i.e. if nothing has changed, don't
       # redraw.
-      if highlight isnt @lastHighlight and @canDrop @draggingBlock, highlight
-        @clearHighlightCanvas()
+      if highlight isnt @lastHighlight
+        if @discourageDropTimeout? and highlight isnt @discourageHighlight
+          clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
 
-        if highlight?
+        if @canDrop @draggingBlock, highlight
+          console.log 'can'
+          @clearHighlightCanvas()
+
           @view.getViewNodeFor(highlight).highlightArea.draw @highlightCtx
 
-        @lastHighlight = highlight
+          @lastHighlight = highlight
+
+        else if highlight isnt @discourageHighlight and @discourageDrop @draggingBlock, highlight
+          console.log 'dont'
+          @discourageHighlight = highlight
+          @discourageDropTimeout = setTimeout (=>
+            @discourageHighlight = null
+            @clearHighlightCanvas()
+
+            @view.getViewNodeFor(highlight).highlightArea.draw @highlightCtx
+
+            @lastHighlight = highlight
+            @discourageDropTimeout = null
+          ), DISCOURAGE_DROP_TIMEOUT
+          
+        else unless highlight is @discourageHighlight
+          console.log 'cant'
+          @clearHighlightCanvas()
+          @lastHighlight = null
 
       # Make the canvas transparent if
       # we would delete the block
@@ -940,13 +960,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @dragCanvas.style.opacity = 0.7
       else
         @dragCanvas.style.opacity = 1
+
+  hook 'mouseup', 0, ->
+    clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
   
   Editor::canDrop = (drag, drop) ->
+    unless drop? then return false
+
     if drop?.type is 'socket'
       if drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]
         return drop.accepts drag
     else
-      return true
+      return drag.socketLevel in [ANY_DROP, MOSTLY_BLOCK, BLOCK_ONLY]
+  
+  Editor::discourageDrop = (drag, drop) ->
+    unless drop? then return false
+
+    if drop?.type is 'socket'
+      if drag.socketLevel in [MOSTLY_BLOCK]
+        return drop.accepts drag
+    else
+      return drag.socketLevel in [MOSTLY_VALUE]
+
     
   hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
@@ -1064,9 +1099,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       renderPoint = @trackerPointToMain trackPoint
       palettePoint = @trackerPointToPalette trackPoint
 
-      renderPoint.x +=@view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth)
-      renderPoint.y += @view.opts.tabHeight
-
       # Move the cursor out of the block first
       if @inTree @draggingBlock
         @moveCursorTo @draggingBlock.end
@@ -1084,7 +1116,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
          0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
          (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
          0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
-        console.log 'deleting'
         @draggingBlock = null
         @draggingOffset = null
         @lastHighlight = null
@@ -1094,14 +1125,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         return
       
       else if renderPoint.x - @scrollOffsets.main.x < 0
-        console.log 'bumping over'
         renderPoint.x = @scrollOffsets.main.x
 
       # Add the undo operation associated
       # with creating this floating block
       @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint
 
-      console.log 'pushing to fbr', renderPoint.x, renderPoint.y
 
       # Add this block to our list of floating blocks
       @floatingBlocks.push new FloatingBlockRecord(
