@@ -10,6 +10,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
   MULTILINE_END = 3
   MULTILINE_END_START = 4
 
+  ANY_DROP = 0
+  BLOCK_ONLY = 1
+  MOSTLY_BLOCK = 2
+  MOSTLY_VALUE = 3
+  VALUE_ONLY = 4
+
   DEFAULT_OPTIONS =
     padding: 5
     indentWidth: 10
@@ -1474,7 +1480,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           parent = @model.parent
           while parent?.type is 'segment' then parent = parent.parent
           parent?.type isnt 'socket'
-        else not @model.valueByDefault
+        else not (@model.socketLevel in [MOSTLY_VALUE, VALUE_ONLY])
 
       computeOwnPath: ->
         super

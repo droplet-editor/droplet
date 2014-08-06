@@ -13,6 +13,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   ANIMATION_FRAME_RATE = 60
   TOP_TAB_HEIGHT = 20
 
+  ANY_DROP = 0
+  BLOCK_ONLY = 1
+  MOSTLY_BLOCK = 2
+  MOSTLY_VALUE = 3
+  VALUE_ONLY = 4
+
   exports = {}
 
   extend_ = (a, b) ->
@@ -929,7 +935,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
          0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
-         (0 < mainPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
+         (-@gutter.offsetWidth < mainPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
          0 < mainPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
         @dragCanvas.style.opacity = 0.7
       else
@@ -937,11 +943,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   
   Editor::canDrop = (drag, drop) ->
     if drop?.type is 'socket'
-      return drop.accepts drag
+      if drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]
+        return drop.accepts drag
     else
       return true
     
-  hook 'mouseup', 0, (point, event, state) ->
+  hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
     if @draggingBlock? and @lastHighlight?
@@ -1042,7 +1049,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       block = block.parent
 
     return block is @tree
-
+  
   # We can create floating blocks by dropping
   # blocks without a highlight.
   hook 'mouseup', 0, (point, event, state) ->
@@ -1056,6 +1063,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       )
       renderPoint = @trackerPointToMain trackPoint
       palettePoint = @trackerPointToPalette trackPoint
+
+      renderPoint.x +=@view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth)
+      renderPoint.y += @view.opts.tabHeight
 
       # Move the cursor out of the block first
       if @inTree @draggingBlock
@@ -1072,8 +1082,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       palettePoint = @trackerPointToPalette point
       if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
          0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
-         (0 < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
+         (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
          0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
+        console.log 'deleting'
         @draggingBlock = null
         @draggingOffset = null
         @lastHighlight = null
@@ -1081,10 +1092,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clearDrag()
         @redrawMain()
         return
+      
+      else if renderPoint.x - @scrollOffsets.main.x < 0
+        console.log 'bumping over'
+        renderPoint.x = @scrollOffsets.main.x
 
       # Add the undo operation associated
       # with creating this floating block
       @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint
+
+      console.log 'pushing to fbr', renderPoint.x, renderPoint.y
 
       # Add this block to our list of floating blocks
       @floatingBlocks.push new FloatingBlockRecord(
@@ -1327,7 +1344,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # The hidden input should be set up
     # to mirror the text to which it is associated.
-    for event in ['input', 'keyup', 'keydown']
+    for event in ['input', 'keyup', 'keydown', 'select']
       @hiddenInput.addEventListener event, =>
         if @textFocus?
           @populateSocket @textFocus, @hiddenInput.value
@@ -1564,7 +1581,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     row = Math.max row, 0
     row = Math.min row, textFocusView.lineLength - 1
 
-    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.padding) / @mainCtx.measureText(' ').width)
+    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding) / @mainCtx.measureText(' ').width)
 
     lines = @textFocus.stringify().split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
