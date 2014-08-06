@@ -2014,7 +2014,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       on_keyup: => @shiftKeyPressed = false
 
   hook 'key.enter', 0, ->
-    unless @shiftKeyPressed
+    unless @textFocus? or @shiftKeyPressed
       @setTextInputFocus null
 
       # Construct the block; flag the socket as handwritten
@@ -2867,6 +2867,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @gutter.style.left = @gutter.style.top = '0px'
       @currentlyUsingBlocks = true
 
+      @mainCanvas.opacity = @paletteWrapper.opacity =
+        @highlightCanvas.opacity = 1
+
       @resize(); @redrawMain()
 
     else
@@ -2876,6 +2879,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @aceElement.style.top = @aceElement.style.left = '0px'
       @gutter.style.left = @gutter.style.top = '-9999px'
       @currentlyUsingBlocks = false
+
+      @mainCanvas.opacity = @paletteWrapper.opacity =
+        @highlightCanvas.opacity = 0
 
       @resize()
 

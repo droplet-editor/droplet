@@ -444,7 +444,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'Call'
           @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen
 
-          if node.variable? and node.variable.base?.nodeType() isnt 'Literal'
+          if node.variable? and (node.do or node.variable.base?.nodeType() isnt 'Literal')
             @addSocketAndMark node.variable, depth + 1, 0, indentDepth
           
           unless node.do
