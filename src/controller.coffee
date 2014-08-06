@@ -375,13 +375,19 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Draw highlights around marked lines
     @clearHighlightCanvas()
 
-    for line, info of @markedLines when @inTree info.model
-      path = @getHighlightPath info.model, info.style
-      path.draw @highlightCtx
+    for line, info of @markedLines
+      if @inTree info.model
+        path = @getHighlightPath info.model, info.style
+        path.draw @highlightCtx
+      else
+        delete @markedLines[line]
       
-    for id, info of @extraMarks when @inTree info.model
-      path = @getHighlightPath info.model, info.style
-      path.draw @highlightCtx
+    for id, info of @extraMarks
+      if @inTree info.model
+        path = @getHighlightPath info.model, info.style
+        path.draw @highlightCtx
+      else
+        delete @extraMarks[id]
 
     @drawCursor()
 
