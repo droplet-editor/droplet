@@ -1236,16 +1236,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if state.consumedHitTest then return
 
     palettePoint = @trackerPointToPalette point
-    for block in @currentPaletteBlocks
-      hitTestResult = @hitTest palettePoint, block
+    if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
+       @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
 
-      if hitTestResult?
-        @clickedBlock = block
-        @clickedPoint = point
-        @clickedBlockIsPaletteBlock = true
-        state.consumedHitTest = true
-        return
+      for block in @currentPaletteBlocks
+        hitTestResult = @hitTest palettePoint, block
 
+        if hitTestResult?
+          @clickedBlock = block
+          @clickedPoint = point
+          @clickedBlockIsPaletteBlock = true
+          state.consumedHitTest = true
+          return
 
     @clickedBlockIsPaletteBlock = false
 
@@ -1951,35 +1953,26 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @moveCursorTo @cursor.next.next
     @scrollCursorIntoPosition()
 
-  hook 'key.shift tab', 0, ->
-    if @socketFocus?
-      head = @socketFocus.start
-
-    else
-      head = @cursor
-
-    until (not head?) or head.type is 'socketEnd' and head.container.start.next.type is 'text'
-      head = head.prev
-
-    if head?
-      @setTextInputFocus head.container, -1, -1
-
-    return false
-
   hook 'key.tab', 0, ->
-    if @socketFocus?
-      head = @socketFocus.end
+    if @shiftKeyPressed
+      if @socketFocus? then head = @socketFocus.start
+      else head = @cursor
 
+      until (not head?) or head.type is 'socketEnd' and head.container.start.next.type is 'text'
+        head = head.prev
+      if head?
+        @setTextInputFocus head.container, -1, -1
+      return false
+    
     else
-      head = @cursor
+      if @socketFocus? then head = @socketFocus.end
+      else head = @cursor
 
-    until (not head?) or head.type is 'socketStart' and head.container.start.next.type is 'text'
-      head = head.next
-
-    if head?
-      @setTextInputFocus head.container
-
-    return false
+      until (not head?) or head.type is 'socketStart' and head.container.start.next.type is 'text'
+        head = head.next
+      if head?
+        @setTextInputFocus head.container
+      return false
 
   Editor::deleteAtCursor = ->
     # Unfocus any inputs, which could get in the way.
