@@ -2363,8 +2363,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       return "rgb(#{Math.round(@currentRGB[0])},#{Math.round(@currentRGB[1])},#{Math.round(@currentRGB[2])})"
 
-  Editor::performMeltAnimation = ->
+  Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
     if @currentlyUsingBlocks and not @currentlyAnimating
+      @fireEvent 'statechange', [false]
+
       @aceEditor.setValue @getValue(), -1
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
@@ -2404,6 +2406,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
 
         div.className = 'ice-transitioning-element'
+        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
         translatingElements.push div
 
         @transitionContainer.appendChild div
@@ -2412,7 +2415,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           setTimeout (=>
             div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
             div.style.top = (textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y) + 'px'
-          ), 500
+          ), fadeTime
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
       bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
@@ -2433,8 +2436,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.font = @fontSize + 'px Courier New'
         div.style.width = "#{@gutter.offsetWidth}px"
         translatingElements.push div
-
+        
         div.className = 'ice-transitioning-element ice-transitioning-gutter'
+        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
 
         @mainScrollerStuffing.appendChild div
         
@@ -2443,12 +2447,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           setTimeout (=>
             div.style.left = '0px'
             div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
-          ), 500
+          ), fadeTime
 
       @gutter.style.left = '-9999px'
       @gutter.style.top = '-9999px'
       
       # Kick off fade-out transition
+
+      @paletteWrapper.style.transition  =
+        @mainCanvas.style.transition =
+        @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
+
       @paletteWrapper.style.opacity =
         @mainCanvas.style.opacity =
         @highlightCanvas.style.opacity = 0
@@ -2472,12 +2481,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         for div in translatingElements
           div.parentNode.removeChild div
-      ), 1500
+        
+        if cb? then do cb
+      ), fadeTime + translateTime
 
       return success: true
 
-  Editor::performFreezeAnimation = ->
+  Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 1000, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
+      @fireEvent 'statechange', [true]
       setValueResult = @setValue @aceEditor.getValue()
 
       unless setValueResult.success
@@ -2527,6 +2539,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
 
           div.className = 'ice-transitioning-element'
+          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
           translatingElements.push div
 
           @transitionContainer.appendChild div
@@ -2558,6 +2571,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           div.style.top = "#{lineHeight * line - aceScrollTop + @scrollOffsets.main.y}px"
 
           div.className = 'ice-transitioning-element ice-transitioning-gutter'
+          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
           translatingElements.push div
 
           @mainScrollerStuffing.appendChild div
@@ -2568,15 +2582,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
               div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
             ), 0
 
-        @paletteWrapper.style.opacity =
-          @mainCanvas.style.opacity =
-          @highlightCanvas.style.opacity = 0
+        for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
+          el.style.opacity = 0
+          el.style.transform = "opacity #{fadeTime}ms linear"
 
         setTimeout (=>
           @paletteWrapper.style.opacity =
           @mainCanvas.style.opacity =
           @highlightCanvas.style.opacity = 1
-        ), 500
+        ), translateTime - fadeTime
         
         setTimeout (=>
           @paletteWrapper.className.replace /\ ice-fade-in/, ''
@@ -2591,7 +2605,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
           for div in translatingElements
             div.parentNode.removeChild div
-        ), 1000
+          
+          if cb? then do cb
+        ), translateTime
 
       ), 0
 

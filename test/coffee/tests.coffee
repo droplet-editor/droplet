@@ -1,4 +1,4 @@
-require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
+require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ice) ->
 
   test 'Parser success', ->
     testString = (m, str, expected) ->
@@ -206,6 +206,13 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
       <block color="#268bd2" precedence="0">a(<socket precedence="0"><block color="#268bd2" precedence="0">b
         <socket precedence="0"><block color="#26cf3c" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
       '''
+
+    testString 'Parentheses around semicolon block',
+      '(fd 10; bk 10)',
+      '<block color="#268bd2" precedence="0">(<socket precedence="0"><block color="#268bd2" precedence="0">' +
+      'fd <socket precedence="0">10</socket></block></socket>; <socket precedence="0"><block color="#268bd2" precedence="0">' +
+      'bk <socket precedence="0">10</socket></block></socket>)</block>'
+
 
     testString 'Operator precedences',
       '''
@@ -603,3 +610,20 @@ require ['ice-model', 'ice-coffee', 'ice-view'], (model, coffee, view) ->
 
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'
+
+  
+  asyncTest 'Controller: melt/freeze events', ->
+    expect 3
+
+    states = []
+    editor = new ice.Editor document.getElementById('test-main'), document.getElementById('test-palette'), []
+
+    editor.on 'statechange', (usingBlocks) ->
+      states.push usingBlocks
+    
+    editor.performMeltAnimation 10, 10, ->
+      editor.performFreezeAnimation 10, 10, ->
+        strictEqual states.length, 2
+        strictEqual states[0], false
+        strictEqual states[1], true
+        start()
