@@ -2821,18 +2821,18 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if not @draggingBlock? and not @clickedBlock? and @hasEvent 'linehover'
       mainPoint = @trackerPointToMain point
 
-      # Brute force find the hovered line
-      for line in [0...@view.getViewNodeFor(@tree).lineLength]
-        if @view.getViewNodeFor(@tree).bounds[line].contains mainPoint
-          # If the hovered line _changed_, fire the event
-          if line isnt @lastHoveredLine then @fireEvent 'linehover', [line: line]
-          @lastHoveredLine = line
-          return
+      treeView = @view.getViewNodeFor @tree
+      
+      if @lastHoveredLine? and treeView.bounds[@lastHoveredLine].contains mainPoint
+        return
+      
+      hoveredLine = @findLineNumberAtCoordinate point.y
 
-      # Fire the event with line: null if there was no hovered line,
-      # but again only if this is news.
-      if @lastHoveredLine isnt null then @fireEvent 'linehover', [line: null]
-      @lastHoveredLine = null
+      unless treeView.bounds[hoveredLine].contains mainPoint
+        hoveredLine = null
+
+      if hoveredLine isnt @lastHoveredLine
+        @fireEvent 'linehover', [line: @lastHoveredLine = hoveredLine]
 
   # GET/SET VALUE SUPPORT
   # ================================
@@ -3156,14 +3156,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     pivot = Math.floor (start + end) / 2
 
     while treeView.bounds[pivot].y isnt coord and start < end
-      end = pivot - 1 if treeView.bounds[pivot].y > coord
-      start = pivot + 1 if treeView.bounds[pivot].y < coord
+      
+      if start is pivot or end is pivot
+        return pivot
+
+      end = pivot if treeView.bounds[pivot].y > coord
+      start = pivot if treeView.bounds[pivot].y < coord
 
       if end < 0 then return 0
       if start >= treeView.bounds.length then return treeView.bounds.length - 1
 
       pivot = Math.floor (start + end) / 2
-
 
     return pivot
 
