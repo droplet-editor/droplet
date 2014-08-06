@@ -1943,12 +1943,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @moveCursorTo @cursor.next.next
     @scrollCursorIntoPosition()
 
-  hook 'key.left', 0, ->
+  hook 'key.shift tab', 0, ->
     if @socketFocus?
-      if @hiddenInput.selectionEnd is 0
-        head = @socketFocus.start
-
-      else return
+      head = @socketFocus.start
 
     else
       head = @cursor
@@ -1959,12 +1956,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if head?
       @setTextInputFocus head.container, -1, -1
 
-  hook 'key.right', 0, ->
-    if @socketFocus?
-      if @hiddenInput.selectionEnd is @hiddenInput.value.length
-        head = @socketFocus.end
+    return false
 
-      else return
+  hook 'key.tab', 0, ->
+    if @socketFocus?
+      head = @socketFocus.end
 
     else
       head = @cursor
@@ -1974,6 +1970,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     if head?
       @setTextInputFocus head.container
+
+    return false
 
   Editor::deleteAtCursor = ->
     # Unfocus any inputs, which could get in the way.
