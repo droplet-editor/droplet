@@ -30,6 +30,9 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     '**': 7
     '%%': 7
 
+  YES = -> true
+  NO = -> false
+
   class CoffeeScriptTranspiler
     constructor: (@text) ->
       @markup = []
@@ -203,7 +206,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # block around a given node.
     addBlock: (node, depth, precedence, color, wrappingParen) ->
       # Create the block.
-      block = new model.Block precedence, color, (color is COLORS.VALUE)
+      block = new model.Block precedence, color, (color is COLORS.VALUE), node.type
       
       # Add it
       @addMarkup block, node, wrappingParen, depth
@@ -213,15 +216,15 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     
     # ## addSocket ##
     # A similar utility function for adding sockets.
-    addSocket: (node, depth, precedence) ->
-      socket = new model.Socket precedence
+    addSocket: (node, depth, precedence, accepts = YES) ->
+      socket = new model.Socket precedence, false, accepts
 
       @addMarkup socket, node, null, depth
 
     # ## addSocketAndMark ##
     # Adds a socket around a block, and @marks it.
-    addSocketAndMark: (node, depth, precedence, indentDepth) ->
-      @addSocket node, depth, precedence
+    addSocketAndMark: (node, depth, precedence, indentDepth, accepts = YES) ->
+      @addSocket node, depth, precedence, accepts
 
       @mark node, depth + 1, precedence, null, indentDepth
     
@@ -346,7 +349,6 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             # Add the indent per se.
             @addMarkupAtLocation indent, bounds, depth
 
-
           # Mark children. We do this at depth + 3 to
           # make room for semicolon wrappers where necessary.
           for expr in node.expressions
@@ -427,7 +429,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             @addSocketAndMark node.base, depth + 1, precedence, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
-                @addSocketAndMark property.name, depth + 1, precedence, indentDepth
+                @addSocketAndMark property.name, depth + 1, precedence, indentDepth, NO
               else if property.nodeType() is 'Index'
                 @addSocketAndMark property.index, depth + 1, precedence, indentDepth
           else
@@ -458,7 +460,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           @addBlock node, depth, precedence, COLORS.VALUE, wrappingParen
           
           for param in node.params
-            @addSocketAndMark param, depth + 1, 0, indentDepth
+            @addSocketAndMark param, depth + 1, 0, indentDepth, NO
           
           @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -466,7 +468,9 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
           @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen
-          @addSocketAndMark node.variable, depth + 1, 0, indentDepth
+          @addSocketAndMark node.variable, depth + 1, 0, indentDepth, (block) ->
+            block.nodeType is 'Value'
+
           @addSocketAndMark node.value, depth + 1, 0, indentDepth
         
         # ### For ###
@@ -475,8 +479,11 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'For'
           @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen
           
-          for childName in ['index', 'source', 'name', 'from', 'guard']
+          for childName in ['source', 'from', 'guard', 'step']
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
+
+          for childName in ['index', 'name']
+            if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth, NO
 
           @mark node.body, depth + 1, 0, null, indentDepth
         
@@ -577,7 +584,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'Class'
           @addBlock node, depth, 0, COLORS.CONTROL, wrappingParen
 
-          if node.variable? then @addSocketAndMark node.variable, depth + 1, 0, indentDepth
+          if node.variable? then @addSocketAndMark node.variable, depth + 1, 0, indentDepth, NO
           if node.parent? then @addSocketAndMark node.parent, depth + 1, 0, indentDepth
 
           if node.body? then @mark node.body, depth + 1, 0, null, indentDepth
@@ -591,7 +598,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
           for property in node.properties
             if property.nodeType() is 'Assign'
-              @addSocketAndMark property.variable, depth + 1, 0, indentDepth
+              @addSocketAndMark property.variable, depth + 1, 0, indentDepth, NO
               @addSocketAndMark property.value, depth + 1, 0, indentDepth
 
     transpile: ->

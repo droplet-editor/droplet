@@ -495,7 +495,7 @@ define ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = '#ddf', @valueByDefault = false) ->
+    constructor: (@precedence = 0, @color = '#ddf', @valueByDefault = false, @nodeType = null) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -548,7 +548,7 @@ define ->
     serialize: -> "</socket>"
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false) ->
+    constructor: (@precedence = 0, @handwritten = false, @accepts = YES) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 

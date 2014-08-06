@@ -362,14 +362,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         noText: (opts.noText ? false)
       }
 
-      # Draw highlights around marked lines
-      @clearHighlightCanvas()
-
-      for line, path of @markedLines
-        path.draw @highlightCtx
-
       # Draw the cursor (if exists, and is inserted)
-      @drawCursor()
+      @redrawHighlights()
 
       if opts.boundingRectangle?
         @mainCtx.restore()
@@ -377,7 +371,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for binding in editorBindings.redraw_main
         binding.call this, layoutResult
 
-  Editor::redrawCursor = -> @clearHighlightCanvas(); @drawCursor()
+  Editor::redrawHighlights = ->
+    # Draw highlights around marked lines
+    @clearHighlightCanvas()
+
+    for line, path of @markedLines
+      path.draw @highlightCtx
+      
+    for id, path of @extraMarks
+      path.draw @highlightCtx
+
+    @drawCursor()
 
   Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
@@ -901,7 +905,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       #
       # i.e. if nothing has changed, don't
       # redraw.
-      if highlight isnt @lastHighlight
+      if highlight isnt @lastHighlight and @canDrop @draggingBlock, highlight
         @clearHighlightCanvas()
 
         if highlight?
@@ -920,7 +924,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @dragCanvas.style.opacity = 0.7
       else
         @dragCanvas.style.opacity = 1
-
+  
+  Editor::canDrop = (drag, drop) ->
+    if drop?.type is 'socket'
+      return drop.accepts drag
+    else
+      return true
+    
   hook 'mouseup', 0, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
@@ -1079,7 +1089,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @clearDrag()
       @redrawMain()
-      @redrawCursor()
+      @redrawHighlights()
 
   # On mousedown, we can hit test for floating blocks.
   hook 'mousedown', 5, (point, event, state) ->
@@ -1284,21 +1294,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       socket.start.append socket.end; socket.notifyChange()
       socket.start.insert new model.TextToken @after
 
-  class TextReparseOperation extends UndoOperation
-    constructor: (socket, @before) ->
-      @after = socket.start.next.container
-      @socket = socket.start.getSerializedLocation()
-
-    undo: (editor) ->
-      socket = editor.tree.getTokenAtLocation(@socket).container
-      socket.start.next.container.moveTo null
-      socket.start.insert new model.TextToken @before
-
-    redo: (editor) ->
-      socket = editor.tree.getTokenAtLocation(@socket).container
-      socket.start.append socket.end; socket.notifyChange()
-      @after.clone().moveTo socket
-
   # At populate-time, we need
   # to create and append the hidden input
   # we will use for text input.
@@ -1436,6 +1431,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # Convenince function for setting the text input
   Editor::setTextInputFocus = (focus, selectionStart = 0, selectionEnd = 0) ->
+    if focus?.id of @extraMarks
+      delete @extraMarks[focus?.id]
+
     # If there is already a focus, we
     # need to wrap some things up with it.
     if @socketFocus? and @socketFocus isnt focus
@@ -1450,12 +1448,30 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # If we can, try to reparse the focus
       # value.
       try
-        newParse = coffee.parse(unparsedValue = @socketFocus.stringify(), wrapAtRoot: false).start.next
+        # TODO make 'reparsable' property, bubble up until then
+        parseParent = @socketFocus.parent
 
-        if newParse.type is 'blockStart'
-          newParse.container.moveTo @socketFocus.start
+        newParse = coffee.parse(parseParent.stringify(), wrapAtRoot: false)
+        
+        if newParse.start.next?.container?.end is newParse.end.prev
+          newParse = newParse.start.next
 
-          @addMicroUndoOperation new TextReparseOperation @socketFocus, unparsedValue
+          if newParse.type is 'blockStart'
+            parseParent.start.prev.append newParse
+            newParse.container.end.append parseParent.end.next
+
+            newParse.parent = parseParent.parent
+
+            newParse.notifyChange()
+
+            @addMicroUndoOperation new ReparseOperation parseParent, newParse.container
+
+        else
+          throw new Error 'Socket is split.'
+
+      catch
+        @extraMarks[@socketFocus.id] = @getErrorPath @socketFocus, color: '#F00'
+        @redrawMain()
 
     # Now we're done with the old focus,
     # we can start over.
@@ -1870,7 +1886,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if attemptReparse
       @reparseHandwrittenBlocks()
 
-    @redrawCursor()
+    @redrawHighlights()
 
   Editor::moveCursorUp = ->
     # Seek the place we want to move the cursor
@@ -1893,7 +1909,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     unless isValidCursorPosition @cursor then @moveCursorUp()
 
     @reparseHandwrittenBlocks()
-    @redrawCursor()
+    @redrawHighlights()
     @scrollCursorIntoPosition()
 
   Editor::determineCursorPosition = ->
@@ -2739,17 +2755,23 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   hook 'populate', 0, ->
     @markedLines = {}
+    @extraMarks = {}
+
+  Editor::getErrorPath = (model, style) ->
+    path = @view.getViewNodeFor(model).path.clone()
+
+    path.style.fillColor = null
+    path.style.strokeColor = style.color
+    path.style.lineWidth = 2
+    path.noclip = true; path.bevel = false
+
+    return path
 
   Editor::markLine = (line, style) ->
     block = @tree.getBlockOnLine line
 
     if block?
-      path = @markedLines[line] = @view.getViewNodeFor(block).path.clone()
-
-      path.style.fillColor = null
-      path.style.strokeColor = style.color
-      path.style.lineWidth = 2
-      path.noclip = true; path.bevel = false
+      @markedLines[line] = @getErrorPath block, style
 
     @redrawMain()
 
