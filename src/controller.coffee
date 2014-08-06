@@ -2060,6 +2060,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @redrawMain()
       @reparseHandwrittenBlocks()
       @setTextInputFocus newSocket
+    
+    else if @textFocus? then @setTextInputFocus null; @redrawMain()
 
   containsCursor = (block) ->
     head = block.start
