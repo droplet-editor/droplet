@@ -375,10 +375,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Draw highlights around marked lines
     @clearHighlightCanvas()
 
-    for line, path of @markedLines
+    for line, info of @markedLines when @inTree info.model
+      path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
       
-    for id, path of @extraMarks
+    for id, info of @extraMarks when @inTree info.model
+      path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
 
     @drawCursor()
@@ -1472,7 +1474,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           throw new Error 'Socket is split.'
 
       catch
-        @extraMarks[@socketFocus.id] = @getErrorPath @socketFocus, color: '#F00'
+        @extraMarks[@socketFocus.id] =
+          model: @socketFocus
+          style: {color: '#F00'}
+
         @redrawMain()
 
     # Now we're done with the old focus,
@@ -2766,7 +2771,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @markedLines = {}
     @extraMarks = {}
 
-  Editor::getErrorPath = (model, style) ->
+  Editor::getHighlightPath = (model, style) ->
     path = @view.getViewNodeFor(model).path.clone()
 
     path.style.fillColor = null
@@ -2780,7 +2785,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     block = @tree.getBlockOnLine line
 
     if block?
-      @markedLines[line] = @getErrorPath block, style
+      @markedLines[line] =
+        model: block
+        style: style
 
     @redrawMain()
 
