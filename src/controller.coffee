@@ -13,6 +13,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   ANIMATION_FRAME_RATE = 60
   TOP_TAB_HEIGHT = 20
   DISCOURAGE_DROP_TIMEOUT = 1000
+  MAX_DROP_DISTANCE = 50
 
   ANY_DROP = 0
   BLOCK_ONLY = 1
@@ -866,6 +867,35 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         point.x + @draggingOffset.x,
         point.y + @draggingOffset.y
       )
+      
+      # Construct a quadtree of drop areas
+      # for faster dragging
+      @dropPointQuadTree = QUAD.init
+        x: @scrollOffsets.main.xA
+        y: @scrollOffsets.main.y
+        w: @mainCanvas.width
+        h: @mainCanvas.height
+
+      head = @tree.start
+      until head is @tree.end
+
+        if head is @draggingBlock.start
+          head = @draggingBlock.end
+
+        if head instanceof model.StartToken
+          if @canDrop(@draggingBlock, head.container) or @discourageDrop @draggingBlock, head.container
+            dropPoint = @view.getViewNodeFor(head.container).dropPoint
+
+            if dropPoint?
+              @dropPointQuadTree.insert
+                x: dropPoint.x
+                y: dropPoint.y
+                w: 0
+                h: 0
+                _ice_needs_shift: not @canDrop @draggingBlock, head.container
+                _ice_node: head.container
+              
+        head = head.next
 
       @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
       @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
@@ -892,80 +922,35 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       mainPoint = @trackerPointToMain(position)
 
-      # If we are dragging a block,
-      # we can drop on any Block not in a socket,
-      # any Indent, or any Socket that does
-      # not contain a block.
-      if @draggingBlock.type is 'block'
-        highlight = @tree.find ((block) =>
-          (block.parent?.type isnt 'socket') and
-            @view.getViewNodeFor(block).dropArea? and
-            @view.getViewNodeFor(block).dropArea.contains mainPoint), [@draggingBlock]
+      best = null; min = MAX_DROP_DISTANCE
+      
+      # Find the closest droppable block
+      testPoints = @dropPointQuadTree.retrieve {
+        x: mainPoint.x - MAX_DROP_DISTANCE
+        y: mainPoint.y - MAX_DROP_DISTANCE
+        w: MAX_DROP_DISTANCE * 2
+        h: MAX_DROP_DISTANCE * 2
+      }, (point) =>
+        unless point._ice_needs_shift and not @shiftKeyPressed
+          distance = mainPoint.from(point).magnitude()
+          if distance < min
+            best = point._ice_node
+            min = distance
+      
+      if best isnt @lastHighlight
+        @clearHighlightCanvas()
 
-      # If we are dragging a segment,
-      # we also cannot drop ourselves
-      # into a socket.
-      else if @draggingBlock.type is 'segment'
-        highlight = @tree.find ((block) =>
-          (block.type isnt 'socket') and
-            (block.parent?.type isnt 'socket') and
-            @view.getViewNodeFor(block).dropArea? and
-            @view.getViewNodeFor(block).dropArea.contains mainPoint), [@draggingBlock]
+        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
 
-      # For performance reasons,
-      # we will only redraw the main canvas
-      # (and highlight the reigon) if we need
-      # to to change the highlighted block.
-      #
-      # i.e. if nothing has changed, don't
-      # redraw.
-      if highlight isnt @lastHighlight
-        if @discourageDropTimeout? and highlight isnt @discourageHighlight
-          clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
-
-        if @canDrop @draggingBlock, highlight
-          console.log 'can'
-          @clearHighlightCanvas()
-
-          @view.getViewNodeFor(highlight).highlightArea.draw @highlightCtx
-
-          @lastHighlight = highlight
-
-        else if highlight isnt @discourageHighlight and @discourageDrop @draggingBlock, highlight
-          console.log 'dont'
-          @discourageHighlight = highlight
-          @discourageDropTimeout = setTimeout (=>
-            @discourageHighlight = null
-            @clearHighlightCanvas()
-
-            @view.getViewNodeFor(highlight).highlightArea.draw @highlightCtx
-
-            @lastHighlight = highlight
-            @discourageDropTimeout = null
-          ), DISCOURAGE_DROP_TIMEOUT
-          
-        else unless highlight is @discourageHighlight
-          console.log 'cant'
-          @clearHighlightCanvas()
-          @lastHighlight = null
-
-      # Make the canvas transparent if
-      # we would delete the block
-      palettePoint = @trackerPointToPalette position
-
-      if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
-         0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
-         (-@gutter.offsetWidth < mainPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
-         0 < mainPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
-        @dragCanvas.style.opacity = 0.7
-      else
-        @dragCanvas.style.opacity = 1
+        @lastHighlight = best
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
   
   Editor::canDrop = (drag, drop) ->
     unless drop? then return false
+    unless @view.getViewNodeFor(drop).dropPoint? then return false
+    if drop.parent?.type is 'socket' then return false
 
     if drop?.type is 'socket'
       if drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]

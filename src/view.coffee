@@ -1496,12 +1496,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # height dropAreaHeight and a width
         # equal to our last line width,
         # positioned at the bottom of our last line.
-        @dropArea = new draw.Rectangle(
-          @bounds[@lineLength - 1].x,
-          @bounds[@lineLength - 1].bottom() - @view.opts.dropAreaHeight / 2,
-          @bounds[@lineLength - 1].width,
-          @view.opts.dropAreaHeight
-        ).toPath()
+        @dropPoint = new draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
@@ -1625,7 +1620,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         if @model.start.next.type is 'blockStart'
           @dropArea = @highlightArea = null
         else
-          @dropArea = @path
+          @dropPoint = @bounds[0].upperLeftCorner()
           @highlightArea = @path.clone()
           @highlightArea.noclip = true
           @highlightArea.style.strokeColor = '#FFF'
@@ -1674,15 +1669,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       #
       # Our drop area is a rectangle of
       # height dropAreaHeight and a width
-      # equal to our last line width,
-      # positioned at the bottom of our last line.
+      # equal to our first line width,
+      # positioned at the top of our firs tline
       computeOwnDropArea: ->
-        @dropArea = new draw.Rectangle(
-          @bounds[1].x,
-          @bounds[1].y - @view.opts.dropAreaHeight / 2,
-          Math.max(@bounds[1].width, @view.opts.indentDropAreaMinWidth),
-          @view.opts.dropAreaHeight
-        ).toPath()
+        @dropPoint = @bounds[1].upperLeftCorner()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
@@ -1735,12 +1725,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         if @model.isLassoSegment
           return @dropArea = null
         else
-          @dropArea = new draw.Rectangle(
-            @bounds[0].x
-            @bounds[0].y - @view.opts.dropAreaHeight / 2
-            Math.max(@bounds[0].width, @view.opts.indentDropAreaMinWidth)
-            @view.opts.dropAreaHeight
-          ).toPath()
+          @dropPoint = @bounds[0].upperLeftCorner()
 
           @highlightArea = new draw.Rectangle(
             @bounds[0].x
