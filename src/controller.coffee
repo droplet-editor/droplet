@@ -7,13 +7,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
-  MIN_DRAG_DISTANCE = 5
+  MIN_DRAG_DISTANCE = 1
   PALETTE_LEFT_MARGIN = 5
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
   TOP_TAB_HEIGHT = 20
   DISCOURAGE_DROP_TIMEOUT = 1000
-  MAX_DROP_DISTANCE = 50
+  MAX_DROP_DISTANCE = 100
 
   ANY_DROP = 0
   BLOCK_ONLY = 1
@@ -159,8 +159,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         indentTongueHeight: 20
         tabOffset: 10
         tabWidth: 15
-        tabHeight: 5
-        tabSideWidth: 0.125
+        tabHeight: 4
+        tabSideWidth: 1 / 4
         dropAreaHeight: 20
         indentDropAreaMinWidth: 50
         emptySocketWidth: 20
@@ -922,7 +922,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       mainPoint = @trackerPointToMain(position)
 
-      best = null; min = MAX_DROP_DISTANCE
+      best = null; min = Infinity
       
       # Find the closest droppable block
       testPoints = @dropPointQuadTree.retrieve {
@@ -932,8 +932,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         h: MAX_DROP_DISTANCE * 2
       }, (point) =>
         unless point._ice_needs_shift and not @shiftKeyPressed
-          distance = mainPoint.from(point).magnitude()
-          if distance < min
+          distance = mainPoint.from(point)
+          distance.y *= 2; distance = distance.magnitude()
+          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE
             best = point._ice_node
             min = distance
       
