@@ -155,7 +155,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @standardViewSettings =
         padding: 5
-        indentWidth: 15
+        indentWidth: getFontHeight 15, 'Courier New'
         indentTongueHeight: 20
         tabOffset: 10
         tabWidth: 15
@@ -2751,7 +2751,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @paletteHeader.style.fontSize = "#{fontSize}px"
       @gutter.style.fontSize = "#{fontSize}px"
 
-      @view.opts.textHeight = fontSize
+      @view.opts.textHeight = getFontHeight @fontFamily, @fontSize
       @view.clearCache()
 
       @dragView.opts.textHeight = fontSize
@@ -2762,6 +2762,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     draw._setGlobalFontFamily fontFamily
 
     @fontFamily = fontFamily
+
+    @view.opts.textHeight = getFontHeight @fontFamily, @fontSize
 
     @view.clearCache(); @dragView.clearCache()
     @gutter.style.fontFamily = fontFamily
@@ -3233,6 +3235,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     if changedBox
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
+
+  getFontHeight = (family, size) ->
+    testElement = document.createElement 'span'
+    testElement.innerHTML = 'Hg'
+    testElement.style.fontSize = size; testElement.style.fontFamily = family
+
+    testPartner = document.createElement 'div'
+    testPartner.style.display = 'inline-block'
+    testPartner.style.width = '1px'; testPartner.style.height = '0px'
+
+    testWrapper = document.createElement 'div'
+    testWrapper.style.left = testWrapper.style.top = '-9999px'
+
+    testWrapper.appendChild testElement; testWrapper.appendChild testPartner
+
+    document.body.appendChild testWrapper
+
+    testPartner.style.verticalAlign = 'bottom'
+    descent = testPartner.offsetTop - testElement.offsetTop
+
+    return testPartner.offsetTop - testElement.offsetTop
+
 
   # DEBUG CODE
   # ================================
