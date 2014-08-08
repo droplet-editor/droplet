@@ -2443,7 +2443,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         div.innerText = textElement.model.value
 
-        div.style.font = @fontSize + 'px Courier New'
+        div.style.font = @fontSize + 'px ' + @fontFamily
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
@@ -2476,7 +2476,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.left = 0
         div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
 
-        div.style.font = @fontSize + 'px Courier New'
+        div.style.font = @fontSize + 'px ' + @fontFamily
         div.style.width = "#{@gutter.offsetWidth}px"
         translatingElements.push div
         
@@ -2575,7 +2575,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
           div.innerText = textElement.model.value
 
-          div.style.font = @fontSize + 'px Courier New'
+          div.style.font = @fontSize + 'px ' + @fontFamily
           div.style.position = 'absolute'
 
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
@@ -2607,7 +2607,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
           div.innerText = line + 1
 
-          div.style.font = @fontSize + 'px Courier New'
+          div.style.font = @fontSize + 'px ' + @fontFamily
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
 
           div.style.left = 0
@@ -2760,6 +2760,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::setFontFamily = (fontFamily) ->
     draw._setGlobalFontFamily fontFamily
+
+    @fontFamily = fontFamily
 
     @view.clearCache(); @dragView.clearCache()
     @gutter.style.fontFamily = fontFamily
