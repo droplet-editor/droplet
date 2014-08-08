@@ -469,7 +469,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'Call'
 
           if node.variable?
-            if node.variable.compile() in BLOCK_FUNCTIONS
+            if node.variable?.base?.value in BLOCK_FUNCTIONS
               @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen, MOSTLY_BLOCK
             else if node.variable in VALUE_FUNCTIONS
               @addBlock node, depth, precedence, COLORS.VALUE, wrappingParen, MOSTLY_VALUE

@@ -953,6 +953,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     unless @view.getViewNodeFor(drop).dropPoint? then return false
     if drop.parent?.type is 'socket' then return false
 
+    if drag?.type is 'segment'
+      return drop.type in ['block', 'segment', 'indent']
+
     if drop?.type is 'socket'
       if drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]
         return drop.accepts drag
