@@ -87,6 +87,7 @@ module.exports = (grunt) ->
       build:
         files:
           'dist/ice-full.js': [
+            'vendor/quadtree.min.js'
             'vendor/keypress-2.0.1.min.js'
             'dist/ice.js'
           ]
