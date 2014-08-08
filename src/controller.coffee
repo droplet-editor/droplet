@@ -2755,6 +2755,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @dragView.clearCache()
       @redrawMain(); @redrawPalette()
 
+  Editor::setFontFamily = (fontFamily) ->
+    draw._setGlobalFontFamily fontFamily
+
+    @view.clearCache(); @dragView.clearCache()
+    @gutter.style.fontFamily = fontFamily
+
+    @redrawMain(); @redrawPalette()
+
   Editor::setFontSize = (fontSize) ->
     @aceEditor.setFontSize fontSize
     @aceEditor.resize()

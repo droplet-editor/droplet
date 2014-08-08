@@ -304,6 +304,7 @@ define ->
       unless @noclip
         ctx.clip()
       if @bevel
+        # Dark bevels
         ctx.beginPath()
         ctx.moveTo @_points[0].x, @_points[0].y
         for point, i in @_points[1..]
@@ -324,7 +325,8 @@ define ->
         ctx.lineWidth = 2
         ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
         ctx.stroke()
-
+        
+        # Light bevels
         ctx.beginPath()
         ctx.moveTo @_points[0].x, @_points[0].y
         for point, i in @_points[1..]
@@ -347,6 +349,7 @@ define ->
 
       else
         ctx.stroke()
+
       ctx.restore()
 
     clone: ->
@@ -387,16 +390,17 @@ define ->
 
   _CTX = null #Hacky, hacky, hacky
   _FONT_SIZE = 15
+  _FONT_FAMILY = 'Courier New, monospace'
 
   # ## Text ##
   # A Text element. Mainly this exists for computing bounding boxes, which is
   # accomplished via ctx.measureText().
   exports.Text = class Text
     constructor: (@point, @value) ->
-      @wantedFont = _FONT_SIZE + 'px Courier New'
+      @wantedFont = _FONT_SIZE + 'px ' + _FONT_FAMILY
 
       unless _CTX.font is @wantedFont
-        _CTX.font = _FONT_SIZE + 'px Courier New'
+        _CTX.font = _FONT_SIZE + 'px ' + _FONT_FAMILY
 
       @_bounds = new Rectangle @point.x, @point.y, _CTX.measureText(@value).width, _FONT_SIZE
 
@@ -411,13 +415,17 @@ define ->
 
     draw: (ctx) ->
       ctx.textBaseline = 'top'
-      ctx.font = _FONT_SIZE + 'px Courier New'
+      ctx.font = _FONT_SIZE + 'px ' + _FONT_FAMILY
       ctx.fillStyle = '#000'
       ctx.fillText @value, @point.x, @point.y
 
   exports._setCTX = (ctx) -> _CTX = ctx
   exports._setGlobalFontSize = (size) ->
     _FONT_SIZE = size
+
+  exports._setGlobalFontFamily = (family) ->
+    _FONT_FAMILY = family
+
 
   exports._getGlobalFontSize = -> _FONT_SIZE
 
