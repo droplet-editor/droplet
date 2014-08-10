@@ -14,7 +14,7 @@
   width: 300px;
 }
 .ice-main-canvas {
-  background-color:#CCC;
+  background-color:#FFF;
 }
 .ice-main-canvas {
   z-index: 0;
@@ -151,12 +151,13 @@
   background-color: #ebebeb;
   min-width: 50px;
   height: 100%;
+  box-sizing: border-box;
 }
 .ice-gutter-line {
   position: absolute;
   box-sizing: border-box;
-  padding-right: 10px;
   text-align: right;
+  padding-right: 13px;
   width: 100%;
   font-family: Courier New;
 }
@@ -173,5 +174,5 @@
 .ice-transitioning-gutter {
   box-sizing: border-box;
   text-align: right;
-  padding-right: 10px;
+  padding-right: 13px;
 }

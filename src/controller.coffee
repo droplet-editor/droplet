@@ -155,7 +155,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @standardViewSettings =
         padding: 5
-        indentWidth: getFontHeight 15, 'Courier New'
+        indentWidth: getFontHeight 'Courier New', 15
         indentTongueHeight: 20
         tabOffset: 10
         tabWidth: 15
@@ -1450,7 +1450,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
       @mainCtx.strokeStyle = '#888'
       @mainCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
-        0, @fontSize
+        0, @view.opts.textHeight
 
     # Draw a translucent rectangle if there is a selection.
     else
@@ -1458,22 +1458,22 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       if startRow is endRow
         @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
-          endPosition - startPosition, @fontSize
+          endPosition - startPosition, @view.opts.textHeight
 
       else
         @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
-          textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @fontSize
+          textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
         for i in [startRow + 1...endRow]
           @mainCtx.fillRect textFocusView.bounds[i].x,
             textFocusView.bounds[i].y + @view.opts.textPadding,
             textFocusView.bounds[i].width,
-            @fontSize
+            @view.opts.textHeight
 
         @mainCtx.fillRect textFocusView.bounds[endRow].x,
           textFocusView.bounds[endRow].y + @view.opts.textPadding,
           endPosition - textFocusView.bounds[endRow].x,
-          @fontSize
+          @view.opts.textHeight
 
 
   # Convenince function for setting the text input
@@ -2474,7 +2474,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.innerText = line + 1
 
         div.style.left = 0
-        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
+        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight}px"
 
         div.style.font = @fontSize + 'px ' + @fontFamily
         div.style.width = "#{@gutter.offsetWidth}px"
@@ -2530,7 +2530,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       return success: true
 
-  Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 1000, cb = ->)->
+  Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
       @fireEvent 'statechange', [true]
       setValueResult = @setValue @aceEditor.getValue()
@@ -2622,7 +2622,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           do (div, line) =>
             setTimeout (=>
               div.style.left = 0
-              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @fontSize}px"
+              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight}px"
             ), 0
 
         for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
@@ -2633,7 +2633,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @paletteWrapper.style.opacity =
           @mainCanvas.style.opacity =
           @highlightCanvas.style.opacity = 1
-        ), translateTime - fadeTime
+        ), translateTime
         
         setTimeout (=>
           @paletteWrapper.className.replace /\ ice-fade-in/, ''
@@ -2650,7 +2650,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             div.parentNode.removeChild div
           
           if cb? then do cb
-        ), translateTime
+        ), translateTime + fadeTime
 
       ), 0
 
@@ -2757,6 +2757,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @dragView.opts.textHeight = fontSize
       @dragView.clearCache()
+
+      @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+      
       @redrawMain(); @redrawPalette()
 
   Editor::setFontFamily = (fontFamily) ->
@@ -2775,7 +2778,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @aceEditor.setFontSize fontSize
     @aceEditor.resize()
     @setFontSize_raw fontSize
-    @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
     @resize()
 
   # MUTATION BUTTON SUPPORT
@@ -2912,6 +2914,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     #try
       # Whitespace trimming hack to account
       # for ACE editor extra line in some applications
+
+      @aceEditor.setValue value
+      @aceEditor.resize true
+
       if @trimWhitespace then value = value.trim()
 
       newParse = coffee.parse value, wrapAtRoot: true
@@ -3180,6 +3186,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @mainScrollerStuffing.appendChild @gutter
 
+  hook 'resize', 0, ->
+    @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+
   Editor::addLineNumberForLine = (line) ->
     treeView = @view.getViewNodeFor @tree
 
@@ -3195,7 +3204,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     lineDiv.style.top =  treeView.bounds[line].y + 'px'
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
-    lineDiv.style.fontSize = @view.opts.textHeight + 'px'
+    lineDiv.style.fontSize = @fontSize + 'px'
     lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight + 'px'
 
     @gutter.appendChild lineDiv
@@ -3218,7 +3227,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       pivot = Math.floor (start + end) / 2
 
     return pivot
-
+  
   hook 'redraw_main', 0, (changedBox) ->
     treeView = @view.getViewNodeFor @tree
 
@@ -3239,23 +3248,29 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   getFontHeight = (family, size) ->
     testElement = document.createElement 'span'
     testElement.innerHTML = 'Hg'
-    testElement.style.fontSize = size; testElement.style.fontFamily = family
 
     testPartner = document.createElement 'div'
     testPartner.style.display = 'inline-block'
     testPartner.style.width = '1px'; testPartner.style.height = '0px'
 
     testWrapper = document.createElement 'div'
+    testWrapper.style.position = 'absolute'
     testWrapper.style.left = testWrapper.style.top = '-9999px'
+    testWrapper.style.fontSize = size; testWrapper.style.fontFamily = family
 
     testWrapper.appendChild testElement; testWrapper.appendChild testPartner
 
     document.body.appendChild testWrapper
 
-    testPartner.style.verticalAlign = 'bottom'
-    descent = testPartner.offsetTop - testElement.offsetTop
+    testPartner.style.verticalAlign = 'text-top'
+    offsetTop = testPartner.offsetTop - testElement.offsetTop
 
-    return testPartner.offsetTop - testElement.offsetTop
+    testPartner.style.verticalAlign = 'text-bottom'
+    offsetBottom = testPartner.offsetTop - testElement.offsetTop
+
+    document.body.removeChild testWrapper
+
+    return offsetBottom - offsetTop
 
 
   # DEBUG CODE
