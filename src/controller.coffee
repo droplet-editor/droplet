@@ -2491,9 +2491,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             div.style.left = '0px'
             div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
           ), fadeTime
-
-      @gutter.style.left = '-9999px'
-      @gutter.style.top = '-9999px'
+      
+      for line, element of @lineNumberTags
+        element.style.display = 'none'
       
       # Kick off fade-out transition
 
@@ -2641,8 +2641,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @highlightCanvas.className.replace /\ ice-fade-in/, ''
 
           @currentlyAnimating = false
-          @gutter.style.left = '0'
-          @gutter.style.top = '0'
+          for line, element of @lineNumberTags
+            element.style.display = 'block'
           @redrawMain()
           @paletteHeader.style.zIndex = 257
 
@@ -2743,6 +2743,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
   hook 'populate', 0, ->
     @fontSize = 15
+    @fontFamily = 'Courier New'
 
   Editor::setFontSize_raw = (fontSize) ->
     unless @fontSize is fontSize
@@ -3201,11 +3202,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::findLineNumberAtCoordinate = (coord) ->
     treeView = @view.getViewNodeFor @tree
-    start = 0; end = treeView.bounds.length - 1
+    start = 0; end = treeView.bounds.length
     pivot = Math.floor (start + end) / 2
 
     while treeView.bounds[pivot].y isnt coord and start < end
-      
       if start is pivot or end is pivot
         return pivot
 
