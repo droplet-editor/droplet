@@ -1539,8 +1539,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @highlightArea.push point for point in highlightAreaPoints
 
         @highlightArea.style.lineWidth = 1
-        @highlightArea.style.strokeColor = '#fff'
-        @highlightArea.style.fillColor = '#fff'
+        @highlightArea.style.strokeColor = '#ff0'
+        @highlightArea.style.fillColor = '#ff0'
 
     # # SocketViewNode
     class SocketViewNode extends ContainerViewNode
@@ -1718,8 +1718,8 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         @highlightArea.push point for point in highlightAreaPoints
 
         @highlightArea.style.lineWidth = 1
-        @highlightArea.style.strokeColor = '#fff'
-        @highlightArea.style.fillColor = '#fff'
+        @highlightArea.style.strokeColor = '#ff0'
+        @highlightArea.style.fillColor = '#ff0'
 
     # # SegmentViewNode
     # Represents a Segment. Draws little, but
@@ -1742,15 +1742,33 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         else
           @dropPoint = @bounds[0].upperLeftCorner()
 
-          @highlightArea = new draw.Rectangle(
-            @bounds[0].x
-            @bounds[0].y - @view.opts.highlightAreaHeight / 2
-            Math.max(@bounds[0].width, @view.opts.indentDropAreaMinWidth)
-            @view.opts.highlightAreaHeight
-          ).toPath()
+          @highlightArea = new draw.Path()
+          highlightAreaPoints = []
 
-          @highlightArea.style.fillColor = '#fff'
-          @highlightArea.style.strokeColor = '#fff'
+          lastBounds = new draw.NoRectangle()
+          lastBounds.copy @bounds[0]
+          lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
+
+          highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+
+          @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
+
+          highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+
+          highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+
+          @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
+
+          highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+
+          @highlightArea.push point for point in highlightAreaPoints
+
+          @highlightArea.style.fillColor = '#ff0'
+          @highlightArea.style.strokeColor = '#ff0'
 
           return null
 

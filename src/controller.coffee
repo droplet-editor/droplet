@@ -11,7 +11,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   PALETTE_LEFT_MARGIN = 5
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
-  TOP_TAB_HEIGHT = 20
+  TOP_TAB_HEIGHT = 10
   DISCOURAGE_DROP_TIMEOUT = 1000
   MAX_DROP_DISTANCE = 100
 
