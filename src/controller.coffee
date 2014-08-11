@@ -3016,7 +3016,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     if useBlocks
       @setValue @aceEditor.getValue()
 
-      @iceElement.style.top = @iceElement.style.left = '0px'
+      @iceElement.style.top =
+        @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
+
+      @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
 
@@ -3033,7 +3037,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       
       @aceEditor.session.setScrollTop oldScrollTop
 
-      @iceElement.style.top = @iceElement.style.left = '-9999px'
+      @iceElement.style.top = @iceElement.style.left =
+        @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
 

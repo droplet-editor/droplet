@@ -310,6 +310,8 @@ require ['ice'], (ice) ->
     empty: ''
   }
 
+  editor.setEditorState false
+
   # Update textarea on ICE editor change
   editor.onChange = ->
     # Currently empty function
