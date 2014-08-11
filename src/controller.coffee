@@ -3018,7 +3018,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     else
       oldScrollTop = @aceEditor.session.getScrollTop()
 
-      @aceEditor.setValue value, -1
+      @aceEditor.setValue @getValue(), -1
       @aceEditor.resize true
       
       @aceEditor.session.setScrollTop oldScrollTop
@@ -3292,19 +3292,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     if changedBox
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
-
+  
+  ###
   getFontHeight = (family, size) ->
     testElement = document.createElement 'span'
     testElement.innerHTML = 'Hg'
 
     testPartner = document.createElement 'div'
-    testPartner.style.display = 'inline-block'
-    testPartner.style.width = '1px'; testPartner.style.height = '0px'
+    testPartner.style.display = 'inline-block'; testPartner.style.background = '#000'
+    testPartner.style.width = '1px'; testPartner.style.height = '1px'
 
     testWrapper = document.createElement 'div'
     testWrapper.style.position = 'absolute'
     testWrapper.style.left = testWrapper.style.top = '-9999px'
-    testWrapper.style.fontSize = size; testWrapper.style.fontFamily = family
+    testWrapper.style.font = "#{size}px #{family}"
 
     testWrapper.appendChild testElement; testWrapper.appendChild testPartner
 
@@ -3316,10 +3317,71 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     testPartner.style.verticalAlign = 'text-bottom'
     offsetBottom = testPartner.offsetTop - testElement.offsetTop
 
-    document.body.removeChild testWrapper
+    console.log testWrapper
+
+    #document.body.removeChild testWrapper
 
     return offsetBottom - offsetTop
+  ###
 
+  fontMetricsCache = {}
+  fontMetrics = (fontFamily, fontHeight) ->
+    fontStyle = "#{fontHeight}px #{fontFamily}"
+    result = fontMetricsCache[fontStyle]
+
+    textTopAndBottom = (testText) ->
+      ctx.fillStyle = 'black'
+      ctx.fillRect(0, 0, width, height)
+      ctx.textBaseline = 'top'
+      ctx.fillStyle = 'white'
+      ctx.fillText(testText, 0, 0)
+      right = Math.ceil(ctx.measureText(testText).width)
+      pixels = ctx.getImageData(0, 0, width, height).data
+      first = -1
+      last = height
+      for row in [0...height]
+        for col in [1...right]
+          index = (row * width + col) * 4
+          if pixels[index] != 0
+            if first < 0
+              first = row
+            break
+        if first >= 0 and col >= right
+          last = row
+          break
+      return {top: first, bottom: last}
+
+    if not result
+      canvas = document.createElement 'canvas'
+      ctx = canvas.getContext '2d'
+      ctx.font = fontStyle
+      metrics = ctx.measureText 'Hg'
+      if canvas.height < fontHeight * 2 or
+         canvas.width < metrics.width
+        canvas.width = Math.ceil(metrics.width)
+        canvas.height = fontHeight * 2
+        ctx = canvas.getContext '2d'
+        ctx.font = fontStyle
+      width = canvas.width
+      height = canvas.height
+      capital = textTopAndBottom 'H'
+      ex = textTopAndBottom 'x'
+      lf = textTopAndBottom 'lf'
+      gp = textTopAndBottom 'g'
+      baseline = capital.bottom
+      result =
+        ascent: lf.top
+        capital: capital.top
+        ex: ex.top
+        baseline: capital.bottom
+        descent: gp.bottom
+      fontMetricsCache[fontStyle] = result
+    return result
+  
+  getFontHeight = (family, size) ->
+    metrics = fontMetrics family, size
+    console.log metrics
+    return metrics.descent - metrics.ascent
 
   # DEBUG CODE
   # ================================

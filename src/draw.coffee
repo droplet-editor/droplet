@@ -417,15 +417,75 @@ define ->
       ctx.textBaseline = 'top'
       ctx.font = _FONT_SIZE + 'px ' + _FONT_FAMILY
       ctx.fillStyle = '#000'
-      ctx.fillText @value, @point.x, @point.y
+      ctx.fillText @value, @point.x, @point.y - _FONT_CAPITAL
+
+  fontMetricsCache = {}
+  fontMetrics = (fontFamily, fontHeight) ->
+    fontStyle = "#{fontHeight}px #{fontFamily}"
+    result = fontMetricsCache[fontStyle]
+
+    textTopAndBottom = (testText) ->
+      ctx.fillStyle = 'black'
+      ctx.fillRect(0, 0, width, height)
+      ctx.textBaseline = 'top'
+      ctx.fillStyle = 'white'
+      ctx.fillText(testText, 0, 0)
+      right = Math.ceil(ctx.measureText(testText).width)
+      pixels = ctx.getImageData(0, 0, width, height).data
+      first = -1
+      last = height
+      for row in [0...height]
+        for col in [1...right]
+          index = (row * width + col) * 4
+          if pixels[index] != 0
+            if first < 0
+              first = row
+            break
+        if first >= 0 and col >= right
+          last = row
+          break
+      return {top: first, bottom: last}
+
+    if not result
+      canvas = document.createElement 'canvas'
+      ctx = canvas.getContext '2d'
+      ctx.font = fontStyle
+      metrics = ctx.measureText 'Hg'
+      if canvas.height < fontHeight * 2 or
+         canvas.width < metrics.width
+        canvas.width = Math.ceil(metrics.width)
+        canvas.height = fontHeight * 2
+        ctx = canvas.getContext '2d'
+        ctx.font = fontStyle
+      width = canvas.width
+      height = canvas.height
+      capital = textTopAndBottom 'H'
+      ex = textTopAndBottom 'x'
+      lf = textTopAndBottom 'lf'
+      gp = textTopAndBottom 'g'
+      baseline = capital.bottom
+      result =
+        ascent: lf.top
+        capital: capital.top
+        ex: ex.top
+        baseline: capital.bottom
+        descent: gp.bottom
+      fontMetricsCache[fontStyle] = result
+    return result
+  
+  _FONT_CAPITAL = 2
+  refreshFontCapital = ->
+    _FONT_CAPITAL = fontMetrics(_FONT_FAMILY, _FONT_SIZE).ascent
 
   exports._setCTX = (ctx) -> _CTX = ctx
+
   exports._setGlobalFontSize = (size) ->
     _FONT_SIZE = size
+    refreshFontCapital()
 
   exports._setGlobalFontFamily = (family) ->
     _FONT_FAMILY = family
-
+    refreshFontCapital()
 
   exports._getGlobalFontSize = -> _FONT_SIZE
 
