@@ -2517,8 +2517,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
           ), fadeTime
       
-      for line, element of @lineNumberTags
-        element.style.display = 'none'
+      @lineNumberWrapper.style.display = 'none'
       
       # Kick off fade-out transition
 
@@ -2567,14 +2566,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
       @fireEvent 'statechange', [true]
-      setValueResult = @setValue @aceEditor.getValue()
+      setValueResult = @setValue_raw @aceEditor.getValue()
 
       unless setValueResult.success
         return setValueResult
       
       if @aceEditor.getFirstVisibleRow() is 0
+        console.log 'is 0'
         @mainScroller.scrollTop = 0
       else
+        console.log 'scrolling to line', @aceEditor.getFirstVisibleRow()
         @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
       setTimeout (=>
@@ -2682,8 +2683,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @iceElement.style.transition = ''
 
           @currentlyAnimating = false
-          for line, element of @lineNumberTags
-            element.style.display = 'block'
+          @lineNumberWrapper.style.display = 'block'
           @redrawMain()
           @paletteHeader.style.zIndex = 257
 
@@ -2951,30 +2951,31 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::setTrimWhitespace = (trimWhitespace) ->
     @trimWhitespace = trimWhitespace
 
+  Editor::setValue_raw = (value) ->
+    if @trimWhitespace then value = value.trim()
+
+    newParse = coffee.parse value, wrapAtRoot: true
+
+    if value isnt @tree.stringify()
+      @addMicroUndoOperation 'CAPTURE_POINT'
+    @addMicroUndoOperation new SetValueOperation @tree, newParse
+
+    @tree = newParse; @gutterVersion = -1
+    @tree.start.insert @cursor
+    @redrawMain()
+
+    return success: true
+  
   Editor::setValue = (value) ->
-    #try
-      # Whitespace trimming hack to account
-      # for ACE editor extra line in some applications
+    
+    oldScrollTop = @aceEditor.session.getScrollTop()
 
-      @aceEditor.setValue value
-      @aceEditor.resize true
-
-      if @trimWhitespace then value = value.trim()
-
-      newParse = coffee.parse value, wrapAtRoot: true
-
-      if value isnt @tree.stringify()
-        @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new SetValueOperation @tree, newParse
-
-      @tree = newParse; @gutterVersion = -1
-      @tree.start.insert @cursor
-      @redrawMain()
-
-      return success: true
-
-    #catch e
-    #  return success: false, error: e
+    @aceEditor.setValue value, -1
+    @aceEditor.resize true
+    
+    @aceEditor.session.setScrollTop oldScrollTop
+    
+    @setValue_raw value
 
   Editor::getValue = -> if @currentlyUsingBlocks then @tree.stringify() else @aceEditor.getValue()
 
@@ -3015,7 +3016,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @resize(); @redrawMain()
 
     else
-      @aceEditor.setValue @getValue(), -1
+      oldScrollTop = @aceEditor.session.getScrollTop()
+
+      @aceEditor.setValue value, -1
+      @aceEditor.resize true
+      
+      @aceEditor.session.setScrollTop oldScrollTop
 
       @iceElement.style.top = @iceElement.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
@@ -3219,6 +3225,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @gutter = document.createElement 'div'
     @gutter.className = 'ice-gutter'
 
+    @lineNumberWrapper = document.createElement 'div'
+    @gutter.appendChild @lineNumberWrapper
+
     @gutterVersion = -1
 
     @lineNumberTags = {}
@@ -3246,7 +3255,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     lineDiv.style.fontSize = @fontSize + 'px'
     lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight + 'px'
 
-    @gutter.appendChild lineDiv
+    @lineNumberWrapper.appendChild lineDiv
 
   Editor::findLineNumberAtCoordinate = (coord) ->
     treeView = @view.getViewNodeFor @tree
