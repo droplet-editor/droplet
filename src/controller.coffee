@@ -120,6 +120,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # Append that div.
       @wrapperElement.appendChild @iceElement
+      
+      @wrapperElement.style.backgroundColor = '#FFF'
 
       # ### Tracker
       # Create the div that will track all the ICE editor mouse movement
@@ -264,7 +266,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     resize: ->
       @iceElement.style.left = "#{@paletteElement.offsetWidth}px"
       @iceElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @iceElement.style.width ="#{@wrapperElement.offsetWidth}px"
+      @iceElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
 
       @mainCanvas.height = @iceElement.offsetHeight
       @mainCanvas.width = @iceElement.offsetWidth - @gutter.offsetWidth
@@ -1117,6 +1119,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
          0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
          (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
          0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
+        if @draggingBlock is @lassoSegment
+          @lassoSegment = null
+
         @draggingBlock = null
         @draggingOffset = null
         @lastHighlight = null
@@ -1382,8 +1387,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @redrawTextInput()
 
   hook 'resize', 0, ->
-    @aceElement.style.width = "#{@iceElement.offsetWidth}px"
-    @aceElement.style.height = "#{@iceElement.offsetHeight}px"
+    @aceElement.style.width = "#{@wrapperElement.offsetWidth}px"
+    @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
 
   last_ = (array) -> array[array.length - 1]
 
@@ -2793,10 +2798,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @paletteHeader.style.fontSize = "#{fontSize}px"
       @gutter.style.fontSize = "#{fontSize}px"
 
-      @view.opts.textHeight = getFontHeight @fontFamily, @fontSize
+      @view.opts.textHeight =
+        @dragView.opts.textHeight = getFontHeight @fontFamily, @fontSize
+
       @view.clearCache()
 
-      @dragView.opts.textHeight = fontSize
       @dragView.clearCache()
 
       @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
