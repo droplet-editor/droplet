@@ -11,7 +11,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   PALETTE_LEFT_MARGIN = 5
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
-  TOP_TAB_HEIGHT = 10
+  TOP_TAB_HEIGHT = 20
   DISCOURAGE_DROP_TIMEOUT = 1000
   MAX_DROP_DISTANCE = 100
 
@@ -103,7 +103,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # ## The Editor Class
   exports.Editor = class Editor
-    constructor: (@wrapperElement, @paletteElement, @paletteGroups) ->
+    constructor: (@wrapperElement, @paletteGroups) ->
       # ## DOM Population
       # This stage of ICE Editor construction populates the given wrapper
       # element with all the necessary ICE editor components.
@@ -140,7 +140,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @iceElement.appendChild @mainCanvas
 
-      @paletteWrapper = document.createElement 'div'
+      @paletteWrapper = @paletteElement = document.createElement 'div'
       @paletteWrapper.className = 'ice-palette-wrapper'
 
       # Then palette canvas
@@ -151,7 +151,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @paletteWrapper.appendChild @paletteCanvas
 
-      @paletteElement.appendChild @paletteWrapper
+      @paletteElement.style.position = 'absolute'
+      @paletteElement.style.left = '0px'
+      @paletteElement.style.top = '0px'
+      @paletteElement.style.bottom = '0px'
+      @paletteElement.style.width = '300px'
+
+      @iceElement.style.left = @paletteElement.offsetWidth + 'px'
+
+      @wrapperElement.appendChild @paletteElement
 
       @standardViewSettings =
         padding: 5
@@ -254,6 +262,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # as the wrapper element, whenever a resize
     # occurs.
     resize: ->
+      @iceElement.style.left = "#{@paletteElement.offsetWidth}px"
       @iceElement.style.height = "#{@wrapperElement.offsetHeight}px"
       @iceElement.style.width ="#{@wrapperElement.offsetWidth}px"
 
@@ -283,8 +292,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @redrawMain()
 
     resizePalette: ->
+      ###
       @paletteWrapper.style.height = "#{@paletteElement.offsetHeight}px"
       @paletteWrapper.style.width = "#{@paletteElement.offsetWidth}px"
+      ###
 
       @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
       @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeader.offsetHeight
@@ -1502,17 +1513,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         newParse = coffee.parse(parseParent.stringify(), wrapAtRoot: false)
         
         if newParse.start.next?.container?.end is newParse.end.prev
-          newParse = newParse.start.next
+          if focus is null
+            newParse = newParse.start.next
 
-          if newParse.type is 'blockStart'
-            parseParent.start.prev.append newParse
-            newParse.container.end.append parseParent.end.next
+            if newParse.type is 'blockStart'
+              parseParent.start.prev.append newParse
+              newParse.container.end.append parseParent.end.next
 
-            newParse.parent = parseParent.parent
+              newParse.parent = parseParent.parent
 
-            newParse.notifyChange()
+              newParse.notifyChange()
 
-            @addMicroUndoOperation new ReparseOperation parseParent, newParse.container
+              @addMicroUndoOperation new ReparseOperation parseParent, newParse.container
+
+              parseParent.parent = null
 
         else
           throw new Error 'Socket is split.'
@@ -1618,6 +1632,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # On mousedown, we will want to start
   # selections and focus text inputs
   # if we apply.
+
   hook 'mousedown', 2, (point, event, state) ->
     # If someone else already took this click, return.
     if state.consumedHitTest then return
@@ -1629,6 +1644,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # If they have clicked a socket,
     # focus it, and
+    if hitTestResult?
+      unless hitTestResult is @textFocus
+        @setTextInputFocus null
+        @redrawMain()
+        hitTestResult = @hitTestTextInput mainPoint, @tree
+
     if hitTestResult?
       @setTextInputFocus hitTestResult
       @redrawMain()
@@ -2160,6 +2181,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             newBlock.container.end.append head.container.end.next
 
             newBlock.parent = head.container.parent
+            head.container.parent = null
 
             newBlock.notifyChange()
 
@@ -2173,7 +2195,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # INDENT CREATE/DESTROY SUPPORT
   # ================================
-
+  
+  ###
   # CreateIndent undo operation
   class CreateIndentOperation extends UndoOperation
     constructor: (pos, @depth) ->
@@ -2272,6 +2295,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       state.capturedBackspace = true
 
       @redrawMain()
+  ###
 
   # ANIMATION AND ACE EDITOR SUPPORT
   # ================================
@@ -2505,11 +2529,20 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @paletteWrapper.style.opacity =
         @mainCanvas.style.opacity =
         @highlightCanvas.style.opacity = 0
+
+      setTimeout (=>
+        @iceElement.style.transition = "left #{translateTime}ms"
+        @iceElement.style.left = '0px'
+      ), fadeTime
       
       setTimeout (=>
         # Translate the ICE editor div out of frame.
-        @iceElement.style.top = "-9999px"
-        @iceElement.style.left = "-9999px"
+        @iceElement.style.transition = ''
+        @iceElement.style.top = '-9999px'
+        @iceElement.style.left = '-9999px'
+
+        @paletteWrapper.style.top = '-9999px'
+        @paletteWrapper.style.left = '-9999px'
 
         # Translate the ACE editor div into frame.
         @aceElement.style.top = "0px"
@@ -2553,6 +2586,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         @aceElement.style.top = "-9999px"
         @aceElement.style.left = "-9999px"
+
+        @paletteWrapper.style.top = '0px'
+        @paletteWrapper.style.left = '0px'
 
         @iceElement.style.top = "0px"
         @iceElement.style.left = "0px"
@@ -2635,11 +2671,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           @mainCanvas.style.opacity =
           @highlightCanvas.style.opacity = 1
         ), translateTime
+
+        @iceElement.style.transition = "left #{translateTime}ms"
+        @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         
         setTimeout (=>
           @paletteWrapper.className.replace /\ ice-fade-in/, ''
           @mainCanvas.className.replace /\ ice-fade-in/, ''
           @highlightCanvas.className.replace /\ ice-fade-in/, ''
+          @iceElement.style.transition = ''
 
           @currentlyAnimating = false
           for line, element of @lineNumberTags
@@ -2969,9 +3009,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
 
-      for line, element of @lineNumberTags
-        element.style.display = 'block'
-
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 1
 
@@ -2983,9 +3020,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @iceElement.style.top = @iceElement.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
-
-      for line, element of @lineNumberTags
-        element.style.display = 'none'
 
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 0

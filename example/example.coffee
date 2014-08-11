@@ -21,7 +21,7 @@ readFile = (name) ->
 require ['ice'], (ice) ->
 
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), document.getElementById('palette'), [
+  window.editor = new ice.Editor document.getElementById('editor'), [
     {
       name: 'Common'
       color: 'common'
@@ -309,11 +309,6 @@ require ['ice'], (ice) ->
     compiler: readFile '../test/data/nodes.coffee'
     empty: ''
   }
-
-  $('#palette_dialog').dialog
-    resize: -> editor.resizePalette()
-  
-  editor.resizePalette()
 
   # Update textarea on ICE editor change
   editor.onChange = ->
