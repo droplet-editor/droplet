@@ -934,7 +934,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         unless point._ice_needs_shift and not @shiftKeyPressed
           distance = mainPoint.from(point)
           distance.y *= 2; distance = distance.magnitude()
-          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE
+          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+             @view.getViewNodeFor(point._ice_node).highlightArea?
             best = point._ice_node
             min = distance
       
