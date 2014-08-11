@@ -155,7 +155,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @standardViewSettings =
         padding: 5
-        indentWidth: getFontHeight 'Courier New', 15
+        indentWidth: 20
+        textHeight: getFontHeight 'Courier New', 15
         indentTongueHeight: 20
         tabOffset: 10
         tabWidth: 15
@@ -164,7 +165,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         dropAreaHeight: 20
         indentDropAreaMinWidth: 50
         emptySocketWidth: 20
-        textHeight: 15
         emptyLineHeight: 25
         highlightAreaHeight: 10
         shadowBlur: 5

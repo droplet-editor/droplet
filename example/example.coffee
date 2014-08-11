@@ -214,7 +214,7 @@ require ['ice'], (ice) ->
           precedence: 32
           color: '#26cf3c'
           children: [
-            '{   '
+            '{'
             {
               type: 'indent'
               depth: 2

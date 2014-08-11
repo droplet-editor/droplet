@@ -7,10 +7,11 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
   exports = {}
 
   COLORS =
-    COMMAND: '#268bd2'
-    CONTROL: '#daa520'
-    VALUE: '#26cf3c'
-    RETURN: '#dc322f'
+    COMMAND: '#71b5e5'
+    CONTROL: '#e9c66d'
+    VALUE: '#71e580'
+    RETURN: '#e87a78'
+    # purple: b078e8
 
   ANY_DROP = 0
   BLOCK_ONLY = 1
