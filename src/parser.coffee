@@ -106,7 +106,7 @@ define ['ice-model'], (model) ->
         # wrap it in a generic block automatically.
         if line.length > 0
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-            block = new model.Block 0, '#ffffff', false
+            block = new model.Block 0, 'blank', false
 
             head = head.append block.start
             head = head.append new model.TextToken line

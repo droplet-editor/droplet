@@ -34,6 +34,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     bevelClip: 3
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
+    colors:
+      command: '#71b5e5'
+      control: '#e9c66d'
+      value: '#71d580'
+      return: '#e87a78'
+      blank: '#ffffff'
 
   YES = -> yes
   NO = -> no
@@ -1489,7 +1495,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       computeOwnPath: ->
         super
-        @path.style.fillColor = @model.color
+        @path.style.fillColor = @view.opts.colors[@model.color] ? '#ffffff'
         @path.style.strokeColor = '#888'
 
         @path.bevel = true

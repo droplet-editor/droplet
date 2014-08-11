@@ -6,12 +6,7 @@
 define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScript) ->
   exports = {}
 
-  COLORS =
-    COMMAND: '#71b5e5'
-    CONTROL: '#e9c66d'
-    VALUE: '#71e580'
-    RETURN: '#e87a78'
-    # purple: b078e8
+  # purple: b078e8
 
   ANY_DROP = 0
   BLOCK_ONLY = 1
@@ -258,7 +253,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     # for semicolons.
     wrapSemicolonLine: (firstBounds, lastBounds, expressions, depth) ->
       # Make the wrapper
-      block = new model.Block 0, COLORS.COMMAND, false
+      block = new model.Block 0, 'command', false
 
       # Put together a boundary that contains all things
       surroundingBounds =
@@ -396,7 +391,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
               if node.body.unwrap() is node.body
                 # We are filled with some things
                 # connected by semicolons; wrap them all,
-                @addBlock node, depth, 0, COLORS.COMMAND, null, MOSTLY_BLOCK
+                @addBlock node, depth, 0, 'command', null, MOSTLY_BLOCK
 
                 for expr in node.body.expressions
                   @addSocketAndMark expr, depth + 1, 0, indentDepth
@@ -424,7 +419,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             if infix.indexOf('+') is -1
               return
 
-          @addBlock node, depth, OPERATOR_PRECEDENCES[node.operator], COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
           
           @addSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
@@ -434,13 +429,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # ### Existence ###
         # Color VALUE, socket @expression, precedence 100
         when 'Existence'
-          @addBlock node, depth, 100, COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
           @addSocketAndMark node.expression, depth + 1, 101, indentDepth
 
         # ### In ###
         # Color VALUE, sockets @object and @array, precedence 100
         when 'In'
-          @addBlock node, depth, 0, COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
           @addSocketAndMark node.object, depth + 1, 0, indentDepth
           @addSocketAndMark node.array, depth + 1, 0, indentDepth
       
@@ -449,7 +444,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # about this node.
         when 'Value'
           if node.properties? and node.properties.length > 0
-            @addBlock node, depth, 0, COLORS.VALUE, wrappingParen, MOSTLY_VALUE
+            @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             @addSocketAndMark node.base, depth + 1, precedence, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
@@ -471,18 +466,18 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
           if node.variable?
             if node.variable?.base?.value in BLOCK_FUNCTIONS
-              @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen, MOSTLY_BLOCK
+              @addBlock node, depth, precedence, 'command', wrappingParen, MOSTLY_BLOCK
             else if node.variable in VALUE_FUNCTIONS
-              @addBlock node, depth, precedence, COLORS.VALUE, wrappingParen, MOSTLY_VALUE
+              @addBlock node, depth, precedence, 'value', wrappingParen, MOSTLY_VALUE
             else
-              @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen, ANY_DROP
+              @addBlock node, depth, precedence, 'command', wrappingParen, ANY_DROP
 
             if node.variable.base?.nodeType() isnt 'Literal'
               @addSocketAndMark node.variable, depth + 1, 0, indentDepth
             else if node.variable.properties?.length > 0
               @addSocketAndMark node.variable.base, depth + 1, 0, indentDepth
           else
-            @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen, ANY_DROP
+            @addBlock node, depth, precedence, 'command', wrappingParen, ANY_DROP
           
           unless node.do
             for arg in node.args
@@ -492,7 +487,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Function definition. Color VALUE, sockets @params,
         # and indent @body.
         when 'Code'
-          @addBlock node, depth, precedence, COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, precedence, 'value', wrappingParen, VALUE_ONLY
           
           for param in node.params
             @addSocketAndMark param, depth + 1, 0, indentDepth, NO
@@ -502,7 +497,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # ### Assign ###
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
-          @addBlock node, depth, precedence, COLORS.COMMAND, wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, precedence, 'command', wrappingParen, MOSTLY_BLOCK
           @addSocketAndMark node.variable, depth + 1, 0, indentDepth, (block) ->
             block.nodeType is 'Value'
 
@@ -512,7 +507,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Color CONTROL, options sockets @index, @source, @name, @from.
         # Indent/socket @body.
         when 'For'
-          @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
           
           for childName in ['source', 'from', 'guard', 'step']
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
@@ -525,7 +520,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # ### Range ###
         # Color VALUE, sockets @from and @to.
         when 'Range'
-          @addBlock node, depth, 100, COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
           @addSocketAndMark node.from, depth, 0, indentDepth
           @addSocketAndMark node.to, depth, 0, indentDepth
 
@@ -536,7 +531,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Special case: "unless" keyword; in this case
         # we want to skip the Op that wraps the condition.
         when 'If'
-          @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
           
           # Check to see if we are an "unless".
           # We will deem that we are an unless if:
@@ -575,21 +570,21 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # ### Arr ###
         # Color VALUE, sockets @objects.
         when 'Arr'
-          @addBlock node, depth, 100, COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
           for object in node.objects
             @addSocketAndMark object, depth + 1, 0, indentDepth
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
         when 'Return'
-          @addBlock node, depth, precedence, COLORS.RETURN, wrappingParen, BLOCK_ONLY
+          @addBlock node, depth, precedence, 'return', wrappingParen, BLOCK_ONLY
           if node.expression?
             @addSocketAndMark node.expression, depth + 1, 0, indentDepth
 
         # ### While ###
         # Color CONTROL. Socket @condition, socket/indent @body.
         when 'While'
-          @addBlock node, depth, precedence, COLORS.CONTROL, wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
           @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
           if node.guard? then @addSocketAndMark node.guard, depth + 1, 0, indentDepth
           @mark node.body, depth + 1, 0, null, indentDepth
@@ -598,7 +593,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Color CONTROL. Socket @subject, optional sockets @cases[x][0],
         # indent/socket @cases[x][1]. indent/socket @otherwise.
         when 'Switch'
-          @addBlock node, depth, 0, COLORS.CONTROL, wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
           
           if node.subject? then @addSocketAndMark node.subject, depth + 1, 0, indentDepth
           
@@ -617,7 +612,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # Color CONTROL. Optional sockets @variable, @parent. Optional indent/socket
         # @obdy.
         when 'Class'
-          @addBlock node, depth, 0, COLORS.CONTROL, wrappingParen, ANY_DROP
+          @addBlock node, depth, 0, 'control', wrappingParen, ANY_DROP
 
           if node.variable? then @addSocketAndMark node.variable, depth + 1, 0, indentDepth, NO
           if node.parent? then @addSocketAndMark node.parent, depth + 1, 0, indentDepth
@@ -629,7 +624,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # TODO: This doesn't quite line up with what we want it to be visually;
         # maybe our View architecture is wrong.
         when 'Obj'
-          @addBlock node, depth, 0, COLORS.VALUE, wrappingParen, VALUE_ONLY
+          @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
 
           for property in node.properties
             if property.nodeType() is 'Assign'

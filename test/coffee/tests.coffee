@@ -5,18 +5,18 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
 
     testString 'Function call',
-      'fd 10', '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'
+      'fd 10', '<block color="command" precedence="0">fd <socket precedence="0">10</socket></block>'
 
     testString 'Variable assignment',
-      'a = b', '<block color="#268bd2" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
+      'a = b', '<block color="command" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
 
     testString 'If statement, normal form',
       '''
       if true
         fd 10
       ''', '''
-      <block color="#daa520" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
+      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
       '''
 
     testString 'Unless statement, normal form',
@@ -24,13 +24,13 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       unless true
         fd 10
       ''', '''
-      <block color="#daa520" precedence="0">unless <socket precedence="0">true</socket><indent depth="2">
-      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="control" precedence="0">unless <socket precedence="0">true</socket><indent depth="2">
+      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
       '''
 
     testString 'One-line if statement',
       'if a then b',
-      '<block color="#daa520" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>'
+      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>'
 
     testString 'If-else statement, normal form',
       '''
@@ -39,57 +39,57 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       else
         fd 10
       ''', '''
-      <block color="#daa520" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent>
+      <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
+      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent>
       else<indent depth="2">
-      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
       '''
 
     testString 'One-line if-else statement',
       'if a then b else c',
-      '<block color="#daa520" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket> else <socket precedence="0">c</socket></block>'
+      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket> else <socket precedence="0">c</socket></block>'
 
     testString 'While statement, normal form',
       '''
       while a
         fd 10
       ''', '''
-      <block color="#daa520" precedence="0">while <socket precedence="0">a</socket><indent depth="2">
-      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="control" precedence="0">while <socket precedence="0">a</socket><indent depth="2">
+      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
       '''
 
     testString 'One-line while statement',
       'while a then fd 10',
-      '<block color="#daa520" precedence="0">while <socket precedence="0">a</socket> then <socket precedence="0"><block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></socket></block>'
+      '<block color="control" precedence="0">while <socket precedence="0">a</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="0">10</socket></block></socket></block>'
 
     testString 'For-in, normal form',
       '''
       for i in list
         fd 10
       ''', '''
-      <block color="#daa520" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket><indent depth="2">
-      <block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="control" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket><indent depth="2">
+      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
       '''
 
     testString 'One-line for-in',
       'for i in list then fd 10'
-      '<block color="#daa520" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket> then <socket precedence="0"><block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></socket></block>'
+      '<block color="control" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="0">10</socket></block></socket></block>'
 
     testString 'Inverted one-line for-in',
       'fd 10 for i in list',
-      '<block color="#daa520" precedence="0"><socket precedence="0"><block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
+      '<block color="control" precedence="0"><socket precedence="0"><block color="command" precedence="0">fd <socket precedence="0">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
 
     testString 'Semicolons at the root',
       'fd 10; bk 10',
-      '<block color="#268bd2" precedence="0"><socket precedence="0">'+
-      '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'+
+      '<block color="command" precedence="0"><socket precedence="0">'+
+      '<block color="command" precedence="0">fd <socket precedence="0">10</socket></block>'+
       '</socket>; <socket precedence="0">'+
-      '<block color="#268bd2" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>'
+      '<block color="command" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>'
 
     testString 'Semicolons with one-line block',
       'if a then b; c else d',
-      '<block color="#daa520" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">' +
-      '<block color="#268bd2" precedence="0"><socket precedence="0">b</socket>; <socket precedence="0">c</socket>' +
+      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">' +
+      '<block color="command" precedence="0"><socket precedence="0">b</socket>; <socket precedence="0">c</socket>' +
       '</block></socket> else <socket precedence="0">d</socket></block>'
 
     testString 'Semicolons in sequence',
@@ -99,13 +99,13 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         fd 10; bk 10
         see bye
       ''',
-      '<block color="#daa520" precedence="0">while <socket precedence="0">a</socket><indent depth="2">\n' +
-      '<block color="#268bd2" precedence="0">see <socket precedence="0">hi</socket></block>\n'+
-      '<block color="#268bd2" precedence="0"><socket precedence="0">'+
-      '<block color="#268bd2" precedence="0">fd <socket precedence="0">10</socket></block>'+
+      '<block color="control" precedence="0">while <socket precedence="0">a</socket><indent depth="2">\n' +
+      '<block color="command" precedence="0">see <socket precedence="0">hi</socket></block>\n'+
+      '<block color="command" precedence="0"><socket precedence="0">'+
+      '<block color="command" precedence="0">fd <socket precedence="0">10</socket></block>'+
       '</socket>; <socket precedence="0">'+
-      '<block color="#268bd2" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>\n'+
-      '<block color="#268bd2" precedence="0">see <socket precedence="0">bye</socket></block></indent></block>'
+      '<block color="command" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>\n'+
+      '<block color="command" precedence="0">see <socket precedence="0">bye</socket></block></indent></block>'
 
     testString 'Object literal, normal form',
       '''
@@ -115,7 +115,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       }
       ''',
       '''
-      <block color="#268bd2" precedence="0">foo <socket precedence="0"><block color="#26cf3c" precedence="0">{
+      <block color="command" precedence="0">foo <socket precedence="0"><block color="value" precedence="0">{
         <socket precedence="0">a</socket>: <socket precedence="0">b</socket>,
         <socket precedence="0">c</socket>: <socket precedence="0">d</socket>
       }</block></socket></block>
@@ -128,22 +128,22 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         c: d
       '''
       '''
-      <block color="#268bd2" precedence="0">foo
-        <socket precedence="0"><block color="#26cf3c" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
+      <block color="command" precedence="0">foo
+        <socket precedence="0"><block color="value" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
         <socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></socket></block>
       '''
 
     testString 'String interpolation',
       'foo "#{a}"',
-      '<block color="#268bd2" precedence="0">foo <socket precedence="0">"#{a}"</socket></block>'
+      '<block color="command" precedence="0">foo <socket precedence="0">"#{a}"</socket></block>'
 
     testString 'Range',
       '[1..10]',
-      '<block color="#26cf3c" precedence="100">[<socket precedence="0">1</socket>..<socket precedence="0">10</socket>]</block>'
+      '<block color="value" precedence="100">[<socket precedence="0">1</socket>..<socket precedence="0">10</socket>]</block>'
 
     testString 'Array',
       '[0, 1]'
-      '<block color="#26cf3c" precedence="100">[<socket precedence="0">0</socket>, <socket precedence="0">1</socket>]</block>'
+      '<block color="value" precedence="100">[<socket precedence="0">0</socket>, <socket precedence="0">1</socket>]</block>'
 
     testString 'Switch, one case, no default',
       '''
@@ -151,9 +151,9 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         when a
           blah blah
       ''', '''
-      <block color="#daa520" precedence="0">switch <socket precedence="0">k</socket>
+      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
         when <socket precedence="0">a</socket><indent depth="4">
-      <block color="#268bd2" precedence="0">blah <socket precedence="0">blah</socket></block></indent></block>
+      <block color="command" precedence="0">blah <socket precedence="0">blah</socket></block></indent></block>
       '''
 
     testString 'One-line switch, one case, no default',
@@ -162,7 +162,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         when a then b
       ''',
       '''
-      <block color="#daa520" precedence="0">switch <socket precedence="0">k</socket>
+      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
         when <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>
       '''
 
@@ -176,16 +176,16 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         else
           what ever
       ''', '''
-      <block color="#daa520" precedence="0">switch <socket precedence="0">k</socket>
+      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
         when <socket precedence="0">a</socket><indent depth="4">
-      <block color="#268bd2" precedence="0">blah <socket precedence="0">blah</socket></block></indent>
+      <block color="command" precedence="0">blah <socket precedence="0">blah</socket></block></indent>
         when <socket precedence="0">b</socket><indent depth="4">
-      <block color="#268bd2" precedence="0">darn <socket precedence="0">it</socket></block></indent>
+      <block color="command" precedence="0">darn <socket precedence="0">it</socket></block></indent>
         else<indent depth="4">
-      <block color="#268bd2" precedence="0">what <socket precedence="0">ever</socket></block></indent></block>
+      <block color="command" precedence="0">what <socket precedence="0">ever</socket></block></indent></block>
       '''
 
-    testString 'Empty function definition', '->', '<block color="#26cf3c" precedence="0">-></block>'
+    testString 'Empty function definition', '->', '<block color="value" precedence="0">-></block>'
 
     testString 'Class definition, normal form, constructor only',
       '''
@@ -193,8 +193,8 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         constructor: ->
       ''',
       '''
-      <block color="#daa520" precedence="0">class <socket precedence="0">Duck</socket><indent depth="2">
-      <block color="#26cf3c" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="#26cf3c" precedence="0">-></block></socket></block></indent></block>
+      <block color="control" precedence="0">class <socket precedence="0">Duck</socket><indent depth="2">
+      <block color="value" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="value" precedence="0">-></block></socket></block></indent></block>
       '''
 
     testString 'Non-parenthetical function call nested in parenthetical function call',
@@ -203,14 +203,14 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         x: 1)
       ''',
       '''
-      <block color="#268bd2" precedence="0">a(<socket precedence="0"><block color="#268bd2" precedence="0">b
-        <socket precedence="0"><block color="#26cf3c" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
+      <block color="command" precedence="0">a(<socket precedence="0"><block color="command" precedence="0">b
+        <socket precedence="0"><block color="value" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
       '''
 
     testString 'Parentheses around semicolon block',
       '(fd 10; bk 10)',
-      '<block color="#268bd2" precedence="0">(<socket precedence="0"><block color="#268bd2" precedence="0">' +
-      'fd <socket precedence="0">10</socket></block></socket>; <socket precedence="0"><block color="#268bd2" precedence="0">' +
+      '<block color="command" precedence="0">(<socket precedence="0"><block color="command" precedence="0">' +
+      'fd <socket precedence="0">10</socket></block></socket>; <socket precedence="0"><block color="command" precedence="0">' +
       'bk <socket precedence="0">10</socket></block></socket>)</block>'
 
 
@@ -233,22 +233,22 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       a %% b
       a?
       ''','''
-      <block color="#26cf3c" precedence="1"><socket precedence="1">a</socket> or <socket precedence="1">b</socket></block>
-      <block color="#26cf3c" precedence="2"><socket precedence="2">a</socket> and <socket precedence="2">b</socket></block>
-      <block color="#26cf3c" precedence="3"><socket precedence="3">a</socket> is <socket precedence="3">b</socket></block>
-      <block color="#26cf3c" precedence="3"><socket precedence="3">a</socket> isnt <socket precedence="3">b</socket></block>
-      <block color="#26cf3c" precedence="3"><socket precedence="3">a</socket> > <socket precedence="3">b</socket></block>
-      <block color="#26cf3c" precedence="3"><socket precedence="3">a</socket> < <socket precedence="3">b</socket></block>
-      <block color="#26cf3c" precedence="3"><socket precedence="3">a</socket> >= <socket precedence="3">b</socket></block>
-      <block color="#26cf3c" precedence="3"><socket precedence="3">a</socket> <= <socket precedence="3">b</socket></block>
-      <block color="#26cf3c" precedence="4"><socket precedence="4">a</socket> + <socket precedence="4">b</socket></block>
-      <block color="#26cf3c" precedence="4"><socket precedence="4">a</socket> - <socket precedence="4">b</socket></block>
-      <block color="#26cf3c" precedence="5"><socket precedence="5">a</socket> * <socket precedence="5">b</socket></block>
-      <block color="#26cf3c" precedence="5"><socket precedence="5">a</socket> / <socket precedence="5">b</socket></block>
-      <block color="#26cf3c" precedence="6"><socket precedence="6">a</socket> % <socket precedence="6">b</socket></block>
-      <block color="#26cf3c" precedence="7"><socket precedence="7">a</socket> ** <socket precedence="7">b</socket></block>
-      <block color="#26cf3c" precedence="7"><socket precedence="7">a</socket> %% <socket precedence="7">b</socket></block>
-      <block color="#26cf3c" precedence="100"><socket precedence="101">a</socket>?</block>
+      <block color="value" precedence="1"><socket precedence="1">a</socket> or <socket precedence="1">b</socket></block>
+      <block color="value" precedence="2"><socket precedence="2">a</socket> and <socket precedence="2">b</socket></block>
+      <block color="value" precedence="3"><socket precedence="3">a</socket> is <socket precedence="3">b</socket></block>
+      <block color="value" precedence="3"><socket precedence="3">a</socket> isnt <socket precedence="3">b</socket></block>
+      <block color="value" precedence="3"><socket precedence="3">a</socket> > <socket precedence="3">b</socket></block>
+      <block color="value" precedence="3"><socket precedence="3">a</socket> < <socket precedence="3">b</socket></block>
+      <block color="value" precedence="3"><socket precedence="3">a</socket> >= <socket precedence="3">b</socket></block>
+      <block color="value" precedence="3"><socket precedence="3">a</socket> <= <socket precedence="3">b</socket></block>
+      <block color="value" precedence="4"><socket precedence="4">a</socket> + <socket precedence="4">b</socket></block>
+      <block color="value" precedence="4"><socket precedence="4">a</socket> - <socket precedence="4">b</socket></block>
+      <block color="value" precedence="5"><socket precedence="5">a</socket> * <socket precedence="5">b</socket></block>
+      <block color="value" precedence="5"><socket precedence="5">a</socket> / <socket precedence="5">b</socket></block>
+      <block color="value" precedence="6"><socket precedence="6">a</socket> % <socket precedence="6">b</socket></block>
+      <block color="value" precedence="7"><socket precedence="7">a</socket> ** <socket precedence="7">b</socket></block>
+      <block color="value" precedence="7"><socket precedence="7">a</socket> %% <socket precedence="7">b</socket></block>
+      <block color="value" precedence="100"><socket precedence="101">a</socket>?</block>
       '''
 
   test 'Basic token operations', ->
