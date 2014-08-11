@@ -2969,6 +2969,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
 
+      for line, element of @lineNumberTags
+        element.style.display = 'block'
+
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 1
 
@@ -2980,6 +2983,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @iceElement.style.top = @iceElement.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
+
+      for line, element of @lineNumberTags
+        element.style.display = 'none'
 
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 0
