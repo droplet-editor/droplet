@@ -95,7 +95,7 @@ require ['ice'], (ice) ->
       blocks: [
         ice.parseObj {
           type: 'block'
-          valueByDefault: true
+          socketLevel: 4
           color: 'value'
           children: [
             '('
@@ -112,7 +112,7 @@ require ['ice'], (ice) ->
                 '\n'
                 {
                   type: 'block'
-                  valueByDefault: false
+                  socketLevel: 1
                   color: 'return'
                   children: [
                     'return '
@@ -130,8 +130,8 @@ require ['ice'], (ice) ->
         ice.parse('return arg').start.next.container
         ice.parseObj {
           type: 'block'
-          valueByDefault: false
-          color: 'return'
+          socketLevel: 1
+          color: 'command'
           precedence: 32
           children: [
             {
@@ -156,7 +156,7 @@ require ['ice'], (ice) ->
       blocks: [
         ice.parseObj {
           type: 'block'
-          valueByDefault: true
+          socketLevel: 4
           color: 'value'
           precedence: 32
           children: [
@@ -174,7 +174,7 @@ require ['ice'], (ice) ->
         ice.parse('{}').start.next.container
         ice.parseObj {
           type: 'block'
-          valueByDefault: true
+          socketLevel: 4
           precedence: 32
           color: 'value'
           children: [

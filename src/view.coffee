@@ -35,11 +35,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
     colors:
-      command: '#71b5e5'
-      control: '#e9c66d'
-      value: '#71d580'
-      return: '#e87a78'
-      blank: '#ffffff'
+      return: '#f2a6a6'
+      control: '#efcf8f'
+      value: '#8cec79'
+      command: '#8fbfef'
+
+      yellow: '#ecec79'
+      cyan: '#79ecd9'
+      violet: '#bfa6f2'
+      magenta: '#f2a6e5'
 
   YES = -> yes
   NO = -> no
