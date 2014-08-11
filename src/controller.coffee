@@ -2476,7 +2476,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.font = @fontSize + 'px ' + @fontFamily
 
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
+        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
 
         div.className = 'ice-transitioning-element'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
@@ -2633,7 +2633,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           do (div, textElement) =>
             setTimeout (=>
               div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-              div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y}px"
+              div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
             ), 0
 
         top = Math.max @aceEditor.getFirstVisibleRow(), 0
@@ -2789,6 +2789,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
   hook 'populate', 0, ->
     @fontSize = 15
+    @fontAscent = 1
     @fontFamily = 'Courier New'
 
   Editor::setFontSize_raw = (fontSize) ->
@@ -2800,6 +2801,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @view.opts.textHeight =
         @dragView.opts.textHeight = getFontHeight @fontFamily, @fontSize
+
+      @fontAscent = fontMetrics(@fontFamily, @fontSize).ascent
 
       @view.clearCache()
 
@@ -2815,6 +2818,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @fontFamily = fontFamily
 
     @view.opts.textHeight = getFontHeight @fontFamily, @fontSize
+    @fontAscent = fontMetrics(@fontFamily, @fontSize).ascent
 
     @view.clearCache(); @dragView.clearCache()
     @gutter.style.fontFamily = fontFamily
