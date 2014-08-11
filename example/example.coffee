@@ -96,7 +96,7 @@ require ['ice'], (ice) ->
         ice.parseObj {
           type: 'block'
           valueByDefault: true
-          color: '#26cf3c'
+          color: 'value'
           children: [
             '('
             {
@@ -104,18 +104,6 @@ require ['ice'], (ice) ->
               precedence: 0
               contents: 'arg'
             }
-            #{
-            #  type: 'mutationButton'
-            #  expand: [
-            #    ', '
-            #    {
-            #      type: 'socket'
-            #      precedence: 0
-            #      contents: 'arg'
-            #    }
-            #  0
-            #  ]
-            #}
             ') ->'
             {
               type: 'indent'
@@ -125,7 +113,7 @@ require ['ice'], (ice) ->
                 {
                   type: 'block'
                   valueByDefault: false
-                  color: '#dc322f'
+                  color: 'return'
                   children: [
                     'return '
                     {
@@ -143,7 +131,7 @@ require ['ice'], (ice) ->
         ice.parseObj {
           type: 'block'
           valueByDefault: false
-          color: '#268bd2'
+          color: 'return'
           precedence: 32
           children: [
             {
@@ -157,18 +145,6 @@ require ['ice'], (ice) ->
               precedence: 0
               contents: 'arg'
             }
-            #{
-            #  type: 'mutationButton'
-            #  expand: [
-            #    ', '
-            #    {
-            #      type: 'socket'
-            #      precedence: 0
-            #      contents: 'arg'
-            #    }
-            #    0
-            #  ]
-            #}
             ')'
           ]
         }
@@ -181,7 +157,7 @@ require ['ice'], (ice) ->
         ice.parseObj {
           type: 'block'
           valueByDefault: true
-          color: '#26cf3c'
+          color: 'value'
           precedence: 32
           children: [
             '['
@@ -190,18 +166,6 @@ require ['ice'], (ice) ->
               precedence: 0
               contents: 'el'
             }
-            #{
-            #  type: 'mutationButton'
-            #  expand: [
-            #    ', '
-            #    {
-            #      type: 'socket'
-            #      precedence: 0
-            #      contents: 'el'
-            #    }
-            #    0
-            #  ]
-            #}
             ']'
           ]
         }
@@ -212,7 +176,7 @@ require ['ice'], (ice) ->
           type: 'block'
           valueByDefault: true
           precedence: 32
-          color: '#26cf3c'
+          color: 'value'
           children: [
             '{'
             {
@@ -227,7 +191,7 @@ require ['ice'], (ice) ->
         }
         ice.parseObj {
           type: 'block'
-          color: '#268bd2'
+          color: 'command'
           children: [
             {
               type: 'socket'
