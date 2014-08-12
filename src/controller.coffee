@@ -1646,11 +1646,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # If they have clicked a socket,
     # focus it, and
-    if hitTestResult?
-      unless hitTestResult is @textFocus
-        @setTextInputFocus null
-        @redrawMain()
-        hitTestResult = @hitTestTextInput mainPoint, @tree
+    unless hitTestResult is @textFocus
+      @setTextInputFocus null
+      @redrawMain()
+      hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
       @setTextInputFocus hitTestResult
@@ -2024,6 +2023,25 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @moveCursorTo @cursor.next.next
     @scrollCursorIntoPosition()
 
+  getCharactersTo = (parent, token) ->
+    head = token
+    chars = 0
+
+    until head is parent.start
+      head = head.prev
+      if head.type is 'text' then chars += head.value.length
+
+    return chars
+  
+  getSocketAtChar = (parent, chars) ->
+    head = parent.start
+    charsCounted = 0
+
+    until charsCounted >= chars and head.type is 'socketStart'
+      head = head.next
+
+    return head.container
+
   hook 'key.tab', 0, ->
     if @shiftKeyPressed
       if @textFocus? then head = @textFocus.start
@@ -2032,7 +2050,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       until (not head?) or head.type is 'socketEnd' and head.container.start.next.type is 'text'
         head = head.prev
       if head?
-        @setTextInputFocus head.container, -1, -1
+        
+        if @textFocus? and head.container.hasParent @textFocus.parent
+          chars = getCharactersTo head
+          @setTextInputFocus null
+          socket = getSocketAtChar chars
+        else
+          socket = head.container
+          @setTextInputFocus null
+
+        @setTextInputFocus socket, -1, -1
       return false
     
     else
@@ -2042,7 +2069,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       until (not head?) or head.type is 'socketStart' and head.container.start.next.type is 'text'
         head = head.next
       if head?
-        @setTextInputFocus head.container
+
+        if @textFocus? and head.container.hasParent @textFocus.parent
+          chars = getCharactersTo head
+          @setTextInputFocus null
+          socket = getSocketAtChar chars
+        else
+          socket = head.container
+          @setTextInputFocus null
+
+        @setTextInputFocus socket
       return false
 
   Editor::deleteAtCursor = ->
@@ -2501,7 +2537,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.innerText = line + 1
 
         div.style.left = 0
-        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight}px"
+        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
 
         div.style.font = @fontSize + 'px ' + @fontFamily
         div.style.width = "#{@gutter.offsetWidth}px"
@@ -2660,7 +2696,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           do (div, line) =>
             setTimeout (=>
               div.style.left = 0
-              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight}px"
+              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
             ), 0
 
         for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
@@ -3264,7 +3300,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     lineDiv.style.top =  treeView.bounds[line].y + 'px'
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @fontSize + 'px'
-    lineDiv.style.paddingTop = treeView.distanceToBase[line].above - @view.opts.textHeight + 'px'
+    lineDiv.style.paddingTop = (treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent) + 'px'
 
     @lineNumberWrapper.appendChild lineDiv
 

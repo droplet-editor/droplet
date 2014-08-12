@@ -44,6 +44,13 @@ define ->
     # with the same metadata.
     _cloneEmpty: -> new Container()
 
+    hasParent: (parent) ->
+      head = @
+      until head in [parent, null]
+        head = head.parent
+
+      return head is parent
+    
     # ## clone ##
     # Clone this container, with all the token inside,
     # but with no linked-list pointers in common.
