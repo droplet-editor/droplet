@@ -2560,6 +2560,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         for div in translatingElements
           div.parentNode.removeChild div
         
+        @resize()
         if cb? then do cb
       ), fadeTime + translateTime
 
