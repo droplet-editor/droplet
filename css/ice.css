@@ -33,7 +33,7 @@
   border-right: none;
 }
 .ice-palette-canvas {
-  background-color:#DDD;
+  background-color:#FFF;
 }
 .ice-wrapper-div {
   position: absolute;
@@ -80,7 +80,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  background-color: #DDD;
+  background-color: #FFF;
   line-height: 10px;
   border-spacing: 4px;
   border-bottom: 2px solid #000;

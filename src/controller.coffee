@@ -79,6 +79,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     'mousedown': []
     'mousemove': []
     'mouseup': []
+    'dblclick': []
   }
 
   unsortedEditorKeyBindings = {}
@@ -224,6 +225,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # We allow binding to the tracker element.
       for eventName, elements of {
           mousedown: [@iceElement, @paletteElement, @dragCover]
+          dblclick: [@iceElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
         
@@ -409,7 +411,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else
         delete @extraMarks[id]
 
-    @drawCursor()
+    if @textFocus?
+      @redrawTextHighlights()
+
+    else
+      @drawCursor()
 
   Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
@@ -1453,6 +1459,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     else
       @redrawMain()
 
+    @redrawTextHighlights()
+    
+  Editor::redrawTextHighlights = ->
+    textFocusView = @view.getViewNodeFor @textFocus
+
+    # Determine the coordinate positions
+    # of the typing cursor
+    startRow = @textFocus.stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
+
     lines = @textFocus.stringify().split '\n'
 
     startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
@@ -1465,7 +1481,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     #
     # Draw a line if it is just a cursor
     if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
-      @mainCtx.strokeStyle = '#888'
+      @mainCtx.strokeStyle = '#000'
       @mainCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
         0, @view.opts.textHeight
 
@@ -1549,7 +1565,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # If we're _unfocusing_, just do so.
     if not focus?
       @textFocus = null
-      @hiddenInput.blur(); @iceElement.focus()
+      @redrawMain(); @hiddenInput.blur(); @iceElement.focus()
       return
 
     # Record old focus value
@@ -1576,7 +1592,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Focus the hidden input.
     setTimeout (=>
       @hiddenInput.focus()
-      @hiddenInput.setSelectionRange selectionStart, selectionEnd
+      @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
+      @redrawTextInput()
     ), 0
 
     # Redraw.
@@ -1627,6 +1644,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @textInputAnchor = @textInputHead = @getTextPosition point
     @hiddenInput.setSelectionRange @textInputAnchor, @textInputHead
 
+  Editor::selectDoubleClick = (point) ->
+    position = @getTextPosition point
+    
+    before = @textFocus.stringify()[...position].match(/\w*$/)[0]?.length ? 0
+    after = @textFocus.stringify()[position..].match(/^\w*/)[0]?.length ? 0
+
+    @textInputAnchor = position - before
+    @textInputHead = position + after
+
+    @hiddenInput.setSelectionRange @textInputAnchor, @textInputHead
+
   Editor::setTextInputHead = (point) ->
     @textInputHead = @getTextPosition point
     @hiddenInput.setSelectionRange Math.min(@textInputAnchor, @textInputHead), Math.max(@textInputAnchor, @textInputHead)
@@ -1652,17 +1680,50 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
-      @setTextInputFocus hitTestResult
-      @redrawMain()
+      
+      unless hitTestResult is @textFocus
+        @setTextInputFocus hitTestResult
+        @redrawMain()
 
-      setTimeout (=>
+        @textInputSelecting = false
+
+      else
         @setTextInputAnchor mainPoint
         @redrawTextInput()
 
         @textInputSelecting = true
+
+      state.consumedHitTest = true
+
+  hook 'dblclick', 0, (point, event, state) ->
+    # If someone else already took this click, return.
+    if state.consumedHitTest then return
+
+    # Otherwise, look for a socket that
+    # the user has clicked
+    mainPoint = @trackerPointToMain point
+    hitTestResult = @hitTestTextInput mainPoint, @tree
+
+    # If they have clicked a socket,
+    # focus it, and
+    unless hitTestResult is @textFocus
+      @setTextInputFocus null
+      @redrawMain()
+      hitTestResult = @hitTestTextInput mainPoint, @tree
+
+    if hitTestResult?
+      @setTextInputFocus hitTestResult
+      @redrawMain()
+
+      setTimeout (=>
+        @selectDoubleClick mainPoint
+        @redrawTextInput()
+
+        @textInputSelecting = false
       ), 0
 
       state.consumedHitTest = true
+
 
   # On mousemove, if we are selecting,
   # we want to update the selection
@@ -2028,8 +2089,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     chars = 0
 
     until head is parent.start
-      head = head.prev
       if head.type is 'text' then chars += head.value.length
+      head = head.prev
 
     return chars
   
@@ -2037,7 +2098,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     head = parent.start
     charsCounted = 0
 
-    until charsCounted >= chars and head.type is 'socketStart'
+    until charsCounted >= chars and head.type is 'socketStart' and head.next.type is 'text'
+      if head.type is 'text' then charsCounted += head.value.length
+
       head = head.next
 
     return head.container
@@ -2050,16 +2113,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       until (not head?) or head.type is 'socketEnd' and head.container.start.next.type is 'text'
         head = head.prev
       if head?
-        
         if @textFocus? and head.container.hasParent @textFocus.parent
-          chars = getCharactersTo head
+          persistentParent = @textFocus.parent.parent
+
+          chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
-          socket = getSocketAtChar chars
+          socket = getSocketAtChar persistentParent, chars
         else
           socket = head.container
           @setTextInputFocus null
 
-        @setTextInputFocus socket, -1, -1
+        @setTextInputFocus socket
       return false
     
     else
@@ -2069,11 +2133,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       until (not head?) or head.type is 'socketStart' and head.container.start.next.type is 'text'
         head = head.next
       if head?
-
         if @textFocus? and head.container.hasParent @textFocus.parent
-          chars = getCharactersTo head
+          persistentParent = @textFocus.parent.parent
+
+          chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
-          socket = getSocketAtChar chars
+          socket = getSocketAtChar persistentParent, chars
         else
           socket = head.container
           @setTextInputFocus null
@@ -2559,22 +2624,24 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       
       # Kick off fade-out transition
 
-      @paletteWrapper.style.transition  =
-        @mainCanvas.style.transition =
+      @mainCanvas.style.transition =
         @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
 
-      @paletteWrapper.style.opacity =
-        @mainCanvas.style.opacity =
+      @mainCanvas.style.opacity =
         @highlightCanvas.style.opacity = 0
 
       setTimeout (=>
-        @iceElement.style.transition = "left #{translateTime}ms"
+        @iceElement.style.transition =
+          @paletteWrapper.style.transition = "left #{translateTime}ms"
         @iceElement.style.left = '0px'
+        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
       ), fadeTime
       
       setTimeout (=>
         # Translate the ICE editor div out of frame.
-        @iceElement.style.transition = ''
+        @iceElement.style.transition =
+          @paletteWrapper.style.transition = ''
+
         @iceElement.style.top = '-9999px'
         @iceElement.style.left = '-9999px'
 
@@ -2625,7 +2692,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @aceElement.style.left = "-9999px"
 
         @paletteWrapper.style.top = '0px'
-        @paletteWrapper.style.left = '0px'
+        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
         @iceElement.style.top = "0px"
         @iceElement.style.left = "0px"
@@ -2699,20 +2766,24 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
               div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
             ), 0
 
-        for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
+        for el in [@mainCanvas, @highlightCanvas]
           el.style.opacity = 0
 
         setTimeout (=>
-          for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
+          for el in [@mainCanvas, @highlightCanvas]
             el.style.transition = "opacity #{fadeTime}ms linear"
             el.style.opacity = 1
         ), translateTime
+        
+        @iceElement.style.transition =
+          @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-        @iceElement.style.transition = "left #{translateTime}ms"
         @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @paletteWrapper.style.left = '0px'
         
         setTimeout (=>
-          @iceElement.style.transition = ''
+          @iceElement.style.transition =
+            @paletteWrapper.style.transition = ''
 
           @currentlyAnimating = false
           @lineNumberWrapper.style.display = 'block'
@@ -3074,7 +3145,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @lineNumberWrapper.style.display = 'none'
 
-      @mainCanvas.opacity = @paletteWrapper.opacity =
+      @mainCanvas.opacity =
         @highlightCanvas.opacity = 0
 
       @resize()
