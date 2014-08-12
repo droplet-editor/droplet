@@ -233,6 +233,8 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       
       # If necessary, flag it as paren-wrapped.
       block.currentlyParenWrapped = wrappingParen?
+
+      return block
     
     # ## addSocket ##
     # A similar utility function for adding sockets.
@@ -241,12 +243,16 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
       @addMarkup socket, node, null, depth
 
+      return socket
+
     # ## addSocketAndMark ##
     # Adds a socket around a block, and @marks it.
     addSocketAndMark: (node, depth, precedence, indentDepth, accepts = YES) ->
-      @addSocket node, depth, precedence, accepts
+      socket = @addSocket node, depth, precedence, accepts
 
       @mark node, depth + 1, precedence, null, indentDepth
+
+      return socket
     
     # ## wrapSemicolonLine ##
     # Wrap a single line in a block
@@ -451,6 +457,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
                 @addSocketAndMark property.name, depth + 1, precedence, indentDepth, NO
               else if property.nodeType() is 'Index'
                 @addSocketAndMark property.index, depth + 1, precedence, indentDepth
+          
+          # Fake-remove backticks hack
+          else if node.base.nodeType() is 'Literal' and
+              node.base.value is ''
+            fakeBlock = @addBlock node.base, depth, 0, 'value', wrappingParen, ANY_DROP
+            fakeBlock.flagToRemove = true
+
           else
             @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
 

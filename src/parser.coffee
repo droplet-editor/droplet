@@ -228,6 +228,20 @@ define ['ice-model'], (model) ->
     # Return the document
     return document
   
+  removeFlaggedBlocks = (segment) ->
+    head = segment.start
+    until head is segment.end
+      if (head instanceof model.StartToken and
+          head.container.flagToRemove)
+
+        container = head.container
+        head = container.end.next
+
+        container.spliceOut()
+      
+      else
+        head = head.next
+  
   # ## regenerateMarkup ##
   # Turn a list of containers into
   # a list of tags.
@@ -260,6 +274,7 @@ define ['ice-model'], (model) ->
       markup = regenerateMarkup @parseFn text
       sortMarkup markup
       segment = applyMarkup text, markup, opts
+      removeFlaggedBlocks segment
       segment.correctParentTree()
       return segment
 

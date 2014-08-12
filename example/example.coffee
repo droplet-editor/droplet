@@ -26,8 +26,8 @@ require ['ice'], (ice) ->
       name: 'Common'
       color: 'common'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
-        'fd 100'
-        'bk 100'
+        'fd ``'
+        'bk ``'
         'rt 90'
         'lt 90'
         '''
