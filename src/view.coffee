@@ -1638,7 +1638,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @dropPoint = @bounds[0].upperLeftCorner()
           @highlightArea = @path.clone()
           @highlightArea.noclip = true
-          @highlightArea.style.strokeColor = '#FFF'
+          @highlightArea.style.strokeColor = '#FF0'
           @highlightArea.style.lineWidth = @view.opts.padding
 
     # # IndentViewNode
