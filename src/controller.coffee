@@ -1358,6 +1358,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       socket.start.append socket.end; socket.notifyChange()
       socket.start.insert new model.TextToken @after
 
+  class TextReparseOperation extends UndoOperation
+    constructor: (socket, @before) ->
+      @after = socket.start.next.container
+      @socket = socket.start.getSerializedLocation()
+
+    undo: (editor) ->
+      socket = editor.tree.getTokenAtLocation(@socket).container
+      socket.start.next.container.moveTo null
+      socket.start.insert new model.TextToken @before
+
+    redo: (editor) ->
+      socket = editor.tree.getTokenAtLocation(@socket).container
+      socket.start.append socket.end; socket.notifyChange()
+      @after.clone().moveTo socket
+
   # At populate-time, we need
   # to create and append the hidden input
   # we will use for text input.
@@ -1523,35 +1538,25 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # value.
       try
         # TODO make 'reparsable' property, bubble up until then
-        parseParent = @textFocus.parent
-
-        newParse = coffee.parse(parseParent.stringify(), wrapAtRoot: false)
-
-        if newParse.start.next?.container?.end is newParse.end.prev
-          if focus is null
-            newParse = newParse.start.next
-
-            if newParse.type is 'blockStart'
-              parseParent.start.prev.append newParse
-              newParse.container.end.append parseParent.end.next
-
-              newParse.parent = parseParent.parent
-
-              newParse.notifyChange()
-
-              @addMicroUndoOperation new ReparseOperation parseParent, newParse.container
-
-              parseParent.parent = null
-
-        else
-          throw new Error 'Socket is split.'
-
+        coffee.parse(@textFocus.parent.stringify(), wrapAtRoot: false)
       catch
         @extraMarks[@textFocus.id] =
           model: @textFocus
           style: {color: '#F00'}
 
         @redrawMain()
+    
+      try
+        newParse = coffee.parse(unparsedValue = @textFocus.stringify(), wrapAtRoot: false)
+
+        if newParse.start.next.type is 'blockStart' and newParse.start.next.container.end.next is newParse.end
+          # Empty the socket
+          @textFocus.start.append @textFocus.end
+
+          # Splice the other in
+          newParse.start.next.container.spliceIn @textFocus.start
+
+          @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
 
     # Now we're done with the old focus,
     # we can start over.
