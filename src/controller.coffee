@@ -3106,8 +3106,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'populate', 0, ->
     @touchScrollAnchor = new draw.Point 0, 0
     @lassoSelectStartTimeout = null
-
-    @iceElement.addEventListener 'touchstart', (event) =>
+    
+    @wrapperElement.addEventListener 'touchstart', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @touchEventToPoint event, 0
@@ -3133,7 +3133,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       else
         @queueLassoMousedown trackPoint, event
 
-    @iceElement.addEventListener 'touchmove', (event) =>
+    @wrapperElement.addEventListener 'touchmove', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @touchEventToPoint event, 0
@@ -3154,7 +3154,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       if @clickedBlock? or @draggingBlock? or @lassoSelectAnchor? or @textInputSelecting
         event.preventDefault()
 
-    @iceElement.addEventListener 'touchend', (event) =>
+    @wrapperElement.addEventListener 'touchend', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
       trackPoint = @touchEventToPoint event, 0
