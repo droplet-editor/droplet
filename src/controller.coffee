@@ -33,7 +33,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       obj[key] = value
 
     return obj
-  
+
   deepCopy = (a) ->
     if a instanceof Object
       newObject = {}
@@ -42,7 +42,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         newObject[key] = deepCopy val
 
       return newObject
-    
+
     else
       return a
 
@@ -51,7 +51,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       for own key, val of a
         unless deepEquals b[key], val
           return false
-      
+
       for own key, val of b when not key of a
         unless deepEquals a[key], val
           return false
@@ -121,7 +121,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # Append that div.
       @wrapperElement.appendChild @iceElement
-      
+
       @wrapperElement.style.backgroundColor = '#FFF'
 
       # ### Tracker
@@ -228,7 +228,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           dblclick: [@iceElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
-        
+
         for element in elements
           element.addEventListener eventName, (event) =>
             trackPoint = @getPointRelativeToTracker event
@@ -240,7 +240,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             # Call all the handlers.
             for handler in editorBindings[eventName]
               handler.call this, trackPoint, event, state
-            
+
             # Stop event propagation so that
             # we don't get bad selections
             event.stopPropagation?()
@@ -366,7 +366,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @clearMain(opts)
 
       @topNubbyPath.draw @mainCtx
-      
+
       if opts.boundingRectangle?
         @mainCtx.save()
         opts.boundingRectangle.clip @mainCtx
@@ -403,7 +403,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         path.draw @highlightCtx
       else
         delete @markedLines[line]
-      
+
     for id, info of @extraMarks
       if @inTree info.model
         path = @getHighlightPath info.model, info.style
@@ -514,7 +514,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       x -= @iceElement.offsetLeft
       y -= @iceElement.offsetTop
-      
+
       while el?
         x -= el.offsetLeft - el.scrollLeft
         y -= el.offsetTop - el.scrollTop
@@ -576,7 +576,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # Nope, it's not. Answer is null.
     else return null
-  
+
   hook 'mousedown', 10, ->
     @iceElement.focus()
 
@@ -603,7 +603,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # and might possibly do some bureaucracy in the future.
   Editor::addMicroUndoOperation = (operation) ->
     @undoStack.push operation
-    
+
     # If someone has bound to mutation via
     # the public API, fire it.
     @fireEvent 'change', [operation]
@@ -886,7 +886,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         point.x + @draggingOffset.x,
         point.y + @draggingOffset.y
       )
-      
+
       # Construct a quadtree of drop areas
       # for faster dragging
       @dropPointQuadTree = QUAD.init
@@ -913,7 +913,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
                 h: 0
                 _ice_needs_shift: not @canDrop @draggingBlock, head.container
                 _ice_node: head.container
-              
+
         head = head.next
 
       @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
@@ -942,7 +942,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       mainPoint = @trackerPointToMain(position)
 
       best = null; min = Infinity
-      
+
       # Find the closest droppable block
       testPoints = @dropPointQuadTree.retrieve {
         x: mainPoint.x - MAX_DROP_DISTANCE
@@ -957,7 +957,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
              @view.getViewNodeFor(point._ice_node).highlightArea?
             best = point._ice_node
             min = distance
-      
+
       if best isnt @lastHighlight
         @clearHighlightCanvas()
 
@@ -967,7 +967,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
-  
+
   Editor::canDrop = (drag, drop) ->
     unless drop? then return false
     unless @view.getViewNodeFor(drop).dropPoint? then return false
@@ -981,7 +981,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         return drop.accepts drag
     else
       return drag.socketLevel in [ANY_DROP, MOSTLY_BLOCK, BLOCK_ONLY]
-  
+
   Editor::discourageDrop = (drag, drop) ->
     unless drop? then return false
 
@@ -991,7 +991,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     else
       return drag.socketLevel in [MOSTLY_VALUE]
 
-    
+
   hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
@@ -1093,7 +1093,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       block = block.parent
 
     return block is @tree
-  
+
   # We can create floating blocks by dropping
   # blocks without a highlight.
   hook 'mouseup', 0, (point, event, state) ->
@@ -1135,7 +1135,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @clearDrag()
         @redrawMain()
         return
-      
+
       else if renderPoint.x - @scrollOffsets.main.x < 0
         renderPoint.x = @scrollOffsets.main.x
 
@@ -1225,14 +1225,15 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
 
-    # Keep track of the row that we are on
-    # in our table layout
-    paletteHeaderRow = document.createElement 'div'
-    paletteHeaderRow.className = 'ice-palette-header-row'
-
-    @paletteHeader.appendChild paletteHeaderRow
-
+    paletteHeaderRow = null
     for paletteGroup, i in @paletteGroups then do (paletteGroup) =>
+      # Start a new row, if we're at that point
+      # in our appending cycle
+      if i % 2 is 0
+        paletteHeaderRow = document.createElement 'div'
+        paletteHeaderRow.className = 'ice-palette-header-row'
+        @paletteHeader.appendChild paletteHeaderRow
+
       # Clone all the blocks so as not to
       # intrude on outside stuff
       paletteGroup.blocks = (block.clone() for block in paletteGroup.blocks)
@@ -1245,13 +1246,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         paletteGroupHeader.className += ' ' + paletteGroup.color
 
       paletteHeaderRow.appendChild paletteGroupHeader
-
-      # Start a new row, if we're at that point
-      # in our appending cycle
-      if i % 2 is 1
-        paletteHeaderRow = document.createElement 'div'
-        paletteHeaderRow.className = 'ice-palette-header-row'
-        @paletteHeader.appendChild paletteHeaderRow
 
       # When we click this element,
       # we should switch to it in the palette.
@@ -1425,7 +1419,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         if head.type is 'newline' then line++
 
       treeView = @view.getViewNodeFor @tree
-      
+
       oldp = deepCopy [
         treeView.glue[line - 1],
         treeView.glue[line],
@@ -1439,7 +1433,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         treeView.glue[line],
         treeView.bounds[line].height
       ]
-      
+
       # If the layout has not changed enough to affect
       # anything non-local, only redraw locally.
       if deepEquals newp, oldp
@@ -1454,7 +1448,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           boundingRectangle: rect
 
       else @redrawMain()
-      
+
     # Otherwise, redraw the whole thing
     else
       @redrawMain()
@@ -1532,7 +1526,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         parseParent = @textFocus.parent
 
         newParse = coffee.parse(parseParent.stringify(), wrapAtRoot: false)
-        
+
         if newParse.start.next?.container?.end is newParse.end.prev
           if focus is null
             newParse = newParse.start.next
@@ -2125,7 +2119,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         @setTextInputFocus socket
       return false
-    
+
     else
       if @textFocus? then head = @textFocus.end
       else head = @cursor
@@ -2221,7 +2215,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @redrawMain()
       @reparseHandwrittenBlocks()
       @setTextInputFocus newSocket
-    
+
     else if @textFocus? then @setTextInputFocus null; @redrawMain()
 
   containsCursor = (block) ->
@@ -2297,7 +2291,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   # INDENT CREATE/DESTROY SUPPORT
   # ================================
-  
+
   ###
   # CreateIndent undo operation
   class CreateIndentOperation extends UndoOperation
@@ -2581,7 +2575,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         translatingElements.push div
 
         @transitionContainer.appendChild div
-        
+
         do (div, textElement, translationVectors, i) =>
           setTimeout (=>
             div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
@@ -2607,21 +2601,21 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         div.style.font = @fontSize + 'px ' + @fontFamily
         div.style.width = "#{@gutter.offsetWidth}px"
         translatingElements.push div
-        
+
         div.className = 'ice-transitioning-element ice-transitioning-gutter'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
 
         @mainScrollerStuffing.appendChild div
-        
+
         do (div, line) =>
           # Set off the css transition
           setTimeout (=>
             div.style.left = '0px'
             div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
           ), fadeTime
-      
+
       @lineNumberWrapper.style.display = 'none'
-      
+
       # Kick off fade-out transition
 
       @mainCanvas.style.transition =
@@ -2636,7 +2630,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         @iceElement.style.left = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
       ), fadeTime
-      
+
       setTimeout (=>
         # Translate the ICE editor div out of frame.
         @iceElement.style.transition =
@@ -2662,7 +2656,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         for div in translatingElements
           div.parentNode.removeChild div
-        
+
         if cb? then do cb
       ), fadeTime + translateTime
 
@@ -2675,7 +2669,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       unless setValueResult.success
         return setValueResult
-      
+
       if @aceEditor.getFirstVisibleRow() is 0
         @mainScroller.scrollTop = 0
       else
@@ -2727,7 +2721,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           translatingElements.push div
 
           @transitionContainer.appendChild div
-          
+
           do (div, textElement) =>
             setTimeout (=>
               div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
@@ -2759,7 +2753,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           translatingElements.push div
 
           @mainScrollerStuffing.appendChild div
-          
+
           do (div, line) =>
             setTimeout (=>
               div.style.left = 0
@@ -2780,7 +2774,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
-        
+
         setTimeout (=>
           @iceElement.style.transition =
             @paletteWrapper.style.transition = ''
@@ -2792,7 +2786,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
           for div in translatingElements
             div.parentNode.removeChild div
-          
+
           @resize()
           if cb? then do cb
         ), translateTime + fadeTime
@@ -2908,7 +2902,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @dragView.clearCache()
 
       @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-      
+
       @redrawMain(); @redrawPalette()
 
   Editor::setFontFamily = (fontFamily) ->
@@ -3024,10 +3018,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       mainPoint = @trackerPointToMain point
 
       treeView = @view.getViewNodeFor @tree
-      
+
       if @lastHoveredLine? and treeView.bounds[@lastHoveredLine].contains mainPoint
         return
-      
+
       hoveredLine = @findLineNumberAtCoordinate point.y
 
       unless treeView.bounds[hoveredLine].contains mainPoint
@@ -3074,16 +3068,16 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @redrawMain()
 
     return success: true
-  
+
   Editor::setValue = (value) ->
-    
+
     oldScrollTop = @aceEditor.session.getScrollTop()
 
     @aceEditor.setValue value, -1
     @aceEditor.resize true
-    
+
     @aceEditor.session.setScrollTop oldScrollTop
-    
+
     @setValue_raw value
 
   Editor::getValue = -> if @currentlyUsingBlocks then @tree.stringify() else @aceEditor.getValue()
@@ -3135,7 +3129,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @aceEditor.setValue @getValue(), -1
       @aceEditor.resize true
-      
+
       @aceEditor.session.setScrollTop oldScrollTop
 
       @iceElement.style.top = @iceElement.style.left =
@@ -3213,7 +3207,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'populate', 0, ->
     @touchScrollAnchor = new draw.Point 0, 0
     @lassoSelectStartTimeout = null
-    
+
     @wrapperElement.addEventListener 'touchstart', (event) =>
       clearTimeout @lassoSelectStartTimeout
 
@@ -3336,7 +3330,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         @clearDrag()
         @redrawMain()
-    
+
   # LINE NUMBER GUTTER CODE
   # ================================
   hook 'populate', 0, ->
@@ -3393,7 +3387,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       pivot = Math.floor (start + end) / 2
 
     return pivot
-  
+
   hook 'redraw_main', 0, (changedBox) ->
     treeView = @view.getViewNodeFor @tree
 
@@ -3410,7 +3404,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     if changedBox
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
-  
+
   ###
   getFontHeight = (family, size) ->
     testElement = document.createElement 'span'
@@ -3493,7 +3487,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         descent: gp.bottom
       fontMetricsCache[fontStyle] = result
     return result
-  
+
   getFontHeight = (family, size) ->
     metrics = fontMetrics family, size
     return metrics.descent - metrics.ascent
