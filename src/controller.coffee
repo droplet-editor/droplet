@@ -1369,7 +1369,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # We also need to initialise some fields
     # for knowing what is focused
-    @socketFocus = null
+    @textFocus = null
     @textFocus = null
     @textInputAnchor = null
 
@@ -1500,12 +1500,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # If there is already a focus, we
     # need to wrap some things up with it.
-    if @socketFocus? and @socketFocus isnt focus
+    if @textFocus? and @textFocus isnt focus
 
       # The first of these is an undo operation;
       # we need to add this text change to the undo stack.
       @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new TextChangeOperation @socketFocus, @oldFocusValue
+      @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue
       @oldFocusValue = null
 
       # The second of these is a reparse attempt.
@@ -1513,7 +1513,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # value.
       try
         # TODO make 'reparsable' property, bubble up until then
-        parseParent = @socketFocus.parent
+        parseParent = @textFocus.parent
 
         newParse = coffee.parse(parseParent.stringify(), wrapAtRoot: false)
         
@@ -1537,17 +1537,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           throw new Error 'Socket is split.'
 
       catch
-        @extraMarks[@socketFocus.id] =
-          model: @socketFocus
+        @extraMarks[@textFocus.id] =
+          model: @textFocus
           style: {color: '#F00'}
 
         @redrawMain()
 
     # Now we're done with the old focus,
     # we can start over.
-    #
-    # Literally set the focus.
-    @socketFocus = focus
 
     # If we're _unfocusing_, just do so.
     if not focus?
@@ -1932,8 +1929,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # If the destination is not inside the tree,
     # abort.
     unless destination? then return
-    head = destination; until head in [null, @tree.end] then head = head.next
-    unless head? then return
+    unless @inTree(destination) then return
 
     # Otherwise, splice the cursor out.
     @cursor.remove()
@@ -2030,7 +2026,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   hook 'key.tab', 0, ->
     if @shiftKeyPressed
-      if @socketFocus? then head = @socketFocus.start
+      if @textFocus? then head = @textFocus.start
       else head = @cursor
 
       until (not head?) or head.type is 'socketEnd' and head.container.start.next.type is 'text'
@@ -2040,7 +2036,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       return false
     
     else
-      if @socketFocus? then head = @socketFocus.end
+      if @textFocus? then head = @textFocus.end
       else head = @cursor
 
       until (not head?) or head.type is 'socketStart' and head.container.start.next.type is 'text'
@@ -2073,7 +2069,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # sessions. We will, however, delete a handwritten
     # block if it is currently empty.
     if not @textFocus? or
-        (@hiddenInput.value.length is 0 and @socketFocus.handwritten)
+        (@hiddenInput.value.length is 0 and @textFocus.handwritten)
       @deleteAtCursor()
       state.capturedBackspace = true
       return false
@@ -2242,11 +2238,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # If we press tab while we are editing
   # a handwritten block, we create and indent.
   hook 'key.tab', 0, ->
-    if @socketFocus? and @socketFocus.handwritten
+    if @textFocus? and @textFocus.handwritten
       @addMicroUndoOperation 'CAPTURE_POINT'
 
       # Seek the block directly before this
-      head = @socketFocus.start
+      head = @textFocus.start
       until head.type is 'blockEnd'
         head = head.prev
 
@@ -2269,14 +2265,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       # Go through the motions of moving this block into
       # the indent we have just found.
-      @addMicroUndoOperation new PickUpOperation @socketFocus.start.prev.container
-      @socketFocus.start.prev.container.spliceOut() #MUTATION
+      @addMicroUndoOperation new PickUpOperation @textFocus.start.prev.container
+      @textFocus.start.prev.container.spliceOut() #MUTATION
 
-      @addMicroUndoOperation new DropOperation @socketFocus.start.prev.container, head
-      @socketFocus.start.prev.container.spliceIn head #MUTATION
+      @addMicroUndoOperation new DropOperation @textFocus.start.prev.container, head
+      @textFocus.start.prev.container.spliceIn head #MUTATION
 
       # Move the cursor up to where the block now is.
-      @moveCursorTo @socketFocus.start.prev.container.end
+      @moveCursorTo @textFocus.start.prev.container.end
 
       @redrawMain()
 
@@ -2286,7 +2282,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   hook 'key.backspace', 0, (state) ->
     if state.capturedBackspace then return
 
-    if  not @socketFocus? and
+    if  not @textFocus? and
         @cursor.prev?.prev?.type is 'indentStart' and
         (indent = @cursor.prev.prev.indent).stringify().trim().length is 0
 
@@ -2448,6 +2444,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @aceEditor.resize true
 
       @redrawMain noText: true
+      @textFocus = @lassoAnchor = null
 
       @currentlyUsingBlocks = false; @currentlyAnimating = true
 
@@ -2577,10 +2574,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         return setValueResult
       
       if @aceEditor.getFirstVisibleRow() is 0
-        console.log 'is 0'
         @mainScroller.scrollTop = 0
       else
-        console.log 'scrolling to line', @aceEditor.getFirstVisibleRow()
         @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
       setTimeout (=>
@@ -2670,21 +2665,17 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
         for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
           el.style.opacity = 0
-          el.style.transform = "opacity #{fadeTime}ms linear"
 
         setTimeout (=>
-          @paletteWrapper.style.opacity =
-          @mainCanvas.style.opacity =
-          @highlightCanvas.style.opacity = 1
+          for el in [@paletteWrapper, @mainCanvas, @highlightCanvas]
+            el.style.transition = "opacity #{fadeTime}ms linear"
+            el.style.opacity = 1
         ), translateTime
 
         @iceElement.style.transition = "left #{translateTime}ms"
         @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         
         setTimeout (=>
-          @paletteWrapper.className.replace /\ ice-fade-in/, ''
-          @mainCanvas.className.replace /\ ice-fade-in/, ''
-          @highlightCanvas.className.replace /\ ice-fade-in/, ''
           @iceElement.style.transition = ''
 
           @currentlyAnimating = false
@@ -3336,8 +3327,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     testPartner.style.verticalAlign = 'text-bottom'
     offsetBottom = testPartner.offsetTop - testElement.offsetTop
 
-    console.log testWrapper
-
     #document.body.removeChild testWrapper
 
     return offsetBottom - offsetTop
@@ -3399,7 +3388,6 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   
   getFontHeight = (family, size) ->
     metrics = fontMetrics family, size
-    console.log metrics
     return metrics.descent - metrics.ascent
 
   # DEBUG CODE
