@@ -1015,6 +1015,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # beginning or at its end.
       #
       # We will need to log undo operations here too.
+      @addMicroUndoOperation 'CAPTURE_POINT'
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
@@ -1350,13 +1351,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     undo: (editor) ->
       socket = editor.tree.getTokenAtLocation(@socket).container
-      socket.start.append socket.end; socket.notifyChange()
-      socket.start.insert new model.TextToken @before
+      editor.populateSocket socket, @before
 
     redo: (editor) ->
       socket = editor.tree.getTokenAtLocation(@socket).container
-      socket.start.append socket.end; socket.notifyChange()
-      socket.start.insert new model.TextToken @after
+      editor.populateSocket @socket, @after
 
   class TextReparseOperation extends UndoOperation
     constructor: (socket, @before) ->
@@ -1533,6 +1532,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue
       @oldFocusValue = null
 
+      originalText = @textFocus.stringify()
+      shouldPop = false
+
       # The second of these is a reparse attempt.
       # If we can, try to reparse the focus
       # value.
@@ -1547,6 +1549,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           newParse.start.next.container.spliceIn @textFocus.start
 
           @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
+          shouldPop = true
 
       try
         # TODO make 'reparsable' property, bubble up until then
@@ -1574,6 +1577,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           throw new Error 'Socket is split.'
 
       catch
+        # If we can't reparse the parent, abort all reparses
+        @populateSocket @textFocus, originalText
+
+        if shouldPop then @undoStack.pop()
+
         @extraMarks[@textFocus.id] =
           model: @textFocus
           style: {color: '#F00'}
