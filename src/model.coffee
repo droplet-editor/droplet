@@ -549,6 +549,9 @@ define ->
   exports.SocketStartToken = class SocketStartToken extends StartToken
     constructor: (@container) -> super; @type = 'socketStart'
     serialize: -> "<socket precedence=\"#{@container.precedence}\">"
+    stringify: ->
+      if @next is @container.end or
+        @next.type is 'text' and @next.value is '' then '``' else ''
 
   exports.SocketEndToken = class SocketEndToken extends EndToken
     constructor: (@container) -> super; @type = 'socketEnd'
@@ -575,7 +578,9 @@ define ->
 
   exports.IndentEndToken = class IndentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'indentEnd'
-    stringify: (state) -> state.indent = state.indent[...-@container.depth]; ''
+    stringify: (state) ->
+      state.indent = state.indent[...-@container.depth]
+      if @previousVisibleToken().previousVisibleToken() is @container.start then '``' else ''
     serialize: -> "</indent>"
 
   exports.Indent = class Indent extends Container
