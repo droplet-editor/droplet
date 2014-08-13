@@ -603,11 +603,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # and might possibly do some bureaucracy in the future.
   Editor::addMicroUndoOperation = (operation) ->
     @undoStack.push operation
-    
+
     # Update the ace editor value to match,
     # but don't trigger a resize event.
     @suppressChangeEvent = true
-    @aceEditor.setValue @getValue()
+    @aceEditor.setValue @getValue(), -1
     @suppressChangeEvent = false
 
     # If someone has bound to mutation via
@@ -1524,9 +1524,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           endPosition - textFocusView.bounds[endRow].x,
           @view.opts.textHeight
 
-    #if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
-    #  null
-    #@mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
+    if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
+      @mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
 
   # Convenince function for setting the text input
   Editor::setTextInputFocus = (focus, selectionStart = 0, selectionEnd = 0) ->
