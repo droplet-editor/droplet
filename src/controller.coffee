@@ -1458,11 +1458,13 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       # anything non-local, only redraw locally.
       if deepEquals newp, oldp
         rect = new draw.NoRectangle()
+
         rect.unite treeView.bounds[line - 1] if line > 0
         rect.unite treeView.bounds[line]
         rect.unite treeView.bounds[line + 1] if line + 1 < treeView.bounds.length
 
-        rect.width = @mainCanvas.width
+        rect.width = Math.max rect.width, @mainCanvas.width
+
 
         @redrawMain
           boundingRectangle: rect
@@ -1473,9 +1475,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     else
       @redrawMain()
 
-    @redrawTextHighlights()
-    
-  Editor::redrawTextHighlights = ->
+    @redrawTextHighlights true
+
+  Editor::redrawTextHighlights = (scrollIntoView = false) ->
     textFocusView = @view.getViewNodeFor @textFocus
 
     # Determine the coordinate positions
@@ -1522,6 +1524,9 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
           endPosition - textFocusView.bounds[endRow].x,
           @view.opts.textHeight
 
+    #if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
+    #  null
+    #@mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
 
   # Convenince function for setting the text input
   Editor::setTextInputFocus = (focus, selectionStart = 0, selectionEnd = 0) ->
@@ -2109,6 +2114,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     else if axis - @scrollOffsets.main.y > @mainCanvas.height
       @mainScroller.scrollTop = axis - @mainCanvas.height
 
+    @mainScroller.scrollLeft = 0
+
   # Pressing the up-arrow moves the cursor up.
   hook 'key.up', 0, ->
     @clearLassoSelection()
@@ -2441,6 +2448,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ANIMATION AND ACE EDITOR SUPPORT
   # ================================
 
+  Editor::copyAceEditor = ->
+    @setFontSize_raw @aceEditor.getFontSize()
+    @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+    @resize()
+
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
     @aceElement.className = 'ice-ace'
@@ -2455,10 +2467,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      unless @suppressChangeEvent
-        @setFontSize_raw @aceEditor.getFontSize()
-        @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-        @resize()
+      if @currentlyUsingBlogs and not @suppressChangeEvent
+        @copyAceEditor()
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
@@ -2710,7 +2720,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
   Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
+      @copyAceEditor()
+
       @fireEvent 'statechange', [true]
+
       setValueResult = @setValue_raw @aceEditor.getValue()
 
       unless setValueResult.success
