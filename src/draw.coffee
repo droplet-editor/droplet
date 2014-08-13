@@ -64,7 +64,7 @@ define ['ice-helper'], (helper) ->
       @fontFamily = 'Courier New, monospace'
       @fontAscent = 2
 
-      self = @
+      self = this
 
       # ## Point ##
       # A point knows its x and y coordinate, and can do some vector operations.
@@ -423,7 +423,7 @@ define ['ice-helper'], (helper) ->
           ctx.fillText @value, @point.x, @point.y - self.fontAscent
 
     refreshFontCapital:  ->
-      @fontAscent = helper.fontMetrics(self.fontFamily, self.fontSize).prettytop
+      @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
 
     setCtx: (ctx) -> @ctx = ctx
 
