@@ -529,11 +529,16 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # We will not add a socket around @variable when it
         # is only some text
         when 'Call'
-
           if node.variable?
-            if node.variable?.base?.value in BLOCK_FUNCTIONS
+            methodname = null
+            if node.variable.properties?.length > 0
+              methodname = node.variable.
+                  properties[node.variable.properties.length - 1].name?.value
+            else if node.variable.base?.value
+              methodname = node.variable.base.value
+            if methodname in BLOCK_FUNCTIONS
               @addBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-            else if node.variable in VALUE_FUNCTIONS
+            else if methodname in VALUE_FUNCTIONS
               @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
               @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
