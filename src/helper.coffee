@@ -1,0 +1,70 @@
+define ->
+  exports = {}
+
+  exports.ANY_DROP = 0
+  exports.BLOCK_ONLY = 1
+  exports.MOSTLY_BLOCK = 2
+  exports.MOSTLY_VALUE = 3
+  exports.VALUE_ONLY = 4
+
+  fontMetricsCache = {}
+  exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
+    fontStyle = "#{fontHeight}px #{fontFamily}"
+    result = fontMetricsCache[fontStyle]
+
+    textTopAndBottom = (testText) ->
+      ctx.fillStyle = 'black'
+      ctx.fillRect(0, 0, width, height)
+      ctx.textBaseline = 'top'
+      ctx.fillStyle = 'white'
+      ctx.fillText(testText, 0, 0)
+      right = Math.ceil(ctx.measureText(testText).width)
+      pixels = ctx.getImageData(0, 0, width, height).data
+      first = -1
+      last = height
+      for row in [0...height]
+        for col in [1...right]
+          index = (row * width + col) * 4
+          if pixels[index] != 0
+            if first < 0
+              first = row
+            break
+        if first >= 0 and col >= right
+          last = row
+          break
+      return {top: first, bottom: last}
+
+    if not result
+      canvas = document.createElement 'canvas'
+      ctx = canvas.getContext '2d'
+      ctx.font = fontStyle
+      metrics = ctx.measureText 'Hg'
+      if canvas.height < fontHeight * 2 or
+         canvas.width < metrics.width
+        canvas.width = Math.ceil(metrics.width)
+        canvas.height = fontHeight * 2
+        ctx = canvas.getContext '2d'
+        ctx.font = fontStyle
+      width = canvas.width
+      height = canvas.height
+      capital = textTopAndBottom 'H'
+      ex = textTopAndBottom 'x'
+      lf = textTopAndBottom 'lf'
+      gp = textTopAndBottom 'g'
+      baseline = capital.bottom
+      result =
+        ascent: lf.top
+        capital: capital.top
+        ex: ex.top
+        baseline: capital.bottom
+        descent: gp.bottom
+      result.prettytop = Math.max(0, Math.min(result.ascent,
+        result.ex - (result.descent - result.baseline)))
+      fontMetricsCache[fontStyle] = result
+    return result
+
+  exports.getFontHeight = (family, size) ->
+    metrics = fontMetrics family, size
+    return metrics.descent - metrics.prettytop
+
+  return exports
