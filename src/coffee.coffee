@@ -116,7 +116,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       tokens = CoffeeScript.tokens @text,
         rewrite: false
         preserveComments: true
-      
+
       # In the @lines record, replace all
       # comments with spaces, so that blocks
       # avoid them whenever possible.
@@ -153,7 +153,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
     locationsAreIdentical: (a, b) ->
       return a.line is b.line and a.column is b.column
-    
+
     boundMin: (a, b) ->
       if a.line < b.line then a
       else if b.line < a.line then b
@@ -165,7 +165,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       else if b.line < a.line then a
       else if a.column < b.column then b
       else a
-    
+
     # ## getBounds ##
     # Get the boundary locations of a CoffeeScript node,
     # using CoffeeScript location data and
@@ -180,7 +180,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         end:
           line: node.locationData.last_line
           column: node.locationData.last_column + 1
-      
+
       # There are four cases where CoffeeScript
       # actually gets location data wrong.
 
@@ -197,7 +197,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         #If we have no child expressions, make the bounds actually empty.
         else
           bounds.start = bounds.end
-      
+
       # The second is 'If' statements,
       # which do not surround the elseBody
       # when it exists.
@@ -207,7 +207,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
         if node.elseBody?
           bounds.end = @boundMax bounds.end, @getBounds(node.elseBody).end
-      
+
       # The third is 'While', which
       # fails to surround the loop body,
       # or sometimes the loop guard.
@@ -229,7 +229,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       while @lines[bounds.end.line][...bounds.end.column].trim().length is 0
         bounds.end.line -= 1
         bounds.end.column = @lines[bounds.end.line].length + 1
-      
+
       # When we have a 'Value' object,
       # its base may have some exceptions in it,
       # in which case we want to pass on to
@@ -240,15 +240,15 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         if node.properties? and node.properties.length > 0
           for property in node.properties
             bounds.end = @boundMax bounds.end, @getBounds(property).end
-      
+
       return bounds
-    
+
     flagLineAsMarked: (line) ->
       @hasLineBeenMarked[line] = true
       while @lines[line][@lines[line].length - 1] is '\\'
         line += 1
         @hasLineBeenMarked[line] = true
-    
+
     # ## addMarkupAtLocation ##
     # Add a Model container into the markup that we will
     # ultimately return at a given location.
@@ -260,7 +260,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         container: container
         bounds: bounds
         depth: depth
-    
+
     # ## addMarkup ##
     # A general utility function for adding markup around
     # a given node.
@@ -270,25 +270,25 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # we may actually want to enclose the parenthesis
       # by the new block and not the node itself.
       bounds = @getBounds (wrappingParen ? node)
-      
+
       # Add the markup.
       @addMarkupAtLocation container, bounds, depth
-    
+
     # ## addBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
     addBlock: (node, depth, precedence, color, wrappingParen, socketLevel) ->
       # Create the block.
       block = new model.Block precedence, color, node.nodeType(), socketLevel
-      
+
       # Add it
       @addMarkup block, node, wrappingParen, depth
-      
+
       # If necessary, flag it as paren-wrapped.
       block.currentlyParenWrapped = wrappingParen?
 
       return block
-    
+
     # ## addSocket ##
     # A similar utility function for adding sockets.
     addSocket: (node, depth, precedence, accepts = YES) ->
@@ -299,14 +299,14 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       return socket
 
     # ## addSocketAndMark ##
-    # Adds a socket around a block, and @marks it.
+    # Adds a socket for a node, and recursively @marks it.
     addSocketAndMark: (node, depth, precedence, indentDepth, accepts = YES) ->
       socket = @addSocket node, depth, precedence, accepts
 
       @mark node, depth + 1, precedence, null, indentDepth
 
       return socket
-    
+
     # ## wrapSemicolonLine ##
     # Wrap a single line in a block
     # for semicolons.
@@ -334,7 +334,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       # nodes on the current line, and their bounds.
       firstNode = lastNode =
         firstBounds = lastBounds = null
-      
+
       # We will also keep track of the nodes
       # that are on this line, so that
       # we can surround them in sockets
@@ -344,7 +344,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
       for expr in expressions
         # Get the bounds for this expression
         bounds = @getBounds expr
-        
+
         # If we are on the same line as the last expression, update
         # lastNode to reflect.
         if bounds.start.line is firstBounds?.end.line
@@ -358,18 +358,18 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # they do need a semicolon wrapper.
         else
           if lastNode? then @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
-          
+
           # Regardless of whether or not we added semicolons on the last line,
           # clear the records to make way for the new line.
           firstNode = expr; lastNode = null
           firstBounds = @getBounds expr; lastBounds = null
           nodesOnCurrentLine = [expr]
-      
+
       # Wrap up the last line if necessary.
       if lastNode? then @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
-    
+
     # ## mark ##
-    # Mark a single node.
+    # Mark a single node.  The main recursive function.
     mark: (node, depth, precedence, wrappingParen, indentDepth) ->
       switch node.nodeType()
 
@@ -379,15 +379,15 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         when 'Block'
           # Abort if empty
           if node.expressions.length is 0 then return
-          
+
           # Otherwise, get the bounds to determine
           # whether we want to do it on one line or multiple lines.
           bounds = @getBounds node
-          
+
           # See if we want to wrap in a socket
           # rather than an indent.
           shouldBeOneLine = false
-          
+
           # Check to see if any parent node is occupying a line
           # we are on. If so, we probably want to wrap in
           # a socket rather than an indent.
@@ -396,10 +396,10 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
           if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
             shouldBeOneLine = true
-          
+
           if shouldBeOneLine
             @addSocket node, depth, 0
-          
+
           # Otherwise, wrap in an indent.
           else
             # Determine the new indent depth by literal text inspection
@@ -409,16 +409,16 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             # Create the indent with the proper
             # depth delta
             indent = new model.Indent @lines[node.locationData.first_line][indentDepth...trueIndentDepth]
-            
+
             # Then update indent depth data to reflect.
             indentDepth = trueIndentDepth
-            
+
             # As a block, we also want to consume as much whitespace above us as possible
             # (to free it from actual ICE editor blocks).
             while bounds.start.line > 0 and @lines[bounds.start.line - 1].trim().length is 0
               bounds.start.line -= 1
               bounds.start.column = @lines[bounds.start.line].length + 1
-            
+
             # Move the boundaries back by one line,
             # as per the standard way to add an Indent.
             bounds.start.line -= 1
@@ -431,7 +431,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           # make room for semicolon wrappers where necessary.
           for expr in node.expressions
             @mark expr, depth + 3, 0, null, indentDepth
-          
+
           # Wrap semicolons.
           @wrapSemicolons node.expressions, depth
 
@@ -472,19 +472,19 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             secondBounds = @getBounds node.second
 
             lines = @lines[firstBounds.end.line..secondBounds.start.line].join('\n')
-            
+
             infix = lines[firstBounds.end.column...-(@lines[secondBounds.start.line].length - secondBounds.start.column)]
 
             if infix.indexOf('+') is -1
               return
 
           @addBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
-          
+
           @addSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
           if node.second?
             @addSocketAndMark node.second, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
-        
+
         # ### Existence ###
         # Color VALUE, socket @expression, precedence 100
         when 'Existence'
@@ -497,7 +497,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
           @addSocketAndMark node.object, depth + 1, 0, indentDepth
           @addSocketAndMark node.array, depth + 1, 0, indentDepth
-      
+
         # ### Value ###
         # Completely pass through to @base; we do not care
         # about this node.
@@ -510,7 +510,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
                 @addSocketAndMark property.name, depth + 1, precedence, indentDepth, NO
               else if property.nodeType() is 'Index'
                 @addSocketAndMark property.index, depth + 1, precedence, indentDepth
-          
+
           # Fake-remove backticks hack
           else if node.base.nodeType() is 'Literal' and
               node.base.value is ''
@@ -523,7 +523,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # ### Literal ###
         # No-op. Translate directly to text
         when 'Literal', 'Bool', 'Undefined', 'Null' then 0
-        
+
         # ### Call ###
         # Color COMMAND, sockets @variable and @args.
         # We will not add a socket around @variable when it
@@ -544,20 +544,24 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
               @addSocketAndMark node.variable.base, depth + 1, 0, indentDepth
           else
             @addBlock node, depth, precedence, 'command', wrappingParen, ANY_DROP
-          
+
           unless node.do
-            for arg in node.args
-              @addSocketAndMark arg, depth + 1, 0, indentDepth
-        
+            for arg, index in node.args
+              precedence = 0
+              # special case: the last argument slot of a function
+              # gathers anything inside it, without parens needed.
+              if index is node.args.length - 1 then precedence = -1
+              @addSocketAndMark arg, depth + 1, precedence, indentDepth
+
         # ### Code ###
         # Function definition. Color VALUE, sockets @params,
         # and indent @body.
         when 'Code'
           @addBlock node, depth, precedence, 'value', wrappingParen, VALUE_ONLY
-          
+
           for param in node.params
             @addSocketAndMark param, depth + 1, 0, indentDepth, NO
-          
+
           @mark node.body, depth + 1, 0, null, indentDepth
 
         # ### Assign ###
@@ -568,13 +572,13 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             block.nodeType is 'Value'
 
           @addSocketAndMark node.value, depth + 1, 0, indentDepth
-        
+
         # ### For ###
         # Color CONTROL, options sockets @index, @source, @name, @from.
         # Indent/socket @body.
         when 'For'
           @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
-          
+
           for childName in ['source', 'from', 'guard', 'step']
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
 
@@ -582,7 +586,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth, NO
 
           @mark node.body, depth + 1, 0, null, indentDepth
-        
+
         # ### Range ###
         # Color VALUE, sockets @from and @to.
         when 'Range'
@@ -598,7 +602,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # we want to skip the Op that wraps the condition.
         when 'If'
           @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
-          
+
           # Check to see if we are an "unless".
           # We will deem that we are an unless if:
           #   - Our starting line contains "unless" and
@@ -622,7 +626,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
           ###
 
           @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
-          
+
           @mark node.body, depth + 1, 0, null, indentDepth
 
           if node.elseBody?
@@ -660,9 +664,9 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
         # indent/socket @cases[x][1]. indent/socket @otherwise.
         when 'Switch'
           @addBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
-          
+
           if node.subject? then @addSocketAndMark node.subject, depth + 1, 0, indentDepth
-          
+
           for switchCase in node.cases
             if switchCase[0].constructor is Array
               for condition in switchCase[0]
@@ -673,7 +677,7 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
           if node.otherwise?
             @mark node.otherwise, depth + 1, 0, null, indentDepth
-        
+
         # ### Class ###
         # Color CONTROL. Optional sockets @variable, @parent. Optional indent/socket
         # @obdy.
@@ -700,28 +704,28 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
     transpile: ->
       # Get the CoffeeScript AST from the text
       nodes = CoffeeScript.nodes(@text).expressions
-      
+
       # Mark all the nodes
       # in the block.
       for node in nodes
         @mark node, 3, 0, null, 0
-      
+
       # Deal with semicoloned lines
       # at the root level
       @wrapSemicolons nodes, 0
-      
+
       # Return the markup.
       return @markup
-  
+
   # Wrap up the things we need to do
   # to package ourselves as an ICE editor parser
   # and export to require.js.
   coffeeScriptParser = new parser.Parser (text) ->
     transpiler = new CoffeeScriptTranspiler text
     return transpiler.transpile()
-  
+
   exports.parse = (text, opts) ->
     opts ?= wrapAtRoot: true
     return coffeeScriptParser.parse text, opts
-  
+
   return exports
