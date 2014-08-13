@@ -1076,9 +1076,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # They mimick block move pick/drop operations
   # except that they also interact with the @floatingBlocks array.
   class ToFloatingOperation extends DropOperation
-    constructor: (block, position) ->
+    constructor: (block, position, editor) ->
       # Copy the position we got
-      @position = new @draw.Point position.x, position.y
+      @position = new editor.draw.Point position.x, position.y
 
       # Do all the normal blockMove stuff.
       super block, null
@@ -1161,8 +1161,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # Add the undo operation associated
       # with creating this floating block
-      @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint
-
+      @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint, this
 
       # Add this block to our list of floating blocks
       @floatingBlocks.push new FloatingBlockRecord(
