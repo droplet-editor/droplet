@@ -58,6 +58,7 @@ module.exports = (grunt) ->
             'ice-draw': 'draw'
             'ice-coffee': 'coffee'
             'ice-parser': 'parser'
+            'ice-helper': 'helper'
             'ice': 'main'
           name: 'ice'
           optimize: 'none'
