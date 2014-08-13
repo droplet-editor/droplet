@@ -618,12 +618,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     undo: (editor) -> editor.tree.start
     redo: (editor) -> editor.tree.start
 
-  # addMicroUndoOperation pushes
-  # the given operation to the undo stack,
-  # and might possibly do some bureaucracy in the future.
-  Editor::addMicroUndoOperation = (operation) ->
-    @undoStack.push operation
-
+  Editor::removeBlankLines = ->
     # If we have blank lines at the end,
     # get rid of them
     head = @tree.end.previousVisibleToken()
@@ -632,9 +627,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       head.remove()
       head = next
 
-    # If someone has bound to mutation via
-    # the public API, fire it.
-    @fireEvent 'beforechange', [operation]
+  # addMicroUndoOperation pushes
+  # the given operation to the undo stack,
+  # and might possibly do some bureaucracy in the future.
+  Editor::addMicroUndoOperation = (operation) ->
+    @undoStack.push operation
+    @removeBlankLines()
 
   # The undo function pops and undoes
   # operations from the undo stack until
@@ -3167,6 +3165,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @tree = newParse; @gutterVersion = -1
     @tree.start.insert @cursor
+    @removeBlankLines()
     @redrawMain()
 
     return success: true
