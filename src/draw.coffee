@@ -470,12 +470,14 @@ define ->
         ex: ex.top
         baseline: capital.bottom
         descent: gp.bottom
+      result.prettytop = Math.max(0, Math.min(result.ascent,
+        result.ex - (result.descent - result.baseline)))
       fontMetricsCache[fontStyle] = result
     return result
 
   _FONT_CAPITAL = 2
-  refreshFontCapital = ->
-    _FONT_CAPITAL = fontMetrics(_FONT_FAMILY, _FONT_SIZE).ascent
+  exports.refreshFontCapital = refreshFontCapital = ->
+    _FONT_CAPITAL = fontMetrics(_FONT_FAMILY, _FONT_SIZE).prettytop
 
   exports._setCTX = (ctx) -> _CTX = ctx
 

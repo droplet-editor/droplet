@@ -164,6 +164,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @wrapperElement.appendChild @paletteElement
 
+      do draw.refreshFontCapital
+
       @standardViewSettings =
         padding: 5
         indentWidth: 20
@@ -2940,8 +2942,8 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # ================================
   hook 'populate', 0, ->
     @fontSize = 15
-    @fontAscent = 1
     @fontFamily = 'Courier New'
+    @fontAscent = fontMetrics(@fontFamily, @fontSize).prettytop
 
   Editor::setFontSize_raw = (fontSize) ->
     unless @fontSize is fontSize
@@ -2953,7 +2955,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       @view.opts.textHeight =
         @dragView.opts.textHeight = getFontHeight @fontFamily, @fontSize
 
-      @fontAscent = fontMetrics(@fontFamily, @fontSize).ascent
+      @fontAscent = fontMetrics(@fontFamily, @fontSize).prettytop
 
       @view.clearCache()
 
@@ -2969,7 +2971,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @fontFamily = fontFamily
 
     @view.opts.textHeight = getFontHeight @fontFamily, @fontSize
-    @fontAscent = fontMetrics(@fontFamily, @fontSize).ascent
+    @fontAscent = fontMetrics(@fontFamily, @fontSize).prettytop
 
     @view.clearCache(); @dragView.clearCache()
     @gutter.style.fontFamily = fontFamily
@@ -3543,12 +3545,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
         ex: ex.top
         baseline: capital.bottom
         descent: gp.bottom
+      result.prettytop = Math.max(0, Math.min(result.ascent,
+        result.ex - (result.descent - result.baseline)))
       fontMetricsCache[fontStyle] = result
     return result
 
   getFontHeight = (family, size) ->
     metrics = fontMetrics family, size
-    return metrics.descent - metrics.ascent
+    return metrics.descent - metrics.prettytop
 
   # OVRFLOW BIT
   # ================================
