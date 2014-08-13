@@ -362,6 +362,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     unless @currentlyAnimating
 
       if @changeEventVersion isnt @tree.version
+        @changeEventVersion = @tree.version
+
         # Update the ace editor value to match,
         # but don't trigger a resize event.
         @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
@@ -369,8 +371,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
 
         @fireEvent 'change', []
-
-        @changeEventVersion = @tree.version
 
       # Set our draw tool's font size
       # to the font size we want
