@@ -5,7 +5,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
 
     testString 'Function call',
-      'fd 10', '<block color="command" precedence="0">fd <socket precedence="0">10</socket></block>'
+      'fd 10', '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'
 
     testString 'Variable assignment',
       'a = b', '<block color="command" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
@@ -16,7 +16,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         fd 10
       ''', '''
       <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
       '''
 
     testString 'Unless statement, normal form',
@@ -25,7 +25,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         fd 10
       ''', '''
       <block color="control" precedence="0">unless <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
       '''
 
     testString 'One-line if statement',
@@ -40,9 +40,9 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         fd 10
       ''', '''
       <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent>
+      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent>
       else<indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
       '''
 
     testString 'One-line if-else statement',
@@ -55,12 +55,12 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         fd 10
       ''', '''
       <block color="control" precedence="0">while <socket precedence="0">a</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
       '''
 
     testString 'One-line while statement',
       'while a then fd 10',
-      '<block color="control" precedence="0">while <socket precedence="0">a</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="0">10</socket></block></socket></block>'
+      '<block color="control" precedence="0">while <socket precedence="0">a</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket></block>'
 
     testString 'For-in, normal form',
       '''
@@ -68,21 +68,21 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         fd 10
       ''', '''
       <block color="control" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="0">10</socket></block></indent></block>
+      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
       '''
 
     testString 'One-line for-in',
       'for i in list then fd 10'
-      '<block color="control" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="0">10</socket></block></socket></block>'
+      '<block color="control" precedence="0">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket></block>'
 
     testString 'Inverted one-line for-in',
       'fd 10 for i in list',
-      '<block color="control" precedence="0"><socket precedence="0"><block color="command" precedence="0">fd <socket precedence="0">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
+      '<block color="control" precedence="0"><socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
 
     testString 'Semicolons at the root',
       'fd 10; bk 10',
       '<block color="command" precedence="0"><socket precedence="0">'+
-      '<block color="command" precedence="0">fd <socket precedence="0">10</socket></block>'+
+      '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
       '</socket>; <socket precedence="0">'+
       '<block color="command" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>'
 
@@ -102,7 +102,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       '<block color="control" precedence="0">while <socket precedence="0">a</socket><indent depth="2">\n' +
       '<block color="command" precedence="0">see <socket precedence="0">hi</socket></block>\n'+
       '<block color="command" precedence="0"><socket precedence="0">'+
-      '<block color="command" precedence="0">fd <socket precedence="0">10</socket></block>'+
+      '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
       '</socket>; <socket precedence="0">'+
       '<block color="command" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>\n'+
       '<block color="command" precedence="0">see <socket precedence="0">bye</socket></block></indent></block>'
@@ -210,7 +210,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     testString 'Parentheses around semicolon block',
       '(fd 10; bk 10)',
       '<block color="command" precedence="0">(<socket precedence="0"><block color="command" precedence="0">' +
-      'fd <socket precedence="0">10</socket></block></socket>; <socket precedence="0"><block color="command" precedence="0">' +
+      'fd <socket precedence="-1">10</socket></block></socket>; <socket precedence="0"><block color="command" precedence="0">' +
       'bk <socket precedence="0">10</socket></block></socket>)</block>'
 
 
@@ -377,8 +377,8 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start
 
     strictEqual document.stringify(), '''
-    console.log (for i in [1..10]
-      console.log hello)
+    console.log for i in [1..10]
+      console.log hello
     ''', 'Move for into socket (req. paren wrap)'
 
   test 'Paren wrap', ->
