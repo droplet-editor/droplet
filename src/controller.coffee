@@ -360,6 +360,18 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating
+
+      if @changeEventVersion isnt @tree.version
+        # Update the ace editor value to match,
+        # but don't trigger a resize event.
+        @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
+        @aceEditor.setValue @getValue(), -1
+        @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
+
+        @fireEvent 'change', []
+
+        @changeEventVersion = @tree.version
+
       # Set our draw tool's font size
       # to the font size we want
       @draw.setGlobalFontSize @fontSize
@@ -592,6 +604,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # fields a populate time
   hook 'populate', 0, ->
     @undoStack = []
+    @changeEventVersion = 0
 
   # The UndoOperation class is the base
   # class for all undo operations.
@@ -617,15 +630,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       head.remove()
       head = next
 
-    # Update the ace editor value to match,
-    # but don't trigger a resize event.
-    @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
-    @aceEditor.setValue @getValue(), -1
-    @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
-
     # If someone has bound to mutation via
     # the public API, fire it.
-    @fireEvent 'change', [operation]
+    @fireEvent 'beforechange', [operation]
 
   # The undo function pops and undoes
   # operations from the undo stack until
