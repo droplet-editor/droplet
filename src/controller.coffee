@@ -603,6 +603,12 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   # and might possibly do some bureaucracy in the future.
   Editor::addMicroUndoOperation = (operation) ->
     @undoStack.push operation
+    
+    # Update the ace editor value to match,
+    # but don't trigger a resize event.
+    @suppressChangeEvent = true
+    @aceEditor.setValue @getValue()
+    @suppressChangeEvent = false
 
     # If someone has bound to mutation via
     # the public API, fire it.
@@ -2449,9 +2455,10 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      @setFontSize_raw @aceEditor.getFontSize()
-      @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-      @resize()
+      unless @suppressChangeEvent
+        @setFontSize_raw @aceEditor.getFontSize()
+        @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+        @resize()
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false

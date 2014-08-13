@@ -404,7 +404,6 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             break
 
         @changedBoundingBox or= changed
-        console.log 'force:', changed
 
         for childObj in @children
           @view.getViewNodeFor(childObj.child).computeDimensions(
