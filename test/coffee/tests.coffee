@@ -84,7 +84,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       '<block color="command" precedence="0"><socket precedence="0">'+
       '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
       '</socket>; <socket precedence="0">'+
-      '<block color="command" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>'
+      '<block color="command" precedence="0">bk <socket precedence="-1">10</socket></block></socket></block>'
 
     testString 'Semicolons with one-line block',
       'if a then b; c else d',
@@ -100,12 +100,12 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         see bye
       ''',
       '<block color="control" precedence="0">while <socket precedence="0">a</socket><indent depth="2">\n' +
-      '<block color="command" precedence="0">see <socket precedence="0">hi</socket></block>\n'+
+      '<block color="command" precedence="0">see <socket precedence="-1">hi</socket></block>\n'+
       '<block color="command" precedence="0"><socket precedence="0">'+
       '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
       '</socket>; <socket precedence="0">'+
-      '<block color="command" precedence="0">bk <socket precedence="0">10</socket></block></socket></block>\n'+
-      '<block color="command" precedence="0">see <socket precedence="0">bye</socket></block></indent></block>'
+      '<block color="command" precedence="0">bk <socket precedence="-1">10</socket></block></socket></block>\n'+
+      '<block color="command" precedence="0">see <socket precedence="-1">bye</socket></block></indent></block>'
 
     testString 'Object literal, normal form',
       '''
@@ -115,7 +115,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       }
       ''',
       '''
-      <block color="command" precedence="0">foo <socket precedence="0"><block color="value" precedence="0">{
+      <block color="command" precedence="0">foo <socket precedence="-1"><block color="value" precedence="0">{
         <socket precedence="0">a</socket>: <socket precedence="0">b</socket>,
         <socket precedence="0">c</socket>: <socket precedence="0">d</socket>
       }</block></socket></block>
@@ -129,13 +129,13 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       '''
       '''
       <block color="command" precedence="0">foo
-        <socket precedence="0"><block color="value" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
+        <socket precedence="-1"><block color="value" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
         <socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></socket></block>
       '''
 
     testString 'String interpolation',
       'foo "#{a}"',
-      '<block color="command" precedence="0">foo <socket precedence="0">"#{a}"</socket></block>'
+      '<block color="command" precedence="0">foo <socket precedence="-1">"#{a}"</socket></block>'
 
     testString 'Range',
       '[1..10]',
@@ -153,7 +153,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       ''', '''
       <block color="control" precedence="0">switch <socket precedence="0">k</socket>
         when <socket precedence="0">a</socket><indent depth="4">
-      <block color="command" precedence="0">blah <socket precedence="0">blah</socket></block></indent></block>
+      <block color="command" precedence="0">blah <socket precedence="-1">blah</socket></block></indent></block>
       '''
 
     testString 'One-line switch, one case, no default',
@@ -178,11 +178,11 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       ''', '''
       <block color="control" precedence="0">switch <socket precedence="0">k</socket>
         when <socket precedence="0">a</socket><indent depth="4">
-      <block color="command" precedence="0">blah <socket precedence="0">blah</socket></block></indent>
+      <block color="command" precedence="0">blah <socket precedence="-1">blah</socket></block></indent>
         when <socket precedence="0">b</socket><indent depth="4">
-      <block color="command" precedence="0">darn <socket precedence="0">it</socket></block></indent>
+      <block color="command" precedence="0">darn <socket precedence="-1">it</socket></block></indent>
         else<indent depth="4">
-      <block color="command" precedence="0">what <socket precedence="0">ever</socket></block></indent></block>
+      <block color="command" precedence="0">what <socket precedence="-1">ever</socket></block></indent></block>
       '''
 
     testString 'Empty function definition', '->', '<block color="value" precedence="0">-></block>'
@@ -203,15 +203,15 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
         x: 1)
       ''',
       '''
-      <block color="command" precedence="0">a(<socket precedence="0"><block color="command" precedence="0">b
-        <socket precedence="0"><block color="value" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
+      <block color="command" precedence="0">a(<socket precedence="-1"><block color="command" precedence="0">b
+        <socket precedence="-1"><block color="value" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
       '''
 
     testString 'Parentheses around semicolon block',
       '(fd 10; bk 10)',
       '<block color="command" precedence="0">(<socket precedence="0"><block color="command" precedence="0">' +
       'fd <socket precedence="-1">10</socket></block></socket>; <socket precedence="0"><block color="command" precedence="0">' +
-      'bk <socket precedence="0">10</socket></block></socket>)</block>'
+      'bk <socket precedence="-1">10</socket></block></socket>)</block>'
 
 
     testString 'Operator precedences',

@@ -532,11 +532,11 @@ define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScrip
 
           if node.variable?
             if node.variable?.base?.value in BLOCK_FUNCTIONS
-              @addBlock node, depth, precedence, 'command', wrappingParen, MOSTLY_BLOCK
+              @addBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
             else if node.variable in VALUE_FUNCTIONS
-              @addBlock node, depth, precedence, 'value', wrappingParen, MOSTLY_VALUE
+              @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
-              @addBlock node, depth, precedence, 'command', wrappingParen, ANY_DROP
+              @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
 
             if node.variable.base?.nodeType() isnt 'Literal'
               @addSocketAndMark node.variable, depth + 1, 0, indentDepth
