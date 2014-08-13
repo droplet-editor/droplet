@@ -11,7 +11,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   PALETTE_LEFT_MARGIN = 5
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
-  TOP_TAB_HEIGHT = 20
+  TOP_TAB_HEIGHT = 10
   DISCOURAGE_DROP_TIMEOUT = 1000
   MAX_DROP_DISTANCE = 100
 
@@ -3038,7 +3038,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     path.style.fillColor = null
     path.style.strokeColor = style.color
-    path.style.lineWidth = 2
+    path.style.lineWidth = 3
     path.noclip = true; path.bevel = false
 
     return path

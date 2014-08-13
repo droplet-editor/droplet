@@ -30,7 +30,7 @@ define ->
     b = parseInt hex[5..6], 16
 
     return [r, g, b]
-  
+
   zeroPad = (str, len) ->
     if str.length < len
       ('0' for [str.length...len]).join('') + str
@@ -41,7 +41,7 @@ define ->
 
   toHex = (rgb) ->
     return '#' + (twoDigitHex(k) for k in rgb).join ''
-  
+
   memoizedAvgColor = {}
 
   avgColor = (a, factor, b) ->
@@ -199,7 +199,7 @@ define ->
 
           minY = min minY, point.y
           maxY = max maxY, point.y
-        
+
         @_bounds.x = minX; @_bounds.y = minY
         @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
 
@@ -325,7 +325,7 @@ define ->
         ctx.lineWidth = 2
         ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
         ctx.stroke()
-        
+
         # Light bevels
         ctx.beginPath()
         ctx.moveTo @_points[0].x, @_points[0].y
@@ -338,7 +338,7 @@ define ->
         if @_points[0].x > @_points[@_points.length - 1].x or
             @_points[0].y < @_points[@_points.length - 1].y
           ctx.lineTo @_points[0].x, @_points[0].y
-        
+
         ctx.lineWidth = 4
         ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#FFF'
         ctx.stroke()
@@ -472,7 +472,7 @@ define ->
         descent: gp.bottom
       fontMetricsCache[fontStyle] = result
     return result
-  
+
   _FONT_CAPITAL = 2
   refreshFontCapital = ->
     _FONT_CAPITAL = fontMetrics(_FONT_FAMILY, _FONT_SIZE).ascent
