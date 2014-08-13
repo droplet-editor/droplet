@@ -40,8 +40,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       value: '#8cec79'
       command: '#8fbfef'
 
+      red: '#f2a6a6'
+      orange: '#efcf8f'
       yellow: '#ecec79'
+      green: '#8cec79'
       cyan: '#79ecd9'
+      blue: '#8fbfef'
       violet: '#bfa6f2'
       magenta: '#f2a6e5'
 
