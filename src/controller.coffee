@@ -2826,7 +2826,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
             el.style.transition = "opacity #{fadeTime}ms linear"
             el.style.opacity = 1
         ), translateTime
-        
+
         @iceElement.style.transition =
           @paletteWrapper.style.transition = "left #{translateTime}ms"
 
@@ -3402,7 +3402,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     @lineNumberTags = {}
 
-    @mainScrollerStuffing.appendChild @gutter
+    @iceElement.appendChild @gutter
 
   hook 'resize', 0, ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
@@ -3420,7 +3420,7 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
       @lineNumberTags[line] = lineDiv
 
-    lineDiv.style.top =  treeView.bounds[line].y + 'px'
+    lineDiv.style.top =  treeView.bounds[line].y - @scrollOffsets.main.y + 'px'
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @fontSize + 'px'
     lineDiv.style.paddingTop = (treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent) + 'px'
