@@ -619,9 +619,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     # Update the ace editor value to match,
     # but don't trigger a resize event.
-    @suppressChangeEvent = true
+    @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
     @aceEditor.setValue @getValue(), -1
-    @suppressChangeEvent = false
+    @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
 
     # If someone has bound to mutation via
     # the public API, fire it.
