@@ -838,7 +838,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           break
       @dumpNodeForDebug(hitTestResult, line)
 
-
     # If it came back positive,
     # deal with the click.
     if hitTestResult?
@@ -971,27 +970,40 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       best = null; min = Infinity
 
-      # Find the closest droppable block
-      testPoints = @dropPointQuadTree.retrieve {
-        x: mainPoint.x - MAX_DROP_DISTANCE
-        y: mainPoint.y - MAX_DROP_DISTANCE
-        w: MAX_DROP_DISTANCE * 2
-        h: MAX_DROP_DISTANCE * 2
-      }, (point) =>
-        unless point._ice_needs_shift and not @shiftKeyPressed
-          distance = mainPoint.from(point)
-          distance.y *= 2; distance = distance.magnitude()
-          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-             @view.getViewNodeFor(point._ice_node).highlightArea?
-            best = point._ice_node
-            min = distance
+      # Check to see if the tree is empty;
+      # if it is, drop on the tree always
+      head = @tree.start.next
+      while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
+        head = head.next
 
-      if best isnt @lastHighlight
-        @clearHighlightCanvas()
+      if head is @tree.end and
+          @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x and
+          @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
+        @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
+        @lastHighlight = @tree
 
-        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+      else
+        # Find the closest droppable block
+        testPoints = @dropPointQuadTree.retrieve {
+          x: mainPoint.x - MAX_DROP_DISTANCE
+          y: mainPoint.y - MAX_DROP_DISTANCE
+          w: MAX_DROP_DISTANCE * 2
+          h: MAX_DROP_DISTANCE * 2
+        }, (point) =>
+          unless point._ice_needs_shift and not @shiftKeyPressed
+            distance = mainPoint.from(point)
+            distance.y *= 2; distance = distance.magnitude()
+            if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+               @view.getViewNodeFor(point._ice_node).highlightArea?
+              best = point._ice_node
+              min = distance
 
-        @lastHighlight = best
+        if best isnt @lastHighlight
+          @clearHighlightCanvas()
+
+          if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+
+          @lastHighlight = best
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
@@ -1103,8 +1115,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       super
 
   class FromFloatingOperation
-    constructor: (record) ->
-      @position = new @draw.Point record.position.x, record.position.y
+    constructor: (record, editor) ->
+      @position = new editor.draw.Point record.position.x, record.position.y
       @block = record.block.clone()
 
     undo: (editor) ->
@@ -1213,7 +1225,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           unless state.addedCapturePoint
             @addMicroUndoOperation 'CAPTURE_POINT'
             state.addedCapturePoint = true
-          @addMicroUndoOperation new FromFloatingOperation record
+          @addMicroUndoOperation new FromFloatingOperation record, this
 
           @floatingBlocks.splice i, 1
 
