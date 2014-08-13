@@ -361,17 +361,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating
 
-      if @changeEventVersion isnt @tree.version
-        @changeEventVersion = @tree.version
-
-        # Update the ace editor value to match,
-        # but don't trigger a resize event.
-        @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
-        @aceEditor.setValue @getValue(), -1
-        @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
-
-        @fireEvent 'change', []
-
       # Set our draw tool's font size
       # to the font size we want
       @draw.setGlobalFontSize @fontSize
@@ -409,6 +398,19 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       for binding in editorBindings.redraw_main
         binding.call this, layoutResult
+
+      if @changeEventVersion isnt @tree.version
+        @changeEventVersion = @tree.version
+
+        # Update the ace editor value to match,
+        # but don't trigger a resize event.
+        @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
+        @aceEditor.setValue @getValue(), -1
+        @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
+
+        @fireEvent 'change', []
+
+      return null
 
   Editor::redrawHighlights = ->
     # Draw highlights around marked lines
