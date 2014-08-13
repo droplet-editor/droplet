@@ -353,22 +353,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # line that we contain.
       #
       # Return child node.
-      #
-      # This is a void computeDimensinos that should be overridden.
       computeDimensions: (startLine, force, root = false) ->
         if @computedVersion is @model.version and not force
           return
 
         oldDimensions = @dimensions
         oldDistanceToBase = @distanceToBase
-
-        # copy min dimensions
-        if @dimensions.length > @lineLength
-          @dimensions.length = @distanceToBase.length = @lineLength
-        else
-          until @dimensions.length is @lineLength
-            @dimensions.push new draw.Size 0, 0
-            @distanceToBase.push {above: 0, below: 0}
+        
+        @dimensions = (new draw.Size 0, 0 for [0...@lineLength])
+        @distanceToBase = ({above: 0, below: 0} for [0...@lineLength])
 
         for size, i in @minDimensions
           @dimensions[i].width = size.width; @dimensions[i].height = size.height
@@ -407,6 +400,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             break
 
         @changedBoundingBox or= changed
+        console.log 'force:', changed
 
         for childObj in @children
           @view.getViewNodeFor(childObj.child).computeDimensions(
