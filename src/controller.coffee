@@ -865,6 +865,17 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @clickedBlock = null
       @clickedPoint = null
 
+  Editor::wouldDelete = (position) ->
+
+    mainPoint = @trackerPointToMain position
+    palettePoint = @trackerPointToPalette position
+
+    return not @lastHighlight and not
+        (@mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x and
+         @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y) or
+        (@paletteCanvas.width + @scrollOffsets.palette.x > palettePoint.x > @scrollOffsets.palette.x and
+        @paletteCanvas.height + @scrollOffsets.palette.y > palettePoint.y > @scrollOffsets.palette.y)
+
   # On mousemove, if there is a clicked block but no drag block,
   # we might want to transition to a dragging the block if the user
   # moved their mouse far enough.
@@ -947,6 +958,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
 
+      @begunTrash = @wouldDelete position
+
       # Redraw the main canvas
       @redrawMain()
 
@@ -1002,6 +1015,17 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
 
           @lastHighlight = best
+
+      palettePoint = @trackerPointToPalette position
+
+      if @wouldDelete(position)
+        if @begunTrash
+          @dragCanvas.style.opacity = 0.85
+        else
+          @dragCanvas.style.opacity = 0.3
+      else
+        @dragCanvas.style.opacity = 0.85
+        @begunTrash = false
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
