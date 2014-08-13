@@ -3,18 +3,18 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['ice-draw', 'ice-model'], (draw, model) ->
+define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
   NO_MULTILINE = 0
   MULTILINE_START = 1
   MULTILINE_MIDDLE = 2
   MULTILINE_END = 3
   MULTILINE_END_START = 4
 
-  ANY_DROP = 0
-  BLOCK_ONLY = 1
-  MOSTLY_BLOCK = 2
-  MOSTLY_VALUE = 3
-  VALUE_ONLY = 4
+  ANY_DROP = helper.ANY_DROP
+  BLOCK_ONLY = helper.BLOCK_ONLY
+  MOSTLY_BLOCK = helper.MOSTLY_BLOCK
+  MOSTLY_VALUE = helper.MOSTLY_VALUE
+  VALUE_ONLY = helper.VALUE_ONLY
 
   DEFAULT_OPTIONS =
     padding: 5
@@ -73,13 +73,15 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # can be fast
       @map = {}
 
+      @draw = @opts.draw ? new draw.Draw()
+
       # Apply default options
       for option of DEFAULT_OPTIONS
         unless option of @opts
           @opts[option] = DEFAULT_OPTIONS[option]
 
       # Do our measurement hack
-      draw._setCTX @opts.ctx
+      @draw.setCtx @opts.ctx
 
     # Simple method for clearing caches
     clearCache: -> @map = {}
@@ -133,13 +135,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # *Pre-second pass variables*
         # computeMinDimensions
-        # draw.Size type, {width:n, height:m}
+        # @view.draw.Size type, {width:n, height:m}
         @minDimensions = [] # Dimensions on each line
         @minDistanceToBase = [] # {above:n, below:n}
 
         # *Second pass variables*
         # computeDimensions
-        # draw.Size type, {width:n, height:m}
+        # @view.draw.Size type, {width:n, height:m}
         @dimensions = [] # Dimensions on each line
         @distanceToBase = [] # {above:n, below:n}
 
@@ -151,7 +153,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # *Third/fifth pass variables*
         # computeBoundingBoxX, computeBoundingBoxY
-        # draw.Rectangle type, {x:0, y:0, width:200, height:100}
+        # @view.draw.Rectangle type, {x:0, y:0, width:200, height:100}
         @bounds = [] # Bounding boxes on each line
         @changedBoundingBox = true # Did any bounding boxes change just now?
 
@@ -162,11 +164,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # *Sixth pass variables*
         # computePath
-        @path = new draw.Path()
+        @path = new @view.draw.Path()
 
         # *Seventh pass variables*
         # computeDropAreas
-        # each one is a draw.Path (or null)
+        # each one is a @view.draw.Path (or null)
         @dropArea = @highlightArea = null
 
         # Versions. The corresponding
@@ -342,7 +344,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           @minDimensions.length = @minDistanceToBase.length = @lineLength
         else
           until @minDimensions.length is @lineLength
-            @minDimensions.push new draw.Size 0, 0
+            @minDimensions.push new @view.draw.Size 0, 0
             @minDistanceToBase.push {above: 0, below: 0}
 
         for i in [0...@lineLength]
@@ -364,7 +366,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         oldDimensions = @dimensions
         oldDistanceToBase = @distanceToBase
         
-        @dimensions = (new draw.Size 0, 0 for [0...@lineLength])
+        @dimensions = (new @view.draw.Size 0, 0 for [0...@lineLength])
         @distanceToBase = ({above: 0, below: 0} for [0...@lineLength])
 
         for size, i in @minDimensions
@@ -381,7 +383,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             distance = @distanceToBase[0]
             distance.below = Math.max(distance.below,
                 parentNode.distanceToBase[startLine].below)
-            @dimensions[0] = new draw.Size(
+            @dimensions[0] = new @view.draw.Size(
                 @dimensions[0].width,
                 distance.below + distance.above)
 
@@ -391,7 +393,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             distance = @distanceToBase[lineCount - 1]
             distance.above = Math.max(distance.above,
                 parentNode.distanceToBase[startLine + lineCount - 1].above)
-            @dimensions[lineCount - 1] = new draw.Size(
+            @dimensions[lineCount - 1] = new @view.draw.Size(
                 @dimensions[lineCount - 1].width,
                 distance.below + distance.above)
 
@@ -438,7 +440,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
         # If not, create one.
         else
-          @bounds[line] = new draw.Rectangle(
+          @bounds[line] = new @view.draw.Rectangle(
             left, 0
             @dimensions[line].width, 0
           )
@@ -520,7 +522,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       #
       # Many nodes do not have paths at all,
       # and so need not override this function.
-      computeOwnPath: -> @path = new draw.Path()
+      computeOwnPath: -> @path = new @view.draw.Path()
 
       # ## computePath (GenericViewNode)
       # Call `@computeOwnPath` and recurse. This function
@@ -551,7 +553,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           # are not on-screen. `totalBounds` is the AABB
           # of the everything that has to do with the element,
           # and we redraw iff it overlaps the AABB of the viewport.
-          @totalBounds = new draw.NoRectangle()
+          @totalBounds = new @view.draw.NoRectangle()
           if @bounds.length > 0
             @totalBounds.unite @bounds[0]
             @totalBounds.unite @bounds[@bounds.length - 1]
@@ -963,7 +965,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             @bounds[line].x = left
             @bounds[line].width = @dimensions[line].width
           else
-            @bounds[line] = new draw.Rectangle(
+            @bounds[line] = new @view.draw.Rectangle(
               left, 0
               @dimensions[line].width, 0
             )
@@ -1151,7 +1153,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # If necessary, add tab
         # at the top.
         if @shouldAddTab()
-          @addTab left, new draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
+          @addTab left, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
 
@@ -1159,44 +1161,44 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             if @bevels.topLeft and line is 0
-              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
-              left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
+              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.y
+              left.push new @view.draw.Point bounds.x, bounds.y + @view.opts.bevelClip
             else
-              left.push new draw.Point bounds.x, bounds.y
+              left.push new @view.draw.Point bounds.x, bounds.y
             
             if @bevels.bottomLeft and line is @lineLength - 1
-              left.push new draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
-              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
+              left.push new @view.draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
+              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
             else
-              left.push new draw.Point bounds.x, bounds.bottom()
+              left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
             if @bevels.topRight
-              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-              right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+              right.push new @view.draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
             else
-              right.push new draw.Point bounds.right(), bounds.y
+              right.push new @view.draw.Point bounds.right(), bounds.y
 
             if @bevels.bottomRight
-              right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+              right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
             else
-              right.push new draw.Point bounds.right(), bounds.bottom()
+              right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
           # Case 2. Start of a multiline block.
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge of the bounding box.
             if @bevels.topLeft and line is 0
-              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.y
-              left.push new draw.Point bounds.x, bounds.y + @view.opts.bevelClip
+              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.y
+              left.push new @view.draw.Point bounds.x, bounds.y + @view.opts.bevelClip
             else
-              left.push new draw.Point bounds.x, bounds.y
+              left.push new @view.draw.Point bounds.x, bounds.y
             
             if @bevels.bottomLeft and line is @lineLength - 1
-              left.push new draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
-              left.push new draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
+              left.push new @view.draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
+              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
             else
-              left.push new draw.Point bounds.x, bounds.bottom()
+              left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
             # so that we can know its bounds
@@ -1209,10 +1211,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # draw the line just normally.
             if multilineBounds.width is 0
               if @bevels.topRight
-                right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-                right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+                right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+                right.push new @view.draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
               else
-                right.push new draw.Point bounds.right(), bounds.y
+                right.push new @view.draw.Point bounds.right(), bounds.y
 
               # The bevels for this case will be handled
               # in the glue phase, so we don't draw them now.
@@ -1220,11 +1222,11 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.
             else
-              right.push new draw.Point bounds.right(), bounds.y
-              right.push new draw.Point bounds.right(), multilineBounds.y
-              right.push new draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
-              right.push new draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
-              right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
+              right.push new @view.draw.Point bounds.right(), bounds.y
+              right.push new @view.draw.Point bounds.right(), multilineBounds.y
+              right.push new @view.draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
+              right.push new @view.draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
+              right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
           # Case 3. Middle of an indent.
           if @multilineChildrenData[line] is MULTILINE_MIDDLE
@@ -1232,39 +1234,39 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine]
 
             # Draw the left edge normally.
-            left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, bounds.bottom()
+            left.push new @view.draw.Point bounds.x, bounds.y
+            left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge straight down,
             # exactly to the left of the multiline child.
-            right.push new draw.Point multilineBounds.x, bounds.y
-            right.push new draw.Point multilineBounds.x, bounds.bottom()
+            right.push new @view.draw.Point multilineBounds.x, bounds.y
+            right.push new @view.draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 4. End of an indent.
           if @multilineChildrenData[line] in [MULTILINE_END, MULTILINE_END_START]
-            left.push new draw.Point bounds.x, bounds.y
-            left.push new draw.Point bounds.x, bounds.bottom()
+            left.push new @view.draw.Point bounds.x, bounds.y
+            left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Find the child that is the indent
             multilineChild = @lineChildren[line][0]
             multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine]
 
             # Avoid the indented area
-            right.push new draw.Point multilineBounds.x, multilineBounds.y
-            right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
+            right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
+            right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
           
             if multilineChild.child.type is 'indent'
-              @addTabReverse right, new draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.bottom()
+              @addTabReverse right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.bottom()
 
-            right.push new draw.Point multilineBounds.right(), multilineBounds.bottom()
+            right.push new @view.draw.Point multilineBounds.right(), multilineBounds.bottom()
 
             # If we must, make the "G"-shape
             if @lineChildren[line].length > 1
-              right.push new draw.Point multilineBounds.right(), multilineBounds.y
+              right.push new @view.draw.Point multilineBounds.right(), multilineBounds.y
 
               if @multilineChildrenData[line] is MULTILINE_END
-                right.push new draw.Point bounds.right(), bounds.y
-                right.push new draw.Point bounds.right(), bounds.bottom()
+                right.push new @view.draw.Point bounds.right(), bounds.y
+                right.push new @view.draw.Point bounds.right(), bounds.bottom()
               else
                 # Find the multiline child that's starting on this line,
                 # so that we can know its bounds
@@ -1273,40 +1275,40 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
                 multilineBounds = multilineView.bounds[line - multilineChild.startLine]
 
                 # Draw the upper-right corner
-                right.push new draw.Point bounds.right(), bounds.y
+                right.push new @view.draw.Point bounds.right(), bounds.y
 
                 # If the multiline child here is invisible,
                 # draw the line just normally.
                 if multilineBounds.width is 0
                   if @bevels.topRight
-                    right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-                    right.push new draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
+                    right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
+                    right.push new @view.draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
                   else
-                    right.push new draw.Point bounds.right(), bounds.y
+                    right.push new @view.draw.Point bounds.right(), bounds.y
 
                   if @bevels.bottomRight and not @glue[line]?.draw
-                    right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-                    right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+                    right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+                    right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
                   else
-                    right.push new draw.Point bounds.right(), bounds.bottom()
+                    right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
                 # Otherwise, avoid the block by tracing out its
                 # top and left edges, then going to our bound's bottom.
                 else
-                  right.push new draw.Point bounds.right(), multilineBounds.y
-                  right.push new draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
-                  right.push new draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
-                  right.push new draw.Point multilineBounds.x, multilineBounds.bottom()
+                  right.push new @view.draw.Point bounds.right(), multilineBounds.y
+                  right.push new @view.draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
+                  right.push new @view.draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
+                  right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
             # Otherwise, don't.
             else if line is @lineLength - 1
-              right.push new draw.Point bounds.right() - @view.opts.bevelClip, multilineBounds.bottom()
-              right.push new draw.Point bounds.right(), multilineBounds.bottom() + @view.opts.bevelClip
-              right.push new draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-              right.push new draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
+              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, multilineBounds.bottom()
+              right.push new @view.draw.Point bounds.right(), multilineBounds.bottom() + @view.opts.bevelClip
+              right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
+              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
             else
-              right.push new draw.Point bounds.right(), multilineBounds.bottom()
-              right.push new draw.Point bounds.right(), bounds.bottom()
+              right.push new @view.draw.Point bounds.right(), multilineBounds.bottom()
+              right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
 
           # "Glue" phase
@@ -1332,17 +1334,17 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             # it to go straight horizontally over
             # to the top of the next bounding box,
             # once the loop reaches that point.
-            left.push new draw.Point @bounds[line].x, glueTop
-            left.push new draw.Point leftmost, glueTop
-            left.push new draw.Point leftmost, glueTop + @view.opts.padding
+            left.push new @view.draw.Point @bounds[line].x, glueTop
+            left.push new @view.draw.Point leftmost, glueTop
+            left.push new @view.draw.Point leftmost, glueTop + @view.opts.padding
 
             # Do the same for the right side, unless we can't
             # because we're avoiding intersections with a multiline child that's
             # in the way.
             unless @multilineChildrenData[line] is MULTILINE_START
-              right.push new draw.Point @bounds[line].right(), glueTop
-              right.push new draw.Point rightmost, glueTop
-              right.push new draw.Point rightmost, glueTop + @view.opts.padding
+              right.push new @view.draw.Point @bounds[line].right(), glueTop
+              right.push new @view.draw.Point rightmost, glueTop
+              right.push new @view.draw.Point rightmost, glueTop + @view.opts.padding
 
           # Otherwise, bring us gracefully to the next line
           # without lots of glue (minimize the extra colour).
@@ -1353,14 +1355,14 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
             innerRight = Math.min @bounds[line + 1].right(), @bounds[line].right()
 
             # Drop down to the next line on the left, minimizing extra colour
-            left.push new draw.Point innerLeft, @bounds[line].bottom()
-            left.push new draw.Point innerLeft, @bounds[line + 1].y
+            left.push new @view.draw.Point innerLeft, @bounds[line].bottom()
+            left.push new @view.draw.Point innerLeft, @bounds[line + 1].y
 
             # Do the same on the right, unless we need to avoid
             # a multiline block that's starting here.
             unless @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
-              right.push new draw.Point innerRight, @bounds[line].bottom()
-              right.push new draw.Point innerRight, @bounds[line + 1].y
+              right.push new @view.draw.Point innerRight, @bounds[line].bottom()
+              right.push new @view.draw.Point innerRight, @bounds[line + 1].y
 
           # If we're avoiding intersections with a multiline child in the way,
           # bring us gracefully to the next line's top. We had to keep avoiding
@@ -1378,29 +1380,29 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
               glueTop = @bounds[line].bottom()
             
             if multilineChild.child.type is 'indent'
-              right.push new draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
-              right.push new draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
+              right.push new @view.draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
+              right.push new @view.draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
 
-              @addTab right, new draw.Point(@bounds[line + 1].x +
+              @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                 @view.opts.indentWidth +
                 @view.opts.tabOffset, @bounds[line + 1].y), true
             else
-              right.push new draw.Point multilineBounds.x, glueTop
+              right.push new @view.draw.Point multilineBounds.x, glueTop
 
-            right.push new draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop
-            right.push new draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, @bounds[line + 1].y
+            right.push new @view.draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop
+            right.push new @view.draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, @bounds[line + 1].y
 
         # If necessary, add tab
         # at the bottom.
         if @shouldAddTab()
-          @addTab right, new draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset, @bounds[@lineLength - 1].bottom()
+          @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset, @bounds[@lineLength - 1].bottom()
 
         # Reverse the left and concatenate it with the right
         # to make a counterclockwise path
         path = left.reverse().concat right
 
         # Make a Path object out of these points
-        @path = new draw.Path(); @path.push el for el in path
+        @path = new @view.draw.Path(); @path.push el for el in path
 
         # Return it.
         return @path
@@ -1409,16 +1411,16 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # Add the tab graphic to a path in a given location.
       addTab: (array, point) ->
         # Rightmost point of the tab, where it begins to dip down.
-        array.push new draw.Point(point.x + @view.opts.tabWidth,
+        array.push new @view.draw.Point(point.x + @view.opts.tabWidth,
           point.y)
         # Dip down.
-        array.push new draw.Point point.x +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+        array.push new @view.draw.Point point.x +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
           point.y + @view.opts.tabHeight
         # Bottom plateau.
-        array.push new draw.Point point.x + @view.opts.tabWidth * @view.opts.tabSideWidth,
+        array.push new @view.draw.Point point.x + @view.opts.tabWidth * @view.opts.tabSideWidth,
           point.y + @view.opts.tabHeight
         # Rise back up.
-        array.push new draw.Point point.x, point.y
+        array.push new @view.draw.Point point.x, point.y
         # Move over to the given corner itself.
         array.push point
       
@@ -1426,12 +1428,12 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # Add the tab in reverse order
       addTabReverse: (array, point) ->
         array.push point
-        array.push new draw.Point point.x, point.y
-        array.push new draw.Point point.x + @view.opts.tabWidth * @view.opts.tabSideWidth,
+        array.push new @view.draw.Point point.x, point.y
+        array.push new @view.draw.Point point.x + @view.opts.tabWidth * @view.opts.tabSideWidth,
           point.y + @view.opts.tabHeight
-        array.push new draw.Point point.x +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+        array.push new @view.draw.Point point.x +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
           point.y + @view.opts.tabHeight
-        array.push new draw.Point(point.x + @view.opts.tabWidth,
+        array.push new @view.draw.Point(point.x + @view.opts.tabWidth,
           point.y)
 
 
@@ -1521,30 +1523,30 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # height dropAreaHeight and a width
         # equal to our last line width,
         # positioned at the bottom of our last line.
-        @dropPoint = new draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
+        @dropPoint = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
 
-        @highlightArea = new draw.Path()
+        @highlightArea = new @view.draw.Path()
         highlightAreaPoints = []
         lastBounds = @bounds[@lineLength - 1]
 
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
 
-        @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
         @highlightArea.push point for point in highlightAreaPoints
 
@@ -1658,7 +1660,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       # ## computeOwnPath
       # An Indent should also have no drawn
       # or hit-tested path.
-      computeOwnPath: -> @path = new draw.Path()
+      computeOwnPath: -> @path = new @view.draw.Path()
 
 
       # ## computeChildren
@@ -1702,28 +1704,28 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
 
-        @highlightArea = new draw.Path()
+        @highlightArea = new @view.draw.Path()
         highlightAreaPoints = []
 
-        lastBounds = new draw.NoRectangle()
+        lastBounds = new @view.draw.NoRectangle()
         lastBounds.copy @bounds[1]
         lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-        @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
+        @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
         @highlightArea.push point for point in highlightAreaPoints
 
@@ -1739,7 +1741,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
 
       # ## computeOwnPath
       #
-      computeOwnPath: -> @path = new draw.Path()
+      computeOwnPath: -> @path = new @view.draw.Path()
 
       # ## computeOwnDropArea
       #
@@ -1752,28 +1754,28 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         else
           @dropPoint = @bounds[0].upperLeftCorner()
 
-          @highlightArea = new draw.Path()
+          @highlightArea = new @view.draw.Path()
           highlightAreaPoints = []
 
-          lastBounds = new draw.NoRectangle()
+          lastBounds = new @view.draw.NoRectangle()
           lastBounds.copy @bounds[0]
           lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
-          highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-          highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-          @addTabReverse highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-          highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
-          highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-          highlightAreaPoints.push new draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-          highlightAreaPoints.push new draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-          @addTab highlightAreaPoints, new draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-          highlightAreaPoints.push new draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
-          highlightAreaPoints.push new draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
           @highlightArea.push point for point in highlightAreaPoints
 
@@ -1804,7 +1806,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     # # TextViewNode
     #
     # TextViewNode does not extend ContainerViewNode.
-    # We contain a draw.TextElement to measure
+    # We contain a @view.draw.TextElement to measure
     # bounding boxes and draw text.
     class TextViewNode extends GenericViewNode
       constructor: (@model, @view) -> super
@@ -1826,13 +1828,13 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
         if @computedVersion is @model.version
           return null
 
-        @textElement = new draw.Text(
-          new draw.Point(0, 0),
+        @textElement = new @view.draw.Text(
+          new @view.draw.Point(0, 0),
           @model.value
         )
 
         height = @view.opts.textHeight
-        @minDimensions[0] = new draw.Size(@textElement.bounds().width, height)
+        @minDimensions[0] = new @view.draw.Size(@textElement.bounds().width, height)
         @minDistanceToBase[0] = {above: height, below: 0}
 
         return null
@@ -1863,7 +1865,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
       debugDimensions: (x, y, line, ctx) ->
         ctx.globalAlpha = 1
         oldPoint = @textElement.point
-        @textElement.point = new draw.Point x, y
+        @textElement.point = new @view.draw.Point x, y
         @textElement.draw ctx
         @textElement.point = oldPoint
         ctx.globalAlpha = 0.1

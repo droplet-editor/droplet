@@ -3,6 +3,7 @@
 require.config
   paths:
     'ice': '../js/main'
+    'ice-helper': '../js/helper'
     'ice-coffee': '../js/coffee'
     'ice-model': '../js/model'
     'ice-view': '../js/view'

@@ -3,16 +3,15 @@
 # Copyright (c) Anthony Bau
 # MIT License
 
-define ['ice-model', 'ice-parser', 'coffee-script'], (model, parser, CoffeeScript) ->
+define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, model, parser, CoffeeScript) ->
   exports = {}
 
-  # purple: b078e8
 
-  ANY_DROP = 0
-  BLOCK_ONLY = 1
-  MOSTLY_BLOCK = 2
-  MOSTLY_VALUE = 3
-  VALUE_ONLY = 4
+  ANY_DROP = helper.ANY_DROP
+  BLOCK_ONLY = helper.BLOCK_ONLY
+  MOSTLY_BLOCK = helper.MOSTLY_BLOCK
+  MOSTLY_VALUE = helper.MOSTLY_VALUE
+  VALUE_ONLY = helper.VALUE_ONLY
 
   BLOCK_FUNCTIONS = [
     'fd'
