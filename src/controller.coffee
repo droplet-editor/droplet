@@ -606,6 +606,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
   Editor::addMicroUndoOperation = (operation) ->
     @undoStack.push operation
 
+    # If we have blank lines at the end,
+    # get rid of them
+    head = @tree.end.previousVisibleToken()
+    while head?.type is 'newline'
+      next = head.previousVisibleToken()
+      head.remove()
+      head = next
+
     # Update the ace editor value to match,
     # but don't trigger a resize event.
     @suppressChangeEvent = true
@@ -1632,13 +1640,14 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
 
     # Focus the hidden input.
     setTimeout (=>
-      @hiddenInput.focus()
-      if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
-         @hiddenInput.value[0] in ['\'', '"']
-        @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
-      else
-        @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
-      @redrawTextInput()
+      if @textFocus?
+        @hiddenInput.focus()
+        if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+           @hiddenInput.value[0] in ['\'', '"']
+          @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
+        else
+          @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
+        @redrawTextInput()
     ), 0
 
     # Redraw.
@@ -2241,35 +2250,45 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
       on_keydown: => @shiftKeyPressed = true
       on_keyup: => @shiftKeyPressed = false
 
-  hook 'key.enter', 0, ->
-    unless @textFocus? or @shiftKeyPressed
-      @setTextInputFocus null
+    @keyListener.register_combo
+      keys: 'enter'
+      on_keydown: =>
+        unless @textFocus? or @shiftKeyPressed
+          @setTextInputFocus null
 
-      # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket -Infinity
-      newSocket.spliceIn newBlock.start
-      newSocket.handwritten = true
+          # Construct the block; flag the socket as handwritten
+          newBlock = new model.Block(); newSocket = new model.Socket -Infinity
+          newSocket.spliceIn newBlock.start
+          newSocket.handwritten = true
 
-      # Add it io our list of handwritten blocks
-      @handwrittenBlocks.push newBlock
+          # Add it io our list of handwritten blocks
+          @handwrittenBlocks.push newBlock
 
-      # Seek a place near the cursor we can actually
-      # put a block.
-      head = @cursor.prev
-      while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
-        head = head.prev
+          # Seek a place near the cursor we can actually
+          # put a block.
+          head = @cursor.prev
+          while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
+            head = head.prev
 
-      # Log the undo operation for this
-      @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new DropOperation newBlock, head
+          console.log 'found', head
 
-      newBlock.moveTo head #MUTATION
+          # Log the undo operation for this
+          @addMicroUndoOperation 'CAPTURE_POINT'
+          @addMicroUndoOperation new DropOperation newBlock, head
 
-      @redrawMain()
-      @reparseHandwrittenBlocks()
-      @setTextInputFocus newSocket
+          newBlock.moveTo head #MUTATION
 
-    else if @textFocus? then @setTextInputFocus null; @redrawMain()
+          @redrawMain()
+          @reparseHandwrittenBlocks()
+
+          @newHandwrittenSocket = newSocket
+
+        else if @textFocus? then @setTextInputFocus null; @redrawMain()
+
+      on_keyup: =>
+        if @newHandwrittenSocket?
+          @setTextInputFocus @newHandwrittenSocket
+          @newHandwrittenSocket = null
 
   containsCursor = (block) ->
     head = block.start
