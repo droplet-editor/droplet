@@ -1621,7 +1621,11 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     # Focus the hidden input.
     setTimeout (=>
       @hiddenInput.focus()
-      @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
+      if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+         @hiddenInput.value[0] in ['\'', '"']
+        @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
+      else
+        @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
       @redrawTextInput()
     ), 0
 

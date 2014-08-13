@@ -363,7 +363,8 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     strictEqual document.stringify(), '''
     console.log hello
     console.log world
-    for i in [1..10]\n  ''', 'Move both out'
+    for i in [1..10]
+      ``''', 'Move both out'
 
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
 
@@ -396,7 +397,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
 
     strictEqual document.stringify(), '''
     Math.sqrt 2
-    see 1 + ''', 'Unwrap'
+    see 1 + ``''', 'Unwrap'
 
   test 'View: compute children', ->
     view_ = new view.View()

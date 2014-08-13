@@ -26,10 +26,14 @@ require ['ice'], (ice) ->
       name: 'Common'
       color: 'common'
       blocks: (ice.parse(paletteElement, wrapAtRoot: true).start.next.container for paletteElement in [
-        'fd ``'
-        'bk ``'
+        'fd 100'
+        'bk 100'
         'rt 90'
         'lt 90'
+        '''
+        button 'Click', ->
+          ``
+        '''
         '''
         for i in [1..10]
           fd 10
