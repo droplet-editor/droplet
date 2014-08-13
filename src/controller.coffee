@@ -3538,6 +3538,28 @@ define ['ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (coffee, draw, model
     metrics = fontMetrics family, size
     return metrics.descent - metrics.ascent
 
+  # OVRFLOW BIT
+  # ================================
+
+  Editor::overflowsX = ->
+    @documentDimensions().width > @viewportDimensions().width
+
+  Editor::overflowsY = ->
+    @documentDimensions().height > @viewportDimensions().height
+
+  Editor::documentDimensions = ->
+    bounds = @view.getViewNodeFor(@tree).totalBounds
+    return {
+      width: bounds.width
+      height: bounds.height
+    }
+
+  Editor::viewportDimensions = ->
+    return {
+      width: @mainCanvas.width
+      height: @mainCanvas.height
+    }
+
   # DEBUG CODE
   # ================================
   Editor::dumpNodeForDebug = (hitTestResult, line) ->

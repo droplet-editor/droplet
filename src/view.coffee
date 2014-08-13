@@ -536,6 +536,10 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
              not @changedBoundingBox
           return null
 
+        # Recurse.
+        for childObj in @children
+          @view.getViewNodeFor(childObj.child).computePath()
+
         # It is possible that we have a version increment
         # without changing bounding boxes. If this is the case,
         # we don't need to recompute our own path.
@@ -551,11 +555,20 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
           if @bounds.length > 0
             @totalBounds.unite @bounds[0]
             @totalBounds.unite @bounds[@bounds.length - 1]
-          @totalBounds.unite @path.bounds()
 
-        # Recurse.
-        for childObj in @children
-          @view.getViewNodeFor(childObj.child).computePath()
+          # Figure out our total bounding box however is faster.
+          if @bounds.length > @children.length
+            for child in @children
+              @totalBounds.unite @view.getViewNodeFor(child.child).totalBounds
+          else
+            maxRight = @totalBounds.right()
+            for bound in @bounds
+              @totalBounds.x = Math.min @totalBounds.x, bound.x
+              maxRight = Math.max maxRight, bound.y
+
+            @totalBounds.width = maxRight - @totalBounds.x
+
+          @totalBounds.unite @path.bounds()
 
         return null
 
@@ -1885,7 +1898,7 @@ define ['ice-draw', 'ice-model'], (draw, model) ->
     b = parseInt hex[5..6], 16
 
     return [r, g, b]
-  
+
   zeroPad = (str, len) ->
     if str.length < len
       ('0' for [str.length...len]).join('') + str
