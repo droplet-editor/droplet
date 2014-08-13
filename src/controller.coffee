@@ -3170,7 +3170,17 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @setValue_raw value
 
-  Editor::getValue = -> if @currentlyUsingBlocks then @tree.stringify() else @aceEditor.getValue()
+  Editor::addEmptyLine = (str) ->
+    if str.length is 0 or str[str.length - 1] is '\n'
+      return str
+    else
+      return str + '\n'
+
+  Editor::getValue = ->
+    if @currentlyUsingBlocks
+      return @addEmptyLine @tree.stringify()
+    else
+      @aceEditor.getValue()
 
   # PUBLIC EVENT BINDING HOOKS
   # ===============================
