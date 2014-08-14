@@ -9,6 +9,100 @@ define ['ice-model'], (model) ->
 
   YES = -> true
 
+  # ## Parser ##
+  # The Parser class is a simple
+  # wrapper on the above functions
+  # and a given parser function.
+  exports.Parser = class Parser
+    constructor: (@parseFn) ->
+
+    parse: (text, opts) ->
+      [marks, text] = @parseFn text
+      markup = regenerateMarkup marks
+      sortMarkup markup
+      segment = applyMarkup text, markup, opts
+      stripFlaggedBlocks segment
+      segment.correctParentTree()
+      return segment
+
+  exports.parseObj = parseObj = (object) ->
+    unless object?
+      return null
+
+    if typeof object is 'string' or object instanceof String
+      if object is '\n'
+        return new model.NewlineToken()
+      else
+        return new model.TextToken object
+
+    else
+      switch object.type
+        when 'block'
+          block = new model.Block object.precedence, object.color, object.nodeType ? 'Unknown', object.socketLevel
+          head = block.start
+          for child in object.children
+            subBlock = parseObj child
+            if subBlock.type in ['text', 'newline', 'mutationButton']
+              head = head.append subBlock
+            else
+              head.append subBlock.start
+              head = subBlock.end
+
+          head.append block.end
+
+          return block
+
+        when 'socket'
+          socket = new model.Socket object.precedence, false, object.accepts ? YES
+          contents = parseObj object.contents
+
+          if contents instanceof model.Container
+            contents.spliceIn socket.start
+          else
+            socket.start.append contents
+            contents.append socket.end
+
+          return socket
+
+        when 'indent'
+          block = new model.Indent (' ' for [1..object.depth]).join ''
+
+          head = block.start
+
+          for child in object.children
+            subBlock = parseObj child
+            if subBlock.type in ['text', 'newline']
+              head = head.append subBlock
+            else
+              head.append subBlock.start
+              head = subBlock.end
+
+          head.append block.end
+
+          return block
+
+        when 'mutationButton'
+          segment = new model.Segment()
+
+          button = new model.MutationButtonToken segment
+
+          head = segment.start
+          for child in object.expand
+            if child is 0
+              subBlock = new model.MutationButtonToken segment
+            else
+              subBlock = parseObj child
+
+            if subBlock.type in ['text', 'newline', 'mutationButton']
+              head = head.append subBlock
+            else
+              head.append subBlock.start
+              head = subBlock.end
+
+          head.append segment.end
+
+          return button
+
   # ## sortMarkup ##
   # Sort the markup by the order
   # in which it will appear in the text.
@@ -37,7 +131,8 @@ define ['ice-model'], (model) ->
       if b.start and not a.start
         return -1
 
-      # If two pieces of markup are in the same position, and are both start or end,
+      # If two pieces of markup are in the same position,
+      # and are both start or end,
       # the markup placed earlier gets to go on the outside
       if a.start and b.start
         if a.depth > b.depth
@@ -232,7 +327,7 @@ define ['ice-model'], (model) ->
     # Return the document
     return document
 
-  removeFlaggedBlocks = (segment) ->
+  stripFlaggedBlocks = (segment) ->
     head = segment.start
     until head is segment.end
       if (head instanceof model.StartToken and
@@ -242,14 +337,23 @@ define ['ice-model'], (model) ->
         head = container.end.next
 
         container.spliceOut()
-
+      else if (head instanceof model.StartToken and
+          head.container.flagToStrip)
+        console.log 'flagToStrip'
+        text = head.next
+        console.log 'stripping ', text.value
+        text.value =
+          text.value.substring(
+            head.container.flagToStrip.left,
+            text.value.length - head.container.flagToStrip.right)
+        head = text.next
       else
         head = head.next
 
   # ## regenerateMarkup ##
   # Turn a list of containers into
   # a list of tags.
-  regenerateMarkup = (markup) ->
+  regenerateMarkup = (markup, newtext) ->
     tags = []
 
     for mark in markup
@@ -266,98 +370,5 @@ define ['ice-model'], (model) ->
         start: false
 
     return tags
-
-  # ## Parser ##
-  # The Parser class is a simple
-  # wrapper on the above functions
-  # and a given parser function.
-  exports.Parser = class Parser
-    constructor: (@parseFn) ->
-
-    parse: (text, opts) ->
-      markup = regenerateMarkup @parseFn text
-      sortMarkup markup
-      segment = applyMarkup text, markup, opts
-      removeFlaggedBlocks segment
-      segment.correctParentTree()
-      return segment
-
-  exports.parseObj = parseObj = (object) ->
-    unless object?
-      return null
-
-    if typeof object is 'string' or object instanceof String
-      if object is '\n'
-        return new model.NewlineToken()
-      else
-        return new model.TextToken object
-
-    else
-      switch object.type
-        when 'block'
-          block = new model.Block object.precedence, object.color, object.nodeType ? 'Unknown', object.socketLevel
-          head = block.start
-          for child in object.children
-            subBlock = parseObj child
-            if subBlock.type in ['text', 'newline', 'mutationButton']
-              head = head.append subBlock
-            else
-              head.append subBlock.start
-              head = subBlock.end
-
-          head.append block.end
-
-          return block
-
-        when 'socket'
-          socket = new model.Socket object.precedence, false, object.accepts ? YES
-          contents = parseObj object.contents
-
-          if contents instanceof model.Container
-            contents.spliceIn socket.start
-          else
-            socket.start.append contents
-            contents.append socket.end
-
-          return socket
-
-        when 'indent'
-          block = new model.Indent (' ' for [1..object.depth]).join ''
-
-          head = block.start
-
-          for child in object.children
-            subBlock = parseObj child
-            if subBlock.type in ['text', 'newline']
-              head = head.append subBlock
-            else
-              head.append subBlock.start
-              head = subBlock.end
-
-          head.append block.end
-
-          return block
-
-        when 'mutationButton'
-          segment = new model.Segment()
-
-          button = new model.MutationButtonToken segment
-
-          head = segment.start
-          for child in object.expand
-            if child is 0
-              subBlock = new model.MutationButtonToken segment
-            else
-              subBlock = parseObj child
-
-            if subBlock.type in ['text', 'newline', 'mutationButton']
-              head = head.append subBlock
-            else
-              head.append subBlock.start
-              head = subBlock.end
-
-          head.append segment.end
-
-          return button
 
   return exports
