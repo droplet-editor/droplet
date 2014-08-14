@@ -3577,6 +3577,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     if changedBox
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
 
+  hook 'resize', 0, ->
+    @gutter.style.height = "#{Math.max @iceElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+
   # OVRFLOW BIT
   # ================================
 
