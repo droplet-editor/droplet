@@ -337,26 +337,31 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     else
       @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
-  hook 'resize', 0, ->
+  Editor::setTopNubbyStyle = (height = TOP_TAB_HEIGHT, color = '#EBEBEB') ->
+    @nubbyHeight = Math.max(0, height); @nubbyColor = color
+
     @topNubbyPath = new @draw.Path()
+    if height >= 0
+      @topNubbyPath.bevel = true
 
-    @topNubbyPath.bevel = true
+      @topNubbyPath.push new @draw.Point @mainCanvas.width, -5
+      @topNubbyPath.push new @draw.Point @mainCanvas.width, height
 
-    @topNubbyPath.push new @draw.Point @mainCanvas.width, 0
-    @topNubbyPath.push new @draw.Point @mainCanvas.width, TOP_TAB_HEIGHT
+      @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
+      @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+          @view.opts.tabHeight + height
+      @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
+          @view.opts.tabHeight + height
+      @topNubbyPath.push new @draw.Point @view.opts.tabOffset, height
 
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, TOP_TAB_HEIGHT
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
-        @view.opts.tabHeight + TOP_TAB_HEIGHT
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
-        @view.opts.tabHeight + TOP_TAB_HEIGHT
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset, TOP_TAB_HEIGHT
+      @topNubbyPath.push new @draw.Point -5, height
+      @topNubbyPath.push new @draw.Point -5, -5
 
-    @topNubbyPath.push new @draw.Point 0, TOP_TAB_HEIGHT
-    @topNubbyPath.push new @draw.Point 0, 0
+      @topNubbyPath.style.fillColor = color
 
-    @topNubbyPath.style.fillColor = '#EBEBEB'
+    @redrawMain()
 
+  hook 'resize', 0, -> @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
   Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating
@@ -378,7 +383,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         opts.boundingRectangle.clip @mainCtx
 
       # Draw the new tree on the main context
-      layoutResult = @view.getViewNodeFor(@tree).layout 0, TOP_TAB_HEIGHT
+      layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
       @view.getViewNodeFor(@tree).draw @mainCtx, opts.boundingRectangle ? new @draw.Rectangle(
         @scrollOffsets.main.x,
         @scrollOffsets.main.y,
