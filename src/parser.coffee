@@ -226,10 +226,14 @@ define ['ice-model'], (model) ->
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
             if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-              block = new model.Block 0, '#ffffff', false
+              block = new model.Block 0, 'blank', false
+              socket = new model.Socket()
+              socket.handwritten = true
 
               head = head.append block.start
+              head = head.append socket.start
               head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+              head = head.append socket.end
               head = head.append block.end
 
             else
