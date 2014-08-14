@@ -331,7 +331,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
           bottomLeft: false
           bottomRight: false
 
-      
+
       # ## computeMinDimensions (GenericViewNode)
       # Compute the size of our bounding box on each
       # line that we contain.
@@ -365,7 +365,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
 
         oldDimensions = @dimensions
         oldDistanceToBase = @distanceToBase
-        
+
         @dimensions = (new @view.draw.Size 0, 0 for [0...@lineLength])
         @distanceToBase = ({above: 0, below: 0} for [0...@lineLength])
 
@@ -429,7 +429,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
            @bounds[line]?.x is left and
            @bounds[line]?.width is @dimensions[line].width
           return @bounds[line]
-        
+
         @changedBoundingBox = true
 
         # Avoid re-instantiating a Rectangle object,
@@ -485,7 +485,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
            @bounds[line].y is top and
            @bounds[line].height is @dimensions[line].height
           return @bounds[line]
-        
+
         @changedBoundingBox = true
 
         # Accept the bounding box edge we were given.
@@ -832,7 +832,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
       computeBevels: ->
         if @computedVersion is @model.version
           return null
-        
+
         @bevels =
           topLeft: false
           topRight: true
@@ -857,18 +857,18 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
         # If we can, use cached data.
         if @computedVersion is @model.version
           return null
-        
+
         #console.log 'recomputing', @model.type, @model.stringify()[..500]
 
         # start at zero min dimensions
         super
-        
+
         # Lines immediately after the end of Indents
         # have to be extended to a minimum width.
         # Record the lines that need to be extended here.
         linesToExtend = []
         preIndentLines = []
-        
+
         # Recurse on our children, updating
         # our dimensions as we go to contain them.
         for childObject in @children
@@ -894,10 +894,10 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
               margins.right
 
             # Compute max distance above and below text
-            # 
+            #
             # Exception: do not add the bottom padding on an
             # Indent if we own the next line as well.
-            
+
             if childObject.child.type is 'indent' and
                 line is minDimensions.length - 1 and
                 desiredLine < @lineLength - 1
@@ -921,7 +921,8 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
         # Empty lines should have some height.
         for minDimension, line in @minDimensions
           if @lineChildren[line].length is 0
-            @minDistanceToBase[line].above = @view.opts.textHeight
+            @minDistanceToBase[line].above = @view.opts.textHeight + @view.opts.padding
+            @minDistanceToBase[line].below = @view.opts.padding
 
           minDimension.height =
             @minDistanceToBase[line].above +
@@ -1165,7 +1166,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
               left.push new @view.draw.Point bounds.x, bounds.y + @view.opts.bevelClip
             else
               left.push new @view.draw.Point bounds.x, bounds.y
-            
+
             if @bevels.bottomLeft and line is @lineLength - 1
               left.push new @view.draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
               left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
@@ -1193,7 +1194,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
               left.push new @view.draw.Point bounds.x, bounds.y + @view.opts.bevelClip
             else
               left.push new @view.draw.Point bounds.x, bounds.y
-            
+
             if @bevels.bottomLeft and line is @lineLength - 1
               left.push new @view.draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
               left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
@@ -1254,7 +1255,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
             # Avoid the indented area
             right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
             right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
-          
+
             if multilineChild.child.type is 'indent'
               @addTabReverse right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.bottom()
 
@@ -1373,12 +1374,12 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
             multilineChild = @lineChildren[line][@lineChildren[line].length - 1]
             multilineNode = @view.getViewNodeFor multilineChild.child
             multilineBounds = multilineNode.bounds[line - multilineChild.startLine]
-            
+
             if @glue[line]?.draw
               glueTop = @bounds[line + 1].y - @glue[line].height + @view.opts.padding
             else
               glueTop = @bounds[line].bottom()
-            
+
             if multilineChild.child.type is 'indent'
               right.push new @view.draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
               right.push new @view.draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
@@ -1423,7 +1424,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
         array.push new @view.draw.Point point.x, point.y
         # Move over to the given corner itself.
         array.push point
-      
+
       # ## addTabReverse
       # Add the tab in reverse order
       addTabReverse: (array, point) ->
