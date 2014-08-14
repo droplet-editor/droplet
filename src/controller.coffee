@@ -2213,7 +2213,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       head = head.prev
 
     return chars
-  
+
   getSocketAtChar = (parent, chars) ->
     head = parent.start
     charsCounted = 0
@@ -2230,8 +2230,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       if @textFocus? then head = @textFocus.start
       else head = @cursor
 
-      until (not head?) or head.type is 'socketEnd' and head.container.start.next.type is 'text'
-        head = head.prev
+      until (not head?) or head.type is 'socketStart' and
+          (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
+        head = head.next
+
       if head?
         if @textFocus? and head.container.hasParent @textFocus.parent
           persistentParent = @textFocus.parent.parent
@@ -2250,7 +2252,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       if @textFocus? then head = @textFocus.end
       else head = @cursor
 
-      until (not head?) or head.type is 'socketStart' and head.container.start.next.type is 'text'
+      until (not head?) or head.type is 'socketStart' and
+          (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
         head = head.next
       if head?
         if @textFocus? and head.container.hasParent @textFocus.parent
