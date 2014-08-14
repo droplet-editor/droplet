@@ -11,7 +11,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   PALETTE_LEFT_MARGIN = 5
   DEFAULT_INDENT_DEPTH = '  '
   ANIMATION_FRAME_RATE = 60
-  TOP_TAB_HEIGHT = 10
   DISCOURAGE_DROP_TIMEOUT = 1000
   MAX_DROP_DISTANCE = 100
 
@@ -337,7 +336,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     else
       @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
-  Editor::setTopNubbyStyle = (height = TOP_TAB_HEIGHT, color = '#EBEBEB') ->
+  Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
     @nubbyHeight = Math.max(0, height); @nubbyColor = color
 
     @topNubbyPath = new @draw.Path()
@@ -1513,7 +1512,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         treeView.bounds[line].height
       ]
 
-      treeView.layout 0, TOP_TAB_HEIGHT
+      treeView.layout 0, @nubbyHeight
 
       newp = deepCopy [
         treeView.glue[line - 1],
@@ -2171,7 +2170,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::determineCursorPosition = ->
     if @cursor? and @cursor.parent?
-      @view.getViewNodeFor(@tree).layout 0, TOP_TAB_HEIGHT
+      @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
 
       head = @cursor; line = 0
       until head is @cursor.parent.start
