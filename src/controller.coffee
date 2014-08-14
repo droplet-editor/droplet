@@ -3143,7 +3143,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       treeView = @view.getViewNodeFor @tree
 
-      if @lastHoveredLine? and treeView.bounds[@lastHoveredLine].contains mainPoint
+      if @lastHoveredLine? and @lastHoveredLine < treeView.bounds.length and
+          treeView.bounds[@lastHoveredLine].contains mainPoint
         return
 
       hoveredLine = @findLineNumberAtCoordinate point.y
