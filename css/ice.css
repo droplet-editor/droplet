@@ -168,7 +168,7 @@
   box-sizing: border-box;
   text-align: right;
   padding-right: 13px;
-  line-height: 100%;
+  line-height: normal;
   width: 100%;
 }
 .ice-drag-cover {
