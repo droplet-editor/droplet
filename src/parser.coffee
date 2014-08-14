@@ -8,7 +8,7 @@ define ['ice-model'], (model) ->
   exports = {}
 
   YES = -> true
-  
+
   # ## sortMarkup ##
   # Sort the markup by the order
   # in which it will appear in the text.
@@ -18,17 +18,17 @@ define ['ice-model'], (model) ->
       # First by line
       if a.location.line > b.location.line
         return 1
-      
+
       if b.location.line > a.location.line
         return -1
-      
+
       # Then by column
       if a.location.column > b.location.column
         return 1
-      
+
       if b.location.column > a.location.column
         return -1
-      
+
       # If two pieces of markup are in the same position, end markup
       # comes before start markup
       if a.start and not b.start
@@ -36,7 +36,7 @@ define ['ice-model'], (model) ->
 
       if b.start and not a.start
         return -1
-      
+
       # If two pieces of markup are in the same position, and are both start or end,
       # the markup placed earlier gets to go on the outside
       if a.start and b.start
@@ -48,13 +48,13 @@ define ['ice-model'], (model) ->
         if a.depth > b.depth
           return -1
         else return 1
-    
+
     # Return the sorted array
     # (although the sorting was done
     # in-place at a pointer, so this
     # is usually unecessary)
     return unsortedMarkup
-  
+
   # ## applyMarkup ##
   # Given some text and (sorted) markup,
   # produce an ICE editor document
@@ -70,12 +70,12 @@ define ['ice-model'], (model) ->
     for mark in sortedMarkup
       markupOnLines[mark.location.line] ?= []
       markupOnLines[mark.location.line].push mark
-    
+
     # Now, we will interact with the text
     # by line-column coordinates. So we first want
     # to split the text into lines.
     lines = text.split '\n'
-    
+
     # Now iterate through the lines and apply the necessary markup.
     #
     # We need to keep track of indent depth in order to know
@@ -102,23 +102,27 @@ define ['ice-model'], (model) ->
           line = line.trimLeft()
         else
           line = line[indentDepth...]
-        
+
         # If we have some text here that
         # is floating (not surrounded by a block),
         # wrap it in a generic block automatically.
         if line.length > 0
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
             block = new model.Block 0, 'blank', false
+            socket = new model.Socket()
+            socket.handwritten = true
 
             head = head.append block.start
+            head = head.append socket.start
             head = head.append new model.TextToken line
+            head = head.append socket.end
             head = head.append block.end
 
           else
             head = head.append new model.TextToken line
 
         head = head.append new model.NewlineToken()
-      
+
       # If there is markup on this line, insert it.
       else
         lastIndex = indentDepth
@@ -144,23 +148,23 @@ define ['ice-model'], (model) ->
               # directly inside a block; if not, then throw.
               unless stack?[stack.length - 1]?.type is 'block'
                 throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
-              
+
               # Update stack and indent depth
               stack.push mark.token.container
               indentDepth += mark.token.container.depth
-              
+
               # Append the token itself.
               head = head.append mark.token
-            
+
             when 'blockStart'
               # If the a block is embedded
               # directly in another block, throw.
               if stack[stack.length - 1]?.type is 'block'
                 throw new Error 'Improper parser: block cannot nest immediately inside another block.'
-              
+
               # Update the stack
               stack.push mark.token.container
-              
+
               # Push the token itself.
               head = head.append mark.token
 
@@ -173,7 +177,7 @@ define ['ice-model'], (model) ->
               stack.push mark.token.container
 
               head = head.append mark.token
-            
+
             # For each End token,
             # we make sure that it is properly closing
             # its corresponding Start token; if it is not,
@@ -181,7 +185,7 @@ define ['ice-model'], (model) ->
             when 'indentEnd'
               unless mark.token.container is stack[stack.length - 1]
                 throw new Error 'Improper parser: indent ended too early.'
-              
+
               # Update stack and indent depth
               stack.pop()
               indentDepth -= mark.token.container.depth
@@ -192,7 +196,7 @@ define ['ice-model'], (model) ->
               unless mark.token.container is stack[stack.length - 1]
                 debugger
                 throw new Error 'Improper parser: block ended too early.'
-              
+
               # Update stack
               stack.pop()
 
@@ -208,7 +212,7 @@ define ['ice-model'], (model) ->
               head = head.append mark.token
 
           lastIndex = mark.location.column
-      
+
         # Append the rest of the string
         # (after the last piece of markup)
         unless lastIndex >= line.length
@@ -216,7 +220,7 @@ define ['ice-model'], (model) ->
 
         # Append the needed newline token
         head = head.append new model.NewlineToken()
-    
+
     # Pop off the last newline token, which is not necessary
     head = head.prev
     head.next.remove()
@@ -227,7 +231,7 @@ define ['ice-model'], (model) ->
 
     # Return the document
     return document
-  
+
   removeFlaggedBlocks = (segment) ->
     head = segment.start
     until head is segment.end
@@ -238,16 +242,16 @@ define ['ice-model'], (model) ->
         head = container.end.next
 
         container.spliceOut()
-      
+
       else
         head = head.next
-  
+
   # ## regenerateMarkup ##
   # Turn a list of containers into
   # a list of tags.
   regenerateMarkup = (markup) ->
     tags = []
-    
+
     for mark in markup
       tags.push
         token: mark.container.start
@@ -262,14 +266,14 @@ define ['ice-model'], (model) ->
         start: false
 
     return tags
-  
+
   # ## Parser ##
   # The Parser class is a simple
   # wrapper on the above functions
   # and a given parser function.
   exports.Parser = class Parser
     constructor: (@parseFn) ->
-    
+
     parse: (text, opts) ->
       markup = regenerateMarkup @parseFn text
       sortMarkup markup
@@ -281,13 +285,13 @@ define ['ice-model'], (model) ->
   exports.parseObj = parseObj = (object) ->
     unless object?
       return null
-    
+
     if typeof object is 'string' or object instanceof String
       if object is '\n'
         return new model.NewlineToken()
       else
         return new model.TextToken object
-    
+
     else
       switch object.type
         when 'block'
@@ -316,12 +320,12 @@ define ['ice-model'], (model) ->
             contents.append socket.end
 
           return socket
-        
+
         when 'indent'
           block = new model.Indent (' ' for [1..object.depth]).join ''
-          
+
           head = block.start
-          
+
           for child in object.children
             subBlock = parseObj child
             if subBlock.type in ['text', 'newline']
@@ -329,31 +333,31 @@ define ['ice-model'], (model) ->
             else
               head.append subBlock.start
               head = subBlock.end
-          
+
           head.append block.end
-          
+
           return block
-        
+
         when 'mutationButton'
           segment = new model.Segment()
-          
+
           button = new model.MutationButtonToken segment
-          
+
           head = segment.start
           for child in object.expand
             if child is 0
               subBlock = new model.MutationButtonToken segment
             else
               subBlock = parseObj child
-            
+
             if subBlock.type in ['text', 'newline', 'mutationButton']
               head = head.append subBlock
             else
               head.append subBlock.start
               head = subBlock.end
-          
+
           head.append segment.end
-          
+
           return button
-  
+
   return exports

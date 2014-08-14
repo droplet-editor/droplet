@@ -1613,33 +1613,34 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # The second of these is a reparse attempt.
       # If we can, try to reparse the focus
       # value.
-      newParse = null
-      string = @textFocus.stringify().trim()
-      try
-        newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
-      catch
-        if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
-          try
-            string = escapeString string
-            newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
-            @populateSocket @textFocus, string
+      unless @textFocus.handwritten
+        newParse = null
+        string = @textFocus.stringify().trim()
+        try
+          newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+        catch
+          if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
+            try
+              string = escapeString string
+              newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+              @populateSocket @textFocus, string
 
-      if newParse? and newParse.start.next.type is 'blockStart' and
-          newParse.start.next.container.end.next is newParse.end
-        # Empty the socket
-        @textFocus.start.append @textFocus.end
+        if newParse? and newParse.start.next.type is 'blockStart' and
+            newParse.start.next.container.end.next is newParse.end
+          # Empty the socket
+          @textFocus.start.append @textFocus.end
 
-        # Splice the other in
-        newParse.start.next.container.spliceIn @textFocus.start
+          # Splice the other in
+          newParse.start.next.container.spliceIn @textFocus.start
 
-        @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
-        shouldPop = true
+          @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
+          shouldPop = true
 
       try
         # TODO make 'reparsable' property, bubble up until then
         parseParent = @textFocus.parent
 
-        newParse = coffee.parse(parseParent.stringify(), wrapAtRoot: false)
+        newParse = coffee.parse parseParent.stringify(), wrapAtRoot: true
 
         if newParse.start.next?.container?.end is newParse.end.prev
           if focus is null
@@ -2230,9 +2231,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       if @textFocus? then head = @textFocus.start
       else head = @cursor
 
-      until (not head?) or head.type is 'socketStart' and
+      until (not head?) or head.type is 'socketEnd' and
           (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
-        head = head.next
+        head = head.prev
 
       if head?
         if @textFocus? and head.container.hasParent @textFocus.parent
@@ -2403,7 +2404,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           not containsCursor head.container
         try
           # Reparse the block.
-          newBlock = coffee.parse(head.container.stringify(), wrapAtRoot: false).start.next
+          newBlock = coffee.parse(head.container.stringify(), wrapAtRoot: true).start.next
 
           # (we only reparse if it is actually
           # a better parse than a handwritten block).
