@@ -2684,6 +2684,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @redrawMain noText: true
       @textFocus = @lassoAnchor = null
 
+      # Hide scrollbars and increase width
+      @mainScroller.style.overflow = 'hidden'
+      @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
+
       @currentlyUsingBlocks = false; @currentlyAnimating = true
 
       # Move the palette header into the background
@@ -2797,6 +2801,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @scrollOffsets.main.y = 0
         @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
+        # Show scrollbars again
+        @mainScroller.style.overflow = 'auto'
+
         for div in translatingElements
           div.parentNode.removeChild div
 
@@ -2822,6 +2829,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
       setTimeout (=>
+        # Hide scrollbars and increase width
+        @mainScroller.style.overflow = 'hidden'
+        @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
+
         @setFontSize @aceEditor.getFontSize()
         @redrawMain noText: true
 
@@ -2924,6 +2935,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         setTimeout (=>
           @iceElement.style.transition =
             @paletteWrapper.style.transition = ''
+
+          # Show scrollbars again
+          @mainScroller.style.overflow = 'auto'
 
           @currentlyAnimating = false
           @lineNumberWrapper.style.display = 'block'
