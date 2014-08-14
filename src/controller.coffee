@@ -3480,12 +3480,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   # TODO possibly move this next utility function to view?
   Editor::mainViewOrChildrenContains = (model, point) ->
-    view = @view.getViewNodeFor model
+    modelView = @view.getViewNodeFor modelView
 
-    if view.path.contains point
+    if modelView.path.contains point
       return true
 
-    for childObj in view.children
+    for childObj in modelView.children
       if @mainViewOrChildrenContains childObj.child, point
         return true
 
