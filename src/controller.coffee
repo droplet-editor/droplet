@@ -1589,6 +1589,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
       @mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
 
+  escapeString = (str) ->
+    str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
+
   # Convenince function for setting the text input
   Editor::setTextInputFocus = (focus, selectionStart = 0, selectionEnd = 0) ->
     if focus?.id of @extraMarks
@@ -1610,18 +1613,27 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # The second of these is a reparse attempt.
       # If we can, try to reparse the focus
       # value.
+      newParse = null
+      string = @textFocus.stringify().trim()
       try
-        newParse = coffee.parse(unparsedValue = @textFocus.stringify(), wrapAtRoot: false)
+        newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+      catch
+        if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
+          try
+            string = escapeString string
+            newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+            @populateSocket @textFocus, string
 
-        if newParse.start.next.type is 'blockStart' and newParse.start.next.container.end.next is newParse.end
-          # Empty the socket
-          @textFocus.start.append @textFocus.end
+      if newParse? and newParse.start.next.type is 'blockStart' and
+          newParse.start.next.container.end.next is newParse.end
+        # Empty the socket
+        @textFocus.start.append @textFocus.end
 
-          # Splice the other in
-          newParse.start.next.container.spliceIn @textFocus.start
+        # Splice the other in
+        newParse.start.next.container.spliceIn @textFocus.start
 
-          @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
-          shouldPop = true
+        @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
+        shouldPop = true
 
       try
         # TODO make 'reparsable' property, bubble up until then
