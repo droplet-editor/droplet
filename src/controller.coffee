@@ -404,9 +404,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         # Update the ace editor value to match,
         # but don't trigger a resize event.
-        @suppressChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
+        @suppressAceChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
         @aceEditor.setValue @getValue(), -1
-        @suppressChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
+        @suppressAceChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
 
         @fireEvent 'change', []
 
@@ -2554,7 +2554,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      if @currentlyUsingBlogs and not @suppressChangeEvent
+      if @currentlyUsingBlogs and not @suppressAceChangeEvent
         @copyAceEditor()
 
     @currentlyUsingBlocks = true
