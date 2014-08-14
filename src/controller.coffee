@@ -1452,6 +1452,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @oldFocusValue = null
 
+
+    @hiddenInput.addEventListener 'keydown', (event) =>
+      if event.keyCode is 8 and @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+          @hiddenInput.value[0] in ['\'', '\"'] and @hiddenInput.selectionEnd is 1
+        event.preventDefault()
+
     # The hidden input should be set up
     # to mirror the text to which it is associated.
     for event in ['input', 'keyup', 'keydown', 'select']
