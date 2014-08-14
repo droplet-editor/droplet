@@ -113,8 +113,7 @@
       <a href="http://github.com/jashkenas/coffeescript/tarball/1.7.1">1.7.1</a>
     </p>
 
-    <pre>
-sudo npm install -g coffee-script</pre>
+    <pre>npm install -g coffee-script</pre>
 
     <h2>
       <span id="overview" class="bookmark"></span>
@@ -1034,7 +1033,7 @@ Expressions
         size (Rails, Node).
       </li>
       <li>
-        <a href="http://ristrettolo.gy">CoffeeScript Ristretto</a>
+        <a href="https://leanpub.com/coffeescript-ristretto/read">CoffeeScript Ristretto</a>
         is a deep dive into CoffeeScript's semantics from simple functions up through
         closures, higher-order functions, objects, classes, combinators, and decorators.
         By <a href="http://braythwayt.com/">Reg Braithwaite</a>.
@@ -1084,7 +1083,7 @@ Expressions
     </h2>
 
     <p>
-      The <a href="https://github.com/trending?l=coffeescript">best list of
+      The <a href="https://github.com/trending?l=coffeescript&amp;since=monthly">best list of
       open-source CoffeeScript examples</a> can be found on GitHub. But just
       to throw out few more:
     </p>

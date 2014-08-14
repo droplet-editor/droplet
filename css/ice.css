@@ -149,7 +149,7 @@
 .ice-transition-container {
   position: absolute;
   top: 0; bottom: 0; left: 0; right: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 .ice-gutter {
   position: absolute;
@@ -168,6 +168,7 @@
   box-sizing: border-box;
   text-align: right;
   padding-right: 13px;
+  line-height: 100%;
   width: 100%;
 }
 .ice-drag-cover {

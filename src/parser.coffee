@@ -204,9 +204,13 @@ define ['ice-model'], (model) ->
         if line.length > 0
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
             block = new model.Block 0, 'blank', false
+            socket = new model.Socket()
+            socket.handwritten = true
 
             head = head.append block.start
+            head = head.append socket.start
             head = head.append new model.TextToken line
+            head = head.append socket.end
             head = head.append block.end
 
           else
@@ -333,7 +337,6 @@ define ['ice-model'], (model) ->
         head = container.end.next
 
         container.spliceOut()
-
       else if (head instanceof model.StartToken and
           head.container.flagToStrip)
         console.log 'flagToStrip'

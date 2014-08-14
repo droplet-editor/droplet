@@ -167,7 +167,7 @@
     };
 
     Lexer.prototype.stringToken = function() {
-      var octalEsc, quote, string, trimmed;
+      var inner, innerLen, numBreak, octalEsc, pos, quote, string, trimmed;
       switch (quote = this.chunk.charAt(0)) {
         case "'":
           string = (SIMPLESTR.exec(this.chunk) || [])[0];
@@ -178,10 +178,16 @@
       if (!string) {
         return 0;
       }
-      trimmed = this.removeNewlines(string.slice(1, -1));
+      inner = string.slice(1, -1);
+      trimmed = this.removeNewlines(inner);
       if (quote === '"' && 0 < string.indexOf('#{', 1)) {
+        numBreak = pos = 0;
+        innerLen = inner.length;
+        while (inner.charAt(pos++) === '\n' && pos < innerLen) {
+          numBreak++;
+        }
         this.interpolateString(trimmed, {
-          strOffset: 1,
+          strOffset: 1 + numBreak,
           lexedLength: string.length
         });
       } else {
@@ -194,7 +200,7 @@
     };
 
     Lexer.prototype.heredocToken = function() {
-      var doc, heredoc, match, quote;
+      var doc, heredoc, match, quote, strOffset;
       if (!(match = HEREDOC.exec(this.chunk))) {
         return 0;
       }
@@ -205,9 +211,10 @@
         indent: null
       });
       if (quote === '"' && 0 <= doc.indexOf('#{')) {
+        strOffset = match[2].charAt(0) === '\n' ? 4 : 3;
         this.interpolateString(doc, {
           heredoc: true,
-          strOffset: 3,
+          strOffset: strOffset,
           lexedLength: heredoc.length
         });
       } else {
@@ -286,7 +293,8 @@
       this.token('CALL_START', '(', 0, 0);
       tokens = [];
       _ref2 = this.interpolateString(body, {
-        regex: true
+        regex: true,
+        strOffset: 3
       });
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
         token = _ref2[_i];
