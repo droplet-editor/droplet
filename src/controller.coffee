@@ -2615,7 +2615,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           @gutter.offsetWidth + 5 # TODO see above
     }
 
-    @mainCtx.font = @aceEditor.getFontSize() + ' ' + @fontFamily
+    @mainCtx.font = @aceFontSize() + ' ' + @fontFamily
 
     until head is @tree.end
       switch head.type
@@ -2729,7 +2729,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           setTimeout (=>
             div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
             div.style.top = (textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y) + 'px'
-            div.style.fontSize = @aceEditor.getFontSize()
+            div.style.fontSize = @aceFontSize()
           ), fadeTime
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
@@ -2762,7 +2762,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           setTimeout (=>
             div.style.left = '0px'
             div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
-            div.style.fontSize = @aceEditor.getFontSize()
+            div.style.fontSize = @aceFontSize()
           ), fadeTime
 
       @lineNumberWrapper.style.display = 'none'
@@ -2815,6 +2815,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       ), fadeTime + translateTime
 
       return success: true
+
+  Editor::aceFontSize = ->
+    parseFloat(@aceEditor.getFontSize()) + 'px'
 
   Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
@@ -2870,7 +2873,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           div.innerText = textElement.model.value
 
-          div.style.font = @aceEditor.getFontSize() + ' ' + @fontFamily
+          div.style.font = @aceFontSize() + ' ' + @fontFamily
           div.style.position = 'absolute'
 
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
@@ -2903,7 +2906,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           div.innerText = line + 1
 
-          div.style.font = @aceEditor.getFontSize() + ' ' + @fontFamily
+          div.style.font = @aceFontSize() + ' ' + @fontFamily
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
 
           div.style.left = 0
