@@ -2537,7 +2537,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # ================================
 
   Editor::copyAceEditor = ->
-    @setFontSize_raw @aceEditor.getFontSize()
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
     @resize()
 
@@ -2615,6 +2614,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           @aceEditor.renderer.$gutterLayer.gutterWidth) -
           @gutter.offsetWidth + 5 # TODO see above
     }
+
+    @mainCtx.font = @aceEditor.getFontSize() + ' ' + @fontFamily
 
     until head is @tree.end
       switch head.type
@@ -2719,7 +2720,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
 
         div.className = 'ice-transitioning-element'
-        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
+        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
         translatingElements.push div
 
         @transitionContainer.appendChild div
@@ -2728,6 +2729,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           setTimeout (=>
             div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
             div.style.top = (textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y) + 'px'
+            div.style.fontSize = @aceEditor.getFontSize()
           ), fadeTime
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
@@ -2751,7 +2753,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         translatingElements.push div
 
         div.className = 'ice-transitioning-element ice-transitioning-gutter'
-        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
+        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
         @mainScrollerStuffing.appendChild div
 
@@ -2760,6 +2762,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           setTimeout (=>
             div.style.left = '0px'
             div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
+            div.style.fontSize = @aceEditor.getFontSize()
           ), fadeTime
 
       @lineNumberWrapper.style.display = 'none'
@@ -2834,7 +2837,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @mainScroller.style.overflow = 'hidden'
         @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
 
-        @setFontSize @aceEditor.getFontSize()
         @redrawMain noText: true
 
         @currentlyUsingBlocks = true
@@ -2868,14 +2870,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           div.innerText = textElement.model.value
 
-          div.style.font = @fontSize + 'px ' + @fontFamily
+          div.style.font = @aceEditor.getFontSize() + ' ' + @fontFamily
           div.style.position = 'absolute'
 
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
           div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
 
           div.className = 'ice-transitioning-element'
-          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
+          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
           @transitionContainer.appendChild div
@@ -2884,6 +2886,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             setTimeout (=>
               div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
               div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
+              div.style.fontSize = @fontSize + 'px'
             ), 0
 
         top = Math.max @aceEditor.getFirstVisibleRow(), 0
@@ -2900,14 +2903,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           div.innerText = line + 1
 
-          div.style.font = @fontSize + 'px ' + @fontFamily
+          div.style.font = @aceEditor.getFontSize() + ' ' + @fontFamily
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
 
           div.style.left = 0
           div.style.top = "#{lineHeight * line - aceScrollTop + @scrollOffsets.main.y}px"
 
           div.className = 'ice-transitioning-element ice-transitioning-gutter'
-          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms"
+          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
           @mainScrollerStuffing.appendChild div
@@ -2916,6 +2919,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             setTimeout (=>
               div.style.left = 0
               div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+              div.style.fontSize = @fontSize + 'px'
             ), 0
 
         for el in [@mainCanvas, @highlightCanvas]
