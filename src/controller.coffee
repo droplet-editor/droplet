@@ -1452,9 +1452,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @oldFocusValue = null
 
-
+    # Prevent kids from deleting a necessary quote accidentally
     @hiddenInput.addEventListener 'keydown', (event) =>
-      if event.keyCode is 8 and @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+      if event.keyCode is 8 and @hiddenInput.value.length > 1 and
+          @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
           @hiddenInput.value[0] in ['\'', '\"'] and @hiddenInput.selectionEnd is 1
         event.preventDefault()
 
