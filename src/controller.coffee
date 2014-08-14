@@ -3592,6 +3592,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'resize', 0, ->
     @gutter.style.height = "#{Math.max @iceElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
 
+  Editor::setPaletteWidth = (width) ->
+    @paletteWrapper.style.width = width + 'px'
+    @resize()
+
   # OVRFLOW BIT
   # ================================
 
