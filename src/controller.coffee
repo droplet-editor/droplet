@@ -159,7 +159,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @paletteElement.style.left = '0px'
       @paletteElement.style.top = '0px'
       @paletteElement.style.bottom = '0px'
-      @paletteElement.style.width = '300px'
+      @paletteElement.style.width = '270px'
 
       @iceElement.style.left = @paletteElement.offsetWidth + 'px'
 
@@ -2762,7 +2762,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div.className = 'ice-transitioning-element ice-transitioning-gutter'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
-        @mainScrollerStuffing.appendChild div
+        @iceElement.appendChild div
 
         do (div, line) =>
           # Set off the css transition
@@ -2923,7 +2923,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
-          @mainScrollerStuffing.appendChild div
+          @iceElement.appendChild div
 
           do (div, line) =>
             setTimeout (=>

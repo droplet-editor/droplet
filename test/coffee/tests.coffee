@@ -515,7 +515,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     documentView.layout()
 
     strictEqual documentView.dimensions[1].height,
-      view_.opts.textHeight,
+      view_.opts.textHeight + 2 * view_.opts.padding,
       'Renders empty lines'
 
   test 'View: bounding box flag stuff', ->
@@ -594,7 +594,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       .append(new model.NewlineToken())
       .append(new model.TextToken('world"""'))
       .append(socketView.model.end)
-    
+
     socketView.model.notifyChange()
 
     documentView.layout()
@@ -612,7 +612,22 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'
 
-  
+  test 'View: empty socket heights', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    if `` is a
+      ``
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    emptySocketView = view_.getViewNodeFor document.getTokenAtLocation(6).container
+    fullSocketView = view_.getViewNodeFor document.getTokenAtLocation(9).container
+
+    strictEqual emptySocketView.dimensions[0].height, fullSocketView.dimensions[0].height, 'Full and empty sockets same height'
+
   asyncTest 'Controller: melt/freeze events', ->
     expect 3
 
@@ -621,7 +636,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
 
     editor.on 'statechange', (usingBlocks) ->
       states.push usingBlocks
-    
+
     editor.performMeltAnimation 10, 10, ->
       editor.performFreezeAnimation 10, 10, ->
         strictEqual states.length, 2

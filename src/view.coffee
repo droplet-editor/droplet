@@ -921,8 +921,15 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
         # Empty lines should have some height.
         for minDimension, line in @minDimensions
           if @lineChildren[line].length is 0
-            @minDistanceToBase[line].above = @view.opts.textHeight + @view.opts.padding
-            @minDistanceToBase[line].below = @view.opts.padding
+            # Socket should be shorter than other blocks
+            if @model.type is 'socket'
+              @minDistanceToBase[line].above = @view.opts.textHeight * @view.opts.textPadding
+              @minDistanceToBase[line].above = @view.opts.textPadding
+
+            # Other empty lines should be the height of a normal block.
+            else
+              @minDistanceToBase[line].above = @view.opts.textHeight + @view.opts.padding
+              @minDistanceToBase[line].below = @view.opts.padding
 
           minDimension.height =
             @minDistanceToBase[line].above +
