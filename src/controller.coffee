@@ -2351,7 +2351,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           @newHandwrittenSocket = newSocket
 
-        else if @textFocus? then @setTextInputFocus null; @redrawMain()
+        else if @textFocus? and not @shiftKeyPressed
+          @setTextInputFocus null; @redrawMain()
+        else
+          return true
 
       on_keyup: =>
         if @newHandwrittenSocket?
