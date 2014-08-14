@@ -3084,8 +3084,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @redrawMain(); @redrawPalette()
 
   Editor::setFontSize = (fontSize) ->
-    @aceEditor.setFontSize fontSize
-    @aceEditor.resize()
     @setFontSize_raw fontSize
     @resize()
 
