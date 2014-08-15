@@ -13,6 +13,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   ANIMATION_FRAME_RATE = 60
   DISCOURAGE_DROP_TIMEOUT = 1000
   MAX_DROP_DISTANCE = 100
+  CURSOR_WIDTH_DECREASE = 3
+  CURSOR_HEIGHT_DECREASE = 2
 
   ANY_DROP = helper.ANY_DROP
   BLOCK_ONLY = helper.BLOCK_ONLY
@@ -436,6 +438,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       else
         delete @extraMarks[id]
 
+    @redrawCursors()
+
+  Editor::clearCursorCanvas = ->
+    @cursorCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
+
+  Editor::redrawCursors = ->
+    @clearCursorCanvas()
+
     if @textFocus?
       @redrawTextHighlights()
 
@@ -448,14 +458,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
         @paletteCanvas.width, @paletteCanvas.height
 
-
   Editor::redrawPalette = ->
       @clearPalette()
-
-      # Supply our palette canvas for text measuring
-      @draw.setCtx @paletteCtx
-
-      @draw.setGlobalFontSize @fontSize
 
       # We will construct a vertical layout
       # with padding for the palette blocks.
@@ -1519,6 +1523,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # to mirror the text to which it is associated.
     for event in ['input', 'keyup', 'keydown', 'select']
       @hiddenInput.addEventListener event, =>
+        @highlightFlashShow()
         if @textFocus?
           @populateSocket @textFocus, @hiddenInput.value
 
@@ -1593,8 +1598,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     else
       @redrawMain()
 
-    @redrawTextHighlights true
-
   Editor::redrawTextHighlights = (scrollIntoView = false) ->
     textFocusView = @view.getViewNodeFor @textFocus
 
@@ -1615,29 +1618,31 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     #
     # Draw a line if it is just a cursor
     if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
-      @mainCtx.strokeStyle = '#000'
-      @mainCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
+      @cursorCtx.strokeStyle = '#000'
+      @cursorCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
         0, @view.opts.textHeight
+      @textInputHighlighted = false
 
     # Draw a translucent rectangle if there is a selection.
     else
-      @mainCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
+      @textInputHighlighted = true
+      @cursorCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
 
       if startRow is endRow
-        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
+        @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
           endPosition - startPosition, @view.opts.textHeight
 
       else
-        @mainCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
+        @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
           textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
         for i in [startRow + 1...endRow]
-          @mainCtx.fillRect textFocusView.bounds[i].x,
+          @cursorCtx.fillRect textFocusView.bounds[i].x,
             textFocusView.bounds[i].y + @view.opts.textPadding,
             textFocusView.bounds[i].width,
             @view.opts.textHeight
 
-        @mainCtx.fillRect textFocusView.bounds[endRow].x,
+        @cursorCtx.fillRect textFocusView.bounds[endRow].x,
           textFocusView.bounds[endRow].y + @view.opts.textPadding,
           endPosition - textFocusView.bounds[endRow].x,
           @view.opts.textHeight
@@ -1760,18 +1765,16 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     if selectionEnd < 0 then selectionEnd = @textFocus.stringify().length - selectionEnd
 
     # Focus the hidden input.
-    setTimeout (=>
-      if @textFocus?
-        @hiddenInput.focus()
-        if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
-           @hiddenInput.value[0] in ['\'', '"']
-          @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
-        else
-          @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
-        @redrawTextInput()
-    ), 0
+    if @textFocus?
+      @hiddenInput.focus()
+      if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+         @hiddenInput.value[0] in ['\'', '"']
+        @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
+      else
+        @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
+      @redrawTextInput()
 
-    # Re@draw.
+    # Redraw.
     @redrawMain(); @redrawTextInput()
 
   Editor::populateSocket = (socket, string) ->
@@ -1821,7 +1824,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::selectDoubleClick = (point) ->
     position = @getTextPosition point
-    
+
     before = @textFocus.stringify()[...position].match(/\w*$/)[0]?.length ? 0
     after = @textFocus.stringify()[position..].match(/^\w*/)[0]?.length ? 0
 
@@ -1855,7 +1858,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
-      
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -2166,6 +2168,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     unless destination? then return
     unless @inTree(destination) then return
 
+    @highlightFlashShow()
+
     # Otherwise, splice the cursor out.
     @cursor.remove()
 
@@ -2199,6 +2203,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   Editor::moveCursorUp = ->
     # Seek the place we want to move the cursor
     head = @cursor.prev?.prev
+
+    @highlightFlashShow()
 
     # If we're at the beginning, abort.
     unless head? then return
@@ -2412,8 +2418,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           head = @cursor.prev
           while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
             head = head.prev
-
-          console.log 'found', head
 
           # Log the undo operation for this
           @addMicroUndoOperation 'CAPTURE_POINT'
@@ -2848,10 +2852,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Kick off fade-out transition
 
       @mainCanvas.style.transition =
-        @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
+        @highlightCanvas.style.transition =
+        @cursorCanvas.style.opacity = "opacity #{fadeTime}ms linear"
 
       @mainCanvas.style.opacity =
-        @highlightCanvas.style.opacity = 0
+        @highlightCanvas.style.opacity =
+        @cursorCanvas.style.opacity = 0
 
       setTimeout (=>
         @iceElement.style.transition =
@@ -3003,11 +3009,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
               div.style.fontSize = @fontSize + 'px'
             ), 0
 
-        for el in [@mainCanvas, @highlightCanvas]
+        for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
           el.style.opacity = 0
 
         setTimeout (=>
-          for el in [@mainCanvas, @highlightCanvas]
+          for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
             el.style.transition = "opacity #{fadeTime}ms linear"
             el.style.opacity = 1
         ), translateTime
@@ -3074,6 +3080,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Also update scroll for the highlight ctx, so that
       # they can match the blocks' positions
       @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+      @cursorCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
 
       @redrawMain()
 
@@ -3531,27 +3538,73 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   # CURSOR DRAW SUPPORRT
   # ================================
+  hook 'populate', 0, ->
+    @cursorCanvas = document.createElement 'canvas'
+    @cursorCanvas.className = 'ice-highlight-canvas'
+
+    @cursorCtx = @cursorCanvas.getContext '2d'
+
+    @iceElement.appendChild @cursorCanvas
+
+  hook 'resize', 0, ->
+    @cursorCanvas.width = @iceElement.offsetWidth
+    @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
+
+    @cursorCanvas.height = @iceElement.offsetHeight
+    @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
+
+    @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
+
   Editor::strokeCursor = (point) ->
     return unless point?
+    @cursorCtx.save()
+    @cursorCtx.beginPath()
 
-    @highlightCtx.beginPath()
+    @cursorCtx.fillStyle =
+      @cursorCtx.strokeStyle = '#000'
 
-    @highlightCtx.fillStyle =
-      @highlightCtx.strokeStyle = '#000'
+    @cursorCtx.lineCap = 'round'
 
-    @highlightCtx.lineWidth = 1
+    @cursorCtx.lineWidth = 3
 
-    if point.x >= 5
-      @highlightCtx.moveTo point.x, point.y
-      @highlightCtx.lineTo point.x - 5, point.y - 5
-      @highlightCtx.lineTo point.x - 5, point.y + 5
+    w = @view.opts.tabWidth / 2 - CURSOR_WIDTH_DECREASE
+    h = @view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
+
+    arcCenter = new @draw.Point point.x + @view.opts.tabOffset + w + CURSOR_WIDTH_DECREASE,
+      point.y - (w*w + h*h) / (2 * h) + h + CURSOR_HEIGHT_DECREASE / 2
+    arcAngle = Math.atan2 w, (w*w + h*h) / (2 * h) - h
+    startAngle = 0.5 * Math.PI - arcAngle
+    endAngle = 0.5 * Math.PI + arcAngle
+
+    @cursorCtx.arc arcCenter.x, arcCenter.y, (w*w + h*h) / (2 * h), startAngle, endAngle
+
+    @cursorCtx.stroke()
+    @cursorCtx.restore()
+
+  Editor::highlightFlashShow = ->
+    if @flashTimeout? then clearTimeout @flashTimeout
+    @cursorCanvas.style.display = 'block'
+    @highlightsCurrentlyShown = true
+    @flashTimeout = setTimeout (=> @flash()), 500
+
+  Editor::highlightFlashHide = ->
+    if @flashTimeout? then clearTimeout @flashTimeout
+    @cursorCanvas.style.display = 'none'
+    @highlightsCurrentlyShown = false
+    @flashTimeout = setTimeout (=> @flash()), 500
+
+  Editor::flash = ->
+    if @lassoSegment? or @draggingBlock? or
+        (@textFocus? and @textInputHighlighted) or
+        not @highlightsCurrentlyShown
+      @highlightFlashShow()
     else
-      @highlightCtx.moveTo point.x, point.y
-      @highlightCtx.lineTo point.x + 5, point.y - 5
-      @highlightCtx.lineTo point.x + 5, point.y + 5
+      @highlightFlashHide()
 
-    @highlightCtx.stroke()
-    @highlightCtx.fill()
+  hook 'populate', 0, ->
+    @highlightsCurrentlyShown = false
+
+    @flashTimeout = setTimeout (=> @flash()), 0
 
   # ONE MORE DROP CASE
   # ================================
