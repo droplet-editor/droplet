@@ -50,7 +50,7 @@ define ->
         head = head.parent
 
       return head is parent
-    
+
     # ## clone ##
     # Clone this container, with all the token inside,
     # but with no linked-list pointers in common.
@@ -234,6 +234,7 @@ define ->
     # Insert ourselves _around_ some other
     # tokens.
     wrap: (first, last) ->
+      @parent = @start.parent = @end.parent = first.parent
       first.prev.append @start
       @start.append first
 

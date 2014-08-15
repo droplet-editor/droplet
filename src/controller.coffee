@@ -204,13 +204,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # We will preventDefault (!executeDefault) if anyone
       # wants to preventDefault.
       for combo, fns of editorBindings.key then do (fns) =>
-        @keyListener.simple_combo combo, =>
+        @keyListener.simple_combo combo, (event, count) =>
           state = {}
 
           executeDefault = true
 
           for fn in fns
-            result = fn.call(this, state) ? true
+            result = fn.call(this, state, event, count) ? true
             executeDefault and= result
 
           return executeDefault
@@ -439,7 +439,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     if @textFocus?
       @redrawTextHighlights()
 
-    else
+    else unless @lassoSegment?
       @drawCursor()
 
   Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
@@ -1389,6 +1389,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @clickedBlockIsPaletteBlock = false
 
+  # PALETTE HIGHLIGHT CODE
+  # ================================
   hook 'populate', 0, ->
     @paletteHighlightCanvas = document.createElement 'canvas'
     @paletteHighlightCanvas.className = 'ice-palette-highlight-canvas'
@@ -1410,8 +1412,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
       @paletteHighlightPath.draw @paletteHighlightCtx
 
-  # We will also have mouseover texts for blocks.
-  # This is an experimental feature right now.
   hook 'set_palette', 0, ->
     console.log 'nullifying'
 
@@ -2131,6 +2131,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @lassoSegment.wrap first, last
 
+      console.log @lassoSegment.parent, @inTree @lassoSegment
+
       @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
 
       # Move the cursor to the segment we just created
@@ -2165,8 +2167,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   Editor::moveCursorTo = (destination, attemptReparse = false) ->
     # If the destination is not inside the tree,
     # abort.
-    unless destination? then return
-    unless @inTree(destination) then return
+    unless destination? then console.log('nodest abort'); return
+    unless @inTree(destination) then console.log('intree abort'); return
 
     # Otherwise, splice the cursor out.
     @cursor.remove()
@@ -2334,8 +2336,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     blockEnd = @cursor.prev
 
-    until blockEnd.type in ['blockEnd', 'indentStart']
+    until blockEnd?.type in ['blockEnd', 'indentStart', undefined]
       blockEnd = blockEnd.prev
+
+    unless blockEnd? then return
 
     if blockEnd.type is 'blockEnd'
       @addMicroUndoOperation 'CAPTURE_POINT'
@@ -2345,19 +2349,35 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @redrawMain()
 
-  hook 'key.backspace', 0, (state) ->
-    if state.capturedBackspace then return
+  hook 'key.backspace', 0, (state, event) ->
+    if state.capturedBackspace
+      return
 
     # We don't want to interrupt any text input editing
     # sessions. We will, however, delete a handwritten
     # block if it is currently empty.
-    if not @textFocus? or
+    if @lassoSegment?
+      @deleteLassoSegment()
+      return false
+
+    else if not @textFocus? or
         (@hiddenInput.value.length is 0 and @textFocus.handwritten)
       @deleteAtCursor()
       state.capturedBackspace = true
       return false
 
     return true
+
+  Editor::deleteLassoSegment = ->
+    unless @lassoSegment?
+      throw new Error 'Cannot delete nonexistent lasso segment'
+
+    @addMicroUndoOperation new PickUpOperation @lassoSegment
+
+    @lassoSegment.spliceOut()
+    @lassoSegment = null
+
+    @redrawMain()
 
   # HANDWRITTEN BLOCK SUPPORT
   # ================================
