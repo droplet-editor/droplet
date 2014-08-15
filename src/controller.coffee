@@ -1598,8 +1598,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     else
       @redrawMain()
 
-    @redrawTextHighlights true
-
   Editor::redrawTextHighlights = (scrollIntoView = false) ->
     textFocusView = @view.getViewNodeFor @textFocus
 
@@ -1767,18 +1765,16 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     if selectionEnd < 0 then selectionEnd = @textFocus.stringify().length - selectionEnd
 
     # Focus the hidden input.
-    setTimeout (=>
-      if @textFocus?
-        @hiddenInput.focus()
-        if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
-           @hiddenInput.value[0] in ['\'', '"']
-          @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
-        else
-          @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
-        @redrawTextInput()
-    ), 0
+    if @textFocus?
+      @hiddenInput.focus()
+      if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+         @hiddenInput.value[0] in ['\'', '"']
+        @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
+      else
+        @hiddenInput.setSelectionRange 0, @hiddenInput.value.length
+      @redrawTextInput()
 
-    # Re@draw.
+    # Redraw.
     @redrawMain(); @redrawTextInput()
 
   Editor::populateSocket = (socket, string) ->
@@ -2855,10 +2851,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Kick off fade-out transition
 
       @mainCanvas.style.transition =
-        @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
+        @highlightCanvas.style.transition =
+        @cursorCanvas.style.opacity = "opacity #{fadeTime}ms linear"
 
       @mainCanvas.style.opacity =
-        @highlightCanvas.style.opacity = 0
+        @highlightCanvas.style.opacity =
+        @cursorCanvas.style.opacity = 0
 
       setTimeout (=>
         @iceElement.style.transition =
@@ -3010,11 +3008,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
               div.style.fontSize = @fontSize + 'px'
             ), 0
 
-        for el in [@mainCanvas, @highlightCanvas]
+        for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
           el.style.opacity = 0
 
         setTimeout (=>
-          for el in [@mainCanvas, @highlightCanvas]
+          for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
             el.style.transition = "opacity #{fadeTime}ms linear"
             el.style.opacity = 1
         ), translateTime
@@ -3570,7 +3568,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     h = @view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
 
     arcCenter = new @draw.Point point.x + @view.opts.tabOffset + w + CURSOR_WIDTH_DECREASE,
-      point.y - (w*w + h*h) / (2 * h) + h
+      point.y - (w*w + h*h) / (2 * h) + h + CURSOR_HEIGHT_DECREASE / 2
     arcAngle = Math.atan2 w, (w*w + h*h) / (2 * h) - h
     startAngle = 0.5 * Math.PI - arcAngle
     endAngle = 0.5 * Math.PI + arcAngle
