@@ -453,7 +453,7 @@ define ->
     insert: (token) ->
       if token instanceof StartToken or
          token instanceof EndToken
-       throw new Error '"insert"-ing a container can cause problems'
+       console.warn '"insert"-ing a container can cause problems'
 
       token.next = @next; token.prev = this
       @next.prev = token; @next = token
@@ -480,7 +480,7 @@ define ->
     insert: (token) ->
       if token instanceof StartToken or
          token instanceof EndToken
-       throw new Error '"insert"-ing a container can cause problems'
+       console.warn '"insert"-ing a container can cause problems'
 
       token.next = @next; token.prev = this
       @next.prev = token; @next = token
@@ -621,7 +621,7 @@ define ->
 
     _cloneEmpty: -> new Segment @isLassoSegment
 
-    remove: ->
+    unwrap: ->
       @notifyChange()
 
       @traverseOneLevel (head, isContainer) =>

@@ -1413,8 +1413,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @paletteHighlightPath.draw @paletteHighlightCtx
 
   hook 'set_palette', 0, ->
-    console.log 'nullifying'
-
     # Remove the existent blocks
     @paletteScrollerStuffing.innerHTML = ''
 
@@ -1942,7 +1940,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @lassoSelect = segment.isLassoSelect
 
     undo: (editor) ->
-      editor.tree.getTokenAtLocation(@first).container.remove()
+      editor.tree.getTokenAtLocation(@first).container.unwrap()
 
       return editor.tree.getTokenAtLocation @first
 
@@ -1969,7 +1967,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       return segment.end
 
     redo: (editor) ->
-      editor.tree.getTokenAtLocation(@first).container.remove()
+      editor.tree.getTokenAtLocation(@first).container.unwrap()
 
       return editor.tree.getTokenAtLocation @first
 
@@ -2015,7 +2013,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         next = head.next
 
         @addMicroUndoOperation new DestroySegmentOperation head.container
-        head.container.remove() #MUTATION
+        head.container.unwrap() #MUTATION
         needToRedraw = true
 
         head = next
@@ -2131,8 +2129,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @lassoSegment.wrap first, last
 
-      console.log @lassoSegment.parent, @inTree @lassoSegment
-
       @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
 
       # Move the cursor to the segment we just created
@@ -2167,8 +2163,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   Editor::moveCursorTo = (destination, attemptReparse = false) ->
     # If the destination is not inside the tree,
     # abort.
-    unless destination? then console.log('nodest abort'); return
-    unless @inTree(destination) then console.log('intree abort'); return
+    unless destination? then return
+    unless @inTree(destination) then return
 
     # Otherwise, splice the cursor out.
     @cursor.remove()
@@ -2342,7 +2338,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     unless blockEnd? then return
 
     if blockEnd.type is 'blockEnd'
-      @addMicroUndoOperation 'CAPTURE_POINT'
       @addMicroUndoOperation new PickUpOperation blockEnd.container
 
       blockEnd.container.spliceOut() #MUTATION
@@ -2357,11 +2352,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # sessions. We will, however, delete a handwritten
     # block if it is currently empty.
     if @lassoSegment?
+      @addMicroUndoOperation 'CAPTURE_POINT'
       @deleteLassoSegment()
       return false
 
     else if not @textFocus? or
         (@hiddenInput.value.length is 0 and @textFocus.handwritten)
+      @addMicroUndoOperation 'CAPTURE_POINT'
       @deleteAtCursor()
       state.capturedBackspace = true
       return false
@@ -2916,15 +2913,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       else
         @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
+      @currentlyUsingBlocks = true
+      @currentlyAnimating = true
+
       setTimeout (=>
         # Hide scrollbars and increase width
         @mainScroller.style.overflow = 'hidden'
         @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
 
         @redrawMain noText: true
-
-        @currentlyUsingBlocks = true
-        @currentlyAnimating = true
 
         @aceElement.style.top = "-9999px"
         @aceElement.style.left = "-9999px"
@@ -3284,6 +3281,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   class SetValueOperation extends UndoOperation
     constructor: (@oldValue, @newValue) ->
+      @oldValue = @oldValue.clone()
+      @newValue = @newValue.clone()
 
     undo: (editor) ->
       editor.tree = @oldValue.clone()
@@ -3670,6 +3669,66 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   Editor::setPaletteWidth = (width) ->
     @paletteWrapper.style.width = width + 'px'
     @resize()
+
+  # COPY AND PASTE
+  # ================================
+  hook 'populate', 0, ->
+    @copyPasteInput = document.createElement 'textarea'
+    @copyPasteInput.style.position = 'absolute'
+    @copyPasteInput.style.left = @copyPasteInput.style.top = '-9999px'
+
+    @iceElement.appendChild @copyPasteInput
+
+    @keyListener.register_combo
+      keys: 'ctrl'
+      on_keydown: =>
+        unless @textFocus?
+          @copyPasteInput.focus()
+          if @lassoSegment?
+            @copyPasteInput.value = @lassoSegment.stringify()
+          @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
+      on_keyup: =>
+        @iceElement.focus()
+
+    pressedVKey = false
+
+    @copyPasteInput.addEventListener 'keydown', (event) ->
+      if event.keyCode is 86
+        pressedVKey = true
+
+    @copyPasteInput.addEventListener 'keyup', (event) ->
+      if event.keyCode is 86
+        pressedVKey = false
+
+    @copyPasteInput.addEventListener 'input', =>
+      if pressedVKey
+        try
+          blocks = coffee.parse @copyPasteInput.value
+
+          @addMicroUndoOperation 'CAPTURE_POINT'
+          @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
+
+          blocks.spliceIn @cursor
+          unless @copyPasteInput.value[@copyPasteInput.value.length - 1] is '\n' or
+              blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
+            blocks.end.insert new model.NewlineToken()
+
+          @addMicroUndoOperation new DestroySegmentOperation blocks
+
+          blocks.unwrap()
+
+          @redrawMain()
+
+        @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
+
+  hook 'populate', 0, ->
+    setTimeout (=>
+      parent = @tree
+      Object.defineProperty @cursor, 'parent', {
+        get: -> parent
+        set: (p) -> parent = p; if p is null then debugger
+      }
+    ), 0
 
   # OVRFLOW BIT
   # ================================
