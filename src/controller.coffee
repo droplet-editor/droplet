@@ -74,6 +74,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     'redraw_main': []       # whenever we need to redraw the main canvas
     'redraw_palette': []    # whenever we need to redraw the palette
+    'set_palette': []       # whenever we switch palette categories
 
     'mousedown': []
     'mousemove': []
@@ -316,6 +317,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         binding.call this
 
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+      @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
       @redrawPalette()
 
@@ -1323,7 +1325,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         # Unapply the "selected" style to the current palette group header
         @currentPaletteGroupHeader.className =
             @currentPaletteGroupHeader.className.replace(
-                /\s[-\w]*-selected\b/, '');
+                /\s[-\w]*-selected\b/, '')
 
         # Now we are the current palette group header
         @currentPaletteGroupHeader = paletteGroupHeader
@@ -1334,6 +1336,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         # Redraw the palette.
         @redrawPalette()
+
+        for event in editorBindings.set_palette
+          event.call this
 
       paletteGroupHeader.addEventListener 'click', clickHandler
       paletteGroupHeader.addEventListener 'touchstart', clickHandler
@@ -1347,6 +1352,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         # Apply the "selected" style to us
         @currentPaletteGroupHeader.className +=
             ' ice-palette-group-header-selected'
+
+        @redrawPalette()
+        for event in editorBindings.set_palette
+          event.call this
+
 
   # The palette hierarchical menu is on top of the track div
   # so that we can click it. However, we do not want this to happen
@@ -1379,11 +1389,36 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @clickedBlockIsPaletteBlock = false
 
+  hook 'populate', 0, ->
+    @paletteHighlightCanvas = document.createElement 'canvas'
+    @paletteHighlightCanvas.className = 'ice-palette-highlight-canvas'
+    @paletteHighlightCtx = @paletteHighlightCanvas.getContext '2d'
+
+    @paletteHighlightPath = null
+    @currentHighlightedPaletteBlock = null
+
+    @paletteWrapper.appendChild @paletteHighlightCanvas
+
+  hook 'resize', 0, ->
+    @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
+    @paletteHighlightCanvas.width = @paletteCanvas.width
+    @paletteHighlightCanvas.height = @paletteCanvas.height
+
+  hook 'redraw_palette', 0, ->
+    if @currentHighlightedPaletteBlock?
+      @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+        @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
+      @paletteHighlightPath.draw @paletteHighlightCtx
+
   # We will also have mouseover texts for blocks.
   # This is an experimental feature right now.
-  hook 'redraw_palette', 0, ->
+  hook 'set_palette', 0, ->
+    console.log 'nullifying'
+
     # Remove the existent blocks
     @paletteScrollerStuffing.innerHTML = ''
+
+    @currentHighlightedPaletteBlock = null
 
     # Add new blocks
     for block in @currentPaletteBlocks
@@ -1401,6 +1436,25 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Clip boxes to the width of the palette to prevent x-scrolling. TODO: fix x-scrolling behaviour.
       hoverDiv.style.width = "#{Math.min(bounds.width, @paletteScroller.offsetWidth - PALETTE_LEFT_MARGIN)}px"
       hoverDiv.style.height = "#{bounds.height}px"
+
+      do (block) =>
+        hoverDiv.addEventListener 'mousemove', (event) =>
+          palettePoint = @trackerPointToPalette @getPointRelativeToTracker event
+          if @mainViewOrChildrenContains block, palettePoint
+            unless block is @currentHighlightedPaletteBlock
+              @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}
+              @paletteHighlightPath.draw @paletteHighlightCtx
+              @currentHighlightedPaletteBlock = block
+          else if block is @currentHighlightedPaletteBlock
+            @currentHighlightedPaletteBlock = null
+            @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+              @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
+
+        hoverDiv.addEventListener 'mouseout', (event) =>
+          if block is @currentHighlightedPaletteBlock
+            @currentHighlightedPaletteBlock = null
+            @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+              @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
 
       @paletteScrollerStuffing.appendChild hoverDiv
 
@@ -3023,6 +3077,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       #@scrollOffsets.palette.x = @paletteScroller.scrollLeft
 
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+      @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
       @redrawPalette()
 

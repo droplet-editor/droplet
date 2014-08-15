@@ -185,3 +185,7 @@
   text-align: right;
   padding-right: 13px;
 }
+.ice-palette-highlight-canvas {
+  position: absolute;
+  z-index: 257;
+}

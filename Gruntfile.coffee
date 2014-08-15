@@ -2,8 +2,7 @@ child_process = require 'child_process'
 path = require 'path'
 
 notify = (message) ->
-  # child_process.spawn 'notify-send', [message, '--urgency=low']
-  0
+  child_process.spawn 'notify-send', [message, '--urgency=low']
 
 module.exports = (grunt) ->
   grunt.initConfig
@@ -157,7 +156,7 @@ module.exports = (grunt) ->
       grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
   grunt.registerTask 'notify-done', ->
-    # child_process.spawn 'notify-send', ['Recompiled.', '--urgency=low']
+    child_process.spawn 'notify-send', ['Recompiled.', '--urgency=low']
     0
 
   grunt.event.on 'watch', (action, filepath) ->
