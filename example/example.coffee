@@ -320,7 +320,7 @@ require ['ice'], (ice) ->
   # Update textarea on ICE editor change
   editor.onChange = ->
     # Currently empty function
-  
+
   # Trigger immediately
   editor.onChange()
 

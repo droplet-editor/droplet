@@ -261,6 +261,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # ## Document initialization
       # We start of with an empty document
       @tree = new model.Segment()
+      @tree.start.insert @cursor
 
       @resize()
 

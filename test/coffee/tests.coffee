@@ -632,7 +632,7 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     expect 3
 
     states = []
-    editor = new ice.Editor document.getElementById('test-main'), document.getElementById('test-palette'), []
+    editor = new ice.Editor document.getElementById('test-main'), []
 
     editor.on 'statechange', (usingBlocks) ->
       states.push usingBlocks
