@@ -3779,11 +3779,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   hook 'populate', 0, ->
     setTimeout (=>
-      parent = @tree
-      Object.defineProperty @cursor, 'parent', {
-        get: -> parent
-        set: (p) -> parent = p; if p is null then debugger
-      }
+      @cursor.parent = @tree
     ), 0
 
   # OVRFLOW BIT
