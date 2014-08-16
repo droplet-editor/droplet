@@ -566,7 +566,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
             maxRight = @totalBounds.right()
             for bound in @bounds
               @totalBounds.x = Math.min @totalBounds.x, bound.x
-              maxRight = Math.max maxRight, bound.y
+              maxRight = Math.max maxRight, bound.x
 
             @totalBounds.width = maxRight - @totalBounds.x
 

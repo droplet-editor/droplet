@@ -849,7 +849,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     # If it came back positive,
     # deal with the click.
-    if hitTestResult?
+    if hitTestResult? and event.which is 1
       # Record the hit test result (the block we want to pick up)
       @clickedBlock = hitTestResult
 
@@ -1431,13 +1431,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # TODO: this should be specified by the API user
       hoverDiv.title = block.stringify()
 
-      bounds = @view.getViewNodeFor(block).getBounds()
+      bounds = @view.getViewNodeFor(block).totalBounds
+
+      console.log bounds
 
       hoverDiv.style.top = "#{bounds.y}px"
       hoverDiv.style.left = "#{bounds.x}px"
 
       # Clip boxes to the width of the palette to prevent x-scrolling. TODO: fix x-scrolling behaviour.
-      hoverDiv.style.width = "#{Math.min(bounds.width, @paletteScroller.offsetWidth - PALETTE_LEFT_MARGIN)}px"
+      hoverDiv.style.width = "#{Math.min(bounds.width, Infinity)}px"
       hoverDiv.style.height = "#{bounds.height}px"
 
       do (block) =>
