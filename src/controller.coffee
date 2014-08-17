@@ -1433,8 +1433,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       bounds = @view.getViewNodeFor(block).totalBounds
 
-      console.log bounds
-
       hoverDiv.style.top = "#{bounds.y}px"
       hoverDiv.style.left = "#{bounds.x}px"
 

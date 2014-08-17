@@ -35,7 +35,8 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
     colors:
-      return: '#f2a6a6'
+      error: '#ff0000'
+      return: '#ecec79'
       control: '#efcf8f'
       value: '#8cec79'
       command: '#8fbfef'

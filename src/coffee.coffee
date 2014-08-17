@@ -751,7 +751,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
       try
         transpiler = new CoffeeScriptTranspiler text
         tokens = transpiler.transpile()
-        return [tokens, text]
+        return {tokens: tokens, text: text, error: firstError}
       catch e
         if not firstError then firstError = e
         if retries > 0 and fixCoffeeScriptError lines, e
@@ -762,6 +762,9 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
 
   fixCoffeeScriptError = (lines, e) ->
     if /unexpected/.test(e.message)
+      return backTickLine lines, e.location.first_line
+
+    if /missing "/.test(e.message) and '"' in lines[e.location.first_line]
       return backTickLine lines, e.location.first_line
 
     # Try to find the line with an opening unmatched thing

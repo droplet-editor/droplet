@@ -17,7 +17,9 @@ define ['ice-model'], (model) ->
     constructor: (@parseFn) ->
 
     parse: (text, opts) ->
-      [marks, text] = @parseFn text
+      {tokens: marks, text: text, error: error} = @parseFn text
+      if error and opts.throwError
+        throw error
       markup = regenerateMarkup marks
       sortMarkup markup
       segment = applyMarkup text, markup, opts
@@ -343,9 +345,9 @@ define ['ice-model'], (model) ->
         container.spliceOut()
       else if (head instanceof model.StartToken and
           head.container.flagToStrip)
-        console.log 'flagToStrip'
+        console.log head.container
+        head.container.parent?.color = 'error'
         text = head.next
-        console.log 'stripping ', text.value
         text.value =
           text.value.substring(
             head.container.flagToStrip.left,

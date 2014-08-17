@@ -1,8 +1,10 @@
-child_process = require 'child_process'
 path = require 'path'
 
 notify = (message) ->
-  child_process.spawn 'notify-send', [message, '--urgency=low']
+  grunt.util.spawn
+    cmd: 'notify-send'
+    args: [message, '--urgency=low']
+    fallback: 0
 
 module.exports = (grunt) ->
   grunt.initConfig
@@ -156,8 +158,10 @@ module.exports = (grunt) ->
       grunt.task.run 'mocha_spawn'
   grunt.registerTask 'testserver', ['watch']
   grunt.registerTask 'notify-done', ->
-    child_process.spawn 'notify-send', ['Recompiled.', '--urgency=low']
-    0
+  grunt.util.spawn
+    cmd: 'notify-send'
+    args: ['Recompiled.', '--urgency=low']
+    fallback: 0
 
   grunt.event.on 'watch', (action, filepath) ->
     if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
