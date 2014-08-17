@@ -1417,7 +1417,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
       @paletteHighlightPath.draw @paletteHighlightCtx
 
-  hook 'set_palette', 0, ->
+  hook 'redraw_palette', 0, ->
     # Remove the existent blocks
     @paletteScrollerStuffing.innerHTML = ''
 
