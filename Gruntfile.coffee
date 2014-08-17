@@ -1,10 +1,11 @@
 path = require 'path'
 
 notify = (message) ->
-  grunt.util.spawn
+  grunt.util.spawn (
     cmd: 'notify-send'
     args: [message, '--urgency=low']
     fallback: 0
+  ), ->
 
 module.exports = (grunt) ->
   grunt.initConfig
@@ -118,10 +119,7 @@ module.exports = (grunt) ->
     watch:
       options:
         nospawn: true
-      testserver:
-        files: []
-        tasks: ['connect:testserver']
-        options: { atBegin: true, spawn: true, interrupt: true }
+        livereload: true
       sources:
         files: ['src/*.coffee']
         tasks: ['quickbuild', 'notify-done']
@@ -156,12 +154,12 @@ module.exports = (grunt) ->
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
       grunt.task.run 'mocha_spawn'
-  grunt.registerTask 'testserver', ['watch']
+  grunt.registerTask 'testserver', ['connect:testserver', 'watch']
   grunt.registerTask 'notify-done', ->
-  grunt.util.spawn
+  grunt.util.spawn (
     cmd: 'notify-send'
     args: ['Recompiled.', '--urgency=low']
-    fallback: 0
+    fallback: 0), ->
 
   grunt.event.on 'watch', (action, filepath) ->
     if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
