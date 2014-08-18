@@ -460,6 +460,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
         @paletteCanvas.width, @paletteCanvas.height
 
+  Editor::clearPaletteHighlightCanvas = ->
+      @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+        @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
+
   Editor::redrawPalette = ->
       @clearPalette()
 
@@ -1427,9 +1431,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @paletteHighlightCanvas.height = @paletteCanvas.height
 
   hook 'redraw_palette', 0, ->
+    @clearPaletteHighlightCanvas()
     if @currentHighlightedPaletteBlock?
-      @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-        @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
       @paletteHighlightPath.draw @paletteHighlightCtx
 
   hook 'redraw_palette', 0, ->
@@ -1460,13 +1463,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           palettePoint = @trackerPointToPalette @getPointRelativeToTracker event
           if @mainViewOrChildrenContains block, palettePoint
             unless block is @currentHighlightedPaletteBlock
+              @clearPaletteHighlightCanvas()
               @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}
               @paletteHighlightPath.draw @paletteHighlightCtx
               @currentHighlightedPaletteBlock = block
           else if block is @currentHighlightedPaletteBlock
             @currentHighlightedPaletteBlock = null
-            @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-              @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
+            @clearPalettehighlightCanvas()
 
         hoverDiv.addEventListener 'mouseout', (event) =>
           if block is @currentHighlightedPaletteBlock
