@@ -2723,6 +2723,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     head = @tree.start
 
+    aceSession = @aceEditor.session
     state = {
       # Initial cursor positions are
       # determined by ACE editor configuration.
@@ -2732,7 +2733,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           @gutter.offsetWidth + 5 # TODO find out where this 5 comes from
       y: (@aceEditor.container.getBoundingClientRect().top -
           getOffsetTop(@aceElement)) -
-          @aceEditor.session.getScrollTop()
+          aceSession.getScrollTop()
 
       # Initial indent depth is 0
       indent: 0
@@ -2748,6 +2749,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @mainCtx.font = @aceFontSize() + ' ' + @fontFamily
 
+    rownum = 0
     until head is @tree.end
       switch head.type
         when 'text'
@@ -2764,7 +2766,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         # Newline moves the cursor to the next line,
         # plus some indent.
         when 'newline'
-          state.y += state.lineHeight
+          # Be aware of wrapped ace editor lines.
+          wrappedlines = Math.max(1,
+              aceSession.documentToScreenRow(rownum + 1, 0) -
+              aceSession.documentToScreenRow(rownum, 0))
+          rownum += 1
+          state.y += state.lineHeight * wrappedlines
           if head.specialIndent?
             state.x = state.leftEdge + @mainCtx.measureText(head.specialIndent).width
           else
@@ -2896,7 +2903,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           # Set off the css transition
           setTimeout (=>
             div.style.left = '0px'
-            div.style.top = (line * lineHeight - aceScrollTop) + 'px'
+            div.style.top = (@aceEditor.session.documentToScreenRow(line, 0) *
+                lineHeight - aceScrollTop) + 'px'
             div.style.fontSize = @aceFontSize()
           ), fadeTime
 
@@ -3046,7 +3054,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
 
           div.style.left = 0
-          div.style.top = "#{lineHeight * line - aceScrollTop}px"
+          div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
+              lineHeight - aceScrollTop}px"
 
           div.className = 'ice-transitioning-element ice-transitioning-gutter'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
