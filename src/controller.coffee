@@ -1309,6 +1309,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # This happens at population time.
   hook 'populate', 0, ->
     @currentPaletteBlocks = []
+    @currentPaletteMetadata = []
+
     @clickedBlockIsPaletteBlock = false
 
     # Create the hierarchical menu element.
@@ -1327,10 +1329,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         paletteHeaderRow.className = 'ice-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
 
-      # Clone all the blocks so as not to
-      # intrude on outside stuff
-      paletteGroup.blocks = (block.clone() for block in paletteGroup.blocks)
-
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
       paletteGroupHeader.className = 'ice-palette-group-header'
@@ -1340,12 +1338,18 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       paletteHeaderRow.appendChild paletteGroupHeader
 
+      # Parse all the blocks in this palette
+      for data in paletteGroup.blocks
+        data.block = coffee.parse(data.block).start.next.container
+        data.block.parent = null
+
       # When we click this element,
       # we should switch to it in the palette.
       clickHandler = =>
         # Record that we are the selected group now
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroup.blocks
+        @currentPaletteBlocks = paletteGroup.blocks.map (x) -> x.block
+        @currentPaletteMetadata = paletteGroup.blocks
 
         # Unapply the "selected" style to the current palette group header
         @currentPaletteGroupHeader.className =
@@ -1371,7 +1375,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # If we are the first element, make us the selected palette group.
       if i is 0
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroup.blocks
+        @currentPaletteBlocks = paletteGroup.blocks.map (x) -> x.block
+        @currentPaletteMetadata = paletteGroup.blocks
         @currentPaletteGroupHeader = paletteGroupHeader
 
         # Apply the "selected" style to us
@@ -1443,12 +1448,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @currentHighlightedPaletteBlock = null
 
     # Add new blocks
-    for block in @currentPaletteBlocks
+    for data in @currentPaletteMetadata
+      block = data.block
+
       hoverDiv = document.createElement 'div'
       hoverDiv.className = 'ice-hover-div'
 
-      # TODO: this should be specified by the API user
-      hoverDiv.title = block.stringify()
+      hoverDiv.title = data.title ? block.stringify()
 
       bounds = @view.getViewNodeFor(block).totalBounds
 
@@ -2889,12 +2895,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @highlightCanvas.style.opacity =
         @cursorCanvas.style.opacity = 0
 
-      setTimeout (=>
-        @iceElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
-        @iceElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
-      ), fadeTime
+      @iceElement.style.transition =
+        @paletteWrapper.style.transition = "left #{fadeTime}ms"
+
+      @iceElement.style.left = '0px'
+      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
@@ -3049,7 +3054,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         ), translateTime
 
         @iceElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
+          @paletteWrapper.style.transition = "left #{fadeTime}ms"
 
         @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
@@ -3079,7 +3084,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::toggleBlocks = (cb) ->
     if @currentlyUsingBlocks
-      return @performMeltAnimation 500, 1000, cb
+      return @performMeltAnimation 700, 500, cb
     else
       return @performFreezeAnimation 500, 500, cb
 
@@ -3770,7 +3775,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             @copyPasteInput.value = @lassoSegment.stringify()
           @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
       on_keyup: =>
-        @iceElement.focus()
+        if @textFocus?
+          @hiddenInput.focus()
+        else
+          @iceElement.focus()
 
     pressedVKey = false
     pressedXKey = false

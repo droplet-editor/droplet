@@ -189,3 +189,11 @@
   position: absolute;
   z-index: 257;
 }
+.ice-palette-group-header.blue { border-left: 10px solid #8fbfef; }
+.ice-palette-group-header-selected.blue { background-color: #8fbfef; }
+.ice-palette-group-header.green { border-left: 10px solid #8cec79; }
+.ice-palette-group-header-selected.green { background-color: #8cec79; }
+.ice-palette-group-header.orange { border-left: 10px solid #efcf8f; }
+.ice-palette-group-header-selected.orange { background-color: #efcf8f; }
+.ice-palette-group-header.violet { border-left: 10px solid #f2a6e5; }
+.ice-palette-group-header-selected.violet { background-color: #f2a6e5; }
