@@ -1309,6 +1309,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # This happens at population time.
   hook 'populate', 0, ->
     @currentPaletteBlocks = []
+    @currentPaletteMetadata = []
+
     @clickedBlockIsPaletteBlock = false
 
     # Create the hierarchical menu element.
@@ -1327,10 +1329,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         paletteHeaderRow.className = 'ice-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
 
-      # Clone all the blocks so as not to
-      # intrude on outside stuff
-      paletteGroup.blocks = (block.clone() for block in paletteGroup.blocks)
-
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
       paletteGroupHeader.className = 'ice-palette-group-header'
@@ -1340,12 +1338,18 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       paletteHeaderRow.appendChild paletteGroupHeader
 
+      # Parse all the blocks in this palette
+      for data in paletteGroup.blocks
+        data.block = coffee.parse(data.block).start.next.container
+        data.block.parent = null
+
       # When we click this element,
       # we should switch to it in the palette.
       clickHandler = =>
         # Record that we are the selected group now
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroup.blocks
+        @currentPaletteBlocks = paletteGroup.blocks.map (x) -> x.block
+        @currentPaletteMetadata = paletteGroup.blocks
 
         # Unapply the "selected" style to the current palette group header
         @currentPaletteGroupHeader.className =
@@ -1371,7 +1375,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # If we are the first element, make us the selected palette group.
       if i is 0
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroup.blocks
+        @currentPaletteBlocks = paletteGroup.blocks.map (x) -> x.block
+        @currentPaletteMetadata = paletteGroup.blocks
         @currentPaletteGroupHeader = paletteGroupHeader
 
         # Apply the "selected" style to us
@@ -1443,12 +1448,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @currentHighlightedPaletteBlock = null
 
     # Add new blocks
-    for block in @currentPaletteBlocks
+    for data in @currentPaletteMetadata
+      block = data.block
+
       hoverDiv = document.createElement 'div'
       hoverDiv.className = 'ice-hover-div'
 
-      # TODO: this should be specified by the API user
-      hoverDiv.title = block.stringify()
+      hoverDiv.title = data.title ? block.stringify()
 
       bounds = @view.getViewNodeFor(block).totalBounds
 
