@@ -121,7 +121,7 @@ module.exports = (grunt) ->
         nospawn: true
         livereload: true
       sources:
-        files: ['src/*.coffee']
+        files: ['src/*.coffee', 'example/*.coffee']
         tasks: ['quickbuild', 'notify-done']
 
   grunt.loadNpmTasks 'grunt-banner'

@@ -318,16 +318,20 @@ require ['ice'], (ice) ->
   editor.setEditorState false
 
   # Update textarea on ICE editor change
-  editor.onChange = ->
-    # Currently empty function
+  onChange = ->
+    localStorage.setItem 'example', editor.getValue()
+
+  editor.on 'change', onChange
+
+  editor.aceEditor.on 'change', onChange
 
   # Trigger immediately
-  editor.onChange()
+  do onChange
 
   document.getElementById('which_example').addEventListener 'change', ->
     editor.setValue examplePrograms[@value]
 
-  editor.setValue examplePrograms.fizzbuzz
+  editor.setValue localStorage.getItem('example') or examplePrograms.fizzbuzz
   editor.clearUndoStack()
 
   messageElement = document.getElementById 'message'

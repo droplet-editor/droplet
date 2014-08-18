@@ -327,7 +327,6 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           # Preserved-error backticks hack
           else if node.base.nodeType() is 'Literal' and
               /^#/.test(node.base.value)
-            console.log 'found hashmark'
             @addBlock node.base, depth, 0, 'blank', wrappingParen, ANY_DROP
             errorSocket = @addSocket node.base, depth + 1, -2
             errorSocket.flagToStrip = { left: 2, right: 1 }
@@ -761,6 +760,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           throw firstError
 
   fixCoffeeScriptError = (lines, e) ->
+    console.log 'encountered error', e.message
     if /unexpected/.test(e.message)
       return backTickLine lines, e.location.first_line
 
@@ -768,7 +768,15 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
       return backTickLine lines, e.location.first_line
 
     # Try to find the line with an opening unmatched thing
-    # if /unmatched OUTDENT/.test(e.message)
+    if /unmatched|missing \)/.test(e.message)
+      unmatchedline = findUnmatchedLine lines, e.location.first_line
+      if unmatchedline isnt null
+        return backTickLine lines, unmatchedline
+    return null
+
+  findUnmatchedLine = (lines, above) ->
+    # Not done yet
+    return null
 
   backTickLine = (lines, n) ->
     if n < 0 or n >= lines.length
