@@ -135,10 +135,22 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     '**': 7
     '%%': 7
 
-  YES = -> true
-  NO = -> false
+  SAY_NORMAL= -> helper.NORMAL
+  SAY_FORBID = -> helper.FORBID
+
+  YES = -> yes
+  NO = -> no
 
   spacestring = (n) -> (' ' for [0...Math.max(0, n)]).join('')
+
+  getClassesFor = (node) ->
+    classes = []
+
+    classes.push node.nodeType()
+    if node.nodeType() is 'Call' and (not node.do) and (not node.isNew)
+      classes.push 'works-as-method-call'
+
+    return classes
 
   class CoffeeScriptTranspiler
     constructor: (@text) ->
@@ -346,7 +358,9 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
             @addSocketAndMark node.base, depth + 1, precedence, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
-                @addSocketAndMark property.name, depth + 1, precedence, indentDepth, NO
+                @addSocketAndMark property.name, depth + 1, -2, indentDepth, (block) ->
+                  if 'works-as-method-call' in block.classes then return helper.ENCOURAGE_ALL
+                  else return helper.FORBID
               else if property.nodeType() is 'Index'
                 @addSocketAndMark property.index, depth + 1, precedence, indentDepth
 
@@ -432,7 +446,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           @addBlock node, depth, precedence, 'value', wrappingParen, VALUE_ONLY
 
           for param in node.params
-            @addSocketAndMark param, depth + 1, 0, indentDepth, NO
+            @addSocketAndMark param, depth + 1, 0, indentDepth, SAY_FORBID
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -455,7 +469,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
 
           for childName in ['index', 'name']
-            if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth, NO
+            if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth, SAY_FORBID
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -556,7 +570,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         when 'Class'
           @addBlock node, depth, 0, 'control', wrappingParen, ANY_DROP
 
-          if node.variable? then @addSocketAndMark node.variable, depth + 1, 0, indentDepth, NO
+          if node.variable? then @addSocketAndMark node.variable, depth + 1, 0, indentDepth, SAY_FORBID
           if node.parent? then @addSocketAndMark node.parent, depth + 1, 0, indentDepth
 
           if node.body? then @mark node.body, depth + 1, 0, null, indentDepth
@@ -570,7 +584,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
 
           for property in node.properties
             if property.nodeType() is 'Assign'
-              @addSocketAndMark property.variable, depth + 1, 0, indentDepth, NO
+              @addSocketAndMark property.variable, depth + 1, 0, indentDepth, SAY_FORBID
               @addSocketAndMark property.value, depth + 1, 0, indentDepth
 
 
@@ -702,7 +716,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     # block around a given node.
     addBlock: (node, depth, precedence, color, wrappingParen, socketLevel) ->
       # Create the block.
-      block = new model.Block precedence, color, node.nodeType(), socketLevel
+      block = new model.Block precedence, color, socketLevel, getClassesFor node
 
       # Add it
       @addMarkup block, node, wrappingParen, depth
@@ -714,7 +728,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
 
     # ## addSocket ##
     # A similar utility function for adding sockets.
-    addSocket: (node, depth, precedence, accepts = YES) ->
+    addSocket: (node, depth, precedence, accepts = SAY_NORMAL) ->
       socket = new model.Socket precedence, false, accepts
 
       @addMarkup socket, node, null, depth
@@ -723,7 +737,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
 
     # ## addSocketAndMark ##
     # Adds a socket for a node, and recursively @marks it.
-    addSocketAndMark: (node, depth, precedence, indentDepth, accepts = YES) ->
+    addSocketAndMark: (node, depth, precedence, indentDepth, accepts = SAY_NORMAL) ->
       socket = @addSocket node, depth, precedence, accepts
 
       @mark node, depth + 1, precedence, null, indentDepth
@@ -735,7 +749,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     # for semicolons.
     wrapSemicolonLine: (firstBounds, lastBounds, expressions, depth) ->
       # Make the wrapper
-      block = new model.Block 0, 'command', false
+      block = new model.Block 0, 'command', ANY_DROP
 
       # Put together a boundary that contains all things
       surroundingBounds =

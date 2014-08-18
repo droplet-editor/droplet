@@ -206,7 +206,7 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
         # wrap it in a generic block automatically.
         if line.length > 0
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-            block = new model.Block 0, 'blank', null, helper.ANY_DROP
+            block = new model.Block 0, 'blank', helper.ANY_DROP
             socket = new model.Socket()
             socket.handwritten = true
 
@@ -232,7 +232,7 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
             if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-              block = new model.Block 0, 'blank', null, helper.ANY_DROP
+              block = new model.Block 0, 'blank', helper.ANY_DROP
               socket = new model.Socket()
               socket.handwritten = true
 

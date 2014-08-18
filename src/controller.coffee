@@ -955,7 +955,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           head = @draggingBlock.end
 
         if head instanceof model.StartToken
-          if @canDrop(@draggingBlock, head.container) or @discourageDrop @draggingBlock, head.container
+          acceptLevel = @getAcceptLevel @draggingBlock, head.container
+          unless acceptLevel is helper.FORBIDDEN
             dropPoint = @view.getViewNodeFor(head.container).dropPoint
 
             if dropPoint?
@@ -964,7 +965,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
                 y: dropPoint.y
                 w: 0
                 h: 0
-                _ice_needs_shift: not @canDrop @draggingBlock, head.container
+                acceptLevel: acceptLevel
                 _ice_node: head.container
 
         head = head.next
@@ -1018,7 +1019,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           w: MAX_DROP_DISTANCE * 2
           h: MAX_DROP_DISTANCE * 2
         }, (point) =>
-          unless point._ice_needs_shift and not @shiftKeyPressed
+          unless (point.acceptLevel is helper.DISCOURAGED) and not @shiftKeyPressed
             distance = mainPoint.from(point)
             distance.y *= 2; distance = distance.magnitude()
             if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
@@ -1047,29 +1048,45 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
 
-  Editor::canDrop = (drag, drop) ->
-    unless drop? then return false
-    unless @view.getViewNodeFor(drop).dropPoint? then return false
-    if drop.parent?.type is 'socket' then return false
+  Editor::getAcceptLevel = (drag, drop) ->
+    unless drop? then return helper.FORBIDDEN
+    unless @view.getViewNodeFor(drop).dropPoint? then return helper.FORBIDDEN
+    if drop.parent?.type is 'socket' then return helper.FORBIDDEN
 
-    if drag?.type is 'segment'
-      return drop.type in ['block', 'segment', 'indent']
-
-    if drop?.type is 'socket'
-      if drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]
-        return drop.accepts drag
-    else
-      return drag.socketLevel in [ANY_DROP, MOSTLY_BLOCK, BLOCK_ONLY]
-
-  Editor::discourageDrop = (drag, drop) ->
-    unless drop? then return false
+    if drag?.type is 'segment' and
+        drop.type in ['block', 'segment', 'indent']
+      return helper.ENCOURAGED
 
     if drop?.type is 'socket'
-      if drag.socketLevel in [MOSTLY_BLOCK]
-        return drop.accepts drag
-    else
-      return drag.socketLevel in [MOSTLY_VALUE]
+      acceptance = drop.accepts drag
 
+      if acceptance is helper.ENCOURAGE_ALL
+        return helper.ENCOURAGED
+
+      if acceptance is helper.NORMAL and
+          drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]
+        return helper.ENCOURAGED
+
+      else if acceptance is helper.NORMAL and
+          drag.socketLevel in [MOSTLY_BLOCK]
+        return helper.DISCOURAGED
+
+      else if acceptance is helper.DISCOURAGE and
+          drag.socketLevel isnt BLOCK_ONLY
+        return helper.DISCOURAGED
+
+      else
+        return helper.FORBIDDEN
+
+
+    else if drag.socketLevel in [ANY_DROP, MOSTLY_BLOCK, BLOCK_ONLY]
+      return helper.ENCOURAGED
+
+    else if drag.socketLevel is MOSTLY_VALUE
+      return helper.DISCOURAGED
+
+    else
+      return helper.FORBIDDEN
 
   hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully

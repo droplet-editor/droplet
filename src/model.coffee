@@ -3,11 +3,14 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ->
+define ['ice-helper'], (helper) ->
   exports = {}
 
   YES = -> yes
   NO = -> no
+
+  NORMAL = -> helper.NORMAL
+  FORBID = -> helper.FORBID
 
   _id = 0
 
@@ -503,7 +506,7 @@ define ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = '#ddf', @nodeType = null, @socketLevel = null) ->
+    constructor: (@precedence = 0, @color = '#ddf', @socketLevel = null, @classes = []) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -512,7 +515,7 @@ define ->
       super
 
     _cloneEmpty: ->
-      clone = new Block @precedence, @color, @nodeType, @socketLevel
+      clone = new Block @precedence, @color, @socketLevel, @classes
       clone.currentlyParenWrapped = @currentlyParenWrapped
 
       return clone
@@ -559,7 +562,7 @@ define ->
     serialize: -> "</socket>"
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @accepts = YES) ->
+    constructor: (@precedence = 0, @handwritten = false, @accepts = NORMAL) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 

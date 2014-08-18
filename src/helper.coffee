@@ -7,6 +7,15 @@ define ->
   exports.MOSTLY_VALUE = 3
   exports.VALUE_ONLY = 4
 
+  exports.ENCOURAGE_ALL = 0
+  exports.NORMAL = 1
+  exports.DISCOURAGE_ALL = 2
+  exports.FORBID = 3
+
+  exports.ENCOURAGED = 0
+  exports.DISCOURAGED = 1
+  exports.FORBIDDEN = 2
+
   fontMetricsCache = {}
   exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
     fontStyle = "#{fontHeight}px #{fontFamily}"
