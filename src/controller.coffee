@@ -2895,12 +2895,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @highlightCanvas.style.opacity =
         @cursorCanvas.style.opacity = 0
 
-      setTimeout (=>
-        @iceElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
-        @iceElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
-      ), fadeTime
+      @iceElement.style.transition =
+        @paletteWrapper.style.transition = "left #{fadeTime}ms"
+
+      @iceElement.style.left = '0px'
+      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
@@ -3055,7 +3054,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         ), translateTime
 
         @iceElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
+          @paletteWrapper.style.transition = "left #{fadeTime}ms"
 
         @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
@@ -3085,7 +3084,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::toggleBlocks = (cb) ->
     if @currentlyUsingBlocks
-      return @performMeltAnimation 500, 1000, cb
+      return @performMeltAnimation 700, 500, cb
     else
       return @performFreezeAnimation 500, 500, cb
 
@@ -3776,7 +3775,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             @copyPasteInput.value = @lassoSegment.stringify()
           @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
       on_keyup: =>
-        @iceElement.focus()
+        if @textFocus?
+          @hiddenInput.focus()
+        else
+          @iceElement.focus()
 
     pressedVKey = false
     pressedXKey = false
