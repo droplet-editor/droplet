@@ -1731,10 +1731,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
               parseParent.start.prev.append newParse
               newParse.container.end.append parseParent.end.next
 
-              newParse.parent = newParse.start.parent = newParse.end.parent =
+              newParse.container.parent = newParse.parent = newParse.container.end.parent =
                 parseParent.parent
 
-              newParse.notifyChange()
+              newParse.container.notifyChange()
 
               @addMicroUndoOperation new ReparseOperation parseParent, newParse.container
 
@@ -2302,7 +2302,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     head = parent.start
     charsCounted = 0
 
-    until charsCounted >= chars and head.type is 'socketStart' and head.next.type is 'text'
+    until charsCounted >= chars and head.type is 'socketStart' and
+        (head.next.type is 'text' or head.next is head.container.end)
       if head.type is 'text' then charsCounted += head.value.length
 
       head = head.next
@@ -2323,6 +2324,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           persistentParent = @textFocus.parent.parent
 
           chars = getCharactersTo persistentParent, head.container.start
+          console.log 'chars:', chars
           @setTextInputFocus null
           socket = getSocketAtChar persistentParent, chars
         else
