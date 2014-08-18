@@ -368,7 +368,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'resize', 0, -> @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
   Editor::redrawMain = (opts = {}) ->
-    unless @currentlyAnimating
+    unless @currentlyAnimating_suprressRedraw
 
       # Set our draw tool's font size
       # to the font size we want
@@ -2787,7 +2787,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @mainScroller.style.overflow = 'hidden'
       @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
 
-      @currentlyUsingBlocks = false; @currentlyAnimating = true
+      @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
       # Move the palette header into the background
       @paletteHeader.style.zIndex = 0
@@ -2843,7 +2843,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div.innerText = line + 1
 
         div.style.left = 0
-        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+        div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
 
         div.style.font = @fontSize + 'px ' + @fontFamily
         div.style.width = "#{@gutter.offsetWidth}px"
@@ -2858,7 +2858,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           # Set off the css transition
           setTimeout (=>
             div.style.left = '0px'
-            div.style.top = (line * lineHeight - aceScrollTop + @scrollOffsets.main.y) + 'px'
+            div.style.top = (line * lineHeight - aceScrollTop) + 'px'
             div.style.fontSize = @aceFontSize()
           ), fadeTime
 
@@ -2944,6 +2944,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         @redrawMain noText: true
 
+        @currentlyAnimating_suppressRedraw = true
+
         @aceElement.style.top = "-9999px"
         @aceElement.style.left = "-9999px"
 
@@ -3009,7 +3011,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
 
           div.style.left = 0
-          div.style.top = "#{lineHeight * line - aceScrollTop + @scrollOffsets.main.y}px"
+          div.style.top = "#{lineHeight * line - aceScrollTop}px"
 
           div.className = 'ice-transitioning-element ice-transitioning-gutter'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
@@ -3020,7 +3022,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           do (div, line) =>
             setTimeout (=>
               div.style.left = 0
-              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent- @scrollOffsets.main.y}px"
               div.style.fontSize = @fontSize + 'px'
             ), 0
 
