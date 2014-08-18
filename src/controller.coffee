@@ -300,6 +300,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Also update scroll for the highlight ctx, so that
       # they can match the blocks' positions
       @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+      @cursorCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
 
       @redrawMain()
 
@@ -400,7 +401,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       }
 
       # Draw the cursor (if exists, and is inserted)
-      @redrawHighlights()
+      @redrawCursors(); @redrawHighlights()
 
       if opts.boundingRectangle?
         @mainCtx.restore()
@@ -1633,6 +1634,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     #
     # Draw a line if it is just a cursor
     if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
+      @cursorCtx.lineWidth = 1
       @cursorCtx.strokeStyle = '#000'
       @cursorCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
         0, @view.opts.textHeight
@@ -2906,8 +2908,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         # but might not actually be due to
         # floating point stuff.
         @currentlyAnimating = false
-        @scrollOffsets.main.y = 0
-        @mainCtx.setTransform 1, 0, 0, 1, 0, 0
 
         # Show scrollbars again
         @mainScroller.style.overflow = 'auto'
@@ -3120,7 +3120,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # Temporarily ignoring x-scroll to fix bad x-scrolling behaviour
       # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
-      #@scrollOffsets.palette.x = @paletteScroller.scrollLeft
+      # @scrollOffsets.palette.x = @paletteScroller.scrollLeft
 
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
@@ -3580,7 +3580,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::strokeCursor = (point) ->
     return unless point?
-    @cursorCtx.save()
     @cursorCtx.beginPath()
 
     @cursorCtx.fillStyle =
@@ -3602,7 +3601,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @cursorCtx.arc arcCenter.x, arcCenter.y, (w*w + h*h) / (2 * h), startAngle, endAngle
 
     @cursorCtx.stroke()
-    @cursorCtx.restore()
 
   Editor::highlightFlashShow = ->
     if @flashTimeout? then clearTimeout @flashTimeout
