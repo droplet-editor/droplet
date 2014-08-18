@@ -4,7 +4,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['ice-model'], (model) ->
+define ['ice-helper', 'ice-model'], (helper, model) ->
   exports = {}
 
   YES = -> true
@@ -206,7 +206,7 @@ define ['ice-model'], (model) ->
         # wrap it in a generic block automatically.
         if line.length > 0
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-            block = new model.Block 0, 'blank', false
+            block = new model.Block 0, 'blank', null, helper.ANY_DROP
             socket = new model.Socket()
             socket.handwritten = true
 
@@ -215,6 +215,9 @@ define ['ice-model'], (model) ->
             head = head.append new model.TextToken line
             head = head.append socket.end
             head = head.append block.end
+
+            if block.stringify().match(/^\s*#.*$/)?
+              block.socketLevel = helper.BLOCK_ONLY
 
           else
             head = head.append new model.TextToken line
@@ -229,7 +232,7 @@ define ['ice-model'], (model) ->
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
             if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-              block = new model.Block 0, 'blank', false
+              block = new model.Block 0, 'blank', null, helper.ANY_DROP
               socket = new model.Socket()
               socket.handwritten = true
 
@@ -238,6 +241,9 @@ define ['ice-model'], (model) ->
               head = head.append new model.TextToken(line[lastIndex...mark.location.column])
               head = head.append socket.end
               head = head.append block.end
+
+              if block.stringify().match(/^\s*#.*$/)?
+                block.socketLevel = helper.BLOCK_ONLY
 
             else
               head = head.append new model.TextToken(line[lastIndex...mark.location.column])
