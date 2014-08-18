@@ -1415,7 +1415,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   # PALETTE HIGHLIGHT CODE
   # ================================
-  hook 'populate', 0, ->
+  hook 'populate', 1, ->
     @paletteHighlightCanvas = document.createElement 'canvas'
     @paletteHighlightCanvas.className = 'ice-palette-highlight-canvas'
     @paletteHighlightCtx = @paletteHighlightCanvas.getContext '2d'
@@ -1469,7 +1469,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
               @currentHighlightedPaletteBlock = block
           else if block is @currentHighlightedPaletteBlock
             @currentHighlightedPaletteBlock = null
-            @clearPalettehighlightCanvas()
+            @clearPaletteHighlightCanvas()
 
         hoverDiv.addEventListener 'mouseout', (event) =>
           if block is @currentHighlightedPaletteBlock
@@ -2649,6 +2649,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @wrapperElement.appendChild @aceElement
 
+    console.log 'Just appended ace element'
+
     @aceEditor = ace.edit @aceElement
 
     @aceEditor.setTheme 'ace/theme/chrome'
@@ -2657,7 +2659,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      if @currentlyUsingBlogs and not @suppressAceChangeEvent
+      if @currentlyUsingBlocks and not @suppressAceChangeEvent
         @copyAceEditor()
 
     @currentlyUsingBlocks = true
@@ -3081,7 +3083,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # SCROLLING SUPPORT
   # ================================
 
-  hook 'populate', 0.1, ->
+  hook 'populate', 2, ->
     @scrollOffsets = {
       main: new @draw.Point 0, 0
       palette: new @draw.Point 0, 0
