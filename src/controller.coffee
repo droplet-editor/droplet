@@ -1101,6 +1101,19 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
             @draggingBlock.spliceIn @tree.start #MUTATION
 
+      if @lastHighlight.type is 'socket'
+        # Reparse the parent
+        parent = @draggingBlock.parent.parent
+        newBlock = coffee.parse(parent.stringify(), wrapAtRoot: true).start.next.container
+        if newBlock?.type is 'block'
+          parent.start.prev.append newBlock.start
+          newBlock.end.append parent.end.next
+
+          newBlock.parent = newBlock.start.parent = newBlock.end.parent =
+            parent.parent
+
+          @addMicroUndoOperation new ReparseOperation parent, newBlock
+
       @redrawMain()
 
       # Move the cursor to the position we just
@@ -1712,7 +1725,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
               parseParent.start.prev.append newParse
               newParse.container.end.append parseParent.end.next
 
-              newParse.parent = parseParent.parent
+              newParse.parent = newParse.start.parent = newParse.end.parent =
+                parseParent.parent
 
               newParse.notifyChange()
 
@@ -1729,9 +1743,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         if shouldPop then @undoStack.pop()
 
-        @extraMarks[@textFocus.id] =
-          model: @textFocus
-          style: {color: '#F00'}
+        #@extraMarks[@textFocus.id] =
+        #  model: @textFocus
+        #  style: {color: '#F00'}
 
         @redrawMain()
 
@@ -3758,7 +3772,16 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @copyPasteInput.addEventListener 'input', =>
       if pressedVKey
         try
-          blocks = coffee.parse @copyPasteInput.value
+          str = @copyPasteInput.value; minIndent = Infinity
+
+          for line in str.split '\n'
+            minIndent = Math.min minIndent, str.length - str.trimLeft().length
+
+          str = (for line in str.split '\n'
+            line[minIndent...]
+          ).join '\n'
+
+          blocks = coffee.parse str
 
           @addMicroUndoOperation 'CAPTURE_POINT'
           @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
