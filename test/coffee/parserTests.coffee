@@ -52,7 +52,11 @@ describe 'Parser unity', (done) ->
 
       unparsed = coffee.parse(file, wrapAtRoot: true).stringify()
 
-      assert.equal unparsed, file
+      filelines = file.split '\n'
+      for line, i in unparsed.split '\n'
+        assert.equal line, filelines[i], "#{i} failed"
+
+      # assert.equal unparsed, file
 
   testFile 'test/data/nodes.coffee'
   testFile 'test/data/allTests.coffee'

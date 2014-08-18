@@ -399,7 +399,16 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
               @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
               @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
-              unrecognized = methodname in EITHER_FUNCTIONS
+              unrecognized = not(methodname in EITHER_FUNCTIONS)
+
+            # Deal with weird coffeescript rewrites, e.g., /// #{x} ///
+            # is rewritten to RegExp(...)
+            if methodname?.length > 1 and node?.variable?.locationData and
+                node.variable.locationData.first_column is
+                node.variable.locationData.last_column and
+                node.variable.locationData.first_line is
+                node.variable.locationData.last_line
+              unrecognized = false
 
             if unrecognized or node.variable.base?.nodeType() isnt 'Literal'
               @addSocketAndMark node.variable, depth + 1, 0, indentDepth
