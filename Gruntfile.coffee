@@ -163,6 +163,8 @@ module.exports = (grunt) ->
 
   grunt.event.on 'watch', (action, filepath) ->
     if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
-      destination = (path.dirname(path.dirname(filepath)) + '/js/' + path.basename(filepath).replace('.coffee', '.js'))
+      d = path.dirname filepath
+      if /src|coffee$/.test(d) then d = path.dirname(d) + '/js'
+      destination = d + '/' + path.basename(filepath).replace('.coffee', '.js')
       coffeeFiles = {}; coffeeFiles[destination] = [filepath]
       grunt.config 'coffee.build.files', coffeeFiles

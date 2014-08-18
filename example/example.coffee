@@ -240,7 +240,7 @@ require ['ice'], (ice) ->
       ])
     }
   ]
-  
+
   # Example program (fizzbuzz)
   examplePrograms = {
     fizzbuzz: '''
@@ -317,6 +317,10 @@ require ['ice'], (ice) ->
 
   editor.setEditorState false
 
+  # Initialize to starting text
+  startingText = localStorage.getItem 'example'
+  editor.setValue startingText or examplePrograms.fizzbuzz
+
   # Update textarea on ICE editor change
   onChange = ->
     localStorage.setItem 'example', editor.getValue()
@@ -331,7 +335,6 @@ require ['ice'], (ice) ->
   document.getElementById('which_example').addEventListener 'change', ->
     editor.setValue examplePrograms[@value]
 
-  editor.setValue localStorage.getItem('example') or examplePrograms.fizzbuzz
   editor.clearUndoStack()
 
   messageElement = document.getElementById 'message'

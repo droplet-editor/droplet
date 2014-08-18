@@ -790,7 +790,11 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           throw firstError
 
   fixCoffeeScriptError = (lines, e) ->
-    console.log 'encountered error', e.message
+    console.log 'encountered error', e.message, 'line',  e.location.first_line
+    if /unexpected\s*(?:newline|if|for|while|switch|unless|end of input)/.test(
+        e.message) and /^\s*(?:if|for|while|unless)\s+\S+/.test(
+        lines[e.location.first_line])
+      return addEmptyBackTickLineAfter lines, e.location.first_line
     if /unexpected/.test(e.message)
       return backTickLine lines, e.location.first_line
 
@@ -827,7 +831,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     # If we are all spaces then fail.
     if not leading or leading[0].length >= lines[n].length
       return false
-    lines.splice n + 1, 0, leading[0] + '``'
+    lines.splice n + 1, 0, leading[0] + '  ``'
 
   exports.parse = (text, opts) ->
     opts ?= wrapAtRoot: true
