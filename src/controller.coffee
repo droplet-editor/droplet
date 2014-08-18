@@ -3759,7 +3759,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @iceElement.appendChild @copyPasteInput
 
     @keyListener.register_combo
-      keys: 'ctrl'
+      keys: 'meta'
       on_keydown: =>
         unless @textFocus?
           @copyPasteInput.focus()
