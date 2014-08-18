@@ -3335,7 +3335,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @aceEditor.session.setScrollTop oldScrollTop
 
-    @setValue_raw value
+    if @currentlyUsingBlocks
+      @setValue_raw value
 
   Editor::addEmptyLine = (str) ->
     if str.length is 0 or str[str.length - 1] is '\n'
