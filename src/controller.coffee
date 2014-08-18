@@ -2953,6 +2953,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         for div in translatingElements
           div.parentNode.removeChild div
 
+        @fireEvent 'toggledone', [@currentlyUsingBlocks]
+
         if cb? then do cb
       ), fadeTime + translateTime
 
@@ -3101,6 +3103,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             div.parentNode.removeChild div
 
           @resize()
+
+          @fireEvent 'toggledone', [@currentlyUsingBlocks]
+
           if cb? then do cb
         ), translateTime + fadeTime
 
