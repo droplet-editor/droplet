@@ -47,6 +47,17 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     'drawon'
     'label'
     'reload'
+    'see'
+    'sync'
+    'send'
+    'recv'
+    'click'
+    'mousemove'
+    'mouseup'
+    'mousedown'
+    'keyup'
+    'keydown'
+    'keypress'
   ]
 
   VALUE_FUNCTIONS = [
@@ -82,6 +93,23 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     'nearest'
     'pressed'
     'canvas'
+    'hsl'
+    'hsla'
+    'rgb'
+    'rgba'
+    'cell'
+  ]
+
+  EITHER_FUNCTIONS = [
+    'button'
+    'read'
+    'readstr'
+    'readnum'
+    'write'
+    'table'
+    'append'
+    'finish'
+    'loadscript'
   ]
 
   OPERATOR_PRECEDENCES =
@@ -345,6 +373,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         when 'Call'
           if node.variable?
             methodname = null
+            unrecognized = false
             if node.variable.properties?.length > 0
               methodname = node.variable.
                   properties[node.variable.properties.length - 1].name?.value
@@ -356,8 +385,9 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
               @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
               @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
+              unrecognized = methodname in EITHER_FUNCTIONS
 
-            if node.variable.base?.nodeType() isnt 'Literal'
+            if unrecognized or node.variable.base?.nodeType() isnt 'Literal'
               @addSocketAndMark node.variable, depth + 1, 0, indentDepth
             else if node.variable.properties?.length > 0
               @addSocketAndMark node.variable.base, depth + 1, 0, indentDepth
