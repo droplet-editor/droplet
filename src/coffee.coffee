@@ -112,6 +112,11 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     'loadscript'
   ]
 
+  STATEMENT_KEYWORDS = [
+    'break'
+    'continue'
+  ]
+
   OPERATOR_PRECEDENCES =
     '||': 1
     '&&': 2
@@ -361,6 +366,15 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
 
           else
             @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
+
+        # ### Keywords ###
+        when 'Literal'
+          if node.value in STATEMENT_KEYWORDS
+            # handle break and continue
+            @addBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
+          else
+            # otherwise, leave it as a white block
+            0
 
         # ### Literal ###
         # No-op. Translate directly to text
@@ -790,7 +804,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           throw firstError
 
   fixCoffeeScriptError = (lines, e) ->
-    console.log 'encountered error', e.message, 'line',  e.location.first_line
+    console.log 'encountered error', e.message, 'line',  e.location?.first_line
     if /unexpected\s*(?:newline|if|for|while|switch|unless|end of input)/.test(
         e.message) and /^\s*(?:if|for|while|unless)\s+\S+/.test(
         lines[e.location.first_line])
