@@ -25,6 +25,7 @@ define ['ice-model'], (model) ->
       segment = applyMarkup text, markup, opts
       stripFlaggedBlocks segment
       segment.correctParentTree()
+      segment.isRoot = true
       return segment
 
   exports.parseObj = parseObj = (object) ->

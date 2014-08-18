@@ -199,8 +199,8 @@ define ->
           token = token.insert new NewlineToken()
 
         when 'segmentStart'
-          unless token.next is token.container.end
-            token.insert new NewlineToken
+          unless token.nextVisibleToken() is token.container.end
+            token.insert new NewlineToken()
 
         # Remove socket content when necessary
         when 'socketStart'
@@ -602,18 +602,19 @@ define ->
 
   exports.SegmentStartToken = class SegmentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'segmentStart'
-    isVisible: NO
+    isVisible: -> @container.isRoot
     serialize: -> "<segment>"
 
   exports.SegmentEndToken = class SegmentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'segmentStart'
-    isVisible: NO
+    isVisible: -> @container.isRoot
     serialize: -> "</segment>"
 
   exports.Segment = class Segment extends Container
     constructor: (@isLassoSegment = false) ->
       @start = new SegmentStartToken this
       @end = new SegmentEndToken this
+      @isRoot = false
 
       @type = 'segment'
 
