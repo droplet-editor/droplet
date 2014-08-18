@@ -2785,7 +2785,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @textFocus = @lassoAnchor = null
 
       # Hide scrollbars and increase width
-      @mainScroller.style.overflow = 'hidden'
+      if @mainScroller.scrollWidth > @mainScroller.offsetWidth
+        @mainScroller.style.overflowX = 'scroll'
+      else
+        @mainScroller.style.overflowX = 'hidden'
+      @mainScroller.style.overflowY = 'hidden'
       @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
