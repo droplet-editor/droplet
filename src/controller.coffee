@@ -266,6 +266,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Now that we've populated everything, immediately re@draw.
       @redrawMain(); @redrawPalette()
 
+      return this
+
     # ## Foundational Resize
     # At the editor core, we will need to resize
     # all of the natively-added canvases, as well

@@ -16,6 +16,12 @@ define ->
   exports.DISCOURAGED = 1
   exports.FORBIDDEN = 2
 
+  window.String.prototype.trimLeft = ->
+    @replace /^\s+/, ''
+
+  window.String.prototype.trimRight = ->
+    @replace /\s+$/, ''
+
   fontMetricsCache = {}
   exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
     fontStyle = "#{fontHeight}px #{fontFamily}"
