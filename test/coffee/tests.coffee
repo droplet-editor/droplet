@@ -364,7 +364,8 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
     console.log hello
     console.log world
     for i in [1..10]
-      ``''', 'Move both out'
+      ``
+    ''', 'Move both out'
 
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
 

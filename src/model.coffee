@@ -148,8 +148,9 @@ define ->
       # Exception: do not do this if it would collapse
       # and indent to 0 length.
       while first?.type is 'newline' and
-         last?.type in [undefined, 'newline', 'indentEnd'] and
-         not (first.prev?.type is 'indentStart' and last?.type is 'indentEnd')
+         last?.type in [undefined, 'newline', 'indentEnd', 'segmentEnd'] and
+         not (first.previousVisibleToken()?.type is 'indentStart' and
+         first.previousVisibleToken().container.end is last)
         first = first.previousVisibleToken()
         first.nextVisibleToken().remove()
 
@@ -157,9 +158,8 @@ define ->
       # and the previous visible token is the beginning
       # of the document, remove it.
       while last?.type is 'newline' and
-          last?.nextVisibleToken()? and
-          (last.nextVisibleToken().type is 'newline' or
-          not first?)
+          (last?.nextVisibleToken()?.type is 'newline' or
+          first?.type in [undefined, 'segmentStart'])
         last = last.nextVisibleToken()
         last.previousVisibleToken().remove()
 
@@ -606,7 +606,7 @@ define ->
     serialize: -> "<segment>"
 
   exports.SegmentEndToken = class SegmentEndToken extends EndToken
-    constructor: (@container) -> super; @type = 'segmentStart'
+    constructor: (@container) -> super; @type = 'segmentEnd'
     isVisible: -> @container.isRoot
     serialize: -> "</segment>"
 

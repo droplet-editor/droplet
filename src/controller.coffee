@@ -1103,16 +1103,17 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       if @lastHighlight.type is 'socket'
         # Reparse the parent
-        parent = @draggingBlock.parent.parent
-        newBlock = coffee.parse(parent.stringify(), wrapAtRoot: true).start.next.container
-        if newBlock?.type is 'block'
-          parent.start.prev.append newBlock.start
-          newBlock.end.append parent.end.next
+        try
+          parent = @draggingBlock.parent.parent
+          newBlock = coffee.parse(parent.stringify(), wrapAtRoot: true).start.next.container
+          if newBlock?.type is 'block'
+            parent.start.prev.append newBlock.start
+            newBlock.end.append parent.end.next
 
-          newBlock.parent = newBlock.start.parent = newBlock.end.parent =
-            parent.parent
+            newBlock.parent = newBlock.start.parent = newBlock.end.parent =
+              parent.parent
 
-          @addMicroUndoOperation new ReparseOperation parent, newBlock
+            @addMicroUndoOperation new ReparseOperation parent, newBlock
 
       @redrawMain()
 
