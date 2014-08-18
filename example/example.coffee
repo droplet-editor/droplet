@@ -249,6 +249,7 @@ require ['ice'], (ice) ->
   }
 
   editor.setEditorState false
+  editor.aceEditor.getSession().setUseWrapMode true
 
   # Initialize to starting text
   startingText = localStorage.getItem 'example'
