@@ -753,11 +753,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       until blockStart.type is @block.start.type then blockStart = blockStart.next
 
       # Move it to null.
-      if @block.type is 'segment'
-        blockStart.container.moveTo null
-
-      else
-        blockStart.container.moveTo null
+      blockStart.container.spliceOut()
 
       # We may need to replace some of displaced
       # socket text from dropping a block
@@ -1964,7 +1960,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   class CreateSegmentOperation extends UndoOperation
     constructor: (segment) ->
       @first = segment.start.getSerializedLocation()
-      @last = segment.end.getSerializedLocation()
+      @last = segment.end.getSerializedLocation() - 2
       @lassoSelect = segment.isLassoSegment
 
     undo: (editor) ->
@@ -1983,7 +1979,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   class DestroySegmentOperation extends UndoOperation
     constructor: (segment) ->
       @first = segment.start.getSerializedLocation()
-      @last = segment.end.getSerializedLocation()
+      @last = segment.end.getSerializedLocation() - 2
       @lassoSelect = segment.isLassoSegment
 
     undo: (editor) ->
@@ -3803,6 +3799,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
             line[minIndent...]
           ).join '\n'
 
+          str = str.replace /^\n*|\n*$/g, ''
+
           blocks = coffee.parse str
 
           @addMicroUndoOperation 'CAPTURE_POINT'
@@ -3813,8 +3811,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
 
           blocks.spliceIn @cursor
-          unless @copyPasteInput.value[@copyPasteInput.value.length - 1] is '\n' or
-              blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
+          unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
             blocks.end.insert new model.NewlineToken()
 
           @addMicroUndoOperation new DestroySegmentOperation blocks
