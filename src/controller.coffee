@@ -831,6 +831,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
+    # If it's not a left-click, pass.
+    if event.which isnt 1 then return
+
     # Hit test against the tree.
     mainPoint = @trackerPointToMain(point)
     hitTestResult = @hitTest mainPoint, @tree
@@ -1278,6 +1281,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
+    # If it's not a left-click, pass.
+    if event.which isnt 1 then return
+
     # Hit test against floating blocks
     for record, i in @floatingBlocks
       hitTestResult = @hitTest @trackerPointToMain(point), record.block
@@ -1431,6 +1437,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'mousedown', 6, (point, event, state) ->
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
+
+    # If it's not a left-click, pass.
+    if event.which isnt 1 then return
 
     palettePoint = @trackerPointToPalette point
     if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
@@ -1902,6 +1911,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # If someone else already took this click, return.
     if state.consumedHitTest then return
 
+    # If it's not a left-click, pass.
+    if event.which isnt 1 then return
+
     # Otherwise, look for a socket that
     # the user has clicked
     mainPoint = @trackerPointToMain point
@@ -2095,6 +2107,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     if state.consumedHitTest or state.suppressLassoSelect then return
 
+    # If it's not a left-click, pass.
+    if event.which isnt 1 then return
+
     # If the point was actually in the main canvas,
     # start a lasso select.
     mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
@@ -2202,6 +2217,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # pick a selected segment up; check.
   hook 'mousedown', 3, (point, event, state) ->
     if state.consumedHitTest then return
+
+    # If it's not a left-click, pass.
+    if event.which isnt 1 then return
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
       @clickedBlock = @lassoSegment
@@ -3253,50 +3271,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   Editor::setFontSize = (fontSize) ->
     @setFontSize_raw fontSize
     @resize()
-
-  # MUTATION BUTTON SUPPORT
-  # ================================
-
-  class MutationButtonOperation extends UndoOperation
-    constructor: (button) ->
-      @button = button.clone()
-      @location = button.getSerializedLocation()
-
-    undo: (editor) ->
-      end = start = editor.tree.getTokenAtLocation(@location)
-
-      # We want to scan (n) tokens forward, where
-      # (n) is the length of the expanded value
-      # of this token.
-      head = @button.expandValue.start.next
-      until head is @button.expandValue.end
-        head = head.next; end = end.next
-
-      # Splice the original button in.
-      start.prev.append(button = @button.clone()).append end
-
-      return button
-
-    redo: (editor) ->
-      editor.tree.getTokenAtLocation(@location).expand()
-
-  hook 'mousedown', 4, (point, event, state) ->
-    if state.consumedHitTest then return
-
-    mainPoint = @trackerPointToMain point
-
-    head = @tree.start
-    until head is @tree.end
-      if head.type is 'mutationButton' and @view.getViewNodeFor(head).bounds[0].contains mainPoint
-        @addMicroUndoOperation new MutationButtonOperation head
-        head.expand() #MUTATION
-
-        @redrawMain()
-        state.consumedHitTest = true
-
-        return
-
-      head = head.next
 
   # LINE MARKING SUPPORT
   # ================================
