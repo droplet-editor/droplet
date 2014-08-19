@@ -939,6 +939,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # so that we can see its borders.
       draggingBlockView = @dragView.getViewNodeFor @draggingBlock
       draggingBlockView.layout 1, 1
+
+      @dragCanvas.width = Math.min draggingBlockView.totalBounds.width + 10, window.screen.width
+      @dragCanvas.height = Math.min draggingBlockView.totalBounds.height + 10, window.screen.height
+
       draggingBlockView.drawShadow @dragCtx, 5, 5
       draggingBlockView.draw @dragCtx, new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
 
