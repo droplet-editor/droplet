@@ -810,8 +810,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   # On resize, we will want to size the drag canvas correctly.
   hook 'resize', 0, ->
-    @dragCanvas.width = screen.width * 2
-    @dragCanvas.height = screen.height * 2
+    @dragCanvas.width = 0
+    @dragCanvas.height = 0
 
     @highlightCanvas.width = @iceElement.offsetWidth
     @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
