@@ -1346,24 +1346,26 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       paletteHeaderRow.appendChild paletteGroupHeader
 
-      newPaletteGroup = []
+      newPaletteBlocks = []
 
       # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
         newBlock = coffee.parse(data.block).start.next.container
         newBlock.spliceOut(); newBlock.parent = null
-        newPalette.group.push {
+        newPaletteBlocks.push {
           block: newBlock
           title: data.title
         }
+
+      paletteGroupBlocks = newPaletteBlocks
 
       # When we click this element,
       # we should switch to it in the palette.
       clickHandler = =>
         # Record that we are the selected group now
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroup.blocks.map (x) -> x.block
-        @currentPaletteMetadata = paletteGroup.blocks
+        @currentPaletteBlocks = paletteGroupBlocks.map (x) -> x.block
+        @currentPaletteMetadata = paletteGroupBlocks
 
         # Unapply the "selected" style to the current palette group header
         @currentPaletteGroupHeader.className =
@@ -1389,8 +1391,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # If we are the first element, make us the selected palette group.
       if i is 0
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroup.blocks.map (x) -> x.block
-        @currentPaletteMetadata = paletteGroup.blocks
+        @currentPaletteBlocks = paletteGroupBlocks.map (x) -> x.block
+        @currentPaletteMetadata = paletteGroupBlocks
         @currentPaletteGroupHeader = paletteGroupHeader
 
         # Apply the "selected" style to us
