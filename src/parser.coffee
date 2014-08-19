@@ -153,6 +153,12 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
     # is usually unecessary)
     return unsortedMarkup
 
+  hasSomeTextAfter = (lines, i) ->
+    until i is lines.length
+      if lines[i].length > 0 then return true
+      i += 1
+    return false
+
   # ## applyMarkup ##
   # Given some text and (sorted) markup,
   # produce an ICE editor document
@@ -221,6 +227,12 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
 
           else
             head = head.append new model.TextToken line
+        else if stack[stack.length - 1]?.type in ['indent', 'segment', undefined] and
+            hasSomeTextAfter(lines, i)
+          block = new model.Block 0, 'yellow', helper.BLOCK_ONLY
+
+          head = head.append block.start
+          head = head.append block.end
 
         head = head.append new model.NewlineToken()
 
