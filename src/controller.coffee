@@ -1422,16 +1422,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         for event in editorBindings.set_palette
           event.call this
 
-
-  # The palette hierarchical menu is on top of the track div
-  # so that we can click it. However, we do not want this to happen
-  # when we are dragging something. So:
-  hook 'mousedown', 0, ->
-    @paletteHeader.style.zIndex = 0
-
-  hook 'mouseup', 0, ->
-    @paletteHeader.style.zIndex = 257
-
   # The next thing we need to do with the palette
   # is let people pick things up from it.
   hook 'mousedown', 6, (point, event, state) ->
@@ -3479,14 +3469,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'mousedown', -1, ->
     if @clickedBlock?
       @dragCover.style.display = 'block'
-      @dragCanvas.style.zIndex = 300
 
   # On mouseup, throw the drag canvas away completely.
   hook 'mouseup', 0, ->
     @dragCanvas.style.top =
       @dragCanvas.style.left = '-9999px'
 
-    @dragCanvas.style.zIndex = 0
     @dragCover.style.display = 'none'
 
   # TOUCHSCREEN SUPPORT
