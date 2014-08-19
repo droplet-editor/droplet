@@ -2127,19 +2127,48 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @clearLassoSelectCanvas()
 
-      # (draw the lasso rectangle)
-      topLeftCorner = new @draw.Point(
-        Math.min(@lassoSelectAnchor.x, mainPoint.x) - @scrollOffsets.main.x,
-        Math.min(@lassoSelectAnchor.y, mainPoint.y) - @scrollOffsets.main.y
-      )
-
-      size = new @draw.Size(
+      lassoRectangle = new @draw.Rectangle(
+        Math.min(@lassoSelectAnchor.x, mainPoint.x),
+        Math.min(@lassoSelectAnchor.y, mainPoint.y),
         Math.abs(@lassoSelectAnchor.x - mainPoint.x),
         Math.abs(@lassoSelectAnchor.y - mainPoint.y)
       )
 
+      first = @tree.start
+      until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
+        first = first.next
+
+      last = @tree.end
+      until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
+        last = last.prev
+
+      @clearLassoSelectCanvas(); @clearHighlightCanvas()
+
+      if first and last?
+        [first, last] = validateLassoSelection @tree, first, last
+        @drawTemporaryLasso first, last
+
       @lassoSelectCtx.strokeStyle = '#00f'
-      @lassoSelectCtx.strokeRect topLeftCorner.x, topLeftCorner.y, size.width, size.height
+      @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
+        lassoRectangle.y - @scrollOffsets.main.y,
+        lassoRectangle.width,
+        lassoRectangle.height
+
+
+  Editor::drawTemporaryLasso = (first, last) ->
+    mainCanvasRectangle = new @draw.Rectangle(
+      @scrollOffsets.main.x,
+      @scrollOffsets.main.y,
+      @mainCanvas.width,
+      @mainCanvas.height
+    )
+    head = first
+    until head is last
+      if head instanceof model.StartToken
+        @view.getViewNodeFor(head.container).draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
+        head = head.container.end
+      else
+        head = head.next
 
   # Convnience function for validating
   # a lasso selection. A lasso selection
@@ -2209,7 +2238,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
 
       # Move the cursor to the segment we just created
-      @moveCursorTo @lassoSegment.end, true
+      @moveCursorTo @lassoSegment.end.next, true
 
       @redrawMain()
 
@@ -2237,7 +2266,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # A cursor cannot be inside only a block.
   # Convenience function for this validation:
   Editor::isValidCursorPosition = (pos) ->
-    return pos?.container is @tree or pos.parent.type in ['indent', 'segment']
+    unless pos? then return false
+
+    parent = (pos.container ? pos.parent)
+
+    return parent.type in ['indent', 'segment'] and
+      not pos.container?.isLassoSegment
 
   # A cursor is only allowed to be on a line.
   Editor::moveCursorTo = (destination, attemptReparse = false) ->
@@ -2248,24 +2282,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @highlightFlashShow()
 
-    # If the destination is in the tree,
-    # figure out where we want to place the cursor.
+    @cursor = destination
 
-    # We can place the cursor
-    # at the start of the tree
-    if destination is @tree.start
-      @cursor = destination
-
-    # If we got some other token,
-    # scan forward until we find
-    # a viable spot for the cursor.
-    else
-      head = destination
-      until head.type in ['newline', 'indentEnd'] or head is @tree.end
-        head = head.next
-
-      if head.type is 'newline' then @cursor = head
-      else @cursor = head.prev
+    until @cursor.type in ['newline', 'indentEnd'] or
+        @cursor.container is @tree
+      @cursor = @cursor.next
 
     # Keep scanning forward if this is an improper location.
     unless @isValidCursorPosition @cursor then @moveCursorTo @cursor.next
@@ -2276,23 +2297,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @redrawHighlights()
 
   Editor::moveCursorUp = ->
-    # Seek the place we want to move the cursor
-    head = @cursor.prev?.prev
+    unless @cursor.prev? then return
+    @cursor = @cursor.prev
 
     @highlightFlashShow()
 
-    # If we're at the beginning, abort.
-    unless head? then return
-
-    until head.type in ['newline', 'indentEnd'] or head is @tree.start
-      head = head.prev
-
-    if head is @tree.start
-      @cursor = head
-
-    # Splice in
-    if head.type is 'newline' or head is @tree.start then @cursor = head
-    else @cursor = head.prev
+    until @cursor.type in ['newline', 'indentEnd'] or
+        @cursor.container is @tree
+      @cursor = @cursor.prev
 
     # Keep sacnning backwards if this is an improper location.
     unless @isValidCursorPosition @cursor then @moveCursorUp()
@@ -2302,8 +2314,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @scrollCursorIntoPosition()
 
   Editor::determineCursorPosition = ->
-    if @cursor? and (@cursor.parent? or @cursor.container?)
-      parent = @cursor.parent ? @cursor.container
+    if @cursor?
+      parent = @cursor.container ? @cursor.parent
       @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
 
       head = @cursor; line = 0
@@ -2312,9 +2324,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         head = head.prev
 
       bound = @view.getViewNodeFor(parent).bounds[line]
-      if @cursor.next.type is 'indentEnd' and
-         @cursor.prev.type isnt 'indentStart' or
-         (@cursor.next is @tree.end and @cursor isnt @tree.start)
+      if @cursor instanceof model.EndToken
         return new @draw.Point bound.x, bound.bottom()
       else
         return new @draw.Point bound.x, bound.y
@@ -2474,7 +2484,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @keyListener.register_combo
       keys: 'shift'
       on_keydown: => @shiftKeyPressed = true
-      on_keyup: => @shiftKeyPressed = false
+      on_keyup: => @shiftKeyPressd = false
 
     @keyListener.register_combo
       keys: 'enter'
@@ -3730,7 +3740,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
 
-          blocks.spliceIn @cursor
+          blocks.spliceIn @getCursorSpliceArea()
           unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
             blocks.end.insert new model.NewlineToken()
 
