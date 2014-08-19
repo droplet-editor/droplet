@@ -1011,7 +1011,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         head = head.next
 
       if head is @tree.end and
-          @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x and
+          @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
           @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
         @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
         @lastHighlight = @tree
