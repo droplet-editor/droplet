@@ -1363,7 +1363,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
       paletteGroupHeader.className = 'ice-palette-group-header'
-      paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
+      paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
       if paletteGroup.color
         paletteGroupHeader.className += ' ' + paletteGroup.color
 
@@ -1921,6 +1921,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
+      @hiddenInput.focus()
+
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -2804,7 +2806,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div = document.createElement 'div'
         div.style.whiteSpace = 'pre'
 
-        div.innerText = textElement.model.value
+        div.innerText = div.textContent = textElement.model.value
 
         div.style.font = @fontSize + 'px ' + @fontFamily
 
@@ -2835,7 +2837,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div = document.createElement 'div'
         div.style.whiteSpace = 'pre'
 
-        div.innerText = line + 1
+        div.innerText = div.textContent = line + 1
 
         div.style.left = 0
         div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
@@ -2870,11 +2872,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @highlightCanvas.style.opacity =
         @cursorCanvas.style.opacity = 0
 
-      @iceElement.style.transition =
-        @paletteWrapper.style.transition = "left #{fadeTime}ms"
+      setTimeout (=>
+        @iceElement.style.transition =
+          @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-      @iceElement.style.left = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        @iceElement.style.left = '0px'
+        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+      ), fadeTime
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
@@ -2967,7 +2971,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div = document.createElement 'div'
           div.style.whiteSpace = 'pre'
 
-          div.innerText = textElement.model.value
+          div.innerText = div.textContent = textElement.model.value
 
           div.style.font = @aceFontSize() + ' ' + @fontFamily
           div.style.position = 'absolute'
@@ -3000,7 +3004,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div = document.createElement 'div'
           div.style.whiteSpace = 'pre'
 
-          div.innerText = line + 1
+          div.innerText = div.textContent = line + 1
 
           div.style.font = @aceFontSize() + ' ' + @fontFamily
           div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
@@ -3065,7 +3069,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::toggleBlocks = (cb) ->
     if @currentlyUsingBlocks
-      return @performMeltAnimation 700, 500, cb
+      return @performMeltAnimation 500, 1000, cb
     else
       return @performFreezeAnimation 500, 500, cb
 
@@ -3639,7 +3643,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     else
       lineDiv = document.createElement 'div'
       lineDiv.className = 'ice-gutter-line'
-      lineDiv.innerText = line + 1
+      lineDiv.innerText = lineDiv.textContent = line + 1
 
       @lineNumberTags[line] = lineDiv
 
