@@ -905,13 +905,26 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         @draggingBlock = @draggingBlock.clone()
 
-        # Notice that since this block effectively
-        # came from nowhere, no undo operation
-        # is needed to destroy it.
-
       else
-        @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
-          @trackerPointToMain(@clickedPoint))
+        # Find the line on the block that we have
+        # actually clicked, and attempt to translate the block
+        # so that if it re-shapes, we're still touching it.
+        #
+        # To do this, we will assume that the left edge of a free
+        # block are all aligned.
+        mainPoint = @trackerPointToMain @clickedPoint
+        viewNode = @view.getViewNodeFor @draggingBlock
+
+        @draggingOffset = null
+
+        for bound, line in viewNode.bounds
+          if bound.contains mainPoint
+            @draggingOffset = bound.upperLeftCorner().from mainPoint
+            @draggingOffset.y += viewNode.bounds[0].y - bound.y
+            break
+
+        unless @draggingOffset?
+          @draggingOffset = viewNode.bounds[0].upperLeftCorner().from mainPoint
 
       @draggingBlock.ephemeral = true
       @draggingBlock.clearLineMarks()
