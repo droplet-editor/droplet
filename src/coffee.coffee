@@ -329,6 +329,12 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
             if infix.indexOf('+') is -1
               return
 
+          # Treat unary - and + specially if they surround a literal: then
+          # they should just be sucked into the literal.
+          if node.first and not node.second and node.operator in ['+', '-'] and
+              node.first?.base?.nodeType?() is 'Literal'
+            return
+
           @addBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
 
           @addSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
