@@ -570,7 +570,7 @@ define ['ice-helper'], (helper) ->
 
       super
 
-    _cloneEmpty: -> new Socket @precedence, @handwritten
+    _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
 
   # Indent
   # ==================

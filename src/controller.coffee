@@ -128,14 +128,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @wrapperElement.style.backgroundColor = '#FFF'
 
-      # ### Tracker
-      # Create the div that will track all the ICE editor mouse movement
-
-      #@iceElement = document.createElement 'div'
-      #@iceElement.className = 'ice-track-area'
-
-      #@iceElement.appendChild @iceElement
-
       # ### Canvases
       # Create the palette and main canvases
 
@@ -1111,7 +1103,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # beginning or at its end.
       #
       # We will need to log undo operations here too.
-      @addMicroUndoOperation 'CAPTURE_POINT'
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
@@ -1355,10 +1346,16 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       paletteHeaderRow.appendChild paletteGroupHeader
 
-      # Parse all the blocks in this palette
+      newPaletteGroup = []
+
+      # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
-        data.block = coffee.parse(data.block).start.next.container
-        data.block.parent = null
+        newBlock = coffee.parse(data.block).start.next.container
+        newBlock.spliceOut(); newBlock.parent = null
+        newPalette.group.push {
+          block: newBlock
+          title: data.title
+        }
 
       # When we click this element,
       # we should switch to it in the palette.
