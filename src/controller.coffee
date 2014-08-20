@@ -1326,7 +1326,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @paletteWrapper.appendChild @paletteHeader
 
     paletteHeaderRow = null
-    for paletteGroup, i in @paletteGroups then do (paletteGroup) =>
+    for paletteGroup, i in @paletteGroups then do (paletteGroup, i) =>
       # Start a new row, if we're at that point
       # in our appending cycle
       if i % 2 is 0
@@ -1371,6 +1371,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         # Now we are the current palette group header
         @currentPaletteGroupHeader = paletteGroupHeader
+        @currentPaletteIndex = i
 
         # Apply the "selected" style to us
         @currentPaletteGroupHeader.className +=
@@ -1387,18 +1388,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # If we are the first element, make us the selected palette group.
       if i is 0
-        @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroupBlocks.map (x) -> x.block
-        @currentPaletteMetadata = paletteGroupBlocks
-        @currentPaletteGroupHeader = paletteGroupHeader
-
-        # Apply the "selected" style to us
-        @currentPaletteGroupHeader.className +=
-            ' ice-palette-group-header-selected'
-
-        @redrawPalette()
-        for event in editorBindings.set_palette
-          event.call this
+        do clickHandler
 
   # The next thing we need to do with the palette
   # is let people pick things up from it.
@@ -3441,6 +3431,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @clearDrag()
     @redrawMain()
     return
+
+  # PALETTE EVENT
+  # =================================
+  hook 'set_palette', 0, ->
+    @fireEvent 'changepalette', []
 
   # TOUCHSCREEN SUPPORT
   # =================================
