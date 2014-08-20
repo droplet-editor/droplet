@@ -430,7 +430,7 @@ define ['ice-helper'], (helper) ->
     # linked list.
     remove: ->
       if @prev? then @prev.append @next
-      else @next.prev = null
+      else if @next? then @next.prev = null
 
       @prev = @next = @parent = null
 
