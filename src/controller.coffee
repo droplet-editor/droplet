@@ -227,7 +227,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         # them if they are on the scrollbars
         if event.type in ['mousedown', 'dblclick', 'mouseup']
           if event.which isnt 1 then return
-          if event.target in [@mainScroller, @paletteScroller] then return
 
         trackPoint = @getPointRelativeToTracker event
 
@@ -504,27 +503,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # get its coordinates relative to the tracker element.
 
   Editor::getPointRelativeToTracker = (event) ->
-    # There are two cases we have to deal
-    # with here for browser compatability.
-
-    # The first is Chrome and Safari.
-    if event.offsetX?
-      # We want this point relative to the tracker element.
-      point = new @draw.Point event.offsetX, event.offsetY
-
-    # The second is Firefox.
-    else
-      point = new @draw.Point event.layerX, event.layerY
-
-    # Now, we want to get this point relative to the tracker element,
-    # so we need to bubble up its parents until we reach it.
-    offsetPoint = @trackerOffset event.target
-
-    # Now we're done.
-    return new @draw.Point(
-      point.x + offsetPoint.x,
-      point.y + offsetPoint.y
-    )
+    return new @draw.Point(event.pageX, event.pageY)
 
   Editor::absoluteOffset = (el) ->
     point = new @draw.Point el.offsetLeft, el.offsetTop
@@ -570,22 +549,18 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # Convert a point relative to the tracker into
   # a point relative to one of the two canvases.
   Editor::trackerPointToMain = (point) ->
-    new @draw.Point(
-      point.x - @trackerOffset(@mainCanvas).x + @scrollOffsets.main.x
-      point.y - @trackerOffset(@mainCanvas).y + @scrollOffsets.main.y
-    )
+    if not @mainCanvas.offsetParent?
+      return new @draw.Point(NaN, NaN)
+    gbr = @mainCanvas.getBoundingClientRect()
+    new @draw.Point(point.x - gbr.left + @scrollOffsets.main.x,
+                    point.y - gbr.top + @scrollOffsets.main.y)
 
   Editor::trackerPointToPalette = (point) ->
     if not @paletteCanvas.offsetParent?
-      return new @draw.Point(
-        NaN,
-        NaN
-      )
-
-    new @draw.Point(
-      point.x - @trackerOffset(@paletteCanvas).x + @scrollOffsets.palette.x,
-      point.y - @trackerOffset(@paletteCanvas).y + @scrollOffsets.palette.y
-    )
+      return new @draw.Point(NaN, NaN)
+    gbr = @paletteCanvas.getBoundingClientRect()
+    new @draw.Point(point.x - gbr.left + @scrollOffsets.palette.x,
+                    point.y - gbr.top + @scrollOffsets.palette.y)
 
   # ### hitTest
   # Simple function for going through a linked-list block
@@ -1011,8 +986,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         point.y + @draggingOffset.y
       )
 
-      @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
-      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
+      @dragCanvas.style.top = "#{position.y}px"
+      @dragCanvas.style.left = "#{position.x}px"
 
       mainPoint = @trackerPointToMain(position)
 
@@ -1911,9 +1886,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'mousedown', 2, (point, event, state) ->
     # If someone else already took this click, return.
     if state.consumedHitTest then return
-
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
 
     # Otherwise, look for a socket that
     # the user has clicked
