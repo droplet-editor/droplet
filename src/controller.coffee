@@ -2305,7 +2305,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   Editor::moveCursorUp = ->
     unless @cursor.prev? then return
-    @cursor = @cursor.prev
+    head = @cursor.prev?.prev
 
     @highlightFlashShow()
 
