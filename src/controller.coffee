@@ -1714,6 +1714,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       originalText = @textFocus.stringify()
       shouldPop = false
+      shouldRecoverCursor = false
+      cursorPosition = cursorParent = null
+
+      if @cursor.hasParent @textFocus.parent
+        shouldRecoverCursor = true
+        cursorPosition = @getRecoverableCursorPosition()
 
       # The second of these is a reparse attempt.
       # If we can, try to reparse the focus
@@ -1778,6 +1784,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         #  style: {color: '#F00'}
 
         @redrawMain()
+
+    if shouldRecoverCursor
+      @recoverCursorPosition cursorPosition
 
     # Now we're done with the old focus,
     # we can start over.
@@ -2312,23 +2321,80 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @redrawHighlights()
     @scrollCursorIntoPosition()
 
+  Editor::getRecoverableCursorPosition = ->
+    pos = {
+      lines: 0
+      indents: 0
+    }
+    head = @cursor
+    until head.type is 'newline' or head is @tree.start
+      if head.type is 'indentEnd' then pos.indents++
+      head = head.prev
+    until head is @tree.start
+      if head.type is 'newline' then pos.lines++
+      head = head.prev
+
+    return pos
+
+  getAtChar = (parent, chars) ->
+    head = parent.start
+    charsCounted = 0
+
+    until charsCounted >= chars
+      if head.type is 'text' then charsCounted += head.value.length
+
+      head = head.next
+
+    return head
+
+  Editor::recoverCursorPosition = (pos) ->
+    head = @tree.start
+    testPos = {
+      lines: 0
+      indents: 0
+    }
+    until head is @tree.end or testPos.lines is pos.lines
+      head = head.next
+      if head.type is 'newline' then testPos.lines++
+
+    until head is @tree.end or testPos.indents is pos.indents
+      head = head.next
+      if head.type is 'indentEnd' then testPos.indents++
+
+    @cursor.remove()
+    if head.type is 'newline' then head.insert @cursor
+    else head.insertBefore @cursor
+
   Editor::moveCursorHorizontally = (direction) ->
     if @textFocus?
       if direction is 'right'
         head = @textFocus.end.next
       else
         head = @textFocus.start.prev
-    else
+    else unless (@cursor.prev is @tree.start and direction is 'left' or
+        @cursor.next is @tree.end and direction is 'right')
       if direction is 'right'
         head = @cursor.next.next
       else
         head = @cursor.prev.prev
+    else
+      return
 
     while true
+      if head.type in ['newline', 'indentEnd'] or head.container is @tree
+        @cursor.remove()
+        if head is @tree.start or head.type is 'newline' then head.insert @cursor
+        else head.insertBefore @cursor
+        @setTextInputFocus null
+        unless @inTree(@cursor) then debugger
+        if isValidCursorPosition @cursor
+          break
+
       if head.type is 'socketStart' and
           (head.next.type is 'text' or head.next is head.container.end)
+        # Avoid problems with reparses
         if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.parent.parent
+          persistentParent = @textFocus.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -2337,14 +2403,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           socket = head.container
           @setTextInputFocus null
 
-        @setTextInputFocus socket
-        break
-
-      if head.type in ['newline', 'indentEnd'] or head.container is @tree
-        @setTextInputFocus null
-        @cursor.remove()
-        if head is @tree.start or head.type is 'newline' then head.insert @cursor
-        else head.insertBefore @cursor
+        position = (if direction is 'right' then 0 else -1)
+        @setTextInputFocus socket, position, position
         break
 
       if direction is 'right' then head = head.next
@@ -2352,11 +2412,17 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @redrawMain()
 
-  hook 'key.right', 0, ->
-    @moveCursorHorizontally 'right'
+  hook 'key.right', 0, (state, event) ->
+    if not @textFocus? or
+        @hiddenInput.selectionEnd is @hiddenInput.value.length
+      @moveCursorHorizontally 'right'
+      event.preventDefault()
 
-  hook 'key.left', 0, ->
-    @moveCursorHorizontally 'left'
+  hook 'key.left', 0, (state, event) ->
+    if not @textFocus? or
+        @hiddenInput.selectionStart is 0
+      @moveCursorHorizontally 'left'
+      event.preventDefault()
 
   Editor::determineCursorPosition = ->
     if @cursor? and @cursor.parent?
@@ -2433,7 +2499,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       if head?
         if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.parent.parent
+          persistentParent = @textFocus.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -2454,7 +2520,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         head = head.next
       if head?
         if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.parent.parent
+          persistentParent = @textFocus.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -3806,7 +3872,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
 
-          blocks.spliceIn @getCursorSpliceArea()
+          blocks.spliceIn @cursor
           unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
             blocks.end.insert new model.NewlineToken()
 
@@ -3815,6 +3881,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           blocks.unwrap()
 
           @redrawMain()
+        catch e
+          console.log e.stack
 
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
       else if pressedXKey and @lassoSegment?

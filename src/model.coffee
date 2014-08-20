@@ -54,6 +54,20 @@ define ['ice-helper'], (helper) ->
 
       return head is parent
 
+    getCommonParent: (other) ->
+      head = @
+      until other.hasParent head
+        head = head.parent
+
+      return head
+
+    hasCommonParent: (other) ->
+      head = @
+      until other.hasParent head
+        head = head.parent
+
+      return head?
+
     # ## clone ##
     # Clone this container, with all the token inside,
     # but with no linked-list pointers in common.
@@ -354,6 +368,27 @@ define ['ice-helper'], (helper) ->
       @prev = @next = @parent = null
 
       @version = 0
+
+    hasParent: (parent) ->
+      head = @
+      until head in [parent, null]
+        head = head.parent
+
+      return head is parent
+
+    getCommonParent: (other) ->
+      head = @
+      until other.hasParent head
+        head = head.parent
+
+      return head
+
+    hasCommonParent: (other) ->
+      head = @
+      until other.hasParent head
+        head = head.parent
+
+      return head?
 
     # ## append ##
     # Link this token to another
