@@ -16,6 +16,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   CURSOR_WIDTH_DECREASE = 3
   CURSOR_HEIGHT_DECREASE = 2
   CURSOR_UNFOCUSED_OPACITY = 0.5
+  DEBUG_FLAG = false
 
   ANY_DROP = helper.ANY_DROP
   BLOCK_ONLY = helper.BLOCK_ONLY
