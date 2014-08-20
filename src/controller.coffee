@@ -222,33 +222,40 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # ## Tracker Events
       # We allow binding to the tracker element.
+      dispatchEvent = (event) =>
+        # ignore mouse clicks that are not the left-button, and ignore
+        # them if they are on the scrollbars
+        if event.type in ['mousedown', 'dblclick', 'mouseup']
+          if event.which isnt 1 then return
+          if event.target in [@mainScroller, @paletteScroller] then return
+
+        trackPoint = @getPointRelativeToTracker event
+
+        # We keep a state object so that handlers
+        # can know about each other.
+        state = {}
+
+        # Call all the handlers.
+        for handler in editorBindings[event.type]
+          handler.call this, trackPoint, event, state
+
+        # Stop event propagation so that
+        # we don't get bad selections
+        event.stopPropagation?()
+        event.preventDefault?()
+
+        event.cancelBubble = true
+        event.returnValue = false
+
+        return false
+
       for eventName, elements of {
           mousedown: [@iceElement, @paletteElement, @dragCover]
           dblclick: [@iceElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
-
         for element in elements
-          element.addEventListener eventName, (event) =>
-            trackPoint = @getPointRelativeToTracker event
-
-            # We keep a state object so that handlers
-            # can know about each other.
-            state = {}
-
-            # Call all the handlers.
-            for handler in editorBindings[eventName]
-              handler.call this, trackPoint, event, state
-
-            # Stop event propagation so that
-            # we don't get bad selections
-            event.stopPropagation?()
-            event.preventDefault?()
-
-            event.cancelBubble = true
-            event.returnValue = false
-
-            return false
+          element.addEventListener eventName, dispatchEvent
 
       # ## Document initialization
       # We start of with an empty document
