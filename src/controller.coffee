@@ -1134,18 +1134,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
             @addMicroUndoOperation new ReparseOperation parent, newBlock
 
-      @redrawMain()
-
       # Move the cursor to the position we just
       # dropped the block
       @moveCursorTo @draggingBlock.end, true
 
       # Now that we've done that, we can annul stuff.
-      @draggingBlock = null
-      @draggingOffset = null
-      @lastHighlight = null
-
-      @clearDrag()
+      @endDrag()
 
   # FLOATING BLOCK SUPPORT
   # ================================
@@ -1235,12 +1229,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         if @draggingBlock is @lassoSegment
           @lassoSegment = null
 
-        @draggingBlock = null
-        @draggingOffset = null
-        @lastHighlight = null
-
-        @clearDrag()
-        @redrawMain()
+        @endDrag()
         return
 
       else if renderPoint.x - @scrollOffsets.main.x < 0
@@ -2217,7 +2206,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
 
       # Move the cursor to the segment we just created
-      @moveCursorTo @lassoSegment.end.next, true
+      @moveCursorTo @lassoSegment.end.nextVisibleToken(), true
 
       @redrawMain()
 
@@ -3437,6 +3426,22 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @dragCover.style.display = 'none'
 
+  # FAILSAFE END DRAG HACK
+  # ================================
+
+  hook 'mousedown', 10, ->
+    if @draggingBlock?
+      @endDrag()
+
+  Editor::endDrag = ->
+    @draggingBlock = null
+    @draggingOffset = null
+    @lastHighlight = null
+
+    @clearDrag()
+    @redrawMain()
+    return
+
   # TOUCHSCREEN SUPPORT
   # =================================
 
@@ -3657,13 +3662,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       if @inTree(@draggingBlock) and @mainViewOrChildrenContains @draggingBlock, renderPoint
         @draggingBlock.ephemeral = false
-
-        @draggingBlock = null
-        @draggingOffset = null
-        @lastHighlight = null
-
-        @clearDrag()
-        @redrawMain()
+        @endDrag()
 
   # LINE NUMBER GUTTER CODE
   # ================================
