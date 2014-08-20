@@ -1691,7 +1691,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
 
   # Convenince function for setting the text input
-  Editor::setTextInputFocus = (focus, selectionStart = 0, selectionEnd = 0) ->
+  Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) ->
     if focus?.id of @extraMarks
       delete @extraMarks[focus?.id]
 
@@ -1784,13 +1784,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # Set the hidden input up to mirror the text.
     @hiddenInput.value = @textFocus.stringify()
 
-    if selectionStart < 0 then selectionStart = @textFocus.stringify().length - selectionStart
-    if selectionEnd < 0 then selectionEnd = @textFocus.stringify().length - selectionEnd
+    if selectionStart? and not selectionEnd?
+      selectionEnd = selectionStart
 
     # Focus the hidden input.
     if @textFocus?
       @hiddenInput.focus()
-      if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
+      if selectionStart? and selectionEnd?
+        @hiddenInput.setSelectionRange selectionStart, selectionEnd
+      else if @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
          @hiddenInput.value[0] in ['\'', '"']
         @hiddenInput.setSelectionRange 1, @hiddenInput.value.length - 1
       else
@@ -2384,13 +2386,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   hook 'key.right', 0, (state, event) ->
     if not @textFocus? or
-        @hiddenInput.selectionEnd is @hiddenInput.value.length
+        @hiddenInput.selectionStart is @hiddenInput.value.length
       @moveCursorHorizontally 'right'
       event.preventDefault()
 
   hook 'key.left', 0, (state, event) ->
     if not @textFocus? or
-        @hiddenInput.selectionStart is 0
+        @hiddenInput.selectionEnd is 0
       @moveCursorHorizontally 'left'
       event.preventDefault()
 
