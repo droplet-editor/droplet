@@ -15,6 +15,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   MAX_DROP_DISTANCE = 100
   CURSOR_WIDTH_DECREASE = 3
   CURSOR_HEIGHT_DECREASE = 2
+  CURSOR_UNFOCUSED_OPACITY = 0.5
 
   ANY_DROP = helper.ANY_DROP
   BLOCK_ONLY = helper.BLOCK_ONLY
@@ -3028,7 +3029,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         setTimeout (=>
           for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
             el.style.transition = "opacity #{fadeTime}ms linear"
-            el.style.opacity = 1
+          @mainCanvas.style.opacity = 1
+          @highlightCanvas.style.opacity = 1
+
+          if @editorHasFocus()
+            @cursorCanvas.style.opacity = 1
+          else
+            @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
+
         ), translateTime
 
         @iceElement.style.transition =
@@ -3511,7 +3519,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # ================================
   hook 'populate', 0, ->
     @cursorCanvas = document.createElement 'canvas'
-    @cursorCanvas.className = 'ice-highlight-canvas'
+    @cursorCanvas.className = 'ice-highlight-canvas ice-cursor-canvas'
 
     @cursorCtx = @cursorCanvas.getContext '2d'
 
@@ -3577,15 +3585,24 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   hook 'populate', 0, ->
     @highlightsCurrentlyShown = false
-    @iceElement.addEventListener 'blur', =>
+
+    blurCursors = =>
       @highlightFlashShow()
       @cursorCanvas.style.transition = ''
-      @cursorCanvas.style.opacity = 0.5
+      @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
 
-    @iceElement.addEventListener 'focus', =>
+    @iceElement.addEventListener 'blur', blurCursors
+    @hiddenInput.addEventListener 'blur', blurCursors
+    @copyPasteInput.addEventListener 'blur', blurCursors
+
+    focusCursors = =>
       @highlightFlashShow()
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = 1
+
+    @iceElement.addEventListener 'focus', focusCursors
+    @hiddenInput.addEventListener 'focus', focusCursors
+    @copyPasteInput.addEventListener 'focus', focusCursors
 
     @flashTimeout = setTimeout (=> @flash()), 0
 
@@ -3708,7 +3725,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   # COPY AND PASTE
   # ================================
-  hook 'populate', 0, ->
+  hook 'populate', 1, ->
     @copyPasteInput = document.createElement 'textarea'
     @copyPasteInput.style.position = 'absolute'
     @copyPasteInput.style.left = @copyPasteInput.style.top = '-9999px'
