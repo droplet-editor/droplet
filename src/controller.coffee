@@ -1781,11 +1781,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     # Now we're done with the old focus,
     # we can start over.
-
     # If we're _unfocusing_, just do so.
     if not focus?
       @textFocus = null
-      @redrawMain(); @hiddenInput.blur(); @iceElement.focus()
+      @redrawMain()
+      @hiddenInput.blur()
+      @iceElement.focus()
       return
 
     # Record old focus value
@@ -2311,6 +2312,52 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @redrawHighlights()
     @scrollCursorIntoPosition()
 
+  Editor::moveCursorHorizontally = (direction) ->
+    if @textFocus?
+      if direction is 'right'
+        head = @textFocus.end.next
+      else
+        head = @textFocus.start.prev
+    else
+      if direction is 'right'
+        head = @cursor.next.next
+      else
+        head = @cursor.prev.prev
+
+    while true
+      if head.type is 'socketStart' and
+          (head.next.type is 'text' or head.next is head.container.end)
+        if @textFocus? and head.container.hasParent @textFocus.parent
+          persistentParent = @textFocus.parent.parent
+
+          chars = getCharactersTo persistentParent, head.container.start
+          @setTextInputFocus null
+          socket = getSocketAtChar persistentParent, chars
+        else
+          socket = head.container
+          @setTextInputFocus null
+
+        @setTextInputFocus socket
+        break
+
+      if head.type in ['newline', 'indentEnd'] or head.container is @tree
+        @setTextInputFocus null
+        @cursor.remove()
+        if head is @tree.start or head.type is 'newline' then head.insert @cursor
+        else head.insertBefore @cursor
+        break
+
+      if direction is 'right' then head = head.next
+      else head = head.prev
+
+    @redrawMain()
+
+  hook 'key.right', 0, ->
+    @moveCursorHorizontally 'right'
+
+  hook 'key.left', 0, ->
+    @moveCursorHorizontally 'left'
+
   Editor::determineCursorPosition = ->
     if @cursor? and @cursor.parent?
       @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
@@ -2346,10 +2393,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   # Pressing the down-arrow moves the cursor down.
   hook 'key.down', 0, ->
+    unless @textFocus?
+      @moveCursorTo @cursor.next.next
     @clearLassoSelection()
     @setTextInputFocus null
     @reparseHandwrittenBlocks()
-    @moveCursorTo @cursor.next.next
     @scrollCursorIntoPosition()
 
   getCharactersTo = (parent, token) ->
