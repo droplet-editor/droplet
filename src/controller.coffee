@@ -1031,7 +1031,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           w: MAX_DROP_DISTANCE * 2
           h: MAX_DROP_DISTANCE * 2
         }, (point) =>
-          unless (point.acceptLevel is helper.DISCOURAGED) and not @shiftKeyPressed
+          unless (point.acceptLevel is helper.DISCOURAGED) and not event.shiftKey
             distance = mainPoint.from(point)
             distance.y *= 2; distance = distance.magnitude()
             if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
@@ -2392,8 +2392,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     return head.container
 
-  hook 'key.tab', 0, ->
-    if @shiftKeyPressed
+  hook 'key.tab', 0, (state, event) ->
+    if event.shiftKey
       if @textFocus? then head = @textFocus.start
       else head = @cursor
 
@@ -2492,21 +2492,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'populate', 0, ->
     @handwrittenBlocks = []
 
-    @shiftKeyPressed = false
-
-    # Keep track of whether the shift
-    # key is pressed; it will
-    # suppress the normal "enter"
-    # handler.
-    @keyListener.register_combo
-      keys: 'shift'
-      on_keydown: => @shiftKeyPressed = true
-      on_keyup: => @shiftKeyPressd = false
-
     @keyListener.register_combo
       keys: 'enter'
-      on_keydown: =>
-        unless @textFocus? or @shiftKeyPressed
+      on_keydown: (event) =>
+        unless @textFocus? or event.shiftKey
           @setTextInputFocus null
 
           # Construct the block; flag the socket as handwritten
@@ -2534,7 +2523,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
           @newHandwrittenSocket = newSocket
 
-        else if @textFocus? and not @shiftKeyPressed
+        else if @textFocus? and not event.shiftKey
           @setTextInputFocus null; @redrawMain()
         else
           return true
