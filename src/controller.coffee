@@ -2123,15 +2123,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @clearLassoSelectCanvas(); @clearHighlightCanvas()
 
-      if first and last?
-        [first, last] = validateLassoSelection @tree, first, last
-        @drawTemporaryLasso first, last
-
       @lassoSelectCtx.strokeStyle = '#00f'
       @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
         lassoRectangle.y - @scrollOffsets.main.y,
         lassoRectangle.width,
         lassoRectangle.height
+
+      if first and last?
+        [first, last] = validateLassoSelection @tree, first, last
+        @drawTemporaryLasso first, last
 
 
   Editor::drawTemporaryLasso = (first, last) ->

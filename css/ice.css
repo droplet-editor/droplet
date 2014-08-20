@@ -12,7 +12,7 @@
   top: 0;
 }
 .ice-drag-canvas {
-  z-index: 2;
+  z-index: 4;
   margin-top: -2px;
   margin-left: -1px;
   opacity: 0.85;
@@ -28,7 +28,12 @@
   z-index: 0;
   border-right: none;
 }
-.ice-lasso-select-canvas, .ice-highlight-canvas {
+.ice-lasso-select-canvas {
+  left: 0;
+  z-index: 3;
+  border-right: none;
+}
+.ice-highlight-canvas {
   left: 0;
   z-index: 2;
   border-right: none;
