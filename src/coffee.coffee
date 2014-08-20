@@ -301,10 +301,10 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
               if node.body.unwrap() is node.body
                 # We are filled with some things
                 # connected by semicolons; wrap them all,
-                @addBlock node, depth, 0, 'command', null, MOSTLY_BLOCK
+                @addBlock node, depth, -2, 'command', null, MOSTLY_BLOCK
 
                 for expr in node.body.expressions
-                  @addSocketAndMark expr, depth + 1, 0, indentDepth
+                  @addSocketAndMark expr, depth + 1, -2, indentDepth
 
               else
                 @mark node.body.unwrap(), depth + 1, 0, (wrappingParen ? node), indentDepth
@@ -361,14 +361,14 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         when 'Value'
           if node.properties? and node.properties.length > 0
             @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
-            @addSocketAndMark node.base, depth + 1, precedence, indentDepth
+            @addSocketAndMark node.base, depth + 1, 0, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
                 @addSocketAndMark property.name, depth + 1, -2, indentDepth, (block) ->
                   if 'works-as-method-call' in block.classes then return helper.ENCOURAGE_ALL
                   else return helper.FORBID
               else if property.nodeType() is 'Index'
-                @addSocketAndMark property.index, depth + 1, precedence, indentDepth
+                @addSocketAndMark property.index, depth + 1, 0, indentDepth
 
           # Fake-remove backticks hack
           else if node.base.nodeType() is 'Literal' and
@@ -385,7 +385,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
             errorSocket.flagToStrip = { left: 2, right: 1 }
 
           else
-            @mark node.base, depth + 1, precedence, wrappingParen, indentDepth
+            @mark node.base, depth + 1, 0, wrappingParen, indentDepth
 
         # ### Keywords ###
         when 'Literal'
@@ -435,7 +435,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
             else if node.variable.properties?.length > 0
               @addSocketAndMark node.variable.base, depth + 1, 0, indentDepth
           else
-            @addBlock node, depth, precedence, 'command', wrappingParen, ANY_DROP
+            @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
 
           unless node.do
             for arg, index in node.args
@@ -449,7 +449,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         # Function definition. Color VALUE, sockets @params,
         # and indent @body.
         when 'Code'
-          @addBlock node, depth, precedence, 'value', wrappingParen, VALUE_ONLY
+          @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
 
           for param in node.params
             @addSocketAndMark param, depth + 1, 0, indentDepth, SAY_FORBID
@@ -459,7 +459,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         # ### Assign ###
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
-          @addBlock node, depth, precedence, 'command', wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
           @addSocketAndMark node.variable, depth + 1, 0, indentDepth, (block) ->
             block.nodeType is 'Value'
 
@@ -469,7 +469,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         # Color CONTROL, options sockets @index, @source, @name, @from.
         # Indent/socket @body.
         when 'For'
-          @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
 
           for childName in ['source', 'from', 'guard', 'step']
             if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
@@ -493,7 +493,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         # Special case: "unless" keyword; in this case
         # we want to skip the Op that wraps the condition.
         when 'If'
-          @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
 
           # Check to see if we are an "unless".
           # We will deem that we are an unless if:
@@ -539,14 +539,14 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         # ### Return ###
         # Color RETURN, optional socket @expression.
         when 'Return'
-          @addBlock node, depth, precedence, 'return', wrappingParen, BLOCK_ONLY
+          @addBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
           if node.expression?
             @addSocketAndMark node.expression, depth + 1, 0, indentDepth
 
         # ### While ###
         # Color CONTROL. Socket @condition, socket/indent @body.
         when 'While'
-          @addBlock node, depth, precedence, 'control', wrappingParen, MOSTLY_BLOCK
+          @addBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
           @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
           if node.guard? then @addSocketAndMark node.guard, depth + 1, 0, indentDepth
           @mark node.body, depth + 1, 0, null, indentDepth
@@ -755,7 +755,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
     # for semicolons.
     wrapSemicolonLine: (firstBounds, lastBounds, expressions, depth) ->
       # Make the wrapper
-      block = new model.Block 0, 'command', ANY_DROP
+      block = new model.Block -2, 'command', ANY_DROP
 
       # Put together a boundary that contains all things
       surroundingBounds =
@@ -767,7 +767,7 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
 
       # Add sockets for each expression
       for child in expressions
-        @addSocket child, depth + 2, 0
+        @addSocket child, depth + 2, -2
 
     # ## wrapSemicolons ##
     # If there are mutliple expressions we have on the same line,
@@ -800,7 +800,8 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
         # If there were at least two blocks on the previous line,
         # they do need a semicolon wrapper.
         else
-          if lastNode? then @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
+          if lastNode?
+            @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
 
           # Regardless of whether or not we added semicolons on the last line,
           # clear the records to make way for the new line.
@@ -809,7 +810,8 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           nodesOnCurrentLine = [expr]
 
       # Wrap up the last line if necessary.
-      if lastNode? then @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
+      if lastNode?
+        @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
 
   # Wrap up the things we need to do
   # to package ourselves as an ICE editor parser
