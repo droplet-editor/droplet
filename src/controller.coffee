@@ -1365,7 +1365,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @currentPaletteMetadata = paletteGroupBlocks
 
         # Unapply the "selected" style to the current palette group header
-        @currentPaletteGroupHeader.className =
+        @currentPaletteGroupHeader?.className =
             @currentPaletteGroupHeader.className.replace(
                 /\s[-\w]*-selected\b/, '')
 
