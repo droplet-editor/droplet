@@ -3555,16 +3555,30 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @highlightsCurrentlyShown = false
     @flashTimeout = setTimeout (=> @flash()), 500
 
+  Editor::editorHasFocus = ->
+    document.activeElement in [@iceElement, @hiddenInput, @copyPasteInput] and
+    document.hasFocus()
+
   Editor::flash = ->
     if @lassoSegment? or @draggingBlock? or
         (@textFocus? and @textInputHighlighted) or
-        not @highlightsCurrentlyShown
+        not @highlightsCurrentlyShown or
+        not @editorHasFocus()
       @highlightFlashShow()
     else
       @highlightFlashHide()
 
   hook 'populate', 0, ->
     @highlightsCurrentlyShown = false
+    @iceElement.addEventListener 'blur', =>
+      @highlightFlashShow()
+      @cursorCanvas.style.transition = ''
+      @cursorCanvas.style.opacity = 0.5
+
+    @iceElement.addEventListener 'focus', =>
+      @highlightFlashShow()
+      @cursorCanvas.style.transition = ''
+      @cursorCanvas.style.opacity = 1
 
     @flashTimeout = setTimeout (=> @flash()), 0
 
