@@ -8,6 +8,6 @@
     "quadtree": "silflow/quadtree-javascript#master",
     "qunit": "latest",
     "requirejs": "latest",
-    "uglifyjs": "dabbler0/UglifyJS2#build"
+    "acorn": "marijnh/acorn#master"
   }
 }
