@@ -1090,7 +1090,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # We will consume this event iff we dropped it successfully
     # in the root tree.
     if @draggingBlock? and @lastHighlight?
-
       if @inTree @draggingBlock
         # Since we removed this from the tree,
         # we will need to log an undo operation
