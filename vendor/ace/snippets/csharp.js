@@ -1,1 +1,7 @@
-ace.define("ace/snippets/csharp",["require","exports","module"],function(e,t,n){t.snippetText="",t.scope="csharp"})
+ace.define('ace/snippets/csharp', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.snippetText = "";
+exports.scope = "csharp";
+
+});

@@ -1,1 +1,7 @@
-ace.define("ace/snippets/c9search",["require","exports","module"],function(e,t,n){t.snippetText="",t.scope="c9search"})
+ace.define('ace/snippets/c9search', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.snippetText = "";
+exports.scope = "c9search";
+
+});

@@ -1,1 +1,7 @@
-ace.define("ace/snippets/ini",["require","exports","module"],function(e,t,n){t.snippetText="",t.scope="ini"})
+ace.define('ace/snippets/ini', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.snippetText = "";
+exports.scope = "ini";
+
+});

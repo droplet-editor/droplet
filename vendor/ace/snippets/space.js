@@ -1,1 +1,7 @@
-ace.define("ace/snippets/space",["require","exports","module"],function(e,t,n){t.snippetText="",t.scope="space"})
+ace.define('ace/snippets/space', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.snippetText = "";
+exports.scope = "space";
+
+});

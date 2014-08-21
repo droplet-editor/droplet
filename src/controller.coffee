@@ -24,6 +24,25 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   MOSTLY_VALUE = helper.MOSTLY_VALUE
   VALUE_ONLY = helper.VALUE_ONLY
 
+  BACKSPACE_KEY = 8
+  TAB_KEY = 9
+  ENTER_KEY = 13
+  LEFT_ARROW_KEY = 37
+  UP_ARROW_KEY = 38
+  RIGHT_ARROW_KEY = 39
+  DOWN_ARROW_KEY = 40
+  Z_KEY = 90
+
+  META_KEYS = [91, 92, 93, 223, 224]
+  CONTROL_KEYS = [17, 162, 163]
+
+  userAgent = ''
+  if typeof(window) isnt 'undefined' and window.navigator?.userAgent
+    userAgent = window.navigator.userAgent
+  isOSX = /OS X/.test(userAgent)
+  command_modifiers = isOSX ? META_KEYS : CONTROL_KEYS
+  command_pressed = (e) -> if isOSX then e.metaKey else e.ctrlKey
+
   exports = {}
 
   extend_ = (a, b) ->
@@ -84,9 +103,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     'mousemove': []
     'mouseup': []
     'dblclick': []
-  }
 
-  unsortedEditorKeyBindings = {}
+    'keydown': []
+    'keyup': []
+  }
 
   editorBindings = {}
 
@@ -94,17 +114,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # for features to add events that will occur at
   # various times in the editor lifecycle.
   hook = (event, priority, fn) ->
-    if event[..3] is 'key.'
-      unsortedEditorKeyBindings[event[4..]] ?= []
-      unsortedEditorKeyBindings[event[4..]].push {
-        priority: priority
-        fn: fn
-      }
-    else
-      unsortedEditorBindings[event].push {
-        priority: priority
-        fn: fn
-      }
+    unsortedEditorBindings[event].push {
+      priority: priority
+      fn: fn
+    }
 
   # ## The Editor Class
   exports.Editor = class Editor
@@ -186,30 +199,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
       @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
 
-      # We also allow binding to keypresses in the element.
-      # We will use dmauro's Keypress library for keyboard-shortcut
-      # input.
-      @keyListener = new window.keypress.Listener @iceElement
-
       boundListeners = []
-
-      # For each combo to which binding(s) are attached,
-      # listen for that combo and execute each binding
-      # attached to it.
-      #
-      # We will preventDefault (!executeDefault) if anyone
-      # wants to preventDefault.
-      for combo, fns of editorBindings.key then do (fns) =>
-        @keyListener.simple_combo combo, (event, count) =>
-          state = {}
-
-          executeDefault = true
-
-          for fn in fns
-            result = fn.call(this, state, event, count) ? true
-            executeDefault and= result
-
-          return executeDefault
 
       # Call all the feature bindings that are supposed
       # to happen now.
@@ -224,13 +214,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # ## Tracker Events
       # We allow binding to the tracker element.
-      dispatchEvent = (event) =>
+      dispatchMouseEvent = (event) =>
         # ignore mouse clicks that are not the left-button, and ignore
         # them if they are on the scrollbars
         if event.type in ['mousedown', 'dblclick', 'mouseup']
           if event.which isnt 1 then return
 
-        trackPoint = @getPointRelativeToTracker event
+        trackPoint = new @draw.Point(event.pageX, event.pageY)
 
         # We keep a state object so that handlers
         # can know about each other.
@@ -250,13 +240,27 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         return false
 
+      dispatchKeyEvent = (event) =>
+        # We keep a state object so that handlers
+        # can know about each other.
+        state = {}
+
+        # Call all the handlers.
+        for handler in editorBindings[event.type]
+          handler.call this, event, state
+
       for eventName, elements of {
+          keydown: [@iceElement, @paletteElement]
+          keyup: [@iceElement, @paletteElement]
           mousedown: [@iceElement, @paletteElement, @dragCover]
           dblclick: [@iceElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
         for element in elements
-          element.addEventListener eventName, dispatchEvent
+          if /^key/.test eventName
+            element.addEventListener eventName, dispatchKeyEvent
+          else
+            element.addEventListener eventName, dispatchMouseEvent
 
       # ## Document initialization
       # We start of with an empty document
@@ -502,13 +506,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # These are some common operations we need to do with
   # the mouse that will be convenient later.
 
-  # ### getPointRelativeToTracker
-  # Given a mousedown/touchstart event,
-  # get its coordinates relative to the tracker element.
-
-  Editor::getPointRelativeToTracker = (event) ->
-    return new @draw.Point(event.pageX, event.pageY)
-
   Editor::absoluteOffset = (el) ->
     point = new @draw.Point el.offsetLeft, el.offsetTop
     el = el.offsetParent
@@ -521,36 +518,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     return point
 
-  Editor::trackerOffset = (el) ->
-    x = el.offsetLeft
-    y = el.offsetTop
-    el = el.offsetParent
-
-    subtractIceElementOffset = =>
-      el = @iceElement.offsetParent
-
-      x -= @iceElement.offsetLeft
-      y -= @iceElement.offsetTop
-
-      while el?
-        x -= el.offsetLeft - el.scrollLeft
-        y -= el.offsetTop - el.scrollTop
-        el = el.offsetParent
-
-    until el is @iceElement
-      unless el?
-        # if outside iceElement, then subtract iceElement's offset.
-        do subtractIceElementOffset
-        break
-      x += el.offsetLeft - el.scrollLeft
-      y += el.offsetTop - el.scrollTop
-
-      el = el.offsetParent
-
-    return new @draw.Point x, y
-
   # ### Conversion functions
-  # Convert a point relative to the tracker into
+  # Convert a point relative to the page into
   # a point relative to one of the two canvases.
   Editor::trackerPointToMain = (point) ->
     if not @mainCanvas.offsetParent?
@@ -658,8 +627,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @undoStack.length = 0
 
   # Now we hook to ctrl-z to undo.
-  hook 'key.meta z', 0, ->
-    @undo()
+  hook 'keydown', 0, (event, state) ->
+    if event.which is Z_KEY and command_pressed(event)
+       @undo()
 
   # BASIC BLOCK MOVE SUPPORT
   # ================================
@@ -1479,7 +1449,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       do (block) =>
         hoverDiv.addEventListener 'mousemove', (event) =>
-          palettePoint = @trackerPointToPalette @getPointRelativeToTracker event
+          palettePoint = @trackerPointToPalette new @draw.Point(
+              event.pageX, event.pageY)
           if @mainViewOrChildrenContains block, palettePoint
             unless block is @currentHighlightedPaletteBlock
               @clearPaletteHighlightCanvas()
@@ -2386,13 +2357,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @redrawMain()
 
-  hook 'key.right', 0, (state, event) ->
+  hook 'keydown', 0, (event, state) ->
+    if event.which isnt RIGHT_ARROW_KEY then return
     if not @textFocus? or
         @hiddenInput.selectionStart is @hiddenInput.value.length
       @moveCursorHorizontally 'right'
       event.preventDefault()
 
-  hook 'key.left', 0, (state, event) ->
+  hook 'keydown', 0, (event, state) ->
+    if event.which isnt LEFT_ARROW_KEY then return
     if not @textFocus? or
         @hiddenInput.selectionEnd is 0
       @moveCursorHorizontally 'left'
@@ -2426,13 +2399,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @mainScroller.scrollLeft = 0
 
   # Pressing the up-arrow moves the cursor up.
-  hook 'key.up', 0, ->
+  hook 'keydown', 0, (event, state) ->
+    if event.which isnt UP_ARROW_KEY then return
     @clearLassoSelection()
     @setTextInputFocus null
     @moveCursorUp()
 
   # Pressing the down-arrow moves the cursor down.
-  hook 'key.down', 0, ->
+  hook 'keydown', 0, (event, state) ->
+    if event.which isnt DOWN_ARROW_KEY then return
     unless @textFocus?
       @moveCursorTo @cursor.next.next
     @clearLassoSelection()
@@ -2461,7 +2436,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     return head.container
 
-  hook 'key.tab', 0, (state, event) ->
+  hook 'keydown', 0, (event, state) ->
+    if event.which isnt TAB_KEY then return
     if event.shiftKey
       if @textFocus? then head = @textFocus.start
       else head = @cursor
@@ -2523,7 +2499,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @redrawMain()
 
-  hook 'key.backspace', 0, (state, event) ->
+  hook 'keydown', 0, (event, state) ->
+    if event.which isnt BACKSPACE_KEY
+      return
     if state.capturedBackspace
       return
 
@@ -2540,6 +2518,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @addMicroUndoOperation 'CAPTURE_POINT'
       @deleteAtCursor()
       state.capturedBackspace = true
+      event.preventDefault()
       return false
 
     return true
@@ -2563,45 +2542,45 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   hook 'populate', 0, ->
     @handwrittenBlocks = []
 
-    @keyListener.register_combo
-      keys: 'enter'
-      on_keydown: (event) =>
-        unless @textFocus? or event.shiftKey
-          @setTextInputFocus null
+  hook 'keydown', 0, (event, state) ->
+    if event.which is ENTER_KEY
+      if not @textFocus? and not event.shiftKey
+        @setTextInputFocus null
 
-          # Construct the block; flag the socket as handwritten
-          newBlock = new model.Block(); newSocket = new model.Socket -Infinity
-          newSocket.spliceIn newBlock.start
-          newSocket.handwritten = true
+        # Construct the block; flag the socket as handwritten
+        newBlock = new model.Block(); newSocket = new model.Socket -Infinity
+        newSocket.spliceIn newBlock.start
+        newSocket.handwritten = true
 
-          # Add it io our list of handwritten blocks
-          @handwrittenBlocks.push newBlock
+        # Add it io our list of handwritten blocks
+        @handwrittenBlocks.push newBlock
 
-          # Seek a place near the cursor we can actually
-          # put a block.
-          head = @cursor.prev
-          while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
-            head = head.prev
+        # Seek a place near the cursor we can actually
+        # put a block.
+        head = @cursor.prev
+        while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
+          head = head.prev
 
-          # Log the undo operation for this
-          @addMicroUndoOperation 'CAPTURE_POINT'
-          @addMicroUndoOperation new DropOperation newBlock, head
+        # Log the undo operation for this
+        @addMicroUndoOperation 'CAPTURE_POINT'
+        @addMicroUndoOperation new DropOperation newBlock, head
 
-          newBlock.moveTo head #MUTATION
+        newBlock.moveTo head #MUTATION
 
-          @redrawMain()
+        @redrawMain()
 
-          @newHandwrittenSocket = newSocket
+        @newHandwrittenSocket = newSocket
 
-        else if @textFocus? and not event.shiftKey
-          @setTextInputFocus null; @redrawMain()
-        else
-          return true
+      else if @textFocus? and not event.shiftKey
+        @setTextInputFocus null; @redrawMain()
 
-      on_keyup: =>
-        if @newHandwrittenSocket?
-          @setTextInputFocus @newHandwrittenSocket
-          @newHandwrittenSocket = null
+  hook 'keyup', 0, (point, event, state) ->
+    # prevents routing the initial enter keypress to a new handwritten
+    # block by focusing the block only after the enter key is released.
+    if event.which is ENTER_KEY
+      if @newHandwrittenSocket?
+        @setTextInputFocus @newHandwrittenSocket
+        @newHandwrittenSocket = null
 
   containsCursor = (block) ->
     head = block.start
@@ -3764,20 +3743,6 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @iceElement.appendChild @copyPasteInput
 
-    @keyListener.register_combo
-      keys: 'meta'
-      on_keydown: =>
-        unless @textFocus?
-          @copyPasteInput.focus()
-          if @lassoSegment?
-            @copyPasteInput.value = @lassoSegment.stringify()
-          @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
-      on_keyup: =>
-        if @textFocus?
-          @hiddenInput.focus()
-        else
-          @iceElement.focus()
-
     pressedVKey = false
     pressedXKey = false
 
@@ -3833,6 +3798,21 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @lassoSegment.spliceOut(); @lassoSegment = null
         @redrawMain()
 
+  hook 'keydown', 0, (event, state) ->
+    if event.which in command_modifiers
+      unless @textFocus?
+        @copyPasteInput.focus()
+        if @lassoSegment?
+          @copyPasteInput.value = @lassoSegment.stringify()
+        @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
+
+  hook 'keyup', 0, (point, event, state) ->
+    if event.which in command_modifiers
+      if @textFocus?
+        @hiddenInput.focus()
+      else
+        @iceElement.focus()
+
   hook 'populate', 0, ->
     setTimeout (=>
       @cursor.parent = @tree
@@ -3879,15 +3859,5 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     for binding in unsortedEditorBindings[key]
       editorBindings[key].push binding.fn
-
-  editorBindings.key = {}
-
-  for key of unsortedEditorKeyBindings
-    unsortedEditorKeyBindings[key].sort (a, b) -> if a.priority > b.priority then -1 else 1
-
-    editorBindings.key[key] = []
-
-    for binding in unsortedEditorKeyBindings[key]
-      editorBindings.key[key].push binding.fn
 
   return exports

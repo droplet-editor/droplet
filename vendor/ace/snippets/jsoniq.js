@@ -1,1 +1,7 @@
-ace.define("ace/snippets/jsoniq",["require","exports","module"],function(e,t,n){t.snippetText="",t.scope="jsoniq"})
+ace.define('ace/snippets/jsoniq', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.snippetText = "";
+exports.scope = "jsoniq";
+
+});

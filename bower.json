@@ -1,0 +1,12 @@
+{
+  "name": "ice-editor",
+  "version": "0.3.0",
+  "description": "The block-code editor that can melt blocks to code.",
+  "dependencies": {
+    "ace-builds": "PencilCode/pencilcode-ace-builds#master",
+    "coffee-script": "dabbler0/coffeescript#astbin",
+    "quadtree": "silflow/quadtree-javascript#master",
+    "qunit": "latest",
+    "requirejs": "2.1.11"
+  }
+}
