@@ -572,6 +572,39 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       view_.opts.textHeight + 2 * view_.opts.textPadding,
       'Final height is O.K.'
 
+  test 'View: bottomLineSticksToTop bug', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    setTimeout (->
+      fd 20
+      fd 10), 1 + 2 + 3 + 4 + 5
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    testedBlock = document.getBlockOnLine 2
+    testedBlockView = view_.getViewNodeFor testedBlock
+
+    strictEqual testedBlockView.dimensions[0].height,
+      2 * view_.opts.textPadding +
+      1 * view_.opts.textHeight +
+      8 * view_.opts.padding -
+      1 * view_.opts.indentTongueHeight, 'Original height O.K.'
+
+    block = document.getBlockOnLine 1
+    dest = document.getBlockOnLine(2).end
+
+    block.moveTo dest
+
+    documentView.layout()
+
+    strictEqual testedBlockView.dimensions[0].height,
+      2 * view_.opts.textPadding +
+      1 * view_.opts.textHeight +
+      2 * view_.opts.padding, 'Final height O.K.'
+
   test 'View: triple-quote sockets caching issue', ->
     view_ = new view.View()
 

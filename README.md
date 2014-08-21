@@ -25,9 +25,12 @@ To embed, call new ice.Editor() on a div.
 ```coffeescript
 require ['ice'], (ice) ->
   editor = new ice.Editor document.getElementById('editor'), [
-     ice.parse('hello world')
+    {
+      blcok: 'alert "hello world"'
+      title: 'Make a popup with some text'
+    }
   ]
-  
+
   editor.setValue '''
   for i in [1..10]
     document.write 'hello world'

@@ -833,7 +833,6 @@ define ['ice-helper', 'ice-model', 'ice-parser', 'coffee-script'], (helper, mode
           text = lines.join '\n'
         else
           throw firstError
-
   fixCoffeeScriptError = (lines, e) ->
     console.log 'encountered error', e.message, 'line',  e.location?.first_line
     if /unexpected\s*(?:newline|if|for|while|switch|unless|end of input)/.test(
