@@ -1372,7 +1372,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # When we click this element,
       # we should switch to it in the palette.
-      clickHandler = =>
+      updatePalette = =>
         # Record that we are the selected group now
         @currentPaletteGroup = paletteGroup.name
         @currentPaletteBlocks = paletteGroupBlocks.map (x) -> x.block
@@ -1394,6 +1394,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         # Redraw the palette.
         @redrawPalette()
 
+      clickHandler = =>
+        do updatePalette
         for event in editorBindings.set_palette
           event.call this
 
@@ -1402,7 +1404,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # If we are the first element, make us the selected palette group.
       if i is 0
-        do clickHandler
+        do updatePalette
 
   # The next thing we need to do with the palette
   # is let people pick things up from it.
