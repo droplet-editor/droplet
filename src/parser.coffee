@@ -28,83 +28,49 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
       segment.isRoot = true
       return segment
 
-  exports.parseObj = parseObj = (object) ->
-    unless object?
-      return null
+  exports.parseXML = (xml) ->
+    root = new model.Segment(); head = root.start
+    stack = []
+    parser = sax.parser true
 
-    if typeof object is 'string' or object instanceof String
-      if object is '\n'
-        return new model.NewlineToken()
-      else
-        return new model.TextToken object
+    parser.ontext = (text) ->
+      head = head.append new model.TextToken text.replace /\n\s*/g, ''
 
-    else
-      switch object.type
+    parser.onopentag = (node) ->
+      attributes = node.attributes
+      switch node.name
         when 'block'
-          block = new model.Block object.precedence, object.color, object.nodeType ? 'Unknown', object.socketLevel
-          head = block.start
-          for child in object.children
-            subBlock = parseObj child
-            if subBlock.type in ['text', 'newline', 'mutationButton']
-              head = head.append subBlock
-            else
-              head.append subBlock.start
-              head = subBlock.end
-
-          head.append block.end
-
-          return block
-
+          container = new model.Block attributes.precedence, attributes.color,
+            attributes.socketLevel, attributes.classes
         when 'socket'
-          socket = new model.Socket object.precedence, false, object.accepts ? YES
-          contents = parseObj object.contents
-
-          if contents instanceof model.Container
-            contents.spliceIn socket.start
-          else
-            socket.start.append contents
-            contents.append socket.end
-
-          return socket
-
+          container = new model.Socket attributes.precedence, attributes.handritten,
+            (if attributes.accepts? then new Function(attributes.accepts) else undefined)
         when 'indent'
-          block = new model.Indent (' ' for [1..object.depth]).join ''
+          container = new model.Indent attributes.prefix
+        when 'br'
+          head = head.append new model.NewlineToken()
+          return null
 
-          head = block.start
+      stack.push {
+        node: node
+        container: container
+      }
 
-          for child in object.children
-            subBlock = parseObj child
-            if subBlock.type in ['text', 'newline']
-              head = head.append subBlock
-            else
-              head.append subBlock.start
-              head = subBlock.end
+      head = head.append container.start
 
-          head.append block.end
+    parser.onclosetag = (node) ->
+      unless node.name is 'br'
+        if node is stack[stack.length - 1].node
+          head = head.append stack[stack.length - 1].container.end
 
-          return block
+    parser.onerror = (e) ->
+      throw e
 
-        when 'mutationButton'
-          segment = new model.Segment()
+    parser.write(xml).close()
 
-          button = new model.MutationButtonToken segment
+    head = head.append root.end
 
-          head = segment.start
-          for child in object.expand
-            if child is 0
-              subBlock = new model.MutationButtonToken segment
-            else
-              subBlock = parseObj child
-
-            if subBlock.type in ['text', 'newline', 'mutationButton']
-              head = head.append subBlock
-            else
-              head.append subBlock.start
-              head = subBlock.end
-
-          head.append segment.end
-
-          return button
+    return root
 
   # ## sortMarkup ##
   # Sort the markup by the order

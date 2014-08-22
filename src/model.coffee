@@ -595,7 +595,7 @@ define ['ice-helper'], (helper) ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = '#ddf', @socketLevel = null, @classes = []) ->
+    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 

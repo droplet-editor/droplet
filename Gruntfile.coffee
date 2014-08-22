@@ -25,6 +25,7 @@ module.exports = (grunt) ->
           'qunit.css' : 'qunit/qunit/qunit.css'
           'require.js' : 'requirejs/require.js'
           'acorn.js' : 'acorn/acorn.js'
+          'sax.js': 'sax/lib/sax.js'
 
       ,
     coffee:
@@ -109,6 +110,7 @@ module.exports = (grunt) ->
       build:
         files:
           'dist/ice-full.js': [
+            'vendor/sax.js'
             'vendor/quadtree.js'
             'dist/ice.js'
           ]

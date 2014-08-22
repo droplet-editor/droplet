@@ -8,6 +8,7 @@
     "quadtree": "silflow/quadtree-javascript#master",
     "qunit": "latest",
     "requirejs": "latest",
-    "acorn": "marijnh/acorn#master"
+    "acorn": "marijnh/acorn#master",
+    "sax": "isaacs/sax-js"
   }
 }

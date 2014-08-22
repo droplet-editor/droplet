@@ -1,4 +1,4 @@
-require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ice) ->
+require ['ice-model', 'ice-parser', 'ice-coffee', 'ice-view', 'ice'], (model, parser, coffee, view, ice) ->
 
   test 'Parser success', ->
     testString = (m, str, expected) ->
@@ -250,6 +250,22 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       <block color="value" precedence="7"><socket precedence="7">a</socket> %% <socket precedence="7">b</socket></block>
       <block color="value" precedence="100"><socket precedence="101">a</socket>?</block>
       '''
+
+  test 'XML parsing', ->
+    document = parser.parseXML '''
+    <block>
+      loop<indent prefix='  '><br/>
+        <block>fd <socket>10</socket></block><br/>
+        <block>fd <socket>20</socket></block>
+      </indent>
+    </block>
+    '''
+
+    strictEqual document.stringify(), '''
+    loop
+      fd 10
+      fd 20
+    '''
 
   test 'Basic token operations', ->
     a = new model.Token()
