@@ -596,7 +596,13 @@ define ['ice-helper'], (helper) ->
 
   exports.BlockStartToken = class BlockStartToken extends StartToken
     constructor: (@container) -> super; @type = 'blockStart'
-    serialize: -> "<block color=\"#{@container.color}\" precedence=\"#{@container.precedence}\">"
+    serialize: -> """<block
+      precedence="#{@container.precedence}"
+      color="#{@container.color}"
+      socketLevel="#{@container.socketLevel}"
+      classes="#{@classes.join ' '}"
+    >
+    """
 
   exports.BlockEndToken = class BlockEndToken extends EndToken
     constructor: (@container) -> super; @type = 'blockEnd'
@@ -649,7 +655,11 @@ define ['ice-helper'], (helper) ->
 
   exports.SocketStartToken = class SocketStartToken extends StartToken
     constructor: (@container) -> super; @type = 'socketStart'
-    serialize: -> "<socket precedence=\"#{@container.precedence}\">"
+    serialize: -> """<socket
+      precedence="#{@container.precedence}"
+      handwritten="#{@container.handwritten}"
+      accepts="#{@container.accepts.toString()}"
+    >"""
     stringify: ->
       if @next is @container.end or
         @next.type is 'text' and @next.value is '' then '``' else ''
@@ -675,7 +685,10 @@ define ['ice-helper'], (helper) ->
   exports.IndentStartToken = class IndentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'indentStart'
     stringify: (state) -> state.indent += @container.prefix; ''
-    serialize: -> "<indent depth=\"#{@container.depth}\">"
+    serialize: -> """<indent
+      prefix="#{@container.prefix}"
+    >
+    """
 
   exports.IndentEndToken = class IndentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'indentEnd'
