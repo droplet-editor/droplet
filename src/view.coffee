@@ -1628,6 +1628,14 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
           @dropPoint = new @view.draw.Point destinationBounds.x, destinationBounds.y
           lastBoundsLeft = destinationBounds.x
           lastBoundsRight = destinationBounds.right()
+        else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
+          parentViewNode = @view.getViewNodeFor @model.parent
+          destinationBounds = parentViewNode.bounds[1]
+
+          @dropPoint = new @view.draw.Point destinationBounds.x,
+            @bounds[@lineLength - 1].bottom() + @view.opts.padding
+          lastBoundsLeft = destinationBounds.x
+          lastBoundsRight = @bounds[@lineLength - 1].right()
         else
           @dropPoint = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
           lastBoundsLeft = @bounds[@lineLength - 1].x

@@ -715,6 +715,33 @@ require ['ice-model', 'ice-parser', 'ice-coffee', 'ice-view', 'ice'], (model, pa
 
     strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue'
 
+  test 'View: sidealong carriage arrow', ->
+    view_ = new view.View()
+
+    document = parser.parseXML '''
+    <block>hello <indent><br/>
+      <block>my <socket>name</socket></block>
+      <block>is elder <socket>price</socket></block></indent></block>
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    block = document.getBlockOnLine(1).end.next.container
+    blockView = view_.getViewNodeFor block
+
+    strictEqual blockView.carriageArrow, 0, 'Carriage arrow flag is set'
+
+    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
+
+    indent = block.end.next.container
+    indentView = view_.getViewNodeFor indent
+
+    strictEqual indentView.dimensions[1].height,
+      view_.opts.textHeight +
+      2 * view_.opts.textPadding +
+      3 * view_.opts.padding, 'Carriage arrow causes expand'
+
   asyncTest 'Controller: melt/freeze events', ->
     expect 3
 
