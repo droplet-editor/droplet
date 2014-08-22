@@ -2462,7 +2462,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           @setTextInputFocus null
 
         @setTextInputFocus socket
-      return false
+      event.preventDefault()
 
     else
       if @textFocus? then head = @textFocus.end
@@ -2483,7 +2483,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           @setTextInputFocus null
 
         @setTextInputFocus socket
-      return false
+      event.preventDefault()
 
   Editor::deleteAtCursor = ->
     # Unfocus any inputs, which could get in the way.
