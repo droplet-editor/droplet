@@ -1788,9 +1788,13 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
 
         for childRef in @lineChildren[0]
           childView = @view.getViewNodeFor(childRef.child)
+          unless childView.topLineSticksToBottom
+            childView.invalidate = true
           childView.topLineSticksToBottom = true
         for childRef in @lineChildren[@lineChildren.length - 1]
           childView = @view.getViewNodeFor(childRef.child)
+          unless childView.bottomLineSticksToTop
+            childView.invalidate = true
           childView.bottomLineSticksToTop = true
 
         return @lineLength

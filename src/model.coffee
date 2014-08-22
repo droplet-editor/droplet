@@ -397,7 +397,7 @@ define ['ice-helper'], (helper) ->
         @start.previousVisibleToken()?.type is 'newline'
 
     isLastOnLine: ->
-      return @end.nextVisibleToken() is @parent?.end or
+      return @end.nextVisibleToken() in [@parent?.end, null] or
         @end.nextVisibleToken()?.type in ['newline', 'indentStart']
 
     # Line mark mutators

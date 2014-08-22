@@ -605,6 +605,16 @@ require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ic
       1 * view_.opts.textHeight +
       2 * view_.opts.padding, 'Final height O.K.'
 
+    block.moveTo testedBlock.start.prev.prev
+
+    documentView.layout()
+
+    strictEqual testedBlockView.dimensions[0].height,
+      2 * view_.opts.textPadding +
+      1 * view_.opts.textHeight +
+      8 * view_.opts.padding -
+      1 * view_.opts.indentTongueHeight, 'Dragging other block in works'
+
   test 'View: triple-quote sockets caching issue', ->
     view_ = new view.View()
 
