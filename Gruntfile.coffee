@@ -24,6 +24,7 @@ module.exports = (grunt) ->
           'qunit.js' : 'qunit/qunit/qunit.js'
           'qunit.css' : 'qunit/qunit/qunit.css'
           'require.js' : 'requirejs/require.js'
+          'acorn.js' : 'acorn/acorn.js'
 
       ,
     coffee:
