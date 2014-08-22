@@ -1,1 +1,6 @@
-(function(){ace.require(["ace/ext/error_marker"],function(){})})()
+
+;
+                (function() {
+                    ace.require(["ace/ext/error_marker"], function() {});
+                })();
+            
