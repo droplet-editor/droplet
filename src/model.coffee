@@ -21,7 +21,7 @@ define ['ice-helper'], (helper) ->
       set: set
 
   exports.isTreeValid = (tree) ->
-    tortise = hare = tree.start
+    tortise = hare = tree.start.next
 
     while true
       tortise = tortise.next
@@ -34,7 +34,17 @@ define ['ice-helper'], (helper) ->
       if lastHare isnt hare.prev
         throw new Error 'Linked list is not properly bidirectional'
       if hare is tree.end
+        if stack.length > 0
+          throw new Error 'Document ended before: ' + (k.type for k in stack).join(',')
         break
+      if hare instanceof StartToken
+        stack.push hare.container
+      else if hare instanceof EndToken
+        unless stack[stack.length - 1] is hare.container
+          throw new Error "Stack does not align #{stack[stack.length - 1]?.type} != #{hare.container?.type}"
+        else
+          stack.pop()
+
 
       lastHare = hare
       hare = hare.next
@@ -44,21 +54,19 @@ define ['ice-helper'], (helper) ->
       if lastHare isnt hare.prev
         throw new Error 'Linked list is not properly bidirectional'
       if hare is tree.end
+        if stack.length > 0
+          throw new Error 'Document ended before: ' + (k.type for k in stack).join(',')
         break
+      if hare instanceof StartToken
+        stack.push hare.container
+      else if hare instanceof EndToken
+        unless stack[stack.length - 1] is hare.container
+          throw new Error "Stack does not align #{stack[stack.length - 1]?.type} != #{hare.container?.type}"
+        else
+          stack.pop()
 
       if tortise is hare
         throw new Error 'Linked list loops'
-
-    stack = []; head = tree.start.next
-    until head is tree.end or head is null
-      if head instanceof StartToken
-        stack.push head.container
-      else if head instanceof EndToken
-        unless stack[stack.length - 1] is head.container
-          throw new Error "Stack does not align #{stack[stack.length - 1]?.type} != #{head.container?.type}"
-        else
-          stack.pop()
-      head = head.next
 
     return true
 

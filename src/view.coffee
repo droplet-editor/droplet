@@ -1621,7 +1621,7 @@ define ['ice-helper', 'ice-draw', 'ice-model'], (helper, draw, model) ->
         # height dropAreaHeight and a width
         # equal to our last line width,
         # positioned at the bottom of our last line.
-        if @lineLength is 1 and @glue[0]?
+        if @carriageArrow is CARRIAGE_ARROW_INDENT
           parentViewNode = @view.getViewNodeFor @model.parent
           destinationBounds = parentViewNode.bounds[1]
 

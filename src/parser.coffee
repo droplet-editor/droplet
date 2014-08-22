@@ -34,7 +34,9 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
     parser = sax.parser true
 
     parser.ontext = (text) ->
-      head = head.append new model.TextToken text.replace /\n\s*/g, ''
+      text = text.replace /\n\s*/g, ''
+      unless text.length is 0
+        head = head.append new model.TextToken text
 
     parser.onopentag = (node) ->
       attributes = node.attributes
@@ -58,10 +60,10 @@ define ['ice-helper', 'ice-model'], (helper, model) ->
 
       head = head.append container.start
 
-    parser.onclosetag = (node) ->
-      unless node.name is 'br'
-        if node is stack[stack.length - 1].node
-          head = head.append stack[stack.length - 1].container.end
+    parser.onclosetag = (nodeName) ->
+      if nodeName is stack[stack.length - 1].node.name
+        head = head.append stack[stack.length - 1].container.end
+        stack.pop()
 
     parser.onerror = (e) ->
       throw e
