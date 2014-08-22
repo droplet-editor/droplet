@@ -1,11 +1,11 @@
-Ice Editor
+Melt Editor
 =================
 
-Ice editor seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards are sucky).
+Melt editor seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards are sucky).
 
 Examples
 --------
-To embed, call new ice.Editor() on a div.
+To embed, call new melt.Editor() on a div.
 
 ```html
 <html>
@@ -23,12 +23,12 @@ To embed, call new ice.Editor() on a div.
 ```
 
 ```coffeescript
-require ['ice'], (ice) ->
-  editor = new ice.Editor document.getElementById('editor'), [
-    {
-      blcok: 'alert "hello world"'
-      title: 'Make a popup with some text'
-    }
+require ['melt'], (melt) ->
+  editor = new melt.Editor document.getElementById('editor'), [
+     {
+        block: "for [1..3]\n  ``"
+        title: "Repeat some code"
+     }
   ]
 
   editor.setValue '''
