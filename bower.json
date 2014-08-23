@@ -1,5 +1,5 @@
 {
-  "name": "ice-editor",
+  "name": "melt-editor",
   "version": "0.3.0",
   "description": "The block-code editor that can melt blocks to code.",
   "dependencies": {

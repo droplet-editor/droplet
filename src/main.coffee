@@ -1,4 +1,4 @@
-define ['ice-draw', 'ice-view', 'ice-model', 'ice-coffee', 'ice-controller', 'ice-parser'], (draw, view, model, coffee, controller, parser) ->
+define ['melt-draw', 'melt-view', 'melt-model', 'melt-coffee', 'melt-controller', 'melt-parser'], (draw, view, model, coffee, controller, parser) ->
   return {
     view: view,
     draw: draw,

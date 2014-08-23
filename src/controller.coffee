@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helper, coffee, draw, model, view) ->
+define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (helper, coffee, draw, model, view) ->
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
@@ -132,14 +132,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # ### Wrapper
       # Create the div that will contain all the ICE Editor graphics
 
-      @iceElement = document.createElement 'div'
-      @iceElement.className = 'ice-wrapper-div'
+      @meltElement = document.createElement 'div'
+      @meltElement.className = 'melt-wrapper-div'
 
       # We give our element a tabIndex so that it can be focused and capture keypresses.
-      @iceElement.tabIndex = 0
+      @meltElement.tabIndex = 0
 
       # Append that div.
-      @wrapperElement.appendChild @iceElement
+      @wrapperElement.appendChild @meltElement
 
       @wrapperElement.style.backgroundColor = '#FFF'
 
@@ -148,18 +148,18 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       # Main canvas first
       @mainCanvas = document.createElement 'canvas'
-      @mainCanvas.className = 'ice-main-canvas'
+      @mainCanvas.className = 'melt-main-canvas'
 
       @mainCtx = @mainCanvas.getContext '2d'
 
-      @iceElement.appendChild @mainCanvas
+      @meltElement.appendChild @mainCanvas
 
       @paletteWrapper = @paletteElement = document.createElement 'div'
-      @paletteWrapper.className = 'ice-palette-wrapper'
+      @paletteWrapper.className = 'melt-palette-wrapper'
 
       # Then palette canvas
       @paletteCanvas = document.createElement 'canvas'
-      @paletteCanvas.className = 'ice-palette-canvas'
+      @paletteCanvas.className = 'melt-palette-canvas'
 
       @paletteCtx = @paletteCanvas.getContext '2d'
 
@@ -171,7 +171,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @paletteElement.style.bottom = '0px'
       @paletteElement.style.width = '270px'
 
-      @iceElement.style.left = @paletteElement.offsetWidth + 'px'
+      @meltElement.style.left = @paletteElement.offsetWidth + 'px'
 
       @wrapperElement.appendChild @paletteElement
 
@@ -250,10 +250,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           handler.call this, event, state
 
       for eventName, elements of {
-          keydown: [@iceElement, @paletteElement]
-          keyup: [@iceElement, @paletteElement]
-          mousedown: [@iceElement, @paletteElement, @dragCover]
-          dblclick: [@iceElement, @paletteElement, @dragCover]
+          keydown: [@meltElement, @paletteElement]
+          keyup: [@meltElement, @paletteElement]
+          mousedown: [@meltElement, @paletteElement, @dragCover]
+          dblclick: [@meltElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
         for element in elements
@@ -280,12 +280,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # as the wrapper element, whenever a resize
     # occurs.
     resize: ->
-      @iceElement.style.left = "#{@paletteElement.offsetWidth}px"
-      @iceElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @iceElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      @meltElement.style.left = "#{@paletteElement.offsetWidth}px"
+      @meltElement.style.height = "#{@wrapperElement.offsetHeight}px"
+      @meltElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
 
-      @mainCanvas.height = @iceElement.offsetHeight
-      @mainCanvas.width = @iceElement.offsetWidth - @gutter.offsetWidth
+      @mainCanvas.height = @meltElement.offsetHeight
+      @mainCanvas.width = @meltElement.offsetWidth - @gutter.offsetWidth
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
@@ -560,7 +560,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     else return null
 
   hook 'mousedown', 10, ->
-    @iceElement.focus()
+    @meltElement.focus()
 
   # UNDO STACK SUPPORT
   # ================================
@@ -737,7 +737,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     # We will also have to initialize the
     # drag canvas.
     @dragCanvas = document.createElement 'canvas'
-    @dragCanvas.className = 'ice-drag-canvas'
+    @dragCanvas.className = 'melt-drag-canvas'
 
     @dragCanvas.style.left = '-9999px'
     @dragCanvas.style.top = '-9999px'
@@ -746,15 +746,15 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     # And the canvas for drawing highlights
     @highlightCanvas = document.createElement 'canvas'
-    @highlightCanvas.className = 'ice-highlight-canvas'
+    @highlightCanvas.className = 'melt-highlight-canvas'
 
     @highlightCtx = @highlightCanvas.getContext '2d'
 
     # We append it to the tracker element,
     # so that it can appear in front of the scrollers.
-    #@iceElement.appendChild @dragCanvas
+    #@meltElement.appendChild @dragCanvas
     document.body.appendChild @dragCanvas
-    @iceElement.appendChild @highlightCanvas
+    @meltElement.appendChild @highlightCanvas
 
   Editor::clearHighlightCanvas = ->
     @highlightCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
@@ -769,10 +769,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @dragCanvas.width = 0
     @dragCanvas.height = 0
 
-    @highlightCanvas.width = @iceElement.offsetWidth
+    @highlightCanvas.width = @meltElement.offsetWidth
     @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
 
-    @highlightCanvas.height = @iceElement.offsetHeight
+    @highlightCanvas.height = @meltElement.offsetHeight
     @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
 
     @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -938,8 +938,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         head = head.next
 
-      @dragCanvas.style.top = "#{position.y + getOffsetTop(@iceElement)}px"
-      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@iceElement)}px"
+      @dragCanvas.style.top = "#{position.y + getOffsetTop(@meltElement)}px"
+      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@meltElement)}px"
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
@@ -1304,7 +1304,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
-    @paletteHeader.className = 'ice-palette-header'
+    @paletteHeader.className = 'melt-palette-header'
 
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
@@ -1315,12 +1315,12 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       # in our appending cycle
       if i % 2 is 0
         paletteHeaderRow = document.createElement 'div'
-        paletteHeaderRow.className = 'ice-palette-header-row'
+        paletteHeaderRow.className = 'melt-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
 
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
-      paletteGroupHeader.className = 'ice-palette-group-header'
+      paletteGroupHeader.className = 'melt-palette-group-header'
       paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
       if paletteGroup.color
         paletteGroupHeader.className += ' ' + paletteGroup.color
@@ -1359,7 +1359,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         # Apply the "selected" style to us
         @currentPaletteGroupHeader.className +=
-            ' ice-palette-group-header-selected'
+            ' melt-palette-group-header-selected'
 
         # Redraw the palette.
         @redrawPalette()
@@ -1405,7 +1405,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # ================================
   hook 'populate', 1, ->
     @paletteHighlightCanvas = document.createElement 'canvas'
-    @paletteHighlightCanvas.className = 'ice-palette-highlight-canvas'
+    @paletteHighlightCanvas.className = 'melt-palette-highlight-canvas'
     @paletteHighlightCtx = @paletteHighlightCanvas.getContext '2d'
 
     @paletteHighlightPath = null
@@ -1434,7 +1434,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       block = data.block
 
       hoverDiv = document.createElement 'div'
-      hoverDiv.className = 'ice-hover-div'
+      hoverDiv.className = 'melt-hover-div'
 
       hoverDiv.title = data.title ? block.stringify()
 
@@ -1507,9 +1507,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # we will use for text input.
   hook 'populate', 1, ->
     @hiddenInput = document.createElement 'textarea'
-    @hiddenInput.className = 'ice-hidden-input'
+    @hiddenInput.className = 'melt-hidden-input'
 
-    @iceElement.appendChild @hiddenInput
+    @meltElement.appendChild @hiddenInput
 
     # We also need to initialise some fields
     # for knowing what is focused
@@ -1736,7 +1736,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @textFocus = null
       @redrawMain()
       @hiddenInput.blur()
-      @iceElement.focus()
+      @meltElement.focus()
       return
 
     # Record old focus value
@@ -1983,14 +1983,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # with some fields.
   hook 'populate', 0, ->
     @lassoSelectCanvas = document.createElement 'canvas'
-    @lassoSelectCanvas.className = 'ice-lasso-select-canvas'
+    @lassoSelectCanvas.className = 'melt-lasso-select-canvas'
 
     @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
 
     @lassoSelectAnchor = null
     @lassoSegment = null
 
-    @iceElement.appendChild @lassoSelectCanvas
+    @meltElement.appendChild @lassoSelectCanvas
 
   # Conveneince function for clearing
   # the lasso select canvas
@@ -2000,10 +2000,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # Deal with resize for the lasso
   # select canvas
   hook 'resize', 0, ->
-    @lassoSelectCanvas.width = @iceElement.offsetWidth
+    @lassoSelectCanvas.width = @meltElement.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
-    @lassoSelectCanvas.height = @iceElement.offsetHeight
+    @lassoSelectCanvas.height = @meltElement.offsetHeight
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
 
     @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -2618,7 +2618,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
-    @aceElement.className = 'ice-ace'
+    @aceElement.className = 'melt-ace'
 
     @wrapperElement.appendChild @aceElement
 
@@ -2637,9 +2637,9 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @currentlyAnimating = false
 
     @transitionContainer = document.createElement 'div'
-    @transitionContainer.className = 'ice-transition-container'
+    @transitionContainer.className = 'melt-transition-container'
 
-    @iceElement.appendChild @transitionContainer
+    @meltElement.appendChild @transitionContainer
 
   # For animation and ace editor,
   # we will need a couple convenience functions
@@ -2775,7 +2775,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       else
         @mainScroller.style.overflowX = 'hidden'
       @mainScroller.style.overflowY = 'hidden'
-      @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
+      @meltElement.style.width = @wrapperElement.offsetWidth + 'px'
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
@@ -2806,7 +2806,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
 
-        div.className = 'ice-transitioning-element'
+        div.className = 'melt-transitioning-element'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
         translatingElements.push div
 
@@ -2839,10 +2839,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         div.style.width = "#{@gutter.offsetWidth}px"
         translatingElements.push div
 
-        div.className = 'ice-transitioning-element ice-transitioning-gutter'
+        div.className = 'melt-transitioning-element melt-transitioning-gutter'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
-        @iceElement.appendChild div
+        @meltElement.appendChild div
 
         do (div, line) =>
           # Set off the css transition
@@ -2866,20 +2866,20 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @cursorCanvas.style.opacity = 0
 
       setTimeout (=>
-        @iceElement.style.transition =
+        @meltElement.style.transition =
           @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-        @iceElement.style.left = '0px'
+        @meltElement.style.left = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
       ), fadeTime
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
-        @iceElement.style.transition =
+        @meltElement.style.transition =
           @paletteWrapper.style.transition = ''
 
-        @iceElement.style.top = '-9999px'
-        @iceElement.style.left = '-9999px'
+        @meltElement.style.top = '-9999px'
+        @meltElement.style.left = '-9999px'
 
         @paletteWrapper.style.top = '-9999px'
         @paletteWrapper.style.left = '-9999px'
@@ -2932,7 +2932,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       setTimeout (=>
         # Hide scrollbars and increase width
         @mainScroller.style.overflow = 'hidden'
-        @iceElement.style.width = @wrapperElement.offsetWidth + 'px'
+        @meltElement.style.width = @wrapperElement.offsetWidth + 'px'
 
         @redrawMain noText: true
 
@@ -2944,8 +2944,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
         @paletteWrapper.style.top = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
-        @iceElement.style.top = "0px"
-        @iceElement.style.left = "0px"
+        @meltElement.style.top = "0px"
+        @meltElement.style.left = "0px"
 
         @paletteHeader.style.zIndex = 0
 
@@ -2972,7 +2972,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
           div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
 
-          div.className = 'ice-transitioning-element'
+          div.className = 'melt-transitioning-element'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
@@ -3006,11 +3006,11 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
           div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
               lineHeight - aceScrollTop}px"
 
-          div.className = 'ice-transitioning-element ice-transitioning-gutter'
+          div.className = 'melt-transitioning-element melt-transitioning-gutter'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
-          @iceElement.appendChild div
+          @meltElement.appendChild div
 
           do (div, line) =>
             setTimeout (=>
@@ -3035,14 +3035,14 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
         ), translateTime
 
-        @iceElement.style.transition =
+        @meltElement.style.transition =
           @paletteWrapper.style.transition = "left #{fadeTime}ms"
 
-        @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @meltElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
 
         setTimeout (=>
-          @iceElement.style.transition =
+          @meltElement.style.transition =
             @paletteWrapper.style.transition = ''
 
           # Show scrollbars again
@@ -3083,13 +3083,13 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     }
 
     @mainScroller = document.createElement 'div'
-    @mainScroller.className = 'ice-main-scroller'
+    @mainScroller.className = 'melt-main-scroller'
 
     @mainScrollerStuffing = document.createElement 'div'
-    @mainScrollerStuffing.className = 'ice-main-scroller-stuffing'
+    @mainScrollerStuffing.className = 'melt-main-scroller-stuffing'
 
     @mainScroller.appendChild @mainScrollerStuffing
-    @iceElement.appendChild @mainScroller
+    @meltElement.appendChild @mainScroller
 
     @mainScroller.addEventListener 'scroll', =>
       @scrollOffsets.main.y = @mainScroller.scrollTop
@@ -3105,10 +3105,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @redrawMain()
 
     @paletteScroller = document.createElement 'div'
-    @paletteScroller.className = 'ice-palette-scroller'
+    @paletteScroller.className = 'melt-palette-scroller'
 
     @paletteScrollerStuffing = document.createElement 'div'
-    @paletteScrollerStuffing.className = 'ice-palette-scroller-stuffing'
+    @paletteScrollerStuffing.className = 'melt-palette-scroller-stuffing'
 
     @paletteScroller.appendChild @paletteScrollerStuffing
     @paletteWrapper.appendChild @paletteScroller
@@ -3126,8 +3126,8 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @redrawPalette()
 
   hook 'resize', 0, ->
-    @mainScroller.style.width = "#{@iceElement.offsetWidth}px"
-    @mainScroller.style.height = "#{@iceElement.offsetHeight}px"
+    @mainScroller.style.width = "#{@meltElement.offsetWidth}px"
+    @mainScroller.style.height = "#{@meltElement.offsetHeight}px"
 
   hook 'resize_palette', 0, ->
     @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
@@ -3352,10 +3352,10 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     if useBlocks
       @setValue @aceEditor.getValue()
 
-      @iceElement.style.top =
+      @meltElement.style.top =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
 
-      @iceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+      @meltElement.style.left = "#{@paletteWrapper.offsetWidth}px"
 
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
@@ -3375,7 +3375,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
       @aceEditor.session.setScrollTop oldScrollTop
 
-      @iceElement.style.top = @iceElement.style.left =
+      @meltElement.style.top = @meltElement.style.left =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
@@ -3392,7 +3392,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
   hook 'populate', 0, ->
     @dragCover = document.createElement 'div'
-    @dragCover.className = 'ice-drag-cover'
+    @dragCover.className = 'melt-drag-cover'
     @dragCover.style.display = 'none'
 
     document.body.appendChild @dragCover
@@ -3452,7 +3452,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       event.changedTouches[index].pageY
     )
 
-    return absolutePoint.from(@absoluteOffset(@iceElement))
+    return absolutePoint.from(@absoluteOffset(@meltElement))
 
   Editor::queueLassoMousedown = (trackPoint, event) ->
     @lassoSelectStartTimeout = setTimeout (=>
@@ -3536,17 +3536,17 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # ================================
   hook 'populate', 0, ->
     @cursorCanvas = document.createElement 'canvas'
-    @cursorCanvas.className = 'ice-highlight-canvas ice-cursor-canvas'
+    @cursorCanvas.className = 'melt-highlight-canvas melt-cursor-canvas'
 
     @cursorCtx = @cursorCanvas.getContext '2d'
 
-    @iceElement.appendChild @cursorCanvas
+    @meltElement.appendChild @cursorCanvas
 
   hook 'resize', 0, ->
-    @cursorCanvas.width = @iceElement.offsetWidth
+    @cursorCanvas.width = @meltElement.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
-    @cursorCanvas.height = @iceElement.offsetHeight
+    @cursorCanvas.height = @meltElement.offsetHeight
     @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
 
     @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -3588,7 +3588,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @flashTimeout = setTimeout (=> @flash()), 500
 
   Editor::editorHasFocus = ->
-    document.activeElement in [@iceElement, @hiddenInput, @copyPasteInput] and
+    document.activeElement in [@meltElement, @hiddenInput, @copyPasteInput] and
     document.hasFocus()
 
   Editor::flash = ->
@@ -3608,7 +3608,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
 
-    @iceElement.addEventListener 'blur', blurCursors
+    @meltElement.addEventListener 'blur', blurCursors
     @hiddenInput.addEventListener 'blur', blurCursors
     @copyPasteInput.addEventListener 'blur', blurCursors
 
@@ -3617,7 +3617,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = 1
 
-    @iceElement.addEventListener 'focus', focusCursors
+    @meltElement.addEventListener 'focus', focusCursors
     @hiddenInput.addEventListener 'focus', focusCursors
     @copyPasteInput.addEventListener 'focus', focusCursors
 
@@ -3658,7 +3658,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
   # ================================
   hook 'populate', 0, ->
     @gutter = document.createElement 'div'
-    @gutter.className = 'ice-gutter'
+    @gutter.className = 'melt-gutter'
 
     @lineNumberWrapper = document.createElement 'div'
     @gutter.appendChild @lineNumberWrapper
@@ -3667,7 +3667,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     @lineNumberTags = {}
 
-    @iceElement.appendChild @gutter
+    @meltElement.appendChild @gutter
 
   hook 'resize', 0, ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
@@ -3680,7 +3680,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
 
     else
       lineDiv = document.createElement 'div'
-      lineDiv.className = 'ice-gutter-line'
+      lineDiv.className = 'melt-gutter-line'
       lineDiv.innerText = lineDiv.textContent = line + 1
 
       @lineNumberTags[line] = lineDiv
@@ -3728,7 +3728,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
 
   hook 'resize', 0, ->
-    @gutter.style.height = "#{Math.max @iceElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
 
   Editor::setPaletteWidth = (width) ->
     @paletteWrapper.style.width = width + 'px'
@@ -3741,7 +3741,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
     @copyPasteInput.style.position = 'absolute'
     @copyPasteInput.style.left = @copyPasteInput.style.top = '-9999px'
 
-    @iceElement.appendChild @copyPasteInput
+    @meltElement.appendChild @copyPasteInput
 
     pressedVKey = false
     pressedXKey = false
@@ -3811,7 +3811,7 @@ define ['ice-helper', 'ice-coffee', 'ice-draw', 'ice-model', 'ice-view'], (helpe
       if @textFocus?
         @hiddenInput.focus()
       else
-        @iceElement.focus()
+        @meltElement.focus()
 
   hook 'populate', 0, ->
     setTimeout (=>

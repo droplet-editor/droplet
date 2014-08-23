@@ -1,4 +1,4 @@
-require ['ice-model', 'ice-coffee', 'ice-view', 'ice'], (model, coffee, view, ice) ->
+require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'ice'], (model, parser, coffee, view, ice) ->
 
   test 'Parser success', ->
     testString = (m, str, expected) ->
