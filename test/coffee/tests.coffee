@@ -1,4 +1,4 @@
-require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'ice'], (model, parser, coffee, view, ice) ->
+require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (model, parser, coffee, view, melt) ->
 
   test 'Parser success', ->
     testString = (m, str, expected) ->
@@ -747,7 +747,7 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'ice'], (model
 
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new ice.Editor document.getElementById('test-main'), []
+    editor = new melt.Editor document.getElementById('test-main'), []
 
     editor.on 'statechange', (usingBlocks) ->
       states.push usingBlocks
@@ -763,7 +763,7 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'ice'], (model
   test 'Controller: cursor motion and rendering', ->
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new ice.Editor document.getElementById('test-main'), []
+    editor = new melt.Editor document.getElementById('test-main'), []
 
     editor.setValue '''
     fd 10
