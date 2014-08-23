@@ -6,14 +6,14 @@ requirejs.config
   nodeRequire: require
   baseUrl: __dirname
   paths:
-    'ice-coffee': '../../dist/ice'
+    'melt-coffee': '../../dist/melt'
     'coffee-script': '../../vendor/coffee-script.js'
 
 describe 'Parser unity', (done) ->
   coffee = null
 
   before (done) ->
-    requirejs ['ice-coffee'], (module) ->
+    requirejs ['melt-coffee'], (module) ->
       coffee = module
       done()
 
@@ -55,8 +55,6 @@ describe 'Parser unity', (done) ->
       filelines = file.split '\n'
       for line, i in unparsed.split '\n'
         assert.equal line, filelines[i], "#{i} failed"
-
-      # assert.equal unparsed, file
 
   testFile 'test/data/nodes.coffee'
   testFile 'test/data/allTests.coffee'
