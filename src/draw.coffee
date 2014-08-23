@@ -5,7 +5,7 @@
 
 ## Private (convenience) functions
 
-define ['ice-helper'], (helper) ->
+define ['melt-helper'], (helper) ->
   exports = {}
 
   # ## _area ##

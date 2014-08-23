@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['ice-helper'], (helper) ->
+define ['melt-helper'], (helper) ->
   exports = {}
 
   YES = -> yes

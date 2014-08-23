@@ -4,7 +4,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['ice-helper', 'ice-model'], (helper, model) ->
+define ['melt-helper', 'melt-model'], (helper, model) ->
   exports = {}
 
   YES = -> true
