@@ -40,7 +40,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   if typeof(window) isnt 'undefined' and window.navigator?.userAgent
     userAgent = window.navigator.userAgent
   isOSX = /OS X/.test(userAgent)
-  command_modifiers = isOSX ? META_KEYS : CONTROL_KEYS
+  command_modifiers = if isOSX then META_KEYS else CONTROL_KEYS
   command_pressed = (e) -> if isOSX then e.metaKey else e.ctrlKey
 
   exports = {}
@@ -249,6 +249,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         for handler in editorBindings[event.type]
           handler.call this, event, state
 
+        if event.which is BACKSPACE_KEY
+          event.preventDefault()
+
       for eventName, elements of {
           keydown: [@meltElement, @paletteElement]
           keyup: [@meltElement, @paletteElement]
@@ -421,6 +424,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         # Update the ace editor value to match,
         # but don't trigger a resize event.
         @suppressAceChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
+        console.log 'SET ACE @changeEventVersion'
         @aceEditor.setValue @getValue(), -1
         @suppressAceChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
 
@@ -2759,6 +2763,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @currentlyUsingBlocks and not @currentlyAnimating
       @fireEvent 'statechange', [false]
 
+      console.log 'ACE SET VALUE ON MELT'
       @aceEditor.setValue @getValue(), -1
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
@@ -3251,7 +3256,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           treeView.bounds[@lastHoveredLine].contains mainPoint
         return
 
-      hoveredLine = @findLineNumberAtCoordinate point.y
+      hoveredLine = @findLineNumberAtCoordinate mainPoint.y
 
       unless treeView.bounds[hoveredLine].contains mainPoint
         hoveredLine = null
@@ -3305,6 +3310,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
+    console.log 'SET ACE @setValue'
     @aceEditor.setValue value, -1
     @aceEditor.resize true
 
@@ -3799,7 +3805,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @redrawMain()
 
   hook 'keydown', 0, (event, state) ->
+    console.log event.which, command_modifiers
     if event.which in command_modifiers
+      console.log 'FOCUSING'
       unless @textFocus?
         @copyPasteInput.focus()
         if @lassoSegment?
