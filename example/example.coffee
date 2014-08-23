@@ -2,14 +2,14 @@
 # in the require.js 'main' module.
 require.config
   paths:
-    'ice': '../js/main'
-    'ice-helper': '../js/helper'
-    'ice-coffee': '../js/coffee'
-    'ice-model': '../js/model'
-    'ice-view': '../js/view'
-    'ice-parser': '../js/parser'
-    'ice-draw': '../js/draw'
-    'ice-controller': '../js/controller'
+    'melt': '../js/main'
+    'melt-helper': '../js/helper'
+    'melt-coffee': '../js/coffee'
+    'melt-model': '../js/model'
+    'melt-view': '../js/view'
+    'melt-parser': '../js/parser'
+    'melt-draw': '../js/draw'
+    'melt-controller': '../js/controller'
     'coffee-script': '../vendor/coffee-script'
 
 readFile = (name) ->
@@ -19,10 +19,10 @@ readFile = (name) ->
   return q.responseText
 
 
-require ['ice'], (ice) ->
+require ['melt'], (melt) ->
 
   # Example palette
-  window.editor = new ice.Editor document.getElementById('editor'), [
+  window.editor = new melt.Editor document.getElementById('editor'), [
     {
       name: 'Draw'
       color: 'blue'
