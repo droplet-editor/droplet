@@ -78,8 +78,8 @@ module.exports = (grunt) ->
             'melt-coffee': 'coffee'
             'melt-parser': 'parser'
             'melt-helper': 'helper'
-            'ice': 'main'
-          name: 'ice'
+            'melt': 'main'
+          name: 'melt'
           optimize: 'none'
           out: 'dist/melt.js'
 
