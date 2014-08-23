@@ -600,7 +600,7 @@ define ['melt-helper'], (helper) ->
       precedence="#{@container.precedence}"
       color="#{@container.color}"
       socketLevel="#{@container.socketLevel}"
-      classes="#{@classes.join ' '}"
+      classes="#{@classes?.join?(' ') ? []}"
     >
     """
 
