@@ -247,9 +247,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         for handler in editorBindings[event.type]
           handler.call this, event, state
 
-        if event.which is BACKSPACE_KEY
-          event.preventDefault()
-
       for eventName, elements of {
           keydown: [@meltElement, @paletteElement]
           keyup: [@meltElement, @paletteElement]
@@ -440,8 +437,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         # but don't trigger a resize event.
         @suppressAceChangeEvent = true
         oldScroll = @aceEditor.session.getScrollTop()
-        console.log 'SET ACE @changeEventVersion'
-        @aceEditor.setValue @getValue(), -1
+        @setAceValue @getValue()
         @suppressAceChangeEvent = false
         @aceEditor.session.setScrollTop oldScroll
 
@@ -770,6 +766,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   hook 'populate', 0, ->
     @clickedPoint = null
     @clickedBlock = null
+    @clickedBlockIsPaletteBlock = false
 
     @draggingBlock = null
     @draggingOffset = null
@@ -851,6 +848,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if hitTestResult?
       # Record the hit test result (the block we want to pick up)
       @clickedBlock = hitTestResult
+      @clickedBlockIsPaletteBlock = false
 
       # Move the cursor somewhere nearby
       @moveCursorTo @clickedBlock.start.next
@@ -985,6 +983,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
+      @clickedBlockIsPaletteBlock = false
 
       @begunTrash = @wouldDelete position
 
@@ -1341,8 +1340,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   hook 'populate', 0, ->
     @currentPaletteBlocks = []
     @currentPaletteMetadata = []
-
-    @clickedBlockIsPaletteBlock = false
 
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
@@ -2221,6 +2218,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
       @clickedBlock = @lassoSegment
+      @clickedBlockIsPaletteBlock = false
       @clickedPoint = point
 
       state.consumedHitTest = true
@@ -2549,6 +2547,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @lassoSegment?
       @addMicroUndoOperation 'CAPTURE_POINT'
       @deleteLassoSegment()
+      event.preventDefault()
       return false
 
     else if not @textFocus? or
@@ -2655,7 +2654,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @changeFromAceTimer = null
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
     @resizeBlockMode()
-    return @setValue_raw @aceEditor.getValue()
+    return @setValue_raw @getAceValue()
 
   Editor::changeFromAceEditor = ->
     if @changeFromAceTimer then return
@@ -2810,7 +2809,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @fireEvent 'statechange', [false]
 
       console.log 'ACE SET VALUE ON MELT'
-      @aceEditor.setValue @getValue(), -1
+      @setAceValue @getValue()
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
       @aceEditor.scrollToLine top
@@ -3355,8 +3354,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
-    @aceEditor.setValue value, -1
-    @aceEditor.resize true
+    @setAceValue value
+    @resizeTextMode()
 
     @aceEditor.session.setScrollTop oldScrollTop
 
@@ -3373,7 +3372,18 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @currentlyUsingBlocks
       return @addEmptyLine @tree.stringify()
     else
-      @aceEditor.getValue()
+      @getAceValue()
+
+  Editor::getAceValue = ->
+    value = @aceEditor.getValue()
+    @lastAceSeenValue = value
+
+  Editor::setAceValue = (value) ->
+    if value isnt @lastAceSeenValue
+      console.log 'setting ace value'
+      @aceEditor.setValue value
+      @lastAceSeenValue = value
+
 
   # PUBLIC EVENT BINDING HOOKS
   # ===============================
@@ -3400,7 +3410,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::setEditorState = (useBlocks) ->
     if useBlocks
-      @setValue @aceEditor.getValue()
+      @setValue @getAceValue()
 
       @meltElement.style.top =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
@@ -3420,7 +3430,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     else
       oldScrollTop = @aceEditor.session.getScrollTop()
 
-      @aceEditor.setValue @getValue(), -1
+      @setAceValue @getValue()
       @aceEditor.resize true
 
       @aceEditor.session.setScrollTop oldScrollTop
