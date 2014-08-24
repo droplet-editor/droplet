@@ -210,7 +210,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # This stage of ICE editor construction, which is repeated
       # whenever the editor is resized, should adjust the sizes
       # of all the ICE editor componenents to fit the wrapper.
-      window.addEventListener 'resize', => @resize()
+      window.addEventListener 'resize', => @resizeBlockMode()
 
       # ## Tracker Events
       # We allow binding to the tracker element.
@@ -268,7 +268,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @tree = new model.Segment()
       @tree.start.insert @cursor
 
-      @resize()
+      @resizeBlockMode()
 
       # Now that we've populated everything, immediately re@draw.
       @redrawMain(); @redrawPalette()
@@ -280,7 +280,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # all of the natively-added canvases, as well
     # as the wrapper element, whenever a resize
     # occurs.
-    resize: ->
+    resizeTextMode: ->
+      @resizeAceElement()
+      @aceEditor.resize true
+
+    resizeBlockMode: ->
+      @resizeTextMode()
+      @resizeGutter()
+
       @meltElement.style.left = "#{@paletteElement.offsetWidth}px"
       @meltElement.style.height = "#{@wrapperElement.offsetHeight}px"
       @meltElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
@@ -294,9 +301,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
 
       @resizePalette()
-
-      for binding in editorBindings.resize
-        binding.call this
+      @resizePaletteHighlight()
+      @resizeNubby()
+      @resizeMainScroller()
+      @resizeLassoCanvas()
+      @resizeCursorCanvas()
+      @resizeDragCanvas()
 
       # Re-scroll and redraw main
       @scrollOffsets.main.y = @mainScroller.scrollTop
@@ -331,6 +341,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
       @redrawPalette()
+
+  Editor::resize = ->
+    if @currentlyUsingBlocks
+      @resizeBlockMode()
+    else
+      @resizeTextMode()
 
 
   # RENDERING CAPABILITIES
@@ -373,7 +389,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @redrawMain()
 
-  hook 'resize', 0, -> @setTopNubbyStyle @nubbyHeight, @nubbyColor
+  Editor::resizeNubby = ->
+    @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
   Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating_suprressRedraw
@@ -788,7 +805,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @dragCtx.clearRect 0, 0, @dragCanvas.width, @dragCanvas.height
 
   # On resize, we will want to size the drag canvas correctly.
-  hook 'resize', 0, ->
+  Editor::resizeDragCanvas = ->
     @dragCanvas.width = 0
     @dragCanvas.height = 0
 
@@ -1436,7 +1453,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @paletteWrapper.appendChild @paletteHighlightCanvas
 
-  hook 'resize', 0, ->
+  Editor::resizePaletteHighlight = ->
     @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
     @paletteHighlightCanvas.width = @paletteCanvas.width
     @paletteHighlightCanvas.height = @paletteCanvas.height
@@ -1561,7 +1578,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
           @redrawTextInput()
 
-  hook 'resize', 0, ->
+  Editor::resizeAceElement = ->
     @aceElement.style.width = "#{@wrapperElement.offsetWidth}px"
     @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
 
@@ -2022,7 +2039,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   # Deal with resize for the lasso
   # select canvas
-  hook 'resize', 0, ->
+  Editor::resizeLassoCanvas = ->
     @lassoSelectCanvas.width = @meltElement.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
@@ -2633,7 +2650,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::copyAceEditor = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-    @resize()
+    @resizeBlockMode()
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
@@ -3076,7 +3093,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           for div in translatingElements
             div.parentNode.removeChild div
 
-          @resize()
+          @resizeBlockMode()
 
           @fireEvent 'toggledone', [@currentlyUsingBlocks]
 
@@ -3145,7 +3162,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       @redrawPalette()
 
-  hook 'resize', 0, ->
+  Editor::resizeMainScroller = ->
     @mainScroller.style.width = "#{@meltElement.offsetWidth}px"
     @mainScroller.style.height = "#{@meltElement.offsetHeight}px"
 
@@ -3214,7 +3231,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::setFontSize = (fontSize) ->
     @setFontSize_raw fontSize
-    @resize()
+    @resizeBlockMode()
 
   # LINE MARKING SUPPORT
   # ================================
@@ -3388,7 +3405,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 1
 
-      @resize(); @redrawMain()
+      @resizeBlockMode(); @redrawMain()
 
     else
       oldScrollTop = @aceEditor.session.getScrollTop()
@@ -3408,7 +3425,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @mainCanvas.opacity =
         @highlightCanvas.opacity = 0
 
-      @resize()
+      @resizeBlockMode()
 
   # DRAG CANVAS SHOW/HIDE HACK
   # ================================
@@ -3565,7 +3582,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @meltElement.appendChild @cursorCanvas
 
-  hook 'resize', 0, ->
+  Editor::resizeCursorCanvas = ->
     @cursorCanvas.width = @meltElement.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
@@ -3692,8 +3709,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @meltElement.appendChild @gutter
 
-  hook 'resize', 0, ->
+  Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+
 
   Editor::addLineNumberForLine = (line) ->
     treeView = @view.getViewNodeFor @tree
@@ -3752,12 +3771,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if changedBox
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
 
-  hook 'resize', 0, ->
-    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
-
   Editor::setPaletteWidth = (width) ->
     @paletteWrapper.style.width = width + 'px'
-    @resize()
+    @resizeBlockMode()
 
   # COPY AND PASTE
   # ================================
