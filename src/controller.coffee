@@ -438,10 +438,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
         # Update the ace editor value to match,
         # but don't trigger a resize event.
-        @suppressAceChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
+        @suppressAceChangeEvent = true
+        oldScroll = @aceEditor.session.getScrollTop()
         console.log 'SET ACE @changeEventVersion'
         @aceEditor.setValue @getValue(), -1
-        @suppressAceChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
+        @suppressAceChangeEvent = false
+        @aceEditor.session.setScrollTop oldScroll
 
         @fireEvent 'change', []
 
@@ -2649,8 +2651,17 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # ================================
 
   Editor::copyAceEditor = ->
+    clearTimeout @changeFromAceTimer
+    @changeFromAceTimer = null
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
     @resizeBlockMode()
+    return @setValue_raw @aceEditor.getValue()
+
+  Editor::changeFromAceEditor = ->
+    if @changeFromAceTimer then return
+    @changeFromAceTimer = setTimeout (=>
+      @copyAceEditor()
+    ), 0
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
@@ -2666,8 +2677,11 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      if @currentlyUsingBlocks and not @suppressAceChangeEvent
-        @copyAceEditor()
+      if @suppressAceChangeEvent then return
+      if @currentlyUsingBlocks
+        @changeFromAceEditor()
+      else
+        @fireEvent 'change', []
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
@@ -2949,11 +2963,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
-      @copyAceEditor()
-
-      @fireEvent 'statechange', [true]
-
-      setValueResult = @setValue_raw @aceEditor.getValue()
+      setValueResult = @copyAceEditor()
 
       unless setValueResult.success
         return setValueResult
@@ -2965,6 +2975,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       @currentlyUsingBlocks = true
       @currentlyAnimating = true
+      @fireEvent 'statechange', [true]
 
       setTimeout (=>
         # Hide scrollbars and increase width
@@ -3344,7 +3355,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
-    console.log 'SET ACE @setValue'
     @aceEditor.setValue value, -1
     @aceEditor.resize true
 
