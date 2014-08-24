@@ -215,10 +215,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # ## Tracker Events
       # We allow binding to the tracker element.
       dispatchMouseEvent = (event) =>
-        # ignore mouse clicks that are not the left-button, and ignore
-        # them if they are on the scrollbars
-        if event.type in ['mousedown', 'dblclick', 'mouseup']
-          if event.which isnt 1 then return
+        # ignore mouse clicks that are not the left-button
+        if event.type isnt 'mousemove' and event.which isnt 1 then return
 
         trackPoint = new @draw.Point(event.pageX, event.pageY)
 
@@ -539,6 +537,27 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     new @draw.Point(point.x - gbr.left + @scrollOffsets.palette.x,
                     point.y - gbr.top + @scrollOffsets.palette.y)
 
+  Editor::trackerPointIsInMain = (point) ->
+    if not @mainCanvas.offsetParent?
+      return false
+    gbr = @mainCanvas.getBoundingClientRect()
+    return point.x >= gbr.left and point.x < gbr.right and
+           point.y >= gbr.top and point.y < gbr.bottom
+
+  Editor::trackerPointIsInMainScroller = (point) ->
+    if not @mainScroller.offsetParent?
+      return false
+    gbr = @mainScroller.getBoundingClientRect()
+    return point.x >= gbr.left and point.x < gbr.right and
+           point.y >= gbr.top and point.y < gbr.bottom
+
+  Editor::trackerPointIsInPalette = (point) ->
+    if not @palettleCanvas.offsetParent?
+      return false
+    gbr = @palettleCanvas.getBoundingClientRect()
+    return point.x >= gbr.left and point.x < gbr.right and
+           point.y >= gbr.top and point.y < gbr.bottom
+
   # ### hitTest
   # Simple function for going through a linked-list block
   # and seeing what the innermost child is that we hit.
@@ -791,8 +810,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the main pane, pass.
+    if not @trackerPointIsInMain(point) then return
 
     # Hit test against the tree.
     mainPoint = @trackerPointToMain(point)
@@ -810,7 +829,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     # If it came back positive,
     # deal with the click.
-    if hitTestResult? and event.which is 1
+    if hitTestResult?
       # Record the hit test result (the block we want to pick up)
       @clickedBlock = hitTestResult
 
@@ -1247,8 +1266,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the main pane, pass.
+    if not @trackerPointIsInMain(point) then return
 
     # Hit test against floating blocks
     for record, i in @floatingBlocks
@@ -1386,8 +1405,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the palette pane, pass.
+    if not @trackerPointIsInPalette(point) then return
 
     palettePoint = @trackerPointToPalette point
     if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
@@ -2042,17 +2061,16 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     if state.consumedHitTest or state.suppressLassoSelect then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the main pane, pass.
+    if not @trackerPointIsInMain(point) then return
+    if @trackerPointIsInPalette(point) then return
 
     # If the point was actually in the main canvas,
     # start a lasso select.
     mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
     palettePoint = @trackerPointToPalette(point).from @scrollOffsets.palette
 
-    if 0 < mainPoint.x < @mainCanvas.width and 0 < mainPoint.y < @mainCanvas.height and not
-       (0 < palettePoint.x < @paletteCanvas.width and 0 < palettePoint.x < @paletteCanvas.height)
-      @lassoSelectAnchor = @trackerPointToMain point
+    @lassoSelectAnchor = @trackerPointToMain point
 
   # On mousemove, if we are in the middle of a
   # lasso select, continue with it.
@@ -2181,9 +2199,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # pick a selected segment up; check.
   hook 'mousedown', 3, (point, event, state) ->
     if state.consumedHitTest then return
-
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
       @clickedBlock = @lassoSegment
@@ -3248,6 +3263,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # Do not attempt to detect this if we are currently dragging something,
     # or no event handlers are bound.
     if not @draggingBlock? and not @clickedBlock? and @hasEvent 'linehover'
+      if not @trackerPointIsInMainScroller point then return
+
       mainPoint = @trackerPointToMain point
 
       treeView = @view.getViewNodeFor @tree
@@ -3706,8 +3723,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       if start is pivot or end is pivot
         return pivot
 
-      end = pivot if treeView.bounds[pivot].y > coord
-      start = pivot if treeView.bounds[pivot].y < coord
+      if treeView.bounds[pivot].y > coord
+        end = pivot
+      else
+        start = pivot
 
       if end < 0 then return 0
       if start >= treeView.bounds.length then return treeView.bounds.length - 1
@@ -3805,7 +3824,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @redrawMain()
 
   hook 'keydown', 0, (event, state) ->
-    console.log event.which, command_modifiers
     if event.which in command_modifiers
       console.log 'FOCUSING'
       unless @textFocus?
