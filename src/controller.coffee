@@ -552,9 +552,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
            point.y >= gbr.top and point.y < gbr.bottom
 
   Editor::trackerPointIsInPalette = (point) ->
-    if not @palettleCanvas.offsetParent?
+    if not @paletteCanvas.offsetParent?
       return false
-    gbr = @palettleCanvas.getBoundingClientRect()
+    gbr = @paletteCanvas.getBoundingClientRect()
     return point.x >= gbr.left and point.x < gbr.right and
            point.y >= gbr.top and point.y < gbr.bottom
 
