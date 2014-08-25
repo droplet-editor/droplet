@@ -56,7 +56,5 @@ describe 'Parser unity', (done) ->
       for line, i in unparsed.split '\n'
         assert.equal line, filelines[i], "#{i} failed"
 
-      # assert.equal unparsed, file
-
   testFile 'test/data/nodes.coffee'
   testFile 'test/data/allTests.coffee'

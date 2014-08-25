@@ -124,6 +124,7 @@ module.exports = (grunt) ->
       build:
         files:
           'dist/melt-full.min.js': [
+            'vendor/sax.js'
             'vendor/quadtree.js'
             'dist/melt.js'
           ]
