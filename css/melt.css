@@ -73,6 +73,8 @@
 .melt-palette-wrapper {
   position: absolute;
   top: 0; bottom: 0; width: 300px;
+  max-width: 40%;
+  overflow: hidden;
   z-index: 257;
   -webkit-user-select: none;
   -khtml-user-select: none;
