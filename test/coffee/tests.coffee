@@ -1,271 +1,37 @@
-require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (model, parser, coffee, view, melt) ->
+require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (helper, model, parser, coffee, view, melt) ->
 
   test 'Parser success', ->
-    testString = (m, str, expected) ->
-      strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
+    q = new XMLHttpRequest()
+    q.open 'GET', '/test/data/parserSuccess.json', false
+    q.send()
 
-    testString 'Function call',
-      'fd 10', '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'
-
-    testString 'Variable assignment',
-      'a = b', '<block color="command" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
-
-    testString 'If statement, normal form',
-      '''
-      if true
-        fd 10
-      ''', '''
-      <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'Unless statement, normal form',
-      '''
-      unless true
-        fd 10
-      ''', '''
-      <block color="control" precedence="0">unless <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line if statement',
-      'if a then b',
-      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>'
-
-    testString 'If-else statement, normal form',
-      '''
-      if true
-        fd 10
-      else
-        fd 10
-      ''', '''
-      <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent>
-      else<indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line if-else statement',
-      'if a then b else c',
-      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket> else <socket precedence="0">c</socket></block>'
-
-    testString 'While statement, normal form',
-      '''
-      while a
-        fd 10
-      ''', '''
-      <block color="control" precedence="-3">while <socket precedence="0">a</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line while statement',
-      'while a then fd 10',
-      '<block color="control" precedence="-3">while <socket precedence="0">a</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket></block>'
-
-    testString 'For-in, normal form',
-      '''
-      for i in list
-        fd 10
-      ''', '''
-      <block color="control" precedence="-3">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line for-in',
-      'for i in list then fd 10'
-      '<block color="control" precedence="-3">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket></block>'
-
-    testString 'Inverted one-line for-in',
-      'fd 10 for i in list',
-      '<block color="control" precedence="-3"><socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
-
-    testString 'Semicolons at the root',
-      'fd 10; bk 10',
-      '<block color="command" precedence="-2"><socket precedence="-2">'+
-      '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
-      '</socket>; <socket precedence="-2">'+
-      '<block color="command" precedence="0">bk <socket precedence="-1">10</socket></block></socket></block>'
-
-    testString 'Semicolons with one-line block',
-      'if a then b; c else d',
-      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">' +
-      '<block color="command" precedence="-2"><socket precedence="-2">b</socket>; <socket precedence="-2">c</socket>' +
-      '</block></socket> else <socket precedence="0">d</socket></block>'
-
-    testString 'Semicolons in sequence',
-      '''
-      while a
-        see hi
-        fd 10; bk 10
-        see bye
-      ''',
-      '<block color="control" precedence="-3">while <socket precedence="0">a</socket><indent depth="2">\n' +
-      '<block color="command" precedence="0">see <socket precedence="-1">hi</socket></block>\n'+
-      '<block color="command" precedence="-2"><socket precedence="-2">'+
-      '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
-      '</socket>; <socket precedence="-2">'+
-      '<block color="command" precedence="0">bk <socket precedence="-1">10</socket></block></socket></block>\n'+
-      '<block color="command" precedence="0">see <socket precedence="-1">bye</socket></block></indent></block>'
-
-    testString 'Object literal, normal form',
-      '''
-      foo {
-        a: b,
-        c: d
+    data = JSON.parse q.responseText
+    window.dumpObj = []
+    for testCase in data
+      strictEqual(
+        helper.xmlPrettyPrint(coffee.parse(testCase.str, wrapAtRoot: true).serialize()),
+        helper.xmlPrettyPrint(testCase.expected),
+        testCase.message
+      )
+      window.dumpObj.push {
+        message: testCase.message
+        str: testCase.str
+        expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
       }
-      ''',
-      '''
-      <block color="command" precedence="0"><socket precedence="0">foo</socket> <socket precedence="-1"><block color="value" precedence="0">{
-        <socket precedence="0">a</socket>: <socket precedence="0">b</socket>,
-        <socket precedence="0">c</socket>: <socket precedence="0">d</socket>
-      }</block></socket></block>
-      '''
 
-    testString 'Object literal, no braces or commas',
-      '''
-      foo
-        a: b
-        c: d
-      '''
-      '''
-      <block color="command" precedence="0"><socket precedence="0">foo</socket>
-        <socket precedence="-1"><block color="value" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
-        <socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></socket></block>
-      '''
+  test 'XML parser unity', ->
+    q = new XMLHttpRequest()
+    q.open 'GET', '/test/data/parserSuccess.json', false
+    q.send()
 
-    testString 'String interpolation',
-      'foo "#{a}"',
-      '<block color="command" precedence="0"><socket precedence="0">foo</socket> <socket precedence="-1">"#{a}"</socket></block>'
-
-    testString 'Range',
-      '[1..10]',
-      '<block color="value" precedence="100">[<socket precedence="0">1</socket>..<socket precedence="0">10</socket>]</block>'
-
-    testString 'Array',
-      '[0, 1]'
-      '<block color="value" precedence="100">[<socket precedence="0">0</socket>, <socket precedence="0">1</socket>]</block>'
-
-    testString 'Switch, one case, no default',
-      '''
-      switch k
-        when a
-          blah blah
-      ''', '''
-      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
-        when <socket precedence="0">a</socket><indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">blah</socket> <socket precedence="-1">blah</socket></block></indent></block>
-      '''
-
-    testString 'One-line switch, one case, no default',
-      '''
-      switch k
-        when a then b
-      ''',
-      '''
-      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
-        when <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>
-      '''
-
-    testString 'Switch, two cases, with default',
-      '''
-      switch k
-        when a
-          blah blah
-        when b
-          darn it
-        else
-          what ever
-      ''', '''
-      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
-        when <socket precedence="0">a</socket><indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">blah</socket> <socket precedence="-1">blah</socket></block></indent>
-        when <socket precedence="0">b</socket><indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">darn</socket> <socket precedence="-1">it</socket></block></indent>
-        else<indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">what</socket> <socket precedence="-1">ever</socket></block></indent></block>
-      '''
-
-    testString 'Empty function definition', '->', '<block color="value" precedence="0">-></block>'
-
-    testString 'Class definition, normal form, constructor only',
-      '''
-      class Duck
-        constructor: ->
-      ''',
-      '''
-      <block color="control" precedence="0">class <socket precedence="0">Duck</socket><indent depth="2">
-      <block color="value" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="value" precedence="0">-></block></socket></block></indent></block>
-      '''
-
-    testString 'Non-parenthetical function call nested in parenthetical function call',
-      '''
-      a(b
-        x: 1)
-      ''',
-      '''
-      <block color="command" precedence="0"><socket precedence="0">a</socket>(<socket precedence="-1"><block color="command" precedence="0"><socket precedence="0">b</socket>
-        <socket precedence="-1"><block color="value" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
-      '''
-
-    testString 'Parentheses around semicolon block',
-      '(fd 10; bk 10)',
-      '<block color="command" precedence="-2">(<socket precedence="-2"><block color="command" precedence="0">' +
-      'fd <socket precedence="-1">10</socket></block></socket>; <socket precedence="-2"><block color="command" precedence="0">' +
-      'bk <socket precedence="-1">10</socket></block></socket>)</block>'
-
-
-    testString 'Operator precedences',
-      '''
-      a or b
-      a and b
-      a is b
-      a isnt b
-      a > b
-      a < b
-      a >= b
-      a <= b
-      a + b
-      a - b
-      a * b
-      a / b
-      a % b
-      a ** b
-      a %% b
-      a?
-      ''','''
-      <block color="value" precedence="1"><socket precedence="1">a</socket> or <socket precedence="1">b</socket></block>
-      <block color="value" precedence="2"><socket precedence="2">a</socket> and <socket precedence="2">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> is <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> isnt <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> > <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> < <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> >= <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> <= <socket precedence="3">b</socket></block>
-      <block color="value" precedence="4"><socket precedence="4">a</socket> + <socket precedence="4">b</socket></block>
-      <block color="value" precedence="4"><socket precedence="4">a</socket> - <socket precedence="4">b</socket></block>
-      <block color="value" precedence="5"><socket precedence="5">a</socket> * <socket precedence="5">b</socket></block>
-      <block color="value" precedence="5"><socket precedence="5">a</socket> / <socket precedence="5">b</socket></block>
-      <block color="value" precedence="6"><socket precedence="6">a</socket> % <socket precedence="6">b</socket></block>
-      <block color="value" precedence="7"><socket precedence="7">a</socket> ** <socket precedence="7">b</socket></block>
-      <block color="value" precedence="7"><socket precedence="7">a</socket> %% <socket precedence="7">b</socket></block>
-      <block color="value" precedence="100"><socket precedence="101">a</socket>?</block>
-      '''
-
-  test 'XML parsing', ->
-    document = parser.parseXML '''
-    <block>
-      loop<indent prefix='  '><br/>
-        <block>fd <socket>10</socket></block><br/>
-        <block>fd <socket>20</socket></block>
-      </indent>
-    </block>
-    '''
-
-    strictEqual document.stringify(), '''
-    loop
-      fd 10
-      fd 20
-    '''
+    data = JSON.parse q.responseText
+    for testCase in data
+      xml = coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+      strictEqual(
+        helper.xmlPrettyPrint(parser.parseXML(xml).serialize()),
+        helper.xmlPrettyPrint(xml),
+        'Parser unity for: ' + testCase.message
+      )
 
   test 'Basic token operations', ->
     a = new model.Token()
@@ -692,8 +458,8 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
     view_ = new view.View()
 
     document = parser.parseXML '''
-    <block>hello <indent><block>my <socket>name</socket></block><br/>
-      <block>is elder <socket>price</socket></block></indent></block>
+    <block>hello <indent><block>my <socket>name</socket></block>
+    <block>is elder <socket>price</socket></block></indent></block>
     '''
 
     documentView = view_.getViewNodeFor document
@@ -719,9 +485,8 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
     view_ = new view.View()
 
     document = parser.parseXML '''
-    <block>hello <indent><br/>
-      <block>my <socket>name</socket></block>
-      <block>is elder <socket>price</socket></block></indent></block>
+    <block>hello <indent>
+    <block>my <socket>name</socket></block><block>is elder <socket>price</socket></block></indent></block>
     '''
 
     documentView = view_.getViewNodeFor document

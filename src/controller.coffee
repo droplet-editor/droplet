@@ -424,7 +424,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         # Update the ace editor value to match,
         # but don't trigger a resize event.
         @suppressAceChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
-        console.log 'SET ACE @changeEventVersion'
         @aceEditor.setValue @getValue(), -1
         @suppressAceChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
 
@@ -2763,7 +2762,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @currentlyUsingBlocks and not @currentlyAnimating
       @fireEvent 'statechange', [false]
 
-      console.log 'ACE SET VALUE ON MELT'
       @aceEditor.setValue @getValue(), -1
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
@@ -3310,7 +3308,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
-    console.log 'SET ACE @setValue'
     @aceEditor.setValue value, -1
     @aceEditor.resize true
 

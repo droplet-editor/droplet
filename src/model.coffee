@@ -9,8 +9,8 @@ define ['melt-helper'], (helper) ->
   YES = -> yes
   NO = -> no
 
-  NORMAL = -> helper.NORMAL
-  FORBID = -> helper.FORBID
+  NORMAL = default: helper.NORMAL
+  FORBID = default: helper.FORBID
 
   _id = 0
 
@@ -182,15 +182,13 @@ define ['melt-helper'], (helper) ->
     # Simple debugging output representation
     # of the tokens in this Container. Like XML.
     serialize: ->
-      str = ''
+      str = @_serialize_header()
+      @traverseOneLevel (child) ->
+        str += child.serialize()
+      str += @_serialize_footer()
 
-      head = @start.next
-
-      until head is @end
-        str += head.serialize()
-        head = head.next
-
-      return str
+    _serialize_header: "<container>"
+    _serialize_header: "</container>"
 
     # ## contents ##
     # Get a cloned version of a
@@ -596,13 +594,6 @@ define ['melt-helper'], (helper) ->
 
   exports.BlockStartToken = class BlockStartToken extends StartToken
     constructor: (@container) -> super; @type = 'blockStart'
-    serialize: -> """<block
-      precedence="#{@container.precedence}"
-      color="#{@container.color}"
-      socketLevel="#{@container.socketLevel}"
-      classes="#{@classes?.join?(' ') ? []}"
-    >
-    """
 
   exports.BlockEndToken = class BlockEndToken extends EndToken
     constructor: (@container) -> super; @type = 'blockEnd'
@@ -622,6 +613,14 @@ define ['melt-helper'], (helper) ->
       clone.currentlyParenWrapped = @currentlyParenWrapped
 
       return clone
+
+    _serialize_header: -> "<block precedence=\"#{
+      @precedence}\" color=\"#{
+      @color}\" socketLevel=\"#{
+      @socketLevel}\" classes=\"#{
+      @classes?.join?(' ') ? []}\"
+    >"
+    _serialize_footer: -> "</block>"
 
     # ## checkparenWrap ##
     # Insert or remove wrapping parentheses as necessary.
@@ -655,21 +654,15 @@ define ['melt-helper'], (helper) ->
 
   exports.SocketStartToken = class SocketStartToken extends StartToken
     constructor: (@container) -> super; @type = 'socketStart'
-    serialize: -> """<socket
-      precedence="#{@container.precedence}"
-      handwritten="#{@container.handwritten}"
-      accepts="#{@container.accepts.toString()}"
-    >"""
     stringify: ->
       if @next is @container.end or
         @next.type is 'text' and @next.value is '' then '``' else ''
 
   exports.SocketEndToken = class SocketEndToken extends EndToken
     constructor: (@container) -> super; @type = 'socketEnd'
-    serialize: -> "</socket>"
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @accepts = NORMAL) ->
+    constructor: (@precedence = 0, @handwritten = false, @acceptsRules = NORMAL) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
@@ -677,7 +670,24 @@ define ['melt-helper'], (helper) ->
 
       super
 
+    accepts: (block) ->
+      for c in block.classes
+        if c of @acceptsRules then return @acceptsRules[c]
+
+      return @acceptsRules['default'] ? NORMAL
+
+
     _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
+
+    _serialize_header: -> "<socket precedence=\"#{
+        @precedence
+      }\" handwritten=\"#{
+        @handwritten
+      }\" accepts=\"#{
+        helper.serializeShallowDict @acceptsRules
+      }\">"
+
+    _serialize_footer: -> "</socket>"
 
   # Indent
   # ==================
@@ -685,10 +695,6 @@ define ['melt-helper'], (helper) ->
   exports.IndentStartToken = class IndentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'indentStart'
     stringify: (state) -> state.indent += @container.prefix; ''
-    serialize: -> """<indent
-      prefix="#{@container.prefix}"
-    >
-    """
 
   exports.IndentEndToken = class IndentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'indentEnd'
@@ -709,6 +715,11 @@ define ['melt-helper'], (helper) ->
       super
 
     _cloneEmpty: -> new Indent @prefix
+    _serialize_header: -> "<indent prefix=\"#{
+      @prefix
+    }\">"
+    _serialize_footer: -> "</indent>"
+
 
   # Segment
   # ==================
@@ -743,6 +754,9 @@ define ['melt-helper'], (helper) ->
 
       @start.remove(); @end.remove()
 
+    _serialize_header: -> "<segment isLassoSegment=\"#{@isLassoSegment}\">"
+    _serialize_footer: -> "</segment>"
+
 
   # Text
   exports.TextToken = class TextToken extends Token
@@ -756,7 +770,7 @@ define ['melt-helper'], (helper) ->
       @notifyChange()
 
     stringify: (state) -> @_value
-    serialize: -> @_value
+    serialize: -> helper.escapeXMLText @_value
 
     clone: -> new TextToken @_value
 

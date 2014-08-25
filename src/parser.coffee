@@ -34,34 +34,42 @@ define ['melt-helper', 'melt-model'], (helper, model) ->
     parser = sax.parser true
 
     parser.ontext = (text) ->
-      text = text.replace /\n\s*/g, ''
-      unless text.length is 0
-        head = head.append new model.TextToken text
+      tokens = text.split '\n'
+      for token, i in tokens
+        unless token.length is 0
+          head = head.append new model.TextToken token
+        unless i is tokens.length - 1
+          head = head.append new model.NewlineToken()
 
     parser.onopentag = (node) ->
       attributes = node.attributes
       switch node.name
         when 'block'
           container = new model.Block attributes.precedence, attributes.color,
-            attributes.socketLevel, attributes.classes
+            attributes.socketLevel, attributes.classes?.split?(' ')
         when 'socket'
           container = new model.Socket attributes.precedence, attributes.handritten,
-            (if attributes.accepts? then new Function(attributes.accepts) else undefined)
+            helper.deserializeShallowDict attributes.accepts
         when 'indent'
           container = new model.Indent attributes.prefix
+        when 'segment'
+          # Root segment is optional
+          unless stack.length is 0
+            container = new model.Segment()
         when 'br'
           head = head.append new model.NewlineToken()
           return null
 
-      stack.push {
-        node: node
-        container: container
-      }
+      if container?
+        stack.push {
+          node: node
+          container: container
+        }
 
-      head = head.append container.start
+        head = head.append container.start
 
     parser.onclosetag = (nodeName) ->
-      if nodeName is stack[stack.length - 1].node.name
+      if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
         head = head.append stack[stack.length - 1].container.end
         stack.pop()
 

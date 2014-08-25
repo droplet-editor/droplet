@@ -23,6 +23,22 @@ define ->
     window.String.prototype.trimRight = ->
       @replace /\s+$/, ''
 
+  exports.xmlPrettyPrint = (str) ->
+    result = ''
+    xmlParser = sax.parser true
+
+    xmlParser.ontext = (text) -> result += exports.escapeXMLText text
+    xmlParser.onopentag = (node) ->
+      result += '<' + node.name
+      for attr, val of node.attributes
+        result += '\n  ' + attr + '=' + JSON.stringify(val)
+      result += '>'
+    xmlParser.onclosetag = (name) -> result += '</' + name + '>'
+
+    xmlParser.write(str).close()
+
+    return result
+
   fontMetricsCache = {}
   exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
     fontStyle = "#{fontHeight}px #{fontFamily}"
@@ -82,5 +98,22 @@ define ->
   exports.getFontHeight = (family, size) ->
     metrics = fontMetrics family, size
     return metrics.descent - metrics.prettytop
+
+  exports.escapeXMLText = (str) ->
+    str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+
+  exports.serializeShallowDict = (dict) ->
+    props = []
+    for key, val of dict
+      props.push key + ':' + val
+    return props.join ';'
+
+  exports.deserializeShallowDict = (str) ->
+    unless str? then return undefined
+    dict = {}; props = str.split ';'
+    for prop in props
+      [key, val] = prop.split ':'
+      dict[key] = val
+    return dict
 
   return exports

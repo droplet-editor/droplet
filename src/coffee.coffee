@@ -135,8 +135,8 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
     '**': 7
     '%%': 7
 
-  SAY_NORMAL= -> helper.NORMAL
-  SAY_FORBID = -> helper.FORBID
+  SAY_NORMAL= default: helper.NORMAL
+  SAY_FORBID = default: helper.FORBID
 
   YES = -> yes
   NO = -> no
@@ -364,9 +364,10 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
             @addSocketAndMark node.base, depth + 1, 0, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
-                @addSocketAndMark property.name, depth + 1, -2, indentDepth, (block) ->
-                  if 'works-as-method-call' in block.classes then return helper.ENCOURAGE_ALL
-                  else return helper.FORBID
+                @addSocketAndMark property.name, depth + 1, -2, indentDepth, {
+                    'works-as-method-call': helper.ENCOURAGE_ALL
+                    'default': helper.FORBID
+                  }
               else if property.nodeType() is 'Index'
                 @addSocketAndMark property.index, depth + 1, 0, indentDepth
 
@@ -460,8 +461,10 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
           @addBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-          @addSocketAndMark node.variable, depth + 1, 0, indentDepth, (block) ->
-            block.nodeType is 'Value'
+          @addSocketAndMark node.variable, depth + 1, 0, indentDepth, {
+            'Value': helper.NORMAL
+            'default': helper.FORBID
+          }
 
           @addSocketAndMark node.value, depth + 1, 0, indentDepth
 
