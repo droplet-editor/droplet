@@ -1338,9 +1338,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   #
   # This happens at population time.
   hook 'populate', 0, ->
-    @currentPaletteBlocks = []
-    @currentPaletteMetadata = []
-
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
     @paletteHeader.className = 'melt-palette-header'
@@ -1348,7 +1345,17 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
 
+    @setPalette @paletteGroups
+
+  Editor::setPalette = (paletteGroups) ->
+    @paletteHeader.innerHTML = ''
+    @paletteGroups = paletteGroups
+
+    @currentPaletteBlocks = []
+    @currentPaletteMetadata = []
+
     paletteHeaderRow = null
+
     for paletteGroup, i in @paletteGroups then do (paletteGroup, i) =>
       # Start a new row, if we're at that point
       # in our appending cycle
@@ -1414,6 +1421,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # If we are the first element, make us the selected palette group.
       if i is 0
         do updatePalette
+
+    @resizePalette()
 
   # The next thing we need to do with the palette
   # is let people pick things up from it.
