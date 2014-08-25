@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (helper, coffee, draw, model, view) ->
+define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, model, view) ->
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
@@ -121,7 +121,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   # ## The Editor Class
   exports.Editor = class Editor
-    constructor: (@wrapperElement, @paletteGroups) ->
+    constructor: (@wrapperElement, @options) ->
+      @paletteGroups = @options.palette
+
+      if @options.mode is 'coffeescript'
+        @mode = coffee
+      else if @options.mode is 'javascript'
+        @mode = javascript
+
       @draw = new draw.Draw()
 
       # ## DOM Population
