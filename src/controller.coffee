@@ -210,15 +210,13 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # This stage of ICE editor construction, which is repeated
       # whenever the editor is resized, should adjust the sizes
       # of all the ICE editor componenents to fit the wrapper.
-      window.addEventListener 'resize', => @resize()
+      window.addEventListener 'resize', => @resizeBlockMode()
 
       # ## Tracker Events
       # We allow binding to the tracker element.
       dispatchMouseEvent = (event) =>
-        # ignore mouse clicks that are not the left-button, and ignore
-        # them if they are on the scrollbars
-        if event.type in ['mousedown', 'dblclick', 'mouseup']
-          if event.which isnt 1 then return
+        # ignore mouse clicks that are not the left-button
+        if event.type isnt 'mousemove' and event.which isnt 1 then return
 
         trackPoint = new @draw.Point(event.pageX, event.pageY)
 
@@ -249,9 +247,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         for handler in editorBindings[event.type]
           handler.call this, event, state
 
-        if event.which is BACKSPACE_KEY
-          event.preventDefault()
-
       for eventName, elements of {
           keydown: [@meltElement, @paletteElement]
           keyup: [@meltElement, @paletteElement]
@@ -270,7 +265,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @tree = new model.Segment()
       @tree.start.insert @cursor
 
-      @resize()
+      @resizeBlockMode()
 
       # Now that we've populated everything, immediately re@draw.
       @redrawMain(); @redrawPalette()
@@ -282,7 +277,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # all of the natively-added canvases, as well
     # as the wrapper element, whenever a resize
     # occurs.
-    resize: ->
+    resizeTextMode: ->
+      @resizeAceElement()
+      @aceEditor.resize true
+
+    resizeBlockMode: ->
+      @resizeTextMode()
+      @resizeGutter()
+
       @meltElement.style.left = "#{@paletteElement.offsetWidth}px"
       @meltElement.style.height = "#{@wrapperElement.offsetHeight}px"
       @meltElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
@@ -296,9 +298,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
 
       @resizePalette()
-
-      for binding in editorBindings.resize
-        binding.call this
+      @resizePaletteHighlight()
+      @resizeNubby()
+      @resizeMainScroller()
+      @resizeLassoCanvas()
+      @resizeCursorCanvas()
+      @resizeDragCanvas()
 
       # Re-scroll and redraw main
       @scrollOffsets.main.y = @mainScroller.scrollTop
@@ -333,6 +338,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
       @redrawPalette()
+
+  Editor::resize = ->
+    if @currentlyUsingBlocks
+      @resizeBlockMode()
+    else
+      @resizeTextMode()
 
 
   # RENDERING CAPABILITIES
@@ -375,7 +386,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @redrawMain()
 
-  hook 'resize', 0, -> @setTopNubbyStyle @nubbyHeight, @nubbyColor
+  Editor::resizeNubby = ->
+    @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
   Editor::redrawMain = (opts = {}) ->
     unless @currentlyAnimating_suprressRedraw
@@ -423,10 +435,11 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
         # Update the ace editor value to match,
         # but don't trigger a resize event.
-        @suppressAceChangeEvent = true; oldScroll = @aceEditor.session.getScrollTop()
-        console.log 'SET ACE @changeEventVersion'
-        @aceEditor.setValue @getValue(), -1
-        @suppressAceChangeEvent = false; @aceEditor.session.setScrollTop oldScroll
+        @suppressAceChangeEvent = true
+        oldScroll = @aceEditor.session.getScrollTop()
+        @setAceValue @getValue()
+        @suppressAceChangeEvent = false
+        @aceEditor.session.setScrollTop oldScroll
 
         @fireEvent 'change', []
 
@@ -538,6 +551,27 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     gbr = @paletteCanvas.getBoundingClientRect()
     new @draw.Point(point.x - gbr.left + @scrollOffsets.palette.x,
                     point.y - gbr.top + @scrollOffsets.palette.y)
+
+  Editor::trackerPointIsInMain = (point) ->
+    if not @mainCanvas.offsetParent?
+      return false
+    gbr = @mainCanvas.getBoundingClientRect()
+    return point.x >= gbr.left and point.x < gbr.right and
+           point.y >= gbr.top and point.y < gbr.bottom
+
+  Editor::trackerPointIsInMainScroller = (point) ->
+    if not @mainScroller.offsetParent?
+      return false
+    gbr = @mainScroller.getBoundingClientRect()
+    return point.x >= gbr.left and point.x < gbr.right and
+           point.y >= gbr.top and point.y < gbr.bottom
+
+  Editor::trackerPointIsInPalette = (point) ->
+    if not @paletteCanvas.offsetParent?
+      return false
+    gbr = @paletteCanvas.getBoundingClientRect()
+    return point.x >= gbr.left and point.x < gbr.right and
+           point.y >= gbr.top and point.y < gbr.bottom
 
   # ### hitTest
   # Simple function for going through a linked-list block
@@ -732,6 +766,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   hook 'populate', 0, ->
     @clickedPoint = null
     @clickedBlock = null
+    @clickedBlockIsPaletteBlock = false
 
     @draggingBlock = null
     @draggingOffset = null
@@ -769,7 +804,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @dragCtx.clearRect 0, 0, @dragCanvas.width, @dragCanvas.height
 
   # On resize, we will want to size the drag canvas correctly.
-  hook 'resize', 0, ->
+  Editor::resizeDragCanvas = ->
     @dragCanvas.width = 0
     @dragCanvas.height = 0
 
@@ -791,8 +826,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the main pane, pass.
+    if not @trackerPointIsInMain(point) then return
 
     # Hit test against the tree.
     mainPoint = @trackerPointToMain(point)
@@ -810,9 +845,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     # If it came back positive,
     # deal with the click.
-    if hitTestResult? and event.which is 1
+    if hitTestResult?
       # Record the hit test result (the block we want to pick up)
       @clickedBlock = hitTestResult
+      @clickedBlockIsPaletteBlock = false
 
       # Move the cursor somewhere nearby
       @moveCursorTo @clickedBlock.start.next
@@ -947,6 +983,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
+      @clickedBlockIsPaletteBlock = false
 
       @begunTrash = @wouldDelete position
 
@@ -1247,8 +1284,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the main pane, pass.
+    if not @trackerPointIsInMain(point) then return
 
     # Hit test against floating blocks
     for record, i in @floatingBlocks
@@ -1303,8 +1340,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   hook 'populate', 0, ->
     @currentPaletteBlocks = []
     @currentPaletteMetadata = []
-
-    @clickedBlockIsPaletteBlock = false
 
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
@@ -1386,8 +1421,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # If someone else has already taken this click, pass.
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the palette pane, pass.
+    if not @trackerPointIsInPalette(point) then return
 
     palettePoint = @trackerPointToPalette point
     if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
@@ -1417,7 +1452,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @paletteWrapper.appendChild @paletteHighlightCanvas
 
-  hook 'resize', 0, ->
+  Editor::resizePaletteHighlight = ->
     @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
     @paletteHighlightCanvas.width = @paletteCanvas.width
     @paletteHighlightCanvas.height = @paletteCanvas.height
@@ -1542,7 +1577,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
           @redrawTextInput()
 
-  hook 'resize', 0, ->
+  Editor::resizeAceElement = ->
     @aceElement.style.width = "#{@wrapperElement.offsetWidth}px"
     @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
 
@@ -2003,7 +2038,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   # Deal with resize for the lasso
   # select canvas
-  hook 'resize', 0, ->
+  Editor::resizeLassoCanvas = ->
     @lassoSelectCanvas.width = @meltElement.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
@@ -2042,17 +2077,16 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     if state.consumedHitTest or state.suppressLassoSelect then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
+    # If it's not in the main pane, pass.
+    if not @trackerPointIsInMain(point) then return
+    if @trackerPointIsInPalette(point) then return
 
     # If the point was actually in the main canvas,
     # start a lasso select.
     mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
     palettePoint = @trackerPointToPalette(point).from @scrollOffsets.palette
 
-    if 0 < mainPoint.x < @mainCanvas.width and 0 < mainPoint.y < @mainCanvas.height and not
-       (0 < palettePoint.x < @paletteCanvas.width and 0 < palettePoint.x < @paletteCanvas.height)
-      @lassoSelectAnchor = @trackerPointToMain point
+    @lassoSelectAnchor = @trackerPointToMain point
 
   # On mousemove, if we are in the middle of a
   # lasso select, continue with it.
@@ -2182,11 +2216,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   hook 'mousedown', 3, (point, event, state) ->
     if state.consumedHitTest then return
 
-    # If it's not a left-click, pass.
-    if event.which isnt 1 then return
-
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
       @clickedBlock = @lassoSegment
+      @clickedBlockIsPaletteBlock = false
       @clickedPoint = point
 
       state.consumedHitTest = true
@@ -2515,6 +2547,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @lassoSegment?
       @addMicroUndoOperation 'CAPTURE_POINT'
       @deleteLassoSegment()
+      event.preventDefault()
       return false
 
     else if not @textFocus? or
@@ -2617,8 +2650,17 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # ================================
 
   Editor::copyAceEditor = ->
+    clearTimeout @changeFromAceTimer
+    @changeFromAceTimer = null
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-    @resize()
+    @resizeBlockMode()
+    return @setValue_raw @getAceValue()
+
+  Editor::changeFromAceEditor = ->
+    if @changeFromAceTimer then return
+    @changeFromAceTimer = setTimeout (=>
+      @copyAceEditor()
+    ), 0
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
@@ -2634,8 +2676,11 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>
-      if @currentlyUsingBlocks and not @suppressAceChangeEvent
-        @copyAceEditor()
+      if @suppressAceChangeEvent then return
+      if @currentlyUsingBlocks
+        @changeFromAceEditor()
+      else
+        @fireEvent 'change', []
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
@@ -2764,7 +2809,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @fireEvent 'statechange', [false]
 
       console.log 'ACE SET VALUE ON MELT'
-      @aceEditor.setValue @getValue(), -1
+      @setAceValue @getValue()
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
       @aceEditor.scrollToLine top
@@ -2917,11 +2962,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
     if not @currentlyUsingBlocks and not @currentlyAnimating
-      @copyAceEditor()
-
-      @fireEvent 'statechange', [true]
-
-      setValueResult = @setValue_raw @aceEditor.getValue()
+      setValueResult = @copyAceEditor()
 
       unless setValueResult.success
         return setValueResult
@@ -2933,6 +2974,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       @currentlyUsingBlocks = true
       @currentlyAnimating = true
+      @fireEvent 'statechange', [true]
 
       setTimeout (=>
         # Hide scrollbars and increase width
@@ -3061,7 +3103,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           for div in translatingElements
             div.parentNode.removeChild div
 
-          @resize()
+          @resizeBlockMode()
 
           @fireEvent 'toggledone', [@currentlyUsingBlocks]
 
@@ -3130,7 +3172,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       @redrawPalette()
 
-  hook 'resize', 0, ->
+  Editor::resizeMainScroller = ->
     @mainScroller.style.width = "#{@meltElement.offsetWidth}px"
     @mainScroller.style.height = "#{@meltElement.offsetHeight}px"
 
@@ -3199,7 +3241,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::setFontSize = (fontSize) ->
     @setFontSize_raw fontSize
-    @resize()
+    @resizeBlockMode()
 
   # LINE MARKING SUPPORT
   # ================================
@@ -3248,6 +3290,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # Do not attempt to detect this if we are currently dragging something,
     # or no event handlers are bound.
     if not @draggingBlock? and not @clickedBlock? and @hasEvent 'linehover'
+      if not @trackerPointIsInMainScroller point then return
+
       mainPoint = @trackerPointToMain point
 
       treeView = @view.getViewNodeFor @tree
@@ -3310,9 +3354,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
-    console.log 'SET ACE @setValue'
-    @aceEditor.setValue value, -1
-    @aceEditor.resize true
+    @setAceValue value
+    @resizeTextMode()
 
     @aceEditor.session.setScrollTop oldScrollTop
 
@@ -3329,7 +3372,18 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @currentlyUsingBlocks
       return @addEmptyLine @tree.stringify()
     else
-      @aceEditor.getValue()
+      @getAceValue()
+
+  Editor::getAceValue = ->
+    value = @aceEditor.getValue()
+    @lastAceSeenValue = value
+
+  Editor::setAceValue = (value) ->
+    if value isnt @lastAceSeenValue
+      console.log 'setting ace value'
+      @aceEditor.setValue value
+      @lastAceSeenValue = value
+
 
   # PUBLIC EVENT BINDING HOOKS
   # ===============================
@@ -3356,7 +3410,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::setEditorState = (useBlocks) ->
     if useBlocks
-      @setValue @aceEditor.getValue()
+      @setValue @getAceValue()
 
       @meltElement.style.top =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
@@ -3371,12 +3425,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 1
 
-      @resize(); @redrawMain()
+      @resizeBlockMode(); @redrawMain()
 
     else
       oldScrollTop = @aceEditor.session.getScrollTop()
 
-      @aceEditor.setValue @getValue(), -1
+      @setAceValue @getValue()
       @aceEditor.resize true
 
       @aceEditor.session.setScrollTop oldScrollTop
@@ -3391,7 +3445,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @mainCanvas.opacity =
         @highlightCanvas.opacity = 0
 
-      @resize()
+      @resizeBlockMode()
 
   # DRAG CANVAS SHOW/HIDE HACK
   # ================================
@@ -3548,7 +3602,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @meltElement.appendChild @cursorCanvas
 
-  hook 'resize', 0, ->
+  Editor::resizeCursorCanvas = ->
     @cursorCanvas.width = @meltElement.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
@@ -3675,8 +3729,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @meltElement.appendChild @gutter
 
-  hook 'resize', 0, ->
+  Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+
 
   Editor::addLineNumberForLine = (line) ->
     treeView = @view.getViewNodeFor @tree
@@ -3706,8 +3762,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       if start is pivot or end is pivot
         return pivot
 
-      end = pivot if treeView.bounds[pivot].y > coord
-      start = pivot if treeView.bounds[pivot].y < coord
+      if treeView.bounds[pivot].y > coord
+        end = pivot
+      else
+        start = pivot
 
       if end < 0 then return 0
       if start >= treeView.bounds.length then return treeView.bounds.length - 1
@@ -3733,12 +3791,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if changedBox
       @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
 
-  hook 'resize', 0, ->
-    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
-
   Editor::setPaletteWidth = (width) ->
     @paletteWrapper.style.width = width + 'px'
-    @resize()
+    @resizeBlockMode()
 
   # COPY AND PASTE
   # ================================
@@ -3805,7 +3860,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @redrawMain()
 
   hook 'keydown', 0, (event, state) ->
-    console.log event.which, command_modifiers
     if event.which in command_modifiers
       console.log 'FOCUSING'
       unless @textFocus?
