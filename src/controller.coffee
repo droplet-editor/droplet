@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, model, view) ->
+define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (helper, coffee, draw, model, view) ->
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
@@ -1155,7 +1155,7 @@ define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, m
 
   Editor::reparseRawReplace = (oldBlock) ->
     try
-      newParse = coffee.parse(oldBlock.stringify(), wrapAtRoot: true)
+      newParse = @mode.parse(oldBlock.stringify(), wrapAtRoot: true)
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
@@ -1377,7 +1377,7 @@ define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, m
 
       # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
-        newBlock = coffee.parse(data.block).start.next.container
+        newBlock = @mode.parse(data.block).start.next.container
         newBlock.spliceOut(); newBlock.parent = null
         newPaletteBlocks.push {
           block: newBlock
@@ -1740,12 +1740,12 @@ define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, m
         newParse = null
         string = @textFocus.stringify().trim()
         try
-          newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+          newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
         catch
           if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
             try
               string = escapeString string
-              newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+              newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
               @populateSocket @textFocus, string
 
         if newParse? and newParse.start.next.type is 'blockStart' and
@@ -3344,7 +3344,7 @@ define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, m
   Editor::setValue_raw = (value) ->
     if @trimWhitespace then value = value.trim()
 
-    newParse = coffee.parse value, wrapAtRoot: true
+    newParse = @mode.parse value, wrapAtRoot: true
 
     if value isnt @tree.stringify()
       @addMicroUndoOperation 'CAPTURE_POINT'
@@ -3839,7 +3839,7 @@ define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, m
 
           str = str.replace /^\n*|\n*$/g, ''
 
-          blocks = coffee.parse str
+          blocks = @mode.parse str
 
           @addMicroUndoOperation 'CAPTURE_POINT'
           if @lassoSegment?
