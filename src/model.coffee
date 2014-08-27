@@ -457,7 +457,7 @@ define ['droplet-helper'], (helper) ->
       traverseOneLevel @start.next, fn
 
     isFirstOnLine: ->
-      return @start.previousAffectToken() is @parent?.start or
+      return @start.previousAffectToken() in [@parent?.start, null] or
         @start.previousVisibleToken()?.type is 'newline'
 
     isLastOnLine: ->
