@@ -152,15 +152,19 @@ define ['melt-helper'], (helper) ->
 
     setLeadingText: (value) ->
       if @start.next.type is 'text'
-        console.log 'SETTING VALUE TO', value
-        @start.next.value = value
+        if value.length is 0
+          @start.next.remove()
+        else
+          @start.next.value = value
       else
         @start.insert new TextToken value
 
     setTrailingText: (value) ->
       if @end.prev.type is 'text'
-        console.log 'SETTING VALUE TO', value
-        @end.prev.value = value
+        if value.length is 0
+          @end.prev.remove()
+        else
+          @end.prev.value = value
       else
         @end.insertBefore new TextToken value
 
@@ -330,9 +334,28 @@ define ['melt-helper'], (helper) ->
     # ## moveTo ##
     # Convenience function for testing;
     # splice out then splice in.
-    moveTo: (token) ->
-      if @start.prev? or @end.next? then @spliceOut()
-      if token? then @spliceIn token
+    #
+    # USED FOR TESTING ONLY
+    moveTo: (token, mode) ->
+      if @start.prev? or @end.next?
+        leading = @getLeadingText()
+        trailing = @getTrailingText()
+
+        [leading, trailing] = mode.parens leading, trailing, @, null
+
+        @setLeadingText leading; @setTrailingText trailing
+
+        @spliceOut()
+
+      if token?
+        leading = @getLeadingText()
+        trailing = @getTrailingText()
+
+        [leading, trailing] = mode.parens leading, trailing, @, (token.container ? token.parent)
+
+        @setLeadingText leading; @setTrailingText trailing
+
+        @spliceIn token
 
     # ## notifyChange ##
     # Increase version number (for caching purposes)

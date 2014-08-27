@@ -107,10 +107,10 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
       see j
     '''
 
-    strictEqual document.getBlockOnLine(1).stringify(), 'see i', 'line 1'
-    strictEqual document.getBlockOnLine(3).stringify(), 'see k', 'line 3'
-    strictEqual document.getBlockOnLine(5).stringify(), 'see q', 'line 5'
-    strictEqual document.getBlockOnLine(7).stringify(), 'see j', 'line 7'
+    strictEqual document.getBlockOnLine(1).stringify(coffee.empty), 'see i', 'line 1'
+    strictEqual document.getBlockOnLine(3).stringify(coffee.empty), 'see k', 'line 3'
+    strictEqual document.getBlockOnLine(5).stringify(coffee.empty), 'see q', 'line 5'
+    strictEqual document.getBlockOnLine(7).stringify(coffee.empty), 'see j', 'line 7'
 
   test 'Location serialization unity', ->
     document = coffee.parse '''
@@ -132,34 +132,34 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
       console.log world
     '''
 
-    document.getBlockOnLine(2).moveTo document.start
+    document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log world
     for i in [1..10]
       console.log hello
     ''', 'Move console.log world out'
 
-    document.getBlockOnLine(2).moveTo document.start
+    document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log hello
     console.log world
     for i in [1..10]
       ``
     ''', 'Move both out'
 
-    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
+    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log world
     for i in [1..10]
       console.log hello
     ''', 'Move hello back in'
 
-    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start
+    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log (for i in [1..10]
       console.log hello)
     ''', 'Move for into socket (req. paren wrap)'
@@ -170,15 +170,15 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
     see 1 + 1
     '''
 
-    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start
+    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     see 1 + (Math.sqrt 2)
     ''', 'Wrap'
 
-    block.moveTo document.start
+    block.moveTo document.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     Math.sqrt 2
     see 1 + ``''', 'Unwrap'
 
@@ -230,7 +230,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
     documentView.layout()
 
     indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-    strictEqual indentView.lineChildren[1][0].child.stringify(), 'fd 10', 'Relative line numbers'
+    strictEqual indentView.lineChildren[1][0].child.stringify(coffee.empty), 'fd 10', 'Relative line numbers'
 
     document = coffee.parse '''
     see (for [1..10]
@@ -340,7 +340,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
 
-    strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee.empty), '[[[]]]', 'Correct block selected'
 
     strictEqual socketView.dimensions[0].height,
       view_.opts.textHeight + 6 * view_.opts.padding,
@@ -378,7 +378,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
     block = document.getBlockOnLine 1
     dest = document.getBlockOnLine(2).end
 
-    block.moveTo dest
+    block.moveTo dest, coffee
 
     documentView.layout()
 
@@ -387,7 +387,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
       1 * view_.opts.textHeight +
       2 * view_.opts.padding, 'Final height O.K.'
 
-    block.moveTo testedBlock.start.prev.prev
+    block.moveTo testedBlock.start.prev.prev, coffee
 
     documentView.layout()
 
@@ -409,7 +409,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
 
-    strictEqual socketView.model.stringify(), '\'hi\'', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee.empty), '\'hi\'', 'Correct block selected'
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 
