@@ -11,6 +11,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   STATEMENT_NODE_TYPES = [
     'ExpressionStatement'
     'ReturnStatement'
+    'BreakStatement'
+    'ThrowStatement'
   ]
 
   COLORS = {
@@ -31,6 +33,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'ObjectExpression': 'value'
     'SwitchStatement': 'control'
     'BreakStatement': 'return'
+    'NewExpression': 'command'
+    'ThrowStatement': 'return'
+    'TryStatement': 'control'
+    'ArrayExpression': 'value'
+    'SequenceExpression': 'command'
+    'ConditionalExpression': 'value'
   }
 
   DEFAULT_INDENT_DEPTH = '  '
@@ -139,7 +147,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       return bounds
 
     getIndentPrefix: (bounds, indentDepth) ->
-      if bounds.end.line - bounds.start.line < 2
+      if bounds.end.line - bounds.start.line < 1
         return DEFAULT_INDENT_DEPTH
       else
         line = @lines[bounds.start.line + 1]
@@ -156,6 +164,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'Function'
           @jsBlock node, depth, bounds
           @mark indentDepth, node.body, depth + 1, null
+        when 'SequenceExpression'
+          @jsBlock node, depth, bounds
+          for expression in node.expressions
+            @jsSocketAndMark indentDepth, expression, depth + 1, null
         when 'FunctionDeclaration'
           @jsBlock node, depth, bounds
           @mark indentDepth, node.body, depth + 1, null
@@ -175,11 +187,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsBlock node, depth, bounds
           if node.argument?
             @jsSocketAndMark indentDepth, node.argument, depth + 1, null
-        when 'BreakStatement'
+        when 'BreakStatement', 'ContinueStatement'
           @jsBlock node, depth, bounds
           if node.label?
             @jsSocketAndMark indentDepth, node.label, depth + 1, null
-        when 'IfStatement'
+        when 'ThrowStatement'
+          @jsBlock node, depth, bounds
+          @jsSocketAndMark indentDepth, node.argument, depth + 1, null
+        when 'IfStatement', 'ConditionalExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.test, depth + 1, 10
           @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
@@ -211,10 +226,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsSocketAndMark indentDepth, node.right, depth + 1, operatorPrecedences[node.operator]
         when 'ExpressionStatement'
           @mark indentDepth, node.expression, depth + 1, @getBounds node
-        when 'CallExpression'
+        when 'CallExpression', 'NewExpression'
           @jsBlock node, depth, bounds
+          if node.callee.type isnt 'Identifier'
+            @jsSocketAndMark indentDepth, node.callee, depth + 1, 10
           for argument in node.arguments
-            @jsSocketAndMark indentDepth, argument, depth, 10
+            @jsSocketAndMark indentDepth, argument, depth + 1, 10
         when 'MemberExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.object, depth + 1
@@ -252,16 +269,33 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           if node.test?
             @jsSocketAndMark indentDepth, node.test, depth + 1
 
-          bounds = @getCaseIndentBounds node
-          prefix = @getIndentPrefix(@getBounds(node), indentDepth)
+          if node.consequent.length > 0
+            bounds = @getCaseIndentBounds node
+            prefix = @getIndentPrefix(@getBounds(node), indentDepth)
 
-          @addIndent
-            bounds: bounds
-            depth: depth + 1
-            prefix: prefix
+            @addIndent
+              bounds: bounds
+              depth: depth + 1
+              prefix: prefix
 
-          for statement in node.consequent
-            @mark indentDepth, statement, depth + 1
+            for statement in node.consequent
+              @mark indentDepth, statement, depth + 2
+        when 'TryStatement'
+          @jsBlock node, depth, bounds
+          @jsSocketAndMark indentDepth, node.block, depth + 1, null
+          if node.handler?
+            if node.handler.guard?
+              @jsSocketAndMark indentDepth, node.handler.guard, depth + 1, null
+            if node.handler.param?
+              @jsSocketAndMark indentDepth, node.handler.param, depth + 1, null
+            @jsSocketAndMark indentDepth, node.handler.body, depth + 1, null
+          if node.finalizer?
+            @jsSocketAndMark indentDepth, node.finalizer, depth + 1, null
+        when 'ArrayExpression'
+          @jsBlock node, depth, bounds
+          for element in node.elements
+            if element?
+              @jsSocketAndMark indentDepth, element, depth + 1, null
 
     jsBlock: (node, depth, bounds) ->
       @addBlock
