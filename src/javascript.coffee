@@ -29,6 +29,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'WhileStatement': 'control'
     'DoWhileStatement': 'control'
     'ObjectExpression': 'value'
+    'SwitchStatement': 'control'
+    'BreakStatement': 'return'
   }
 
   DEFAULT_INDENT_DEPTH = '  '
@@ -45,7 +47,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         line: 0
       })
 
-      console.log 'PROGRAM IS', JSON.stringify tree, null, 2
+      #console.log 'PROGRAM IS', JSON.stringify tree, null, 2
 
       @mark 0, tree, 0, null
 
@@ -95,8 +97,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
       else if node.type in STATEMENT_NODE_TYPES
         line = @lines[node.loc.end.line]
-        semicolon = @lines[node.loc.end.line][node.loc.end.column...].indexOf ';'
-        if semicolon > 0
+        semicolon = @lines[node.loc.end.line][node.loc.end.column - 1..].indexOf ';'
+        if semicolon >= 0
+          semicolonLength = @lines[node.loc.end.line][node.loc.end.column - 1..].match(/;\s*/)[0].length
           return {
             start: {
               line: node.loc.start.line
@@ -104,11 +107,36 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             }
             end: {
               line: node.loc.end.line
-              column: node.loc.end.column + semicolon
+              column: node.loc.end.column + semicolon + semicolonLength - 1
             }
           }
 
-      return node.loc
+      return {
+        start: {
+          line: node.loc.start.line
+          column: node.loc.start.column
+        }
+        end: {
+          line: node.loc.end.line
+          column: node.loc.end.column
+        }
+      }
+
+    getCaseIndentBounds: (node) ->
+      bounds = {
+        start: @getBounds(node.consequent[0]).start
+        end: @getBounds(node.consequent[node.consequent.length - 1]).end
+      }
+
+      if @lines[bounds.start.line][...bounds.start.column].trim().length is 0
+        bounds.start.line -= 1
+        bounds.start.column = @lines[bounds.start.line].length
+
+      if @lines[bounds.end.line][...bounds.end.column].trim().length is 0
+        bounds.end.line -= 1
+        bounds.end.column = @lines[bounds.end.line].length
+
+      return bounds
 
     getIndentPrefix: (bounds, indentDepth) ->
       if bounds.end.line - bounds.start.line < 2
@@ -147,6 +175,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsBlock node, depth, bounds
           if node.argument?
             @jsSocketAndMark indentDepth, node.argument, depth + 1, null
+        when 'BreakStatement'
+          @jsBlock node, depth, bounds
+          if node.label?
+            @jsSocketAndMark indentDepth, node.label, depth + 1, null
         when 'IfStatement'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.test, depth + 1, 10
@@ -211,6 +243,25 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           for property in node.properties
             @jsSocketAndMark indentDepth, property.key, depth + 1
             @jsSocketAndMark indentDepth, property.value, depth + 1
+        when 'SwitchStatement'
+          @jsBlock node, depth, bounds
+          @jsSocketAndMark indentDepth, node.discriminant, depth + 1
+          for switchCase in node.cases
+            @mark indentDepth, switchCase, depth + 1, null
+        when 'SwitchCase'
+          if node.test?
+            @jsSocketAndMark indentDepth, node.test, depth + 1
+
+          bounds = @getCaseIndentBounds node
+          prefix = @getIndentPrefix(@getBounds(node), indentDepth)
+
+          @addIndent
+            bounds: bounds
+            depth: depth + 1
+            prefix: prefix
+
+          for statement in node.consequent
+            @mark indentDepth, statement, depth + 1
 
     jsBlock: (node, depth, bounds) ->
       @addBlock
