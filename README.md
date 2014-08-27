@@ -1,11 +1,11 @@
-Melt Editor
+Droplet Editor
 =================
 
-Melt editor seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards are sucky).
+Droplet seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards are sucky).
 
 Examples
 --------
-To embed, call new melt.Editor() on a div.
+To embed, call new droplet.Editor() on a div.
 
 ```html
 <html>
@@ -23,12 +23,18 @@ To embed, call new melt.Editor() on a div.
 ```
 
 ```coffeescript
-require ['melt'], (melt) ->
-  editor = new melt.Editor document.getElementById('editor'), [
+require ['droplet'], (droplet) ->
+  editor = new droplet.Editor document.getElementById('editor'), [
      {
-        block: "for [1..3]\n  ``"
-        title: "Repeat some code"
-     }
+        name: 'Palette category'
+        color: 'blue'
+        blocks: [
+          {
+            block: "for [1..3]\n  ``"
+            title: "Repeat some code"
+          }
+        ]
+      }
   ]
   
   editor.setValue '''
