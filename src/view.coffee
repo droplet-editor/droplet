@@ -857,7 +857,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         @carriageArrow = CARRIAGE_ARROW_NONE
 
         if (not root) and @model.parent?.type is 'indent'
-          if not @model.isFirstOnLine()
+          if not @model.isFirstOnLine() and @model.isLastOnLine()
             @carriageArrow = CARRIAGE_ARROW_SIDEALONG
           else
             head = @model.start
@@ -1221,7 +1221,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         # If necessary, add tab
         # at the top.
-        if @shouldAddTab() and @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
+        if @shouldAddTab() and @model.isFirstOnLine() and
+            @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
           @addTab left, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
