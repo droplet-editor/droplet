@@ -75,18 +75,18 @@ module.exports = (grunt) ->
           paths:
             'coffee-script': '../vendor/coffee-script'
             'acorn': '../vendor/acorn'
-            'melt-view': 'view'
-            'melt-controller': 'controller'
-            'melt-model': 'model'
-            'melt-draw': 'draw'
-            'melt-coffee': 'coffee'
-            'melt-javascript': 'javascript'
-            'melt-parser': 'parser'
-            'melt-helper': 'helper'
-            'melt': 'main'
-          name: 'melt'
+            'droplet-view': 'view'
+            'droplet-controller': 'controller'
+            'droplet-model': 'model'
+            'droplet-draw': 'draw'
+            'droplet-coffee': 'coffee'
+            'droplet-javascript': 'javascript'
+            'droplet-parser': 'parser'
+            'droplet-helper': 'helper'
+            'droplet': 'main'
+          name: 'droplet'
           optimize: 'none'
-          out: 'dist/melt.js'
+          out: 'dist/droplet.js'
 
     cssmin:
       options:
@@ -96,8 +96,8 @@ module.exports = (grunt) ->
            MIT License.
            */'''
       minify:
-        src: ['css/melt.css']
-        dest: 'dist/melt.min.css'
+        src: ['css/droplet.css']
+        dest: 'dist/droplet.min.css'
         ext: '.min.css'
 
     concat:
@@ -112,10 +112,10 @@ module.exports = (grunt) ->
         footer: '}).call(this);'
       build:
         files:
-          'dist/melt-full.js': [
+          'dist/droplet-full.js': [
             'vendor/sax.js'
             'vendor/quadtree.js'
-            'dist/melt.js'
+            'dist/droplet.js'
           ]
 
     uglify:
@@ -126,10 +126,10 @@ module.exports = (grunt) ->
 
       build:
         files:
-          'dist/melt-full.min.js': [
+          'dist/droplet-full.min.js': [
             'vendor/sax.js'
             'vendor/quadtree.js'
-            'dist/melt.js'
+            'dist/droplet.js'
           ]
 
     connect:

@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['melt-helper'], (helper) ->
+define ['droplet-helper'], (helper) ->
   exports = {}
 
   YES = -> yes

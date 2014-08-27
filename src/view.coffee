@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
+define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model) ->
   NO_MULTILINE = 0
   MULTILINE_START = 1
   MULTILINE_MIDDLE = 2

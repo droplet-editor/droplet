@@ -4,7 +4,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['melt-helper', 'melt-model'], (helper, model) ->
+define ['droplet-helper', 'droplet-model'], (helper, model) ->
   exports = {}
   _extend = (opts, defaults) ->
     unless opts? then return defaults

@@ -3,7 +3,7 @@
 # Copyright (c) Anthony Bau
 # MIT License
 
-define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, model, parser, CoffeeScript) ->
+define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (helper, model, parser, CoffeeScript) ->
   exports = {}
 
 

@@ -1,4 +1,4 @@
-require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (helper, model, parser, coffee, view, melt) ->
+require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-view', 'droplet'], (helper, model, parser, coffee, view, droplet) ->
 
   test 'Parser success', ->
     q = new XMLHttpRequest()
@@ -512,7 +512,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
 
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new melt.Editor document.getElementById('test-main'), {
+    editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
       palette: []
     }
@@ -531,7 +531,7 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
   test 'Controller: cursor motion and rendering', ->
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new melt.Editor document.getElementById('test-main'), {
+    editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
       palette: []
     }

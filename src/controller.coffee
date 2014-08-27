@@ -3,12 +3,12 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['melt-helper',
-    'melt-coffee',
-    'melt-javascript',
-    'melt-draw',
-    'melt-model',
-    'melt-view'], (helper,
+define ['droplet-helper',
+    'droplet-coffee',
+    'droplet-javascript',
+    'droplet-draw',
+    'droplet-model',
+    'droplet-view'], (helper,
     coffee,
     javascript,
     draw,
@@ -149,14 +149,14 @@ define ['melt-helper',
       # ### Wrapper
       # Create the div that will contain all the ICE Editor graphics
 
-      @meltElement = document.createElement 'div'
-      @meltElement.className = 'melt-wrapper-div'
+      @dropletElement = document.createElement 'div'
+      @dropletElement.className = 'droplet-wrapper-div'
 
       # We give our element a tabIndex so that it can be focused and capture keypresses.
-      @meltElement.tabIndex = 0
+      @dropletElement.tabIndex = 0
 
       # Append that div.
-      @wrapperElement.appendChild @meltElement
+      @wrapperElement.appendChild @dropletElement
 
       @wrapperElement.style.backgroundColor = '#FFF'
 
@@ -165,18 +165,18 @@ define ['melt-helper',
 
       # Main canvas first
       @mainCanvas = document.createElement 'canvas'
-      @mainCanvas.className = 'melt-main-canvas'
+      @mainCanvas.className = 'droplet-main-canvas'
 
       @mainCtx = @mainCanvas.getContext '2d'
 
-      @meltElement.appendChild @mainCanvas
+      @dropletElement.appendChild @mainCanvas
 
       @paletteWrapper = @paletteElement = document.createElement 'div'
-      @paletteWrapper.className = 'melt-palette-wrapper'
+      @paletteWrapper.className = 'droplet-palette-wrapper'
 
       # Then palette canvas
       @paletteCanvas = document.createElement 'canvas'
-      @paletteCanvas.className = 'melt-palette-canvas'
+      @paletteCanvas.className = 'droplet-palette-canvas'
 
       @paletteCtx = @paletteCanvas.getContext '2d'
 
@@ -188,7 +188,7 @@ define ['melt-helper',
       @paletteElement.style.bottom = '0px'
       @paletteElement.style.width = '270px'
 
-      @meltElement.style.left = @paletteElement.offsetWidth + 'px'
+      @dropletElement.style.left = @paletteElement.offsetWidth + 'px'
 
       @wrapperElement.appendChild @paletteElement
 
@@ -265,10 +265,10 @@ define ['melt-helper',
           handler.call this, event, state
 
       for eventName, elements of {
-          keydown: [@meltElement, @paletteElement]
-          keyup: [@meltElement, @paletteElement]
-          mousedown: [@meltElement, @paletteElement, @dragCover]
-          dblclick: [@meltElement, @paletteElement, @dragCover]
+          keydown: [@dropletElement, @paletteElement]
+          keyup: [@dropletElement, @paletteElement]
+          mousedown: [@dropletElement, @paletteElement, @dragCover]
+          dblclick: [@dropletElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
         for element in elements
@@ -302,12 +302,12 @@ define ['melt-helper',
       @resizeTextMode()
       @resizeGutter()
 
-      @meltElement.style.left = "#{@paletteElement.offsetWidth}px"
-      @meltElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @meltElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
+      @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
+      @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
 
-      @mainCanvas.height = @meltElement.offsetHeight
-      @mainCanvas.width = @meltElement.offsetWidth - @gutter.offsetWidth
+      @mainCanvas.height = @dropletElement.offsetHeight
+      @mainCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
@@ -615,7 +615,7 @@ define ['melt-helper',
     else return null
 
   hook 'mousedown', 10, ->
-    @meltElement.focus()
+    @dropletElement.focus()
 
   # UNDO STACK SUPPORT
   # ================================
@@ -813,7 +813,7 @@ define ['melt-helper',
     # We will also have to initialize the
     # drag canvas.
     @dragCanvas = document.createElement 'canvas'
-    @dragCanvas.className = 'melt-drag-canvas'
+    @dragCanvas.className = 'droplet-drag-canvas'
 
     @dragCanvas.style.left = '-9999px'
     @dragCanvas.style.top = '-9999px'
@@ -822,15 +822,15 @@ define ['melt-helper',
 
     # And the canvas for drawing highlights
     @highlightCanvas = document.createElement 'canvas'
-    @highlightCanvas.className = 'melt-highlight-canvas'
+    @highlightCanvas.className = 'droplet-highlight-canvas'
 
     @highlightCtx = @highlightCanvas.getContext '2d'
 
     # We append it to the tracker element,
     # so that it can appear in front of the scrollers.
-    #@meltElement.appendChild @dragCanvas
+    #@dropletElement.appendChild @dragCanvas
     document.body.appendChild @dragCanvas
-    @meltElement.appendChild @highlightCanvas
+    @dropletElement.appendChild @highlightCanvas
 
   Editor::clearHighlightCanvas = ->
     @highlightCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
@@ -845,10 +845,10 @@ define ['melt-helper',
     @dragCanvas.width = 0
     @dragCanvas.height = 0
 
-    @highlightCanvas.width = @meltElement.offsetWidth
+    @highlightCanvas.width = @dropletElement.offsetWidth
     @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
 
-    @highlightCanvas.height = @meltElement.offsetHeight
+    @highlightCanvas.height = @dropletElement.offsetHeight
     @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
 
     @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -1015,8 +1015,8 @@ define ['melt-helper',
 
         head = head.next
 
-      @dragCanvas.style.top = "#{position.y + getOffsetTop(@meltElement)}px"
-      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@meltElement)}px"
+      @dragCanvas.style.top = "#{position.y + getOffsetTop(@dropletElement)}px"
+      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@dropletElement)}px"
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
@@ -1390,7 +1390,7 @@ define ['melt-helper',
 
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
-    @paletteHeader.className = 'melt-palette-header'
+    @paletteHeader.className = 'droplet-palette-header'
 
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
@@ -1401,12 +1401,12 @@ define ['melt-helper',
       # in our appending cycle
       if i % 2 is 0
         paletteHeaderRow = document.createElement 'div'
-        paletteHeaderRow.className = 'melt-palette-header-row'
+        paletteHeaderRow.className = 'droplet-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
 
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
-      paletteGroupHeader.className = 'melt-palette-group-header'
+      paletteGroupHeader.className = 'droplet-palette-group-header'
       paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
       if paletteGroup.color
         paletteGroupHeader.className += ' ' + paletteGroup.color
@@ -1445,7 +1445,7 @@ define ['melt-helper',
 
         # Apply the "selected" style to us
         @currentPaletteGroupHeader.className +=
-            ' melt-palette-group-header-selected'
+            ' droplet-palette-group-header-selected'
 
         # Redraw the palette.
         @redrawPalette()
@@ -1491,7 +1491,7 @@ define ['melt-helper',
   # ================================
   hook 'populate', 1, ->
     @paletteHighlightCanvas = document.createElement 'canvas'
-    @paletteHighlightCanvas.className = 'melt-palette-highlight-canvas'
+    @paletteHighlightCanvas.className = 'droplet-palette-highlight-canvas'
     @paletteHighlightCtx = @paletteHighlightCanvas.getContext '2d'
 
     @paletteHighlightPath = null
@@ -1520,7 +1520,7 @@ define ['melt-helper',
       block = data.block
 
       hoverDiv = document.createElement 'div'
-      hoverDiv.className = 'melt-hover-div'
+      hoverDiv.className = 'droplet-hover-div'
 
       hoverDiv.title = data.title ? block.stringify(@mode.empty)
 
@@ -1593,9 +1593,9 @@ define ['melt-helper',
   # we will use for text input.
   hook 'populate', 1, ->
     @hiddenInput = document.createElement 'textarea'
-    @hiddenInput.className = 'melt-hidden-input'
+    @hiddenInput.className = 'droplet-hidden-input'
 
-    @meltElement.appendChild @hiddenInput
+    @dropletElement.appendChild @hiddenInput
 
     # We also need to initialise some fields
     # for knowing what is focused
@@ -1822,7 +1822,7 @@ define ['melt-helper',
       @textFocus = null
       @redrawMain()
       @hiddenInput.blur()
-      @meltElement.focus()
+      @dropletElement.focus()
       return
 
     # Record old focus value
@@ -2069,14 +2069,14 @@ define ['melt-helper',
   # with some fields.
   hook 'populate', 0, ->
     @lassoSelectCanvas = document.createElement 'canvas'
-    @lassoSelectCanvas.className = 'melt-lasso-select-canvas'
+    @lassoSelectCanvas.className = 'droplet-lasso-select-canvas'
 
     @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
 
     @lassoSelectAnchor = null
     @lassoSegment = null
 
-    @meltElement.appendChild @lassoSelectCanvas
+    @dropletElement.appendChild @lassoSelectCanvas
 
   # Conveneince function for clearing
   # the lasso select canvas
@@ -2086,10 +2086,10 @@ define ['melt-helper',
   # Deal with resize for the lasso
   # select canvas
   Editor::resizeLassoCanvas = ->
-    @lassoSelectCanvas.width = @meltElement.offsetWidth
+    @lassoSelectCanvas.width = @dropletElement.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
-    @lassoSelectCanvas.height = @meltElement.offsetHeight
+    @lassoSelectCanvas.height = @dropletElement.offsetHeight
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
 
     @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -2713,7 +2713,7 @@ define ['melt-helper',
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
-    @aceElement.className = 'melt-ace'
+    @aceElement.className = 'droplet-ace'
 
     @wrapperElement.appendChild @aceElement
 
@@ -2735,9 +2735,9 @@ define ['melt-helper',
     @currentlyAnimating = false
 
     @transitionContainer = document.createElement 'div'
-    @transitionContainer.className = 'melt-transition-container'
+    @transitionContainer.className = 'droplet-transition-container'
 
-    @meltElement.appendChild @transitionContainer
+    @dropletElement.appendChild @transitionContainer
 
   # For animation and ace editor,
   # we will need a couple convenience functions
@@ -2874,7 +2874,7 @@ define ['melt-helper',
       else
         @mainScroller.style.overflowX = 'hidden'
       @mainScroller.style.overflowY = 'hidden'
-      @meltElement.style.width = @wrapperElement.offsetWidth + 'px'
+      @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
@@ -2905,7 +2905,7 @@ define ['melt-helper',
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
 
-        div.className = 'melt-transitioning-element'
+        div.className = 'droplet-transitioning-element'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
         translatingElements.push div
 
@@ -2938,10 +2938,10 @@ define ['melt-helper',
         div.style.width = "#{@gutter.offsetWidth}px"
         translatingElements.push div
 
-        div.className = 'melt-transitioning-element melt-transitioning-gutter'
+        div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
-        @meltElement.appendChild div
+        @dropletElement.appendChild div
 
         do (div, line) =>
           # Set off the css transition
@@ -2965,20 +2965,20 @@ define ['melt-helper',
         @cursorCanvas.style.opacity = 0
 
       setTimeout (=>
-        @meltElement.style.transition =
+        @dropletElement.style.transition =
           @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-        @meltElement.style.left = '0px'
+        @dropletElement.style.left = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
       ), fadeTime
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
-        @meltElement.style.transition =
+        @dropletElement.style.transition =
           @paletteWrapper.style.transition = ''
 
-        @meltElement.style.top = '-9999px'
-        @meltElement.style.left = '-9999px'
+        @dropletElement.style.top = '-9999px'
+        @dropletElement.style.left = '-9999px'
 
         @paletteWrapper.style.top = '-9999px'
         @paletteWrapper.style.left = '-9999px'
@@ -3028,7 +3028,7 @@ define ['melt-helper',
       setTimeout (=>
         # Hide scrollbars and increase width
         @mainScroller.style.overflow = 'hidden'
-        @meltElement.style.width = @wrapperElement.offsetWidth + 'px'
+        @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
 
         @redrawMain noText: true
 
@@ -3040,8 +3040,8 @@ define ['melt-helper',
         @paletteWrapper.style.top = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
-        @meltElement.style.top = "0px"
-        @meltElement.style.left = "0px"
+        @dropletElement.style.top = "0px"
+        @dropletElement.style.left = "0px"
 
         @paletteHeader.style.zIndex = 0
 
@@ -3068,7 +3068,7 @@ define ['melt-helper',
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
           div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
 
-          div.className = 'melt-transitioning-element'
+          div.className = 'droplet-transitioning-element'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
@@ -3102,11 +3102,11 @@ define ['melt-helper',
           div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
               lineHeight - aceScrollTop}px"
 
-          div.className = 'melt-transitioning-element melt-transitioning-gutter'
+          div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
-          @meltElement.appendChild div
+          @dropletElement.appendChild div
 
           do (div, line) =>
             setTimeout (=>
@@ -3131,14 +3131,14 @@ define ['melt-helper',
 
         ), translateTime
 
-        @meltElement.style.transition =
+        @dropletElement.style.transition =
           @paletteWrapper.style.transition = "left #{fadeTime}ms"
 
-        @meltElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
 
         setTimeout (=>
-          @meltElement.style.transition =
+          @dropletElement.style.transition =
             @paletteWrapper.style.transition = ''
 
           # Show scrollbars again
@@ -3179,13 +3179,13 @@ define ['melt-helper',
     }
 
     @mainScroller = document.createElement 'div'
-    @mainScroller.className = 'melt-main-scroller'
+    @mainScroller.className = 'droplet-main-scroller'
 
     @mainScrollerStuffing = document.createElement 'div'
-    @mainScrollerStuffing.className = 'melt-main-scroller-stuffing'
+    @mainScrollerStuffing.className = 'droplet-main-scroller-stuffing'
 
     @mainScroller.appendChild @mainScrollerStuffing
-    @meltElement.appendChild @mainScroller
+    @dropletElement.appendChild @mainScroller
 
     @mainScroller.addEventListener 'scroll', =>
       @scrollOffsets.main.y = @mainScroller.scrollTop
@@ -3201,10 +3201,10 @@ define ['melt-helper',
       @redrawMain()
 
     @paletteScroller = document.createElement 'div'
-    @paletteScroller.className = 'melt-palette-scroller'
+    @paletteScroller.className = 'droplet-palette-scroller'
 
     @paletteScrollerStuffing = document.createElement 'div'
-    @paletteScrollerStuffing.className = 'melt-palette-scroller-stuffing'
+    @paletteScrollerStuffing.className = 'droplet-palette-scroller-stuffing'
 
     @paletteScroller.appendChild @paletteScrollerStuffing
     @paletteWrapper.appendChild @paletteScroller
@@ -3222,8 +3222,8 @@ define ['melt-helper',
       @redrawPalette()
 
   Editor::resizeMainScroller = ->
-    @mainScroller.style.width = "#{@meltElement.offsetWidth}px"
-    @mainScroller.style.height = "#{@meltElement.offsetHeight}px"
+    @mainScroller.style.width = "#{@dropletElement.offsetWidth}px"
+    @mainScroller.style.height = "#{@dropletElement.offsetHeight}px"
 
   hook 'resize_palette', 0, ->
     @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
@@ -3460,10 +3460,10 @@ define ['melt-helper',
     if useBlocks
       @setValue @getAceValue()
 
-      @meltElement.style.top =
+      @dropletElement.style.top =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
 
-      @meltElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
 
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
@@ -3483,7 +3483,7 @@ define ['melt-helper',
 
       @aceEditor.session.setScrollTop oldScrollTop
 
-      @meltElement.style.top = @meltElement.style.left =
+      @dropletElement.style.top = @dropletElement.style.left =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
@@ -3500,7 +3500,7 @@ define ['melt-helper',
 
   hook 'populate', 0, ->
     @dragCover = document.createElement 'div'
-    @dragCover.className = 'melt-drag-cover'
+    @dragCover.className = 'droplet-drag-cover'
     @dragCover.style.display = 'none'
 
     document.body.appendChild @dragCover
@@ -3560,7 +3560,7 @@ define ['melt-helper',
       event.changedTouches[index].pageY
     )
 
-    return absolutePoint.from(@absoluteOffset(@meltElement))
+    return absolutePoint.from(@absoluteOffset(@dropletElement))
 
   Editor::queueLassoMousedown = (trackPoint, event) ->
     @lassoSelectStartTimeout = setTimeout (=>
@@ -3644,17 +3644,17 @@ define ['melt-helper',
   # ================================
   hook 'populate', 0, ->
     @cursorCanvas = document.createElement 'canvas'
-    @cursorCanvas.className = 'melt-highlight-canvas melt-cursor-canvas'
+    @cursorCanvas.className = 'droplet-highlight-canvas droplet-cursor-canvas'
 
     @cursorCtx = @cursorCanvas.getContext '2d'
 
-    @meltElement.appendChild @cursorCanvas
+    @dropletElement.appendChild @cursorCanvas
 
   Editor::resizeCursorCanvas = ->
-    @cursorCanvas.width = @meltElement.offsetWidth
+    @cursorCanvas.width = @dropletElement.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
-    @cursorCanvas.height = @meltElement.offsetHeight
+    @cursorCanvas.height = @dropletElement.offsetHeight
     @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
 
     @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -3696,7 +3696,7 @@ define ['melt-helper',
     @flashTimeout = setTimeout (=> @flash()), 500
 
   Editor::editorHasFocus = ->
-    document.activeElement in [@meltElement, @hiddenInput, @copyPasteInput] and
+    document.activeElement in [@dropletElement, @hiddenInput, @copyPasteInput] and
     document.hasFocus()
 
   Editor::flash = ->
@@ -3716,7 +3716,7 @@ define ['melt-helper',
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
 
-    @meltElement.addEventListener 'blur', blurCursors
+    @dropletElement.addEventListener 'blur', blurCursors
     @hiddenInput.addEventListener 'blur', blurCursors
     @copyPasteInput.addEventListener 'blur', blurCursors
 
@@ -3725,7 +3725,7 @@ define ['melt-helper',
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = 1
 
-    @meltElement.addEventListener 'focus', focusCursors
+    @dropletElement.addEventListener 'focus', focusCursors
     @hiddenInput.addEventListener 'focus', focusCursors
     @copyPasteInput.addEventListener 'focus', focusCursors
 
@@ -3766,7 +3766,7 @@ define ['melt-helper',
   # ================================
   hook 'populate', 0, ->
     @gutter = document.createElement 'div'
-    @gutter.className = 'melt-gutter'
+    @gutter.className = 'droplet-gutter'
 
     @lineNumberWrapper = document.createElement 'div'
     @gutter.appendChild @lineNumberWrapper
@@ -3775,11 +3775,11 @@ define ['melt-helper',
 
     @lineNumberTags = {}
 
-    @meltElement.appendChild @gutter
+    @dropletElement.appendChild @gutter
 
   Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+    @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
 
 
   Editor::addLineNumberForLine = (line) ->
@@ -3790,7 +3790,7 @@ define ['melt-helper',
 
     else
       lineDiv = document.createElement 'div'
-      lineDiv.className = 'melt-gutter-line'
+      lineDiv.className = 'droplet-gutter-line'
       lineDiv.innerText = lineDiv.textContent = line + 1
 
       @lineNumberTags[line] = lineDiv
@@ -3850,7 +3850,7 @@ define ['melt-helper',
     @copyPasteInput.style.position = 'absolute'
     @copyPasteInput.style.left = @copyPasteInput.style.top = '-9999px'
 
-    @meltElement.appendChild @copyPasteInput
+    @dropletElement.appendChild @copyPasteInput
 
     pressedVKey = false
     pressedXKey = false
@@ -3921,7 +3921,7 @@ define ['melt-helper',
       if @textFocus?
         @hiddenInput.focus()
       else
-        @meltElement.focus()
+        @dropletElement.focus()
 
   hook 'populate', 0, ->
     setTimeout (=>

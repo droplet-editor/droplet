@@ -2,15 +2,15 @@
 # in the require.js 'main' module.
 require.config
   paths:
-    'melt': '../js/main'
-    'melt-helper': '../js/helper'
-    'melt-coffee': '../js/coffee'
-    'melt-javascript': '../js/javascript'
-    'melt-model': '../js/model'
-    'melt-view': '../js/view'
-    'melt-parser': '../js/parser'
-    'melt-draw': '../js/draw'
-    'melt-controller': '../js/controller'
+    'droplet': '../js/main'
+    'droplet-helper': '../js/helper'
+    'droplet-coffee': '../js/coffee'
+    'droplet-javascript': '../js/javascript'
+    'droplet-model': '../js/model'
+    'droplet-view': '../js/view'
+    'droplet-parser': '../js/parser'
+    'droplet-draw': '../js/draw'
+    'droplet-controller': '../js/controller'
     'coffee-script': '../vendor/coffee-script'
     'acorn': '../vendor/acorn'
 
@@ -21,10 +21,10 @@ readFile = (name) ->
   return q.responseText
 
 
-require ['melt'], (melt) ->
+require ['droplet'], (droplet) ->
 
   # Example palette
-  window.editor = new melt.Editor document.getElementById('editor'), {
+  window.editor = new droplet.Editor document.getElementById('editor'), {
     mode: 'javascript'
     palette: [
       {
