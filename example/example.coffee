@@ -5,12 +5,14 @@ require.config
     'melt': '../js/main'
     'melt-helper': '../js/helper'
     'melt-coffee': '../js/coffee'
+    'melt-javascript': '../js/javascript'
     'melt-model': '../js/model'
     'melt-view': '../js/view'
     'melt-parser': '../js/parser'
     'melt-draw': '../js/draw'
     'melt-controller': '../js/controller'
     'coffee-script': '../vendor/coffee-script'
+    'acorn': '../vendor/acorn'
 
 readFile = (name) ->
   q = new XMLHttpRequest()
@@ -23,6 +25,17 @@ require ['melt'], (melt) ->
 
   # Example palette
   window.editor = new melt.Editor document.getElementById('editor'), {
+    mode: 'javascript'
+    palette: [
+      {
+        name: 'Draw'
+        color: 'blue'
+        blocks: [
+          {block:'a + b', title: 'Add two numbers'}
+        ]
+      }
+    ]
+    ###
     mode: 'coffeescript'
     palette: [
       {
@@ -175,10 +188,12 @@ require ['melt'], (melt) ->
         ]
       }
     ]
+    ###
   }
 
   # Example program (fizzbuzz)
   examplePrograms = {
+    ###
     fizzbuzz: '''
     for i in [1..1000]
       if i % 15 is 0
@@ -249,6 +264,8 @@ require ['melt'], (melt) ->
     controller: readFile '../src/controller.coffee'
     compiler: readFile '../test/data/nodes.coffee'
     empty: ''
+    ###
+    fizzbuzz: 'a + b'
   }
 
   editor.setEditorState false

@@ -38,6 +38,7 @@ module.exports = (grunt) ->
           'js/view.js': ['src/view.coffee']
           'js/controller.js': ['src/controller.coffee']
           'js/coffee.js': ['src/coffee.coffee']
+          'js/javascript.js': ['src/javascript.coffee']
           'js/parser.js': ['src/parser.coffee']
           'js/main.js': ['src/main.coffee']
           'js/helper.js': ['src/helper.coffee']
@@ -73,11 +74,13 @@ module.exports = (grunt) ->
           baseUrl: 'js'
           paths:
             'coffee-script': '../vendor/coffee-script'
+            'acorn': '../vendor/acorn'
             'melt-view': 'view'
             'melt-controller': 'controller'
             'melt-model': 'model'
             'melt-draw': 'draw'
             'melt-coffee': 'coffee'
+            'melt-javascript': 'javascript'
             'melt-parser': 'parser'
             'melt-helper': 'helper'
             'melt': 'main'

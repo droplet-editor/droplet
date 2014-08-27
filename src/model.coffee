@@ -122,8 +122,8 @@ define ['melt-helper'], (helper) ->
       if other.start.prev?
         other.start.prev.append @start
 
-      if other.last.next?
-        @end.append other.last.next
+      if other.end.next?
+        @end.append other.end.next
 
       @start.parent = @end.parent = @parent = other.parent
 

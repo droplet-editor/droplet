@@ -6,6 +6,12 @@
 
 define ['melt-helper', 'melt-model'], (helper, model) ->
   exports = {}
+  _extend = (opts, defaults) ->
+    unless opts? then return defaults
+    for key, val of defaults
+      unless key of opts
+        opts[key] = val
+    return opts
 
   YES = -> true
 
@@ -23,6 +29,9 @@ define ['melt-helper', 'melt-model'], (helper, model) ->
 
     # ## parse ##
     parse: (opts) ->
+      opts = _extend opts, {
+        wrapAtRoot: true
+      }
       # Generate the list of tokens
       do @markRoot
 
@@ -31,6 +40,8 @@ define ['melt-helper', 'melt-model'], (helper, model) ->
 
       # Generate a segment from the markup
       segment = @applyMarkup opts
+
+      @detectParenWrap segment
 
       # Strip away blocks flagged to be removed
       # (for `` hack and error recovery)
@@ -41,25 +52,40 @@ define ['melt-helper', 'melt-model'], (helper, model) ->
       segment.isRoot = true
       return segment
 
+    isParenWrapped: (block) ->
+      (block.start.next.type is 'text' and
+        block.start.next.value[0] is '(' and
+        block.end.prev.type is 'text' and
+        block.end.prev.value[block.end.prev.value.length - 1] is ')')
+
+    detectParenWrap: (segment) ->
+      head = segment.start
+      until head is segment.end
+        head = head.next
+        if head.type is 'blockStart' and
+            @isParenWrapped head.container
+          head.container.currentlyParenWrapped = true
+      return segment
+
     # ## addBlock ##
     # addBlock takes {
     #   bounds: {
     #     start: {line, column}
     #     end: {line, column}
     #   }
-    #   classes: []
     #   depth: Number
     #   precedence: Number
     #   color: String
-    #   parenWrapped: Boolean
+    #   classes: []
     #   socketLevel: Number
+    #   parenWrapped: Boolean
     # }
     addBlock: (opts) ->
       block = new model.Block opts.precedence,
         opts.color,
         opts.socketLevel,
         opts.classes,
-        opts.parenWrapped
+        false
 
       @addMarkup block, opts.bounds, opts.depth
 

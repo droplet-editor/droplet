@@ -3,7 +3,17 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (helper, coffee, draw, model, view) ->
+define ['melt-helper',
+    'melt-coffee',
+    'melt-javascript',
+    'melt-draw',
+    'melt-model',
+    'melt-view'], (helper,
+    coffee,
+    javascript,
+    draw,
+    model,
+    view) ->
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
@@ -1154,12 +1164,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @endDrag()
 
   Editor::reparseRawReplace = (oldBlock) ->
-    try
+    #try
       newParse = @mode.parse(oldBlock.stringify(), wrapAtRoot: true)
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
-        @addMicroUndoOperation new ReparseOperation parent, newBlock
+        @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
 
         if @cursor.hasParent oldBlock
           pos = @getRecoverableCursorPosition()
@@ -1168,8 +1178,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         else
           newBlock.rawReplace oldBlock
 
-    catch e
-      return false
+    #catch e
+    #  throw e
+    #  return false
 
   # FLOATING BLOCK SUPPORT
   # ================================
