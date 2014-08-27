@@ -23,6 +23,8 @@ define ['melt-helper'], (helper) ->
   exports.isTreeValid = (tree) ->
     tortise = hare = tree.start.next
 
+    stack =  []
+
     while true
       tortise = tortise.next
 
@@ -129,6 +131,8 @@ define ['melt-helper'], (helper) ->
 
       other.parent = other.start.parent = other.end.parent = null
       other.start.prev = other.end.next = null
+
+      @notifyChange()
 
     # ## clone ##
     # Clone this container, with all the token inside,

@@ -709,7 +709,7 @@ define ['melt-helper',
       unless @before? then return
 
       # Move a clone into position.
-      (clone = @block.clone()).moveTo editor.tree.getTokenAtLocation @before
+      @spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @before
 
       # If the block was the lasso select, register it
       # as such.
@@ -729,10 +729,10 @@ define ['melt-helper',
 
       # Move it to null.
       if @block.start.type is 'segment'
-        blockStart.container.moveTo null
+        @spliceOut blockStart.container
 
       else
-        blockStart.container.moveTo null
+        @spliceOut blockStart.container
 
       # Move the cursor somewhere close to what we
       # just deleted.
@@ -756,7 +756,7 @@ define ['melt-helper',
       until blockStart.type is @block.start.type then blockStart = blockStart.next
 
       # Move it to null.
-      blockStart.container.spliceOut()
+      @spliceOut blockStart.container
 
       # We may need to replace some of displaced
       # socket text from dropping a block
@@ -773,10 +773,30 @@ define ['melt-helper',
       unless @dest? then return
 
       # Move a clone into position.
-      (clone = @block.clone()).moveTo editor.tree.getTokenAtLocation @dest
+      editor.spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @dest
 
       # Move the cursor to the end of it.
       return clone.end
+
+  Editor::spliceOut = (node) ->
+    leading = node.getLeadingText()
+    trailing = node.getTrailingText()
+
+    [leading, trailing] = @mode.parens leading, trailing, null
+
+    node.setLeadingText leading; node.setTrailingText trailing
+
+    node.spliceOut()
+
+  Editor::spliceIn = (node, location) ->
+    leading = node.getLeadingText()
+    trailing = node.getTrailingText()
+
+    [leading, trailing] = @mode.parens leading, trailing, location
+
+    node.setLeadingText leading; node.setTrailingText trailing
+
+    node.spliceIn location
 
   # At population-time, we will
   # want to set up a few fields.
@@ -1127,7 +1147,7 @@ define ['melt-helper',
         @addMicroUndoOperation new PickUpOperation @draggingBlock
 
         # Remove the block from the tree.
-        @draggingBlock.spliceOut() # MUTATION
+        @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
 
@@ -1139,14 +1159,14 @@ define ['melt-helper',
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @draggingBlock.spliceIn @lastHighlight.start #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @draggingBlock.spliceIn @lastHighlight.end #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
-            @draggingBlock.spliceIn @tree.start #MUTATION
+            @spliceIn @draggingBlock, @tree.start #MUTATION
 
       # Move the cursor to the position we just
       # dropped the block
@@ -1164,7 +1184,7 @@ define ['melt-helper',
       @endDrag()
 
   Editor::reparseRawReplace = (oldBlock) ->
-    #try
+    try
       newParse = @mode.parse(oldBlock.stringify(), wrapAtRoot: true)
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
@@ -1178,9 +1198,18 @@ define ['melt-helper',
         else
           newBlock.rawReplace oldBlock
 
-    #catch e
-    #  throw e
-    #  return false
+    catch e
+      throw e
+      return false
+
+  Editor::findForReal = (token) ->
+    head = @tree.start; i = 0
+    until head is token or head is @tree.end or not head?
+      head = head.next; i++
+    if head is token
+      return i
+    else
+      return null
 
   # FLOATING BLOCK SUPPORT
   # ================================
@@ -1261,7 +1290,7 @@ define ['melt-helper',
         @addMicroUndoOperation new PickUpOperation @draggingBlock
 
         # Remove the block from the tree.
-        @draggingBlock.spliceOut() # MUTATION
+        @spliceOut @draggingBlock
 
       # If we dropped it off in the palette, abort (so as to delete the block).
       palettePoint = @trackerPointToPalette point
@@ -1551,13 +1580,13 @@ define ['melt-helper',
 
     undo: (editor) ->
       socket = editor.tree.getTokenAtLocation(@socket).container
-      socket.start.next.container.moveTo null
+      editor.spliceOut socket.start.next.container
       socket.start.insert new model.TextToken @before
 
     redo: (editor) ->
       socket = editor.tree.getTokenAtLocation(@socket).container
       socket.start.append socket.end; socket.notifyChange()
-      @after.clone().spliceIn socket
+      editor.spliceIn @after.clone(), socket
 
   # At populate-time, we need
   # to create and append the hidden input
@@ -1765,7 +1794,7 @@ define ['melt-helper',
           @textFocus.start.append @textFocus.end
 
           # Splice the other in
-          newParse.start.next.container.spliceIn @textFocus.start
+          @spliceIn newParse.start.next.container, @textFocus.start
 
           @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
           shouldPop = true
@@ -2255,6 +2284,8 @@ define ['melt-helper',
 
   # A cursor is only allowed to be on a line.
   Editor::moveCursorTo = (destination, attemptReparse = false) ->
+    @redrawMain()
+
     # If the destination is not inside the tree,
     # abort.
     unless destination?
@@ -2549,7 +2580,7 @@ define ['melt-helper',
     if blockEnd.type is 'blockEnd'
       @addMicroUndoOperation new PickUpOperation blockEnd.container
 
-      blockEnd.container.spliceOut() #MUTATION
+      @spliceOut blockEnd.container
 
       @redrawMain()
 
@@ -2586,7 +2617,7 @@ define ['melt-helper',
 
     @addMicroUndoOperation new PickUpOperation @lassoSegment
 
-    @lassoSegment.spliceOut()
+    @spliceOut @lassoSegment
     @lassoSegment = null
 
     @redrawMain()
@@ -2604,7 +2635,7 @@ define ['melt-helper',
 
         # Construct the block; flag the socket as handwritten
         newBlock = new model.Block(); newSocket = new model.Socket -Infinity
-        newSocket.spliceIn newBlock.start
+        @spliceIn newSocket, newBlock.start
         newSocket.handwritten = true
 
         # Add it io our list of handwritten blocks
@@ -2620,7 +2651,7 @@ define ['melt-helper',
         @addMicroUndoOperation 'CAPTURE_POINT'
         @addMicroUndoOperation new DropOperation newBlock, head
 
-        newBlock.moveTo head #MUTATION
+        @spliceIn newBlock, head #MUTATION
 
         @redrawMain()
 
@@ -3855,11 +3886,11 @@ define ['melt-helper',
           @addMicroUndoOperation 'CAPTURE_POINT'
           if @lassoSegment?
             @addMicroUndoOperation new PickUpOperation @lassoSegment
-            @lassoSegment.spliceOut(); @lassoSegment = null
+            @spliceOut @lassoSegment; @lassoSegment = null
 
           @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
 
-          blocks.spliceIn @cursor
+          @spliceIn blocks, @cursor
           unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
             blocks.end.insert new model.NewlineToken()
 
@@ -3873,7 +3904,7 @@ define ['melt-helper',
       else if pressedXKey and @lassoSegment?
         @addMicroUndoOperation 'CAPTURE_POINT'
         @addMicroUndoOperation new PickUpOperation @lassoSegment
-        @lassoSegment.spliceOut(); @lassoSegment = null
+        @spliceOut @lassoSegment; @lassoSegment = null
         @redrawMain()
 
   hook 'keydown', 0, (event, state) ->
