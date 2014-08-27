@@ -30,7 +30,7 @@ require ['melt'], (melt) ->
         title: "Repeat some code"
      }
   ]
-  
+
   editor.setValue '''
   for i in [1..10]
     document.write 'hello world'

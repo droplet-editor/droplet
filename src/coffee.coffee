@@ -3,7 +3,7 @@
 # Copyright (c) Anthony Bau
 # MIT License
 
-define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, model, parser, CoffeeScript) ->
+define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (helper, model, parser, CoffeeScript) ->
   exports = {}
 
 
@@ -138,8 +138,8 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
     '**': 7
     '%%': 7
 
-  SAY_NORMAL= -> helper.NORMAL
-  SAY_FORBID = -> helper.FORBID
+  SAY_NORMAL= default: helper.NORMAL
+  SAY_FORBID = default: helper.FORBID
 
   YES = -> yes
   NO = -> no
@@ -155,9 +155,9 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
 
     return classes
 
-  class CoffeeScriptTranspiler
+  exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     constructor: (@text) ->
-      @markup = []
+      super
 
       @lines = @text.split '\n'
 
@@ -166,12 +166,24 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
       for line, i in @lines
         @hasLineBeenMarked[i] = false
 
-    transpile: ->
+    markRoot: ->
       # Preprocess comments
       do @stripComments
 
+      retries = Math.max(1, Math.min(5, Math.ceil(@lines.length / 2)))
+      firstError = null
       # Get the CoffeeScript AST from the text
-      nodes = CoffeeScript.nodes(@text).expressions
+      loop
+        try
+          nodes = CoffeeScript.nodes(@text).expressions
+          break
+        catch e
+          firstError ?= e
+          if retries > 0 and fixCoffeeScriptError @lines, e
+            @text = @lines.join '\n'
+          else
+            throw firstError
+        retries -= 1
 
       # Mark all the nodes
       # in the block.
@@ -182,8 +194,8 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
       # at the root level
       @wrapSemicolons nodes, 0
 
-      # Return the markup.
-      return @markup
+    isComment: (str) ->
+      str.match(/^\s*#.*$/)?
 
     stripComments: ->
       # Preprocess comment lines:
@@ -252,20 +264,13 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
             shouldBeOneLine = true
 
           if shouldBeOneLine
-            @addSocket node, depth, 0
+            @csSocket node, depth, 0
 
           # Otherwise, wrap in an indent.
           else
             # Determine the new indent depth by literal text inspection
             textLine = @lines[node.locationData.first_line]
             trueIndentDepth = textLine.length - textLine.trimLeft().length
-
-            # Create the indent with the proper
-            # depth delta
-            indent = new model.Indent @lines[node.locationData.first_line][indentDepth...trueIndentDepth]
-
-            # Then update indent depth data to reflect.
-            indentDepth = trueIndentDepth
 
             # As a block, we also want to consume as much whitespace above us as possible
             # (to free it from actual ICE editor blocks).
@@ -278,8 +283,14 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
             bounds.start.line -= 1
             bounds.start.column = @lines[bounds.start.line].length + 1
 
-            # Add the indent per se.
-            @addMarkupAtLocation indent, bounds, depth
+            @addIndent {
+              depth: depth
+              bounds: bounds
+              prefix: @lines[node.locationData.first_line][indentDepth...trueIndentDepth]
+            }
+
+            # Then update indent depth data to reflect.
+            indentDepth = trueIndentDepth
 
           # Mark children. We do this at depth + 3 to
           # make room for semicolon wrappers where necessary.
@@ -304,10 +315,10 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
               if node.body.unwrap() is node.body
                 # We are filled with some things
                 # connected by semicolons; wrap them all,
-                @addBlock node, depth, -2, 'command', null, MOSTLY_BLOCK
+                @csBlock node, depth, -2, 'command', null, MOSTLY_BLOCK
 
                 for expr in node.body.expressions
-                  @addSocketAndMark expr, depth + 1, -2, indentDepth
+                  @csSocketAndMark expr, depth + 1, -2, indentDepth
 
               else
                 @mark node.body.unwrap(), depth + 1, 0, (wrappingParen ? node), indentDepth
@@ -338,53 +349,54 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
               node.first?.base?.nodeType?() is 'Literal'
             return
 
-          @addBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
 
-          @addSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
+          @csSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
           if node.second?
-            @addSocketAndMark node.second, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
+            @csSocketAndMark node.second, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
         # ### Existence ###
         # Color VALUE, socket @expression, precedence 100
         when 'Existence'
-          @addBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
-          @addSocketAndMark node.expression, depth + 1, 101, indentDepth
+          @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
+          @csSocketAndMark node.expression, depth + 1, 101, indentDepth
 
         # ### In ###
         # Color VALUE, sockets @object and @array, precedence 100
         when 'In'
-          @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
-          @addSocketAndMark node.object, depth + 1, 0, indentDepth
-          @addSocketAndMark node.array, depth + 1, 0, indentDepth
+          @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
+          @csSocketAndMark node.object, depth + 1, 0, indentDepth
+          @csSocketAndMark node.array, depth + 1, 0, indentDepth
 
         # ### Value ###
         # Completely pass through to @base; we do not care
         # about this node.
         when 'Value'
           if node.properties? and node.properties.length > 0
-            @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
-            @addSocketAndMark node.base, depth + 1, 0, indentDepth
+            @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
+            @csSocketAndMark node.base, depth + 1, 0, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
-                @addSocketAndMark property.name, depth + 1, -2, indentDepth, (block) ->
-                  if 'works-as-method-call' in block.classes then return helper.ENCOURAGE_ALL
-                  else return helper.FORBID
+                @csSocketAndMark property.name, depth + 1, -2, indentDepth, {
+                    'works-as-method-call': helper.ENCOURAGE_ALL
+                    'default': helper.FORBID
+                  }
               else if property.nodeType() is 'Index'
-                @addSocketAndMark property.index, depth + 1, 0, indentDepth
+                @csSocketAndMark property.index, depth + 1, 0, indentDepth
 
           # Fake-remove backticks hack
           else if node.base.nodeType() is 'Literal' and
               node.base.value is ''
             fakeBlock =
-                @addBlock node.base, depth, 0, 'value', wrappingParen, ANY_DROP
+                @csBlock node.base, depth, 0, 'value', wrappingParen, ANY_DROP
             fakeBlock.flagToRemove = true
 
           # Preserved-error backticks hack
           else if node.base.nodeType() is 'Literal' and
               /^#/.test(node.base.value)
-            @addBlock node.base, depth, 0, 'blank', wrappingParen, ANY_DROP
-            errorSocket = @addSocket node.base, depth + 1, -2
+            @csBlock node.base, depth, 0, 'blank', wrappingParen, ANY_DROP
+            errorSocket = @csSocket node.base, depth + 1, -2
             errorSocket.flagToStrip = { left: 2, right: 1 }
 
           else
@@ -394,7 +406,7 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         when 'Literal'
           if node.value in STATEMENT_KEYWORDS
             # handle break and continue
-            @addBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
+            @csBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
           else
             # otherwise, leave it as a white block
             0
@@ -417,11 +429,11 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
             else if node.variable.base?.value
               methodname = node.variable.base.value
             if methodname in BLOCK_FUNCTIONS
-              @addBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
+              @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
             else if methodname in VALUE_FUNCTIONS
-              @addBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
+              @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
-              @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
+              @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
               unrecognized = not(methodname in EITHER_FUNCTIONS)
 
             # Deal with weird coffeescript rewrites, e.g., /// #{x} ///
@@ -434,11 +446,11 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
               unrecognized = false
 
             if unrecognized or node.variable.base?.nodeType() isnt 'Literal'
-              @addSocketAndMark node.variable, depth + 1, 0, indentDepth
+              @csSocketAndMark node.variable, depth + 1, 0, indentDepth
             else if node.variable.properties?.length > 0
-              @addSocketAndMark node.variable.base, depth + 1, 0, indentDepth
+              @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
           else
-            @addBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
+            @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
 
           unless node.do
             for arg, index in node.args
@@ -446,48 +458,50 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
               # special case: the last argument slot of a function
               # gathers anything inside it, without parens needed.
               if index is node.args.length - 1 then precedence = -1
-              @addSocketAndMark arg, depth + 1, precedence, indentDepth
+              @csSocketAndMark arg, depth + 1, precedence, indentDepth
 
         # ### Code ###
         # Function definition. Color VALUE, sockets @params,
         # and indent @body.
         when 'Code'
-          @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
 
           for param in node.params
-            @addSocketAndMark param, depth + 1, 0, indentDepth, SAY_FORBID
+            @csSocketAndMark param, depth + 1, 0, indentDepth, SAY_FORBID
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
         # ### Assign ###
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
-          @addBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-          @addSocketAndMark node.variable, depth + 1, 0, indentDepth, (block) ->
-            block.nodeType is 'Value'
+          @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
+          @csSocketAndMark node.variable, depth + 1, 0, indentDepth, {
+            'Value': helper.NORMAL
+            'default': helper.FORBID
+          }
 
-          @addSocketAndMark node.value, depth + 1, 0, indentDepth
+          @csSocketAndMark node.value, depth + 1, 0, indentDepth
 
         # ### For ###
         # Color CONTROL, options sockets @index, @source, @name, @from.
         # Indent/socket @body.
         when 'For'
-          @addBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
 
           for childName in ['source', 'from', 'guard', 'step']
-            if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth
+            if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth
 
           for childName in ['index', 'name']
-            if node[childName]? then @addSocketAndMark node[childName], depth + 1, 0, indentDepth, SAY_FORBID
+            if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth, SAY_FORBID
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
         # ### Range ###
         # Color VALUE, sockets @from and @to.
         when 'Range'
-          @addBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
-          @addSocketAndMark node.from, depth, 0, indentDepth
-          @addSocketAndMark node.to, depth, 0, indentDepth
+          @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
+          @csSocketAndMark node.from, depth, 0, indentDepth
+          @csSocketAndMark node.to, depth, 0, indentDepth
 
         # ### If ###
         # Color CONTROL, socket @condition.
@@ -496,7 +510,7 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         # Special case: "unless" keyword; in this case
         # we want to skip the Op that wraps the condition.
         when 'If'
-          @addBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
 
           # Check to see if we are an "unless".
           # We will deem that we are an unless if:
@@ -516,11 +530,11 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
               @locationsAreIdentical(bounds.start, @getBounds(node.condition).start) and
               node.condition.nodeType() is 'Op'
 
-            @addSocketAndMark node.condition.first, depth + 1, 0, indentDepth
+            @csSocketAndMark node.condition.first, depth + 1, 0, indentDepth
           else
           ###
 
-          @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
+          @csSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -535,39 +549,39 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         # ### Arr ###
         # Color VALUE, sockets @objects.
         when 'Arr'
-          @addBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
           for object in node.objects
-            @addSocketAndMark object, depth + 1, 0, indentDepth
+            @csSocketAndMark object, depth + 1, 0, indentDepth
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
         when 'Return'
-          @addBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
+          @csBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
           if node.expression?
-            @addSocketAndMark node.expression, depth + 1, 0, indentDepth
+            @csSocketAndMark node.expression, depth + 1, 0, indentDepth
 
         # ### While ###
         # Color CONTROL. Socket @condition, socket/indent @body.
         when 'While'
-          @addBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
-          @addSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
-          if node.guard? then @addSocketAndMark node.guard, depth + 1, 0, indentDepth
+          @csBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
+          @csSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
+          if node.guard? then @csSocketAndMark node.guard, depth + 1, 0, indentDepth
           @mark node.body, depth + 1, 0, null, indentDepth
 
         # ### Switch ###
         # Color CONTROL. Socket @subject, optional sockets @cases[x][0],
         # indent/socket @cases[x][1]. indent/socket @otherwise.
         when 'Switch'
-          @addBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
 
-          if node.subject? then @addSocketAndMark node.subject, depth + 1, 0, indentDepth
+          if node.subject? then @csSocketAndMark node.subject, depth + 1, 0, indentDepth
 
           for switchCase in node.cases
             if switchCase[0].constructor is Array
               for condition in switchCase[0]
-                @addSocketAndMark condition, depth + 1, 0, indentDepth # (condition)
+                @csSocketAndMark condition, depth + 1, 0, indentDepth # (condition)
             else
-              @addSocketAndMark switchCase[0], depth + 1, 0, indentDepth # (condition)
+              @csSocketAndMark switchCase[0], depth + 1, 0, indentDepth # (condition)
             @mark switchCase[1], depth + 1, 0, null, indentDepth # (body)
 
           if node.otherwise?
@@ -577,10 +591,10 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         # Color CONTROL. Optional sockets @variable, @parent. Optional indent/socket
         # @obdy.
         when 'Class'
-          @addBlock node, depth, 0, 'control', wrappingParen, ANY_DROP
+          @csBlock node, depth, 0, 'control', wrappingParen, ANY_DROP
 
-          if node.variable? then @addSocketAndMark node.variable, depth + 1, 0, indentDepth, SAY_FORBID
-          if node.parent? then @addSocketAndMark node.parent, depth + 1, 0, indentDepth
+          if node.variable? then @csSocketAndMark node.variable, depth + 1, 0, indentDepth, SAY_FORBID
+          if node.parent? then @csSocketAndMark node.parent, depth + 1, 0, indentDepth
 
           if node.body? then @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -589,12 +603,12 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         # TODO: This doesn't quite line up with what we want it to be visually;
         # maybe our View architecture is wrong.
         when 'Obj'
-          @addBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
 
           for property in node.properties
             if property.nodeType() is 'Assign'
-              @addSocketAndMark property.variable, depth + 1, 0, indentDepth, SAY_FORBID
-              @addSocketAndMark property.value, depth + 1, 0, indentDepth
+              @csSocketAndMark property.variable, depth + 1, 0, indentDepth, SAY_FORBID
+              @csSocketAndMark property.value, depth + 1, 0, indentDepth
 
 
     locationsAreIdentical: (a, b) ->
@@ -695,82 +709,64 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
         line += 1
         @hasLineBeenMarked[line] = true
 
-    # ## addMarkupAtLocation ##
-    # Add a Model container into the markup that we will
-    # ultimately return at a given location.
-    addMarkupAtLocation: (container, bounds, depth) ->
+    # ## addMarkup ##
+    # Override addMarkup to flagLineAsMarked
+    addMarkup: (container, bounds, depth) ->
+      super
 
       @flagLineAsMarked bounds.start.line
 
-      @markup.push
-        container: container
-        bounds: bounds
-        depth: depth
-
-    # ## addMarkup ##
-    # A general utility function for adding markup around
-    # a given node.
-    addMarkup: (container, node, wrappingParen, depth) ->
-
-      # If we are surrounded by parentheses,
-      # we may actually want to enclose the parenthesis
-      # by the new block and not the node itself.
-      bounds = @getBounds (wrappingParen ? node)
-
-      # Add the markup.
-      @addMarkupAtLocation container, bounds, depth
-
-    # ## addBlock ##
+    # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
-    addBlock: (node, depth, precedence, color, wrappingParen, socketLevel) ->
-      # Create the block.
-      block = new model.Block precedence, color, socketLevel, getClassesFor node
+    csBlock: (node, depth, precedence, color, wrappingParen, socketLevel) ->
+      @addBlock {
+        bounds: @getBounds (wrappingParen ? node)
+        depth: depth
+        precedence: precedence
+        color: color
+        socketLevel: socketLevel
+        classes: getClassesFor node
+        parenWrapped: wrappingParen?
+      }
 
-      # Add it
-      @addMarkup block, node, wrappingParen, depth
-
-      # If necessary, flag it as paren-wrapped.
-      block.currentlyParenWrapped = wrappingParen?
-
-      return block
-
-    # ## addSocket ##
+    # ## csSocket ##
     # A similar utility function for adding sockets.
-    addSocket: (node, depth, precedence, accepts = SAY_NORMAL) ->
-      socket = new model.Socket precedence, false, accepts
+    csSocket: (node, depth, precedence, accepts = SAY_NORMAL) ->
+      @addSocket {
+        bounds: @getBounds node
+        depth: depth
+        precedence: precedence
+        accepts: accepts
+      }
 
-      @addMarkup socket, node, null, depth
-
-      return socket
-
-    # ## addSocketAndMark ##
+    # ## csSocketAndMark ##
     # Adds a socket for a node, and recursively @marks it.
-    addSocketAndMark: (node, depth, precedence, indentDepth, accepts = SAY_NORMAL) ->
-      socket = @addSocket node, depth, precedence, accepts
-
+    csSocketAndMark: (node, depth, precedence, indentDepth, accepts = SAY_NORMAL) ->
+      socket = @csSocket node, depth, precedence, accepts
       @mark node, depth + 1, precedence, null, indentDepth
-
       return socket
 
     # ## wrapSemicolonLine ##
     # Wrap a single line in a block
     # for semicolons.
     wrapSemicolonLine: (firstBounds, lastBounds, expressions, depth) ->
-      # Make the wrapper
-      block = new model.Block -2, 'command', ANY_DROP
-
-      # Put together a boundary that contains all things
-      surroundingBounds =
+      surroundingBounds = {
         start: firstBounds.start
         end: lastBounds.end
-
-      # Add the markup itself
-      @addMarkupAtLocation block, surroundingBounds, depth + 1
+      }
+      @addBlock {
+        bounds: surroundingBounds
+        depth: depth + 1
+        precedence: -2
+        color: 'command'
+        socketLevel: ANY_DROP
+        classes: ['semicolon']
+      }
 
       # Add sockets for each expression
       for child in expressions
-        @addSocket child, depth + 2, -2
+        @csSocket child, depth + 2, -2
 
     # ## wrapSemicolons ##
     # If there are mutliple expressions we have on the same line,
@@ -816,26 +812,8 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
       if lastNode?
         @wrapSemicolonLine firstBounds, lastBounds, nodesOnCurrentLine, depth
 
-  # Wrap up the things we need to do
-  # to package ourselves as an ICE editor parser
-  # and export to require.js.
-  coffeeScriptParser = new parser.Parser (originalText) ->
-    text = originalText
-    lines = text.split('\n')
-    retries = Math.max(1, Math.min(5, Math.ceil(lines.length / 2)))
-    firstError = null
-    loop
-      try
-        transpiler = new CoffeeScriptTranspiler text
-        tokens = transpiler.transpile()
-        return {tokens: tokens, text: text, error: firstError}
-      catch e
-        if not firstError then firstError = e
-        if retries > 0 and fixCoffeeScriptError lines, e
-          retries -= 1
-          text = lines.join '\n'
-        else
-          throw firstError
+  # ERROR RECOVERY
+  # =============
 
   fixCoffeeScriptError = (lines, e) ->
     console.log 'encountered error', e.message, 'line',  e.location?.first_line
@@ -883,6 +861,24 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
 
   exports.parse = (text, opts) ->
     opts ?= wrapAtRoot: true
-    return coffeeScriptParser.parse text, opts
+    parser = new CoffeeScriptParser text
+    return parser.parse opts
+
+  exports.parens = (leading, trailing, node, context) ->
+    if context is null or context.type isnt 'socket' or
+        context.precedence < node.precedence
+      while true
+        if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
+          leading = leading.replace(/^\s*\(\s*/, '')
+          trailing = trailing.replace(/^\s*\)\s*/, '')
+        else
+          break
+    else
+      leading = '(' + leading
+      trailing = trailing + ')'
+
+    return [leading, trailing]
+
+  exports.empty = "``"
 
   return exports

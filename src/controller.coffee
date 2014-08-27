@@ -3,7 +3,17 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (helper, coffee, draw, model, view) ->
+define ['droplet-helper',
+    'droplet-coffee',
+    'droplet-javascript',
+    'droplet-draw',
+    'droplet-model',
+    'droplet-view'], (helper,
+    coffee,
+    javascript,
+    draw,
+    model,
+    view) ->
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
@@ -121,7 +131,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   # ## The Editor Class
   exports.Editor = class Editor
-    constructor: (@wrapperElement, @paletteGroups) ->
+    constructor: (@wrapperElement, @options) ->
+      @paletteGroups = @options.palette
+
+      if @options.mode is 'coffeescript'
+        @mode = coffee
+      else if @options.mode is 'javascript'
+        @mode = javascript
+
       @draw = new draw.Draw()
 
       # ## DOM Population
@@ -132,14 +149,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # ### Wrapper
       # Create the div that will contain all the ICE Editor graphics
 
-      @meltElement = document.createElement 'div'
-      @meltElement.className = 'melt-wrapper-div'
+      @dropletElement = document.createElement 'div'
+      @dropletElement.className = 'droplet-wrapper-div'
 
       # We give our element a tabIndex so that it can be focused and capture keypresses.
-      @meltElement.tabIndex = 0
+      @dropletElement.tabIndex = 0
 
       # Append that div.
-      @wrapperElement.appendChild @meltElement
+      @wrapperElement.appendChild @dropletElement
 
       @wrapperElement.style.backgroundColor = '#FFF'
 
@@ -148,18 +165,18 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       # Main canvas first
       @mainCanvas = document.createElement 'canvas'
-      @mainCanvas.className = 'melt-main-canvas'
+      @mainCanvas.className = 'droplet-main-canvas'
 
       @mainCtx = @mainCanvas.getContext '2d'
 
-      @meltElement.appendChild @mainCanvas
+      @dropletElement.appendChild @mainCanvas
 
       @paletteWrapper = @paletteElement = document.createElement 'div'
-      @paletteWrapper.className = 'melt-palette-wrapper'
+      @paletteWrapper.className = 'droplet-palette-wrapper'
 
       # Then palette canvas
       @paletteCanvas = document.createElement 'canvas'
-      @paletteCanvas.className = 'melt-palette-canvas'
+      @paletteCanvas.className = 'droplet-palette-canvas'
 
       @paletteCtx = @paletteCanvas.getContext '2d'
 
@@ -171,7 +188,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @paletteElement.style.bottom = '0px'
       @paletteElement.style.width = '270px'
 
-      @meltElement.style.left = @paletteElement.offsetWidth + 'px'
+      @dropletElement.style.left = @paletteElement.offsetWidth + 'px'
 
       @wrapperElement.appendChild @paletteElement
 
@@ -248,10 +265,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           handler.call this, event, state
 
       for eventName, elements of {
-          keydown: [@meltElement, @paletteElement]
-          keyup: [@meltElement, @paletteElement]
-          mousedown: [@meltElement, @paletteElement, @dragCover]
-          dblclick: [@meltElement, @paletteElement, @dragCover]
+          keydown: [@dropletElement, @paletteElement]
+          keyup: [@dropletElement, @paletteElement]
+          mousedown: [@dropletElement, @paletteElement, @dragCover]
+          dblclick: [@dropletElement, @paletteElement, @dragCover]
           mouseup: [window]
           mousemove: [window] } then do (eventName, elements) =>
         for element in elements
@@ -285,12 +302,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @resizeTextMode()
       @resizeGutter()
 
-      @meltElement.style.left = "#{@paletteElement.offsetWidth}px"
-      @meltElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @meltElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
+      @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
+      @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
 
-      @mainCanvas.height = @meltElement.offsetHeight
-      @mainCanvas.width = @meltElement.offsetWidth - @gutter.offsetWidth
+      @mainCanvas.height = @dropletElement.offsetHeight
+      @mainCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
 
       @mainCanvas.style.height = "#{@mainCanvas.height}px"
       @mainCanvas.style.width = "#{@mainCanvas.width}px"
@@ -598,7 +615,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     else return null
 
   hook 'mousedown', 10, ->
-    @meltElement.focus()
+    @dropletElement.focus()
 
   # UNDO STACK SUPPORT
   # ================================
@@ -692,7 +709,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       unless @before? then return
 
       # Move a clone into position.
-      (clone = @block.clone()).moveTo editor.tree.getTokenAtLocation @before
+      @spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @before
 
       # If the block was the lasso select, register it
       # as such.
@@ -712,10 +729,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       # Move it to null.
       if @block.start.type is 'segment'
-        blockStart.container.moveTo null
+        @spliceOut blockStart.container
 
       else
-        blockStart.container.moveTo null
+        @spliceOut blockStart.container
 
       # Move the cursor somewhere close to what we
       # just deleted.
@@ -739,7 +756,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       until blockStart.type is @block.start.type then blockStart = blockStart.next
 
       # Move it to null.
-      blockStart.container.spliceOut()
+      @spliceOut blockStart.container
 
       # We may need to replace some of displaced
       # socket text from dropping a block
@@ -756,10 +773,30 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       unless @dest? then return
 
       # Move a clone into position.
-      (clone = @block.clone()).moveTo editor.tree.getTokenAtLocation @dest
+      editor.spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @dest
 
       # Move the cursor to the end of it.
       return clone.end
+
+  Editor::spliceOut = (node) ->
+    leading = node.getLeadingText()
+    trailing = node.getTrailingText()
+
+    [leading, trailing] = @mode.parens leading, trailing, node, null
+
+    node.setLeadingText leading; node.setTrailingText trailing
+
+    node.spliceOut()
+
+  Editor::spliceIn = (node, location) ->
+    leading = node.getLeadingText()
+    trailing = node.getTrailingText()
+
+    [leading, trailing] = @mode.parens leading, trailing, node, (location.container ? location.parent)
+
+    node.setLeadingText leading; node.setTrailingText trailing
+
+    node.spliceIn location
 
   # At population-time, we will
   # want to set up a few fields.
@@ -776,7 +813,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     # We will also have to initialize the
     # drag canvas.
     @dragCanvas = document.createElement 'canvas'
-    @dragCanvas.className = 'melt-drag-canvas'
+    @dragCanvas.className = 'droplet-drag-canvas'
 
     @dragCanvas.style.left = '-9999px'
     @dragCanvas.style.top = '-9999px'
@@ -785,15 +822,15 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     # And the canvas for drawing highlights
     @highlightCanvas = document.createElement 'canvas'
-    @highlightCanvas.className = 'melt-highlight-canvas'
+    @highlightCanvas.className = 'droplet-highlight-canvas'
 
     @highlightCtx = @highlightCanvas.getContext '2d'
 
     # We append it to the tracker element,
     # so that it can appear in front of the scrollers.
-    #@meltElement.appendChild @dragCanvas
+    #@dropletElement.appendChild @dragCanvas
     document.body.appendChild @dragCanvas
-    @meltElement.appendChild @highlightCanvas
+    @dropletElement.appendChild @highlightCanvas
 
   Editor::clearHighlightCanvas = ->
     @highlightCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
@@ -808,10 +845,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @dragCanvas.width = 0
     @dragCanvas.height = 0
 
-    @highlightCanvas.width = @meltElement.offsetWidth
+    @highlightCanvas.width = @dropletElement.offsetWidth
     @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
 
-    @highlightCanvas.height = @meltElement.offsetHeight
+    @highlightCanvas.height = @dropletElement.offsetHeight
     @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
 
     @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -978,8 +1015,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
         head = head.next
 
-      @dragCanvas.style.top = "#{position.y + getOffsetTop(@meltElement)}px"
-      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@meltElement)}px"
+      @dragCanvas.style.top = "#{position.y + getOffsetTop(@dropletElement)}px"
+      @dragCanvas.style.left = "#{position.x + getOffsetLeft(@dropletElement)}px"
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
@@ -1110,7 +1147,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @addMicroUndoOperation new PickUpOperation @draggingBlock
 
         # Remove the block from the tree.
-        @draggingBlock.spliceOut() # MUTATION
+        @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
 
@@ -1122,14 +1159,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @draggingBlock.spliceIn @lastHighlight.start #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @draggingBlock.spliceIn @lastHighlight.end #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
-            @draggingBlock.spliceIn @tree.start #MUTATION
+            @spliceIn @draggingBlock, @tree.start #MUTATION
 
       # Move the cursor to the position we just
       # dropped the block
@@ -1148,11 +1185,11 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::reparseRawReplace = (oldBlock) ->
     try
-      newParse = coffee.parse(oldBlock.stringify(), wrapAtRoot: true)
+      newParse = @mode.parse(oldBlock.stringify(@mode.empty), wrapAtRoot: true)
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
-        @addMicroUndoOperation new ReparseOperation parent, newBlock
+        @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
 
         if @cursor.hasParent oldBlock
           pos = @getRecoverableCursorPosition()
@@ -1162,7 +1199,17 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           newBlock.rawReplace oldBlock
 
     catch e
+      throw e
       return false
+
+  Editor::findForReal = (token) ->
+    head = @tree.start; i = 0
+    until head is token or head is @tree.end or not head?
+      head = head.next; i++
+    if head is token
+      return i
+    else
+      return null
 
   # FLOATING BLOCK SUPPORT
   # ================================
@@ -1243,7 +1290,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @addMicroUndoOperation new PickUpOperation @draggingBlock
 
         # Remove the block from the tree.
-        @draggingBlock.spliceOut() # MUTATION
+        @spliceOut @draggingBlock
 
       # If we dropped it off in the palette, abort (so as to delete the block).
       palettePoint = @trackerPointToPalette point
@@ -1340,7 +1387,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   hook 'populate', 0, ->
     # Create the hierarchical menu element.
     @paletteHeader = document.createElement 'div'
-    @paletteHeader.className = 'melt-palette-header'
+    @paletteHeader.className = 'droplet-palette-header'
 
     # Append the element.
     @paletteWrapper.appendChild @paletteHeader
@@ -1361,12 +1408,12 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # in our appending cycle
       if i % 2 is 0
         paletteHeaderRow = document.createElement 'div'
-        paletteHeaderRow.className = 'melt-palette-header-row'
+        paletteHeaderRow.className = 'droplet-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
 
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
-      paletteGroupHeader.className = 'melt-palette-group-header'
+      paletteGroupHeader.className = 'droplet-palette-group-header'
       paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
       if paletteGroup.color
         paletteGroupHeader.className += ' ' + paletteGroup.color
@@ -1377,7 +1424,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
-        newBlock = coffee.parse(data.block).start.next.container
+        newBlock = @mode.parse(data.block).start.next.container
         newBlock.spliceOut(); newBlock.parent = null
         newPaletteBlocks.push {
           block: newBlock
@@ -1405,7 +1452,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
         # Apply the "selected" style to us
         @currentPaletteGroupHeader.className +=
-            ' melt-palette-group-header-selected'
+            ' droplet-palette-group-header-selected'
 
         # Redraw the palette.
         @redrawPalette()
@@ -1453,7 +1500,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # ================================
   hook 'populate', 1, ->
     @paletteHighlightCanvas = document.createElement 'canvas'
-    @paletteHighlightCanvas.className = 'melt-palette-highlight-canvas'
+    @paletteHighlightCanvas.className = 'droplet-palette-highlight-canvas'
     @paletteHighlightCtx = @paletteHighlightCanvas.getContext '2d'
 
     @paletteHighlightPath = null
@@ -1482,9 +1529,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       block = data.block
 
       hoverDiv = document.createElement 'div'
-      hoverDiv.className = 'melt-hover-div'
+      hoverDiv.className = 'droplet-hover-div'
 
-      hoverDiv.title = data.title ? block.stringify()
+      hoverDiv.title = data.title ? block.stringify(@mode.empty)
 
       bounds = @view.getViewNodeFor(block).totalBounds
 
@@ -1523,8 +1570,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # Text input has two undo events: text change
   # and text reparse.
   class TextChangeOperation extends UndoOperation
-    constructor: (socket, @before) ->
-      @after = socket.stringify()
+    constructor: (socket, @before, editor) ->
+      @after = socket.stringify(editor.mode.empty)
       @socket = socket.start.getSerializedLocation()
 
     undo: (editor) ->
@@ -1542,22 +1589,22 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     undo: (editor) ->
       socket = editor.tree.getTokenAtLocation(@socket).container
-      socket.start.next.container.moveTo null
+      editor.spliceOut socket.start.next.container
       socket.start.insert new model.TextToken @before
 
     redo: (editor) ->
       socket = editor.tree.getTokenAtLocation(@socket).container
       socket.start.append socket.end; socket.notifyChange()
-      @after.clone().spliceIn socket
+      editor.spliceIn @after.clone(), socket
 
   # At populate-time, we need
   # to create and append the hidden input
   # we will use for text input.
   hook 'populate', 1, ->
     @hiddenInput = document.createElement 'textarea'
-    @hiddenInput.className = 'melt-hidden-input'
+    @hiddenInput.className = 'droplet-hidden-input'
 
-    @meltElement.appendChild @hiddenInput
+    @dropletElement.appendChild @hiddenInput
 
     # We also need to initialise some fields
     # for knowing what is focused
@@ -1594,7 +1641,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   # Redraw function for text input
   Editor::redrawTextInput = ->
-    sameLength = @textFocus.stringify().split('\n').length is @hiddenInput.value.split('\n').length
+    sameLength = @textFocus.stringify(@mode.empty).split('\n').length is @hiddenInput.value.split('\n').length
 
     # Set the value in the model to fit
     # the hidden input value.
@@ -1604,8 +1651,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     # Determine the coordinate positions
     # of the typing cursor
-    startRow = @textFocus.stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
-    endRow = @textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
+    startRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
     # Redraw the main canvas, on top of
     # which we will draw the cursor and
@@ -1660,16 +1707,16 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     # Determine the coordinate positions
     # of the typing cursor
-    startRow = @textFocus.stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
-    endRow = @textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
+    startRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-    lines = @textFocus.stringify().split '\n'
+    lines = @textFocus.stringify(@mode.empty).split '\n'
 
     startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionStart].split('\n'))).width
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n'))).width
 
     endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n'))).width
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n'))).width
 
     # Now draw the highlight/typing cursor
     #
@@ -1723,10 +1770,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # The first of these is an undo operation;
       # we need to add this text change to the undo stack.
       @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue
+      @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue, @
       @oldFocusValue = null
 
-      originalText = @textFocus.stringify()
+      originalText = @textFocus.stringify(@mode.empty)
       shouldPop = false
       shouldRecoverCursor = false
       cursorPosition = cursorParent = null
@@ -1740,14 +1787,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       # value.
       unless @textFocus.handwritten
         newParse = null
-        string = @textFocus.stringify().trim()
+        string = @textFocus.stringify(@mode.empty).trim()
         try
-          newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+          newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
         catch
           if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
             try
               string = escapeString string
-              newParse = coffee.parse(unparsedValue = string, wrapAtRoot: false)
+              newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
               @populateSocket @textFocus, string
 
         if newParse? and newParse.start.next.type is 'blockStart' and
@@ -1756,7 +1803,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           @textFocus.start.append @textFocus.end
 
           # Splice the other in
-          newParse.start.next.container.spliceIn @textFocus.start
+          @spliceIn newParse.start.next.container, @textFocus.start
 
           @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
           shouldPop = true
@@ -1784,18 +1831,18 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @textFocus = null
       @redrawMain()
       @hiddenInput.blur()
-      @meltElement.focus()
+      @dropletElement.focus()
       return
 
     # Record old focus value
-    @oldFocusValue = focus.stringify()
+    @oldFocusValue = focus.stringify(@mode.empty)
 
     # Now create a text token
     # with the appropriate text to put in it.
     @textFocus = focus
 
     # Immediately rerender.
-    @populateSocket focus, focus.stringify()
+    @populateSocket focus, focus.stringify(@mode.empty)
 
     @textFocus.notifyChange()
 
@@ -1803,7 +1850,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @moveCursorTo focus.end
 
     # Set the hidden input up to mirror the text.
-    @hiddenInput.value = @textFocus.stringify()
+    @hiddenInput.value = @textFocus.stringify(@mode.empty)
 
     if selectionStart? and not selectionEnd?
       selectionEnd = selectionStart
@@ -1859,7 +1906,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding) / @mainCtx.measureText(' ').width)
 
-    lines = @textFocus.stringify().split('\n')[..row]
+    lines = @textFocus.stringify(@mode.empty).split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
 
     return lines.join('\n').length
@@ -1871,8 +1918,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   Editor::selectDoubleClick = (point) ->
     position = @getTextPosition point
 
-    before = @textFocus.stringify()[...position].match(/\w*$/)[0]?.length ? 0
-    after = @textFocus.stringify()[position..].match(/^\w*/)[0]?.length ? 0
+    before = @textFocus.stringify(@mode.empty)[...position].match(/\w*$/)[0]?.length ? 0
+    after = @textFocus.stringify(@mode.empty)[position..].match(/^\w*/)[0]?.length ? 0
 
     @textInputAnchor = position - before
     @textInputHead = position + after
@@ -2031,14 +2078,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # with some fields.
   hook 'populate', 0, ->
     @lassoSelectCanvas = document.createElement 'canvas'
-    @lassoSelectCanvas.className = 'melt-lasso-select-canvas'
+    @lassoSelectCanvas.className = 'droplet-lasso-select-canvas'
 
     @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
 
     @lassoSelectAnchor = null
     @lassoSegment = null
 
-    @meltElement.appendChild @lassoSelectCanvas
+    @dropletElement.appendChild @lassoSelectCanvas
 
   # Conveneince function for clearing
   # the lasso select canvas
@@ -2048,10 +2095,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # Deal with resize for the lasso
   # select canvas
   Editor::resizeLassoCanvas = ->
-    @lassoSelectCanvas.width = @meltElement.offsetWidth
+    @lassoSelectCanvas.width = @dropletElement.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
-    @lassoSelectCanvas.height = @meltElement.offsetHeight
+    @lassoSelectCanvas.height = @dropletElement.offsetHeight
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
 
     @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -2246,6 +2293,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   # A cursor is only allowed to be on a line.
   Editor::moveCursorTo = (destination, attemptReparse = false) ->
+    @redrawMain()
+
     # If the destination is not inside the tree,
     # abort.
     unless destination?
@@ -2540,7 +2589,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if blockEnd.type is 'blockEnd'
       @addMicroUndoOperation new PickUpOperation blockEnd.container
 
-      blockEnd.container.spliceOut() #MUTATION
+      @spliceOut blockEnd.container
 
       @redrawMain()
 
@@ -2577,7 +2626,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @addMicroUndoOperation new PickUpOperation @lassoSegment
 
-    @lassoSegment.spliceOut()
+    @spliceOut @lassoSegment
     @lassoSegment = null
 
     @redrawMain()
@@ -2595,7 +2644,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
         # Construct the block; flag the socket as handwritten
         newBlock = new model.Block(); newSocket = new model.Socket -Infinity
-        newSocket.spliceIn newBlock.start
+        @spliceIn newSocket, newBlock.start
         newSocket.handwritten = true
 
         # Add it io our list of handwritten blocks
@@ -2611,7 +2660,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @addMicroUndoOperation 'CAPTURE_POINT'
         @addMicroUndoOperation new DropOperation newBlock, head
 
-        newBlock.moveTo head #MUTATION
+        @spliceIn newBlock, head #MUTATION
 
         @redrawMain()
 
@@ -2673,7 +2722,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
-    @aceElement.className = 'melt-ace'
+    @aceElement.className = 'droplet-ace'
 
     @wrapperElement.appendChild @aceElement
 
@@ -2695,9 +2744,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @currentlyAnimating = false
 
     @transitionContainer = document.createElement 'div'
-    @transitionContainer.className = 'melt-transition-container'
+    @transitionContainer.className = 'droplet-transition-container'
 
-    @meltElement.appendChild @transitionContainer
+    @dropletElement.appendChild @transitionContainer
 
   # For animation and ace editor,
   # we will need a couple convenience functions
@@ -2817,7 +2866,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if @currentlyUsingBlocks and not @currentlyAnimating
       @fireEvent 'statechange', [false]
 
-      console.log 'ACE SET VALUE ON MELT'
+      @aceEditor.setValue @getValue(), -1
       @setAceValue @getValue()
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
@@ -2834,7 +2883,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       else
         @mainScroller.style.overflowX = 'hidden'
       @mainScroller.style.overflowY = 'hidden'
-      @meltElement.style.width = @wrapperElement.offsetWidth + 'px'
+      @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
@@ -2865,7 +2914,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
         div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
 
-        div.className = 'melt-transitioning-element'
+        div.className = 'droplet-transitioning-element'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
         translatingElements.push div
 
@@ -2898,10 +2947,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         div.style.width = "#{@gutter.offsetWidth}px"
         translatingElements.push div
 
-        div.className = 'melt-transitioning-element melt-transitioning-gutter'
+        div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
-        @meltElement.appendChild div
+        @dropletElement.appendChild div
 
         do (div, line) =>
           # Set off the css transition
@@ -2925,20 +2974,20 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @cursorCanvas.style.opacity = 0
 
       setTimeout (=>
-        @meltElement.style.transition =
+        @dropletElement.style.transition =
           @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-        @meltElement.style.left = '0px'
+        @dropletElement.style.left = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
       ), fadeTime
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
-        @meltElement.style.transition =
+        @dropletElement.style.transition =
           @paletteWrapper.style.transition = ''
 
-        @meltElement.style.top = '-9999px'
-        @meltElement.style.left = '-9999px'
+        @dropletElement.style.top = '-9999px'
+        @dropletElement.style.left = '-9999px'
 
         @paletteWrapper.style.top = '-9999px'
         @paletteWrapper.style.left = '-9999px'
@@ -2988,7 +3037,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       setTimeout (=>
         # Hide scrollbars and increase width
         @mainScroller.style.overflow = 'hidden'
-        @meltElement.style.width = @wrapperElement.offsetWidth + 'px'
+        @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
 
         @redrawMain noText: true
 
@@ -3000,8 +3049,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
         @paletteWrapper.style.top = '0px'
         @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
-        @meltElement.style.top = "0px"
-        @meltElement.style.left = "0px"
+        @dropletElement.style.top = "0px"
+        @dropletElement.style.left = "0px"
 
         @paletteHeader.style.zIndex = 0
 
@@ -3028,7 +3077,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
           div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
 
-          div.className = 'melt-transitioning-element'
+          div.className = 'droplet-transitioning-element'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
@@ -3062,11 +3111,11 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
           div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
               lineHeight - aceScrollTop}px"
 
-          div.className = 'melt-transitioning-element melt-transitioning-gutter'
+          div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
           div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
           translatingElements.push div
 
-          @meltElement.appendChild div
+          @dropletElement.appendChild div
 
           do (div, line) =>
             setTimeout (=>
@@ -3091,14 +3140,14 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
         ), translateTime
 
-        @meltElement.style.transition =
+        @dropletElement.style.transition =
           @paletteWrapper.style.transition = "left #{fadeTime}ms"
 
-        @meltElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
 
         setTimeout (=>
-          @meltElement.style.transition =
+          @dropletElement.style.transition =
             @paletteWrapper.style.transition = ''
 
           # Show scrollbars again
@@ -3139,13 +3188,13 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     }
 
     @mainScroller = document.createElement 'div'
-    @mainScroller.className = 'melt-main-scroller'
+    @mainScroller.className = 'droplet-main-scroller'
 
     @mainScrollerStuffing = document.createElement 'div'
-    @mainScrollerStuffing.className = 'melt-main-scroller-stuffing'
+    @mainScrollerStuffing.className = 'droplet-main-scroller-stuffing'
 
     @mainScroller.appendChild @mainScrollerStuffing
-    @meltElement.appendChild @mainScroller
+    @dropletElement.appendChild @mainScroller
 
     @mainScroller.addEventListener 'scroll', =>
       @scrollOffsets.main.y = @mainScroller.scrollTop
@@ -3161,10 +3210,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @redrawMain()
 
     @paletteScroller = document.createElement 'div'
-    @paletteScroller.className = 'melt-palette-scroller'
+    @paletteScroller.className = 'droplet-palette-scroller'
 
     @paletteScrollerStuffing = document.createElement 'div'
-    @paletteScrollerStuffing.className = 'melt-palette-scroller-stuffing'
+    @paletteScrollerStuffing.className = 'droplet-palette-scroller-stuffing'
 
     @paletteScroller.appendChild @paletteScrollerStuffing
     @paletteWrapper.appendChild @paletteScroller
@@ -3182,8 +3231,8 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @redrawPalette()
 
   Editor::resizeMainScroller = ->
-    @mainScroller.style.width = "#{@meltElement.offsetWidth}px"
-    @mainScroller.style.height = "#{@meltElement.offsetHeight}px"
+    @mainScroller.style.width = "#{@dropletElement.offsetWidth}px"
+    @mainScroller.style.height = "#{@dropletElement.offsetHeight}px"
 
   hook 'resize_palette', 0, ->
     @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
@@ -3346,9 +3395,9 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   Editor::setValue_raw = (value) ->
     if @trimWhitespace then value = value.trim()
 
-    newParse = coffee.parse value, wrapAtRoot: true
+    newParse = @mode.parse value, wrapAtRoot: true
 
-    if value isnt @tree.stringify()
+    if value isnt @tree.stringify(@mode.empty)
       @addMicroUndoOperation 'CAPTURE_POINT'
     @addMicroUndoOperation new SetValueOperation @tree, newParse
 
@@ -3379,7 +3428,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::getValue = ->
     if @currentlyUsingBlocks
-      return @addEmptyLine @tree.stringify()
+      return @addEmptyLine @tree.stringify(@mode.empty)
     else
       @getAceValue()
 
@@ -3389,7 +3438,6 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   Editor::setAceValue = (value) ->
     if value isnt @lastAceSeenValue
-      console.log 'setting ace value'
       @aceEditor.setValue value
       @lastAceSeenValue = value
 
@@ -3421,10 +3469,10 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     if useBlocks
       @setValue @getAceValue()
 
-      @meltElement.style.top =
+      @dropletElement.style.top =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
 
-      @meltElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
 
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
@@ -3444,7 +3492,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
       @aceEditor.session.setScrollTop oldScrollTop
 
-      @meltElement.style.top = @meltElement.style.left =
+      @dropletElement.style.top = @dropletElement.style.left =
         @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
@@ -3461,7 +3509,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
   hook 'populate', 0, ->
     @dragCover = document.createElement 'div'
-    @dragCover.className = 'melt-drag-cover'
+    @dragCover.className = 'droplet-drag-cover'
     @dragCover.style.display = 'none'
 
     document.body.appendChild @dragCover
@@ -3521,7 +3569,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       event.changedTouches[index].pageY
     )
 
-    return absolutePoint.from(@absoluteOffset(@meltElement))
+    return absolutePoint.from(@absoluteOffset(@dropletElement))
 
   Editor::queueLassoMousedown = (trackPoint, event) ->
     @lassoSelectStartTimeout = setTimeout (=>
@@ -3605,17 +3653,17 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # ================================
   hook 'populate', 0, ->
     @cursorCanvas = document.createElement 'canvas'
-    @cursorCanvas.className = 'melt-highlight-canvas melt-cursor-canvas'
+    @cursorCanvas.className = 'droplet-highlight-canvas droplet-cursor-canvas'
 
     @cursorCtx = @cursorCanvas.getContext '2d'
 
-    @meltElement.appendChild @cursorCanvas
+    @dropletElement.appendChild @cursorCanvas
 
   Editor::resizeCursorCanvas = ->
-    @cursorCanvas.width = @meltElement.offsetWidth
+    @cursorCanvas.width = @dropletElement.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
-    @cursorCanvas.height = @meltElement.offsetHeight
+    @cursorCanvas.height = @dropletElement.offsetHeight
     @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
 
     @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -3657,7 +3705,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @flashTimeout = setTimeout (=> @flash()), 500
 
   Editor::editorHasFocus = ->
-    document.activeElement in [@meltElement, @hiddenInput, @copyPasteInput] and
+    document.activeElement in [@dropletElement, @hiddenInput, @copyPasteInput] and
     document.hasFocus()
 
   Editor::flash = ->
@@ -3677,7 +3725,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
 
-    @meltElement.addEventListener 'blur', blurCursors
+    @dropletElement.addEventListener 'blur', blurCursors
     @hiddenInput.addEventListener 'blur', blurCursors
     @copyPasteInput.addEventListener 'blur', blurCursors
 
@@ -3686,7 +3734,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       @cursorCanvas.style.transition = ''
       @cursorCanvas.style.opacity = 1
 
-    @meltElement.addEventListener 'focus', focusCursors
+    @dropletElement.addEventListener 'focus', focusCursors
     @hiddenInput.addEventListener 'focus', focusCursors
     @copyPasteInput.addEventListener 'focus', focusCursors
 
@@ -3727,7 +3775,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
   # ================================
   hook 'populate', 0, ->
     @gutter = document.createElement 'div'
-    @gutter.className = 'melt-gutter'
+    @gutter.className = 'droplet-gutter'
 
     @lineNumberWrapper = document.createElement 'div'
     @gutter.appendChild @lineNumberWrapper
@@ -3736,11 +3784,11 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     @lineNumberTags = {}
 
-    @meltElement.appendChild @gutter
+    @dropletElement.appendChild @gutter
 
   Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-    @gutter.style.height = "#{Math.max @meltElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+    @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
 
 
   Editor::addLineNumberForLine = (line) ->
@@ -3751,7 +3799,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
     else
       lineDiv = document.createElement 'div'
-      lineDiv.className = 'melt-gutter-line'
+      lineDiv.className = 'droplet-gutter-line'
       lineDiv.innerText = lineDiv.textContent = line + 1
 
       @lineNumberTags[line] = lineDiv
@@ -3811,7 +3859,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
     @copyPasteInput.style.position = 'absolute'
     @copyPasteInput.style.left = @copyPasteInput.style.top = '-9999px'
 
-    @meltElement.appendChild @copyPasteInput
+    @dropletElement.appendChild @copyPasteInput
 
     pressedVKey = false
     pressedXKey = false
@@ -3842,16 +3890,16 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
 
           str = str.replace /^\n*|\n*$/g, ''
 
-          blocks = coffee.parse str
+          blocks = @mode.parse str
 
           @addMicroUndoOperation 'CAPTURE_POINT'
           if @lassoSegment?
             @addMicroUndoOperation new PickUpOperation @lassoSegment
-            @lassoSegment.spliceOut(); @lassoSegment = null
+            @spliceOut @lassoSegment; @lassoSegment = null
 
           @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
 
-          blocks.spliceIn @cursor
+          @spliceIn blocks, @cursor
           unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
             blocks.end.insert new model.NewlineToken()
 
@@ -3865,7 +3913,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       else if pressedXKey and @lassoSegment?
         @addMicroUndoOperation 'CAPTURE_POINT'
         @addMicroUndoOperation new PickUpOperation @lassoSegment
-        @lassoSegment.spliceOut(); @lassoSegment = null
+        @spliceOut @lassoSegment; @lassoSegment = null
         @redrawMain()
 
   hook 'keydown', 0, (event, state) ->
@@ -3874,7 +3922,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       unless @textFocus?
         @copyPasteInput.focus()
         if @lassoSegment?
-          @copyPasteInput.value = @lassoSegment.stringify()
+          @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
   hook 'keyup', 0, (point, event, state) ->
@@ -3882,7 +3930,7 @@ define ['melt-helper', 'melt-coffee', 'melt-draw', 'melt-model', 'melt-view'], (
       if @textFocus?
         @hiddenInput.focus()
       else
-        @meltElement.focus()
+        @dropletElement.focus()
 
   hook 'populate', 0, ->
     setTimeout (=>

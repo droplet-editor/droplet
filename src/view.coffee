@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
+define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model) ->
   NO_MULTILINE = 0
   MULTILINE_START = 1
   MULTILINE_MIDDLE = 2
@@ -15,6 +15,10 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
   MOSTLY_BLOCK = helper.MOSTLY_BLOCK
   MOSTLY_VALUE = helper.MOSTLY_VALUE
   VALUE_ONLY = helper.VALUE_ONLY
+
+  CARRIAGE_ARROW_SIDEALONG = 0
+  CARRIAGE_ARROW_INDENT = 1
+  CARRIAGE_ARROW_NONE = 2
 
   DEFAULT_OPTIONS =
     padding: 5
@@ -56,6 +60,11 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
   exports = {}
 
   defaultStyleObject = -> {selected: 0, grayscale: 0}
+  arrayEq = (a, b) ->
+    return false if a.length isnt b.length
+    return false if k isnt b[i] for k, i in a
+    return true
+
 
   # # View
   # The View class contains options and caches
@@ -120,6 +129,8 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         # Record ourselves in the map
         # from model to renderer
         @view.map[@model.id] = this
+
+        @invalidate = false
 
         # *Zeroth pass variables*
         # computeChildren
@@ -190,7 +201,8 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
             'changedBoundingBox'
             'path'
             'highlightArea'
-            'computedVersion']
+            'computedVersion'
+            'carriageArrow']
           result.push(prop + ': ' + JSON.stringify(@[prop]))
         for child, i in @children
           result.push("child #{i}: {startLine: #{child.startLine}, " +
@@ -221,6 +233,9 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
       # overridden.
       computeChildren: -> @lineLength
 
+      computeCarriageArrow: ->
+        @carriageArrow = CARRIAGE_ARROW_NONE
+
       # ## computeMargins (GenericViewNode)
       # Compute the amount of margin required outside the child
       # on the top, bottom, left, and right.
@@ -241,7 +256,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
 
         if parenttype is 'block' and @model.type is 'indent'
           @margins =
-            top: 0
+            top: @view.opts.padding
             bottom: @view.opts.indentTongueHeight
 
             firstLeft: 0
@@ -361,7 +376,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
       #
       # Return child node.
       computeDimensions: (startLine, force, root = false) ->
-        if @computedVersion is @model.version and not force
+        if @computedVersion is @model.version and not force and not @invalidate
           return
 
         oldDimensions = @dimensions
@@ -409,8 +424,12 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         @changedBoundingBox or= changed
 
         for childObj in @children
-          @view.getViewNodeFor(childObj.child).computeDimensions(
-              childObj.startLine, changed)
+          if childObj in @lineChildren[0] or childObj in @lineChildren[@lineLength - 1]
+            @view.getViewNodeFor(childObj.child).computeDimensions(
+                childObj.startLine, changed)
+          else
+            @view.getViewNodeFor(childObj.child).computeDimensions(
+              childObj.startLine, false)
 
         return null
 
@@ -536,6 +555,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         # to `true` whenever a bounding box changed on the bounding box
         # passes.
         if @computedVersion is @model.version and
+             (@model.isLastOnLine() is @lastComputedLinePredicate) and
              not @changedBoundingBox
           return null
 
@@ -546,7 +566,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         # It is possible that we have a version increment
         # without changing bounding boxes. If this is the case,
         # we don't need to recompute our own path.
-        if @changedBoundingBox
+        if @changedBoundingBox or (@model.isLastOnLine() isnt @lastComputedLinePredicate)
           @computeOwnPath()
 
           # Recompute `totalBounds`, which is used
@@ -572,6 +592,8 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
             @totalBounds.width = maxRight - @totalBounds.x
 
           @totalBounds.unite @path.bounds()
+
+        @lastComputedLinePredicate = @model.isLastOnLine()
 
         return null
 
@@ -615,6 +637,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
           return null
 
         @changedBoundingBox = false
+        @invalidate = false
         @computedVersion = @model.version
 
         # Recurse.
@@ -830,6 +853,30 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
 
         return @lineLength
 
+      computeCarriageArrow: (root = false) ->
+        @carriageArrow = CARRIAGE_ARROW_NONE
+
+        if (not root) and @model.parent?.type is 'indent'
+          if not @model.isFirstOnLine()
+            @carriageArrow = CARRIAGE_ARROW_SIDEALONG
+          else
+            head = @model.start
+            until head is @model.parent.start or head.type is 'newline'
+              head = head.prev
+
+            if head is @model.parent.start
+              @carriageArrow = CARRIAGE_ARROW_INDENT
+
+        if @computedVersion is @model.version and
+           (not @model.parent? or
+           @model.parent.version is @view.getViewNodeFor(@model.parent).computedVersion)
+          return null
+
+        for childObj in @children
+          @view.getViewNodeFor(childObj.child).computeCarriageArrow()
+
+        return null
+
       computeBevels: ->
         if @computedVersion is @model.version
           return null
@@ -838,7 +885,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
           topLeft: false
           topRight: true
           bottomLeft: false
-          bottomRight: true
+          bottomRight: @carriageArrow is CARRIAGE_ARROW_NONE
 
         if (not @model.parent?) or
            (not @view.hasViewNodeFor(@model.parent)) or
@@ -858,8 +905,6 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         # If we can, use cached data.
         if @computedVersion is @model.version
           return null
-
-        #console.log 'recomputing', @model.type, @model.stringify()[..500]
 
         # start at zero min dimensions
         super
@@ -945,6 +990,16 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         for line in preIndentLines
           @minDimensions[line].width = Math.max(@minDimensions[line].width,
             @view.opts.indentWidth + @view.opts.tabWidth + @view.opts.tabOffset + @view.opts.bevelClip)
+
+        # Add space for carriage arrow
+        for lineChild in @lineChildren[@lineLength - 1]
+          lineChildView = @view.getViewNodeFor lineChild.child
+          if lineChildView.carriageArrow isnt CARRIAGE_ARROW_NONE
+            @minDistanceToBase[@lineLength - 1].below += @view.opts.padding
+            @minDimensions[@lineLength - 1].height =
+              @minDistanceToBase[@lineLength - 1].above +
+              @minDistanceToBase[@lineLength - 1].below
+            break
 
         return null
 
@@ -1040,6 +1095,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         for box, line in @bounds when line < @bounds.length - 1
 
           @glue[line] = {
+            type: 'normal'
             height: 0
             draw: false
           }
@@ -1054,6 +1110,9 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
               # Either add padding or not, depending
               # on whether there is an indent between us.
               @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height
+
+            if childView.carriageArrow isnt CARRIAGE_ARROW_NONE
+              @glue[line].height = Math.max @glue[line].height, @view.opts.padding
 
           # Additionally, we add glue spacing padding if we are disconnected
           # from the bounding box on the next line.
@@ -1120,6 +1179,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
       # to translate the entire document from the upper-left corner.
       layout: (left = 0, top = 0) ->
         @computeChildren()
+        @computeCarriageArrow true
         @computeMargins()
         @computeBevels()
         @computeMinDimensions()
@@ -1161,7 +1221,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
 
         # If necessary, add tab
         # at the top.
-        if @shouldAddTab()
+        if @shouldAddTab() and @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
           @addTab left, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
@@ -1188,7 +1248,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
             else
               right.push new @view.draw.Point bounds.right(), bounds.y
 
-            if @bevels.bottomRight
+            if @bevels.bottomRight and not (@glue[line]?.draw ? false)
               right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
               right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
             else
@@ -1215,7 +1275,6 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
             multilineView = @view.getViewNodeFor multilineChild.child
             multilineBounds = multilineView.bounds[line - multilineChild.startLine]
 
-
             # If the multiline child here is invisible,
             # draw the line just normally.
             if multilineBounds.width is 0
@@ -1233,8 +1292,9 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
             else
               right.push new @view.draw.Point bounds.right(), bounds.y
               right.push new @view.draw.Point bounds.right(), multilineBounds.y
-              right.push new @view.draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
-              right.push new @view.draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
+              if multilineChild.child.type is 'indent'
+                @addTab right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.y
+              right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
           # Case 3. Middle of an indent.
@@ -1326,7 +1386,7 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
           #
           # If we are being told to draw some glue here,
           # do so.
-          if line of @glue and @glue[line].draw
+          if line < @lineLength - 1 and line of @glue and @glue[line].draw
             # Extract information from the glue spacing
             # and bounding box data combined.
             #
@@ -1372,6 +1432,32 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
             unless @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
               right.push new @view.draw.Point innerRight, @bounds[line].bottom()
               right.push new @view.draw.Point innerRight, @bounds[line + 1].y
+          else if @carriageArrow is CARRIAGE_ARROW_INDENT
+            parentViewNode = @view.getViewNodeFor @model.parent
+            destinationBounds = parentViewNode.bounds[1]
+
+            right.push new @view.draw.Point @bounds[line].right(), destinationBounds.y
+            right.push new @view.draw.Point destinationBounds.x + @view.opts.tabOffset + @view.opts.tabWidth, destinationBounds.y
+
+            left.push new @view.draw.Point @bounds[line].x, destinationBounds.y - @view.opts.padding
+            left.push new @view.draw.Point destinationBounds.x, destinationBounds.y - @view.opts.padding
+            left.push new @view.draw.Point destinationBounds.x, destinationBounds.y
+
+            @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset, destinationBounds.y
+          else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
+            parentViewNode = @view.getViewNodeFor @model.parent
+            destinationBounds = parentViewNode.bounds[1]
+
+            right.push new @view.draw.Point @bounds[line].right(), @bounds[line].bottom() + @view.opts.padding
+            right.push new @view.draw.Point destinationBounds.x + @view.opts.tabOffset + @view.opts.tabWidth,
+              @bounds[line].bottom() + @view.opts.padding
+
+            left.push new @view.draw.Point @bounds[line].x, @bounds[line].bottom()
+            left.push new @view.draw.Point destinationBounds.x, @bounds[line].bottom()
+            left.push new @view.draw.Point destinationBounds.x, @bounds[line].bottom() + @view.opts.padding
+
+            @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset,
+              @bounds[line].bottom() + @view.opts.padding
 
           # If we're avoiding intersections with a multiline child in the way,
           # bring us gracefully to the next line's top. We had to keep avoiding
@@ -1389,12 +1475,13 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
               glueTop = @bounds[line].bottom()
 
             if multilineChild.child.type is 'indent'
-              right.push new @view.draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
-              right.push new @view.draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
+              if multilineChild.child.start.next.type is 'newline'
+                right.push new @view.draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
+                right.push new @view.draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
 
-              @addTab right, new @view.draw.Point(@bounds[line + 1].x +
-                @view.opts.indentWidth +
-                @view.opts.tabOffset, @bounds[line + 1].y), true
+                @addTab right, new @view.draw.Point(@bounds[line + 1].x +
+                  @view.opts.indentWidth +
+                  @view.opts.tabOffset, glueTop), true
             else
               right.push new @view.draw.Point multilineBounds.x, glueTop
 
@@ -1403,8 +1490,10 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
 
         # If necessary, add tab
         # at the bottom.
-        if @shouldAddTab()
-          @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset, @bounds[@lineLength - 1].bottom()
+        if @shouldAddTab() and @model.isLastOnLine() and
+              @carriageArrow is CARRIAGE_ARROW_NONE
+            @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset,
+              @bounds[@lineLength - 1].bottom()
 
         # Reverse the left and concatenate it with the right
         # to make a counterclockwise path
@@ -1532,30 +1621,47 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
         # height dropAreaHeight and a width
         # equal to our last line width,
         # positioned at the bottom of our last line.
-        @dropPoint = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
+        if @carriageArrow is CARRIAGE_ARROW_INDENT
+          parentViewNode = @view.getViewNodeFor @model.parent
+          destinationBounds = parentViewNode.bounds[1]
+
+          @dropPoint = new @view.draw.Point destinationBounds.x, destinationBounds.y
+          lastBoundsLeft = destinationBounds.x
+          lastBoundsRight = destinationBounds.right()
+        else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
+          parentViewNode = @view.getViewNodeFor @model.parent
+          destinationBounds = parentViewNode.bounds[1]
+
+          @dropPoint = new @view.draw.Point destinationBounds.x,
+            @bounds[@lineLength - 1].bottom() + @view.opts.padding
+          lastBoundsLeft = destinationBounds.x
+          lastBoundsRight = @bounds[@lineLength - 1].right()
+        else
+          @dropPoint = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
+          lastBoundsLeft = @bounds[@lineLength - 1].x
+          lastBoundsRight = @bounds[@lineLength - 1].right()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
 
         @highlightArea = new @view.draw.Path()
         highlightAreaPoints = []
-        lastBounds = @bounds[@lineLength - 1]
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y - @view.opts.highlightAreaHeight / 2
 
-        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
+        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoint.y - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.bottom() - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoint.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
+        @addTab highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoint.y + @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.bottom() + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
         @highlightArea.push point for point in highlightAreaPoints
 
@@ -1664,23 +1770,39 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode
-      constructor: -> super
+      constructor: ->
+        super
+        @lastFirstChildren = []
+        @lastLastChildren = []
 
       # ## computeOwnPath
       # An Indent should also have no drawn
       # or hit-tested path.
       computeOwnPath: -> @path = new @view.draw.Path()
 
-
       # ## computeChildren
       computeChildren: ->
         super
 
+        unless arrayEq(@lineChildren[0], @lastFirstChildren) and
+               arrayEq(@lineChildren[@lineLength - 1], @lastLastChildren)
+          for childObj in @children
+            childView = @view.getViewNodeFor childObj.child
+
+            if childView.topLineSticksToBottom or childView.bottomLineSticksToTop
+              childView.invalidate = true
+            childView.topLineSticksToBottom =
+              childView.bottomLineSticksToTop = false
+
         for childRef in @lineChildren[0]
           childView = @view.getViewNodeFor(childRef.child)
+          unless childView.topLineSticksToBottom
+            childView.invalidate = true
           childView.topLineSticksToBottom = true
         for childRef in @lineChildren[@lineChildren.length - 1]
           childView = @view.getViewNodeFor(childRef.child)
+          unless childView.bottomLineSticksToTop
+            childView.invalidate = true
           childView.bottomLineSticksToTop = true
 
         return @lineLength
@@ -1708,17 +1830,20 @@ define ['melt-helper', 'melt-draw', 'melt-model'], (helper, draw, model) ->
       # equal to our first line width,
       # positioned at the top of our firs tline
       computeOwnDropArea: ->
-        @dropPoint = @bounds[1].upperLeftCorner()
+        lastBounds = new @view.draw.NoRectangle()
+        if @model.start.next.type is 'newline'
+          @dropPoint = @bounds[1].upperLeftCorner()
+          lastBounds.copy @bounds[1]
+        else
+          @dropPoint = @bounds[0].upperLeftCorner()
+          lastBounds.copy @bounds[0]
+        lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
 
         @highlightArea = new @view.draw.Path()
         highlightAreaPoints = []
-
-        lastBounds = new @view.draw.NoRectangle()
-        lastBounds.copy @bounds[1]
-        lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
         highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
         highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2

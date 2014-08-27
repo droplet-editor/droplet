@@ -6,14 +6,14 @@ requirejs.config
   nodeRequire: require
   baseUrl: __dirname
   paths:
-    'melt-coffee': '../../dist/melt'
+    'droplet-coffee': '../../dist/droplet'
     'coffee-script': '../../vendor/coffee-script.js'
 
 describe 'Parser unity', (done) ->
   coffee = null
 
   before (done) ->
-    requirejs ['melt-coffee'], (module) ->
+    requirejs ['droplet-coffee'], (module) ->
       coffee = module
       done()
 

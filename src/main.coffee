@@ -1,4 +1,4 @@
-define ['melt-draw', 'melt-view', 'melt-model', 'melt-coffee', 'melt-controller', 'melt-parser'], (draw, view, model, coffee, controller, parser) ->
+define ['droplet-draw', 'droplet-view', 'droplet-model', 'droplet-coffee', 'droplet-controller', 'droplet-parser'], (draw, view, model, coffee, controller, parser) ->
   return {
     view: view,
     draw: draw,

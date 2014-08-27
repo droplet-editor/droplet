@@ -1,0 +1,142 @@
+[
+  {
+    "message": "Function call",
+    "str": "fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></segment>"
+  },
+  {
+    "message": "Variable assignment",
+    "str": "a = b",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Assign\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"Value:1;default:3\">a</socket> = <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block></segment>"
+  },
+  {
+    "message": "If statement, normal form",
+    "str": "if true\n  fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"If\">if <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">true</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "Unless statement, normal form",
+    "str": "unless true\n  fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"If\">unless <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">true</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "One-line if statement",
+    "str": "if a then b",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"If\">if <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> then <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block></segment>"
+  },
+  {
+    "message": "If-else statement, normal form",
+    "str": "if true\n  fd 10\nelse\n  fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"If\">if <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">true</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></indent>\nelse<indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "One-line if-else statement",
+    "str": "if a then b else c",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"If\">if <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> then <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket> else <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">c</socket></block></segment>"
+  },
+  {
+    "message": "While statement, normal form",
+    "str": "while a\n  fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-3\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"While\">while <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "One-line while statement",
+    "str": "while a then fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-3\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"While\">while <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> then <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket></block></segment>"
+  },
+  {
+    "message": "For-in, normal form",
+    "str": "for i in list\n  fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-3\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"For\">for <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">i</socket> in <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">list</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "One-line for-in",
+    "str": "for i in list then fd 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-3\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"For\">for <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">i</socket> in <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">list</socket> then <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket></block></segment>"
+  },
+  {
+    "message": "Inverted one-line for-in",
+    "str": "fd 10 for i in list",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-3\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"For\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket> for <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">i</socket> in <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">list</socket></block></segment>"
+  },
+  {
+    "message": "Semicolons at the root",
+    "str": "fd 10; bk 10",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-2\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"semicolon\"><socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket>; <socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">bk <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket></block></segment>"
+  },
+  {
+    "message": "Semicolons with one-line block",
+    "str": "if a then b; c else d",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"If\">if <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> then <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"-2\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"semicolon\"><socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket>; <socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\">c</socket></block></socket> else <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">d</socket></block></segment>"
+  },
+  {
+    "message": "Semicolons in sequence",
+    "str": "while a\n  see hi\n  fd 10; bk 10\n  see bye",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-3\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"While\">while <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">see <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">hi</socket></block>\n<block\n  precedence=\"-2\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"semicolon\"><socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket>; <socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">bk <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket></block>\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">see <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">bye</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "Object literal, normal form",
+    "str": "foo {\n  a: b,\n  c: d\n}",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">foo</socket> <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Obj\">{\n  <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">a</socket>: <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket>,\n  <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">c</socket>: <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">d</socket>\n}</block></socket></block></segment>"
+  },
+  {
+    "message": "Object literal, no braces or commas",
+    "str": "foo\n  a: b\n  c: d",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">foo</socket>\n  <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Obj\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">a</socket>: <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket>\n  <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">c</socket>: <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">d</socket></block></socket></block></segment>"
+  },
+  {
+    "message": "String interpolation",
+    "str": "foo \"#{a}\"",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">foo</socket> <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">\"#{a}\"</socket></block></segment>"
+  },
+  {
+    "message": "Range",
+    "str": "[1..10]",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"100\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Range\">[<socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">1</socket>..<socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket>]</block></segment>"
+  },
+  {
+    "message": "Array",
+    "str": "[0, 1]",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"100\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Arr\">[<socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">0</socket>, <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">1</socket>]</block></segment>"
+  },
+  {
+    "message": "Switch, one case, no default",
+    "str": "switch k\n  when a\n    blah blah",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"Switch\">switch <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">k</socket>\n  when <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket><indent\n  prefix=\"    \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">blah</socket> <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">blah</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "One-line switch, one case, no default",
+    "str": "switch k\n  when a then b",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"Switch\">switch <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">k</socket>\n  when <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> then <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block></segment>"
+  },
+  {
+    "message": "Switch, two cases, with default",
+    "str": "switch k\n  when a\n    blah blah\n  when b\n    darn it\n  else\n    what ever",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"2\"\n  classes=\"Switch\">switch <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">k</socket>\n  when <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket><indent\n  prefix=\"    \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">blah</socket> <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">blah</socket></block></indent>\n  when <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket><indent\n  prefix=\"    \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">darn</socket> <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">it</socket></block></indent>\n  else<indent\n  prefix=\"    \">\n<block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">what</socket> <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">ever</socket></block></indent></block></segment>"
+  },
+  {
+    "message": "Empty function definition",
+    "str": "->",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Code\">-&gt;</block></segment>"
+  },
+  {
+    "message": "Class definition, normal form, constructor only",
+    "str": "class Duck\n  constructor: ->",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"control\"\n  socketLevel=\"0\"\n  classes=\"Class\">class <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">Duck</socket><indent\n  prefix=\"  \">\n<block\n  precedence=\"0\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Obj\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">constructor</socket>: <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Code\">-&gt;</block></socket></block></indent></block></segment>"
+  },
+  {
+    "message": "Non-parenthetical function call nested in parenthetical function call",
+    "str": "a(b\n  x: 1)",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket>(<socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"0\"\n  classes=\"Call works-as-method-call\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket>\n  <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Obj\"><socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:3\">x</socket>: <socket\n  precedence=\"0\"\n  handwritten=\"false\"\n  accepts=\"default:1\">1</socket></block></socket>)</block></socket></block></segment>"
+  },
+  {
+    "message": "Parentheses around semicolon block",
+    "str": "(fd 10; bk 10)",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"-2\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Parens\">(<socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">fd <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket>; <socket\n  precedence=\"-2\"\n  handwritten=\"false\"\n  accepts=\"default:1\"><block\n  precedence=\"0\"\n  color=\"command\"\n  socketLevel=\"2\"\n  classes=\"Call works-as-method-call\">bk <socket\n  precedence=\"-1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">10</socket></block></socket>)</block></segment>"
+  },
+  {
+    "message": "Operator precedences",
+    "str": "a or b\na and b\na is b\na isnt b\na > b\na < b\na >= b\na <= b\na + b\na - b\na * b\na / b\na % b\na ** b\na % b\na?",
+    "expected": "<segment\n  isLassoSegment=\"false\"><block\n  precedence=\"1\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> or <socket\n  precedence=\"1\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"2\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"2\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> and <socket\n  precedence=\"2\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"3\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> is <socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"3\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> isnt <socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"3\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> &gt; <socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"3\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> &lt; <socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"3\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> &gt;= <socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"3\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> &lt;= <socket\n  precedence=\"3\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"4\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"4\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> + <socket\n  precedence=\"4\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"4\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"4\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> - <socket\n  precedence=\"4\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"5\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"5\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> * <socket\n  precedence=\"5\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"5\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"5\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> / <socket\n  precedence=\"5\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"6\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"6\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> % <socket\n  precedence=\"6\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"7\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"7\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> ** <socket\n  precedence=\"7\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"6\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Op\"><socket\n  precedence=\"6\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket> % <socket\n  precedence=\"6\"\n  handwritten=\"false\"\n  accepts=\"default:1\">b</socket></block>\n<block\n  precedence=\"100\"\n  color=\"value\"\n  socketLevel=\"4\"\n  classes=\"Existence\"><socket\n  precedence=\"101\"\n  handwritten=\"false\"\n  accepts=\"default:1\">a</socket>?</block></segment>"
+  }
+]

@@ -3,14 +3,14 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License
 
-define ['melt-helper'], (helper) ->
+define ['droplet-helper'], (helper) ->
   exports = {}
 
   YES = -> yes
   NO = -> no
 
-  NORMAL = -> helper.NORMAL
-  FORBID = -> helper.FORBID
+  NORMAL = default: helper.NORMAL
+  FORBID = default: helper.FORBID
 
   _id = 0
 
@@ -21,7 +21,9 @@ define ['melt-helper'], (helper) ->
       set: set
 
   exports.isTreeValid = (tree) ->
-    tortise = hare = tree.start
+    tortise = hare = tree.start.next
+
+    stack =  []
 
     while true
       tortise = tortise.next
@@ -34,7 +36,17 @@ define ['melt-helper'], (helper) ->
       if lastHare isnt hare.prev
         throw new Error 'Linked list is not properly bidirectional'
       if hare is tree.end
+        if stack.length > 0
+          throw new Error 'Document ended before: ' + (k.type for k in stack).join(',')
         break
+      if hare instanceof StartToken
+        stack.push hare.container
+      else if hare instanceof EndToken
+        unless stack[stack.length - 1] is hare.container
+          throw new Error "Stack does not align #{stack[stack.length - 1]?.type} != #{hare.container?.type}"
+        else
+          stack.pop()
+
 
       lastHare = hare
       hare = hare.next
@@ -44,21 +56,19 @@ define ['melt-helper'], (helper) ->
       if lastHare isnt hare.prev
         throw new Error 'Linked list is not properly bidirectional'
       if hare is tree.end
+        if stack.length > 0
+          throw new Error 'Document ended before: ' + (k.type for k in stack).join(',')
         break
+      if hare instanceof StartToken
+        stack.push hare.container
+      else if hare instanceof EndToken
+        unless stack[stack.length - 1] is hare.container
+          throw new Error "Stack does not align #{stack[stack.length - 1]?.type} != #{hare.container?.type}"
+        else
+          stack.pop()
 
       if tortise is hare
         throw new Error 'Linked list loops'
-
-    stack = []; head = tree.start.next
-    until head is tree.end or head is null
-      if head instanceof StartToken
-        stack.push head.container
-      else if head instanceof EndToken
-        unless stack[stack.length - 1] is head.container
-          throw new Error "Stack does not align #{stack[stack.length - 1]?.type} != #{head.container?.type}"
-        else
-          stack.pop()
-      head = head.next
 
     return true
 
@@ -114,13 +124,49 @@ define ['melt-helper'], (helper) ->
       if other.start.prev?
         other.start.prev.append @start
 
-      if other.last.next?
-        @end.append other.last.next
+      if other.end.next?
+        @end.append other.end.next
 
       @start.parent = @end.parent = @parent = other.parent
 
       other.parent = other.start.parent = other.end.parent = null
       other.start.prev = other.end.next = null
+
+      @notifyChange()
+
+    # Getters and setters for
+    # leading and trailing text, for use
+    # by modes to do paren-wrapping and
+    # semicolon insertion
+    getLeadingText: ->
+      if @start.next.type is 'text'
+        @start.next.value
+      else
+        ''
+
+    getTrailingText: ->
+      if @end.prev.type is 'text'
+        @end.prev.value
+      else
+        ''
+
+    setLeadingText: (value) ->
+      if @start.next.type is 'text'
+        if value.length is 0
+          @start.next.remove()
+        else
+          @start.next.value = value
+      else
+        @start.insert new TextToken value
+
+    setTrailingText: (value) ->
+      if @end.prev.type is 'text'
+        if value.length is 0
+          @end.prev.remove()
+        else
+          @end.prev.value = value
+      else
+        @end.insertBefore new TextToken value
 
     # ## clone ##
     # Clone this container, with all the token inside,
@@ -157,12 +203,13 @@ define ['melt-helper'], (helper) ->
     # Get a string representation of us,
     # using the `stringify()` method on all of
     # the tokens that we contain.
-    stringify: ->
+    stringify: (emptyToken = '') ->
       str = ''
 
       head = @start.next
       state =
         indent: ''
+        emptyToken: emptyToken
 
       until head is @end
         str += head.stringify state
@@ -174,15 +221,13 @@ define ['melt-helper'], (helper) ->
     # Simple debugging output representation
     # of the tokens in this Container. Like XML.
     serialize: ->
-      str = ''
+      str = @_serialize_header()
+      @traverseOneLevel (child) ->
+        str += child.serialize()
+      str += @_serialize_footer()
 
-      head = @start.next
-
-      until head is @end
-        str += head.serialize()
-        head = head.next
-
-      return str
+    _serialize_header: "<container>"
+    _serialize_header: "</container>"
 
     # ## contents ##
     # Get a cloned version of a
@@ -289,9 +334,28 @@ define ['melt-helper'], (helper) ->
     # ## moveTo ##
     # Convenience function for testing;
     # splice out then splice in.
-    moveTo: (token) ->
-      if @start.prev? or @end.next? then @spliceOut()
-      if token? then @spliceIn token
+    #
+    # USED FOR TESTING ONLY
+    moveTo: (token, mode) ->
+      if @start.prev? or @end.next?
+        leading = @getLeadingText()
+        trailing = @getTrailingText()
+
+        [leading, trailing] = mode.parens leading, trailing, @, null
+
+        @setLeadingText leading; @setTrailingText trailing
+
+        @spliceOut()
+
+      if token?
+        leading = @getLeadingText()
+        trailing = @getTrailingText()
+
+        [leading, trailing] = mode.parens leading, trailing, @, (token.container ? token.parent)
+
+        @setLeadingText leading; @setTrailingText trailing
+
+        @spliceIn token
 
     # ## notifyChange ##
     # Increase version number (for caching purposes)
@@ -393,11 +457,11 @@ define ['melt-helper'], (helper) ->
       traverseOneLevel @start.next, fn
 
     isFirstOnLine: ->
-      return @start.previousVisibleToken() is @parent?.start or
+      return @start.previousAffectToken() is @parent?.start or
         @start.previousVisibleToken()?.type is 'newline'
 
     isLastOnLine: ->
-      return @end.nextVisibleToken() is @parent?.end or
+      return @end.nextAffectToken() in [@parent?.end, null] or
         @end.nextVisibleToken()?.type in ['newline', 'indentStart']
 
     # Line mark mutators
@@ -490,6 +554,7 @@ define ['melt-helper'], (helper) ->
 
     # ## isVisible ##
     isVisible: YES
+    isAffect: YES
 
     previousVisibleToken: ->
       head = @prev
@@ -500,6 +565,18 @@ define ['melt-helper'], (helper) ->
     nextVisibleToken: ->
       head = @next
       until not head? or head.isVisible()
+        head = head.next
+      return head
+
+    previousAffectToken: ->
+      head = @prev
+      until not head? or head.isAffect()
+        head = head.prev
+      return head
+
+    nextAffectToken: ->
+      head = @next
+      until not head? or head.isAffect()
         head = head.next
       return head
 
@@ -588,14 +665,13 @@ define ['melt-helper'], (helper) ->
 
   exports.BlockStartToken = class BlockStartToken extends StartToken
     constructor: (@container) -> super; @type = 'blockStart'
-    serialize: -> "<block color=\"#{@container.color}\" precedence=\"#{@container.precedence}\">"
 
   exports.BlockEndToken = class BlockEndToken extends EndToken
     constructor: (@container) -> super; @type = 'blockEnd'
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = '#ddf', @socketLevel = null, @classes = []) ->
+    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -609,49 +685,28 @@ define ['melt-helper'], (helper) ->
 
       return clone
 
-    # ## checkparenWrap ##
-    # Insert or remove wrapping parentheses as necessary.
-    checkParenWrap: ->
-      if @parent?.type is 'socket' and @parent.precedence >= @precedence
-        unless @currentlyParenWrapped
-          @start.insert new TextToken '('
-          @end.insertBefore new TextToken ')'
-          @currentlyParenWrapped = true
-
-      else if @currentlyParenWrapped
-        @start.next.value = @start.next.value[1...]
-        @end.prev.value = @end.prev.value[...-1]
-
-        if @start.next.value.length is 0 then @start.next.remove()
-        if @end.prev.value.length is 0 then @end.prev.remove()
-
-        @currentlyParenWrapped = false
-
-    # ## spliceOut and spliceIn ##
-    # We need to also check paren wrap
-    # after these change-of-context things.
-    spliceOut: ->
-      super; @checkParenWrap()
-
-    spliceIn: ->
-      super; @checkParenWrap()
+    _serialize_header: -> "<block precedence=\"#{
+      @precedence}\" color=\"#{
+      @color}\" socketLevel=\"#{
+      @socketLevel}\" classes=\"#{
+      @classes?.join?(' ') ? []}\"
+    >"
+    _serialize_footer: -> "</block>"
 
   # Socket
   # ==================
 
   exports.SocketStartToken = class SocketStartToken extends StartToken
     constructor: (@container) -> super; @type = 'socketStart'
-    serialize: -> "<socket precedence=\"#{@container.precedence}\">"
-    stringify: ->
+    stringify: (state) ->
       if @next is @container.end or
-        @next.type is 'text' and @next.value is '' then '``' else ''
+        @next.type is 'text' and @next.value is '' then state.emptyToken else ''
 
   exports.SocketEndToken = class SocketEndToken extends EndToken
     constructor: (@container) -> super; @type = 'socketEnd'
-    serialize: -> "</socket>"
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @accepts = NORMAL) ->
+    constructor: (@precedence = 0, @handwritten = false, @acceptsRules = NORMAL) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
@@ -659,7 +714,24 @@ define ['melt-helper'], (helper) ->
 
       super
 
+    accepts: (block) ->
+      for c in block.classes
+        if c of @acceptsRules then return @acceptsRules[c]
+
+      return @acceptsRules['default'] ? NORMAL
+
+
     _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
+
+    _serialize_header: -> "<socket precedence=\"#{
+        @precedence
+      }\" handwritten=\"#{
+        @handwritten
+      }\" accepts=\"#{
+        helper.serializeShallowDict @acceptsRules
+      }\">"
+
+    _serialize_footer: -> "</socket>"
 
   # Indent
   # ==================
@@ -667,7 +739,6 @@ define ['melt-helper'], (helper) ->
   exports.IndentStartToken = class IndentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'indentStart'
     stringify: (state) -> state.indent += @container.prefix; ''
-    serialize: -> "<indent depth=\"#{@container.depth}\">"
 
   exports.IndentEndToken = class IndentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'indentEnd'
@@ -688,6 +759,11 @@ define ['melt-helper'], (helper) ->
       super
 
     _cloneEmpty: -> new Indent @prefix
+    _serialize_header: -> "<indent prefix=\"#{
+      @prefix
+    }\">"
+    _serialize_footer: -> "</indent>"
+
 
   # Segment
   # ==================
@@ -707,6 +783,7 @@ define ['melt-helper'], (helper) ->
       @start = new SegmentStartToken this
       @end = new SegmentEndToken this
       @isRoot = false
+      @classes = ['__segment']
 
       @type = 'segment'
 
@@ -722,10 +799,15 @@ define ['melt-helper'], (helper) ->
 
       @start.remove(); @end.remove()
 
+    _serialize_header: -> "<segment isLassoSegment=\"#{@isLassoSegment}\">"
+    _serialize_footer: -> "</segment>"
+
 
   # Text
   exports.TextToken = class TextToken extends Token
-    constructor: (@_value) -> super; @type = 'text'
+    constructor: (@_value) ->
+      super
+      @type = 'text'
 
     # We will define getter/setter for the @value property
     # of TextToken, which is meant to be mutable but
@@ -735,7 +817,7 @@ define ['melt-helper'], (helper) ->
       @notifyChange()
 
     stringify: (state) -> @_value
-    serialize: -> @_value
+    serialize: -> helper.escapeXMLText @_value
 
     clone: -> new TextToken @_value
 
@@ -748,6 +830,7 @@ define ['melt-helper'], (helper) ->
   exports.CursorToken = class CursorToken extends Token
     constructor: -> super; @type = 'cursor'
     isVisible: NO
+    isAffect: NO
     serialize: -> '<cursor/>'
     clone: -> new CursorToken()
 

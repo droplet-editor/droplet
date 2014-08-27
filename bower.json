@@ -1,12 +1,13 @@
 {
   "name": "melt-editor",
-  "version": "0.0.0",
-  "homepage": "https://github.com/PencilCode/ice_editor",
+  "version": "0.3.0",
+  "description": "The block-code editor that can melt blocks to code.",
+  "homepage": "https://github.com/dabbler0/melt",
+  "license": "MIT",
   "authors": [
     "dabbler0 <dab1998@gmail.com>"
   ],
-  "main": "dist/ice-full.min.js",
-  "license": "MIT",
+  "main": "dist/melt-full.min.js",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -14,12 +15,13 @@
     "test",
     "tests"
   ],
-  "description": "The block-code editor that can melt blocks to code.",
   "dependencies": {
     "ace-builds": "PencilCode/pencilcode-ace-builds#master",
     "coffee-script": "dabbler0/coffeescript#astbin",
     "quadtree": "silflow/quadtree-javascript#master",
     "qunit": "latest",
-    "requirejs": "2.1.11"
+    "requirejs": "latest",
+    "acorn": "marijnh/acorn#master",
+    "sax": "isaacs/sax-js"
   }
 }

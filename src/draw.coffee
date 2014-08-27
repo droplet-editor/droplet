@@ -5,7 +5,7 @@
 
 ## Private (convenience) functions
 
-define ['melt-helper'], (helper) ->
+define ['droplet-helper'], (helper) ->
   exports = {}
 
   # ## _area ##

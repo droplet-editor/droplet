@@ -1,255 +1,37 @@
-require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (model, parser, coffee, view, melt) ->
+require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-view', 'droplet'], (helper, model, parser, coffee, view, droplet) ->
 
   test 'Parser success', ->
-    testString = (m, str, expected) ->
-      strictEqual coffee.parse(str, wrapAtRoot: true).serialize(), expected, m
+    q = new XMLHttpRequest()
+    q.open 'GET', '/test/data/parserSuccess.json', false
+    q.send()
 
-    testString 'Function call',
-      'fd 10', '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'
-
-    testString 'Variable assignment',
-      'a = b', '<block color="command" precedence="0"><socket precedence="0">a</socket> = <socket precedence="0">b</socket></block>'
-
-    testString 'If statement, normal form',
-      '''
-      if true
-        fd 10
-      ''', '''
-      <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'Unless statement, normal form',
-      '''
-      unless true
-        fd 10
-      ''', '''
-      <block color="control" precedence="0">unless <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line if statement',
-      'if a then b',
-      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>'
-
-    testString 'If-else statement, normal form',
-      '''
-      if true
-        fd 10
-      else
-        fd 10
-      ''', '''
-      <block color="control" precedence="0">if <socket precedence="0">true</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent>
-      else<indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line if-else statement',
-      'if a then b else c',
-      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">b</socket> else <socket precedence="0">c</socket></block>'
-
-    testString 'While statement, normal form',
-      '''
-      while a
-        fd 10
-      ''', '''
-      <block color="control" precedence="-3">while <socket precedence="0">a</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line while statement',
-      'while a then fd 10',
-      '<block color="control" precedence="-3">while <socket precedence="0">a</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket></block>'
-
-    testString 'For-in, normal form',
-      '''
-      for i in list
-        fd 10
-      ''', '''
-      <block color="control" precedence="-3">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket><indent depth="2">
-      <block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></indent></block>
-      '''
-
-    testString 'One-line for-in',
-      'for i in list then fd 10'
-      '<block color="control" precedence="-3">for <socket precedence="0">i</socket> in <socket precedence="0">list</socket> then <socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket></block>'
-
-    testString 'Inverted one-line for-in',
-      'fd 10 for i in list',
-      '<block color="control" precedence="-3"><socket precedence="0"><block color="command" precedence="0">fd <socket precedence="-1">10</socket></block></socket> for <socket precedence="0">i</socket> in <socket precedence="0">list</socket></block>'
-
-    testString 'Semicolons at the root',
-      'fd 10; bk 10',
-      '<block color="command" precedence="-2"><socket precedence="-2">'+
-      '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
-      '</socket>; <socket precedence="-2">'+
-      '<block color="command" precedence="0">bk <socket precedence="-1">10</socket></block></socket></block>'
-
-    testString 'Semicolons with one-line block',
-      'if a then b; c else d',
-      '<block color="control" precedence="0">if <socket precedence="0">a</socket> then <socket precedence="0">' +
-      '<block color="command" precedence="-2"><socket precedence="-2">b</socket>; <socket precedence="-2">c</socket>' +
-      '</block></socket> else <socket precedence="0">d</socket></block>'
-
-    testString 'Semicolons in sequence',
-      '''
-      while a
-        see hi
-        fd 10; bk 10
-        see bye
-      ''',
-      '<block color="control" precedence="-3">while <socket precedence="0">a</socket><indent depth="2">\n' +
-      '<block color="command" precedence="0">see <socket precedence="-1">hi</socket></block>\n'+
-      '<block color="command" precedence="-2"><socket precedence="-2">'+
-      '<block color="command" precedence="0">fd <socket precedence="-1">10</socket></block>'+
-      '</socket>; <socket precedence="-2">'+
-      '<block color="command" precedence="0">bk <socket precedence="-1">10</socket></block></socket></block>\n'+
-      '<block color="command" precedence="0">see <socket precedence="-1">bye</socket></block></indent></block>'
-
-    testString 'Object literal, normal form',
-      '''
-      foo {
-        a: b,
-        c: d
+    data = JSON.parse q.responseText
+    window.dumpObj = []
+    for testCase in data
+      strictEqual(
+        helper.xmlPrettyPrint(coffee.parse(testCase.str, wrapAtRoot: true).serialize()),
+        helper.xmlPrettyPrint(testCase.expected),
+        testCase.message
+      )
+      window.dumpObj.push {
+        message: testCase.message
+        str: testCase.str
+        expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
       }
-      ''',
-      '''
-      <block color="command" precedence="0"><socket precedence="0">foo</socket> <socket precedence="-1"><block color="value" precedence="0">{
-        <socket precedence="0">a</socket>: <socket precedence="0">b</socket>,
-        <socket precedence="0">c</socket>: <socket precedence="0">d</socket>
-      }</block></socket></block>
-      '''
 
-    testString 'Object literal, no braces or commas',
-      '''
-      foo
-        a: b
-        c: d
-      '''
-      '''
-      <block color="command" precedence="0"><socket precedence="0">foo</socket>
-        <socket precedence="-1"><block color="value" precedence="0"><socket precedence="0">a</socket>: <socket precedence="0">b</socket>
-        <socket precedence="0">c</socket>: <socket precedence="0">d</socket></block></socket></block>
-      '''
+  test 'XML parser unity', ->
+    q = new XMLHttpRequest()
+    q.open 'GET', '/test/data/parserSuccess.json', false
+    q.send()
 
-    testString 'String interpolation',
-      'foo "#{a}"',
-      '<block color="command" precedence="0"><socket precedence="0">foo</socket> <socket precedence="-1">"#{a}"</socket></block>'
-
-    testString 'Range',
-      '[1..10]',
-      '<block color="value" precedence="100">[<socket precedence="0">1</socket>..<socket precedence="0">10</socket>]</block>'
-
-    testString 'Array',
-      '[0, 1]'
-      '<block color="value" precedence="100">[<socket precedence="0">0</socket>, <socket precedence="0">1</socket>]</block>'
-
-    testString 'Switch, one case, no default',
-      '''
-      switch k
-        when a
-          blah blah
-      ''', '''
-      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
-        when <socket precedence="0">a</socket><indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">blah</socket> <socket precedence="-1">blah</socket></block></indent></block>
-      '''
-
-    testString 'One-line switch, one case, no default',
-      '''
-      switch k
-        when a then b
-      ''',
-      '''
-      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
-        when <socket precedence="0">a</socket> then <socket precedence="0">b</socket></block>
-      '''
-
-    testString 'Switch, two cases, with default',
-      '''
-      switch k
-        when a
-          blah blah
-        when b
-          darn it
-        else
-          what ever
-      ''', '''
-      <block color="control" precedence="0">switch <socket precedence="0">k</socket>
-        when <socket precedence="0">a</socket><indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">blah</socket> <socket precedence="-1">blah</socket></block></indent>
-        when <socket precedence="0">b</socket><indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">darn</socket> <socket precedence="-1">it</socket></block></indent>
-        else<indent depth="4">
-      <block color="command" precedence="0"><socket precedence="0">what</socket> <socket precedence="-1">ever</socket></block></indent></block>
-      '''
-
-    testString 'Empty function definition', '->', '<block color="value" precedence="0">-></block>'
-
-    testString 'Class definition, normal form, constructor only',
-      '''
-      class Duck
-        constructor: ->
-      ''',
-      '''
-      <block color="control" precedence="0">class <socket precedence="0">Duck</socket><indent depth="2">
-      <block color="value" precedence="0"><socket precedence="0">constructor</socket>: <socket precedence="0"><block color="value" precedence="0">-></block></socket></block></indent></block>
-      '''
-
-    testString 'Non-parenthetical function call nested in parenthetical function call',
-      '''
-      a(b
-        x: 1)
-      ''',
-      '''
-      <block color="command" precedence="0"><socket precedence="0">a</socket>(<socket precedence="-1"><block color="command" precedence="0"><socket precedence="0">b</socket>
-        <socket precedence="-1"><block color="value" precedence="0"><socket precedence="0">x</socket>: <socket precedence="0">1</socket></block></socket>)</block></socket></block>
-      '''
-
-    testString 'Parentheses around semicolon block',
-      '(fd 10; bk 10)',
-      '<block color="command" precedence="-2">(<socket precedence="-2"><block color="command" precedence="0">' +
-      'fd <socket precedence="-1">10</socket></block></socket>; <socket precedence="-2"><block color="command" precedence="0">' +
-      'bk <socket precedence="-1">10</socket></block></socket>)</block>'
-
-
-    testString 'Operator precedences',
-      '''
-      a or b
-      a and b
-      a is b
-      a isnt b
-      a > b
-      a < b
-      a >= b
-      a <= b
-      a + b
-      a - b
-      a * b
-      a / b
-      a % b
-      a ** b
-      a %% b
-      a?
-      ''','''
-      <block color="value" precedence="1"><socket precedence="1">a</socket> or <socket precedence="1">b</socket></block>
-      <block color="value" precedence="2"><socket precedence="2">a</socket> and <socket precedence="2">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> is <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> isnt <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> > <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> < <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> >= <socket precedence="3">b</socket></block>
-      <block color="value" precedence="3"><socket precedence="3">a</socket> <= <socket precedence="3">b</socket></block>
-      <block color="value" precedence="4"><socket precedence="4">a</socket> + <socket precedence="4">b</socket></block>
-      <block color="value" precedence="4"><socket precedence="4">a</socket> - <socket precedence="4">b</socket></block>
-      <block color="value" precedence="5"><socket precedence="5">a</socket> * <socket precedence="5">b</socket></block>
-      <block color="value" precedence="5"><socket precedence="5">a</socket> / <socket precedence="5">b</socket></block>
-      <block color="value" precedence="6"><socket precedence="6">a</socket> % <socket precedence="6">b</socket></block>
-      <block color="value" precedence="7"><socket precedence="7">a</socket> ** <socket precedence="7">b</socket></block>
-      <block color="value" precedence="7"><socket precedence="7">a</socket> %% <socket precedence="7">b</socket></block>
-      <block color="value" precedence="100"><socket precedence="101">a</socket>?</block>
-      '''
+    data = JSON.parse q.responseText
+    for testCase in data
+      xml = coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+      strictEqual(
+        helper.xmlPrettyPrint(parser.parseXML(xml).serialize()),
+        helper.xmlPrettyPrint(xml),
+        'Parser unity for: ' + testCase.message
+      )
 
   test 'Basic token operations', ->
     a = new model.Token()
@@ -325,10 +107,10 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
       see j
     '''
 
-    strictEqual document.getBlockOnLine(1).stringify(), 'see i', 'line 1'
-    strictEqual document.getBlockOnLine(3).stringify(), 'see k', 'line 3'
-    strictEqual document.getBlockOnLine(5).stringify(), 'see q', 'line 5'
-    strictEqual document.getBlockOnLine(7).stringify(), 'see j', 'line 7'
+    strictEqual document.getBlockOnLine(1).stringify(coffee.empty), 'see i', 'line 1'
+    strictEqual document.getBlockOnLine(3).stringify(coffee.empty), 'see k', 'line 3'
+    strictEqual document.getBlockOnLine(5).stringify(coffee.empty), 'see q', 'line 5'
+    strictEqual document.getBlockOnLine(7).stringify(coffee.empty), 'see j', 'line 7'
 
   test 'Location serialization unity', ->
     document = coffee.parse '''
@@ -350,34 +132,34 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
       console.log world
     '''
 
-    document.getBlockOnLine(2).moveTo document.start
+    document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log world
     for i in [1..10]
       console.log hello
     ''', 'Move console.log world out'
 
-    document.getBlockOnLine(2).moveTo document.start
+    document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log hello
     console.log world
     for i in [1..10]
       ``
     ''', 'Move both out'
 
-    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start
+    document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log world
     for i in [1..10]
       console.log hello
     ''', 'Move hello back in'
 
-    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start
+    document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     console.log (for i in [1..10]
       console.log hello)
     ''', 'Move for into socket (req. paren wrap)'
@@ -388,15 +170,15 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
     see 1 + 1
     '''
 
-    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start
+    (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     see 1 + (Math.sqrt 2)
     ''', 'Wrap'
 
-    block.moveTo document.start
+    block.moveTo document.start, coffee
 
-    strictEqual document.stringify(), '''
+    strictEqual document.stringify(coffee.empty), '''
     Math.sqrt 2
     see 1 + ``''', 'Unwrap'
 
@@ -448,7 +230,7 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
     documentView.layout()
 
     indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-    strictEqual indentView.lineChildren[1][0].child.stringify(), 'fd 10', 'Relative line numbers'
+    strictEqual indentView.lineChildren[1][0].child.stringify(coffee.empty), 'fd 10', 'Relative line numbers'
 
     document = coffee.parse '''
     see (for [1..10]
@@ -558,7 +340,7 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
 
-    strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee.empty), '[[[]]]', 'Correct block selected'
 
     strictEqual socketView.dimensions[0].height,
       view_.opts.textHeight + 6 * view_.opts.padding,
@@ -572,6 +354,49 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
       view_.opts.textHeight + 2 * view_.opts.textPadding,
       'Final height is O.K.'
 
+  test 'View: bottomLineSticksToTop bug', ->
+    view_ = new view.View()
+
+    document = coffee.parse '''
+    setTimeout (->
+      fd 20
+      fd 10), 1 + 2 + 3 + 4 + 5
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    testedBlock = document.getBlockOnLine 2
+    testedBlockView = view_.getViewNodeFor testedBlock
+
+    strictEqual testedBlockView.dimensions[0].height,
+      2 * view_.opts.textPadding +
+      1 * view_.opts.textHeight +
+      8 * view_.opts.padding -
+      1 * view_.opts.indentTongueHeight, 'Original height O.K.'
+
+    block = document.getBlockOnLine 1
+    dest = document.getBlockOnLine(2).end
+
+    block.moveTo dest, coffee
+
+    documentView.layout()
+
+    strictEqual testedBlockView.dimensions[0].height,
+      2 * view_.opts.textPadding +
+      1 * view_.opts.textHeight +
+      2 * view_.opts.padding, 'Final height O.K.'
+
+    block.moveTo testedBlock.start.prev.prev, coffee
+
+    documentView.layout()
+
+    strictEqual testedBlockView.dimensions[0].height,
+      2 * view_.opts.textPadding +
+      1 * view_.opts.textHeight +
+      8 * view_.opts.padding -
+      1 * view_.opts.indentTongueHeight, 'Dragging other block in works'
+
   test 'View: triple-quote sockets caching issue', ->
     view_ = new view.View()
 
@@ -584,7 +409,7 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
 
-    strictEqual socketView.model.stringify(), '\'hi\'', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee.empty), '\'hi\'', 'Correct block selected'
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 
@@ -629,12 +454,68 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
 
     strictEqual emptySocketView.dimensions[0].height, fullSocketView.dimensions[0].height, 'Full and empty sockets same height'
 
+  test 'View: indent carriage arrow', ->
+    view_ = new view.View()
+
+    document = parser.parseXML '''
+    <block>hello <indent><block>my <socket>name</socket></block>
+    <block>is elder <socket>price</socket></block></indent></block>
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    block = document.getBlockOnLine(1).start.prev.prev.container
+    blockView = view_.getViewNodeFor block
+
+    strictEqual blockView.carriageArrow, 1, 'Carriage arrow flag is set'
+
+    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
+    strictEqual blockView.dropPoint.y,
+      1 * view_.opts.textHeight +
+      4 * view_.opts.padding +
+      2 * view_.opts.textPadding, 'Drop point is further down'
+
+    indent = block.start.prev.container
+    indentView = view_.getViewNodeFor indent
+
+    strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue'
+
+  test 'View: sidealong carriage arrow', ->
+    view_ = new view.View()
+
+    document = parser.parseXML '''
+    <block>hello <indent>
+    <block>my <socket>name</socket></block><block>is elder <socket>price</socket></block></indent></block>
+    '''
+
+    documentView = view_.getViewNodeFor document
+    documentView.layout()
+
+    block = document.getBlockOnLine(1).end.next.container
+    blockView = view_.getViewNodeFor block
+
+    strictEqual blockView.carriageArrow, 0, 'Carriage arrow flag is set'
+
+    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
+
+    indent = block.end.next.container
+    indentView = view_.getViewNodeFor indent
+
+    strictEqual indentView.dimensions[1].height,
+      view_.opts.textHeight +
+      2 * view_.opts.textPadding +
+      3 * view_.opts.padding, 'Carriage arrow causes expand'
+
   asyncTest 'Controller: melt/freeze events', ->
     expect 3
 
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new melt.Editor document.getElementById('test-main'), []
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
 
     editor.on 'statechange', (usingBlocks) ->
       states.push usingBlocks
@@ -650,7 +531,10 @@ require ['melt-model', 'melt-parser', 'melt-coffee', 'melt-view', 'melt'], (mode
   test 'Controller: cursor motion and rendering', ->
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new melt.Editor document.getElementById('test-main'), []
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
 
     editor.setValue '''
     fd 10
