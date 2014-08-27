@@ -25,6 +25,8 @@ require ['droplet'], (droplet) ->
 
   # Example palette
   window.editor = new droplet.Editor document.getElementById('editor'), {
+    ###
+    # JAVASCRIPT TESTING:
     mode: 'javascript'
     palette: [
       {
@@ -188,12 +190,10 @@ require ['droplet'], (droplet) ->
         ]
       }
     ]
-    ###
   }
 
   # Example program (fizzbuzz)
   examplePrograms = {
-    ###
     fizzbuzz: '''
     for i in [1..1000]
       if i % 15 is 0
@@ -264,8 +264,6 @@ require ['droplet'], (droplet) ->
     controller: readFile '../src/controller.coffee'
     compiler: readFile '../test/data/nodes.coffee'
     empty: ''
-    ###
-    fizzbuzz: 'a + b'
   }
 
   editor.setEditorState false

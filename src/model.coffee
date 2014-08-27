@@ -457,11 +457,11 @@ define ['droplet-helper'], (helper) ->
       traverseOneLevel @start.next, fn
 
     isFirstOnLine: ->
-      return @start.previousVisibleToken() is @parent?.start or
+      return @start.previousAffectToken() is @parent?.start or
         @start.previousVisibleToken()?.type is 'newline'
 
     isLastOnLine: ->
-      return @end.nextVisibleToken() in [@parent?.end, null] or
+      return @end.nextAffectToken() in [@parent?.end, null] or
         @end.nextVisibleToken()?.type in ['newline', 'indentStart']
 
     # Line mark mutators
@@ -554,6 +554,7 @@ define ['droplet-helper'], (helper) ->
 
     # ## isVisible ##
     isVisible: YES
+    isAffect: YES
 
     previousVisibleToken: ->
       head = @prev
@@ -564,6 +565,18 @@ define ['droplet-helper'], (helper) ->
     nextVisibleToken: ->
       head = @next
       until not head? or head.isVisible()
+        head = head.next
+      return head
+
+    previousAffectToken: ->
+      head = @prev
+      until not head? or head.isAffect()
+        head = head.prev
+      return head
+
+    nextAffectToken: ->
+      head = @next
+      until not head? or head.isAffect()
         head = head.next
       return head
 
@@ -770,6 +783,7 @@ define ['droplet-helper'], (helper) ->
       @start = new SegmentStartToken this
       @end = new SegmentEndToken this
       @isRoot = false
+      @classes = ['__segment']
 
       @type = 'segment'
 
@@ -791,7 +805,9 @@ define ['droplet-helper'], (helper) ->
 
   # Text
   exports.TextToken = class TextToken extends Token
-    constructor: (@_value) -> super; @type = 'text'
+    constructor: (@_value) ->
+      super
+      @type = 'text'
 
     # We will define getter/setter for the @value property
     # of TextToken, which is meant to be mutable but
@@ -814,6 +830,7 @@ define ['droplet-helper'], (helper) ->
   exports.CursorToken = class CursorToken extends Token
     constructor: -> super; @type = 'cursor'
     isVisible: NO
+    isAffect: NO
     serialize: -> '<cursor/>'
     clone: -> new CursorToken()
 
