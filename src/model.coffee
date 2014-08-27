@@ -134,6 +134,36 @@ define ['melt-helper'], (helper) ->
 
       @notifyChange()
 
+    # Getters and setters for
+    # leading and trailing text, for use
+    # by modes to do paren-wrapping and
+    # semicolon insertion
+    getLeadingText: ->
+      if @start.next.type is 'text'
+        @start.next.value
+      else
+        ''
+
+    getTrailingText: ->
+      if @end.prev.type is 'text'
+        @end.prev.value
+      else
+        ''
+
+    setLeadingText: (value) ->
+      if @start.next.type is 'text'
+        console.log 'SETTING VALUE TO', value
+        @start.next.value = value
+      else
+        @start.insert new TextToken value
+
+    setTrailingText: (value) ->
+      if @end.prev.type is 'text'
+        console.log 'SETTING VALUE TO', value
+        @end.prev.value = value
+      else
+        @end.insertBefore new TextToken value
+
     # ## clone ##
     # Clone this container, with all the token inside,
     # but with no linked-list pointers in common.
@@ -169,12 +199,13 @@ define ['melt-helper'], (helper) ->
     # Get a string representation of us,
     # using the `stringify()` method on all of
     # the tokens that we contain.
-    stringify: ->
+    stringify: (emptyToken = '') ->
       str = ''
 
       head = @start.next
       state =
         indent: ''
+        emptyToken: emptyToken
 
       until head is @end
         str += head.stringify state
@@ -626,41 +657,14 @@ define ['melt-helper'], (helper) ->
     >"
     _serialize_footer: -> "</block>"
 
-    # ## checkparenWrap ##
-    # Insert or remove wrapping parentheses as necessary.
-    checkParenWrap: ->
-      if @parent?.type is 'socket' and @parent.precedence >= @precedence
-        unless @currentlyParenWrapped
-          @start.insert new TextToken '('
-          @end.insertBefore new TextToken ')'
-          @currentlyParenWrapped = true
-
-      else if @currentlyParenWrapped
-        @start.next.value = @start.next.value[1...]
-        @end.prev.value = @end.prev.value[...-1]
-
-        if @start.next.value.length is 0 then @start.next.remove()
-        if @end.prev.value.length is 0 then @end.prev.remove()
-
-        @currentlyParenWrapped = false
-
-    # ## spliceOut and spliceIn ##
-    # We need to also check paren wrap
-    # after these change-of-context things.
-    spliceOut: ->
-      super; @checkParenWrap()
-
-    spliceIn: ->
-      super; @checkParenWrap()
-
   # Socket
   # ==================
 
   exports.SocketStartToken = class SocketStartToken extends StartToken
     constructor: (@container) -> super; @type = 'socketStart'
-    stringify: ->
+    stringify: (state) ->
       if @next is @container.end or
-        @next.type is 'text' and @next.value is '' then '``' else ''
+        @next.type is 'text' and @next.value is '' then state.emptyToken else ''
 
   exports.SocketEndToken = class SocketEndToken extends EndToken
     constructor: (@container) -> super; @type = 'socketEnd'

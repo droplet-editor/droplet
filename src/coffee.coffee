@@ -864,4 +864,16 @@ define ['melt-helper', 'melt-model', 'melt-parser', 'coffee-script'], (helper, m
     parser = new CoffeeScriptParser text
     return parser.parse opts
 
+  exports.parens = (leading, trailing, node, context) ->
+    if context is null or context.precedence < node.precedence
+      leading = leading.replace /^\(*/, ''
+      trailing = trailing.replace /\)*$/, ''
+    else
+      leading = leading.replace /^\(*/, '('
+      trailing = trailing.replace /\)*$/, ')'
+
+    return [leading, trailing]
+
+  exports.empty = "``"
+
   return exports

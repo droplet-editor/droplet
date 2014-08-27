@@ -782,7 +782,7 @@ define ['melt-helper',
     leading = node.getLeadingText()
     trailing = node.getTrailingText()
 
-    [leading, trailing] = @mode.parens leading, trailing, null
+    [leading, trailing] = @mode.parens leading, trailing, node, null
 
     node.setLeadingText leading; node.setTrailingText trailing
 
@@ -792,7 +792,7 @@ define ['melt-helper',
     leading = node.getLeadingText()
     trailing = node.getTrailingText()
 
-    [leading, trailing] = @mode.parens leading, trailing, location
+    [leading, trailing] = @mode.parens leading, trailing, node, (location.container ? location.parent)
 
     node.setLeadingText leading; node.setTrailingText trailing
 
@@ -1185,7 +1185,7 @@ define ['melt-helper',
 
   Editor::reparseRawReplace = (oldBlock) ->
     try
-      newParse = @mode.parse(oldBlock.stringify(), wrapAtRoot: true)
+      newParse = @mode.parse(oldBlock.stringify(@mode.empty), wrapAtRoot: true)
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
@@ -1522,7 +1522,7 @@ define ['melt-helper',
       hoverDiv = document.createElement 'div'
       hoverDiv.className = 'melt-hover-div'
 
-      hoverDiv.title = data.title ? block.stringify()
+      hoverDiv.title = data.title ? block.stringify(@mode.empty)
 
       bounds = @view.getViewNodeFor(block).totalBounds
 
@@ -1561,8 +1561,8 @@ define ['melt-helper',
   # Text input has two undo events: text change
   # and text reparse.
   class TextChangeOperation extends UndoOperation
-    constructor: (socket, @before) ->
-      @after = socket.stringify()
+    constructor: (socket, @before, editor) ->
+      @after = socket.stringify(editor.mode.empty)
       @socket = socket.start.getSerializedLocation()
 
     undo: (editor) ->
@@ -1632,7 +1632,7 @@ define ['melt-helper',
 
   # Redraw function for text input
   Editor::redrawTextInput = ->
-    sameLength = @textFocus.stringify().split('\n').length is @hiddenInput.value.split('\n').length
+    sameLength = @textFocus.stringify(@mode.empty).split('\n').length is @hiddenInput.value.split('\n').length
 
     # Set the value in the model to fit
     # the hidden input value.
@@ -1642,8 +1642,8 @@ define ['melt-helper',
 
     # Determine the coordinate positions
     # of the typing cursor
-    startRow = @textFocus.stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
-    endRow = @textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
+    startRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
     # Redraw the main canvas, on top of
     # which we will draw the cursor and
@@ -1698,16 +1698,16 @@ define ['melt-helper',
 
     # Determine the coordinate positions
     # of the typing cursor
-    startRow = @textFocus.stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
-    endRow = @textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
+    startRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-    lines = @textFocus.stringify().split '\n'
+    lines = @textFocus.stringify(@mode.empty).split '\n'
 
     startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionStart].split('\n'))).width
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n'))).width
 
     endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify()[...@hiddenInput.selectionEnd].split('\n'))).width
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n'))).width
 
     # Now draw the highlight/typing cursor
     #
@@ -1761,10 +1761,10 @@ define ['melt-helper',
       # The first of these is an undo operation;
       # we need to add this text change to the undo stack.
       @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue
+      @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue, @
       @oldFocusValue = null
 
-      originalText = @textFocus.stringify()
+      originalText = @textFocus.stringify(@mode.empty)
       shouldPop = false
       shouldRecoverCursor = false
       cursorPosition = cursorParent = null
@@ -1778,7 +1778,7 @@ define ['melt-helper',
       # value.
       unless @textFocus.handwritten
         newParse = null
-        string = @textFocus.stringify().trim()
+        string = @textFocus.stringify(@mode.empty).trim()
         try
           newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
         catch
@@ -1826,14 +1826,14 @@ define ['melt-helper',
       return
 
     # Record old focus value
-    @oldFocusValue = focus.stringify()
+    @oldFocusValue = focus.stringify(@mode.empty)
 
     # Now create a text token
     # with the appropriate text to put in it.
     @textFocus = focus
 
     # Immediately rerender.
-    @populateSocket focus, focus.stringify()
+    @populateSocket focus, focus.stringify(@mode.empty)
 
     @textFocus.notifyChange()
 
@@ -1841,7 +1841,7 @@ define ['melt-helper',
     @moveCursorTo focus.end
 
     # Set the hidden input up to mirror the text.
-    @hiddenInput.value = @textFocus.stringify()
+    @hiddenInput.value = @textFocus.stringify(@mode.empty)
 
     if selectionStart? and not selectionEnd?
       selectionEnd = selectionStart
@@ -1897,7 +1897,7 @@ define ['melt-helper',
 
     column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding) / @mainCtx.measureText(' ').width)
 
-    lines = @textFocus.stringify().split('\n')[..row]
+    lines = @textFocus.stringify(@mode.empty).split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
 
     return lines.join('\n').length
@@ -1909,8 +1909,8 @@ define ['melt-helper',
   Editor::selectDoubleClick = (point) ->
     position = @getTextPosition point
 
-    before = @textFocus.stringify()[...position].match(/\w*$/)[0]?.length ? 0
-    after = @textFocus.stringify()[position..].match(/^\w*/)[0]?.length ? 0
+    before = @textFocus.stringify(@mode.empty)[...position].match(/\w*$/)[0]?.length ? 0
+    after = @textFocus.stringify(@mode.empty)[position..].match(/^\w*/)[0]?.length ? 0
 
     @textInputAnchor = position - before
     @textInputHead = position + after
@@ -3388,7 +3388,7 @@ define ['melt-helper',
 
     newParse = @mode.parse value, wrapAtRoot: true
 
-    if value isnt @tree.stringify()
+    if value isnt @tree.stringify(@mode.empty)
       @addMicroUndoOperation 'CAPTURE_POINT'
     @addMicroUndoOperation new SetValueOperation @tree, newParse
 
@@ -3419,7 +3419,7 @@ define ['melt-helper',
 
   Editor::getValue = ->
     if @currentlyUsingBlocks
-      return @addEmptyLine @tree.stringify()
+      return @addEmptyLine @tree.stringify(@mode.empty)
     else
       @getAceValue()
 
@@ -3913,7 +3913,7 @@ define ['melt-helper',
       unless @textFocus?
         @copyPasteInput.focus()
         if @lassoSegment?
-          @copyPasteInput.value = @lassoSegment.stringify()
+          @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
   hook 'keyup', 0, (point, event, state) ->
