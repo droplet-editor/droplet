@@ -854,9 +854,11 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         return @lineLength
 
       computeCarriageArrow: (root = false) ->
+        oldCarriageArrow = @carriageArrow
         @carriageArrow = CARRIAGE_ARROW_NONE
 
-        if (not root) and @model.parent?.type is 'indent'
+        if (not root) and @model.parent?.type is 'indent' and
+            @view.getViewNodeFor(@model.parent).lineLength > 1
           if not @model.isFirstOnLine() and @model.isLastOnLine()
             @carriageArrow = CARRIAGE_ARROW_SIDEALONG
           else
@@ -866,6 +868,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
             if head is @model.parent.start
               @carriageArrow = CARRIAGE_ARROW_INDENT
+
+        if @carriageArrow isnt oldCarriageArrow
+          @changedBoundingBox = true
 
         if @computedVersion is @model.version and
            (not @model.parent? or

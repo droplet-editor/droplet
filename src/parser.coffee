@@ -156,11 +156,15 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
         # If two pieces of markup are in the same position, end markup
         # comes before start markup
+        isDifferent = 1
+        if a.token.container is b.token.container
+          isDifferent = -1
+
         if a.start and not b.start
-          return 1
+          return isDifferent
 
         if b.start and not a.start
-          return -1
+          return -isDifferent
 
         # If two pieces of markup are in the same position,
         # and are both start or end,
