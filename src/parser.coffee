@@ -248,7 +248,13 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
         # If there is markup on this line, insert it.
         else
-          lastIndex = indentDepth
+          # Flag if this line is not properly indented.
+          if indentDepth >= line.length or line[..indentDepth].trim().length > 0
+            lastIndex = line.length - line.trimLeft().length
+            head.specialIndent = line[0...lastIndex]
+          else
+            lastIndex = indentDepth
+
           for mark in markupOnLines[i]
             # Insert a text token for all the text up until this markup
             # (unless there is no such text

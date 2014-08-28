@@ -272,6 +272,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           if node.consequent.length > 0
             bounds = @getCaseIndentBounds node
             prefix = @getIndentPrefix(@getBounds(node), indentDepth)
+            indentDepth += prefix.length
 
             @addIndent
               bounds: bounds
