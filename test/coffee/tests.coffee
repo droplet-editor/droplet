@@ -512,7 +512,8 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
 
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new melt.Editor document.getElementById('test-main'), []
+    editor = new melt.Editor document.getElementById('test-main'), {
+      mode:'coffeescript', palette:[]}
 
     editor.on 'statechange', (usingBlocks) ->
       states.push usingBlocks
@@ -528,7 +529,8 @@ require ['melt-helper', 'melt-model', 'melt-parser', 'melt-coffee', 'melt-view',
   test 'Controller: cursor motion and rendering', ->
     states = []
     document.getElementById('test-main').innerHTML = ''
-    editor = new melt.Editor document.getElementById('test-main'), []
+    editor = new melt.Editor document.getElementById('test-main'), {
+      mode:'coffeescript', palette: []}
 
     editor.setValue '''
     fd 10

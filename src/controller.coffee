@@ -3,7 +3,9 @@
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
 
-define ['melt-helper', 'melt-draw', 'melt-model', 'melt-view'], (helper, draw, model, view) ->
+define [
+    'melt-helper', 'melt-draw', 'melt-model', 'melt-view', 'melt-coffee'
+  ], (helper, draw, model, view, coffee) ->
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
