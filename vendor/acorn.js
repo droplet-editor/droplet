@@ -1140,7 +1140,7 @@
   }
 
   // Enter strict mode. Re-reads the next token to please pedantic
-  // tests ("use strict"; 010; -- should fail).
+  // tests ("use " + "strict"; 010; -- should fail).
 
   function setStrict(strct) {
     strict = strct;
