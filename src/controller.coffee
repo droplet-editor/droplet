@@ -2866,7 +2866,6 @@ define ['droplet-helper',
     if @currentlyUsingBlocks and not @currentlyAnimating
       @fireEvent 'statechange', [false]
 
-      @aceEditor.setValue @getValue(), -1
       @setAceValue @getValue()
 
       top = @findLineNumberAtCoordinate @scrollOffsets.main.y
@@ -3438,7 +3437,8 @@ define ['droplet-helper',
 
   Editor::setAceValue = (value) ->
     if value isnt @lastAceSeenValue
-      @aceEditor.setValue value
+      @aceEditor.setValue value, 1
+      # TODO: move ace cursor to location matching droplet cursor.
       @lastAceSeenValue = value
 
 
