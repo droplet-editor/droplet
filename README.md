@@ -3,7 +3,7 @@ Droplet Editor
 
 [![Build Status](https://travis-ci.org/dabbler0/droplet.svg?branch=master)](https://travis-ci.org/dabbler0/droplet)
 
-Droplet seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards are sucky).
+Droplet seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards don't work so well).
 
 How to Embed
 ------------
