@@ -83,7 +83,7 @@ define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
 
 Put it in `src/myparser.coffee`. Add it to the build system in `requirejs-paths.json`:
 
-```json
+```javascript
 {
   // etc...
   "droplet-myparser": "myparser" // meaning "myparser.coffee" -- or whatever you named your file
