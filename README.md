@@ -93,7 +93,7 @@ Put it in `src/myparser.coffee`. Add it to the build system in `requirejs-paths.
 
 Require it from the controller:
 
-```
+```coffeescript
 define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
@@ -111,8 +111,10 @@ define ['droplet-helper',
 
 Add a mode option:
 
-```
-  # etc...
+```coffeescript
+  if mode is 'coffeescript'
+    @mode = coffeescript
+  else if mode is 'javascript'
     @mode = javascript
   else if mode is 'myparser'
     @mode = myparser
