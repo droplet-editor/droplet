@@ -1,25 +1,12 @@
-# Cache bust, since most of our changed code is
-# in the require.js 'main' module.
-require.config
-  paths:
-    'droplet': '../js/main'
-    'droplet-helper': '../js/helper'
-    'droplet-coffee': '../js/coffee'
-    'droplet-javascript': '../js/javascript'
-    'droplet-model': '../js/model'
-    'droplet-view': '../js/view'
-    'droplet-parser': '../js/parser'
-    'droplet-draw': '../js/draw'
-    'droplet-controller': '../js/controller'
-    'coffee-script': '../vendor/coffee-script'
-    'acorn': '../vendor/acorn'
-
 readFile = (name) ->
   q = new XMLHttpRequest()
   q.open 'GET', name, false
   q.send()
   return q.responseText
 
+require.config
+  baseUrl: '../js'
+  paths: JSON.parse readFile '../requirejs-paths.json'
 
 require ['droplet'], (droplet) ->
 

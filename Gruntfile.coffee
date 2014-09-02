@@ -32,21 +32,20 @@ module.exports = (grunt) ->
       options:
         sourceMap: true
       build:
-        files:
-          'js/draw.js': ['src/draw.coffee']
-          'js/model.js': ['src/model.coffee']
-          'js/view.js': ['src/view.coffee']
-          'js/controller.js': ['src/controller.coffee']
-          'js/coffee.js': ['src/coffee.coffee']
-          'js/javascript.js': ['src/javascript.coffee']
-          'js/parser.js': ['src/parser.coffee']
-          'js/main.js': ['src/main.coffee']
-          'js/helper.js': ['src/helper.coffee']
-          'test/js/parserTests.js': ['test/coffee/parserTests.coffee']
+        files: [
+          {
+            expand: true
+            cwd: '.'
+            src: ['src/*.coffee']
+            dest: 'js/'
+          }
 
-          'test/js/tests.js': ['test/coffee/tests.coffee']
-          'example/example.js': ['example/example.coffee']
-          'example/test.js': ['example/test.coffee']
+          {dest: 'test/js/parserTests.js', src: 'test/coffee/parserTests.coffee'}
+          {dest: 'test/js/tests.js', src: 'test/coffee/tests.coffee'}
+
+          {dest: 'example/example.js', src: 'example/example.coffee'}
+          {dest: 'example/test.js', src: 'example/test.coffee'}
+        ]
 
     qunit:
       all:
@@ -72,18 +71,7 @@ module.exports = (grunt) ->
       compile:
         options:
           baseUrl: 'js'
-          paths:
-            'coffee-script': '../vendor/coffee-script'
-            'acorn': '../vendor/acorn'
-            'droplet-view': 'view'
-            'droplet-controller': 'controller'
-            'droplet-model': 'model'
-            'droplet-draw': 'draw'
-            'droplet-coffee': 'coffee'
-            'droplet-javascript': 'javascript'
-            'droplet-parser': 'parser'
-            'droplet-helper': 'helper'
-            'droplet': 'main'
+          paths: require('./requirejs-paths.json')
           name: 'droplet'
           optimize: 'none'
           out: 'dist/droplet.js'

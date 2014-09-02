@@ -317,11 +317,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
       @mark indentDepth, node, depth + 1, bounds
 
-  exports.parse = (text, opts) ->
-    parser = new JavaScriptParser text
-    return parser.parse opts
-
-  exports.parens = (leading, trailing, node, context) ->
+  JavaScriptParser.parens = (leading, trailing, node, context) ->
     if context?.type is 'socket'
       trailing = trailing.replace(/;?\s*$/, '')
     else
@@ -340,6 +336,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
     return [leading, trailing]
 
-  exports.empty = "eval('')"
+  JavaScriptParser.empty = "eval('')"
 
-  return exports
+  parser.makeParser JavaScriptParser
+
+  return JavaScriptParser

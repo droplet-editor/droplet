@@ -464,7 +464,6 @@ define ['droplet-helper'], (helper) ->
       traverseOneLevel @start.next, fn
 
     isFirstOnLine: ->
-      console.log @stringify(), @start.previousVisibleToken()
       return @start.previousVisibleToken() in [@parent?.start, @parent?.parent?.start, null] or
         @start.previousVisibleToken()?.type is 'newline'
 

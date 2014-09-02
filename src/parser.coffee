@@ -28,7 +28,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       @markup = []
 
     # ## parse ##
-    parse: (opts) ->
+    _parse: (opts) ->
       opts = _extend opts, {
         wrapAtRoot: true
       }
@@ -51,6 +51,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       segment.correctParentTree()
       segment.isRoot = true
       return segment
+
+    markRoot: ->
 
     isParenWrapped: (block) ->
       (block.start.next.type is 'text' and
@@ -416,5 +418,32 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         head = text.next
       else
         head = head.next
+
+  Parser.parens = (leading, trailing, node, context) ->
+    if context is null or context.type isnt 'socket' or
+        context.precedence < node.precedence
+      while true
+        if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
+          leading = leading.replace(/^\s*\(\s*/, '')
+          trailing = trailing.replace(/^\s*\)\s*/, '')
+        else
+          break
+    else
+      leading = '(' + leading
+      trailing = trailing + ')'
+
+    return [leading, trailing]
+
+  Parser.empty = ''
+
+  Parser.parse = (text, opts) ->
+
+  exports.makeParser = (CustomParser) ->
+    CustomParser.parse = (text, opts) ->
+      opts ?= wrapAtRoot: true
+      parser = new CustomParser text
+      return parser._parse opts
+
+  exports.makeParser Parser
 
   return exports
