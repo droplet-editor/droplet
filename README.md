@@ -192,3 +192,27 @@ MyParser.parens = (leading, trailing, node, context) ->
 # Text to fill in an empty socket when switching modes:
 MyParser.empty = "blarg"
 ```
+
+Acceptance Levels
+-----------------
+Acceptance levels determine whether blocks are allowed to be dropped into other blocks (type-checking). This API is subject to change.
+
+Blocks are annotated with a `socketLevel`, which dictates where they are on the scale of "statement only" to "value only"
+
+```coffeescript
+helper.BLOCK_ONLY
+helper.MOSTLY_BLOCK
+helper.ANY_DROP
+helper.MOSTLY_VALUE
+helper.VALUE_ONLY
+```
+
+Blocks are also annotated with a `classes` array, an array of arbitrary string flags.
+
+Sockets are annotated with an `accepts` dictionary, which maps classes to acceptance levels:
+```coffeescript
+helper.FORBID # Do not allow this block to be dropped no matter what
+helper.NORMAL # Allow this block to be dropped it if it is a value
+helper.ENCOURAGE_ALL # Allow this block to be dropped no matter what
+helper.DISCOURAGE_ALL # Alow this block to be dropped, but only if the user presses the shift key
+```
