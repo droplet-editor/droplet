@@ -113,6 +113,13 @@ define ['droplet-helper'], (helper) ->
 
       return head
 
+    getLinesToParent: ->
+      head = @start; lines = 0
+      until head is @parent.start
+        lines++ if head.type is 'newline'
+        head = head.prev
+      return lines
+
     hasCommonParent: (other) ->
       head = @
       until other.hasParent head
@@ -457,12 +464,19 @@ define ['droplet-helper'], (helper) ->
       traverseOneLevel @start.next, fn
 
     isFirstOnLine: ->
-      return @start.previousAffectToken() is @parent?.start or
+      console.log @stringify(), @start.previousVisibleToken()
+      return @start.previousVisibleToken() in [@parent?.start, @parent?.parent?.start, null] or
         @start.previousVisibleToken()?.type is 'newline'
 
     isLastOnLine: ->
-      return @end.nextAffectToken() in [@parent?.end, null] or
-        @end.nextVisibleToken()?.type in ['newline', 'indentStart']
+      return @end.nextVisibleToken() in [@parent?.end, @parent?.parent?.end, null] or
+        @end.nextVisibleToken()?.type in ['newline', 'indentEnd']
+
+    visParent: ->
+      head = @parent
+      while head?.type is 'segment' and head.isLassoSegment
+        head = head.parent
+      return head
 
     # Line mark mutators
     addLineMark: (mark) ->
@@ -594,7 +608,7 @@ define ['droplet-helper'], (helper) ->
 
     isLastOnLine: ->
       return @nextVisibleToken() is @parent?.end or
-        @nextVisibleToken()?.type in ['newline', 'indentStart']
+        @nextVisibleToken()?.type in ['newline', 'indentEnd']
 
     getSerializedLocation: ->
       head = this; count = 0

@@ -61,6 +61,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'keyup'
     'keydown'
     'keypress'
+    'alert'
   ]
 
   VALUE_FUNCTIONS = [
