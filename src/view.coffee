@@ -19,6 +19,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_SIDEALONG = 0
   CARRIAGE_ARROW_INDENT = 1
   CARRIAGE_ARROW_NONE = 2
+  CARRIAGE_GROW_DOWN = 3
 
   DEFAULT_OPTIONS =
     padding: 5
@@ -207,7 +208,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         for child, i in @children
           result.push("child #{i}: {startLine: #{child.startLine}, " +
                       "endLine: #{child.endLine}}")
-        if line isnt null
+        if line?
           for prop in [
               'multilineChildrenData'
               'minDimensions'
@@ -221,6 +222,22 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             result.push("line #{line} child #{i}: " +
                         "{startLine: #{child.startLine}, " +
                         "endLine: #{child.endLine}}}")
+        else
+          for line in [0...@lineLength]
+            for prop in [
+                'multilineChildrenData'
+                'minDimensions'
+                'minDistanceToBase'
+                'dimensions'
+                'distanceToBase'
+                'bounds'
+                'glue']
+              result.push("#{prop} #{line}: #{JSON.stringify(@[prop][line])}")
+            for child, i in @lineChildren[line]
+              result.push("line #{line} child #{i}: " +
+                          "{startLine: #{child.startLine}, " +
+                          "endLine: #{child.endLine}}}")
+
         return result.join('\n')
 
       # ## computeChildren (GenericViewNode)
@@ -391,7 +408,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           @distanceToBase[i].below = @minDistanceToBase[i].below
 
         if @model.parent? and not root and
-            (@topLineSticksToBottom or @bottomLineSticksToTop)
+            (@topLineSticksToBottom or @bottomLineSticksToTop or
+             (@lineLength > 1 and not @model.isLastOnLine()))
           parentNode = @view.getViewNodeFor @model.parent
 
           # grow below if "stick to bottom" is set.
@@ -409,6 +427,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             distance = @distanceToBase[lineCount - 1]
             distance.above = Math.max(distance.above,
                 parentNode.distanceToBase[startLine + lineCount - 1].above)
+            @dimensions[lineCount - 1] = new @view.draw.Size(
+                @dimensions[lineCount - 1].width,
+                distance.below + distance.above)
+
+          if @lineLength > 1 and not @model.isLastOnLine() and @model.type is 'block'
+            distance = @distanceToBase[@lineLength - 1]
+            distance.below = parentNode.distanceToBase[startLine + @lineLength - 1].below
             @dimensions[lineCount - 1] = new @view.draw.Size(
                 @dimensions[lineCount - 1].width,
                 distance.below + distance.above)
@@ -835,10 +860,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # what we just found out.
         @lineLength = line + 1
 
-        if @lineLength > 1
-          @topLineSticksToBottom = true
-          @bottomLineSticksToTop = true
-
         # If we have changed in line length,
         # there has obviously been a bounding box change.
         # The bounding box pass as it stands only deals
@@ -851,21 +872,35 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # Fill in gaps in @multilineChildrenData with NO_MULTILINE
         @multilineChildrenData[i] ?= NO_MULTILINE for i in [0...@lineLength]
 
+        if @lineLength > 1
+          @topLineSticksToBottom = true
+          @bottomLineSticksToTop = true
+
         return @lineLength
 
       computeCarriageArrow: (root = false) ->
+        oldCarriageArrow = @carriageArrow
         @carriageArrow = CARRIAGE_ARROW_NONE
 
-        if (not root) and @model.parent?.type is 'indent'
-          if not @model.isFirstOnLine()
-            @carriageArrow = CARRIAGE_ARROW_SIDEALONG
-          else
-            head = @model.start
-            until head is @model.parent.start or head.type is 'newline'
-              head = head.prev
+        parent = @model.visParent()
 
-            if head is @model.parent.start
+        if (not root) and parent?.type is 'indent' and
+            @view.getViewNodeFor(parent).lineLength > 1 and
+            @lineLength is 1
+          head = @model.start
+          until head is parent.start or head.type is 'newline'
+            head = head.prev
+
+          if head is parent.start
+            if @model.isLastOnLine()
               @carriageArrow = CARRIAGE_ARROW_INDENT
+            else
+              @carriageArrow = CARRIAGE_GROW_DOWN
+          else unless @model.isFirstOnLine()
+            @carriageArrow = CARRIAGE_ARROW_SIDEALONG
+
+        if @carriageArrow isnt oldCarriageArrow
+          @changedBoundingBox = true
 
         if @computedVersion is @model.version and
            (not @model.parent? or
@@ -1221,7 +1256,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         # If necessary, add tab
         # at the top.
-        if @shouldAddTab() and @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
+        if @shouldAddTab() and @model.isFirstOnLine() and
+            @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
           @addTab left, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
@@ -1418,6 +1454,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           # Otherwise, bring us gracefully to the next line
           # without lots of glue (minimize the extra colour).
           else if @bounds[line + 1]? and @multilineChildrenData[line] isnt MULTILINE_MIDDLE
+            console.log @model.stringify()
             # Instead of outward extremes, we take inner extremes this time,
             # to minimize extra colour between lines.
             innerLeft = Math.max @bounds[line + 1].x, @bounds[line].x
@@ -1432,8 +1469,15 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
               right.push new @view.draw.Point innerRight, @bounds[line].bottom()
               right.push new @view.draw.Point innerRight, @bounds[line + 1].y
+          else if @carriageArrow is CARRIAGE_GROW_DOWN
+            parentViewNode = @view.getViewNodeFor @model.visParent()
+            destinationBounds = parentViewNode.bounds[1]
+
+            right.push new @view.draw.Point @bounds[line].right(), destinationBounds.y - @view.opts.padding
+            left.push new @view.draw.Point @bounds[line].x, destinationBounds.y - @view.opts.padding
+
           else if @carriageArrow is CARRIAGE_ARROW_INDENT
-            parentViewNode = @view.getViewNodeFor @model.parent
+            parentViewNode = @view.getViewNodeFor @model.visParent()
             destinationBounds = parentViewNode.bounds[1]
 
             right.push new @view.draw.Point @bounds[line].right(), destinationBounds.y
@@ -1445,19 +1489,19 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
             @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset, destinationBounds.y
           else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
-            parentViewNode = @view.getViewNodeFor @model.parent
-            destinationBounds = parentViewNode.bounds[1]
+            parentViewNode = @view.getViewNodeFor @model.visParent()
+            destinationBounds = parentViewNode.bounds[@model.getLinesToParent()]
 
-            right.push new @view.draw.Point @bounds[line].right(), @bounds[line].bottom() + @view.opts.padding
+            right.push new @view.draw.Point @bounds[line].right(), destinationBounds.bottom() + @view.opts.padding
             right.push new @view.draw.Point destinationBounds.x + @view.opts.tabOffset + @view.opts.tabWidth,
-              @bounds[line].bottom() + @view.opts.padding
+              destinationBounds.bottom() + @view.opts.padding
 
-            left.push new @view.draw.Point @bounds[line].x, @bounds[line].bottom()
-            left.push new @view.draw.Point destinationBounds.x, @bounds[line].bottom()
-            left.push new @view.draw.Point destinationBounds.x, @bounds[line].bottom() + @view.opts.padding
+            left.push new @view.draw.Point @bounds[line].x, destinationBounds.bottom()
+            left.push new @view.draw.Point destinationBounds.x, destinationBounds.bottom()
+            left.push new @view.draw.Point destinationBounds.x, destinationBounds.bottom() + @view.opts.padding
 
             @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset,
-              @bounds[line].bottom() + @view.opts.padding
+              destinationBounds.bottom() + @view.opts.padding
 
           # If we're avoiding intersections with a multiline child in the way,
           # bring us gracefully to the next line's top. We had to keep avoiding
@@ -1474,8 +1518,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             else
               glueTop = @bounds[line].bottom()
 
-            if multilineChild.child.type is 'indent'
-              if multilineChild.child.start.next.type is 'newline'
+            # Special case for indents that start with newlines;
+            # don't do any of the same-line-start multiline stuff.
+            if multilineChild.child.type is 'indent' and multilineChild.child.start.next.type is 'newline'
                 right.push new @view.draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
                 right.push new @view.draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
 
@@ -1602,8 +1647,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
       shouldAddTab: ->
         if @model.parent?
-          parent = @model.parent
-          while parent?.type is 'segment' then parent = parent.parent
+          parent = @model.visParent()
           parent?.type isnt 'socket'
         else not (@model.socketLevel in [MOSTLY_VALUE, VALUE_ONLY])
 
@@ -1622,14 +1666,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # equal to our last line width,
         # positioned at the bottom of our last line.
         if @carriageArrow is CARRIAGE_ARROW_INDENT
-          parentViewNode = @view.getViewNodeFor @model.parent
+          parentViewNode = @view.getViewNodeFor @model.visParent()
           destinationBounds = parentViewNode.bounds[1]
 
           @dropPoint = new @view.draw.Point destinationBounds.x, destinationBounds.y
           lastBoundsLeft = destinationBounds.x
           lastBoundsRight = destinationBounds.right()
         else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
-          parentViewNode = @view.getViewNodeFor @model.parent
+          parentViewNode = @view.getViewNodeFor @model.visParent()
           destinationBounds = parentViewNode.bounds[1]
 
           @dropPoint = new @view.draw.Point destinationBounds.x,
@@ -1791,8 +1835,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
             if childView.topLineSticksToBottom or childView.bottomLineSticksToTop
               childView.invalidate = true
-            childView.topLineSticksToBottom =
-              childView.bottomLineSticksToTop = false
+            if childView.lineLength is 1
+              childView.topLineSticksToBottom =
+                childView.bottomLineSticksToTop = false
 
         for childRef in @lineChildren[0]
           childView = @view.getViewNodeFor(childRef.child)
