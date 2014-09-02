@@ -1,16 +1,18 @@
 require.config
   paths:
-    'ice': '../js/main'
-    'ice-helper': '../js/helper'
-    'ice-coffee': '../js/coffee'
-    'ice-model': '../js/model'
-    'ice-view': '../js/view'
-    'ice-parser': '../js/parser'
-    'ice-draw': '../js/draw'
-    'ice-controller': '../js/controller'
+    'droplet': '../js/main'
+    'droplet-helper': '../js/helper'
+    'droplet-coffee': '../js/coffee'
+    'droplet-javascript': '../js/javascript'
+    'droplet-model': '../js/model'
+    'droplet-view': '../js/view'
+    'droplet-parser': '../js/parser'
+    'droplet-draw': '../js/draw'
+    'droplet-controller': '../js/controller'
     'coffee-script': '../vendor/coffee-script'
+    'acorn': '../vendor/acorn'
 
-require ['ice'], (ice) ->
+require ['droplet'], (droplet) ->
   resize = ->
     canvas = document.getElementById 'main'
     canvas.width = window.innerWidth
@@ -21,39 +23,27 @@ require ['ice'], (ice) ->
     ctx = canvas.getContext '2d'
 
   window.addEventListener 'resize', resize
+  out = document.querySelector '#out'
 
   resize()
 
-  model = ice.parse '''
-  handle = ((a, b) ->
-    if a
-      b {
-        state: null
-      }
-    else
-      fd 10
-      b 0) 5, 5
-
-  class Handler
-    constructor: (@handle) ->
-      fd 10
-      bk 10
-      fd 10
-      bk 10
-
-  b = new Handler handle
+  model = droplet.js_parse localStorage.getItem('testProgram') ? '''
+  if (a) {if (b) {fd(10);
+      a + b;}fd(10);
+    1 + 1;
+  }
   '''
 
   model.correctParentTree()
 
-  view = new ice.view.View ctx: document.getElementById('main').getContext '2d'
+  view = new droplet.view.View ctx: document.getElementById('main').getContext '2d'
 
   modelView = view.getViewNodeFor(model)
 
   pos = 0
-  
+
   document.body.addEventListener 'keydown', (event) ->
-    if event.which in [37, 38, 39, 40, 74, 75, 76, 8]
+    if event.which in [37, 38, 39, 40, 74, 75, 76, 8] and document.activeElement is document.body
       modelView.layout()
       view.opts.ctx.clearRect(0, 0,
         document.querySelector('canvas').width,
@@ -64,7 +54,7 @@ require ['ice'], (ice) ->
 
       if event.which in [74, 75, 76]
         view.opts.ctx.globalAlpha = 0.2
-        modelView.draw view.opts.ctx, new ice.draw.Rectangle(
+        modelView.draw view.opts.ctx, new view.draw.Rectangle(
           0, 0,
           document.querySelector('canvas').width,
           document.querySelector('canvas').height
@@ -78,7 +68,7 @@ require ['ice'], (ice) ->
           modelView.debugAllBoundingBoxes view.opts.ctx
         when 39
           view.opts.ctx.globalAlpha = 0.5
-          modelView.draw view.opts.ctx, new ice.draw.Rectangle(
+          modelView.draw view.opts.ctx, new view.draw.Rectangle(
             0, 0,
             document.querySelector('canvas').width,
             document.querySelector('canvas').height
@@ -91,12 +81,14 @@ require ['ice'], (ice) ->
           pos--
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
+            out.innerText = view.getViewNodeFor(head.container).serialize()
             view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
             view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
         when 75
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
+            out.innerText = view.getViewNodeFor(head.container).serialize()
             view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
             view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
@@ -104,6 +96,7 @@ require ['ice'], (ice) ->
           pos++
           head = model.getTokenAtLocation(pos)
           if head.type in ['indentStart', 'blockStart', 'segmentStart', 'socketStart', 'indentEnd', 'blockEnd', 'segmentEnd', 'socketEnd']
+            out.innerText = view.getViewNodeFor(head.container).serialize()
             view.getViewNodeFor(head.container).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
           else unless head.type is 'newline'
             view.getViewNodeFor(head).drawSelf view.opts.ctx, {selected: 0, grayscale: 0}
@@ -119,7 +112,7 @@ require ['ice'], (ice) ->
 
   shown = false
   document.querySelector('#changebutton').addEventListener 'click', (event) ->
-    model = ice.parse document.querySelector('#editor').value
+    model = droplet.js_parse document.querySelector('#editor').value
     model.correctParentTree()
     modelView = view.getViewNodeFor(model)
 
@@ -129,3 +122,5 @@ require ['ice'], (ice) ->
     else
       shown = true
       document.querySelector('#editor').style.display = 'block'
+
+    localStorage.setItem 'testProgram', document.querySelector('#editor').value
