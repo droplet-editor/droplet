@@ -3918,7 +3918,6 @@ define ['droplet-helper',
 
   hook 'keydown', 0, (event, state) ->
     if event.which in command_modifiers
-      console.log 'FOCUSING'
       unless @textFocus?
         @copyPasteInput.focus()
         if @lassoSegment?

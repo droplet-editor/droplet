@@ -1454,7 +1454,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           # Otherwise, bring us gracefully to the next line
           # without lots of glue (minimize the extra colour).
           else if @bounds[line + 1]? and @multilineChildrenData[line] isnt MULTILINE_MIDDLE
-            console.log @model.stringify()
             # Instead of outward extremes, we take inner extremes this time,
             # to minimize extra colour between lines.
             innerLeft = Math.max @bounds[line + 1].x, @bounds[line].x
