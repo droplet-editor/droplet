@@ -782,7 +782,7 @@ define ['droplet-helper',
     leading = node.getLeadingText()
     trailing = node.getTrailingText()
 
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), null
+    [leading, trailing] = @mode.parens leading, trailing, node, null
 
     node.setLeadingText leading; node.setTrailingText trailing
 
@@ -792,10 +792,7 @@ define ['droplet-helper',
     leading = node.getLeadingText()
     trailing = node.getTrailingText()
 
-    container = location.container ? location.visParent()
-
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
-      (if container.type is 'block' then container.visParent() else container)?.getReader?() ? null
+    [leading, trailing] = @mode.parens leading, trailing, node, (location.container ? location.parent)
 
     node.setLeadingText leading; node.setTrailingText trailing
 
