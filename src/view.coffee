@@ -1648,7 +1648,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         if @model.parent?
           parent = @model.visParent()
           parent?.type isnt 'socket'
-        else not (@model.socketLevel in [MOSTLY_VALUE, VALUE_ONLY])
+        else not ('mostly-value' in @model.classes or
+            'value-only' in @model.classes)
 
       computeOwnPath: ->
         super
