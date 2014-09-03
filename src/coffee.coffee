@@ -7,11 +7,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   exports = {}
 
 
-  ANY_DROP = helper.ANY_DROP
-  BLOCK_ONLY = helper.BLOCK_ONLY
-  MOSTLY_BLOCK = helper.MOSTLY_BLOCK
-  MOSTLY_VALUE = helper.MOSTLY_VALUE
-  VALUE_ONLY = helper.VALUE_ONLY
+  ANY_DROP = ['any-drop']
+  BLOCK_ONLY = ['block-only']
+  MOSTLY_BLOCK = ['mostly-block']
+  MOSTLY_VALUE = ['mostly-value']
+  VALUE_ONLY = ['value-only']
+  LVALUE = ['lvalue']
+  FORBID_ALL = ['forbid-all']
+  PROPERTY_ACCESS = ['prop-access']
 
   BLOCK_FUNCTIONS = [
     'fd'
@@ -138,9 +141,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     '%': 6
     '**': 7
     '%%': 7
-
-  SAY_NORMAL= default: helper.NORMAL
-  SAY_FORBID = default: helper.FORBID
 
   YES = -> yes
   NO = -> no
@@ -379,10 +379,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             @csSocketAndMark node.base, depth + 1, 0, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
-                @csSocketAndMark property.name, depth + 1, -2, indentDepth, {
-                    'works-as-method-call': helper.ENCOURAGE_ALL
-                    'default': helper.FORBID
-                  }
+                @csSocketAndMark property.name, depth + 1, -2, indentDepth, PROPERTY_ACCESS
               else if property.nodeType() is 'Index'
                 @csSocketAndMark property.index, depth + 1, 0, indentDepth
 
@@ -468,7 +465,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
 
           for param in node.params
-            @csSocketAndMark param, depth + 1, 0, indentDepth, SAY_FORBID
+            @csSocketAndMark param, depth + 1, 0, indentDepth, FORBID_ALL
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -476,10 +473,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
           @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-          @csSocketAndMark node.variable, depth + 1, 0, indentDepth, {
-            'Value': helper.NORMAL
-            'default': helper.FORBID
-          }
+          @csSocketAndMark node.variable, depth + 1, 0, indentDepth, LVALUE
 
           @csSocketAndMark node.value, depth + 1, 0, indentDepth
 
@@ -493,7 +487,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth
 
           for childName in ['index', 'name']
-            if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth, SAY_FORBID
+            if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth, FORBID_ALL
 
           @mark node.body, depth + 1, 0, null, indentDepth
 
@@ -594,7 +588,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         when 'Class'
           @csBlock node, depth, 0, 'control', wrappingParen, ANY_DROP
 
-          if node.variable? then @csSocketAndMark node.variable, depth + 1, 0, indentDepth, SAY_FORBID
+          if node.variable? then @csSocketAndMark node.variable, depth + 1, 0, indentDepth, FORBID_ALL
           if node.parent? then @csSocketAndMark node.parent, depth + 1, 0, indentDepth
 
           if node.body? then @mark node.body, depth + 1, 0, null, indentDepth
@@ -608,7 +602,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
           for property in node.properties
             if property.nodeType() is 'Assign'
-              @csSocketAndMark property.variable, depth + 1, 0, indentDepth, SAY_FORBID
+              @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
               @csSocketAndMark property.value, depth + 1, 0, indentDepth
 
 
@@ -722,31 +716,30 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
-    csBlock: (node, depth, precedence, color, wrappingParen, socketLevel) ->
+    csBlock: (node, depth, precedence, color, wrappingParen, classes = []) ->
       @addBlock {
         bounds: @getBounds (wrappingParen ? node)
         depth: depth
         precedence: precedence
         color: color
-        socketLevel: socketLevel
-        classes: getClassesFor node
+        classes: getClassesFor(node).concat classes
         parenWrapped: wrappingParen?
       }
 
     # ## csSocket ##
     # A similar utility function for adding sockets.
-    csSocket: (node, depth, precedence, accepts = SAY_NORMAL) ->
+    csSocket: (node, depth, precedence, classes = []) ->
       @addSocket {
         bounds: @getBounds node
         depth: depth
         precedence: precedence
-        accepts: accepts
+        classes: getClassesFor(node).concat classes
       }
 
     # ## csSocketAndMark ##
     # Adds a socket for a node, and recursively @marks it.
-    csSocketAndMark: (node, depth, precedence, indentDepth, accepts = SAY_NORMAL) ->
-      socket = @csSocket node, depth, precedence, accepts
+    csSocketAndMark: (node, depth, precedence, indentDepth, classes) ->
+      socket = @csSocket node, depth, precedence, classes
       @mark node, depth + 1, precedence, null, indentDepth
       return socket
 
@@ -863,6 +856,45 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     lines.splice n + 1, 0, leading[0] + '  ``'
 
   CoffeeScriptParser.empty = "``"
+
+  CoffeeScriptParser.drop = (block, context, pred) ->
+    if context.type is 'socket'
+      if 'forbid-all' in context.classes or
+          block.type is 'segment'
+        return helper.FORBID
+
+      else if 'lvalue' in context.classes
+        if 'Value' in block.classes
+          return helper.ENCOURAGE
+        else
+          return helper.FORBID
+
+      else if 'property-access' in context.classes
+        if 'works-as-method-call' in block.classes
+          return helper.ENCOURAGE
+        else
+          return helper.FORBID
+
+      else if 'value-only' in block.classes or
+          'mostly-value' in block.classes or
+          'any-drop' in block.classes
+        console.log block.classes
+        return helper.ENCOURAGE
+
+      else if 'mostly-block' in block.classes
+        return helper.DISCOURAGE
+
+    else if context.type in ['indent', 'segment']
+      if 'block-only' in block.classes or
+          'mostly-block' in block.classes or
+          'any-drop' in block.classes or
+          block.type is 'segment'
+        return helper.ENCOURAGE
+
+      else if 'mostly-value' in block.classes
+        return helper.DISCOURAGE
+
+    return helper.DISCOURAGE
 
   parser.makeParser CoffeeScriptParser
 

@@ -104,7 +104,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     addSocket: (opts) ->
       socket = new model.Socket opts.precedence,
         false,
-        opts.accepts
+        opts.classes
 
       @addMarkup socket, opts.bounds, opts.depth
 
@@ -118,7 +118,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     #   prefix: String
     # }
     addIndent: (opts) ->
-      indent = new model.Indent opts.prefix
+      indent = new model.Indent opts.prefix, opts.classes
 
       @addMarkup indent, opts.bounds, opts.depth
 
@@ -353,9 +353,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
             attributes.socketLevel, attributes.classes?.split?(' ')
         when 'socket'
           container = new model.Socket attributes.precedence, attributes.handritten,
-            helper.deserializeShallowDict attributes.accepts
+            attributes.classes?.split?(' ')
         when 'indent'
-          container = new model.Indent attributes.prefix
+          container = new model.Indent attributes.prefix, attributes.classe?.split?(' ')
         when 'segment'
           # Root segment is optional
           unless stack.length is 0
@@ -434,6 +434,12 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       trailing = trailing + ')'
 
     return [leading, trailing]
+
+  Parser.drop = (block, context, pred) ->
+    if block.type is 'segment' and context.tpye is 'socket'
+      return helper.FORBID
+    else
+      return helper.ENCOURAGE
 
   Parser.empty = ''
 
