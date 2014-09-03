@@ -157,9 +157,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     return classes
 
   annotateCsNodes = (tree) ->
-    tree.eachChild (node) ->
-      node.parent = tree
-      annotateCsNodes node
+    tree.eachChild (child) ->
+      child.dropletParent = tree
+      annotateCsNodes child
+    return tree
 
   exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     constructor: (@text) ->
@@ -556,7 +557,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if node.objects.length > 0
             @csIndentAndMark indentDepth, node.objects, depth + 1
           for object in node.objects
-            if object.nodeType() is 'Value' and object.properties?.length in [0, undefined]
+            if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
+                object.properties?.length in [0, undefined]
               @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
 
         # ### Return ###
@@ -708,9 +710,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             bounds.end = @boundMax bounds.end, @getBounds(property).end
 
       # Special case to deal with commas in arrays:
-      if node.parent?.nodeType?() is 'Arr'
+      if node.dropletParent?.nodeType?() is 'Arr'
         match = @lines[bounds.end.line][bounds.end.column...].match(/^\s*,\s*/)
-        console.log match, @lines[bounds.end.line][bounds.end.column...]
         if match?
           bounds.end.column += match[0].length
 
@@ -931,7 +932,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       else if 'value-only' in block.classes or
           'mostly-value' in block.classes or
           'any-drop' in block.classes
-        console.log block.classes
         return helper.ENCOURAGE
 
       else if 'mostly-block' in block.classes
