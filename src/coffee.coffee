@@ -717,6 +717,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
       @flagLineAsMarked bounds.start.line
 
+      return container
+
     # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.

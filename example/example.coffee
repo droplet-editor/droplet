@@ -13,6 +13,7 @@ require ['droplet'], (droplet) ->
   # Example palette
   window.editor = new droplet.Editor document.getElementById('editor'), {
     # JAVASCRIPT TESTING:
+    ###
     mode: 'javascript'
     palette: [
       {
@@ -176,7 +177,6 @@ require ['droplet'], (droplet) ->
         ]
       }
     ]
-    ###
   }
 
   # Example program (fizzbuzz)

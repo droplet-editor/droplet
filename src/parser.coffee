@@ -137,6 +137,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         depth: depth
         start: false
 
+      return container
+
     # ## sortMarkup ##
     # Sort the markup by the order
     # in which it will appear in the text.
@@ -408,7 +410,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         container.spliceOut()
       else if (head instanceof model.StartToken and
           head.container.flagToStrip)
-        console.log head.container
         head.container.parent?.color = 'error'
         text = head.next
         text.value =
