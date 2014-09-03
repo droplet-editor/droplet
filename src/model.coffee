@@ -469,7 +469,7 @@ define ['droplet-helper'], (helper) ->
 
     isLastOnLine: ->
       return @end.nextVisibleToken() in [@parent?.end, @parent?.parent?.end, null] or
-        @end.nextVisibleToken()?.type in ['newline', 'indentEnd']
+        @end.nextVisibleToken()?.type in ['newline', 'indentStart', 'indentEnd']
 
     visParent: ->
       head = @parent
