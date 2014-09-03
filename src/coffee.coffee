@@ -156,6 +156,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
     return classes
 
+  annotateCsNodes = (tree) ->
+    tree.eachChild (node) ->
+      node.parent = tree
+      annotateCsNodes node
+
   exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     constructor: (@text) ->
       super
@@ -176,7 +181,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       # Get the CoffeeScript AST from the text
       loop
         try
-          nodes = CoffeeScript.nodes(@text).expressions
+          tree = CoffeeScript.nodes(@text)
+          annotateCsNodes tree
+          nodes = tree.expressions
           break
         catch e
           firstError ?= e
@@ -545,8 +552,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Color VALUE, sockets @objects.
         when 'Arr'
           @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
-          for object in node.objects
-            @csSocketAndMark object, depth + 1, 0, indentDepth
+
+          if node.objects.length > 0
+            @csIndentAndMark indentDepth, node.objects, depth + 1
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
@@ -635,6 +643,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         end:
           line: node.locationData.last_line
           column: node.locationData.last_column + 1
+
+      # Special case to deal with commas in arrays:
+      if node.parent?.nodeType?() is 'Arr'
+        match = @lines[bounds.end.line][bounds.end.column...].match(/^\s*,\s*/)
+        console.log match, @lines[bounds.end.line][bounds.end.column...]
+        if match?
+          bounds.end.column += match[0].length
 
       # There are four cases where CoffeeScript
       # actually gets location data wrong.
@@ -725,6 +740,40 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         classes: getClassesFor(node).concat classes
         parenWrapped: wrappingParen?
       }
+
+    # Add an indent node and guess
+    # at the indent depth
+    csIndent: (indentDepth, firstNode, lastNode, depth) ->
+      first = @getBounds(firstNode).start
+      last = @getBounds(lastNode).end
+
+      if @lines[first.line][...first.column].trim().length is 0
+        first.line -= 1
+        first.column = @lines[first.line].length
+
+      if first.line isnt last.line
+        trueDepth = @lines[last.line].length - @lines[last.line].trimLeft().length
+        prefix = @lines[last.line][indentDepth...trueDepth]
+      else
+        trueDepth = indentDepth + 2
+        prefix = '  '
+
+      @addIndent {
+        bounds: {
+          start: first
+          end: last
+        }
+        depth: depth
+
+        prefix: prefix
+      }
+
+      return trueDepth
+
+    csIndentAndMark: (indentDepth, nodes, depth) ->
+      trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth
+      for node in nodes
+        @mark node, depth + 1, 0, null, trueDepth
 
     # ## csSocket ##
     # A similar utility function for adding sockets.
