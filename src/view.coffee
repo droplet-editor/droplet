@@ -274,7 +274,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         if parenttype is 'block' and @model.type is 'indent'
           @margins =
             top: @view.opts.padding
-            bottom: @view.opts.indentTongueHeight
+            bottom: if @lineLength > 1 then @view.opts.indentTongueHeight else @view.opts.padding
 
             firstLeft: 0
             midLeft: @view.opts.indentWidth

@@ -551,10 +551,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # ### Arr ###
         # Color VALUE, sockets @objects.
         when 'Arr'
-          @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 100, 'violet', wrappingParen, VALUE_ONLY
 
           if node.objects.length > 0
             @csIndentAndMark indentDepth, node.objects, depth + 1
+          for object in node.objects
+            if object.nodeType() is 'Value' and object.properties?.length in [0, undefined]
+              @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
@@ -606,7 +609,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # TODO: This doesn't quite line up with what we want it to be visually;
         # maybe our View architecture is wrong.
         when 'Obj'
-          @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 0, 'violet', wrappingParen, VALUE_ONLY
 
           for property in node.properties
             if property.nodeType() is 'Assign'
@@ -643,13 +646,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         end:
           line: node.locationData.last_line
           column: node.locationData.last_column + 1
-
-      # Special case to deal with commas in arrays:
-      if node.parent?.nodeType?() is 'Arr'
-        match = @lines[bounds.end.line][bounds.end.column...].match(/^\s*,\s*/)
-        console.log match, @lines[bounds.end.line][bounds.end.column...]
-        if match?
-          bounds.end.column += match[0].length
 
       # There are four cases where CoffeeScript
       # actually gets location data wrong.
@@ -710,6 +706,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         if node.properties? and node.properties.length > 0
           for property in node.properties
             bounds.end = @boundMax bounds.end, @getBounds(property).end
+
+      # Special case to deal with commas in arrays:
+      if node.parent?.nodeType?() is 'Arr'
+        match = @lines[bounds.end.line][bounds.end.column...].match(/^\s*,\s*/)
+        console.log match, @lines[bounds.end.line][bounds.end.column...]
+        if match?
+          bounds.end.column += match[0].length
+
 
       return bounds
 
@@ -913,7 +917,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         return helper.FORBID
 
       else if 'lvalue' in context.classes
-        if 'Value' in block.classes
+        if 'Value' in block.classes and block.properties?.length > 0
           return helper.ENCOURAGE
         else
           return helper.FORBID
@@ -944,6 +948,22 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         return helper.DISCOURAGE
 
     return helper.DISCOURAGE
+
+  CoffeeScriptParser.parens = (leading, trailing, node, context) ->
+    trailing = trailing.replace /\s*,\s*$/, ''
+    if context is null or context.type isnt 'socket' or
+        context.precedence < node.precedence
+      while true
+        if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
+          leading = leading.replace(/^\s*\(\s*/, '')
+          trailing = trailing.replace(/^\s*\)\s*/, '')
+        else
+          break
+    else
+      leading = '(' + leading
+      trailing = trailing + ')'
+
+    return [leading, trailing]
 
   parser.makeParser CoffeeScriptParser
 
