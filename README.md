@@ -141,7 +141,6 @@ To have your parser actually put blocks in, you will need to do some things in t
   # Configure the block you're about to add (all optional)
   color: '#HEXCOLOR'
   precedence: Number
-  socketLevel: Number # See "acceptance levels"
   classes: [] # Array of strings.
 })
 
@@ -158,6 +157,7 @@ To have your parser actually put blocks in, you will need to do some things in t
   precedence: Number
   accepts: {'string': Number} # Maps class names (from block 'classes' array) to an acceptance level
                               # (see "acceptance levels")
+  classes: [] # Array of strings
 })
 
 # Add an Indent
@@ -171,6 +171,7 @@ To have your parser actually put blocks in, you will need to do some things in t
 
   # Configure the indent you're about to add (all optional)
   prefix: '  ' # String that is a prefix of all the lines
+  classes: [] # Array of strings
 })
 ```
 
@@ -191,28 +192,19 @@ MyParser.parens = (leading, trailing, node, context) ->
 
 # Text to fill in an empty socket when switching modes:
 MyParser.empty = "blarg"
-```
 
-Acceptance Levels
------------------
-Acceptance levels determine whether blocks are allowed to be dropped into other blocks (type-checking). This API is subject to change.
-
-Blocks are annotated with a `socketLevel`, which dictates where they are on the scale of "statement only" to "value only"
-
-```coffeescript
-helper.BLOCK_ONLY
-helper.MOSTLY_BLOCK
-helper.ANY_DROP
-helper.MOSTLY_VALUE
-helper.VALUE_ONLY
-```
-
-Blocks are also annotated with a `classes` array, an array of arbitrary string flags.
-
-Sockets are annotated with an `accepts` dictionary, which maps classes to acceptance levels:
-```coffeescript
-helper.FORBID # Do not allow this block to be dropped no matter what
-helper.NORMAL # Allow this block to be dropped it if it is a value
-helper.ENCOURAGE_ALL # Allow this block to be dropped no matter what
-helper.DISCOURAGE_ALL # Alow this block to be dropped, but only if the user presses the shift key
+MyParser.drop = (block, context, preceding) ->
+  # block: the block that user is dragging
+  # context: the place the user is dropping that block into
+  # preceding: if in sequence, the block immediately before
+  
+  # block, context, and preceding will have
+  # properties `classes` (from when you created the block),
+  # `precedence`, and `type` ('block', 'socket', 'indent', or 'segment')
+  if allowedIn(block, context)
+    return helper.ENCOURAGE
+  else if maybe(block, context)
+    return helper.DISCOURAGE
+  else
+    return helper.FORBID
 ```
