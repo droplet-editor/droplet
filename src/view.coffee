@@ -274,7 +274,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         if parenttype is 'block' and @model.type is 'indent'
           @margins =
             top: @view.opts.padding
-            bottom: @view.opts.indentTongueHeight
+            bottom: if @lineLength > 1 then @view.opts.indentTongueHeight else @view.opts.padding
 
             firstLeft: 0
             midLeft: @view.opts.indentWidth
@@ -408,7 +408,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           @distanceToBase[i].below = @minDistanceToBase[i].below
 
         if @model.parent? and not root and
-            (@topLineSticksToBottom or @bottomLineSticksToTop)
+            (@topLineSticksToBottom or @bottomLineSticksToTop or
+             (@lineLength > 1 and not @model.isLastOnLine()))
           parentNode = @view.getViewNodeFor @model.parent
 
           # grow below if "stick to bottom" is set.
@@ -426,6 +427,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             distance = @distanceToBase[lineCount - 1]
             distance.above = Math.max(distance.above,
                 parentNode.distanceToBase[startLine + lineCount - 1].above)
+            @dimensions[lineCount - 1] = new @view.draw.Size(
+                @dimensions[lineCount - 1].width,
+                distance.below + distance.above)
+
+          if @lineLength > 1 and not @model.isLastOnLine() and @model.type is 'block'
+            distance = @distanceToBase[@lineLength - 1]
+            distance.below = parentNode.distanceToBase[startLine + @lineLength - 1].below
             @dimensions[lineCount - 1] = new @view.draw.Size(
                 @dimensions[lineCount - 1].width,
                 distance.below + distance.above)
@@ -864,10 +872,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # Fill in gaps in @multilineChildrenData with NO_MULTILINE
         @multilineChildrenData[i] ?= NO_MULTILINE for i in [0...@lineLength]
 
-        console.log 'GOT HERE!'
-
         if @lineLength > 1
-          console.log 'GOT SECOND'
           @topLineSticksToBottom = true
           @bottomLineSticksToTop = true
 
@@ -1449,7 +1454,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           # Otherwise, bring us gracefully to the next line
           # without lots of glue (minimize the extra colour).
           else if @bounds[line + 1]? and @multilineChildrenData[line] isnt MULTILINE_MIDDLE
-            console.log @model.stringify()
             # Instead of outward extremes, we take inner extremes this time,
             # to minimize extra colour between lines.
             innerLeft = Math.max @bounds[line + 1].x, @bounds[line].x
@@ -1644,7 +1648,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         if @model.parent?
           parent = @model.visParent()
           parent?.type isnt 'socket'
-        else not (@model.socketLevel in [MOSTLY_VALUE, VALUE_ONLY])
+        else not ('mostly-value' in @model.classes or
+            'value-only' in @model.classes)
 
       computeOwnPath: ->
         super

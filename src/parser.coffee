@@ -28,7 +28,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       @markup = []
 
     # ## parse ##
-    parse: (opts) ->
+    _parse: (opts) ->
       opts = _extend opts, {
         wrapAtRoot: true
       }
@@ -51,6 +51,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       segment.correctParentTree()
       segment.isRoot = true
       return segment
+
+    markRoot: ->
 
     isParenWrapped: (block) ->
       (block.start.next.type is 'text' and
@@ -102,7 +104,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     addSocket: (opts) ->
       socket = new model.Socket opts.precedence,
         false,
-        opts.accepts
+        opts.classes
 
       @addMarkup socket, opts.bounds, opts.depth
 
@@ -116,7 +118,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     #   prefix: String
     # }
     addIndent: (opts) ->
-      indent = new model.Indent opts.prefix
+      indent = new model.Indent opts.prefix, opts.classes
 
       @addMarkup indent, opts.bounds, opts.depth
 
@@ -134,6 +136,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         location: bounds.end
         depth: depth
         start: false
+
+      return container
 
     # ## sortMarkup ##
     # Sort the markup by the order
@@ -349,9 +353,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
             attributes.socketLevel, attributes.classes?.split?(' ')
         when 'socket'
           container = new model.Socket attributes.precedence, attributes.handritten,
-            helper.deserializeShallowDict attributes.accepts
+            attributes.classes?.split?(' ')
         when 'indent'
-          container = new model.Indent attributes.prefix
+          container = new model.Indent attributes.prefix, attributes.classe?.split?(' ')
         when 'segment'
           # Root segment is optional
           unless stack.length is 0
@@ -406,7 +410,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         container.spliceOut()
       else if (head instanceof model.StartToken and
           head.container.flagToStrip)
-        console.log head.container
         head.container.parent?.color = 'error'
         text = head.next
         text.value =
@@ -416,5 +419,38 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         head = text.next
       else
         head = head.next
+
+  Parser.parens = (leading, trailing, node, context) ->
+    if context is null or context.type isnt 'socket' or
+        context.precedence < node.precedence
+      while true
+        if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
+          leading = leading.replace(/^\s*\(\s*/, '')
+          trailing = trailing.replace(/^\s*\)\s*/, '')
+        else
+          break
+    else
+      leading = '(' + leading
+      trailing = trailing + ')'
+
+    return [leading, trailing]
+
+  Parser.drop = (block, context, pred) ->
+    if block.type is 'segment' and context.tpye is 'socket'
+      return helper.FORBID
+    else
+      return helper.ENCOURAGE
+
+  Parser.empty = ''
+
+  Parser.parse = (text, opts) ->
+
+  exports.makeParser = (CustomParser) ->
+    CustomParser.parse = (text, opts) ->
+      opts ?= wrapAtRoot: true
+      parser = new CustomParser text
+      return parser._parse opts
+
+  exports.makeParser Parser
 
   return exports

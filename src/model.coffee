@@ -99,6 +99,14 @@ define ['droplet-helper'], (helper) ->
     # with the same metadata.
     _cloneEmpty: -> new Container()
 
+    getReader: ->
+      {
+        id: @id
+        type: @type
+        precedence: @precedence
+        classes: @classes
+      }
+
     hasParent: (parent) ->
       head = @
       until head in [parent, null]
@@ -163,7 +171,7 @@ define ['droplet-helper'], (helper) ->
           @start.next.remove()
         else
           @start.next.value = value
-      else
+      else unless value.length is 0
         @start.insert new TextToken value
 
     setTrailingText: (value) ->
@@ -172,7 +180,7 @@ define ['droplet-helper'], (helper) ->
           @end.prev.remove()
         else
           @end.prev.value = value
-      else
+      else unless value.length is 0
         @end.insertBefore new TextToken value
 
     # ## clone ##
@@ -464,13 +472,12 @@ define ['droplet-helper'], (helper) ->
       traverseOneLevel @start.next, fn
 
     isFirstOnLine: ->
-      console.log @stringify(), @start.previousVisibleToken()
       return @start.previousVisibleToken() in [@parent?.start, @parent?.parent?.start, null] or
         @start.previousVisibleToken()?.type is 'newline'
 
     isLastOnLine: ->
       return @end.nextVisibleToken() in [@parent?.end, @parent?.parent?.end, null] or
-        @end.nextVisibleToken()?.type in ['newline', 'indentEnd']
+        @end.nextVisibleToken()?.type in ['newline', 'indentStart', 'indentEnd']
 
     visParent: ->
       head = @parent
@@ -703,7 +710,7 @@ define ['droplet-helper'], (helper) ->
       @precedence}\" color=\"#{
       @color}\" socketLevel=\"#{
       @socketLevel}\" classes=\"#{
-      @classes?.join?(' ') ? []}\"
+      @classes?.join?(' ') ? ''}\"
     >"
     _serialize_footer: -> "</block>"
 
@@ -720,7 +727,7 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketEnd'
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @acceptsRules = NORMAL) ->
+    constructor: (@precedence = 0, @handwritten = false, @classes = []) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
@@ -728,21 +735,14 @@ define ['droplet-helper'], (helper) ->
 
       super
 
-    accepts: (block) ->
-      for c in block.classes
-        if c of @acceptsRules then return @acceptsRules[c]
-
-      return @acceptsRules['default'] ? NORMAL
-
-
     _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
 
     _serialize_header: -> "<socket precedence=\"#{
         @precedence
       }\" handwritten=\"#{
         @handwritten
-      }\" accepts=\"#{
-        helper.serializeShallowDict @acceptsRules
+      }\" classes=\"#{
+        @classes?.join?(' ') ? ''
       }\">"
 
     _serialize_footer: -> "</socket>"
@@ -762,7 +762,7 @@ define ['droplet-helper'], (helper) ->
     serialize: -> "</indent>"
 
   exports.Indent = class Indent extends Container
-    constructor: (@prefix = '') ->
+    constructor: (@prefix = '', @classes = []) ->
       @start = new IndentStartToken this
       @end = new IndentEndToken this
 
@@ -775,6 +775,8 @@ define ['droplet-helper'], (helper) ->
     _cloneEmpty: -> new Indent @prefix
     _serialize_header: -> "<indent prefix=\"#{
       @prefix
+    }\" classes=\"#{
+      @classes?.join?(' ') ? ''
     }\">"
     _serialize_footer: -> "</indent>"
 

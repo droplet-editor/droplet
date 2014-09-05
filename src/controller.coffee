@@ -782,7 +782,7 @@ define ['droplet-helper',
     leading = node.getLeadingText()
     trailing = node.getTrailingText()
 
-    [leading, trailing] = @mode.parens leading, trailing, node, null
+    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), null
 
     node.setLeadingText leading; node.setTrailingText trailing
 
@@ -792,7 +792,10 @@ define ['droplet-helper',
     leading = node.getLeadingText()
     trailing = node.getTrailingText()
 
-    [leading, trailing] = @mode.parens leading, trailing, node, (location.container ? location.parent)
+    container = location.container ? location.visParent()
+
+    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
+      (if container.type is 'block' then container.visParent() else container)?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
 
@@ -988,7 +991,7 @@ define ['droplet-helper',
       # Construct a quadtree of drop areas
       # for faster dragging
       @dropPointQuadTree = QUAD.init
-        x: @scrollOffsets.main.xA
+        x: @scrollOffsets.main.x
         y: @scrollOffsets.main.y
         w: @mainCanvas.width
         h: @mainCanvas.height
@@ -1001,7 +1004,7 @@ define ['droplet-helper',
 
         if head instanceof model.StartToken
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
-          unless acceptLevel is helper.FORBIDDEN
+          unless acceptLevel is helper.FORBID
             dropPoint = @view.getViewNodeFor(head.container).dropPoint
 
             if dropPoint?
@@ -1026,6 +1029,14 @@ define ['droplet-helper',
 
       # Redraw the main canvas
       @redrawMain()
+
+  Editor::getAcceptLevel = (drag, drop) ->
+    if drop.type is 'socket'
+      return @mode.drop drag.getReader(), drop.getReader(), null
+    else if drop.type is 'block'
+      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
+    else
+      return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
 
   # On mousemove, if there is a dragged block, we want to
   # translate the drag canvas into place,
@@ -1065,7 +1076,7 @@ define ['droplet-helper',
           w: MAX_DROP_DISTANCE * 2
           h: MAX_DROP_DISTANCE * 2
         }, (point) =>
-          unless (point.acceptLevel is helper.DISCOURAGED) and not event.shiftKey
+          unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
             distance = mainPoint.from(point)
             distance.y *= 2; distance = distance.magnitude()
             if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
@@ -1093,46 +1104,6 @@ define ['droplet-helper',
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
-
-  Editor::getAcceptLevel = (drag, drop) ->
-    unless drop? then return helper.FORBIDDEN
-    unless @view.getViewNodeFor(drop).dropPoint? then return helper.FORBIDDEN
-    if drop.parent?.type is 'socket' then return helper.FORBIDDEN
-
-    if drag?.type is 'segment' and
-        drop.type in ['block', 'segment', 'indent']
-      return helper.ENCOURAGED
-
-    if drop?.type is 'socket'
-      acceptance = drop.accepts drag
-
-      if acceptance is helper.ENCOURAGE_ALL
-        return helper.ENCOURAGED
-
-      if acceptance is helper.NORMAL and
-          drag.socketLevel in [ANY_DROP, MOSTLY_VALUE, VALUE_ONLY]
-        return helper.ENCOURAGED
-
-      else if acceptance is helper.NORMAL and
-          drag.socketLevel in [MOSTLY_BLOCK]
-        return helper.DISCOURAGED
-
-      else if acceptance is helper.DISCOURAGE and
-          drag.socketLevel isnt BLOCK_ONLY
-        return helper.DISCOURAGED
-
-      else
-        return helper.FORBIDDEN
-
-
-    else if drag.socketLevel in [ANY_DROP, MOSTLY_BLOCK, BLOCK_ONLY]
-      return helper.ENCOURAGED
-
-    else if drag.socketLevel is MOSTLY_VALUE
-      return helper.DISCOURAGED
-
-    else
-      return helper.FORBIDDEN
 
   hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
@@ -3918,7 +3889,6 @@ define ['droplet-helper',
 
   hook 'keydown', 0, (event, state) ->
     if event.which in command_modifiers
-      console.log 'FOCUSING'
       unless @textFocus?
         @copyPasteInput.focus()
         if @lassoSegment?
