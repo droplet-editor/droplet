@@ -134,7 +134,7 @@ define ['droplet-helper',
     constructor: (@wrapperElement, @options) ->
       @paletteGroups = @options.palette
 
-      if @options.mode is 'coffeescript'
+      if @options.mode in ['coffee', 'coffeescript']
         @mode = coffee
       else if @options.mode is 'javascript'
         @mode = javascript
