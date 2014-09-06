@@ -1,19 +1,117 @@
 define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, model, parser, acorn) ->
   exports = {}
 
-  operatorPrecedences = {
-    '+': 0
-    '-': 0
-    '/': 1
-    '*': 1
-  }
-
   STATEMENT_NODE_TYPES = [
     'ExpressionStatement'
     'ReturnStatement'
     'BreakStatement'
     'ThrowStatement'
   ]
+
+  BLOCK_FUNCTIONS = [
+    'fd'
+    'bk'
+    'rt'
+    'lt'
+    'slide'
+    'movexy'
+    'moveto'
+    'jump'
+    'jumpto'
+    'turnto'
+    'home'
+    'pen'
+    'fill'
+    'dot'
+    'box'
+    'mirror'
+    'twist'
+    'scale'
+    'pause'
+    'st'
+    'ht'
+    'cs'
+    'cg'
+    'ct'
+    'pu'
+    'pd'
+    'pe'
+    'pf'
+    'play'
+    'tone'
+    'silence'
+    'speed'
+    'wear'
+    'drawon'
+    'label'
+    'reload'
+    'see'
+    'sync'
+    'send'
+    'recv'
+    'click'
+    'mousemove'
+    'mouseup'
+    'mousedown'
+    'keyup'
+    'keydown'
+    'keypress'
+    'alert'
+  ]
+
+  VALUE_FUNCTIONS = [
+    'abs'
+    'acos'
+    'asin'
+    'atan'
+    'atan2'
+    'cos'
+    'sin'
+    'tan'
+    'ceil'
+    'floor'
+    'round'
+    'exp'
+    'ln'
+    'log10'
+    'pow'
+    'sqrt'
+    'max'
+    'min'
+    'random'
+    'pagexy'
+    'getxy'
+    'direction'
+    'distance'
+    'shown'
+    'hidden'
+    'inside'
+    'touches'
+    'within'
+    'notwithin'
+    'nearest'
+    'pressed'
+    'canvas'
+    'hsl'
+    'hsla'
+    'rgb'
+    'rgba'
+    'cell'
+  ]
+
+  EITHER_FUNCTIONS = [
+    'button'
+    'read'
+    'readstr'
+    'readnum'
+    'write'
+    'table'
+    'append'
+    'finish'
+    'loadscript'
+  ]
+
+  FUNCTION_WHITELIST = BLOCK_FUNCTIONS.concat(EITHER_FUNCTIONS).concat(VALUE_FUNCTIONS)
 
   COLORS = {
     'BinaryExpression': 'value'
@@ -41,6 +139,39 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'ConditionalExpression': 'value'
   }
 
+  OPERATOR_PRECEDENCES = {
+    '*': 5
+    '/': 5
+    '%': 5
+    '+': 6
+    '-': 6
+    '<<': 7
+    '>>': 7
+    '>>>': 7
+    '<': 8
+    '>': 8
+    '>=': 8
+    'in': 8
+    'instanceof': 8
+    '==': 9
+    '!=': 9
+    '===': 9
+    '!==': 9
+    '&': 10
+    '^': 10
+    '|': 10
+    '&&': 10
+    '||': 10
+  }
+
+  CLASS_EXCEPTIONS = {
+    'ForStatement': ['ends-with-brace', 'block-only']
+    'IfStatement': ['ends-with-brace', 'block-only']
+    'WhileStatement': ['ends-with-brace', 'block-only']
+    'DoWhileStatement': ['ends-with-brace', 'block-only']
+    'SwitchStatement': ['ends-with-brace', 'block-only']
+  }
+
   DEFAULT_INDENT_DEPTH = '  '
 
   exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
@@ -60,14 +191,32 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       @mark 0, tree, 0, null
 
     getAcceptsRule: (node) -> default: helper.NORMAL
-    getClasses: (node) -> []
+    getClasses: (node) ->
+      if node.type of CLASS_EXCEPTIONS
+        return CLASS_EXCEPTIONS[node.type].concat([node.type])
+      else
+        if node.type is 'CallExpression'
+          if node.callee.type is 'Identifier' and node.callee.name in BLOCK_FUNCTIONS
+            return [node.type, 'mostly-block']
+          else if node.callee.name in VALUE_FUNCTIONS
+            return [node.type, 'mostly-value']
+          else
+            return [node.type, 'any-drop']
+        if node.type.match(/Expression$/)?
+          return [node.type, 'mostly-value']
+        else if node.type.match(/Statement$/)?
+          return [node.type, 'mostly-block']
+        else
+          return [node.type, 'any-drop']
 
     getPrecedence: (node) ->
       switch node.type
         when 'BinaryExpression'
-          return operatorPrecedences[node.operator]
+          return OPERATOR_PRECEDENCES[node.operator]
+        when 'AssignStatement'
+          return 17
         when 'CallExpression'
-          return 10
+          return 2
         when 'ExpressionStatement'
           return @getPrecedence node.expression
         else
@@ -176,7 +325,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsBlock node, depth, bounds
           @mark indentDepth, node.body, depth + 1, null
           if node.id?
-            @jsSocketAndMark indentDepth, node.id, depth + 1
+            @jsSocketAndMark indentDepth, node.id, depth + 1, -100
           for param in node.params
             @jsSocketAndMark indentDepth, param, depth + 1
         when 'AssignmentExpression'
@@ -222,16 +371,20 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             @mark indentDepth, statement, depth + 1, null
         when 'BinaryExpression'
           @jsBlock node, depth, bounds
-          @jsSocketAndMark indentDepth, node.left, depth + 1, operatorPrecedences[node.operator]
-          @jsSocketAndMark indentDepth, node.right, depth + 1, operatorPrecedences[node.operator]
+          @jsSocketAndMark indentDepth, node.left, depth + 1, OPERATOR_PRECEDENCES[node.operator]
+          @jsSocketAndMark indentDepth, node.right, depth + 1, OPERATOR_PRECEDENCES[node.operator]
         when 'ExpressionStatement'
           @mark indentDepth, node.expression, depth + 1, @getBounds node
+        when 'Identifier'
+          if node.name is '__'
+            block = @jsBlock node, depth, bounds
+            block.flagToRemove = true
         when 'CallExpression', 'NewExpression'
           @jsBlock node, depth, bounds
-          if node.callee.type isnt 'Identifier'
-            @jsSocketAndMark indentDepth, node.callee, depth + 1, 10
+          if node.callee.type isnt 'Identifier' or node.callee.name not in FUNCTION_WHITELIST
+            @jsSocketAndMark indentDepth, node.callee, depth + 1, 20
           for argument in node.arguments
-            @jsSocketAndMark indentDepth, argument, depth + 1, 10
+            @jsSocketAndMark indentDepth, argument, depth + 1, 1.9
         when 'MemberExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.object, depth + 1
@@ -318,10 +471,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       @mark indentDepth, node, depth + 1, bounds
 
   JavaScriptParser.parens = (leading, trailing, node, context) ->
-    if context?.type is 'socket'
+    if context?.type is 'socket' or 'ends-with-brace' in node.classes
       trailing = trailing.replace(/;?\s*$/, '')
     else
       trailing = trailing.replace(/;?\s*$/, ';')
+
     if context is null or context.type isnt 'socket' or
         context.precedence < node.precedence
       while true
@@ -336,7 +490,41 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
     return [leading, trailing]
 
-  JavaScriptParser.empty = "eval('')"
+  JavaScriptParser.drop = (block, context, pred) ->
+    if context.type is 'socket'
+      if 'lvalue' in context.classes
+        if 'Value' in block.classes and block.properties?.length > 0
+          return helper.ENCOURAGE
+        else
+          return helper.FORBID
+
+      else if 'property-access' in context.classes
+        if 'works-as-method-call' in block.classes
+          return helper.ENCOURAGE
+        else
+          return helper.FORBID
+
+      else if 'value-only' in block.classes or
+          'mostly-value' in block.classes or
+          'any-drop' in block.classes
+        return helper.ENCOURAGE
+
+      else if 'mostly-block' in block.classes
+        return helper.DISCOURAGE
+
+    else if context.type in ['indent', 'segment']
+      if 'block-only' in block.classes or
+          'mostly-block' in block.classes or
+          'any-drop' in block.classes or
+          block.type is 'segment'
+        return helper.ENCOURAGE
+
+      else if 'mostly-value' in block.classes
+        return helper.DISCOURAGE
+
+    return helper.DISCOURAGE
+
+  JavaScriptParser.empty = "__"
 
   parser.makeParser JavaScriptParser
 
