@@ -32,9 +32,20 @@ require ['droplet'], (droplet) ->
         blocks: [
           {block: '''
           for (var i = 0; i < 4; i++) {
-            eval('');
+            __;
           }
           ''', title: 'Do something multiple times'}
+          {block: '''
+          function myFunction(argument) {
+            __;
+          }
+          ''', title: 'Create a function'}
+          {block: '''
+          myFunction()
+          ''', title: 'Use a function without an argument'}
+          {block: '''
+          myFunction(argument)
+          ''', title: 'Use a function with argument'}
         ]
       }
     ]

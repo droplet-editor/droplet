@@ -204,7 +204,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             return [node.type, 'any-drop']
         if node.type.match(/Expression$/)?
           return [node.type, 'mostly-value']
-        else if node.type.match(/Statement$/)?
+        else if node.type.match(/(Statement|Declaration)$/)?
           return [node.type, 'mostly-block']
         else
           return [node.type, 'any-drop']
@@ -352,7 +352,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'ForStatement'
           @jsBlock node, depth, bounds
           if node.init?
-            @jsSocketAndMark indentDepth, node.init, depth + 1, 10
+            @jsSocketAndMark indentDepth, node.init, depth + 1, -1000, null, ['for-statement-init']
           if node.test?
             @jsSocketAndMark indentDepth, node.test, depth + 1, 10
           if node.update?
@@ -460,12 +460,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         classes: @getClasses node
         socketLevel: @getSocketLevel node
 
-    jsSocketAndMark: (indentDepth, node, depth, precedence, bounds) ->
+    jsSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes) ->
       unless node.type is 'BlockStatement'
         @addSocket
           bounds: bounds ? @getBounds node
           depth: depth
           precedence: precedence
+          classes: classes ? []
           accepts: @getAcceptsRule node
 
       @mark indentDepth, node, depth + 1, bounds
@@ -506,7 +507,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
       else if 'value-only' in block.classes or
           'mostly-value' in block.classes or
-          'any-drop' in block.classes
+          'any-drop' in block.classes or
+          'for-statement-init' in context.classes
         return helper.ENCOURAGE
 
       else if 'mostly-block' in block.classes
