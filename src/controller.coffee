@@ -1032,9 +1032,15 @@ define ['droplet-helper',
 
   Editor::getAcceptLevel = (drag, drop) ->
     if drop.type is 'socket'
-      return @mode.drop drag.getReader(), drop.getReader(), null
+      if drag.type is 'segment'
+        return helper.FORBID
+      else
+        return @mode.drop drag.getReader(), drop.getReader(), null
     else if drop.type is 'block'
-      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
+      if drop.visParent().type is 'socket'
+        return helper.FORBID
+      else
+        return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
     else
       return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
 
