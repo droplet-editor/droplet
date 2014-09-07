@@ -752,13 +752,15 @@ define ['droplet-helper'], (helper) ->
 
   exports.IndentStartToken = class IndentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'indentStart'
-    stringify: (state) -> state.indent += @container.prefix; ''
+    stringify: (state) ->
+      state.indent += @container.prefix; ''
 
   exports.IndentEndToken = class IndentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'indentEnd'
     stringify: (state) ->
-      state.indent = state.indent[...-@container.depth]
-      if @previousVisibleToken().previousVisibleToken() is @container.start then '``' else ''
+      unless @container.prefix.length is 0
+        state.indent = state.indent[...-@container.prefix.length]
+      if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyToken else ''
     serialize: -> "</indent>"
 
   exports.Indent = class Indent extends Container

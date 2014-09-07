@@ -226,7 +226,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         if not (i of markupOnLines)
           # If this line is not properly indented,
           # flag it in the model.
-          if indentDepth >= line.length or line[..indentDepth].trim().length > 0
+          if indentDepth >= line.length or line[...indentDepth].trim().length > 0
             head.specialIndent = (' ' for [0...line.length - line.trimLeft().length]).join ''
             line = line.trimLeft()
           else
@@ -257,10 +257,11 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         # If there is markup on this line, insert it.
         else
           # Flag if this line is not properly indented.
-          if indentDepth >= line.length or line[..indentDepth].trim().length > 0
+          if indentDepth >= line.length or line[...indentDepth].trim().length > 0
             lastIndex = line.length - line.trimLeft().length
             head.specialIndent = line[0...lastIndex]
           else
+            debugger
             lastIndex = indentDepth
 
           for mark in markupOnLines[i]
@@ -284,7 +285,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
                 # directly inside a block; if not, then throw.
                 unless stack?[stack.length - 1]?.type is 'block'
                   throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
-                indentDepth += mark.token.container.depth
+                indentDepth += mark.token.container.prefix.length
 
               when 'blockStart'
                 # If the a block is embedded
@@ -298,7 +299,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
                   throw new Error 'Improper parser: socket must be immediately inside a block.'
 
               when 'indentEnd'
-                indentDepth -= mark.token.container.depth
+                indentDepth -= mark.token.container.prefix.length
 
             # Update the stack
             if mark.token instanceof model.StartToken

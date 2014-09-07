@@ -710,11 +710,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             bounds.end = @boundMax bounds.end, @getBounds(property).end
 
       # Special case to deal with commas in arrays:
-      if node.dropletParent?.nodeType?() is 'Arr'
+      if node.dropletParent?.nodeType?() is 'Arr' or
+         node.dropletParent?.nodeType?() is 'Value' and node.dropletParent.dropletParent?.nodeType?() is 'Arr'
         match = @lines[bounds.end.line][bounds.end.column...].match(/^\s*,\s*/)
         if match?
           bounds.end.column += match[0].length
-
 
       return bounds
 
@@ -913,11 +913,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
   CoffeeScriptParser.drop = (block, context, pred) ->
     if context.type is 'socket'
-      if 'forbid-all' in context.classes or
-          block.type is 'segment'
-        return helper.FORBID
-
-      else if 'lvalue' in context.classes
+      if 'lvalue' in context.classes
         if 'Value' in block.classes and block.properties?.length > 0
           return helper.ENCOURAGE
         else

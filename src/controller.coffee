@@ -1032,9 +1032,16 @@ define ['droplet-helper',
 
   Editor::getAcceptLevel = (drag, drop) ->
     if drop.type is 'socket'
-      return @mode.drop drag.getReader(), drop.getReader(), null
+      if drag.type is 'segment'
+        return helper.FORBID
+      else
+        return @mode.drop drag.getReader(), drop.getReader(), null
     else if drop.type is 'block'
-      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
+      console.log drop.visParent()
+      if drop.visParent().type is 'socket'
+        return helper.FORBID
+      else
+        return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
     else
       return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
 
@@ -2615,7 +2622,7 @@ define ['droplet-helper',
 
         # Construct the block; flag the socket as handwritten
         newBlock = new model.Block(); newSocket = new model.Socket -Infinity
-        @spliceIn newSocket, newBlock.start
+        newSocket.spliceIn newBlock.start
         newSocket.handwritten = true
 
         # Add it io our list of handwritten blocks
@@ -2640,11 +2647,12 @@ define ['droplet-helper',
       else if @textFocus? and not event.shiftKey
         @setTextInputFocus null; @redrawMain()
 
-  hook 'keyup', 0, (point, event, state) ->
+  hook 'keyup', 0, (event, state) ->
     # prevents routing the initial enter keypress to a new handwritten
     # block by focusing the block only after the enter key is released.
     if event.which is ENTER_KEY
       if @newHandwrittenSocket?
+        console.log 'setting tif'
         @setTextInputFocus @newHandwrittenSocket
         @newHandwrittenSocket = null
 

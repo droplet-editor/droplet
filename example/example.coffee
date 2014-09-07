@@ -20,7 +20,33 @@ require ['droplet'], (droplet) ->
         name: 'Draw'
         color: 'blue'
         blocks: [
-          {block:'a + b', title: 'Add two numbers'}
+          {block:'pen(red);', title: 'Set the turtle pen color'}
+          {block:'fd(100);', title: 'Move the turtle forward'}
+          {block:'speed(100);', title: 'Set the turtle speed'}
+          {block:'rt(90);', title: 'Turn the turtle right'}
+          {block:'lt(90);', title: 'Turn the turtle left'}
+        ]
+      }
+      {
+        name: 'Control'
+        color: 'orange'
+        blocks: [
+          {block: '''
+          for (var i = 0; i < 4; i++) {
+            __;
+          }
+          ''', title: 'Do something multiple times'}
+          {block: '''
+          function myFunction(argument) {
+            __;
+          }
+          ''', title: 'Create a function'}
+          {block: '''
+          myFunction()
+          ''', title: 'Use a function without an argument'}
+          {block: '''
+          myFunction(argument)
+          ''', title: 'Use a function with argument'}
         ]
       }
     ]
@@ -177,6 +203,7 @@ require ['droplet'], (droplet) ->
         ]
       }
     ]
+    # ##
   }
 
   # Example program (fizzbuzz)
