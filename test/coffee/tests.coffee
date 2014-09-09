@@ -164,6 +164,22 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       console.log hello)
     ''', 'Move for into socket (req. paren wrap)'
 
+  test 'specialIndent bug', ->
+    document = coffee.parse '''
+    for i in [1..10]
+      ``
+    for i in [1..10]
+      fd 10
+    '''
+
+    document.getBlockOnLine(2).moveTo document.getBlockOnLine(1).end.prev.container.start, coffee
+
+    strictEqual document.stringify(coffee.empty), '''
+    for i in [1..10]
+      for i in [1..10]
+        fd 10
+    '''
+
   test 'Paren wrap', ->
     document = coffee.parse '''
     Math.sqrt 2
