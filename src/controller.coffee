@@ -3548,7 +3548,7 @@ define ['droplet-helper',
       event.changedTouches[index].pageY
     )
 
-    return absolutePoint.from(@absoluteOffset(@dropletElement))
+    return absolutePoint
 
   Editor::queueLassoMousedown = (trackPoint, event) ->
     @lassoSelectStartTimeout = setTimeout (=>
