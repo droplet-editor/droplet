@@ -897,7 +897,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
               @carriageArrow = CARRIAGE_ARROW_INDENT
             else
               @carriageArrow = CARRIAGE_GROW_DOWN
-          else unless @model.isFirstOnLine()
+          else unless @model.isFirstOnLine() and @model.isLastOnLine()
             @carriageArrow = CARRIAGE_ARROW_SIDEALONG
 
         if @carriageArrow isnt oldCarriageArrow
@@ -934,7 +934,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           @view.getViewNodeFor(childObj.child).computeBevels()
 
         return null
-
 
       # ## computeDimensions (ContainerViewNode)
       # Compute the size of our bounding box on each line.
@@ -1258,8 +1257,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         # If necessary, add tab
         # at the top.
-        if @shouldAddTab() and @model.isFirstOnLine() and
-            @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
+        if @shouldAddTab() and @model.isFirstOnLine()
           @addTabReverse right, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
@@ -1268,10 +1266,18 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
+            if line is 0 and @carriageArrow is CARRIAGE_ARROW_SIDEALONG and
+                not @model.isFirstOnLine()
+              @addTabRight left, new @view.draw.Point bounds.x, bounds.y +
+                @distanceToBase[line].above - @view.opts.textHeight / 2 - @view.opts.tabWidth / 2
             left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
             right.push new @view.draw.Point bounds.right(), bounds.y
+            if line is @lineLength - 1 and @carriageArrow is CARRIAGE_ARROW_SIDEALONG and
+                not @model.isLastOnLine()
+              @addTabRight right, new @view.draw.Point bounds.right(), bounds.y +
+                @distanceToBase[line].above - @view.opts.textHeight / 2 - @view.opts.tabWidth / 2
             right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
           # Case 2. Start of a multiline block.
@@ -1343,6 +1349,12 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
               if @multilineChildrenData[line] is MULTILINE_END
                 right.push new @view.draw.Point bounds.right(), bounds.y
+
+                if line is @lineLength - 1 and @carriageArrow is CARRIAGE_ARROW_SIDEALONG and
+                    not @model.isLastOnLine()
+                  @addTabRight right, new @view.draw.Point bounds.right(), bounds.y +
+                    @distanceToBase[line].above - @view.opts.textHeight / 2 - @view.opts.tabWidth / 2
+
                 right.push new @view.draw.Point bounds.right(), bounds.bottom()
               else
                 # Find the multiline child that's starting on this line,
@@ -1504,7 +1516,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         for point, i in path
           if i is 0 and not @bevels.bottom
-            console.log 'EXEPTION OCCURRED'
             newPath.push point
             continue
 
@@ -1557,6 +1568,15 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         array.push new @view.draw.Point(point.x + @view.opts.tabWidth,
           point.y)
 
+      addTabRight: (array, point) ->
+        array.push point
+        array.push new @view.draw.Point point.x, point.y
+        array.push new @view.draw.Point point.x + @view.opts.tabHeight,
+          point.y + @view.opts.tabWidth * @view.opts.tabSideWidth
+        array.push new @view.draw.Point point.x + @view.opts.tabHeight,
+          point.y +  @view.opts.tabWidth * (1 - @view.opts.tabSideWidth)
+        array.push new @view.draw.Point(point.x,
+          point.y + @view.opts.tabWidth)
 
       # ## computeOwnDropArea
       # By default, we will not have a
