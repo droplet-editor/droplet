@@ -261,7 +261,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
             lastIndex = line.length - line.trimLeft().length
             head.specialIndent = line[0...lastIndex]
           else
-            debugger
             lastIndex = indentDepth
 
           for mark in markupOnLines[i]
@@ -423,7 +422,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
   Parser.parens = (leading, trailing, node, context) ->
     if context is null or context.type isnt 'socket' or
-        context.precedence < node.precedence
+        context?.precedence < node.precedence
       while true
         if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
           leading = leading.replace(/^\s*\(\s*/, '')

@@ -515,6 +515,12 @@ define ['droplet-helper'], (helper) ->
 
       return head is parent
 
+    visParent: ->
+      head = @parent
+      while head?.type is 'segment' and head.isLassoSegment
+        head = head.parent
+      return head
+
     getCommonParent: (other) ->
       head = @
       until other.hasParent head

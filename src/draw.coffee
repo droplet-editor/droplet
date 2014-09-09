@@ -80,6 +80,12 @@ define ['droplet-helper'], (helper) ->
 
         add: (x, y) -> @x += x; @y += y
 
+        plus: ({x, y}) -> new Point @x + x, @y + y
+
+        toMagnitude: (mag) ->
+          r = mag / @magnitude()
+          return new Point @x * r, @y * r
+
         copy: (point) ->
           @x = point.x; @y = point.y
 

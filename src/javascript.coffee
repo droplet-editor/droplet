@@ -8,6 +8,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'ThrowStatement'
   ]
 
+  NEVER_PAREN = 100
+
   BLOCK_FUNCTIONS = [
     'fd'
     'bk'
@@ -116,7 +118,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   COLORS = {
     'BinaryExpression': 'value'
     'FunctionExpression': 'value'
-    'FunctionDeclaration': 'control'
+    'FunctionDeclaration': 'violet'
     'AssignmentExpression': 'command'
     'CallExpression': 'command'
     'ReturnStatement': 'return'
@@ -166,10 +168,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
   CLASS_EXCEPTIONS = {
     'ForStatement': ['ends-with-brace', 'block-only']
+    'FunctionDeclaration': ['ends-with-brace', 'block-only']
     'IfStatement': ['ends-with-brace', 'block-only']
     'WhileStatement': ['ends-with-brace', 'block-only']
     'DoWhileStatement': ['ends-with-brace', 'block-only']
     'SwitchStatement': ['ends-with-brace', 'block-only']
+    'AssignmentExpression': ['mostly-block']
   }
 
   DEFAULT_INDENT_DEPTH = '  '
@@ -226,6 +230,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       switch node.type
         when 'ExpressionStatement'
           return @getColor node.expression
+        when 'CallExpression'
+          if node.callee.type is 'Identifier'
+            if node.callee.name in BLOCK_FUNCTIONS
+              return 'command'
+            else if node.callee.name in VALUE_FUNCTIONS
+              return 'value'
+            else
+              return 'violet'
         else
           return COLORS[node.type]
 
@@ -320,14 +332,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'FunctionDeclaration'
           @jsBlock node, depth, bounds
           @mark indentDepth, node.body, depth + 1, null
-          @jsSocketAndMark indentDepth, node.id, depth + 1
+          @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
+          for param in node.params
+            @jsSocketAndMark indentDepth, param, depth + 1, null, null, ['no-drop']
         when 'FunctionExpression'
           @jsBlock node, depth, bounds
           @mark indentDepth, node.body, depth + 1, null
           if node.id?
-            @jsSocketAndMark indentDepth, node.id, depth + 1, -100
+            @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
           for param in node.params
-            @jsSocketAndMark indentDepth, param, depth + 1
+            @jsSocketAndMark indentDepth, param, depth + 1, null, null, ['no-drop']
         when 'AssignmentExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.left, depth + 1, null
@@ -345,14 +359,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsSocketAndMark indentDepth, node.argument, depth + 1, null
         when 'IfStatement', 'ConditionalExpression'
           @jsBlock node, depth, bounds
-          @jsSocketAndMark indentDepth, node.test, depth + 1, 10
+          @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
           @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
           if node.alternate?
             @jsSocketAndMark indentDepth, node.alternate, depth + 1, 10
         when 'ForStatement'
           @jsBlock node, depth, bounds
           if node.init?
-            @jsSocketAndMark indentDepth, node.init, depth + 1, -1000, null, ['for-statement-init']
+            @jsSocketAndMark indentDepth, node.init, depth + 1, NEVER_PAREN, null, ['for-statement-init']
           if node.test?
             @jsSocketAndMark indentDepth, node.test, depth + 1, 10
           if node.update?
@@ -382,9 +396,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'CallExpression', 'NewExpression'
           @jsBlock node, depth, bounds
           if node.callee.type isnt 'Identifier' or node.callee.name not in FUNCTION_WHITELIST
-            @jsSocketAndMark indentDepth, node.callee, depth + 1, 20
+            @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
           for argument in node.arguments
-            @jsSocketAndMark indentDepth, argument, depth + 1, 1.9
+            @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN
         when 'MemberExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.object, depth + 1
@@ -472,13 +486,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       @mark indentDepth, node, depth + 1, bounds
 
   JavaScriptParser.parens = (leading, trailing, node, context) ->
-    if context?.type is 'socket' or 'ends-with-brace' in node.classes
+    if context?.type is 'socket' or
+       (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
+       'ends-with-brace' in node.classes or
+       node.type is 'segment'
       trailing = trailing.replace(/;?\s*$/, '')
     else
       trailing = trailing.replace(/;?\s*$/, ';')
 
     if context is null or context.type isnt 'socket' or
-        context.precedence < node.precedence
+        context.precedence > node.precedence
       while true
         if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
           leading = leading.replace(/^\s*\(\s*/, '')
@@ -498,6 +515,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           return helper.ENCOURAGE
         else
           return helper.FORBID
+
+      else if 'no-drop' in context.classes
+        return helper.FORBID
 
       else if 'property-access' in context.classes
         if 'works-as-method-call' in block.classes

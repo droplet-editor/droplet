@@ -203,7 +203,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             'path'
             'highlightArea'
             'computedVersion'
-            'carriageArrow']
+            'carriageArrow'
+            'bevels']
           result.push(prop + ': ' + JSON.stringify(@[prop]))
         for child, i in @children
           result.push("child #{i}: {startLine: #{child.startLine}, " +
@@ -913,20 +914,21 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         return null
 
       computeBevels: ->
+        @bevels =
+          top: true
+          bottom: true
+
+        if (@model.visParent()?.type is 'indent' or @model.visParent()?.isRoot) and
+           @model.start.previousAffectToken()?.type is 'newline' and
+           @model.start.previousAffectToken()?.previousAffectToken() isnt @model.visParent().start
+          @bevels.top = false
+
+        if (@model.visParent()?.type is 'indent' or @model.visParent()?.isRoot) and
+           @model.end.nextAffectToken()?.type is 'newline'
+          @bevels.bottom = false
+
         if @computedVersion is @model.version
           return null
-
-        @bevels =
-          topLeft: false
-          topRight: true
-          bottomLeft: false
-          bottomRight: @carriageArrow is CARRIAGE_ARROW_NONE
-
-        if (not @model.parent?) or
-           (not @view.hasViewNodeFor(@model.parent)) or
-           (@model.parent.type in ['block', 'socket'])
-          @bevels.topLeft = @bevels.bottomLeft =
-            @bevels.topRight = @bevels.bottomRight = true
 
         for childObj in @children
           @view.getViewNodeFor(childObj.child).computeBevels()
@@ -1258,52 +1260,25 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # at the top.
         if @shouldAddTab() and @model.isFirstOnLine() and
             @carriageArrow isnt CARRIAGE_ARROW_SIDEALONG
-          @addTab left, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
+          @addTabReverse right, new @view.draw.Point @bounds[0].x + @view.opts.tabOffset, @bounds[0].y
 
         for bounds, line in @bounds
 
           # Case 1. Normal rendering.
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
-            if @bevels.topLeft and line is 0
-              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.y
-              left.push new @view.draw.Point bounds.x, bounds.y + @view.opts.bevelClip
-            else
-              left.push new @view.draw.Point bounds.x, bounds.y
-
-            if @bevels.bottomLeft and line is @lineLength - 1
-              left.push new @view.draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
-              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
-            else
-              left.push new @view.draw.Point bounds.x, bounds.bottom()
+            left.push new @view.draw.Point bounds.x, bounds.y
+            left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
-            if @bevels.topRight
-              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-              right.push new @view.draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
-            else
-              right.push new @view.draw.Point bounds.right(), bounds.y
-
-            if @bevels.bottomRight and not (@glue[line]?.draw ? false)
-              right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
-            else
-              right.push new @view.draw.Point bounds.right(), bounds.bottom()
+            right.push new @view.draw.Point bounds.right(), bounds.y
+            right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
           # Case 2. Start of a multiline block.
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge of the bounding box.
-            if @bevels.topLeft and line is 0
-              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.y
-              left.push new @view.draw.Point bounds.x, bounds.y + @view.opts.bevelClip
-            else
-              left.push new @view.draw.Point bounds.x, bounds.y
-
-            if @bevels.bottomLeft and line is @lineLength - 1
-              left.push new @view.draw.Point bounds.x, bounds.bottom() - @view.opts.bevelClip
-              left.push new @view.draw.Point bounds.x + @view.opts.bevelClip, bounds.bottom()
-            else
-              left.push new @view.draw.Point bounds.x, bounds.bottom()
+            left.push new @view.draw.Point bounds.x, bounds.y
+            left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
             # so that we can know its bounds
@@ -1314,14 +1289,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             # If the multiline child here is invisible,
             # draw the line just normally.
             if multilineBounds.width is 0
-              if @bevels.topRight
-                right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-                right.push new @view.draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
-              else
-                right.push new @view.draw.Point bounds.right(), bounds.y
-
-              # The bevels for this case will be handled
-              # in the glue phase, so we don't draw them now.
+              right.push new @view.draw.Point bounds.right(), bounds.y
 
             # Otherwise, avoid the block by tracing out its
             # top and left edges, then going to our bound's bottom.
@@ -1344,7 +1312,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
             # Draw the right edge straight down,
             # exactly to the left of the multiline child.
-            right.push new @view.draw.Point multilineBounds.x, bounds.y
+            unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
+                   multilineChild.child.type is 'indent'
+              right.push new @view.draw.Point multilineBounds.x, bounds.y
             right.push new @view.draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 4. End of an indent.
@@ -1357,7 +1327,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[line - multilineChild.startLine]
 
             # Avoid the indented area
-            right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
+            unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
+                   multilineChild.child.type is 'indent'
+              right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
             right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
             if multilineChild.child.type is 'indent'
@@ -1385,32 +1357,17 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
                 # If the multiline child here is invisible,
                 # draw the line just normally.
                 if multilineBounds.width is 0
-                  if @bevels.topRight
-                    right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.y
-                    right.push new @view.draw.Point bounds.right(), bounds.y + @view.opts.bevelClip
-                  else
-                    right.push new @view.draw.Point bounds.right(), bounds.y
-
-                  if @bevels.bottomRight and not @glue[line]?.draw
-                    right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-                    right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
-                  else
-                    right.push new @view.draw.Point bounds.right(), bounds.bottom()
+                  right.push new @view.draw.Point bounds.right(), bounds.y
+                  right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
                 # Otherwise, avoid the block by tracing out its
                 # top and left edges, then going to our bound's bottom.
                 else
                   right.push new @view.draw.Point bounds.right(), multilineBounds.y
-                  right.push new @view.draw.Point multilineBounds.x + @view.opts.bevelClip, multilineBounds.y
-                  right.push new @view.draw.Point multilineBounds.x, multilineBounds.y + @view.opts.bevelClip
+                  right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
                   right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
             # Otherwise, don't.
-            else if line is @lineLength - 1
-              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, multilineBounds.bottom()
-              right.push new @view.draw.Point bounds.right(), multilineBounds.bottom() + @view.opts.bevelClip
-              right.push new @view.draw.Point bounds.right(), bounds.bottom() - @view.opts.bevelClip
-              right.push new @view.draw.Point bounds.right() - @view.opts.bevelClip, bounds.bottom()
             else
               right.push new @view.draw.Point bounds.right(), multilineBounds.bottom()
               right.push new @view.draw.Point bounds.right(), bounds.bottom()
@@ -1487,7 +1444,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             left.push new @view.draw.Point destinationBounds.x, destinationBounds.y
 
             @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset, destinationBounds.y
-          else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
+          else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG and @model.isLastOnLine()
             parentViewNode = @view.getViewNodeFor @model.visParent()
             destinationBounds = parentViewNode.bounds[@model.getLinesToParent()]
 
@@ -1520,8 +1477,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             # Special case for indents that start with newlines;
             # don't do any of the same-line-start multiline stuff.
             if multilineChild.child.type is 'indent' and multilineChild.child.start.next.type is 'newline'
-                right.push new @view.draw.Point @bounds[line].right(), glueTop - @view.opts.bevelClip
-                right.push new @view.draw.Point @bounds[line].right() - @view.opts.bevelClip, glueTop
+                right.push new @view.draw.Point @bounds[line].right(), glueTop
 
                 @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                   @view.opts.indentWidth +
@@ -1529,7 +1485,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             else
               right.push new @view.draw.Point multilineBounds.x, glueTop
 
-            right.push new @view.draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop
+            unless glueTop is @bounds[line + 1].y
+              right.push new @view.draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, glueTop
             right.push new @view.draw.Point multilineNode.bounds[line - multilineChild.startLine + 1].x, @bounds[line + 1].y
 
         # If necessary, add tab
@@ -1543,8 +1500,30 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # to make a counterclockwise path
         path = left.reverse().concat right
 
+        newPath = []
+
+        for point, i in path
+          if i is 0 and not @bevels.bottom
+            console.log 'EXEPTION OCCURRED'
+            newPath.push point
+            continue
+
+          if i is (left.length - 1) and not @bevels.top
+            newPath.push point
+            continue
+
+          next = path[(i + 1) %% path.length]
+          prev = path[(i - 1) %% path.length]
+
+          if (point.x is next.x) isnt (point.y is next.y) and
+             (point.x is prev.x) isnt (point.y is prev.y)
+            newPath.push point.plus(point.from(prev).toMagnitude(-@view.opts.bevelClip))
+            newPath.push point.plus(point.from(next).toMagnitude(-@view.opts.bevelClip))
+          else
+            newPath.push point
+
         # Make a Path object out of these points
-        @path = new @view.draw.Path(); @path.push el for el in path
+        @path = new @view.draw.Path(); @path.push el for el in newPath
 
         # Return it.
         return @path

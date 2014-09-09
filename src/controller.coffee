@@ -3845,6 +3845,7 @@ define ['droplet-helper',
 
     @copyPasteInput.addEventListener 'keydown', (event) ->
       if event.keyCode is 86
+        console.log 'PressedVKey'
         pressedVKey = true
       else if event.keyCode is 88
         pressedXKey = true
@@ -3887,6 +3888,8 @@ define ['droplet-helper',
           blocks.unwrap()
 
           @redrawMain()
+        catch e
+          console.log e.stack
 
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
       else if pressedXKey and @lassoSegment?
@@ -3898,6 +3901,7 @@ define ['droplet-helper',
   hook 'keydown', 0, (event, state) ->
     if event.which in command_modifiers
       unless @textFocus?
+        console.log 'focusing', @copyPasteInput
         @copyPasteInput.focus()
         if @lassoSegment?
           @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
