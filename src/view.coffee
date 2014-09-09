@@ -1504,7 +1504,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         for point, i in path
           if i is 0 and not @bevels.bottom
-            console.log 'EXEPTION OCCURRED'
             newPath.push point
             continue
 
