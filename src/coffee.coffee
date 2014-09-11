@@ -866,7 +866,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   # =============
 
   fixCoffeeScriptError = (lines, e) ->
-    console.log 'encountered error', e.message, 'line',  e.location?.first_line
     if /unexpected\s*(?:newline|if|for|while|switch|unless|end of input)/.test(
         e.message) and /^\s*(?:if|for|while|unless)\s+\S+/.test(
         lines[e.location.first_line])
@@ -882,6 +881,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       unmatchedline = findUnmatchedLine lines, e.location.first_line
       if unmatchedline isnt null
         return backTickLine lines, unmatchedline
+
     return null
 
   findUnmatchedLine = (lines, above) ->

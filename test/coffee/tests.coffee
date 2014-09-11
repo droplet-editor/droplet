@@ -644,3 +644,34 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct at origin (x - up)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct at origin (y - up)'
+
+  test 'Controller: setValue errors', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
+
+    editor.setEditorState true
+
+    console.log 'set editor state'
+
+    editor.setValue '''
+    pen red
+    speed 30
+    for [1..30]
+      lt 90
+      lt 90, 20
+      if ``
+      ``
+      lt 90
+      lt 90, 20
+      dot blue, 15
+      dot yellow, 10
+      rt 105, 100
+      rt 90
+    (((((((((((((((((((((((loop))))))))))))))))))))))) = (param) ->
+      ``
+    '''
+
+    strictEqual editor.currentlyUsingBlocks, false

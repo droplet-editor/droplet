@@ -314,6 +314,7 @@ define ['droplet-helper',
       @mainCanvas.style.left = "#{@gutter.offsetWidth}px"
       @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
 
+
       @resizePalette()
       @resizePaletteHighlight()
       @resizeNubby()
@@ -354,7 +355,9 @@ define ['droplet-helper',
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
+
       @redrawPalette()
+
 
   Editor::resize = ->
     if @currentlyUsingBlocks
@@ -497,42 +500,42 @@ define ['droplet-helper',
   Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
   Editor::clearPalette = ->
-      @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-        @paletteCanvas.width, @paletteCanvas.height
+    @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+      @paletteCanvas.width, @paletteCanvas.height
 
   Editor::clearPaletteHighlightCanvas = ->
-      @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-        @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
+    @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+      @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
 
   Editor::redrawPalette = ->
-      @clearPalette()
+    @clearPalette()
 
-      # We will construct a vertical layout
-      # with padding for the palette blocks.
-      # To do this, we will need to keep track
-      # of the last bottom edge of a palette block.
-      lastBottomEdge = PALETTE_TOP_MARGIN
+    # We will construct a vertical layout
+    # with padding for the palette blocks.
+    # To do this, we will need to keep track
+    # of the last bottom edge of a palette block.
+    lastBottomEdge = PALETTE_TOP_MARGIN
 
-      boundingRect = new @draw.Rectangle(
-        @scrollOffsets.palette.x,
-        @scrollOffsets.palette.y,
-        @paletteCanvas.width,
-        @paletteCanvas.height
-      )
+    boundingRect = new @draw.Rectangle(
+      @scrollOffsets.palette.x,
+      @scrollOffsets.palette.y,
+      @paletteCanvas.width,
+      @paletteCanvas.height
+    )
 
-      for paletteBlock in @currentPaletteBlocks
-        # Layout this block
-        paletteBlockView = @view.getViewNodeFor paletteBlock
-        paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
+    for paletteBlock in @currentPaletteBlocks
+      # Layout this block
+      paletteBlockView = @view.getViewNodeFor paletteBlock
+      paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
-        # Render the block
-        paletteBlockView.draw @paletteCtx, boundingRect
+      # Render the block
+      paletteBlockView.draw @paletteCtx, boundingRect
 
-        # Update lastBottomEdge
-        lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
+      # Update lastBottomEdge
+      lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
 
-      for binding in editorBindings.redraw_palette
-        binding.call this
+    for binding in editorBindings.redraw_palette
+      binding.call this
 
   # MOUSE INTERACTION WRAPPERS
   # ================================
@@ -1037,7 +1040,6 @@ define ['droplet-helper',
       else
         return @mode.drop drag.getReader(), drop.getReader(), null
     else if drop.type is 'block'
-      console.log drop.visParent()
       if drop.visParent().type is 'socket'
         return helper.FORBID
       else
@@ -2652,7 +2654,6 @@ define ['droplet-helper',
     # block by focusing the block only after the enter key is released.
     if event.which is ENTER_KEY
       if @newHandwrittenSocket?
-        console.log 'setting tif'
         @setTextInputFocus @newHandwrittenSocket
         @newHandwrittenSocket = null
 
@@ -3371,20 +3372,24 @@ define ['droplet-helper',
     @trimWhitespace = trimWhitespace
 
   Editor::setValue_raw = (value) ->
-    if @trimWhitespace then value = value.trim()
+    try
+      if @trimWhitespace then value = value.trim()
 
-    newParse = @mode.parse value, wrapAtRoot: true
+      newParse = @mode.parse value, wrapAtRoot: true
 
-    if value isnt @tree.stringify(@mode.empty)
-      @addMicroUndoOperation 'CAPTURE_POINT'
-    @addMicroUndoOperation new SetValueOperation @tree, newParse
+      if value isnt @tree.stringify(@mode.empty)
+        @addMicroUndoOperation 'CAPTURE_POINT'
+      @addMicroUndoOperation new SetValueOperation @tree, newParse
 
-    @tree = newParse; @gutterVersion = -1
-    @tree.start.insert @cursor
-    @removeBlankLines()
-    @redrawMain()
+      @tree = newParse; @gutterVersion = -1
+      @tree.start.insert @cursor
+      @removeBlankLines()
+      @redrawMain()
 
-    return success: true
+      return success: true
+
+    catch
+      return success: false
 
   Editor::setValue = (value) ->
 
@@ -3396,7 +3401,10 @@ define ['droplet-helper',
     @aceEditor.session.setScrollTop oldScrollTop
 
     if @currentlyUsingBlocks
-      @setValue_raw value
+      result = @setValue_raw value
+      if result.success is false
+        @setEditorState false
+        @aceEditor.setValue value
 
   Editor::addEmptyLine = (str) ->
     if str.length is 0 or str[str.length - 1] is '\n'
@@ -3845,7 +3853,6 @@ define ['droplet-helper',
 
     @copyPasteInput.addEventListener 'keydown', (event) ->
       if event.keyCode is 86
-        console.log 'PressedVKey'
         pressedVKey = true
       else if event.keyCode is 88
         pressedXKey = true
@@ -3901,7 +3908,6 @@ define ['droplet-helper',
   hook 'keydown', 0, (event, state) ->
     if event.which in command_modifiers
       unless @textFocus?
-        console.log 'focusing', @copyPasteInput
         @copyPasteInput.focus()
         if @lassoSegment?
           @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
