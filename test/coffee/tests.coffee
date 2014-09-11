@@ -654,8 +654,6 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     editor.setEditorState true
 
-    console.log 'set editor state'
-
     editor.setValue '''
     pen red
     speed 30

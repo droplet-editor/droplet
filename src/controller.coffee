@@ -167,6 +167,8 @@ define ['droplet-helper',
       @mainCanvas = document.createElement 'canvas'
       @mainCanvas.className = 'droplet-main-canvas'
 
+      @mainCanvas.width = @mainCanvas.height = 0
+
       @mainCtx = @mainCanvas.getContext '2d'
 
       @dropletElement.appendChild @mainCanvas
@@ -177,6 +179,7 @@ define ['droplet-helper',
       # Then palette canvas
       @paletteCanvas = document.createElement 'canvas'
       @paletteCanvas.className = 'droplet-palette-canvas'
+      @paletteCanvas.height = @paletteCanvas.width = 0
 
       @paletteCtx = @paletteCanvas.getContext '2d'
 
