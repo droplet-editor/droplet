@@ -17,6 +17,7 @@ define ['droplet-helper',
 
   modes = {
     'coffeescript': coffee
+    'coffee': coffee
     'javascript': javascript
   }
 
