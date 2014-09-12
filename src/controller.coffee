@@ -14,6 +14,12 @@ define ['droplet-helper',
     draw,
     model,
     view) ->
+
+  modes = {
+    'coffeescript': coffee
+    'javascript': javascript
+  }
+
   # ## Magic constants
   PALETTE_TOP_MARGIN = 5
   PALETTE_MARGIN = 5
@@ -134,10 +140,9 @@ define ['droplet-helper',
     constructor: (@wrapperElement, @options) ->
       @paletteGroups = @options.palette
 
-      if @options.mode is 'coffeescript'
-        @mode = coffee
-      else if @options.mode is 'javascript'
-        @mode = javascript
+      @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
+
+      @mode = modes[@options.mode] ? null
 
       @draw = new draw.Draw()
 
@@ -290,7 +295,15 @@ define ['droplet-helper',
       # Now that we've populated everything, immediately re@draw.
       @redrawMain(); @redrawPalette()
 
+      # If we were given an unrecognized mode, flip into text mode
+      unless @mode?
+        @setEditorState false
+
       return this
+
+    setMode: (mode) ->
+      @mode = modes[@options.mode = mode] ? null
+      @setValue @getValue()
 
     # ## Foundational Resize
     # At the editor core, we will need to resize

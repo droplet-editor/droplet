@@ -109,17 +109,10 @@ define ['droplet-helper',
   draw, # etc, etc..
   # ...
   ) ->
-```
-
-Add a mode option:
-
-```coffeescript
-  if mode is 'coffeescript'
-    @mode = coffeescript
-  else if mode is 'javascript'
-    @mode = javascript
-  else if mode is 'myparser'
-    @mode = myparser
+    modes = {
+      # etc.. etc..
+      'mylanguage': myparser
+    }
 ```
 
 Then grunt. Your mode is integrated!
