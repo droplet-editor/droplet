@@ -914,6 +914,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         return null
 
       computeBevels: ->
+        oldBevels = @bevels
         @bevels =
           top: true
           bottom: true
@@ -926,6 +927,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         if (@model.visParent()?.type is 'indent' or @model.visParent()?.isRoot) and
            @model.end.nextAffectToken()?.type is 'newline'
           @bevels.bottom = false
+
+        unless oldBevels.top is @bevels.top and
+            oldBevels.bottom is @bevels.bottom
+          @changedBoundingBox = true
 
         if @computedVersion is @model.version
           return null

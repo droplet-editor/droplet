@@ -2590,6 +2590,26 @@ define ['droplet-helper',
 
       @redrawMain()
 
+    else if blockEnd.type is 'indentStart'
+      start = blockEnd.container.start.nextVisibleToken()
+      start = start.nextVisibleToken() while start.type is 'newline'
+
+      return unless start is start.container.end
+
+      before = blockEnd.container.parent.start
+
+      until before.type in ['blockEnd', 'indentStart', 'segmentStart']
+        before = before.previousVisibleToken()
+
+      @addMicroUndoOperation new PickUpOperation blockEnd.container.parent
+
+      @spliceOut blockEnd.container.parent
+
+      @moveCursorTo before
+      console.log 'moving cursor to', before
+
+      @redrawMain()
+
   hook 'keydown', 0, (event, state) ->
     if event.which isnt BACKSPACE_KEY
       return
