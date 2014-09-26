@@ -65,6 +65,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'keydown'
     'keypress'
     'alert'
+    'prompt'
+    'done'
+    'tick'
   ]
 
   VALUE_FUNCTIONS = [
@@ -429,11 +432,20 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if node.variable?
             methodname = null
             unrecognized = false
+            # Two possible forms of a Call node:
+            # fn(...) ->
+            #    node.variable.base = fn
+            # x.y.z.fn()
+            #    node.variable.base = x
+            #    properties = [y, z, fn]
             if node.variable.properties?.length > 0
               methodname = node.variable.
                   properties[node.variable.properties.length - 1].name?.value
+              namenode = node.variable.
+                  properties[node.variable.properties.length - 1].name
             else if node.variable.base?.value
               methodname = node.variable.base.value
+              namenode = node.variable.base
             if methodname in BLOCK_FUNCTIONS
               @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
             else if methodname in VALUE_FUNCTIONS
@@ -442,18 +454,28 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
               @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
               unrecognized = not(methodname in EITHER_FUNCTIONS)
 
+            # If the object being operated on is an expression or deep, then
+            # Make things editable.
+            if node.variable.base?.nodeType() isnt 'Literal' or
+               node.variable.properties?.length > 1
+              unrecognized = true
+
             # Deal with weird coffeescript rewrites, e.g., /// #{x} ///
             # is rewritten to RegExp(...)
-            if methodname?.length > 1 and node?.variable?.locationData and
-                node.variable.locationData.first_column is
-                node.variable.locationData.last_column and
-                node.variable.locationData.first_line is
-                node.variable.locationData.last_line
+            if methodname?.length > 1 and namenode?.locationData and
+                namenode.locationData.first_column is
+                namenode.locationData.last_column and
+                namenode.locationData.first_line is
+                namenode.locationData.last_line
               unrecognized = false
 
-            if unrecognized or node.variable.base?.nodeType() isnt 'Literal'
+            if unrecognized
+              # In the 'advanced' case where the methodname should be
+              # editable, treat the whole (x.y.fn) as an expression to socket.
               @csSocketAndMark node.variable, depth + 1, 0, indentDepth
             else if node.variable.properties?.length > 0
+              # In the 'beginner' case of a simple method call with a
+              # simple base object variable, let the variable be socketed.
               @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
           else
             @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
