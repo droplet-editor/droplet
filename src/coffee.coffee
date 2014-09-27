@@ -194,6 +194,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if retries > 0 and fixCoffeeScriptError @lines, e
             @text = @lines.join '\n'
           else
+            # If recovery isn't possible, insert a loc object with
+            # the possible location of the error, and throw the error.
+            if firstError.location
+              firstError.loc =
+                line: firstError.location.first_line
+                column: firstError.location.first_column
             throw firstError
         retries -= 1
 

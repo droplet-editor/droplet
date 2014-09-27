@@ -3427,7 +3427,6 @@ define ['droplet-helper',
       return success: true
 
     catch e
-      window.e = e
       return success: false, error: e
 
   Editor::setValue = (value) ->
