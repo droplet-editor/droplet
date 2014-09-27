@@ -3426,8 +3426,9 @@ define ['droplet-helper',
 
       return success: true
 
-    catch
-      return success: false
+    catch e
+      window.e = e
+      return success: false, error: e
 
   Editor::setValue = (value) ->
 
@@ -3443,6 +3444,8 @@ define ['droplet-helper',
       if result.success is false
         @setEditorState false
         @aceEditor.setValue value
+        if result.error
+          @fireEvent 'parseerror', result.error
 
   Editor::addEmptyLine = (str) ->
     if str.length is 0 or str[str.length - 1] is '\n'
