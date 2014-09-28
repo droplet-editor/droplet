@@ -217,9 +217,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
     stripComments: ->
       # Preprocess comment lines:
-      tokens = CoffeeScript.tokens @text,
-        rewrite: false
-        preserveComments: true
+      try
+        tokens = CoffeeScript.tokens @text,
+          rewrite: false
+          preserveComments: true
+      catch syntaxError
+        # Right now, we do not attempt to recover from failures in tokenization
+        if syntaxError.location
+          syntaxError.loc =
+            line: syntaxError.location.first_line
+            column: syntaxError.location.first_column
+        throw syntaxError
 
       # In the @lines record, replace all
       # comments with spaces, so that blocks
