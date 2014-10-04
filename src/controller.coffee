@@ -1848,6 +1848,13 @@ define ['droplet-helper',
     # with the appropriate text to put in it.
     @textFocus = focus
 
+    # Update @cursorColumn to match the column of this text field
+    head = @textFocus.start; col = 0
+    until head.type is 'newline' or head is @tree.start
+      col += head.stringify().length; head = head.prev
+
+    @cursorColumn = col
+
     # Immediately rerender.
     @populateSocket focus, focus.stringify(@mode.empty)
 
@@ -2342,6 +2349,9 @@ define ['droplet-helper',
 
     @redrawHighlights()
 
+  hook 'populate', 0, ->
+    @cursorColumn = 0
+
   Editor::moveCursorUp = ->
     unless @cursor.prev? then return
     head = @cursor.prev?.prev
@@ -2351,18 +2361,80 @@ define ['droplet-helper',
     # If we're at the beginning, abort.
     unless head? then return
 
-    until head.type in ['newline', 'indentEnd'] or head is @tree.start
+    until head.type in ['newline', 'indentEnd'] or head is @tree.start or
+        head.type is 'indentStart' and head.next.type isnt 'newline'
       head = head.prev
+
+    # First, check to see if there is a socket to
+    # go to on this line
+    @placeMovedCursor head, => @moveCursorUp()
+
+  Editor::moveCursorDown = ->
+    unless @cursor.next? then return
+    head = @cursor.next
+
+    # It suffices to unset the text input
+    # when there is a text input, which gives
+    # the illusion of the cursor moving "down"
+    # from the text input to the line below
+    if @textFocus?
+      @setTextInputFocus null
+      return
+
+    @highlightFlashShow()
+
+    # If we're at the beginning, abort.
+    unless head? then return
+
+    until head.type in ['newline', 'indentEnd'] or head is @tree.end or
+        head.type is 'indentStart' and head.next.type isnt 'newline'
+      head = head.next
+
+    @placeMovedCursor head, => @moveCursorDown()
+
+  Editor::placeMovedCursor = (head, cb) ->
+    potentialCursorPosition = head
+
+    # Unless we are already in a text field,
+    # try putting the cursor into the nearest text field above us
+    unless @textFocus?
+      # Find the beginning of the line
+      until head.type is 'newline' and head isnt potentialCursorPosition or head is @tree.start
+        head = head.prev
+
+      head = head.next
+
+      # See if there is a socket close to our @cursorColumn,
+      # and focus it if so
+      col = 0
+      until head.type in ['socketStart', 'socketEnd'] and col >= @cursorColumn or
+          head.type is 'newline' or head is potentialCursorPosition
+        head = head.next
+        col += head.stringify().length
+
+      # Preserve the old cursor column so that
+      # we don't get an effect where the cursor
+      # keeps moving right
+      oldCursorColumn = @cursorColumn
+
+      if head.type in ['socketStart', 'socketEnd']
+        @setTextInputFocus null
+        @setTextInputFocus head.container
+        @cursorColumn = oldCursorColumn
+        return
+    else
+      @setTextInputFocus null
 
     # Splice out
     @cursor.remove()
 
     # Splice in
-    if head.type is 'newline' or head is @tree.start then head.insert @cursor
-    else head.insertBefore @cursor
+    if potentialCursorPosition.type is 'newline' or potentialCursorPosition is @tree.start
+      potentialCursorPosition.insert @cursor
+    else potentialCursorPosition.insertBefore @cursor
 
     # Keep sacnning backwards if this is an improper location.
-    unless isValidCursorPosition @cursor then @moveCursorUp()
+    unless isValidCursorPosition @cursor then do cb
 
     @redrawHighlights()
     @scrollCursorIntoPosition()
@@ -2503,17 +2575,13 @@ define ['droplet-helper',
   hook 'keydown', 0, (event, state) ->
     if event.which isnt UP_ARROW_KEY then return
     @clearLassoSelection()
-    @setTextInputFocus null
     @moveCursorUp()
 
   # Pressing the down-arrow moves the cursor down.
   hook 'keydown', 0, (event, state) ->
     if event.which isnt DOWN_ARROW_KEY then return
-    unless @textFocus?
-      @moveCursorTo @cursor.next.next
     @clearLassoSelection()
-    @setTextInputFocus null
-    @scrollCursorIntoPosition()
+    @moveCursorDown()
 
   getCharactersTo = (parent, token) ->
     head = token

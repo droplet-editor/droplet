@@ -20,6 +20,11 @@ define ['droplet-helper'], (helper) ->
       get: get
       set: set
 
+  makeDefaultState = -> {
+    indent: ''
+    emptyToken: ''
+  }
+
   exports.isTreeValid = (tree) ->
     tortise = hare = tree.start.next
 
@@ -725,7 +730,7 @@ define ['droplet-helper'], (helper) ->
 
   exports.SocketStartToken = class SocketStartToken extends StartToken
     constructor: (@container) -> super; @type = 'socketStart'
-    stringify: (state) ->
+    stringify: (state = makeDefaultState()) ->
       if @next is @container.end or
         @next.type is 'text' and @next.value is '' then state.emptyToken else ''
 
@@ -758,12 +763,12 @@ define ['droplet-helper'], (helper) ->
 
   exports.IndentStartToken = class IndentStartToken extends StartToken
     constructor: (@container) -> super; @type = 'indentStart'
-    stringify: (state) ->
+    stringify: (state = makeDefaultState()) ->
       state.indent += @container.prefix; ''
 
   exports.IndentEndToken = class IndentEndToken extends EndToken
     constructor: (@container) -> super; @type = 'indentEnd'
-    stringify: (state) ->
+    stringify: (state = makeDefaultState()) ->
       unless @container.prefix.length is 0
         state.indent = state.indent[...-@container.prefix.length]
       if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyToken else ''
@@ -840,14 +845,14 @@ define ['droplet-helper'], (helper) ->
       @_value = value
       @notifyChange()
 
-    stringify: (state) -> @_value
+    stringify: (state = makeDefaultState()) -> @_value
     serialize: -> helper.escapeXMLText @_value
 
     clone: -> new TextToken @_value
 
   exports.NewlineToken = class NewlineToken extends Token
     constructor: (@specialIndent) -> super; @type = 'newline'
-    stringify: (state) -> '\n' + (@specialIndent ? state.indent)
+    stringify: (state = makeDefaultState()) -> '\n' + (@specialIndent ? state.indent)
     serialize: -> '\n'
     clone: -> new NewlineToken @specialIndent
 
