@@ -254,15 +254,16 @@ define ['droplet-helper',
         for handler in editorBindings[event.type]
           handler.call this, trackPoint, event, state
 
-        # Stop event propagation so that
+        # Stop mousedown event propagation so that
         # we don't get bad selections
-        event.stopPropagation?()
-        event.preventDefault?()
+        if event.type is 'mousedown'
+          event.stopPropagation?()
+          event.preventDefault?()
 
-        event.cancelBubble = true
-        event.returnValue = false
+          event.cancelBubble = true
+          event.returnValue = false
 
-        return false
+          return false
 
       dispatchKeyEvent = (event) =>
         # We keep a state object so that handlers
@@ -2744,7 +2745,9 @@ define ['droplet-helper',
   Editor::changeFromAceEditor = ->
     if @changeFromAceTimer then return
     @changeFromAceTimer = setTimeout (=>
-      @copyAceEditor()
+      result = @copyAceEditor()
+      if not result.success and result.error
+        @fireEvent 'parseerror', [result.error]
     ), 0
 
   hook 'populate', 0, ->
@@ -3049,6 +3052,8 @@ define ['droplet-helper',
       setValueResult = @copyAceEditor()
 
       unless setValueResult.success
+        if setValueResult.error
+          @fireEvent 'parseerror', [setValueResult.error]
         return setValueResult
 
       if @aceEditor.getFirstVisibleRow() is 0
@@ -3435,8 +3440,8 @@ define ['droplet-helper',
 
       return success: true
 
-    catch
-      return success: false
+    catch e
+      return success: false, error: e
 
   Editor::setValue = (value) ->
 
@@ -3452,6 +3457,8 @@ define ['droplet-helper',
       if result.success is false
         @setEditorState false
         @aceEditor.setValue value
+        if result.error
+          @fireEvent 'parseerror', [result.error]
 
   Editor::addEmptyLine = (str) ->
     if str.length is 0 or str[str.length - 1] is '\n'
