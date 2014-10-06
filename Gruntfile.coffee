@@ -80,7 +80,7 @@ module.exports = (grunt) ->
     cssmin:
       options:
         banner: '''
-           /* ICE Editor stylesheet.
+           /* Droplet stylesheet.
            Copyright (c) 2014 Anthony Bau.
            MIT License.
            */'''
@@ -92,7 +92,7 @@ module.exports = (grunt) ->
     concat:
       options:
         banner: '''
-           /* ICE Editor.
+           /* Droplet.
            Copyright (c) 2014 Anthony Bau.
            MIT License.
            */
@@ -109,8 +109,12 @@ module.exports = (grunt) ->
 
     uglify:
       options:
-        banner: '/*! <%= pkg.name %> ' +
-                '<%= grunt.template.today("yyyy-mm-dd") %> */\n'
+        banner: '''
+          /* Droplet.
+          Copyright (c) 2014 Anthony Bau.
+          MIT License.
+          */
+        '''
         sourceMap: true
 
       build:
