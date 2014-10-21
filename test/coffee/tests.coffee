@@ -1,4 +1,4 @@
-require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-view', 'droplet'], (helper, model, parser, Coffee, view, droplet) ->
+require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-javascript', 'droplet-view', 'droplet'], (helper, model, parser, Coffee, JavaScript, view, droplet) ->
 
   coffee = new Coffee()
 
@@ -20,6 +20,73 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         str: testCase.str
         expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
       }
+
+  test 'Parser configurability', ->
+    customCoffee = new Coffee {
+      blockFunctions: ['marius', 'valjean']
+      valueFunctions: ['eponine', 'fantine']
+      eitherFunctions: ['cosette']
+    }
+
+    window.customSerialization = customSerialization = customCoffee.parse('''
+    marius eponine 10
+    fd random 100
+    cosette 20
+    ''').serialize()
+
+    expectedSerialization = '''
+<segment
+  isLassoSegment=\"false\"><block
+  precedence=\"0\"
+  color=\"command\"
+  socketLevel=\"0\"
+  classes=\"Call works-as-method-call mostly-block\">marius <socket
+  precedence=\"-1\"
+  handwritten=\"false\"
+  classes=\"Call works-as-method-call\"><block
+  precedence=\"0\"
+  color=\"value\"
+  socketLevel=\"0\"
+  classes=\"Call works-as-method-call mostly-value\">eponine <socket
+  precedence=\"-1\"
+  handwritten=\"false\"
+  classes=\"Value\">10</socket></block></socket></block>
+<block
+  precedence=\"0\"
+  color=\"command\"
+  socketLevel=\"0\"
+  classes=\"Call works-as-method-call any-drop\"><socket
+  precedence=\"0\"
+  handwritten=\"false\"
+  classes=\"Value\">fd</socket> <socket
+  precedence=\"-1\"
+  handwritten=\"false\"
+  classes=\"Call works-as-method-call\"><block
+  precedence=\"0\"
+  color=\"command\"
+  socketLevel=\"0\"
+  classes=\"Call works-as-method-call any-drop\"><socket
+  precedence=\"0\"
+  handwritten=\"false\"
+  classes=\"Value\">random</socket> <socket
+  precedence=\"-1\"
+  handwritten=\"false\"
+  classes=\"Value\">100</socket></block></socket></block>
+<block
+  precedence=\"0\"
+  color=\"command\"
+  socketLevel=\"0\"
+  classes=\"Call works-as-method-call any-drop\">cosette <socket
+  precedence=\"-1\"
+  handwritten=\"false\"
+  classes=\"Value\">20</socket></block></segment>
+    '''
+
+    strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Custom known functions work'
+    )
 
   test 'XML parser unity', ->
     q = new XMLHttpRequest()

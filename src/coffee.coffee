@@ -166,8 +166,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     return tree
 
   exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
-    constructor: (@text) ->
+    constructor: (@text, @opts = {}) ->
       super
+
+      @opts.blockFunctions ?= BLOCK_FUNCTIONS
+      @opts.valueFunctions ?= VALUE_FUNCTIONS
+      @opts.eitherFunctions ?= EITHER_FUNCTIONS
 
       @lines = @text.split '\n'
 
@@ -460,13 +464,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             else if node.variable.base?.value
               methodname = node.variable.base.value
               namenode = node.variable.base
-            if methodname in BLOCK_FUNCTIONS
+            if methodname in @opts.blockFunctions
               @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-            else if methodname in VALUE_FUNCTIONS
+            else if methodname in @opts.valueFunctions
               @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
               @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
-              unrecognized = not(methodname in EITHER_FUNCTIONS)
+              unrecognized = not(methodname in @opts.eitherFunctions)
 
             # If the object being operated on is an expression or deep, then
             # Make things editable.
