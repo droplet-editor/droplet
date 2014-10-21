@@ -14,7 +14,7 @@ describe 'Parser unity', (done) ->
 
   before (done) ->
     requirejs ['droplet-coffee'], (module) ->
-      coffee = module
+      coffee = new module()
       done()
 
   testString = (str) ->

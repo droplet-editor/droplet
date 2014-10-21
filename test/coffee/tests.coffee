@@ -1,4 +1,6 @@
-require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-view', 'droplet'], (helper, model, parser, coffee, view, droplet) ->
+require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-view', 'droplet'], (helper, model, parser, Coffee, view, droplet) ->
+
+  coffee = new Coffee()
 
   test 'Parser success', ->
     q = new XMLHttpRequest()
