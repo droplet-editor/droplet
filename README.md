@@ -78,9 +78,7 @@ define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
   class MyParser extends parser.Parser
     markRoot: ->
 
-  parser.makeParser MyParser
-
-  return MyParser
+  return parser.wrapParser MyParser
 ```
 
 Put it in `src/myparser.coffee`. Add it to the build system in `requirejs-paths.json`:
@@ -121,6 +119,9 @@ To have your parser actually put blocks in, you will need to do some things in t
 ```coffeescript
 # Get the raw text passed into the parser:
 @text
+
+# Get the `modeOptions` passed down from editor instantiation
+@opts
 
 # Add a Block
 @addBlock({
