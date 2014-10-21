@@ -32,7 +32,21 @@ require ['droplet'], (droplet) ->
 
   model.correctParentTree()
 
-  view = new droplet.view.View ctx: document.getElementById('main').getContext '2d'
+  view = new droplet.view.View 
+    padding: 5
+    indentWidth: 20
+    indentTongueHeight: 20
+    tabOffset: 10
+    tabWidth: 15
+    tabHeight: 4
+    tabSideWidth: 1 / 4
+    dropAreaHeight: 20
+    indentDropAreaMinWidth: 50
+    emptySocketWidth: 20
+    emptyLineHeight: 25
+    highlightAreaHeight: 10
+    shadowBlur: 5
+    ctx: document.getElementById('main').getContext '2d'
 
   modelView = view.getViewNodeFor(model)
 

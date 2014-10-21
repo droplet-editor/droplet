@@ -1181,7 +1181,7 @@ define ['droplet-helper',
       # If what we've dropped has a socket in it,
       # focus it.
       head = @draggingBlock.start
-      until head.type is 'socketStart' or head is @draggingBlock.end
+      until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
         head = head.next
 
       if head.type is 'socketStart'

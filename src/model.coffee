@@ -741,6 +741,8 @@ define ['droplet-helper'], (helper) ->
 
       super
 
+    isDroppable: -> @start.next is @end or @start.next.type is 'text'
+
     _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
 
     _serialize_header: -> "<socket precedence=\"#{
