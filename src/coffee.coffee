@@ -997,6 +997,4 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
     return [leading, trailing]
 
-  parser.makeParser CoffeeScriptParser
-
-  return CoffeeScriptParser
+  return parser.wrapParser CoffeeScriptParser

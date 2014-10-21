@@ -14,6 +14,9 @@ require ['droplet'], (droplet) ->
   window.editor = new droplet.Editor document.getElementById('editor'), {
     # JAVASCRIPT TESTING:
     mode: 'javascript'
+    modeOptions: {
+      blockFunctions: ['pen', 'dot', 'blarg']
+    }
     palette: [
       {
         name: 'Draw'

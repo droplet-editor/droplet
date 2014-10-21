@@ -113,7 +113,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'loadscript'
   ]
 
-  FUNCTION_WHITELIST = BLOCK_FUNCTIONS.concat(EITHER_FUNCTIONS).concat(VALUE_FUNCTIONS)
 
   COLORS = {
     'BinaryExpression': 'value'
@@ -179,8 +178,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   DEFAULT_INDENT_DEPTH = '  '
 
   exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
-    constructor: ->
+    constructor: (@text, @opts = {}) ->
       super
+
+      @opts.blockFunctions ?= BLOCK_FUNCTIONS
+      @opts.valueFunctions ?= VALUE_FUNCTIONS
+      @opts.eitherFunctions ?= EITHER_FUNCTIONS
+      @opts.functionWhitelist = @opts.blockFunctions.concat(@opts.eitherFunctions).concat(@opts.valueFunctions)
 
       @lines = @text.split '\n'
 
@@ -200,9 +204,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         return CLASS_EXCEPTIONS[node.type].concat([node.type])
       else
         if node.type is 'CallExpression'
-          if node.callee.type is 'Identifier' and node.callee.name in BLOCK_FUNCTIONS
+          if node.callee.type is 'Identifier' and node.callee.name in @opts.blockFunctions
             return [node.type, 'mostly-block']
-          else if node.callee.name in VALUE_FUNCTIONS
+          else if node.callee.name in @opts.valueFunctions
             return [node.type, 'mostly-value']
           else
             return [node.type, 'any-drop']
@@ -232,9 +236,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           return @getColor node.expression
         when 'CallExpression'
           if node.callee.type is 'Identifier'
-            if node.callee.name in BLOCK_FUNCTIONS
+            if node.callee.name in @opts.blockFunctions
               return 'command'
-            else if node.callee.name in VALUE_FUNCTIONS
+            else if node.callee.name in @opts.valueFunctions
               return 'value'
             else
               return 'violet'
@@ -395,7 +399,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             block.flagToRemove = true
         when 'CallExpression', 'NewExpression'
           @jsBlock node, depth, bounds
-          if node.callee.type isnt 'Identifier' or node.callee.name not in FUNCTION_WHITELIST
+          if node.callee.type isnt 'Identifier' or node.callee.name not in @opts.functionWhitelist
             @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
           for argument in node.arguments
             @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN
@@ -548,6 +552,4 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
   JavaScriptParser.empty = "__"
 
-  parser.makeParser JavaScriptParser
-
-  return JavaScriptParser
+  return parser.wrapParser JavaScriptParser

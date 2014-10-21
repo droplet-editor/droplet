@@ -15,12 +15,17 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
   YES = -> true
 
+  exports.ParserFactory = class ParserFactory
+    constructor: (@opts = {}) ->
+
+    createParser: (text) -> new Parser text, @opts
+
   # ## Parser ##
   # The Parser class is a simple
   # wrapper on the above functions
   # and a given parser function.
   exports.Parser = class Parser
-    constructor: (@text) ->
+    constructor: (@text, @opts = {}) ->
       # Text can sometimes be subject to change
       # when doing error recovery, so keep a record of
       # the original text.
@@ -436,21 +441,25 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     return [leading, trailing]
 
   Parser.drop = (block, context, pred) ->
-    if block.type is 'segment' and context.tpye is 'socket'
+    if block.type is 'segment' and context.type is 'socket'
       return helper.FORBID
     else
       return helper.ENCOURAGE
 
   Parser.empty = ''
 
-  Parser.parse = (text, opts) ->
+  exports.wrapParser = (CustomParser) ->
+    class CustomParserFactory extends ParserFactory
+      constructor: (@opts = {}) ->
+        @empty = CustomParser.empty
 
-  exports.makeParser = (CustomParser) ->
-    CustomParser.parse = (text, opts) ->
-      opts ?= wrapAtRoot: true
-      parser = new CustomParser text
-      return parser._parse opts
+      createParser: (text) -> new CustomParser text, @opts
 
-  exports.makeParser Parser
+      parse: (text, opts) ->
+        opts ?= wrapAtRoot: true
+        return @createParser(text)._parse opts
+
+      parens: (leading, trailing, node, context) -> CustomParser.parens leading, trailing, node, context
+      drop: (block, context, pred) -> CustomParser.parens block, context, pred
 
   return exports

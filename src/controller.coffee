@@ -143,7 +143,10 @@ define ['droplet-helper',
 
       @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
-      @mode = modes[@options.mode] ? null
+      if @options.mode of modes
+        @mode = new modes[@options.mode] @options.modeOptions
+      else
+        @mode = new coffee @options.modeOptions
 
       @draw = new draw.Draw()
 
