@@ -184,7 +184,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       @opts.blockFunctions ?= BLOCK_FUNCTIONS
       @opts.valueFunctions ?= VALUE_FUNCTIONS
       @opts.eitherFunctions ?= EITHER_FUNCTIONS
-      @opts.functionWhitelist = @opts.blockFunctions.concat(@opts.eitherFunctions).concat(@opts.valueFunctions)
+      @functionWhitelist = @opts.blockFunctions.concat(@opts.eitherFunctions).concat(@opts.valueFunctions)
 
       @lines = @text.split '\n'
 
@@ -399,7 +399,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             block.flagToRemove = true
         when 'CallExpression', 'NewExpression'
           @jsBlock node, depth, bounds
-          if node.callee.type isnt 'Identifier' or node.callee.name not in @opts.functionWhitelist
+          if node.callee.type isnt 'Identifier' or node.callee.name not in @functionWhitelist
             @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
           for argument in node.arguments
             @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN

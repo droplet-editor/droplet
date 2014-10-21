@@ -27,15 +27,26 @@ To embed, call new droplet.Editor() on a div.
 ```coffeescript
 require ['droplet'], (droplet) ->
   editor = new droplet.Editor document.getElementById('editor'), {
+    # Language
     mode: 'coffeescript'
+
+    # Options for the CoffeeScript parser
+    # (the JavaScript parser currently takes the same options)
+    modeOptions: {
+      blockFunctions: ['fd', 'rt', 'lt', 'alert'] # Override which blocks turn blue (names not here will be purple and have editable names)
+      valueFunctions: ['sin', 'cos'] # Same for green blocks. Defaults are the pencilcode functions.
+      eitherFunctions: ['write', 'confirm']
+    }
+
+    # Palette description
     palette: [
      {
         name: 'Palette category'
-        color: 'blue'
+        color: 'blue' # Header color
         blocks: [
           {
             block: "for [1..3]\n  ``"
-            title: "Repeat some code"
+            title: "Repeat some code" # title-text
           }
         ]
       }
