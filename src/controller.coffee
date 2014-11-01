@@ -247,7 +247,7 @@ define ['droplet-helper',
         # ignore mouse clicks that are not the left-button
         if event.type isnt 'mousemove' and event.which isnt 1 then return
 
-        trackPoint = new @draw.Point(event.pageX, event.pageY)
+        trackPoint = new @draw.Point(event.clientX, event.clientY)
 
         # We keep a state object so that handlers
         # can know about each other.
@@ -1557,7 +1557,7 @@ define ['droplet-helper',
       do (block) =>
         hoverDiv.addEventListener 'mousemove', (event) =>
           palettePoint = @trackerPointToPalette new @draw.Point(
-              event.pageX, event.pageY)
+              event.clientX, event.clientY)
           if @mainViewOrChildrenContains block, palettePoint
             unless block is @currentHighlightedPaletteBlock
               @clearPaletteHighlightCanvas()
@@ -3610,8 +3610,8 @@ define ['droplet-helper',
 
   Editor::touchEventToPoint = (event, index) ->
     absolutePoint = new @draw.Point(
-      event.changedTouches[index].pageX,
-      event.changedTouches[index].pageY
+      event.changedTouches[index].clientX,
+      event.changedTouches[index].clientY
     )
 
     return absolutePoint
