@@ -3371,7 +3371,7 @@ define ['droplet-helper',
 
     @redrawMain()
 
-  Editor::markBlock = (line, col, style) ->
+  Editor::mark = (line, col, style) ->
     parent = @tree.getBlockOnLine line; head = parent.start
     # Find the necessary indent for this line
     chars = 0
@@ -3397,7 +3397,7 @@ define ['droplet-helper',
 
     return key
 
-  Editor::unmarkBlock = (key) ->
+  Editor::unmark = (key) ->
     delete @markedBlocks[key]
     return true
 
