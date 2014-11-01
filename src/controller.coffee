@@ -497,6 +497,13 @@ define ['droplet-helper',
       else
         delete @markedLines[line]
 
+    for id, info of @markedBlocks
+      if @inTree info.model
+        path = @getHighlightPath info.model, info.style
+        path.draw @highlightCtx
+      else
+        delete @markedLines[line]
+
     for id, info of @extraMarks
       if @inTree info.model
         path = @getHighlightPath info.model, info.style
@@ -3341,6 +3348,7 @@ define ['droplet-helper',
 
   hook 'populate', 0, ->
     @markedLines = {}
+    @markedBlocks = {}; @markedBlockKey = 0
     @extraMarks = {}
 
   Editor::getHighlightPath = (model, style) ->
@@ -3363,13 +3371,43 @@ define ['droplet-helper',
 
     @redrawMain()
 
+  Editor::markBlock = (line, col, style) ->
+    parent = @tree.getBlockOnLine line; head = parent.start
+    # Find the necessary indent for this line
+    chars = 0
+    until parent is @tree
+      if parent.type is 'indent'
+        chars += parent.prefix.length
+      parent = parent.parent
+    until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
+      chars += head.stringify().length
+      head = head.next
+
+    if head.type is 'newline'
+      return false
+
+    key = @markedBlockKey++
+
+    @markedBlocks[key] = {
+      model: head.container
+      style: style
+    }
+
+    @redrawMain()
+
+    return key
+
+  Editor::unmarkBlock = (key) ->
+    delete @markedBlocks[key]
+    return true
+
   Editor::unmarkLine = (line) ->
     delete @markedLines[line]
 
     @redrawMain()
 
-  Editor::clearLineMarks = (tag) ->
-    @markedLines = {}
+  Editor::clearLineMarks = ->
+    @markedLines = @markedBlocks = {}
 
     @redrawMain()
 
