@@ -376,7 +376,3 @@ require ['droplet'], (droplet) ->
 
   document.getElementById('toggle').addEventListener 'click', ->
     editor.toggleBlocks()
-    if $('#palette_dialog').dialog 'isOpen'
-      $('#palette_dialog').dialog 'close'
-    else
-      $("#palette_dialog").dialog 'open'

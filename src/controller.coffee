@@ -1181,15 +1181,16 @@ define ['droplet-helper',
       if @lastHighlight.type is 'socket'
         @reparseRawReplace @draggingBlock.parent.parent
 
-      # If what we've dropped has a socket in it,
-      # focus it.
-      head = @draggingBlock.start
-      until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
-        head = head.next
+      else
+        # If what we've dropped has a socket in it,
+        # focus it.
+        head = @draggingBlock.start
+        until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
+          head = head.next
 
-      if head.type is 'socketStart'
-        @setTextInputFocus null
-        @setTextInputFocus head.container
+        if head.type is 'socketStart'
+          @setTextInputFocus null
+          @setTextInputFocus head.container
 
       # Now that we've done that, we can annul stuff.
       @endDrag()

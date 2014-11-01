@@ -460,6 +460,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         return @createParser(text)._parse opts
 
       parens: (leading, trailing, node, context) -> CustomParser.parens leading, trailing, node, context
-      drop: (block, context, pred) -> CustomParser.parens block, context, pred
+      drop: (block, context, pred) -> CustomParser.drop block, context, pred
 
   return exports

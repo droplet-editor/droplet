@@ -953,6 +953,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
   CoffeeScriptParser.drop = (block, context, pred) ->
     if context.type is 'socket'
+      if 'forbid-all' in context.classes
+        return helper.FORBID
+
       if 'lvalue' in context.classes
         if 'Value' in block.classes and block.properties?.length > 0
           return helper.ENCOURAGE
