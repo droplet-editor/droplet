@@ -5,7 +5,7 @@
   top: 0;
 }
 .droplet-drag-canvas {
-  z-index: 4;
+  z-index: 258;
   margin-top: -2px;
   margin-left: -1px;
   opacity: 0.85;

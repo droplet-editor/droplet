@@ -856,7 +856,8 @@ define ['droplet-helper',
     # We append it to the tracker element,
     # so that it can appear in front of the scrollers.
     #@dropletElement.appendChild @dragCanvas
-    document.body.appendChild @dragCanvas
+    #document.body.appendChild @dragCanvas
+    @wrapperElement.appendChild @dragCanvas
     @dropletElement.appendChild @highlightCanvas
 
   Editor::clearHighlightCanvas = ->
@@ -1079,8 +1080,13 @@ define ['droplet-helper',
         point.y + @draggingOffset.y
       )
 
-      @dragCanvas.style.top = "#{position.y}px"
-      @dragCanvas.style.left = "#{position.x}px"
+      rect = @wrapperElement.getBoundingClientRect()
+
+      console.log position.x - @wrapperElement.getBoundingClientRect().left,
+          position.y - @wrapperElement.getBoundingClientRect().top
+
+      @dragCanvas.style.top = "#{position.y - rect.top}px"
+      @dragCanvas.style.left = "#{position.x - rect.left}px"
 
       mainPoint = @trackerPointToMain(position)
 
