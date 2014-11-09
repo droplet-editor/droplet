@@ -3368,7 +3368,7 @@ define ['droplet-helper',
         model: block
         style: style
 
-    @redrawMain()
+    @redrawHighlights()
 
   # ## Mark
   # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
@@ -3402,7 +3402,7 @@ define ['droplet-helper',
       style: style
     }
 
-    @redrawMain()
+    @redrawHighlights()
 
     return key
 
