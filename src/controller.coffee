@@ -2628,7 +2628,6 @@ define ['droplet-helper',
       @spliceOut blockEnd.container.parent
 
       @moveCursorTo before
-      console.log 'moving cursor to', before
 
       @redrawMain()
 
@@ -3371,14 +3370,24 @@ define ['droplet-helper',
 
     @redrawMain()
 
+  # ## Mark
+  # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
+  # with the given style.
   Editor::mark = (line, col, style) ->
-    parent = @tree.getBlockOnLine line; head = parent.start
-    # Find the necessary indent for this line
+    # Get the start of the given line.
+    lineStart = @tree.getNewlineBefore line
+
+    # Find the necessary indent for this line, so
+    # that we can properly adjust the column number
     chars = 0
+    parent = lineStart.parent
     until parent is @tree
       if parent.type is 'indent'
         chars += parent.prefix.length
       parent = parent.parent
+
+    # Find the first block after the given column number
+    head = lineStart.next
     until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
       chars += head.stringify().length
       head = head.next
