@@ -2820,11 +2820,11 @@ define ['droplet-helper',
       # Initial cursor positions are
       # determined by ACE editor configuration.
       x: (@aceEditor.container.getBoundingClientRect().left -
-          getOffsetLeft(@aceElement) +
+          @aceElement.getBoundingClientRect().left +
           @aceEditor.renderer.$gutterLayer.gutterWidth) -
           @gutter.offsetWidth + 5 # TODO find out where this 5 comes from
       y: (@aceEditor.container.getBoundingClientRect().top -
-          getOffsetTop(@aceElement)) -
+          @aceElement.getBoundingClientRect().top) -
           aceSession.getScrollTop()
 
       # Initial indent depth is 0
