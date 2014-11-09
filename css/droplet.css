@@ -36,6 +36,7 @@
 }
 .droplet-wrapper-div {
   position: absolute;
+  overflow: hidden;
   top: 0; left: 0;
   cursor: default;
   background-color: #FFF;
@@ -127,9 +128,12 @@
 .droplet-palette-group-header-selected.math { background-color: #f2a6e5; }
 
 .droplet-hidden-input {
-  position: absolute;
-  top: -9999px;
-  left: -9999px;
+  position: fixed;
+  background-color: green;
+  top: 0;/*-9999px;*/
+  left: 0;/*-9999px;*/
+  z-index: -9999;
+  opacity: 0;
   -webkit-touch-callout: none;
 }
 .droplet-hover-div {
