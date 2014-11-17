@@ -502,7 +502,7 @@ define ['droplet-helper',
         path = @getHighlightPath info.model, info.style
         path.draw @highlightCtx
       else
-        delete @markedLines[line]
+        delete @markedLines[id]
 
     for id, info of @extraMarks
       if @inTree info.model
@@ -3395,6 +3395,8 @@ define ['droplet-helper',
     if head.type is 'newline'
       return false
 
+    # `key` is a unique identifier for this
+    # mark, to be used later for removal
     key = @markedBlockKey++
 
     @markedBlocks[key] = {
@@ -3404,6 +3406,8 @@ define ['droplet-helper',
 
     @redrawHighlights()
 
+    # Return `key`, so that the caller can
+    # remove the line mark later with unmark(key)
     return key
 
   Editor::unmark = (key) ->
