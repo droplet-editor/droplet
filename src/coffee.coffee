@@ -22,9 +22,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'rt'
     'lt'
     'slide'
+    'move'
     'movexy'
     'moveto'
     'jump'
+    'jumpxy'
     'jumpto'
     'turnto'
     'home'
@@ -68,6 +70,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'prompt'
     'done'
     'tick'
+    'type'
+    'log'
   ]
 
   VALUE_FUNCTIONS = [
@@ -108,6 +112,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'rgb'
     'rgba'
     'cell'
+    '$'
+    'match'
+    'toString'
+    'charCodeAt'
+    'fromCharCode'
+    'split'
+    'join'
+    'sort'
   ]
 
   EITHER_FUNCTIONS = [
@@ -120,6 +132,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'append'
     'finish'
     'loadscript'
+    'text'
+    'html'
   ]
 
   STATEMENT_KEYWORDS = [
