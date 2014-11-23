@@ -714,6 +714,16 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct at origin (x - up)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct at origin (y - up)'
 
+  test 'Controller: setMode', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
+    strictEqual 'coffeescript', editor.getMode()
+    editor.setMode 'javascript'
+    strictEqual 'javascript', editor.getMode()
+
   test 'Controller: setValue errors', ->
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {

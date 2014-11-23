@@ -306,9 +306,18 @@ define ['droplet-helper',
 
       return this
 
-    setMode: (mode) ->
-      @mode = modes[@options.mode = mode] ? null
+    setMode: (mode, modeOptions) ->
+      modeClass = modes[mode]
+      if modeClass
+        @options.mode = mode
+        @mode = new modeClass modeOptions
+      else
+        @options.mode = null
+        @mode = null
       @setValue @getValue()
+
+    getMode: ->
+      @options.mode
 
     # ## Foundational Resize
     # At the editor core, we will need to resize
