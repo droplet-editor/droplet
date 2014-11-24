@@ -506,6 +506,13 @@ define ['droplet-helper',
       else
         delete @markedLines[line]
 
+    for id, info of @markedBlocks
+      if @inTree info.model
+        path = @getHighlightPath info.model, info.style
+        path.draw @highlightCtx
+      else
+        delete @markedLines[line]
+
     for id, info of @extraMarks
       if @inTree info.model
         path = @getHighlightPath info.model, info.style
@@ -920,6 +927,8 @@ define ['droplet-helper',
     # If it came back positive,
     # deal with the click.
     if hitTestResult?
+      @setTextInputFocus null
+
       # Record the hit test result (the block we want to pick up)
       @clickedBlock = hitTestResult
       @clickedBlockIsPaletteBlock = false
@@ -1366,6 +1375,7 @@ define ['droplet-helper',
       hitTestResult = @hitTest @trackerPointToMain(point), record.block
 
       if hitTestResult?
+        @setTextInputFocus null
         @clickedBlock = record.block
         @clickedPoint = point
 
@@ -1515,6 +1525,7 @@ define ['droplet-helper',
         hitTestResult = @hitTest palettePoint, block
 
         if hitTestResult?
+          @setTextInputFocus null
           @clickedBlock = block
           @clickedPoint = point
           @clickedBlockIsPaletteBlock = true
@@ -2300,6 +2311,7 @@ define ['droplet-helper',
     if state.consumedHitTest then return
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
+      @setTextInputFocus null
       @clickedBlock = @lassoSegment
       @clickedBlockIsPaletteBlock = false
       @clickedPoint = point
@@ -2636,7 +2648,6 @@ define ['droplet-helper',
       @spliceOut blockEnd.container.parent
 
       @moveCursorTo before
-      console.log 'moving cursor to', before
 
       @redrawMain()
 
@@ -3356,6 +3367,7 @@ define ['droplet-helper',
 
   hook 'populate', 0, ->
     @markedLines = {}
+    @markedBlocks = {}; @markedBlockKey = 0
     @extraMarks = {}
 
   Editor::getHighlightPath = (model, style) ->
@@ -3378,13 +3390,53 @@ define ['droplet-helper',
 
     @redrawMain()
 
+  # ## Mark
+  # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
+  # with the given style.
+  Editor::mark = (line, col, style) ->
+    # Get the start of the given line.
+    lineStart = @tree.getNewlineBefore line
+
+    # Find the necessary indent for this line, so
+    # that we can properly adjust the column number
+    chars = 0
+    parent = lineStart.parent
+    until parent is @tree
+      if parent.type is 'indent'
+        chars += parent.prefix.length
+      parent = parent.parent
+
+    # Find the first block after the given column number
+    head = lineStart.next
+    until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
+      chars += head.stringify().length
+      head = head.next
+
+    if head.type is 'newline'
+      return false
+
+    key = @markedBlockKey++
+
+    @markedBlocks[key] = {
+      model: head.container
+      style: style
+    }
+
+    @redrawMain()
+
+    return key
+
+  Editor::unmark = (key) ->
+    delete @markedBlocks[key]
+    return true
+
   Editor::unmarkLine = (line) ->
     delete @markedLines[line]
 
     @redrawMain()
 
-  Editor::clearLineMarks = (tag) ->
-    @markedLines = {}
+  Editor::clearLineMarks = ->
+    @markedLines = @markedBlocks = {}
 
     @redrawMain()
 
