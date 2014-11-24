@@ -1622,11 +1622,16 @@ define ['droplet-helper',
     @hiddenInput = document.createElement 'textarea'
     @hiddenInput.className = 'droplet-hidden-input'
 
+    @hiddenInput.addEventListener 'focus', =>
+      if @textFocus?
+        bounds = @view.getViewNodeFor(@textFocus).bounds[0]
+        @hiddenInput.style.left = (bounds.x + @mainCanvas.offsetLeft) + 'px'
+        @hiddenInput.style.top = bounds.y + 'px'
+
     @dropletElement.appendChild @hiddenInput
 
     # We also need to initialise some fields
     # for knowing what is focused
-    @textFocus = null
     @textFocus = null
     @textInputAnchor = null
 
@@ -1962,15 +1967,13 @@ define ['droplet-helper',
     hitTestResult = @hitTestTextInput mainPoint, @tree
 
     # If they have clicked a socket,
-    # focus it, and
+    # focus it.
     unless hitTestResult is @textFocus
       @setTextInputFocus null
       @redrawMain()
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
-      @hiddenInput.focus()
-
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -1982,6 +1985,8 @@ define ['droplet-helper',
         @redrawTextInput()
 
         @textInputSelecting = true
+
+      @hiddenInput.focus()
 
       state.consumedHitTest = true
 
