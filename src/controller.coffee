@@ -1986,6 +1986,14 @@ define ['droplet-helper',
 
         @textInputSelecting = true
 
+      # Now that we have focused the text element
+      # in the Droplet model, focus the hidden input.
+      #
+      # It is important that this be done after the Droplet model
+      # has focused its text element, because
+      # the hidden input moves on the focus() event to
+      # the currently-focused Droplet element to make
+      # mobile screen scroll properly.
       @hiddenInput.focus()
 
       state.consumedHitTest = true
