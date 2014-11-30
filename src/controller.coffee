@@ -1631,11 +1631,16 @@ define ['droplet-helper',
     @hiddenInput = document.createElement 'textarea'
     @hiddenInput.className = 'droplet-hidden-input'
 
+    @hiddenInput.addEventListener 'focus', =>
+      if @textFocus?
+        bounds = @view.getViewNodeFor(@textFocus).bounds[0]
+        @hiddenInput.style.left = (bounds.x + @mainCanvas.offsetLeft) + 'px'
+        @hiddenInput.style.top = bounds.y + 'px'
+
     @dropletElement.appendChild @hiddenInput
 
     # We also need to initialise some fields
     # for knowing what is focused
-    @textFocus = null
     @textFocus = null
     @textInputAnchor = null
 
@@ -1971,15 +1976,13 @@ define ['droplet-helper',
     hitTestResult = @hitTestTextInput mainPoint, @tree
 
     # If they have clicked a socket,
-    # focus it, and
+    # focus it.
     unless hitTestResult is @textFocus
       @setTextInputFocus null
       @redrawMain()
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
-      @hiddenInput.focus()
-
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -1991,6 +1994,16 @@ define ['droplet-helper',
         @redrawTextInput()
 
         @textInputSelecting = true
+
+      # Now that we have focused the text element
+      # in the Droplet model, focus the hidden input.
+      #
+      # It is important that this be done after the Droplet model
+      # has focused its text element, because
+      # the hidden input moves on the focus() event to
+      # the currently-focused Droplet element to make
+      # mobile screen scroll properly.
+      @hiddenInput.focus()
 
       state.consumedHitTest = true
 
