@@ -928,6 +928,7 @@ define ['droplet-helper',
     # deal with the click.
     if hitTestResult?
       # Record the hit test result (the block we want to pick up)
+      @setTextInputFocus null
       @clickedBlock = hitTestResult
       @clickedBlockIsPaletteBlock = false
 
@@ -1373,6 +1374,7 @@ define ['droplet-helper',
       hitTestResult = @hitTest @trackerPointToMain(point), record.block
 
       if hitTestResult?
+        @setTextInputFocus null
         @clickedBlock = record.block
         @clickedPoint = point
 
@@ -1522,6 +1524,7 @@ define ['droplet-helper',
         hitTestResult = @hitTest palettePoint, block
 
         if hitTestResult?
+          @setTextInputFocus null
           @clickedBlock = block
           @clickedPoint = point
           @clickedBlockIsPaletteBlock = true
@@ -2320,6 +2323,7 @@ define ['droplet-helper',
     if state.consumedHitTest then return
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
+      @setTextInputFocus null
       @clickedBlock = @lassoSegment
       @clickedBlockIsPaletteBlock = false
       @clickedPoint = point
