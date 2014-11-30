@@ -752,3 +752,28 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     '''
 
     strictEqual editor.currentlyUsingBlocks, false
+
+  test 'Controller: arbitrary row/column marking', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
+
+    editor.setEditorState true
+
+    editor.setValue '''
+    for [1..10]
+      fd 10 + 10
+      bk 10 - 10
+      fd 10 * 10
+      bk 10 / 10
+    '''
+
+    key = editor.mark 2, 4, {color: '#F00'}
+
+    strictEqual editor.markedBlocks[key].model.stringify(), '10 - 10'
+    strictEqual editor.markedBlocks[key].style.color, '#F00'
+
+    editor.unmark key
+    ok key not of editor.markedBlocks

@@ -506,6 +506,13 @@ define ['droplet-helper',
       else
         delete @markedLines[line]
 
+    for id, info of @markedBlocks
+      if @inTree info.model
+        path = @getHighlightPath info.model, info.style
+        path.draw @highlightCtx
+      else
+        delete @markedLines[id]
+
     for id, info of @extraMarks
       if @inTree info.model
         path = @getHighlightPath info.model, info.style
@@ -2649,7 +2656,6 @@ define ['droplet-helper',
       @spliceOut blockEnd.container.parent
 
       @moveCursorTo before
-      console.log 'moving cursor to', before
 
       @redrawMain()
 
@@ -3369,6 +3375,7 @@ define ['droplet-helper',
 
   hook 'populate', 0, ->
     @markedLines = {}
+    @markedBlocks = {}; @nextMarkedBlockId = 0
     @extraMarks = {}
 
   Editor::getHighlightPath = (model, style) ->
@@ -3389,15 +3396,59 @@ define ['droplet-helper',
         model: block
         style: style
 
-    @redrawMain()
+    @redrawHighlights()
+
+  # ## Mark
+  # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
+  # with the given style.
+  Editor::mark = (line, col, style) ->
+    # Get the start of the given line.
+    lineStart = @tree.getNewlineBefore line
+
+    # Find the necessary indent for this line, so
+    # that we can properly adjust the column number
+    chars = 0
+    parent = lineStart.parent
+    until parent is @tree
+      if parent.type is 'indent'
+        chars += parent.prefix.length
+      parent = parent.parent
+
+    # Find the first block after the given column number
+    head = lineStart.next
+    until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
+      chars += head.stringify().length
+      head = head.next
+
+    if head.type is 'newline'
+      return false
+
+    # `key` is a unique identifier for this
+    # mark, to be used later for removal
+    key = @nextMarkedBlockId++
+
+    @markedBlocks[key] = {
+      model: head.container
+      style: style
+    }
+
+    @redrawHighlights()
+
+    # Return `key`, so that the caller can
+    # remove the line mark later with unmark(key)
+    return key
+
+  Editor::unmark = (key) ->
+    delete @markedBlocks[key]
+    return true
 
   Editor::unmarkLine = (line) ->
     delete @markedLines[line]
 
     @redrawMain()
 
-  Editor::clearLineMarks = (tag) ->
-    @markedLines = {}
+  Editor::clearLineMarks = ->
+    @markedLines = @markedBlocks = {}
 
     @redrawMain()
 

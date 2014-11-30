@@ -149,6 +149,22 @@ define ['droplet-helper'], (helper) ->
 
       @notifyChange()
 
+    # Get the newline preceding the nth line
+    # in this container (or the start or end of the container) by scanning
+    # forward through the whole document. Start of document is 0.
+    getNewlineBefore: (n) ->
+      head = @start; lines = 0
+      until lines is n or head is @end
+        head = head.next
+        lines++ if head.type is 'newline'
+      return head
+
+    # Get the true nth newline token
+    getNewlineAfter: (n) ->
+      head = @getNewlineBefore(n).next
+      head = head.next until start.type is 'newline' or head is @end
+      return head
+
     # Getters and setters for
     # leading and trailing text, for use
     # by modes to do paren-wrapping and
