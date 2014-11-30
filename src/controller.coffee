@@ -3347,7 +3347,7 @@ define ['droplet-helper',
 
   hook 'populate', 0, ->
     @markedLines = {}
-    @markedBlocks = {}; @markedBlockKey = 0
+    @markedBlocks = {}; @nextMarkedBlockId = 0
     @extraMarks = {}
 
   Editor::getHighlightPath = (model, style) ->
@@ -3397,7 +3397,7 @@ define ['droplet-helper',
 
     # `key` is a unique identifier for this
     # mark, to be used later for removal
-    key = @markedBlockKey++
+    key = @nextMarkedBlockId++
 
     @markedBlocks[key] = {
       model: head.container
