@@ -655,7 +655,10 @@ define ['droplet-helper',
     else return null
 
   hook 'mousedown', 10, ->
+    x = document.body.scrollLeft
+    y = document.body.scrollTop
     @dropletElement.focus()
+    window.scrollTo(x, y)
 
   # UNDO STACK SUPPORT
   # ================================
@@ -1098,9 +1101,6 @@ define ['droplet-helper',
       )
 
       rect = @wrapperElement.getBoundingClientRect()
-
-      console.log position.x - @wrapperElement.getBoundingClientRect().left,
-          position.y - @wrapperElement.getBoundingClientRect().top
 
       @dragCanvas.style.top = "#{position.y - rect.top}px"
       @dragCanvas.style.left = "#{position.x - rect.left}px"
@@ -4049,7 +4049,11 @@ define ['droplet-helper',
   hook 'keydown', 0, (event, state) ->
     if event.which in command_modifiers
       unless @textFocus?
+        x = document.body.scrollLeft
+        y = document.body.scrollTop
         @copyPasteInput.focus()
+        window.scrollTo(x, y)
+
         if @lassoSegment?
           @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
