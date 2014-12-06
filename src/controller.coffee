@@ -330,11 +330,12 @@ define ['droplet-helper',
 
     resizeBlockMode: ->
       @resizeTextMode()
-      @resizeGutter()
 
       @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
       @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
       @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+
+      @resizeGutter()
 
       @mainCanvas.height = @dropletElement.offsetHeight
       @mainCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
