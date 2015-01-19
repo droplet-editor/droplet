@@ -3270,6 +3270,10 @@ define ['droplet-helper',
     @mainScroller.appendChild @mainScrollerStuffing
     @dropletElement.appendChild @mainScroller
 
+    # Prevent scrolling on wrapper element
+    @wrapperElement.addEventListener 'scroll', =>
+      @wrapperElement.scrollTop = @wrapperElement.scrollLeft = 0
+
     @mainScroller.addEventListener 'scroll', =>
       @scrollOffsets.main.y = @mainScroller.scrollTop
       @scrollOffsets.main.x = @mainScroller.scrollLeft
