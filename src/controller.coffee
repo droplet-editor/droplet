@@ -115,7 +115,6 @@ define ['droplet-helper',
     'redraw_main': []       # whenever we need to redraw the main canvas
     'redraw_palette': []    # repaint the graphics of the palette
     'rebuild_palette': []   # redraw the paltte, both graphics and elements
-    'set_palette': []       # whenever we switch palette categories
 
     'mousedown': []
     'mousemove': []
@@ -224,6 +223,9 @@ define ['droplet-helper',
         shadowBlur: 5
         ctx: @mainCtx
         draw: @draw
+
+      # Set up event bindings before creating a view
+      @bindings = {}
 
       # Instantiate an ICE editor view
       @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
@@ -1503,8 +1505,6 @@ define ['droplet-helper',
 
       clickHandler = =>
         do updatePalette
-        for event in editorBindings.set_palette
-          event.call this
 
       paletteGroupHeader.addEventListener 'click', clickHandler
       paletteGroupHeader.addEventListener 'touchstart', clickHandler
@@ -1563,7 +1563,7 @@ define ['droplet-helper',
     if @currentHighlightedPaletteBlock?
       @paletteHighlightPath.draw @paletteHighlightCtx
 
-  hook 'rebuild_palette', 0, ->
+  hook 'rebuild_palette', 1, ->
     # Remove the existent blocks
     @paletteScrollerStuffing.innerHTML = ''
 
@@ -3588,9 +3588,6 @@ define ['droplet-helper',
   # PUBLIC EVENT BINDING HOOKS
   # ===============================
 
-  hook 'populate', 0, ->
-    @bindings = {}
-
   Editor::on = (event, handler) ->
     @bindings[event] = handler
 
@@ -3689,7 +3686,7 @@ define ['droplet-helper',
 
   # PALETTE EVENT
   # =================================
-  hook 'set_palette', 0, ->
+  hook 'rebuild_palette', 0, ->
     @fireEvent 'changepalette', []
 
   # TOUCHSCREEN SUPPORT
