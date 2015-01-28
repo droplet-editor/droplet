@@ -113,7 +113,8 @@ define ['droplet-helper',
     'resize_palette': []    # after the palette is resized
 
     'redraw_main': []       # whenever we need to redraw the main canvas
-    'redraw_palette': []    # whenever we need to redraw the palette
+    'redraw_palette': []    # repaint the graphics of the palette
+    'rebuild_palette': []   # redraw the paltte, both graphics and elements
     'set_palette': []       # whenever we switch palette categories
 
     'mousedown': []
@@ -298,7 +299,8 @@ define ['droplet-helper',
       @resizeBlockMode()
 
       # Now that we've populated everything, immediately re@draw.
-      @redrawMain(); @redrawPalette()
+      @redrawMain()
+      @rebuildPalette()
 
       # If we were given an unrecognized mode, flip into text mode
       unless @mode?
@@ -386,8 +388,7 @@ define ['droplet-helper',
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
-
-      @redrawPalette()
+      @rebuildPalette()
 
 
   Editor::resize = ->
@@ -401,7 +402,7 @@ define ['droplet-helper',
   # ================================
 
   # ## Redraw
-  # There are two different redraw events, redraw_main and redraw_palette,
+  # There are two different redraw events, redraw_main and rebuild_palette,
   # for redrawing the main canvas and palette canvas, respectively.
   #
   # Redrawing simply involves issuing a call to the View.
@@ -574,6 +575,12 @@ define ['droplet-helper',
 
     for binding in editorBindings.redraw_palette
       binding.call this
+
+  Editor::rebuildPalette = ->
+    @redrawPalette()
+    for binding in editorBindings.rebuild_palette
+      binding.call this
+
 
   # MOUSE INTERACTION WRAPPERS
   # ================================
@@ -1492,7 +1499,7 @@ define ['droplet-helper',
             ' droplet-palette-group-header-selected'
 
         # Redraw the palette.
-        @redrawPalette()
+        @rebuildPalette()
 
       clickHandler = =>
         do updatePalette
@@ -1556,7 +1563,7 @@ define ['droplet-helper',
     if @currentHighlightedPaletteBlock?
       @paletteHighlightPath.draw @paletteHighlightCtx
 
-  hook 'redraw_palette', 0, ->
+  hook 'rebuild_palette', 0, ->
     # Remove the existent blocks
     @paletteScrollerStuffing.innerHTML = ''
 
@@ -3306,6 +3313,7 @@ define ['droplet-helper',
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
+      # redraw the bits of the palette
       @redrawPalette()
 
   Editor::resizeMainScroller = ->
@@ -3360,7 +3368,8 @@ define ['droplet-helper',
 
       @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
 
-      @redrawMain(); @redrawPalette()
+      @redrawMain()
+      @rebuildPalette()
 
   Editor::setFontFamily = (fontFamily) ->
     @draw.setGlobalFontFamily fontFamily
@@ -3373,7 +3382,8 @@ define ['droplet-helper',
     @view.clearCache(); @dragView.clearCache()
     @gutter.style.fontFamily = fontFamily
 
-    @redrawMain(); @redrawPalette()
+    @redrawMain()
+    @rebuildPalette()
 
   Editor::setFontSize = (fontSize) ->
     @setFontSize_raw fontSize
