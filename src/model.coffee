@@ -166,22 +166,24 @@ define ['droplet-helper'], (helper) ->
         ''
 
     setLeadingText: (value) ->
-      if @start.next.type is 'text'
-        if value.length is 0
-          @start.next.remove()
-        else
-          @start.next.value = value
-      else unless value.length is 0
-        @start.insert new TextToken value
+      if value?
+        if @start.next.type is 'text'
+          if value.length is 0
+            @start.next.remove()
+          else
+            @start.next.value = value
+        else unless value.length is 0
+          @start.insert new TextToken value
 
     setTrailingText: (value) ->
-      if @end.prev.type is 'text'
-        if value.length is 0
-          @end.prev.remove()
-        else
-          @end.prev.value = value
-      else unless value.length is 0
-        @end.insertBefore new TextToken value
+      if value?
+        if @end.prev.type is 'text'
+          if value.length is 0
+            @end.prev.remove()
+          else
+            @end.prev.value = value
+        else unless value.length is 0
+          @end.insertBefore new TextToken value
 
     # ## clone ##
     # Clone this container, with all the token inside,

@@ -429,16 +429,14 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     if context is null or context.type isnt 'socket' or
         context?.precedence < node.precedence
       while true
-        if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
-          leading = leading.replace(/^\s*\(\s*/, '')
-          trailing = trailing.replace(/^\s*\)\s*/, '')
+        if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+          leading leading().replace(/^\s*\(\s*/, '')
+          trailing trailing().replace(/^\s*\)\s*/, '')
         else
           break
     else
-      leading = '(' + leading
-      trailing = trailing + ')'
-
-    return [leading, trailing]
+      leading '(' + leading()
+      trailing trailing() + ')'
 
   Parser.drop = (block, context, pred) ->
     if block.type is 'segment' and context.type is 'socket'
@@ -459,7 +457,29 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts ?= wrapAtRoot: true
         return @createParser(text)._parse opts
 
-      parens: (leading, trailing, node, context) -> CustomParser.parens leading, trailing, node, context
+      parens: (leading, trailing, node, context) ->
+        # leadingFn is always a getter/setter for leading
+        leadingFn = (value) ->
+          if value?
+            leading = value
+          return leading
+
+        # trailingFn may either get/set leading or trailing;
+        # will point to leading if leading is the only token,
+        # but will point to trailing otherwise.
+        if trailing?
+          trailingFn = (value) ->
+            if value?
+              trailing = value
+            return trailing
+        else
+          trailingFn = leadingFn
+
+        CustomParser.parens leadingFn, trailingFn, node, context
+        console.log leading, trailing
+
+        return [leading, trailing]
+
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
 
   return exports
