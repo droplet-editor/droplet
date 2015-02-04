@@ -124,6 +124,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'MemberExpression': 'value'
     'IfStatement': 'control'
     'ForStatement': 'control'
+    'ForInStatement': 'control'
     'UpdateExpression': 'command'
     'VariableDeclaration': 'command'
     'LogicalExpression': 'value'
@@ -377,6 +378,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             @jsSocketAndMark indentDepth, node.update, depth + 1, 10
 
           @mark indentDepth, node.body, depth + 1
+        when 'ForInStatement'
+          @jsBlock node, depth, bounds
+          if node.left?
+            @jsSocketAndMark indentDepth, node.left, depth + 1, NEVER_PAREN, null, ['foreach-lhs']
+          if node.right?
+            @jsSocketAndMark indentDepth, node.right, depth + 1, 10
+          @mark indentDepth, node.body, depth + 1
         when 'BlockStatement'
           prefix = @getIndentPrefix(@getBounds(node), indentDepth)
           indentDepth += prefix.length
@@ -468,6 +476,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           for element in node.elements
             if element?
               @jsSocketAndMark indentDepth, element, depth + 1, null
+        when 'Literal'
+          null
+        else
+          console.log 'Unrecognized', node
 
     jsBlock: (node, depth, bounds) ->
       @addBlock

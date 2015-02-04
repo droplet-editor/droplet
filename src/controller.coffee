@@ -113,8 +113,8 @@ define ['droplet-helper',
     'resize_palette': []    # after the palette is resized
 
     'redraw_main': []       # whenever we need to redraw the main canvas
-    'redraw_palette': []    # whenever we need to redraw the palette
-    'set_palette': []       # whenever we switch palette categories
+    'redraw_palette': []    # repaint the graphics of the palette
+    'rebuild_palette': []   # redraw the paltte, both graphics and elements
 
     'mousedown': []
     'mousemove': []
@@ -224,6 +224,9 @@ define ['droplet-helper',
         ctx: @mainCtx
         draw: @draw
 
+      # Set up event bindings before creating a view
+      @bindings = {}
+
       # Instantiate an ICE editor view
       @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
       @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
@@ -298,7 +301,8 @@ define ['droplet-helper',
       @resizeBlockMode()
 
       # Now that we've populated everything, immediately re@draw.
-      @redrawMain(); @redrawPalette()
+      @redrawMain()
+      @rebuildPalette()
 
       # If we were given an unrecognized mode, flip into text mode
       unless @mode?
@@ -330,11 +334,12 @@ define ['droplet-helper',
 
     resizeBlockMode: ->
       @resizeTextMode()
-      @resizeGutter()
 
       @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
       @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
       @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+
+      @resizeGutter()
 
       @mainCanvas.height = @dropletElement.offsetHeight
       @mainCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
@@ -385,8 +390,7 @@ define ['droplet-helper',
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
-
-      @redrawPalette()
+      @rebuildPalette()
 
 
   Editor::resize = ->
@@ -400,7 +404,7 @@ define ['droplet-helper',
   # ================================
 
   # ## Redraw
-  # There are two different redraw events, redraw_main and redraw_palette,
+  # There are two different redraw events, redraw_main and rebuild_palette,
   # for redrawing the main canvas and palette canvas, respectively.
   #
   # Redrawing simply involves issuing a call to the View.
@@ -506,6 +510,13 @@ define ['droplet-helper',
       else
         delete @markedLines[line]
 
+    for id, info of @markedBlocks
+      if @inTree info.model
+        path = @getHighlightPath info.model, info.style
+        path.draw @highlightCtx
+      else
+        delete @markedLines[id]
+
     for id, info of @extraMarks
       if @inTree info.model
         path = @getHighlightPath info.model, info.style
@@ -566,6 +577,12 @@ define ['droplet-helper',
 
     for binding in editorBindings.redraw_palette
       binding.call this
+
+  Editor::rebuildPalette = ->
+    @redrawPalette()
+    for binding in editorBindings.rebuild_palette
+      binding.call this
+
 
   # MOUSE INTERACTION WRAPPERS
   # ================================
@@ -648,7 +665,10 @@ define ['droplet-helper',
     else return null
 
   hook 'mousedown', 10, ->
+    x = document.body.scrollLeft
+    y = document.body.scrollTop
     @dropletElement.focus()
+    window.scrollTo(x, y)
 
   # UNDO STACK SUPPORT
   # ================================
@@ -927,6 +947,7 @@ define ['droplet-helper',
     # deal with the click.
     if hitTestResult?
       # Record the hit test result (the block we want to pick up)
+      @setTextInputFocus null
       @clickedBlock = hitTestResult
       @clickedBlockIsPaletteBlock = false
 
@@ -1096,9 +1117,6 @@ define ['droplet-helper',
       )
 
       rect = @wrapperElement.getBoundingClientRect()
-
-      console.log position.x - @wrapperElement.getBoundingClientRect().left,
-          position.y - @wrapperElement.getBoundingClientRect().top
 
       @dragCanvas.style.top = "#{position.y - rect.top}px"
       @dragCanvas.style.left = "#{position.x - rect.left}px"
@@ -1372,6 +1390,7 @@ define ['droplet-helper',
       hitTestResult = @hitTest @trackerPointToMain(point), record.block
 
       if hitTestResult?
+        @setTextInputFocus null
         @clickedBlock = record.block
         @clickedPoint = point
 
@@ -1488,12 +1507,10 @@ define ['droplet-helper',
             ' droplet-palette-group-header-selected'
 
         # Redraw the palette.
-        @redrawPalette()
+        @rebuildPalette()
 
       clickHandler = =>
         do updatePalette
-        for event in editorBindings.set_palette
-          event.call this
 
       paletteGroupHeader.addEventListener 'click', clickHandler
       paletteGroupHeader.addEventListener 'touchstart', clickHandler
@@ -1521,6 +1538,7 @@ define ['droplet-helper',
         hitTestResult = @hitTest palettePoint, block
 
         if hitTestResult?
+          @setTextInputFocus null
           @clickedBlock = block
           @clickedPoint = point
           @clickedBlockIsPaletteBlock = true
@@ -1551,7 +1569,7 @@ define ['droplet-helper',
     if @currentHighlightedPaletteBlock?
       @paletteHighlightPath.draw @paletteHighlightCtx
 
-  hook 'redraw_palette', 0, ->
+  hook 'rebuild_palette', 1, ->
     # Remove the existent blocks
     @paletteScrollerStuffing.innerHTML = ''
 
@@ -1637,11 +1655,16 @@ define ['droplet-helper',
     @hiddenInput = document.createElement 'textarea'
     @hiddenInput.className = 'droplet-hidden-input'
 
+    @hiddenInput.addEventListener 'focus', =>
+      if @textFocus?
+        bounds = @view.getViewNodeFor(@textFocus).bounds[0]
+        @hiddenInput.style.left = (bounds.x + @mainCanvas.offsetLeft) + 'px'
+        @hiddenInput.style.top = bounds.y + 'px'
+
     @dropletElement.appendChild @hiddenInput
 
     # We also need to initialise some fields
     # for knowing what is focused
-    @textFocus = null
     @textFocus = null
     @textInputAnchor = null
 
@@ -1977,15 +2000,13 @@ define ['droplet-helper',
     hitTestResult = @hitTestTextInput mainPoint, @tree
 
     # If they have clicked a socket,
-    # focus it, and
+    # focus it.
     unless hitTestResult is @textFocus
       @setTextInputFocus null
       @redrawMain()
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
-      @hiddenInput.focus()
-
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -1997,6 +2018,16 @@ define ['droplet-helper',
         @redrawTextInput()
 
         @textInputSelecting = true
+
+      # Now that we have focused the text element
+      # in the Droplet model, focus the hidden input.
+      #
+      # It is important that this be done after the Droplet model
+      # has focused its text element, because
+      # the hidden input moves on the focus() event to
+      # the currently-focused Droplet element to make
+      # mobile screen scroll properly.
+      @hiddenInput.focus()
 
       state.consumedHitTest = true
 
@@ -2306,6 +2337,7 @@ define ['droplet-helper',
     if state.consumedHitTest then return
 
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
+      @setTextInputFocus null
       @clickedBlock = @lassoSegment
       @clickedBlockIsPaletteBlock = false
       @clickedPoint = point
@@ -2642,7 +2674,6 @@ define ['droplet-helper',
       @spliceOut blockEnd.container.parent
 
       @moveCursorTo before
-      console.log 'moving cursor to', before
 
       @redrawMain()
 
@@ -3252,6 +3283,10 @@ define ['droplet-helper',
     @mainScroller.appendChild @mainScrollerStuffing
     @dropletElement.appendChild @mainScroller
 
+    # Prevent scrolling on wrapper element
+    @wrapperElement.addEventListener 'scroll', =>
+      @wrapperElement.scrollTop = @wrapperElement.scrollLeft = 0
+
     @mainScroller.addEventListener 'scroll', =>
       @scrollOffsets.main.y = @mainScroller.scrollTop
       @scrollOffsets.main.x = @mainScroller.scrollLeft
@@ -3284,6 +3319,7 @@ define ['droplet-helper',
       @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
       @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
 
+      # redraw the bits of the palette
       @redrawPalette()
 
   Editor::resizeMainScroller = ->
@@ -3338,7 +3374,8 @@ define ['droplet-helper',
 
       @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
 
-      @redrawMain(); @redrawPalette()
+      @redrawMain()
+      @rebuildPalette()
 
   Editor::setFontFamily = (fontFamily) ->
     @draw.setGlobalFontFamily fontFamily
@@ -3351,7 +3388,8 @@ define ['droplet-helper',
     @view.clearCache(); @dragView.clearCache()
     @gutter.style.fontFamily = fontFamily
 
-    @redrawMain(); @redrawPalette()
+    @redrawMain()
+    @rebuildPalette()
 
   Editor::setFontSize = (fontSize) ->
     @setFontSize_raw fontSize
@@ -3362,6 +3400,7 @@ define ['droplet-helper',
 
   hook 'populate', 0, ->
     @markedLines = {}
+    @markedBlocks = {}; @nextMarkedBlockId = 0
     @extraMarks = {}
 
   Editor::getHighlightPath = (model, style) ->
@@ -3382,15 +3421,59 @@ define ['droplet-helper',
         model: block
         style: style
 
-    @redrawMain()
+    @redrawHighlights()
+
+  # ## Mark
+  # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
+  # with the given style.
+  Editor::mark = (line, col, style) ->
+    # Get the start of the given line.
+    lineStart = @tree.getNewlineBefore line
+
+    # Find the necessary indent for this line, so
+    # that we can properly adjust the column number
+    chars = 0
+    parent = lineStart.parent
+    until parent is @tree
+      if parent.type is 'indent'
+        chars += parent.prefix.length
+      parent = parent.parent
+
+    # Find the first block after the given column number
+    head = lineStart.next
+    until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
+      chars += head.stringify().length
+      head = head.next
+
+    if head.type is 'newline'
+      return false
+
+    # `key` is a unique identifier for this
+    # mark, to be used later for removal
+    key = @nextMarkedBlockId++
+
+    @markedBlocks[key] = {
+      model: head.container
+      style: style
+    }
+
+    @redrawHighlights()
+
+    # Return `key`, so that the caller can
+    # remove the line mark later with unmark(key)
+    return key
+
+  Editor::unmark = (key) ->
+    delete @markedBlocks[key]
+    return true
 
   Editor::unmarkLine = (line) ->
     delete @markedLines[line]
 
     @redrawMain()
 
-  Editor::clearLineMarks = (tag) ->
-    @markedLines = {}
+  Editor::clearLineMarks = ->
+    @markedLines = @markedBlocks = {}
 
     @redrawMain()
 
@@ -3511,9 +3594,6 @@ define ['droplet-helper',
   # PUBLIC EVENT BINDING HOOKS
   # ===============================
 
-  hook 'populate', 0, ->
-    @bindings = {}
-
   Editor::on = (event, handler) ->
     @bindings[event] = handler
 
@@ -3612,7 +3692,7 @@ define ['droplet-helper',
 
   # PALETTE EVENT
   # =================================
-  hook 'set_palette', 0, ->
+  hook 'rebuild_palette', 0, ->
     @fireEvent 'changepalette', []
 
   # TOUCHSCREEN SUPPORT
@@ -3987,7 +4067,11 @@ define ['droplet-helper',
   hook 'keydown', 0, (event, state) ->
     if event.which in command_modifiers
       unless @textFocus?
+        x = document.body.scrollLeft
+        y = document.body.scrollTop
         @copyPasteInput.focus()
+        window.scrollTo(x, y)
+
         if @lassoSegment?
           @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
