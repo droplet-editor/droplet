@@ -1,5 +1,5 @@
 {
-  "name": "ice-editor",
+  "name": "droplet",
   "version": "0.3.0",
   "devDependencies": {
     "grunt-cli": "latest",
@@ -29,12 +29,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/dabbler0/ice_editor_canvas.git"
+    "url": "https://github.com/dabbler0/droplet.git"
   },
   "author": "Anthony Bau",
   "license": "MIT License",
   "bugs": {
-    "url": "https://github.com/dabbler0/ice_editor_canvas/issues"
+    "url": "https://github.com/dabbler0/droplet/issues"
   },
-  "homepage": "https://github.com/dabbler0/ice_editor_canvas"
+  "homepage": "https://github.com/dabbler0/droplet"
 }

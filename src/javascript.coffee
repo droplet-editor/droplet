@@ -494,23 +494,21 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
        (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
        'ends-with-brace' in node.classes or
        node.type is 'segment'
-      trailing = trailing.replace(/;?\s*$/, '')
+      trailing trailing().replace(/;?\s*$/, '')
     else
-      trailing = trailing.replace(/;?\s*$/, ';')
+      trailing trailing().replace(/;?\s*$/, ';')
 
     if context is null or context.type isnt 'socket' or
         context.precedence > node.precedence
       while true
-        if leading.match(/^\s*\(/)? and trailing.match(/\)\s*/)?
-          leading = leading.replace(/^\s*\(\s*/, '')
-          trailing = trailing.replace(/^\s*\)\s*/, '')
+        if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+          leading leading().replace(/^\s*\(\s*/, '')
+          trailing trailing().replace(/\s*\)\s*$/, '')
         else
           break
     else
-      leading = '(' + leading
-      trailing = trailing + ')'
-
-    return [leading, trailing]
+      leading '(' + leading()
+      trailing trailing() + ')'
 
   JavaScriptParser.drop = (block, context, pred) ->
     if context.type is 'socket'

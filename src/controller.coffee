@@ -811,7 +811,10 @@ define ['droplet-helper',
 
   Editor::spliceOut = (node) ->
     leading = node.getLeadingText()
-    trailing = node.getTrailingText()
+    if node.start.next is node.end.prev
+      trailing = null
+    else
+      trailing = node.getTrailingText()
 
     [leading, trailing] = @mode.parens leading, trailing, node.getReader(), null
 
@@ -821,7 +824,10 @@ define ['droplet-helper',
 
   Editor::spliceIn = (node, location) ->
     leading = node.getLeadingText()
-    trailing = node.getTrailingText()
+    if node.start.next is node.end.prev
+      trailing = null
+    else
+      trailing = node.getTrailingText()
 
     container = location.container ? location.visParent()
 
