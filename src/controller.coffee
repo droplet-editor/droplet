@@ -2816,7 +2816,9 @@ define ['droplet-helper',
 
     @aceEditor.setTheme 'ace/theme/chrome'
     @aceEditor.setFontSize 15
-    @aceEditor.getSession().setMode 'ace/mode/' + @options.mode
+    acemode = @options.mode
+    if acemode is 'coffeescript' then acemode = 'coffee'
+    @aceEditor.getSession().setMode 'ace/mode/' + acemode
     @aceEditor.getSession().setTabSize 2
 
     @aceEditor.on 'change', =>

@@ -592,6 +592,24 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       2 * view_.opts.textPadding +
       3 * view_.opts.padding, 'Carriage arrow causes expand'
 
+  asyncTest 'Controller: ace editor mode', ->
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
+    done = false
+    resolved = false
+    resolve = ->
+      if resolved then return
+      resolved = true
+      ok done
+      start()
+    editor.aceEditor.session.on 'changeMode', ->
+      strictEqual editor.aceEditor.session.getMode().$id, 'ace/mode/coffee'
+      done = true
+      resolve()
+    setTimeout resolve, 1000
+
   asyncTest 'Controller: melt/freeze events', ->
     expect 3
 
