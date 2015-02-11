@@ -476,7 +476,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
           trailingFn = leadingFn
 
         CustomParser.parens leadingFn, trailingFn, node, context
-        console.log leading, trailing
 
         return [leading, trailing]
 
