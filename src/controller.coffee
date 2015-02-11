@@ -300,7 +300,7 @@ define ['droplet-helper',
 
       @resizeBlockMode()
 
-      # Now that we've populated everything, immediately re@draw.
+      # Now that we've populated everything, immediately redraw.
       @redrawMain()
       @rebuildPalette()
 
@@ -564,9 +564,9 @@ define ['droplet-helper',
       @paletteCanvas.height
     )
 
-    for paletteBlock in @currentPaletteBlocks
+    for entry in @currentPaletteBlocks
       # Layout this block
-      paletteBlockView = @view.getViewNodeFor paletteBlock
+      paletteBlockView = @view.getViewNodeFor entry.block
       paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
       # Render the block
@@ -1478,10 +1478,10 @@ define ['droplet-helper',
       for data in paletteGroup.blocks
         newBlock = @mode.parse(data.block).start.next.container
         newBlock.spliceOut(); newBlock.parent = null
-        newPaletteBlocks.push {
+        newPaletteBlocks.push
           block: newBlock
           title: data.title
-        }
+          id: data.id
 
       paletteGroupBlocks = newPaletteBlocks
 
@@ -1490,7 +1490,7 @@ define ['droplet-helper',
       updatePalette = =>
         # Record that we are the selected group now
         @currentPaletteGroup = paletteGroup.name
-        @currentPaletteBlocks = paletteGroupBlocks.map (x) -> x.block
+        @currentPaletteBlocks = paletteGroupBlocks
         @currentPaletteMetadata = paletteGroupBlocks
 
         # Unapply the "selected" style to the current palette group header
@@ -1508,6 +1508,7 @@ define ['droplet-helper',
 
         # Redraw the palette.
         @rebuildPalette()
+        @fireEvent 'selectpalette', [paletteGroup.name]
 
       clickHandler = =>
         do updatePalette
@@ -1534,15 +1535,16 @@ define ['droplet-helper',
     if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
        @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
 
-      for block in @currentPaletteBlocks
-        hitTestResult = @hitTest palettePoint, block
+      for entry in @currentPaletteBlocks
+        hitTestResult = @hitTest palettePoint, entry.block
 
         if hitTestResult?
           @setTextInputFocus null
-          @clickedBlock = block
+          @clickedBlock = entry.block
           @clickedPoint = point
           @clickedBlockIsPaletteBlock = true
           state.consumedHitTest = true
+          @fireEvent 'pickblock', [entry.id]
           return
 
     @clickedBlockIsPaletteBlock = false
@@ -3343,8 +3345,8 @@ define ['droplet-helper',
 
   hook 'redraw_palette', 0, ->
     bounds = new @draw.NoRectangle()
-    for block in @currentPaletteBlocks
-      bounds.unite @view.getViewNodeFor(block).getBounds()
+    for entry in @currentPaletteBlocks
+      bounds.unite @view.getViewNodeFor(entry.block).getBounds()
 
     # For now, we will comment out this line
     # due to bugs

@@ -630,6 +630,46 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         strictEqual states[1], true
         start()
 
+  asyncTest 'Controller: palette events', ->
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: [{
+        name: 'Draw'
+        color: 'blue'
+        blocks: [{
+          block: 'pen purple'
+          title: 'Set the pen color'
+          id: 'pen'
+        }],
+      }, {
+        name: 'Move'
+        color: 'red'
+        blocks: [{
+          block: 'moveto 100, 100'
+          title: 'Move to a coordinate'
+          id: 'moveto'
+        }]
+      }]
+    }
+    dispatchMouse = (name, e) ->
+      cr = e.getBoundingClientRect()
+      mx = Math.floor (cr.left + cr.right) / 2
+      my = Math.floor (cr.top + cr.bottom) / 2
+      ev = document.createEvent 'MouseEvents'
+      console.log 'dispatching', name, mx, my
+      ev.initMouseEvent name, true, true, window,
+          0, mx, my, mx, my, false, false, false, false, 0, null
+      e.dispatchEvent ev
+
+    states = []
+    editor.on 'selectpalette', (name) ->
+      states.push 's:' + name
+    headers = document.getElementsByClassName 'droplet-palette-group-header'
+    for j in [headers.length - 1 .. 0]
+      dispatchMouse 'click', headers[j]
+    deepEqual states, ['s:Move', 's:Draw']
+    # TODO, fix layout in test environment, and test pickblock event.
+    start()
 
   test 'Controller: cursor motion and rendering', ->
     states = []

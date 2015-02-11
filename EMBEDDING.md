@@ -72,6 +72,18 @@ Calls back after the user has switched between block mode and text mode.
 Palette
 -------
 
+    editor.on('selectpalette', handler)
+
+Calls handler(palettename) each time the user clicks on a palette,
+after the palette is updated.  Can be used for sound effects, logging,
+help UI, etc.
+
+    editor.on('pickblock', handler)
+
+Calls handler(block.id) when the user clicks on a block in a palette.
+The block id is taken from the block structure set up in options when
+the palette is set up.
+
     editor.on('changepalette', handler)
 
 Calls back after the palette is redrawn (due to a user selection change
