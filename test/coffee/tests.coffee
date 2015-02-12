@@ -656,7 +656,6 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       mx = Math.floor (cr.left + cr.right) / 2
       my = Math.floor (cr.top + cr.bottom) / 2
       ev = document.createEvent 'MouseEvents'
-      console.log 'dispatching', name, mx, my
       ev.initMouseEvent name, true, true, window,
           0, mx, my, mx, my, false, false, false, false, 0, null
       e.dispatchEvent ev
