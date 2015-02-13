@@ -278,6 +278,50 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       # by blocks if they are outside anything else.
       return null
 
+    functionNameNodes: (node) ->
+      if node.nodeType() isnt 'Call' then throw new Error
+      if node.variable?
+        # Two possible forms of a Call node:
+        # fn(...) ->
+        #    node.variable.base = fn
+        # x.y.z.fn()
+        #    node.variable.base = x
+        #    properties = [y, z, fn]
+        nodes = []
+        if node.variable.base?.value
+          nodes.push node.variable.base
+        else
+          nodes.push null
+        if node.variable.properties?
+          for prop in node.variable.properties
+              nodes.push prop.name
+        return nodes
+      return []
+
+    emptyLocation: (loc) ->
+      loc.first_column is loc.last_column and loc.first_line is loc.last_line
+
+    implicitName: (nn) ->
+      # Deal with weird coffeescript rewrites, e.g., /// #{x} ///
+      # is rewritten to RegExp(...)
+      if nn.length is 0 then return false
+      node = nn[nn.length - 1]
+      return node?.value?.length > 1 and @emptyLocation node.locationData
+
+    nameNodesMatch: (nn, list) ->
+      # Test the name nodes list against the given list, and return:
+      # 0 if no match
+      # 2 if a full-qualified dotted name matches
+      # 1 if just the last component of the name matches
+      # E.g., [{value:'Math'},{value:'sin'}] matches 'Math.sin' with a 2,
+      # and matches 'sin' with a 1.
+      if nn.length > 1
+        full = (nn.map (n) -> n?.value or '*').join '.'
+        if full in list then return 2
+      last = nn[nn.length - 1]
+      if last? and last.value in list then return 1
+      return 0
+
     # ## mark ##
     # Mark a single node.  The main recursive function.
     mark: (node, depth, precedence, wrappingParen, indentDepth) ->
@@ -462,50 +506,25 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # is only some text
         when 'Call'
           if node.variable?
-            methodname = null
-            unrecognized = false
-            # Two possible forms of a Call node:
-            # fn(...) ->
-            #    node.variable.base = fn
-            # x.y.z.fn()
-            #    node.variable.base = x
-            #    properties = [y, z, fn]
-            if node.variable.properties?.length > 0
-              methodname = node.variable.
-                  properties[node.variable.properties.length - 1].name?.value
-              namenode = node.variable.
-                  properties[node.variable.properties.length - 1].name
-            else if node.variable.base?.value
-              methodname = node.variable.base.value
-              namenode = node.variable.base
-            if methodname in @opts.blockFunctions
+            namenodes = @functionNameNodes node
+            parts = @nameNodesMatch namenodes, @opts.blockFunctions
+            if parts > 0
               @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-            else if methodname in @opts.valueFunctions
-              @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
             else
-              @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
-              unrecognized = not(methodname in @opts.eitherFunctions)
-
-            # If the object being operated on is an expression or deep, then
-            # Make things editable.
-            if node.variable.base?.nodeType() isnt 'Literal' or
-               node.variable.properties?.length > 1
-              unrecognized = true
-
-            # Deal with weird coffeescript rewrites, e.g., /// #{x} ///
-            # is rewritten to RegExp(...)
-            if methodname?.length > 1 and namenode?.locationData and
-                namenode.locationData.first_column is
-                namenode.locationData.last_column and
-                namenode.locationData.first_line is
-                namenode.locationData.last_line
-              unrecognized = false
-
-            if unrecognized
+              parts = @nameNodesMatch namenodes, @opts.valueFunctions
+              if parts > 0
+                @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
+              else
+                parts = @nameNodesMatch namenodes, @opts.eitherFunctions
+                @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
+            # Some function names (like /// RegExps ///) are never editable.
+            if @implicitName namenodes
+              # do nothing
+            else if parts is 0
               # In the 'advanced' case where the methodname should be
               # editable, treat the whole (x.y.fn) as an expression to socket.
               @csSocketAndMark node.variable, depth + 1, 0, indentDepth
-            else if node.variable.properties?.length > 0
+            else if parts is 1 and node.variable.properties?.length > 0
               # In the 'beginner' case of a simple method call with a
               # simple base object variable, let the variable be socketed.
               @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth

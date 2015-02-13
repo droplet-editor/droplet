@@ -21,7 +21,7 @@ describe 'Parser unity', (done) ->
     it 'should round-trip ' + str.split('\n')[0] +
         (if str.split('\n').length > 1 then '...' else ''), ->
       assert.equal str, coffee.parse(str, wrapAtRoot: true).stringify()
-
+  testString '/// #{x} ///'
   testString 'fd 10'
   testString 'fd 10 + 10'
   testString 'console.log 10 + 10'
@@ -45,7 +45,6 @@ describe 'Parser unity', (done) ->
       see key is value
       see array[n]
   '''
-
   testFile = (name) ->
     it "should round-trip on #{name}", ->
       file = fs.readFileSync(name).toString()

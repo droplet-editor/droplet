@@ -199,15 +199,33 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
       @mark 0, tree, 0, null
 
+    fullFunctionNameArray: (node) ->
+      if node.type isnt 'CallExpression' then throw new Error
+      obj = node.callee
+      props = []
+      while obj.type is 'MemberExpression'
+        props.unshift node.property.name
+        obj = node.object
+      if obj.type is 'Identifier'
+        props.unshift obj.name
+      else
+        props.unshift '*'
+      props
+
+    functionMatchesList: (node, list) ->
+      fname = fullFunctionNameArray node
+      return (fname[fname.length - 1] in list) or
+             (fname.length > 1 and fname.join('.') in list)
+
     getAcceptsRule: (node) -> default: helper.NORMAL
     getClasses: (node) ->
       if node.type of CLASS_EXCEPTIONS
         return CLASS_EXCEPTIONS[node.type].concat([node.type])
       else
         if node.type is 'CallExpression'
-          if node.callee.type is 'Identifier' and node.callee.name in @opts.blockFunctions
+          if @functionMatchesList node, @opts.blockFunctions
             return [node.type, 'mostly-block']
-          else if node.callee.name in @opts.valueFunctions
+          else if @functionMatchesList node, @opts.valueFunctions
             return [node.type, 'mostly-value']
           else
             return [node.type, 'any-drop']
@@ -237,9 +255,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           return @getColor node.expression
         when 'CallExpression'
           if node.callee.type is 'Identifier'
-            if node.callee.name in @opts.blockFunctions
+            if @functionMatchesList node, @opts.blockFunctions
               return 'command'
-            else if node.callee.name in @opts.valueFunctions
+            else if @functionMatchesList node, @opts.valueFunctions
               return 'value'
             else
               return 'violet'
@@ -407,7 +425,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             block.flagToRemove = true
         when 'CallExpression', 'NewExpression'
           @jsBlock node, depth, bounds
-          if node.callee.type isnt 'Identifier' or node.callee.name not in @functionWhitelist
+          if not @functionMatchesList node, @functionWhitelist
             @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
           for argument in node.arguments
             @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN
