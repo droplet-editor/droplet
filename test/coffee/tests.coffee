@@ -35,51 +35,51 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     ''').serialize()
 
     expectedSerialization = '''
-<segment
-  isLassoSegment=\"false\"><block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call mostly-block\">marius <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Call works-as-method-call\"><block
-  precedence=\"0\"
-  color=\"value\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call mostly-value\">eponine <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Value\">10</socket></block></socket></block>
-<block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call any-drop\"><socket
-  precedence=\"0\"
-  handwritten=\"false\"
-  classes=\"Value\">fd</socket> <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Call works-as-method-call\"><block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call any-drop\"><socket
-  precedence=\"0\"
-  handwritten=\"false\"
-  classes=\"Value\">random</socket> <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Value\">100</socket></block></socket></block>
-<block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call any-drop\">cosette <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Value\">20</socket></block></segment>
+      <segment
+        isLassoSegment="false"><block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-block">marius <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"><block
+        precedence="0"
+        color="value"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-value">eponine <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value">10</socket></block></socket></block>
+      <block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop"><socket
+        precedence="0"
+        handwritten="false"
+        classes="Value">fd</socket> <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"><block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop"><socket
+        precedence="0"
+        handwritten="false"
+        classes="Value">random</socket> <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value">100</socket></block></socket></block>
+      <block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop">cosette <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value">20</socket></block></segment>
     '''
 
     strictEqual(
