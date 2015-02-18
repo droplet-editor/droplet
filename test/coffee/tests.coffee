@@ -35,57 +35,183 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     ''').serialize()
 
     expectedSerialization = '''
-<segment
-  isLassoSegment=\"false\"><block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call mostly-block\">marius <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Call works-as-method-call\"><block
-  precedence=\"0\"
-  color=\"value\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call mostly-value\">eponine <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Value\">10</socket></block></socket></block>
-<block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call any-drop\"><socket
-  precedence=\"0\"
-  handwritten=\"false\"
-  classes=\"Value\">fd</socket> <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Call works-as-method-call\"><block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call any-drop\"><socket
-  precedence=\"0\"
-  handwritten=\"false\"
-  classes=\"Value\">random</socket> <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Value\">100</socket></block></socket></block>
-<block
-  precedence=\"0\"
-  color=\"command\"
-  socketLevel=\"0\"
-  classes=\"Call works-as-method-call any-drop\">cosette <socket
-  precedence=\"-1\"
-  handwritten=\"false\"
-  classes=\"Value\">20</socket></block></segment>
+      <segment
+        isLassoSegment="false"><block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-block">marius <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"><block
+        precedence="0"
+        color="value"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-value">eponine <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value">10</socket></block></socket></block>
+      <block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop"><socket
+        precedence="0"
+        handwritten="false"
+        classes="Value">fd</socket> <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"><block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop"><socket
+        precedence="0"
+        handwritten="false"
+        classes="Value">random</socket> <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value">100</socket></block></socket></block>
+      <block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop">cosette <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value">20</socket></block></segment>
     '''
 
     strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
       'Custom known functions work'
+    )
+
+  test 'Dotted methods', ->
+    customCoffee = new Coffee {
+      blockFunctions: ['console.log', 'speak']
+      valueFunctions: ['Math.log', 'log']
+      eitherFunctions: ['setTimeout']
+    }
+
+    customSerialization = customCoffee.parse('''
+    console.log Math.log log x.log log
+    ''').serialize()
+
+    expectedSerialization = '''
+      <segment
+        isLassoSegment="false"
+      ><block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-block"
+      >console.log <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"
+      ><block
+        precedence="0"
+        color="value"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-value"
+      >Math.log <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"
+      ><block
+        precedence="0"
+        color="value"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-value"
+      >log <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Call works-as-method-call"
+      ><block
+        precedence="0"
+        color="value"
+        socketLevel="0"
+        classes="Call works-as-method-call mostly-value"
+      ><socket
+        precedence="0"
+        handwritten="false"
+        classes="Literal"
+      >x</socket
+      >.log <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value"
+      >log</socket
+      ></block></socket></block></socket></block></socket></block></segment>
+    '''
+    strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Dotted known functions work'
+    )
+
+  test 'JS dotted methods', ->
+    customJS = new JavaScript {
+      blockFunctions: ['console.log', 'speak']
+      valueFunctions: ['Math.log', 'log']
+      eitherFunctions: ['setTimeout']
+    }
+
+    customSerialization = customJS.parse('''
+    console.log(Math.log(log(x.log(log))));
+    ''').serialize()
+
+    expectedSerialization = '''
+      <segment
+        isLassoSegment="false"
+      ><block
+        precedence="2"
+        color="blank"
+        socketLevel="0"
+        classes="CallExpression mostly-block"
+      >console.log(<socket
+        precedence="100"
+        handwritten="false"
+        classes=""
+      ><block
+        precedence="2"
+        color="blank"
+        socketLevel="0"
+        classes="CallExpression mostly-value"
+      >Math.log(<socket
+        precedence="100"
+        handwritten="false"
+        classes=""
+      ><block
+        precedence="2"
+        color="value"
+        socketLevel="0"
+        classes="CallExpression mostly-value"
+      >log(<socket
+        precedence="100"
+        handwritten="false"
+        classes=""
+      ><block
+        precedence="2"
+        color="blank"
+        socketLevel="0"
+        classes="CallExpression mostly-value"
+      >x.log(<socket
+        precedence="100"
+        handwritten="false"
+        classes=""
+      >log</socket
+      >)</block></socket
+      >)</block></socket
+      >)</block></socket
+      >);</block></segment>
+    '''
+    strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Dotted known functions work'
     )
 
   test 'XML parser unity', ->
