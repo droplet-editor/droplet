@@ -204,8 +204,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       obj = node.callee
       props = []
       while obj.type is 'MemberExpression'
-        props.unshift node.property.name
-        obj = node.object
+        props.unshift obj.property.name
+        obj = obj.object
       if obj.type is 'Identifier'
         props.unshift obj.name
       else
@@ -213,7 +213,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       props
 
     functionMatchesList: (node, list) ->
-      fname = fullFunctionNameArray node
+      fname = @fullFunctionNameArray node
       return (fname[fname.length - 1] in list) or
              (fname.length > 1 and fname.join('.') in list)
 
