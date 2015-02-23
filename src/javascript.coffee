@@ -254,13 +254,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'ExpressionStatement'
           return @getColor node.expression
         when 'CallExpression'
-          if node.callee.type is 'Identifier'
-            if @functionMatchesList node, @opts.blockFunctions
-              return 'command'
-            else if @functionMatchesList node, @opts.valueFunctions
-              return 'value'
-            else
-              return 'violet'
+          if @functionMatchesList node, @opts.blockFunctions
+            return 'command'
+          else if @functionMatchesList node, @opts.valueFunctions
+            return 'value'
+          else
+            return 'violet'
         else
           return COLORS[node.type]
 

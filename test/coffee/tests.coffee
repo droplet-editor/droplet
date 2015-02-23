@@ -168,7 +168,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         isLassoSegment="false"
       ><block
         precedence="2"
-        color="blank"
+        color="command"
         socketLevel="0"
         classes="CallExpression mostly-block"
       >console.log(<socket
@@ -177,7 +177,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="2"
-        color="blank"
+        color="value"
         socketLevel="0"
         classes="CallExpression mostly-value"
       >Math.log(<socket
@@ -195,7 +195,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="2"
-        color="blank"
+        color="value"
         socketLevel="0"
         classes="CallExpression mostly-value"
       >x.log(<socket
