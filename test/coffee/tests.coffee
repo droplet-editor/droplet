@@ -29,9 +29,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     }
 
     window.customSerialization = customSerialization = customCoffee.parse('''
-    marius eponine 10
-    fd random 100
-    cosette 20
+      marius eponine 10
+      fd random 100
+      cosette 20
     ''').serialize()
 
     expectedSerialization = '''
@@ -96,7 +96,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     }
 
     customSerialization = customCoffee.parse('''
-    console.log Math.log log x.log log
+      console.log Math.log log x.log log
     ''').serialize()
 
     expectedSerialization = '''
@@ -160,7 +160,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     }
 
     customSerialization = customJS.parse('''
-    console.log(Math.log(log(x.log(log))));
+      console.log(Math.log(log(x.log(log))));
     ''').serialize()
 
     expectedSerialization = '''
@@ -207,6 +207,82 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       >)</block></socket
       >)</block></socket
       >);</block></segment>
+    '''
+    strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Dotted known functions work'
+    )
+
+  test 'Merged code blocks', ->
+    coffee = new Coffee
+    customSerialization = coffee.parse('''
+      x = (y) -> y * y
+      button 'clickme', ->
+        write 'ouch'
+    ''').serialize()
+
+    expectedSerialization = '''
+      <segment
+        isLassoSegment="false"
+      ><block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Assign mostly-block"
+      ><socket
+        precedence="0"
+        handwritten="false"
+        classes="Value lvalue"
+      >x</socket
+      > = (<socket
+        precedence="0"
+        handwritten="false"
+        classes="Param forbid-all"
+      >y</socket
+      >) -&gt; <socket
+        precedence="0"
+        handwritten="false"
+        classes="Block"
+      ><block
+        precedence="5"
+        color="value"
+        socketLevel="0"
+        classes="Op value-only"
+      ><socket
+        precedence="5"
+        handwritten="false"
+        classes="Value"
+      >y</socket
+      > * <socket
+        precedence="5"
+        handwritten="false"
+        classes="Value"
+      >y</socket></block></socket></block>
+      <block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop"
+      >button <socket
+        precedence="0"
+        handwritten="false"
+        classes="Value"
+      >'clickme'</socket
+      >, -&gt;<indent
+        prefix="  "
+        classes=""
+      >
+      <block
+        precedence="0"
+        color="command"
+        socketLevel="0"
+        classes="Call works-as-method-call any-drop"
+      >write <socket
+        precedence="-1"
+        handwritten="false"
+        classes="Value"
+      >'ouch'</socket></block></indent></block></segment>
     '''
     strictEqual(
       helper.xmlPrettyPrint(customSerialization),

@@ -322,9 +322,18 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       if last? and last.value in list then return 1
       return 0
 
+    # ## addCode ##
+    # This shared logic handles the sockets for the Code function
+    # definitions, even when merged into a parent block.
+    addCode: (node, depth, indentDepth) ->
+      for param in node.params
+        @csSocketAndMark param, depth, 0, indentDepth, FORBID_ALL
+      @mark node.body, depth, 0, null, indentDepth
+
     # ## mark ##
     # Mark a single node.  The main recursive function.
     mark: (node, depth, precedence, wrappingParen, indentDepth) ->
+
       switch node.nodeType()
 
         # ### Block ###
@@ -533,22 +542,23 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
           unless node.do
             for arg, index in node.args
-              precedence = 0
+              last = index is node.args.length - 1
               # special case: the last argument slot of a function
               # gathers anything inside it, without parens needed.
-              if index is node.args.length - 1 then precedence = -1
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth
+              precedence = if last then -1 else 0
+              if last and arg.nodeType() is 'Code'
+                # Inline function definitions that appear as the last arg
+                # of a function call will be melded into the parent block.
+                @addCode arg, depth + 1, indentDepth
+              else
+                @csSocketAndMark arg, depth + 1, precedence, indentDepth
 
         # ### Code ###
         # Function definition. Color VALUE, sockets @params,
         # and indent @body.
         when 'Code'
           @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
-
-          for param in node.params
-            @csSocketAndMark param, depth + 1, 0, indentDepth, FORBID_ALL
-
-          @mark node.body, depth + 1, 0, null, indentDepth
+          @addCode node, depth + 1, indentDepth
 
         # ### Assign ###
         # Color COMMAND, sockets @variable and @value.
@@ -556,7 +566,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
           @csSocketAndMark node.variable, depth + 1, 0, indentDepth, LVALUE
 
-          @csSocketAndMark node.value, depth + 1, 0, indentDepth
+          if node.value.nodeType() is 'Code'
+            @addCode node.value, depth + 1, indentDepth
+          else
+            @csSocketAndMark node.value, depth + 1, 0, indentDepth
 
         # ### For ###
         # Color CONTROL, options sockets @index, @source, @name, @from.
