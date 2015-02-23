@@ -116,6 +116,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
   COLORS = {
     'BinaryExpression': 'value'
+    'UnaryExpression': 'value'
     'FunctionExpression': 'value'
     'FunctionDeclaration': 'violet'
     'AssignmentExpression': 'command'
@@ -241,6 +242,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'BinaryExpression'
           return OPERATOR_PRECEDENCES[node.operator]
         when 'AssignStatement'
+          return 17
+        when 'UnaryExpression'
           return 17
         when 'CallExpression'
           return 2
@@ -416,6 +419,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.left, depth + 1, OPERATOR_PRECEDENCES[node.operator]
           @jsSocketAndMark indentDepth, node.right, depth + 1, OPERATOR_PRECEDENCES[node.operator]
+        when 'UnaryExpression'
+          @jsBlock node, depth, bounds
+          @jsSocketAndMark indentDepth, node.argument, depth + 1, 17
         when 'ExpressionStatement'
           @mark indentDepth, node.expression, depth + 1, @getBounds node
         when 'Identifier'
