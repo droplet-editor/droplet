@@ -203,12 +203,12 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         handwritten="false"
         classes=""
       ><block
-        precedence="17"
+        precedence="4"
         color="value"
         socketLevel="0"
         classes="UnaryExpression mostly-value"
       >~<socket
-        precedence="17"
+        precedence="4"
         handwritten="false"
         classes=""
       >log</socket></block></socket

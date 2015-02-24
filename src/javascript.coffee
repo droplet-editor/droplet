@@ -142,6 +142,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'ConditionalExpression': 'value'
   }
 
+  # See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
+  # These numbers are "19 - x" so that the lowest numbers bind most tightly.
   OPERATOR_PRECEDENCES = {
     '*': 5
     '/': 5
@@ -161,10 +163,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     '===': 9
     '!==': 9
     '&': 10
-    '^': 10
-    '|': 10
-    '&&': 10
-    '||': 10
+    '^': 11
+    '|': 12
+    '&&': 13
+    '||': 14
   }
 
   CLASS_EXCEPTIONS = {
@@ -242,11 +244,18 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'BinaryExpression'
           return OPERATOR_PRECEDENCES[node.operator]
         when 'AssignStatement'
-          return 17
+          return 16
         when 'UnaryExpression'
-          return 17
+          if node.prefix
+            return 4
+          else
+            return 3
         when 'CallExpression'
           return 2
+        when 'NewExpression'
+          return 2
+        when 'MemberExpression'
+          return 1
         when 'ExpressionStatement'
           return @getPrecedence node.expression
         else
@@ -421,7 +430,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsSocketAndMark indentDepth, node.right, depth + 1, OPERATOR_PRECEDENCES[node.operator]
         when 'UnaryExpression'
           @jsBlock node, depth, bounds
-          @jsSocketAndMark indentDepth, node.argument, depth + 1, 17
+          @jsSocketAndMark indentDepth, node.argument, depth + 1, @getPrecedence node
         when 'ExpressionStatement'
           @mark indentDepth, node.expression, depth + 1, @getBounds node
         when 'Identifier'
