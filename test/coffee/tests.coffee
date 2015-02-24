@@ -160,7 +160,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     }
 
     customSerialization = customJS.parse('''
-      console.log(Math.log(log(x.log(log))));
+      console.log(Math.log(log(x.log(~log))));
     ''').serialize()
 
     expectedSerialization = '''
@@ -202,7 +202,16 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         precedence="100"
         handwritten="false"
         classes=""
-      >log</socket
+      ><block
+        precedence="4"
+        color="value"
+        socketLevel="0"
+        classes="UnaryExpression mostly-value"
+      >~<socket
+        precedence="4"
+        handwritten="false"
+        classes=""
+      >log</socket></block></socket
       >)</block></socket
       >)</block></socket
       >)</block></socket
