@@ -23,14 +23,17 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
   test 'Parser configurability', ->
     customCoffee = new Coffee {
-      blockFunctions: ['marius', 'valjean']
-      valueFunctions: ['eponine', 'fantine']
-      eitherFunctions: ['cosette']
+      functions:
+        marius: {}
+        valjean: {}
+        eponine: {value: true}
+        fantine: {value: true}
+        cosette: {command: true, value:true}
     }
 
     window.customSerialization = customSerialization = customCoffee.parse('''
       marius eponine 10
-      fd random 100
+      alert random 100
       cosette 20
     ''').serialize()
 
@@ -58,7 +61,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Call works-as-method-call any-drop"><socket
         precedence="0"
         handwritten="false"
-        classes="Value">fd</socket> <socket
+        classes="Value">alert</socket> <socket
         precedence="-1"
         handwritten="false"
         classes="Call works-as-method-call"><block
@@ -90,9 +93,12 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
   test 'Dotted methods', ->
     customCoffee = new Coffee {
-      blockFunctions: ['console.log', 'speak']
-      valueFunctions: ['Math.log', 'log']
-      eitherFunctions: ['setTimeout']
+      functions:
+        'console.log': {}
+        speak        : {}
+        'Math.log'   : {value: true}
+        log          : {value:true}
+        setTimeout   : {command:true, value:true}
     }
 
     customSerialization = customCoffee.parse('''
@@ -227,8 +233,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     coffee = new Coffee
     customSerialization = coffee.parse('''
       x = (y) -> y * y
-      button 'clickme', ->
-        write 'ouch'
+      alert 'clickme', ->
+        console.log 'ouch'
     ''').serialize()
 
     expectedSerialization = '''
@@ -272,8 +278,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         precedence="0"
         color="command"
         socketLevel="0"
-        classes="Call works-as-method-call any-drop"
-      >button <socket
+        classes="Call works-as-method-call mostly-block"
+      >alert <socket
         precedence="0"
         handwritten="false"
         classes="Value"
@@ -286,8 +292,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         precedence="0"
         color="command"
         socketLevel="0"
-        classes="Call works-as-method-call any-drop"
-      >write <socket
+        classes="Call works-as-method-call mostly-block"
+      >console.log <socket
         precedence="-1"
         handwritten="false"
         classes="Value"
@@ -296,7 +302,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
-      'Dotted known functions work'
+      'Merged code blocks work'
     )
 
   test 'XML parser unity', ->
@@ -378,19 +384,19 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
   test 'Get block on line', ->
     document = coffee.parse '''
     for i in [1..10]
-      see i
+      console.log i
     if a is b
-      see k
+      console.log k
       if b is c
-        see q
+        console.log q
     else
-      see j
+      console.log j
     '''
 
-    strictEqual document.getBlockOnLine(1).stringify(coffee.empty), 'see i', 'line 1'
-    strictEqual document.getBlockOnLine(3).stringify(coffee.empty), 'see k', 'line 3'
-    strictEqual document.getBlockOnLine(5).stringify(coffee.empty), 'see q', 'line 5'
-    strictEqual document.getBlockOnLine(7).stringify(coffee.empty), 'see j', 'line 7'
+    strictEqual document.getBlockOnLine(1).stringify(coffee.empty), 'console.log i', 'line 1'
+    strictEqual document.getBlockOnLine(3).stringify(coffee.empty), 'console.log k', 'line 3'
+    strictEqual document.getBlockOnLine(5).stringify(coffee.empty), 'console.log q', 'line 5'
+    strictEqual document.getBlockOnLine(7).stringify(coffee.empty), 'console.log j', 'line 7'
 
   test 'Location serialization unity', ->
     document = coffee.parse '''
@@ -449,7 +455,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     for i in [1..10]
       ``
     for i in [1..10]
-      fd 10
+      alert 10
     '''
 
     document.getBlockOnLine(2).moveTo document.getBlockOnLine(1).end.prev.container.start, coffee
@@ -457,51 +463,51 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual document.stringify(coffee.empty), '''
     for i in [1..10]
       for i in [1..10]
-        fd 10
+        alert 10
     '''
 
   test 'Paren wrap', ->
     document = coffee.parse '''
     Math.sqrt 2
-    see 1 + 1
+    console.log 1 + 1
     '''
 
     (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
 
     strictEqual document.stringify(coffee.empty), '''
-    see 1 + (Math.sqrt 2)
+    console.log 1 + (Math.sqrt 2)
     ''', 'Wrap'
 
     block.moveTo document.start, coffee
 
     strictEqual document.stringify(coffee.empty), '''
     Math.sqrt 2
-    see 1 + ``''', 'Unwrap'
+    console.log 1 + ``''', 'Unwrap'
 
   test 'View: compute children', ->
     view_ = new view.View()
 
     document = coffee.parse '''
-    fd 10
+    alert 10
     '''
 
     documentView = view_.getViewNodeFor document
     documentView.layout()
 
-    strictEqual documentView.lineChildren[0].length, 1, 'Children length 1 in `fd 10`'
+    strictEqual documentView.lineChildren[0].length, 1, 'Children length 1 in `alert 10`'
     strictEqual documentView.lineChildren[0][0].child, document.getBlockOnLine(0), 'Child matches'
     strictEqual documentView.lineChildren[0][0].startLine, 0, 'Child starts on correct line'
 
     blockView = view_.getViewNodeFor document.getBlockOnLine 0
-    strictEqual blockView.lineChildren[0].length, 2, 'Children length 2 in `fd 10` block'
+    strictEqual blockView.lineChildren[0].length, 2, 'Children length 2 in `alert 10` block'
     strictEqual blockView.lineChildren[0][0].child.type, 'text', 'First child is text'
     strictEqual blockView.lineChildren[0][1].child.type, 'socket', 'Second child is socket'
 
     document = coffee.parse '''
     for [1..10]
-      fd 10
-      bk 10
-      fd 20
+      alert 10
+      prompt 10
+      alert 20
     '''
 
     documentView = view_.getViewNodeFor document
@@ -518,19 +524,19 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     document = coffee.parse '''
     for [1..10]
       for [1..10]
-        fd 10
-        fd 20
+        alert 10
+        alert 20
     '''
 
     documentView = view_.getViewNodeFor document
     documentView.layout()
 
     indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-    strictEqual indentView.lineChildren[1][0].child.stringify(coffee.empty), 'fd 10', 'Relative line numbers'
+    strictEqual indentView.lineChildren[1][0].child.stringify(coffee.empty), 'alert 10', 'Relative line numbers'
 
     document = coffee.parse '''
-    see (for [1..10]
-      fd 10)
+    console.log (for [1..10]
+      alert 10)
     '''
 
     documentView = view_.getViewNodeFor document
@@ -546,8 +552,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document = coffee.parse '''
     for [1..10]
-      fd 10
-      fd 20
+      alert 10
+      alert 20
     '''
 
     documentView = view_.getViewNodeFor document
@@ -565,9 +571,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       'Third line height (indentEnd at root)'
 
     document = coffee.parse '''
-    fd (for [1..10]
-      fd 10
-      fd 20)
+    alert (for [1..10]
+      alert 10
+      alert 20)
     '''
 
     documentView = view_.getViewNodeFor document
@@ -585,9 +591,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       'Third line height (indentEnd with padding)'
 
     document = coffee.parse '''
-    fd 10
+    alert 10
 
-    fd 20
+    alert 20
     '''
 
     documentView = view_.getViewNodeFor document
@@ -601,10 +607,10 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     view_ = new view.View()
 
     document = coffee.parse '''
-    fd 10
-    fd 20
-    fd 30
-    fd 40
+    alert 10
+    alert 20
+    alert 30
+    alert 40
     '''
 
     documentView = view_.getViewNodeFor document
@@ -628,7 +634,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document = coffee.parse '''
     for i in [[[]]]
-      fd 10
+      alert 10
     '''
 
     documentView = view_.getViewNodeFor document
@@ -655,8 +661,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document = coffee.parse '''
     setTimeout (->
-      fd 20
-      fd 10), 1 + 2 + 3 + 4 + 5
+      alert 20
+      alert 10), 1 + 2 + 3 + 4 + 5
     '''
 
     documentView = view_.getViewNodeFor document
@@ -697,7 +703,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     view_ = new view.View()
 
     document = coffee.parse '''
-    see 'hi'
+    console.log 'hi'
     '''
 
     documentView = view_.getViewNodeFor document
@@ -890,12 +896,12 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     }
 
     editor.setValue '''
-    fd 10
+    alert 10
     if a is b
-      fd 20
-      fd 30
+      alert 20
+      alert 30
     else
-      fd 40
+      alert 40
     '''
 
     strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct (x - down)'
@@ -904,11 +910,11 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor.moveCursorTo editor.cursor.next.next
 
     strictEqual editor.determineCursorPosition().x, 0,
-      'Cursor position correct after \'fd 10\' (x - down)'
+      'Cursor position correct after \'alert 10\' (x - down)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
       1 * editor.view.opts.textHeight +
       2 * editor.view.opts.padding +
-      2 * editor.view.opts.textPadding, 'Cursor position correct after \'fd 10\' (y - down)'
+      2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - down)'
 
     editor.moveCursorTo editor.cursor.next.next
 
@@ -922,11 +928,11 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor.moveCursorTo editor.cursor.next.next
 
     strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
-      'Cursor position correct after \'fd 20\' (x - down)'
+      'Cursor position correct after \'alert 20\' (x - down)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
       3 * editor.view.opts.textHeight +
       8 * editor.view.opts.padding +
-      6 * editor.view.opts.textPadding, 'Cursor position correct after \'fd 20\' (y - down)'
+      6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - down)'
 
     editor.moveCursorTo editor.cursor.next.next
 
@@ -953,11 +959,11 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor.moveCursorUp()
 
     strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
-      'Cursor position correct after \'fd 20\' (x - up)'
+      'Cursor position correct after \'alert 20\' (x - up)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
       3 * editor.view.opts.textHeight +
       8 * editor.view.opts.padding +
-      6 * editor.view.opts.textPadding, 'Cursor position correct after \'fd 20\' (y - up)'
+      6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - up)'
 
     editor.moveCursorUp()
 
@@ -971,11 +977,11 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor.moveCursorUp()
 
     strictEqual editor.determineCursorPosition().x, 0,
-      'Cursor position correct after \'fd 10\' (x - up)'
+      'Cursor position correct after \'alert 10\' (x - up)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
       1 * editor.view.opts.textHeight +
       2 * editor.view.opts.padding +
-      2 * editor.view.opts.textPadding, 'Cursor position correct after \'fd 10\' (y - up)'
+      2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - up)'
 
     editor.moveCursorUp()
 
@@ -1032,10 +1038,10 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     editor.setValue '''
     for [1..10]
-      fd 10 + 10
-      bk 10 - 10
-      fd 10 * 10
-      bk 10 / 10
+      alert 10 + 10
+      prompt 10 - 10
+      alert 10 * 10
+      prompt 10 / 10
     '''
 
     key = editor.mark 2, 4, {color: '#F00'}

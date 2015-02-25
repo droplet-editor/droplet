@@ -1,8 +1,8 @@
 [
   {
     "message": "Function call",
-    "str": "fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/segment>"
+    "str": "alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/segment>"
   },
   {
     "message": "Variable assignment",
@@ -11,13 +11,13 @@
   },
   {
     "message": "If statement, normal form",
-    "str": "if true\n fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"If mostly-block\">if <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
+    "str": "if true\n alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"If mostly-block\">if <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
   },
   {
     "message": "Unless statement, normal form",
-    "str": "unless true\n fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"If mostly-block\">unless <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
+    "str": "unless true\n alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"If mostly-block\">unless <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
   },
   {
     "message": "One-line if statement",
@@ -26,8 +26,8 @@
   },
   {
     "message": "If-else statement, normal form",
-    "str": "if true\n fd 10\nelse\n fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"If mostly-block\">if <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent>\nelse<indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
+    "str": "if true\n alert 10\nelse\n alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"If mostly-block\">if <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent>\nelse<indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
   },
   {
     "message": "One-line if-else statement",
@@ -36,33 +36,33 @@
   },
   {
     "message": "While statement, normal form",
-    "str": "while a\n fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"While mostly-block\">while <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">a<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
+    "str": "while a\n alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"While mostly-block\">while <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">a<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
   },
   {
     "message": "One-line while statement",
-    "str": "while a then fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"While mostly-block\">while <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">a<\/socket> then <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Block\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block><\/segment>"
+    "str": "while a then alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"While mostly-block\">while <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">a<\/socket> then <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Block\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block><\/segment>"
   },
   {
     "message": "For-in, normal form",
-    "str": "for i in list\n fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"For mostly-block\">for <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Literal forbid-all\">i<\/socket> in <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">list<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
+    "str": "for i in list\n alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"For mostly-block\">for <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Literal forbid-all\">i<\/socket> in <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">list<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
   },
   {
     "message": "One-line for-in",
-    "str": "for i in list then fd 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"For mostly-block\">for <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Literal forbid-all\">i<\/socket> in <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">list<\/socket> then <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Block\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block><\/segment>"
+    "str": "for i in list then alert 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"For mostly-block\">for <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Literal forbid-all\">i<\/socket> in <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">list<\/socket> then <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Block\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block><\/segment>"
   },
   {
     "message": "Inverted one-line for-in",
-    "str": "fd 10 for i in list",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"For mostly-block\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Block\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket> for <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Literal forbid-all\">i<\/socket> in <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">list<\/socket><\/block><\/segment>"
+    "str": "alert 10 for i in list",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"For mostly-block\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Block\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket> for <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Literal forbid-all\">i<\/socket> in <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">list<\/socket><\/block><\/segment>"
   },
   {
     "message": "Semicolons at the root",
-    "str": "fd 10; bk 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-2\"\n color=\"command\"\n socketLevel=\"any-drop\"\n classes=\"semicolon\"><socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket>; <socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">bk <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block><\/segment>"
+    "str": "alert 10; prompt 10",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-2\"\n color=\"command\"\n socketLevel=\"any-drop\"\n classes=\"semicolon\"><socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket>; <socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">prompt <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block><\/segment>"
   },
   {
     "message": "Semicolons with one-line block",
@@ -71,8 +71,8 @@
   },
   {
     "message": "Semicolons in sequence",
-    "str": "while a\n see hi\n fd 10; bk 10\n see bye",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"While mostly-block\">while <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">a<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">see <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">hi<\/socket><\/block>\n<block\n precedence=\"-2\"\n color=\"command\"\n socketLevel=\"any-drop\"\n classes=\"semicolon\"><socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">fd <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket>; <socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">bk <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block>\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">see <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">bye<\/socket><\/block><\/indent><\/block><\/segment>"
+    "str": "while a\n console.log hi\n alert 10; prompt 10\n console.log bye",
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"-3\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"While mostly-block\">while <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">a<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">console.log <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">hi<\/socket><\/block>\n<block\n precedence=\"-2\"\n color=\"command\"\n socketLevel=\"any-drop\"\n classes=\"semicolon\"><socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket>; <socket\n precedence=\"-2\"\n handwritten=\"false\"\n classes=\"Call works-as-method-call\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">prompt <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/socket><\/block>\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">console.log <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">bye<\/socket><\/block><\/indent><\/block><\/segment>"
   },
   {
     "message": "Object literal, normal form",
