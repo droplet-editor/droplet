@@ -160,9 +160,12 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
   test 'JS dotted methods', ->
     customJS = new JavaScript {
-      blockFunctions: ['console.log', 'speak']
-      valueFunctions: ['Math.log', 'log']
-      eitherFunctions: ['setTimeout']
+      functions:
+        'console.log': {}
+        speak        : {}
+        'Math.log'   : {value: true}
+        log          : {value:true}
+        setTimeout   : {command:true, value:true}
     }
 
     customSerialization = customJS.parse('''
