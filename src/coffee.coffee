@@ -16,130 +16,60 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   FORBID_ALL = ['forbid-all']
   PROPERTY_ACCESS = ['prop-access']
 
-  BLOCK_FUNCTIONS = [
-    'fd'
-    'bk'
-    'rt'
-    'lt'
-    'slide'
-    'move'
-    'movexy'
-    'moveto'
-    'jump'
-    'jumpxy'
-    'jumpto'
-    'turnto'
-    'home'
-    'pen'
-    'fill'
-    'dot'
-    'box'
-    'mirror'
-    'twist'
-    'scale'
-    'pause'
-    'st'
-    'ht'
-    'cs'
-    'cg'
-    'ct'
-    'pu'
-    'pd'
-    'pe'
-    'pf'
-    'play'
-    'tone'
-    'silence'
-    'speed'
-    'wear'
-    'drawon'
-    'label'
-    'reload'
-    'see'
-    'sync'
-    'send'
-    'recv'
-    'click'
-    'mousemove'
-    'mouseup'
-    'mousedown'
-    'keyup'
-    'keydown'
-    'keypress'
-    'alert'
-    'prompt'
-    'done'
-    'tick'
-    'type'
-    'log'
-  ]
-
-  VALUE_FUNCTIONS = [
-    'abs'
-    'acos'
-    'asin'
-    'atan'
-    'atan2'
-    'cos'
-    'sin'
-    'tan'
-    'ceil'
-    'floor'
-    'round'
-    'exp'
-    'ln'
-    'log10'
-    'pow'
-    'sqrt'
-    'max'
-    'min'
-    'random'
-    'pagexy'
-    'getxy'
-    'direction'
-    'distance'
-    'shown'
-    'hidden'
-    'inside'
-    'touches'
-    'within'
-    'notwithin'
-    'nearest'
-    'pressed'
-    'canvas'
-    'hsl'
-    'hsla'
-    'rgb'
-    'rgba'
-    'cell'
-    '$'
-    'match'
-    'toString'
-    'charCodeAt'
-    'fromCharCode'
-    'split'
-    'join'
-    'sort'
-  ]
-
-  EITHER_FUNCTIONS = [
-    'button'
-    'read'
-    'readstr'
-    'readnum'
-    'write'
-    'table'
-    'append'
-    'finish'
-    'loadscript'
-    'text'
-    'html'
-  ]
+  KNOWN_FUNCTIONS =
+    'alert'       : {}
+    'prompt'      : {}
+    'console.log' : {}
+    'Math.abs'    : {value: true}
+    'Math.acos'   : {value: true}
+    'Math.asin'   : {value: true}
+    'Math.atan'   : {value: true}
+    'Math.atan2'  : {value: true}
+    'Math.cos'    : {value: true}
+    'Math.sin'    : {value: true}
+    'Math.tan'    : {value: true}
+    'Math.ceil'   : {value: true}
+    'Math.floor'  : {value: true}
+    'Math.round'  : {value: true}
+    'Math.exp'    : {value: true}
+    'Math.ln'     : {value: true}
+    'Math.log10'  : {value: true}
+    'Math.pow'    : {value: true}
+    'Math.sqrt'   : {value: true}
+    'Math.max'    : {value: true}
+    'Math.min'    : {value: true}
+    'Math.random' : {value: true}
 
   STATEMENT_KEYWORDS = [
     'break'
     'continue'
   ]
+
+  ###
+  OPERATOR_PRECEDENCES =
+    '*': 5
+    '/': 5
+    '%': 5
+    '+': 6
+    '-': 6
+    '<<': 7
+    '>>': 7
+    '>>>': 7
+    '<': 8
+    '>': 8
+    '>=': 8
+    'in': 8
+    'instanceof': 8
+    '==': 9
+    '!=': 9
+    '===': 9
+    '!==': 9
+    '&': 10
+    '^': 11
+    '|': 12
+    '&&': 13
+    '||': 14
+  ###
 
   OPERATOR_PRECEDENCES =
     '||': 1
@@ -183,9 +113,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     constructor: (@text, @opts = {}) ->
       super
 
-      @opts.blockFunctions ?= BLOCK_FUNCTIONS
-      @opts.valueFunctions ?= VALUE_FUNCTIONS
-      @opts.eitherFunctions ?= EITHER_FUNCTIONS
+      @opts.functions ?= KNOWN_FUNCTIONS
 
       @lines = @text.split '\n'
 
@@ -308,19 +236,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       node = nn[nn.length - 1]
       return node?.value?.length > 1 and @emptyLocation node.locationData
 
-    nameNodesMatch: (nn, list) ->
-      # Test the name nodes list against the given list, and return:
-      # 0 if no match
-      # 2 if a full-qualified dotted name matches
-      # 1 if just the last component of the name matches
-      # E.g., [{value:'Math'},{value:'sin'}] matches 'Math.sin' with a 2,
-      # and matches 'sin' with a 1.
+    lookupFunctionName: (nn) ->
+      # Test the name nodes list against the given list, and return
+      # null if not found, or a tuple of information about the match.
       if nn.length > 1
         full = (nn.map (n) -> n?.value or '*').join '.'
-        if full in list then return 2
+        if full of @opts.functions
+          return name: full, dotted: true, fn: @opts.functions[full]
       last = nn[nn.length - 1]
-      if last? and last.value in list then return 1
-      return 0
+      if last? and last.value of @opts.functions
+        return name: last.value, dotted: false, fn: @opts.functions[last.value]
+      return null
 
     # ## addCode ##
     # This shared logic handles the sockets for the Code function
@@ -516,24 +442,28 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         when 'Call'
           if node.variable?
             namenodes = @functionNameNodes node
-            parts = @nameNodesMatch namenodes, @opts.blockFunctions
-            if parts > 0
-              @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
-            else
-              parts = @nameNodesMatch namenodes, @opts.valueFunctions
-              if parts > 0
-                @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
+            known = @lookupFunctionName namenodes
+            if known
+              if known.fn.value
+                color = known.fn.color or
+                  if known.fn.command then 'command' else 'value'
+                classes = if known.fn.command then ANY_DROP else MOSTLY_VALUE
               else
-                parts = @nameNodesMatch namenodes, @opts.eitherFunctions
-                @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
+                color = known.fn.color or 'command'
+                classes = MOSTLY_BLOCK
+            else
+              color = 'command'
+              classes = ANY_DROP
+            @csBlock node, depth, 0, color, wrappingParen, classes
+
             # Some function names (like /// RegExps ///) are never editable.
             if @implicitName namenodes
               # do nothing
-            else if parts is 0
+            else if not known
               # In the 'advanced' case where the methodname should be
               # editable, treat the whole (x.y.fn) as an expression to socket.
               @csSocketAndMark node.variable, depth + 1, 0, indentDepth
-            else if parts is 1 and node.variable.properties?.length > 0
+            else if not known.dotted and node.variable.properties?.length > 0
               # In the 'beginner' case of a simple method call with a
               # simple base object variable, let the variable be socketed.
               @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
