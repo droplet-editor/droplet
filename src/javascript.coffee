@@ -196,6 +196,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       tree = acorn.parse(@text, {
         locations: true
         line: 0
+        allowReturnOutsideFunction: true
       })
 
       #console.log 'PROGRAM IS', JSON.stringify tree, null, 2
