@@ -127,4 +127,28 @@ Sets up a font size (in pixels) to use.
 
 What color to use for the top nubby of the editor.
 
+ModeOptions for Coffeescript and Javascript
+-------------------------------------------
+
+When instantiating droplet, the options array can contain a modeOptions
+option.  The same type of options objet can be passed as a second
+argument to setMode.
+
+modeOptions for both coffeescript and javascript.  Instead of passing three arrays blockFunctions, eitherFunctions, valueFunctions, we now pass a single map 'functions'.
+
+modeOptions is an object that can have a `functions` property that
+is an object that represents a whitelist of known functions.
+
+```js
+functions: {
+    knownFunction: {value: true, color: red}
+    myFunction: {value: true, command: true}
+}
+```
+
+Each function is associated with a configuration object.  It can specify:
+- value: true if it's a "value" block that should be usable as a value in expressions.
+- command: true if it's a "command" block that can serve as a top-level statement.
+- (specify both value and command if it can be both).
+- color: colorname to set the color of the block.  If omitted, a default color is chosen.
 
