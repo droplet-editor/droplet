@@ -24,9 +24,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
   test 'Parser configurability', ->
     customCoffee = new Coffee {
       functions:
-        marius: {}
+        marius: {color: 'red'}
         valjean: {}
-        eponine: {value: true}
+        eponine: {value: true, color: 'purplish'}
         fantine: {value: true}
         cosette: {command: true, value:true}
     }
@@ -39,18 +39,22 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     expectedSerialization = '''
       <segment
-        isLassoSegment="false"><block
+        isLassoSegment="false"
+      ><block
         precedence="0"
-        color="command"
+        color="red"
         socketLevel="0"
-        classes="Call works-as-method-call mostly-block">marius <socket
+        classes="Call works-as-method-call mostly-block"
+      >marius <socket
         precedence="-1"
         handwritten="false"
-        classes="Call works-as-method-call"><block
+        classes="Call works-as-method-call"
+      ><block
         precedence="0"
-        color="value"
+        color="purplish"
         socketLevel="0"
-        classes="Call works-as-method-call mostly-value">eponine <socket
+        classes="Call works-as-method-call mostly-value"
+      >eponine <socket
         precedence="-1"
         handwritten="false"
         classes="Value">10</socket></block></socket></block>
@@ -58,20 +62,25 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         precedence="0"
         color="command"
         socketLevel="0"
-        classes="Call works-as-method-call any-drop"><socket
+        classes="Call works-as-method-call any-drop"
+      ><socket
         precedence="0"
         handwritten="false"
-        classes="Value">alert</socket> <socket
+        classes="Value"
+      >alert</socket> <socket
         precedence="-1"
         handwritten="false"
-        classes="Call works-as-method-call"><block
+        classes="Call works-as-method-call"
+      ><block
         precedence="0"
         color="command"
         socketLevel="0"
-        classes="Call works-as-method-call any-drop"><socket
+        classes="Call works-as-method-call any-drop"
+      ><socket
         precedence="0"
         handwritten="false"
-        classes="Value">random</socket> <socket
+        classes="Value"
+      >random</socket> <socket
         precedence="-1"
         handwritten="false"
         classes="Value">100</socket></block></socket></block>
