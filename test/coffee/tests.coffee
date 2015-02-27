@@ -173,17 +173,26 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         'console.log': {}
         speak        : {}
         'Math.log'   : {value: true}
-        log          : {value:true}
+        log          : {value: true, color: 'red'}
         setTimeout   : {command:true, value:true}
     }
 
     customSerialization = customJS.parse('''
-      console.log(Math.log(log(x.log(~log))));
+      return console.log(Math.log(log(x.log(~log))));
     ''').serialize()
 
     expectedSerialization = '''
       <segment
         isLassoSegment="false"
+      ><block
+        precedence="0"
+        color="return"
+        socketLevel="0"
+        classes="ReturnStatement mostly-block"
+      >return <socket
+        precedence="0"
+        handwritten="false"
+        classes=""
       ><block
         precedence="2"
         color="command"
@@ -204,7 +213,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="2"
-        color="value"
+        color="red"
         socketLevel="0"
         classes="CallExpression mostly-value"
       >log(<socket
@@ -213,7 +222,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="2"
-        color="value"
+        color="red"
         socketLevel="0"
         classes="CallExpression mostly-value"
       >x.log(<socket
@@ -233,7 +242,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       >)</block></socket
       >)</block></socket
       >)</block></socket
-      >);</block></segment>
+      >)</block></socket
+      >;</block></segment>
     '''
     strictEqual(
       helper.xmlPrettyPrint(customSerialization),
