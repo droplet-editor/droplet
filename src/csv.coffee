@@ -8,7 +8,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   ]
 
 
-  class javscript extends parser.Parser
+  class csv extends parser.Parser
     constructor: (@text, @opts = {}) ->
         super
         @lines = @text.split '\n'
@@ -85,4 +85,4 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           accepts: @getAcceptsRule node
       @mark indentDepth, node, depth + 1, bounds
 
-  return parser.wrapParser javscript
+  return parser.wrapParser csv
