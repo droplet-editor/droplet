@@ -45,6 +45,7 @@ module.exports = (grunt) ->
           {dest: 'test/js/tests.js', src: 'test/coffee/tests.coffee'}
 
           {dest: 'example/example.js', src: 'example/example.coffee'}
+          {dest: 'example/csv.js', src: 'example/csv.coffee'}
           {dest: 'example/example-js.js', src: 'example/example-js.coffee'}
           {dest: 'example/test.js', src: 'example/test.coffee'}
         ]
