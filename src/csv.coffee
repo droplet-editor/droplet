@@ -1,4 +1,4 @@
-define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, model, parser, acorn) ->
+define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
   
   exports = {}
 
@@ -6,69 +6,73 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'Default': 'violet'
   }
 
+  MOSTLY_VALUE = ['mostly-value']
+
   exports.CSVParser = class CSVParser extends parser.Parser
     
     constructor: (@text, @opts = {}) ->
       super
       @lines = @text.split '\n'
 
-    markRoot: ->
-      tree = acorn.parse(@text, {
-        locations: true
-        line: 0
-      })
+    getAcceptsRule: (index) -> default: helper.NORMAL
 
-      @mark 0, tree, 0, null
-
-    getAcceptsRule: (node) -> default: helper.NORMAL
-
-    getClasses: (node) ->
-      return [node.type, 'mostly-value']
-
-    getPrecedence: (node) ->
+    getPrecedence: (index) ->
       return 1
 
-    getColor: (node) ->
+    getClasses: (index) ->
+      return MOSTLY_VALUE
+
+    getColor: (index) ->
       return COLORS['Default']
 
-    getBounds: (node) ->
-      return node.loc
+    getBounds: (index, start, end) ->
+      return bounds = {
+        start: {
+          line: index
+          column: start
+        }
+        end: {
+          line: index
+          column: end
+        }
+      }
 
-    getSocketLevel: (node) -> helper.ANY_DROP
+    getSocketLevel: (index) -> helper.ANY_DROP
 
     isComment: (text) ->
       text.match(/^\s*\/\/.*$/)
 
-    mark: (indentDepth, node, depth, bounds) ->
-      switch node.type
-        when 'Program'
-          for sequence in node.body
-            @mark indentDepth, sequence, depth + 1, null
-        when 'SequenceExpression'
-          @csvBlock node, depth, bounds
-          for expression in node.expressions
-            @csvSocketAndMark indentDepth, expression, depth + 1, null
-        when 'ExpressionStatement'
-          @mark indentDepth, node.expression, depth + 1, @getBounds node
-
-    csvBlock: (node, depth, bounds) ->
+    csvBlock: (index) ->
       @addBlock
-        bounds: bounds ? @getBounds node
-        depth: depth
-        precedence: @getPrecedence node
-        color: @getColor node
-        classes: @getClasses node
-        socketLevel: @getSocketLevel node
+        bounds: @getBounds index, 0, @lines[index].length
+        depth: 0
+        precedence: @getPrecedence index
+        color: @getColor index
+        socketLevel: @getSocketLevel index
 
-    csvSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes) ->
-      unless node.type is 'BlockStatement'
-        @addSocket
-          bounds: bounds ? @getBounds node
-          depth: depth
-          precedence: precedence
-          classes: classes ? []
-          acccepts: @getAcceptsRule node
+    csvSocket: (index, start, end) ->
+      @addSocket
+        bounds: @getBounds index, start, end
+        depth: 1
+        precedence: @getPrecedence index
+        classes: @getClasses index
+        acccepts: @getAcceptsRule index
 
-      @mark indentDepth, node, depth + 1, bounds
+    parseLine: (line, index) ->
+      line = line.concat(',')
+      started = false
+      start = 0
+      end = 0
+      for ch, j in line
+        if ch == ','
+          end = j
+          @csvSocket index, start, end
+          start = j+1
+
+    markRoot: ->
+      for line, i in @lines
+        if line != '' and not @isComment(line)
+          @csvBlock i
+          @parseLine line, i
 
   return parser.wrapParser CSVParser

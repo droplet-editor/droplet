@@ -19,7 +19,7 @@ require ['droplet'], (droplet) ->
         name: 'Basic'
         color: 'violet'
         blocks: [
-          {block:'v1, v2, v3;', title: 'Comma Separated Values'}
+          {block:'v1,v2,v3', title: 'Comma Separated Values'}
         ]
       }
     ]
