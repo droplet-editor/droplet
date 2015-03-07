@@ -8,7 +8,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   ]
 
 
-  class javscript extends parser.Parser
+  class csv extends parser.Parser
     constructor: (@text, @opts = {}) ->
         super
         @lines = @text.split '\n'
@@ -30,10 +30,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       return 'violet'
 
     getSocketLevel: () -> helper.ANY_DROP
-    getAcceptsRule: () -> default: helper.NORMAL
+    getAcceptsRule: () -> default: helper.VALUE_ONLY
 
     getClasses: () ->
-      return ['mostly-value']
+      return NEVER_PAREN
 
     markRoot: ->
         
@@ -64,7 +64,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
                 @addSocket
                   bounds: @getcsvBounds i, st, st+cr.length
                   depth: 2
-                  precedence: 0
+                  precedence: 1
                   classes: []
                   accepts: @getAcceptsRule 
                 
@@ -73,4 +73,4 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     isComment: (str) ->
       str.match(/^\s*#.*$/)?
 
-  return parser.wrapParser javscript
+  return parser.wrapParser csv
