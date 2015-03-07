@@ -1,3 +1,8 @@
+###
+  Written by SAKSHAM AGGARWAL
+  Do not copy. Think something new and innovative instead
+###
+
 define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
   
   exports = {}
@@ -8,71 +13,112 @@ define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
 
   MOSTLY_VALUE = ['mostly-value']
 
+
   exports.CSVParser = class CSVParser extends parser.Parser
     
     constructor: (@text, @opts = {}) ->
       super
       @lines = @text.split '\n'
+      @text = @text
 
-    getAcceptsRule: (index) -> default: helper.NORMAL
+    getAcceptsRule: (node) -> default: helper.NORMAL
 
-    getPrecedence: (index) ->
-      return 1
+    getPrecedence: (node) -> 1
 
-    getClasses: (index) ->
-      return MOSTLY_VALUE
+    getClasses: (node) -> MOSTLY_VALUE
 
-    getColor: (index) ->
-      return COLORS['Default']
+    getColor: (node) -> COLORS['Default']
 
-    getBounds: (index, start, end) ->
+    getBounds: (node) ->
       return bounds = {
         start: {
-          line: index
-          column: start
+          line: node.index
+          column: node.start
         }
         end: {
-          line: index
-          column: end
+          line: node.index
+          column: node.end
         }
       }
 
-    getSocketLevel: (index) -> helper.ANY_DROP
+    getSocketLevel: (node) -> helper.ANY_DROP
+
+    csvBlock: (node) ->
+      @addBlock
+        bounds: @getBounds node
+        depth: 0
+        precedence: @getPrecedence node
+        color: @getColor node
+        socketLevel: @getSocketLevel node
+
+    csvSocket: (node) ->
+      @addSocket
+        bounds: @getBounds node
+        depth: 1
+        precedence: @getPrecedence node
+        classes: @getClasses node
+        acccepts: @getAcceptsRule node
+
+    markRoot: ->
+      root = @CSVtree @text
+      @mark root
+
+    mark: (node) ->
+      if node.type is 'Statement'
+        @csvBlock node
+      else if node.type is 'Value'
+        @csvSocket node
+
+      for child in node.children
+        @mark child
+
+
+    CSVtree: (text) ->
+      ###
+        Structure of node:
+        node->index = line number
+        node->type = Tree/Statement/Value/Comment
+        node->start = starting character
+        node->end = ending character
+        node->children = children
+      ###
+      return @getNode text, 'Tree'
 
     isComment: (text) ->
       text.match(/^\s*\/\/.*$/)
 
-    csvBlock: (index) ->
-      @addBlock
-        bounds: @getBounds index, 0, @lines[index].length
-        depth: 0
-        precedence: @getPrecedence index
-        color: @getColor index
-        socketLevel: @getSocketLevel index
+    getNode: (text, type, index, start, end) ->
+      node = {}
+      node.index = index
+      node.type = type
+      node.start = start
+      node.end = end
+      node.children = []
+      if type is 'Tree'
+        text = text.split '\n'
+        for row, i in text
+          if (row.length is 0) or (@isComment row)
+            node.children.push @getNode(row, 'Comment', i, 0, row.length)
+          else
+            node.children.push @getNode(row, 'Statement', i, 0, row.length)
+      else if type is 'Statement'
+        text = text.split ','
+        tot = 0
+        for val in text
+          start = 0
+          end = val.length
+          while start != end
+            if val[start] == " "
+              start += 1
+            else if val[end-1] == " "
+              end -= 1
+            else
+              break
+          node.children.push @getNode val, 'Value', index, start+tot, end+tot
+          tot += val.length + 1
+      return node
 
-    csvSocket: (index, start, end) ->
-      @addSocket
-        bounds: @getBounds index, start, end
-        depth: 1
-        precedence: @getPrecedence index
-        classes: @getClasses index
-        acccepts: @getAcceptsRule index
-
-    parseLine: (line, index) ->
-      line = line.concat(',')
-      started = false
-      start = 0
-      end = 0
-      for ch, j in line
-        if ch == ','
-          end = j
-          @csvSocket index, start, end
-          start = j+1
-
-    markRoot: ->
-      for line, i in @lines
-        if line != '' and not @isComment(line)
-          @csvBlock i
-          @parseLine line, i
+  CSVParser.parens = (leading, trainling, node, context) ->
+    return [leading, trainling]
 
   return parser.wrapParser CSVParser

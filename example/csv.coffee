@@ -20,6 +20,7 @@ require ['droplet'], (droplet) ->
         color: 'violet'
         blocks: [
           {block:'v1,v2,v3', title: 'Comma Separated Values'}
+          {block: '//This is a sample comment.', title: 'Comment'}
         ]
       }
     ]
@@ -27,6 +28,27 @@ require ['droplet'], (droplet) ->
 
   # Example program (fizzbuzz)
   examplePrograms = {
+    descriptive: '''
+      monday,4.0,frank
+      tuesday,2.3,sally
+      wednesday,1.8,carol
+      //This is a comment
+      spaces,   around    ,a word are automatically stripped, in, block, view
+      If I enter a lot of consequtive ,,,,,,, you can enter values b/w them in block mode
+
+
+      ^New Lines
+
+      //Also, a, comment, with commas, should remain as it is
+            //Space before a comment is not stripped
+      '''
+
+    sample: '''
+      monday,4.0,frank
+      tuesday,2.3,sally
+      wednesday,1.8,carol
+      '''
+
     empty: ''
   }
 
@@ -36,7 +58,7 @@ require ['droplet'], (droplet) ->
 
   # Initialize to starting text
   startingText = localStorage.getItem 'example'
-  editor.setValue startingText or examplePrograms.fizzbuzz
+  editor.setValue startingText or examplePrograms.descriptive
 
   # Update textarea on ICE editor change
   onChange = ->
