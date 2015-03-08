@@ -3,7 +3,7 @@
   Do not copy. Think something new and innovative instead
 ###
 
-define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
+define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, model) ->
   
   exports = {}
 
@@ -13,13 +13,11 @@ define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
 
   MOSTLY_VALUE = ['mostly-value']
 
-
   exports.CSVParser = class CSVParser extends parser.Parser
     
     constructor: (@text, @opts = {}) ->
       super
       @lines = @text.split '\n'
-      @text = @text
 
     getAcceptsRule: (node) -> default: helper.NORMAL
 
@@ -102,23 +100,29 @@ define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
           else
             node.children.push @getNode(row, 'Statement', i, 0, row.length)
       else if type is 'Statement'
-        text = text.split ','
-        tot = 0
-        for val in text
-          start = 0
-          end = val.length
-          while start != end
-            if val[start] == " "
-              start += 1
-            else if val[end-1] == " "
-              end -= 1
-            else
-              break
-          node.children.push @getNode val, 'Value', index, start+tot, end+tot
-          tot += val.length + 1
+        inside_quotes = false
+        last = 0
+        text = text.concat ','
+        for val, i in text
+          if val is ',' and inside_quotes is false
+            node.children.push @getNode val, 'Value', index, last, i
+            last = i+1
+          else if val is '"' and inside_quotes is false
+            inside_quotes = true
+          else if val is '"' and inside_quotes is true
+            inside_quotes = false
       return node
 
-  CSVParser.parens = (leading, trainling, node, context) ->
-    return [leading, trainling]
+  CSVParser.parens = (leading, trailing, node, context) ->
+    console.log context.id, node
+    console.log model.Container.prototype.getTokenAtLocation node.id
+    leading '"' + leading()
+    trailing trailing() + '"'
+
+  CSVParser.drop = (block, context, preceding) ->
+    if context.type is 'socket'
+      return helper.FORBID
+    else
+      return helper.ENCOURAGE
 
   return parser.wrapParser CSVParser
