@@ -771,9 +771,11 @@ define ['droplet-helper'], (helper) ->
         @handwritten
       }\" classes=\"#{
         @classes?.join?(' ') ? ''
-      }\" dropdown=\"#{
-        @dropdown?.join?(' ') ? ''
-      }\">"
+      }\"#{
+        if @dropdown?
+          " dropdown=\"#{@dropdown?.join?(' ') ? ''}\""
+        else ''
+      }>"
 
     _serialize_footer: -> "</socket>"
 
