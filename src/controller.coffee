@@ -2065,7 +2065,7 @@ define ['droplet-helper',
       textFocus = @textFocus
       for el, i in @textFocus.dropdown then do (el) =>
         div = document.createElement 'div'
-        div.innerText = el
+        div.innerHTML = el.display
         div.className = 'droplet-dropdown-item'
 
         # Match fonts
@@ -2074,8 +2074,8 @@ define ['droplet-helper',
         div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
         div.addEventListener 'mouseup', =>
-          @populateSocket @textFocus, el
-          @hiddenInput.value = el
+          @populateSocket @textFocus, el.text
+          @hiddenInput.value = el.text
 
           @redrawMain()
           @hideDropdown()

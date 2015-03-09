@@ -204,11 +204,12 @@
 .droplet-dropdown {
   max-height: 150px;
   position: absolute;
-  display: inline-block;
   background-color: #FFF;
   z-index: 10000;
   border: 1px solid #DDD;
   border-radius: 2px;
+  overflow-y: scroll;
+  overflow-x: hidden;
 }
 .droplet-dropdown-item {
   cursor: pointer;

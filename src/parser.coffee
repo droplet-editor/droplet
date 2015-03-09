@@ -26,6 +26,13 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
   # and a given parser function.
   exports.Parser = class Parser
     constructor: (@text, @opts = {}) ->
+      for key, val of @opts.functions
+        for index, options of val.dropdown
+          @opts.functions[key].dropdown[index] = options.map (x) ->
+            if (typeof x is 'string') or x instanceof String
+              return {text: x, display: x}
+            else
+              return x
       # Text can sometimes be subject to change
       # when doing error recovery, so keep a record of
       # the original text.
