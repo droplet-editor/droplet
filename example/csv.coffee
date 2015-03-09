@@ -29,18 +29,23 @@ require ['droplet'], (droplet) ->
   # Example program (fizzbuzz)
   examplePrograms = {
     descriptive: '''
-      monday,4.0,frank
-      tuesday,2.3,sally
-      wednesday,1.8,carol
-      //This is a comment
-      spaces,   around    ,a word are automatically stripped, in, block, view
-      If I enter a lot of consequtive ,,,,,,, you can enter values b/w them in block mode
+      //Going by wikipedia examples
+      //This works
+      1997,Ford,E350
 
+      //This works
+      "1997","Ford","E350"
 
-      ^New Lines
+      //This works
+      1997,Ford,E350,"Super, luxurious truck"
 
-      //Also, a, comment, with commas, should remain as it is
-            //Space before a comment is not stripped
+      //This works partially
+      1997,Ford,E350,"Super, ""luxurious"" truck"
+
+      //Whitespaces around words aren't modifiable
+      1997, Ford, E350
+      not same as
+      1997,Ford,E350
       '''
 
     sample: '''

@@ -35,7 +35,7 @@
       ]
     });
     examplePrograms = {
-      descriptive: 'monday,4.0,frank\ntuesday,2.3,sally\nwednesday,1.8,carol\n//This is a comment\nspaces,   around    ,a word are automatically stripped, in, block, view\nIf I enter a lot of consequtive ,,,,,,, you can enter values b/w them in block mode\n\n\n^New Lines\n\n//Also, a, comment, with commas, should remain as it is\n      //Space before a comment is not stripped',
+      descriptive: '//Going by wikipedia examples\n//This works\n1997,Ford,E350\n\n//This works\n"1997","Ford","E350"\n\n//This works\n1997,Ford,E350,"Super, luxurious truck"\n\n//This works partially\n1997,Ford,E350,"Super, ""luxurious"" truck"\n\n//Whitespaces around words aren\'t modifiable\n1997, Ford, E350\nnot same as\n1997,Ford,E350',
       sample: 'monday,4.0,frank\ntuesday,2.3,sally\nwednesday,1.8,carol',
       empty: ''
     };
