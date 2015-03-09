@@ -21,6 +21,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
+  DROPDOWN_ARROW_HEIGHT = 8
+
   DEFAULT_OPTIONS =
     padding: 5
     indentWidth: 10
@@ -1793,9 +1795,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         if @model.hasDropdown()
           ctx.beginPath()
           ctx.fillStyle = '#000'
-          ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + helper.DROPDOWN_ARROW_PADDING
-          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + helper.DROPDOWN_ARROW_PADDING
-          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + @bounds[0].height - helper.DROPDOWN_ARROW_PADDING
+          ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2
           ctx.fill()
 
       # ## computeOwnDropArea (SocketViewNode)
