@@ -1726,14 +1726,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           dimension.width =
               Math.max(dimension.width, @view.opts.minSocketWidth)
 
-          if @model.dropdown?
+          if @model.hasDropdown()
             dimension.width += helper.DROPDOWN_ARROW_WIDTH
 
         return null
 
       # ## computeBoundingBoxX (SocketViewNode)
       computeBoundingBoxX: (left, line) ->
-        super left, line, if @model.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0
+        super left, line, if @model.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0
 
       # ## computeGlue
       # Sockets have one exception to normal glue spacing computation:
@@ -1757,7 +1757,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         else
           super
 
-      # ## computeOwnPath
+      # ## computeOwnPath (SocketViewNode)
       # Again, exception: sockets containing block
       # should mimic blocks exactly.
       #
@@ -1787,7 +1787,18 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         return @path
 
-      # ## computeOwnDropArea
+      # ## drawSelf (SocketViewNode)
+      drawSelf: (ctx) ->
+        super
+        if @model.hasDropdown()
+          ctx.beginPath()
+          ctx.fillStyle = '#000'
+          ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + helper.DROPDOWN_ARROW_PADDING
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + helper.DROPDOWN_ARROW_PADDING
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + @bounds[0].height - helper.DROPDOWN_ARROW_PADDING
+          ctx.fill()
+
+      # ## computeOwnDropArea (SocketViewNode)
       # Socket drop areas are actually the same
       # shape as the sockets themselves, which
       # is different from most other

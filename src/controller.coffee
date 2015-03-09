@@ -1775,11 +1775,11 @@ define ['droplet-helper',
 
     startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
       @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n'))).width +
-      (if @textFocus.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0)
+      (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
     endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
       @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n'))).width +
-      (if @textFocus.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0)
+      (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
     # Now draw the highlight/typing cursor
     #
@@ -1826,6 +1826,8 @@ define ['droplet-helper',
   Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) ->
     if focus?.id of @extraMarks
       delete @extraMarks[focus?.id]
+
+    @hideDropdown()
 
     # If there is already a focus, we
     # need to wrap some things up with it.
@@ -1968,7 +1970,7 @@ define ['droplet-helper',
     row = Math.max row, 0
     row = Math.min row, textFocusView.lineLength - 1
 
-    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @textFocus.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
+    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
     lines = @textFocus.stringify(@mode.empty).split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
@@ -2013,27 +2015,22 @@ define ['droplet-helper',
       @setTextInputFocus null
       @redrawMain()
       hitTestResult = @hitTestTextInput mainPoint, @tree
-    console.log mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x
 
     if hitTestResult?
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
 
-        if hitTestResult.dropdown? and
+        if hitTestResult.hasDropdown() and
             mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
           @showDropdown()
-        else
-          mainPoint.x -= helper.DROPDOWN_ARROW_WIDTH # TODO hacky
 
         @textInputSelecting = false
 
       else
-        if @textFocus.dropdown? and
+        if @textFocus.hasDropdown() and
             mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
           @showDropdown()
-        else
-          mainPoint.x -= helper.DROPDOWN_ARROW_WIDTH # TODO hacky
 
         @setTextInputAnchor mainPoint
         @redrawTextInput()
@@ -2056,24 +2053,41 @@ define ['droplet-helper',
   hook 'populate', 0, ->
     @dropdownElement = document.createElement 'div'
     @dropdownElement.className = 'droplet-dropdown'
-    @dropletElement.appendChild @dropdownElement
+    @wrapperElement.appendChild @dropdownElement
 
   Editor::showDropdown = ->
-    console.log 'showing dropdown'
-    if @textFocus.dropdown?
+    if @textFocus.hasDropdown()
       @dropdownElement.innerHTML = ''
-      for el, i in @textFocus.dropdown
+      @dropdownElement.style.display = 'inline-block'
+
+      # Closure the text focus; dropdown should work
+      # even after unfocused
+      textFocus = @textFocus
+      for el, i in @textFocus.dropdown then do (el) =>
         div = document.createElement 'div'
-        div.className = 'droplet-dropdown-item'
         div.innerText = el
-        div.addEventListener 'click', =>
-          @textFocus.value = el
+        div.className = 'droplet-dropdown-item'
+
+        # Match fonts
+        div.style.fontFamily = @fontFamily
+        div.style.fontSize = @fontSize
+        div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
+
+        div.addEventListener 'mouseup', =>
+          @populateSocket @textFocus, el
+          @hiddenInput.value = el
+
+          @redrawMain()
+          @hideDropdown()
         @dropdownElement.appendChild div
 
       location = @view.getViewNodeFor(@textFocus).bounds[0]
 
       @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y
-      @dropdownElement.style.left = location.x - @scrollOffsets.main.x
+      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft
+
+  Editor::hideDropdown= ->
+    @dropdownElement.style.display = 'none'
 
   hook 'dblclick', 0, (point, event, state) ->
     # If someone else already took this click, return.

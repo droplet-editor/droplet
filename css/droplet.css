@@ -206,4 +206,13 @@
   position: absolute;
   display: inline-block;
   background-color: #FFF;
+  z-index: 10000;
+  border: 1px solid #DDD;
+  border-radius: 2px;
+}
+.droplet-dropdown-item {
+  cursor: pointer;
+}
+.droplet-dropdown-item:hover {
+  background-color: #DDD;
 }
