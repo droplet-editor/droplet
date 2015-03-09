@@ -201,3 +201,9 @@
 .droplet-cursor-canvas {
   opacity: 0.5;
 }
+.droplet-dropdown {
+  max-height: 150px;
+  position: absolute;
+  display: inline-block;
+  background-color: #FFF;
+}

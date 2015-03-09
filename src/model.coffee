@@ -751,7 +751,7 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketEnd'
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @classes = []) ->
+    constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 

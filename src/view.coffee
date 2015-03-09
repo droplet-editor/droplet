@@ -1051,7 +1051,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # because of glue spacing (the space between lines
       # that keeps weird-shaped blocks continuous), which
       # can shift y-coordinates around.
-      computeBoundingBoxX: (left, line) ->
+      computeBoundingBoxX: (left, line, offset = 0) ->
         # Use cached data if possible
         if @computedVersion is @model.version and
             left is @bounds[line]?.x and not @changedBoundingBox
@@ -1083,7 +1083,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # placing children down and
         # adding padding and sizes
         # to make them not overlap.
-        childLeft = left
+        childLeft = left + offset
 
         # Get rendering info on each of these children
         for lineChild, i in @lineChildren[line]
@@ -1726,7 +1726,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           dimension.width =
               Math.max(dimension.width, @view.opts.minSocketWidth)
 
+          if @model.dropdown?
+            dimension.width += helper.DROPDOWN_ARROW_WIDTH
+
         return null
+
+      # ## computeBoundingBoxX (SocketViewNode)
+      computeBoundingBoxX: (left, line) ->
+        super left, line, if @model.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0
 
       # ## computeGlue
       # Sockets have one exception to normal glue spacing computation:

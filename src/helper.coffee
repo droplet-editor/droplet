@@ -11,6 +11,8 @@ define ->
   exports.DISCOURAGE = 0
   exports.FORBID = -1
 
+  exports.DROPDOWN_ARROW_WIDTH = 20
+
   if window?
     window.String.prototype.trimLeft = ->
       @replace /^\s+/, ''

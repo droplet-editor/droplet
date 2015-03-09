@@ -115,6 +115,20 @@ require ['droplet'], (droplet) ->
     ]
     ###
     mode: 'coffeescript'
+    modeOptions: {
+      functions: {
+        'rt': {
+          dropdown: {
+            0: [
+            '90'
+            '30'
+            '45'
+            '60'
+            '180'
+          ]}
+        }
+      }
+    }
     palette: [
       {
         name: 'Draw'

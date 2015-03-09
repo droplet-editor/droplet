@@ -109,7 +109,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     addSocket: (opts) ->
       socket = new model.Socket opts.precedence,
         false,
-        opts.classes
+        opts.classes,
+        opts.dropdown
 
       @addMarkup socket, opts.bounds, opts.depth
 

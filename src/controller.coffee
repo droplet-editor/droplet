@@ -1231,6 +1231,9 @@ define ['droplet-helper',
           @setTextInputFocus null
           @setTextInputFocus head.container
 
+      # Fire the event for sound
+      @fireEvent 'block-click'
+
       # Now that we've done that, we can annul stuff.
       @endDrag()
 
@@ -1771,10 +1774,12 @@ define ['droplet-helper',
     lines = @textFocus.stringify(@mode.empty).split '\n'
 
     startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n'))).width
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n'))).width +
+      (if @textFocus.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0)
 
     endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n'))).width
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n'))).width +
+      (if @textFocus.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0)
 
     # Now draw the highlight/typing cursor
     #
@@ -1792,11 +1797,12 @@ define ['droplet-helper',
       @cursorCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
 
       if startRow is endRow
-        @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
+        @cursorCtx.fillRect startPosition,
+          textFocusView.bounds[startRow].y + @view.opts.textPadding
           endPosition - startPosition, @view.opts.textHeight
 
       else
-        @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
+        @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
           textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
         for i in [startRow + 1...endRow]
@@ -1962,7 +1968,7 @@ define ['droplet-helper',
     row = Math.max row, 0
     row = Math.min row, textFocusView.lineLength - 1
 
-    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding) / @mainCtx.measureText(' ').width)
+    column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @textFocus.dropdown? then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
     lines = @textFocus.stringify(@mode.empty).split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
@@ -2007,15 +2013,28 @@ define ['droplet-helper',
       @setTextInputFocus null
       @redrawMain()
       hitTestResult = @hitTestTextInput mainPoint, @tree
+    console.log mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x
 
     if hitTestResult?
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
 
+        if hitTestResult.dropdown? and
+            mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
+          @showDropdown()
+        else
+          mainPoint.x -= helper.DROPDOWN_ARROW_WIDTH # TODO hacky
+
         @textInputSelecting = false
 
       else
+        if @textFocus.dropdown? and
+            mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
+          @showDropdown()
+        else
+          mainPoint.x -= helper.DROPDOWN_ARROW_WIDTH # TODO hacky
+
         @setTextInputAnchor mainPoint
         @redrawTextInput()
 
@@ -2032,6 +2051,29 @@ define ['droplet-helper',
       @hiddenInput.focus()
 
       state.consumedHitTest = true
+
+  # Create the dropdown DOM element at populate time.
+  hook 'populate', 0, ->
+    @dropdownElement = document.createElement 'div'
+    @dropdownElement.className = 'droplet-dropdown'
+    @dropletElement.appendChild @dropdownElement
+
+  Editor::showDropdown = ->
+    console.log 'showing dropdown'
+    if @textFocus.dropdown?
+      @dropdownElement.innerHTML = ''
+      for el, i in @textFocus.dropdown
+        div = document.createElement 'div'
+        div.className = 'droplet-dropdown-item'
+        div.innerText = el
+        div.addEventListener 'click', =>
+          @textFocus.value = el
+        @dropdownElement.appendChild div
+
+      location = @view.getViewNodeFor(@textFocus).bounds[0]
+
+      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y
+      @dropdownElement.style.left = location.x - @scrollOffsets.main.x
 
   hook 'dblclick', 0, (point, event, state) ->
     # If someone else already took this click, return.
