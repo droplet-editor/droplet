@@ -182,7 +182,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # *Seventh pass variables*
         # computeDropAreas
         # each one is a @view.draw.Path (or null)
-        @dropArea = @highlightArea = null
+        @dropPoints = []
+        @highlightAreas = []
 
         # Versions. The corresponding
         # Model will keep corresponding version
@@ -629,7 +630,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       #
       # If we cannot drop something on this node
       # (e.g. a socket that already contains a block),
-      # set `@dropArea` to null.
+      # set `@dropPoints` to []
       #
       # Simultaneously, compute `@highlightArea`, which
       # is the white polygon that lights up
@@ -1565,7 +1566,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # ## computeOwnDropArea
       # By default, we will not have a
       # drop area (not be droppable).
-      computeOwnDropArea: -> @dropArea = @highlightArea = null
+      computeOwnDropArea: ->
+        @dropPoints = []
+        @highlightAreas = []
 
       # ## shouldAddTab
       # By default, we will ask
@@ -1652,49 +1655,51 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           parentViewNode = @view.getViewNodeFor @model.visParent()
           destinationBounds = parentViewNode.bounds[1]
 
-          @dropPoint = new @view.draw.Point destinationBounds.x, destinationBounds.y
+          @dropPoints[0] = new @view.draw.Point destinationBounds.x, destinationBounds.y
           lastBoundsLeft = destinationBounds.x
           lastBoundsRight = destinationBounds.right()
         else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
           parentViewNode = @view.getViewNodeFor @model.visParent()
           destinationBounds = parentViewNode.bounds[1]
 
-          @dropPoint = new @view.draw.Point destinationBounds.x,
+          @dropPoints[0] = new @view.draw.Point destinationBounds.x,
             @bounds[@lineLength - 1].bottom() + @view.opts.padding
           lastBoundsLeft = destinationBounds.x
           lastBoundsRight = @bounds[@lineLength - 1].right()
         else
-          @dropPoint = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
+          @dropPoints[0] = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
           lastBoundsLeft = @bounds[@lineLength - 1].x
           lastBoundsRight = @bounds[@lineLength - 1].right()
 
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
 
-        @highlightArea = new @view.draw.Path()
+        highlightArea = new @view.draw.Path()
         highlightAreaPoints = []
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2
 
-        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoint.y - @view.opts.highlightAreaHeight / 2
+        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoint.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoint.y + @view.opts.highlightAreaHeight / 2
+        @addTab highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2
+        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-        @highlightArea.push point for point in highlightAreaPoints
+        highlightArea.push point for point in highlightAreaPoints
 
-        @highlightArea.style.lineWidth = 1
-        @highlightArea.style.strokeColor = '#ff0'
-        @highlightArea.style.fillColor = '#ff0'
+        highlightArea.style.lineWidth = 1
+        highlightArea.style.strokeColor = '#ff0'
+        highlightArea.style.fillColor = '#ff0'
+
+        @highlightAreas[0] = highlightArea
 
     # # SocketViewNode
     class SocketViewNode extends ContainerViewNode
@@ -1787,13 +1792,16 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # things.
       computeOwnDropArea: ->
         if @model.start.next.type is 'blockStart'
-          @dropArea = @highlightArea = null
+          @dropPoints = []
+          @highlightAreas = []
         else
           @dropPoint = @bounds[0].upperLeftCorner()
-          @highlightArea = @path.clone()
-          @highlightArea.noclip = true
-          @highlightArea.style.strokeColor = '#FF0'
-          @highlightArea.style.lineWidth = @view.opts.padding
+          highlightArea = @path.clone()
+          highlightArea.noclip = true
+          highlightArea.style.strokeColor = '#FF0'
+          highlightArea.style.lineWidth = @view.opts.padding
+
+          @highlightAreas.push highlightArea
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode
@@ -1860,10 +1868,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       computeOwnDropArea: ->
         lastBounds = new @view.draw.NoRectangle()
         if @model.start.next.type is 'newline'
-          @dropPoint = @bounds[1].upperLeftCorner()
+          @dropPoints[0] = @bounds[1].upperLeftCorner()
           lastBounds.copy @bounds[1]
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
+          @dropPoints[0] = @bounds[0].upperLeftCorner()
           lastBounds.copy @bounds[0]
         lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
@@ -1912,9 +1920,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # can be dropped at their beginning.
       computeOwnDropArea: ->
         if @model.isLassoSegment
-          return @dropArea = null
+          return @dropPoints = []
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
+          @dropPoints[0] = @bounds[0].upperLeftCorner()
 
           @highlightArea = new @view.draw.Path()
           highlightAreaPoints = []

@@ -1066,16 +1066,15 @@ define ['droplet-helper',
         if head instanceof model.StartToken
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
-            dropPoint = @view.getViewNodeFor(head.container).dropPoint
-
-            if dropPoint?
+            for dropPoint, i in @view.getViewNodeFor(head.container).dropPoints
               @dropPointQuadTree.insert
                 x: dropPoint.x
                 y: dropPoint.y
                 w: 0
                 h: 0
                 acceptLevel: acceptLevel
-                _ice_node: head.container
+                _droplet_node: head.container
+                _droplet_index: i
 
         head = head.next
 
@@ -1123,7 +1122,7 @@ define ['droplet-helper',
 
       mainPoint = @trackerPointToMain(position)
 
-      best = null; min = Infinity
+      best = bestIndex = null; min = Infinity
 
       # Check to see if the tree is empty;
       # if it is, drop on the tree always
@@ -1149,14 +1148,15 @@ define ['droplet-helper',
             distance = mainPoint.from(point)
             distance.y *= 2; distance = distance.magnitude()
             if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-               @view.getViewNodeFor(point._ice_node).highlightArea?
-              best = point._ice_node
+               @view.getViewNodeFor(point._droplet_node).highlightAreas[point._droplet_index]?
+              best = point._droplet_node
+              bestIndex = point._droplet_index
               min = distance
 
         if best isnt @lastHighlight
           @clearHighlightCanvas()
 
-          if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          if best? then @view.getViewNodeFor(best).highlightAreas[bestIndex].draw @highlightCtx
 
           @lastHighlight = best
 
