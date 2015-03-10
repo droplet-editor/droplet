@@ -960,6 +960,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           block.type is 'segment'
         return helper.ENCOURAGE
 
+      else if ('mostly-value' in block.classes or
+          'value-only' in block.classes) and
+          'list' in context.classes
+        return helper.ENCOURAGE
+
       else if 'mostly-value' in block.classes
         return helper.DISCOURAGE
 

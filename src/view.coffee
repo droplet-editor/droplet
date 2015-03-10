@@ -15,14 +15,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   MOSTLY_BLOCK = helper.MOSTLY_BLOCK
   MOSTLY_VALUE = helper.MOSTLY_VALUE
   VALUE_ONLY = helper.VALUE_ONLY
-  BULLET_ARROW_WIDTH = 5
 
   CARRIAGE_ARROW_SIDEALONG = 0
   CARRIAGE_ARROW_INDENT = 1
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
-  LEFT_BULLET_WIDTH = 15
+  LEFT_BULLET_WIDTH = 13
+  BULLET_ARROW_WIDTH = 6
 
   DEFAULT_OPTIONS =
     padding: 5
