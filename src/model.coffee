@@ -716,7 +716,7 @@ define ['droplet-helper'], (helper) ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @sideBullet = false) ->
+    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 

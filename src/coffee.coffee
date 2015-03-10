@@ -11,6 +11,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   BLOCK_ONLY = ['block-only']
   MOSTLY_BLOCK = ['mostly-block']
   MOSTLY_VALUE = ['mostly-value']
+  LIST_ITEM = ['list-item']
+  LIST_WRAPPER = ['list-wrapper']
   VALUE_ONLY = ['value-only']
   LVALUE = ['lvalue']
   FORBID_ALL = ['forbid-all']
@@ -571,9 +573,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           @csBlock node, depth, 100, 'violet', wrappingParen, VALUE_ONLY
 
           if node.objects.length > 0
-            @csIndent indentDepth, node.objects[0], node.objects[node.objects.length - 1], depth + 1
+            @csIndent indentDepth, node.objects[0], node.objects[node.objects.length - 1], depth + 1, LIST_WRAPPER
           for object in node.objects
-            @csBlock object, depth + 2, 100, 'list-element', null, VALUE_ONLY, true
+            @csBlock object, depth + 2, 100, 'list-element', null, LIST_ITEM
             @csSocketAndMark object, depth + 3, 0, indentDepth
 
         # ### Return ###
@@ -751,20 +753,19 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
-    csBlock: (node, depth, precedence, color, wrappingParen, classes = [], sideBullet = false) ->
+    csBlock: (node, depth, precedence, color, wrappingParen, classes = []) ->
       @addBlock {
         bounds: @getBounds (wrappingParen ? node)
         depth: depth
         precedence: precedence
         color: color
         classes: getClassesFor(node).concat classes
-        sideBullet: sideBullet
         parenWrapped: wrappingParen?
       }
 
     # Add an indent node and guess
     # at the indent depth
-    csIndent: (indentDepth, firstNode, lastNode, depth) ->
+    csIndent: (indentDepth, firstNode, lastNode, depth, classes = []) ->
       first = @getBounds(firstNode).start
       last = @getBounds(lastNode).end
 
@@ -785,8 +786,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           end: last
         }
         depth: depth
-
         prefix: prefix
+        classes: classes
       }
 
       return trueDepth

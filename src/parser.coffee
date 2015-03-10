@@ -92,7 +92,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts.color,
         opts.socketLevel,
         opts.classes,
-        opts.sideBullet
 
       @addMarkup block, opts.bounds, opts.depth
 

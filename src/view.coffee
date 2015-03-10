@@ -15,6 +15,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   MOSTLY_BLOCK = helper.MOSTLY_BLOCK
   MOSTLY_VALUE = helper.MOSTLY_VALUE
   VALUE_ONLY = helper.VALUE_ONLY
+  BULLET_ARROW_WIDTH = 5
 
   CARRIAGE_ARROW_SIDEALONG = 0
   CARRIAGE_ARROW_INDENT = 1
@@ -1055,7 +1056,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # because of glue spacing (the space between lines
       # that keeps weird-shaped blocks continuous), which
       # can shift y-coordinates around.
-      computeBoundingBoxX: (left, line) ->
+      computeBoundingBoxX: (left, line, offset = 0) ->
         # Use cached data if possible
         if @computedVersion is @model.version and
             left is @bounds[line]?.x and not @changedBoundingBox
@@ -1087,7 +1088,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # placing children down and
         # adding padding and sizes
         # to make them not overlap.
-        childLeft = left
+        childLeft = left + offset
 
         # Get rendering info on each of these children
         for lineChild, i in @lineChildren[line]
@@ -1277,6 +1278,11 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
+            if 'list-item' in @model.classes
+              console.log 'pushing new point'
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
@@ -1631,16 +1637,18 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
-        if @model.sideBullet
+        if 'list-item' in @model.classes
           @minDimensions[0].width += LEFT_BULLET_WIDTH
 
         return null
 
       computeBoundingBoxX: (left, top) ->
-        super left, top, (if @model.sideBullet then LEFT_BULLET_WIDTH else 0)
+        super left, top, (if ('list-item' in @model.classes) then LEFT_BULLET_WIDTH else 0)
 
       shouldAddTab: ->
-        if @model.parent?
+        if 'list-item' in @model.classes
+          false
+        else if @model.parent?
           parent = @model.visParent()
           parent?.type isnt 'socket'
         else not ('mostly-value' in @model.classes or
