@@ -1878,7 +1878,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # Our highlight area is the a rectangle in the same place,
         # with a height that can be given by a different option.
 
-        @highlightArea = new @view.draw.Path()
+        highlightArea = new @view.draw.Path()
         highlightAreaPoints = []
 
         highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
@@ -1897,11 +1897,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
         highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-        @highlightArea.push point for point in highlightAreaPoints
+        highlightArea.push point for point in highlightAreaPoints
 
-        @highlightArea.style.lineWidth = 1
-        @highlightArea.style.strokeColor = '#ff0'
-        @highlightArea.style.fillColor = '#ff0'
+        highlightArea.style.lineWidth = 1
+        highlightArea.style.strokeColor = '#ff0'
+        highlightArea.style.fillColor = '#ff0'
+
+        @highlightAreas[0] = highlightArea
 
     # # SegmentViewNode
     # Represents a Segment. Draws little, but
@@ -1924,7 +1926,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         else
           @dropPoints[0] = @bounds[0].upperLeftCorner()
 
-          @highlightArea = new @view.draw.Path()
+          highlightArea = new @view.draw.Path()
           highlightAreaPoints = []
 
           lastBounds = new @view.draw.NoRectangle()
@@ -1947,10 +1949,12 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
           highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-          @highlightArea.push point for point in highlightAreaPoints
+          highlightArea.push point for point in highlightAreaPoints
 
-          @highlightArea.style.fillColor = '#ff0'
-          @highlightArea.style.strokeColor = '#ff0'
+          highlightArea.style.fillColor = '#ff0'
+          highlightArea.style.strokeColor = '#ff0'
+
+          @highlightAreas[0] = highlightArea
 
           return null
 
