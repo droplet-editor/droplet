@@ -725,7 +725,7 @@ define ['droplet-helper'], (helper) ->
       super
 
     _cloneEmpty: ->
-      clone = new Block @precedence, @color, @socketLevel, @classes, @sideBUllet
+      clone = new Block @precedence, @color, @socketLevel, @classes
       clone.currentlyParenWrapped = @currentlyParenWrapped
 
       return clone

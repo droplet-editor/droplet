@@ -576,7 +576,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           for object in node.objects
             if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
                 object.properties?.length in [0, undefined]
-              @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
+              @csBlock object, depth + 2, 100, 'blank', null, ANY_DROP
+              @csSocket object, depth + 3, 100, []
 
         # ### Return ###
         # Color RETURN, optional socket @expression.

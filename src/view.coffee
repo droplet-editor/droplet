@@ -43,6 +43,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
     colors:
+      'blank': '#dfdfdf'
       'error': '#ff0000'
       'return': '#ecec79'
       'control': '#efcf8f'
@@ -1278,7 +1279,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
-            if @model.parent? and 'list' in @model.parent.classes
+            if @model.parent? and 'list' in @model.visParent().classes
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
               left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
@@ -1292,6 +1293,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
+            if @model.parent? and 'list' in @model.visParent().classes
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
@@ -1329,7 +1334,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, bounds.y
-            if 'list' in multilineChild.child.classes
+              console.log @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine, line - multilineChild.startLine
+            if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
               right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
               right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
               right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
@@ -1645,17 +1651,19 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
-        if @model.parent? and 'list' in @model.parent.classes
+        if @model.parent? and 'list' in @model.visParent().classes
           @minDimensions[0].width += LEFT_BULLET_WIDTH
 
         return null
 
-      computeBoundingBoxX: (left, top) ->
-        super left, top,
-          (if @model.parent? and 'list' in @model.parent.classes then LEFT_BULLET_WIDTH else 0)
+      computeBoundingBoxX: (left, line) ->
+        if line is 0 and @model.parent? and 'list' in @model.visParent().classes
+          super left, line, LEFT_BULLET_WIDTH
+        else
+          super left, line
 
       shouldAddTab: ->
-        if @model.parent? and 'list' in @model.parent.classes
+        if @model.parent? and 'list' in @model.visParent().classes
           false
         else if @model.parent?
           parent = @model.visParent()
