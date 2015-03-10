@@ -21,6 +21,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
+  LEFT_BULLET_WIDTH = 20
+
   DEFAULT_OPTIONS =
     padding: 5
     indentWidth: 10
@@ -40,20 +42,21 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
     colors:
-      error: '#ff0000'
-      return: '#ecec79'
-      control: '#efcf8f'
-      value: '#8cec79'
-      command: '#8fbfef'
+      'error': '#ff0000'
+      'return': '#ecec79'
+      'control': '#efcf8f'
+      'value': '#8cec79'
+      'command': '#8fbfef'
 
-      red: '#f2a6a6'
-      orange: '#efcf8f'
-      yellow: '#ecec79'
-      green: '#8cec79'
-      cyan: '#79ecd9'
-      blue: '#8fbfef'
-      violet: '#bfa6f2'
-      magenta: '#f2a6e5'
+      'list-element': '#dfdfdf'
+      'red': '#f2a6a6'
+      'orange': '#efcf8f'
+      'yellow': '#ecec79'
+      'green': '#8cec79'
+      'cyan': '#79ecd9'
+      'blue': '#8fbfef'
+      'violet': '#bfa6f2'
+      'magenta': '#f2a6e5'
 
   YES = -> yes
   NO = -> no
@@ -1628,7 +1631,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
+        if @model.sideBullet
+          @minDimensions[0].width += LEFT_BULLET_WIDTH
+
         return null
+
+      computeBoundingBoxX: (left, top) ->
+        super left, top, (if @model.sideBullet then LEFT_BULLET_WIDTH else 0)
 
       shouldAddTab: ->
         if @model.parent?

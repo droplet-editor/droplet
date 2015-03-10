@@ -571,11 +571,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           @csBlock node, depth, 100, 'violet', wrappingParen, VALUE_ONLY
 
           if node.objects.length > 0
-            @csIndentAndMark indentDepth, node.objects, depth + 1
+            @csIndent indentDepth, node.objects[0], node.objects[node.objects.length - 1], depth + 1
           for object in node.objects
-            if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
-                object.properties?.length in [0, undefined]
-              @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
+            @csBlock object, depth + 2, 100, 'list-element', null, VALUE_ONLY, true
+            @csSocketAndMark object, depth + 3, 0, indentDepth
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
@@ -752,13 +751,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
-    csBlock: (node, depth, precedence, color, wrappingParen, classes = []) ->
+    csBlock: (node, depth, precedence, color, wrappingParen, classes = [], sideBullet = false) ->
       @addBlock {
         bounds: @getBounds (wrappingParen ? node)
         depth: depth
         precedence: precedence
         color: color
         classes: getClassesFor(node).concat classes
+        sideBullet: sideBullet
         parenWrapped: wrappingParen?
       }
 
