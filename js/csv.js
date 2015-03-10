@@ -154,6 +154,9 @@
               inside_quotes = false;
             }
           }
+          if (inside_quotes === true) {
+            throw new Error('Odd number of quotes');
+          }
         } else if (type === 'Value') {
           substr = text.trim();
           node.start += text.indexOf(substr);
@@ -174,6 +177,41 @@
       } else {
         return helper.ENCOURAGE;
       }
+    };
+    CSVParser.normalString = function(str) {
+      var has_quotes, needs_quotes, newstr, ref;
+      has_quotes = (str[0] === str.slice(-1)) && ((ref = str[0]) === '"' || ref === '\'');
+      if (has_quotes && str.length > 1) {
+        newstr = str.slice(1, -1);
+      } else {
+        newstr = str;
+      }
+      needs_quotes = (newstr[0] === ' ') || (newstr.slice(-1) === ' ') || (newstr.match(',') != null);
+      if (has_quotes === needs_quotes) {
+        return str;
+      } else if (has_quotes && !needs_quotes) {
+        if (str.length > 1) {
+          return str.slice(1, -1);
+        } else {
+          return str;
+        }
+      } else {
+        return '"' + str + '"';
+      }
+
+      /*
+      console.log start, str, end
+      tmp = str.replace(/([^\"]+)(\")([^\"]+)/g, '$1$2$2$3')
+      while tmp isnt str
+        str = tmp
+        tmp = str.replace(/([^\"]+)(\")([^\"]+)/g, '$1$2$2$3')
+      console.log start, str, end
+      tmp = str.replace(/([^\']+)(\')([^\']+)/g, '$1$2$2$3')
+      while tmp isnt str
+        str = tmp
+        tmp = str.replace(/([^\']+)(\')([^\']+)/g, '$1$2$2$3')
+      console.log start, str, end
+       */
     };
     return parser.wrapParser(CSVParser);
   });

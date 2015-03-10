@@ -444,6 +444,14 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     else
       return helper.ENCOURAGE
 
+  Parser.normalString = (str) ->
+    str.trim()
+
+  Parser.escapeString = (str) ->
+    console.log str
+    str = str.trim()
+    str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
+
   Parser.empty = ''
 
   exports.wrapParser = (CustomParser) ->
@@ -480,5 +488,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         return [leading, trailing]
 
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
+
+      normalString: (str) -> CustomParser.normalString str
+
+      escapeString: (str) -> CustomParser.escapeString str
 
   return exports

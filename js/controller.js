@@ -23,7 +23,7 @@
     CURSOR_WIDTH_DECREASE = 3;
     CURSOR_HEIGHT_DECREASE = 2;
     CURSOR_UNFOCUSED_OPACITY = 0.5;
-    DEBUG_FLAG = true;
+    DEBUG_FLAG = false;
     ANY_DROP = helper.ANY_DROP;
     BLOCK_ONLY = helper.BLOCK_ONLY;
     MOSTLY_BLOCK = helper.MOSTLY_BLOCK;
@@ -1589,7 +1589,7 @@
         }
         if (!this.textFocus.handwritten) {
           newParse = null;
-          string = this.textFocus.stringify(this.mode.empty).trim();
+          string = this.mode.normalString(this.textFocus.stringify(this.mode.empty));
           try {
             newParse = this.mode.parse(unparsedValue = string, {
               wrapAtRoot: false
@@ -1597,7 +1597,7 @@
           } catch (_error) {
             if (string[0] === string[string.length - 1] && ((ref1 = string[0]) === '"' || ref1 === '\'')) {
               try {
-                string = escapeString(string);
+                string = this.mode.escapeString(string);
                 newParse = this.mode.parse(unparsedValue = string, {
                   wrapAtRoot: false
                 });

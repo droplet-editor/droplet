@@ -7,12 +7,14 @@ define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
     'droplet-csv',
+    'droplet-css'
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
     coffee,
     javascript,
     csv,
+    css,
     draw,
     model,
     view) ->
@@ -22,6 +24,7 @@ define ['droplet-helper',
     'coffee': coffee
     'javascript': javascript
     'csv': csv
+    'css': css
   }
 
   # ## Magic constants
@@ -340,7 +343,7 @@ define ['droplet-helper',
 
       @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
       @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
 
       @resizeGutter()
 
@@ -1848,13 +1851,13 @@ define ['droplet-helper',
       # value.
       unless @textFocus.handwritten
         newParse = null
-        string = @textFocus.stringify(@mode.empty).trim()
+        string = @mode.normalString @textFocus.stringify(@mode.empty)
         try
           newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
         catch
           if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
             try
-              string = escapeString string
+              string = @mode.escapeString string
               newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
               @populateSocket @textFocus, string
 

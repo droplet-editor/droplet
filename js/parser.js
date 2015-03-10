@@ -398,6 +398,14 @@
         return helper.ENCOURAGE;
       }
     };
+    Parser.normalString = function(str) {
+      return str.trim();
+    };
+    Parser.escapeString = function(str) {
+      console.log(str);
+      str = str.trim();
+      return str = str[0] + str.slice(1, -1).replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1];
+    };
     Parser.empty = '';
     exports.wrapParser = function(CustomParser) {
       var CustomParserFactory;
@@ -446,6 +454,14 @@
 
         CustomParserFactory.prototype.drop = function(block, context, pred) {
           return CustomParser.drop(block, context, pred);
+        };
+
+        CustomParserFactory.prototype.normalString = function(str) {
+          return CustomParser.normalString(str);
+        };
+
+        CustomParserFactory.prototype.escapeString = function(str) {
+          return CustomParser.escapeString(str);
         };
 
         return CustomParserFactory;
