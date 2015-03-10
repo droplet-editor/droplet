@@ -1827,7 +1827,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           highlightArea.style.strokeColor = '#FF0'
           highlightArea.style.lineWidth = @view.opts.padding
 
-          @highlightAreas.push highlightArea
+          @highlightAreas[0] = highlightArea
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode
