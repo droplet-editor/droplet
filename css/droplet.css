@@ -45,6 +45,7 @@
   -ms-user-select: none;
   user-select: none;
   overflow: hidden;
+  outline: none;
 }
 .droplet-ace {
   position: absolute;
