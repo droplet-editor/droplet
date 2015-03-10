@@ -359,7 +359,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
           container = new model.Socket attributes.precedence, attributes.handritten,
             attributes.classes?.split?(' ')
         when 'indent'
-          container = new model.Indent attributes.prefix, attributes.classe?.split?(' ')
+          container = new model.Indent attributes.prefix, attributes.classes?.split?(' ')
         when 'segment'
           # Root segment is optional
           unless stack.length is 0

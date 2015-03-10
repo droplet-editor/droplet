@@ -577,7 +577,15 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
                 object.properties?.length in [0, undefined]
               @csBlock object, depth + 2, 100, 'blank', null, ANY_DROP
-              @csSocket object, depth + 3, 100, []
+
+              # See if there is a comma after this object
+              bounds = @getBounds object
+              bounds.end.column -= /,\s*$/.exec(@lines[bounds.end.line][...bounds.end.column])?[0]?.length ? 0
+              @addSocket
+                bounds: bounds
+                depth: depth + 3
+                precedence: 100
+                classes: []
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
@@ -962,7 +970,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         return helper.ENCOURAGE
 
       else if ('mostly-value' in block.classes or
-          'value-only' in block.classes) and
+          'value-only' in block.classes or
+          'any-drop' in block.classes) and
           'list' in context.classes
         return helper.ENCOURAGE
 

@@ -97,6 +97,6 @@
   {
     "message": "Array",
     "str": "[0, 1]",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"100\"\n color=\"violet\"\n socketLevel=\"0\"\n classes=\"Arr value-only\">[<indent\n prefix=\"  \"\n classes=\"\"><block\n precedence=\"100\"\n color=\"return\"\n socketLevel=\"0\"\n classes=\"Value value-only\">0, <\/block><block\n precedence=\"100\"\n color=\"return\"\n socketLevel=\"0\"\n classes=\"Value value-only\">1<\/block><\/indent>]<\/block><\/segment>"
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"100\"\n color=\"violet\"\n socketLevel=\"0\"\n classes=\"Arr value-only\">[<indent\n prefix=\"  \"\n classes=\"list\"><block\n precedence=\"100\"\n color=\"blank\"\n socketLevel=\"0\"\n classes=\"Value any-drop\"><socket\n precedence=\"100\"\n handwritten=\"false\"\n classes=\"\">0</socket>, <\/block><block\n precedence=\"100\"\n color=\"blank\"\n socketLevel=\"0\"\n classes=\"Value any-drop\"><socket\n precedence=\"100\"\n handwritten=\"false\"\n classes=\"\">1</socket><\/block><\/indent>]<\/block><\/segment>"
   }
 ]
