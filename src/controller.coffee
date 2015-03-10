@@ -908,10 +908,10 @@ define ['droplet-helper',
     @dragCanvas.width = 0
     @dragCanvas.height = 0
 
-    @highlightCanvas.width = @dropletElement.offsetWidth - @gutterElement.offsetWidth
+    @highlightCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
     @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
 
-    @highlightCanvas.height = @dropletElement.offsetHeight - @gutterElement.offsetWidth
+    @highlightCanvas.height = @dropletElement.offsetHeight - @gutter.offsetWidth
     @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
 
     @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -2161,10 +2161,10 @@ define ['droplet-helper',
   # Deal with resize for the lasso
   # select canvas
   Editor::resizeLassoCanvas = ->
-    @lassoSelectCanvas.width = @dropletElement.offsetWidth - @gutterElement.offsetWidth
+    @lassoSelectCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
-    @lassoSelectCanvas.height = @dropletElement.offsetHeight - @gutterElement.offsetWidth
+    @lassoSelectCanvas.height = @dropletElement.offsetHeight - @gutter.offsetWidth
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
 
     @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -3810,10 +3810,10 @@ define ['droplet-helper',
     @dropletElement.appendChild @cursorCanvas
 
   Editor::resizeCursorCanvas = ->
-    @cursorCanvas.width = @dropletElement.offsetWidth - @gutterElement.offsetWidth
+    @cursorCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
-    @cursorCanvas.height = @dropletElement.offsetHeight - @gutterElement.offsetWidth
+    @cursorCanvas.height = @dropletElement.offsetHeight - @gutter.offsetWidth
     @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
 
     @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
