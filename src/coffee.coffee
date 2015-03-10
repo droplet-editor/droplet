@@ -11,8 +11,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   BLOCK_ONLY = ['block-only']
   MOSTLY_BLOCK = ['mostly-block']
   MOSTLY_VALUE = ['mostly-value']
-  LIST_ITEM = ['list-item']
-  LIST_WRAPPER = ['list-wrapper']
+  LIST_WRAPPER = ['list']
   VALUE_ONLY = ['value-only']
   LVALUE = ['lvalue']
   FORBID_ALL = ['forbid-all']
@@ -573,10 +572,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           @csBlock node, depth, 100, 'violet', wrappingParen, VALUE_ONLY
 
           if node.objects.length > 0
-            @csIndent indentDepth, node.objects[0], node.objects[node.objects.length - 1], depth + 1, LIST_WRAPPER
+            @csIndentAndMark indentDepth, node.objects, depth + 1, LIST_WRAPPER
           for object in node.objects
-            @csBlock object, depth + 2, 100, 'list-element', null, LIST_ITEM
-            @csSocketAndMark object, depth + 3, 0, indentDepth
+            if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
+                object.properties?.length in [0, undefined]
+              @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
@@ -786,14 +786,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           end: last
         }
         depth: depth
-        prefix: prefix
         classes: classes
+        prefix: prefix
       }
 
       return trueDepth
 
-    csIndentAndMark: (indentDepth, nodes, depth) ->
-      trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth
+    csIndentAndMark: (indentDepth, nodes, depth, classes = []) ->
+      trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth, classes
       for node in nodes
         @mark node, depth + 1, 0, null, trueDepth
 

@@ -22,7 +22,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
-  LEFT_BULLET_WIDTH = 20
+  LEFT_BULLET_WIDTH = 15
 
   DEFAULT_OPTIONS =
     padding: 5
@@ -1278,8 +1278,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
-            if 'list-item' in @model.classes
-              console.log 'pushing new point'
+            if @model.parent? and 'list' in @model.parent.classes
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
               left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
@@ -1311,7 +1310,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             else
               right.push new @view.draw.Point bounds.right(), bounds.y
               right.push new @view.draw.Point bounds.right(), multilineBounds.y
-              if multilineChild.child.type is 'indent'
+              if multilineChild.child.type is 'indent' and not ('list' in multilineChild.child.classes)
                 @addTab right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.y
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
@@ -1330,6 +1329,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, bounds.y
+            if 'list' in multilineChild.child.classes
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             right.push new @view.draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 4. End of an indent.
@@ -1345,9 +1348,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
+              if 'list' in multilineChild.child.classes
+                right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+                right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
+                right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
-            if multilineChild.child.type is 'indent'
+            if multilineChild.child.type is 'indent' and not ('list' in multilineChild.child.classes)
               @addTabReverse right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.bottom()
 
             right.push new @view.draw.Point multilineBounds.right(), multilineBounds.bottom()
@@ -1492,8 +1499,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             # Special case for indents that start with newlines;
             # don't do any of the same-line-start multiline stuff.
             if multilineChild.child.type is 'indent' and multilineChild.child.start.next.type is 'newline'
-                right.push new @view.draw.Point @bounds[line].right(), glueTop
+              right.push new @view.draw.Point @bounds[line].right(), glueTop
 
+              unless ('list' in multilineChild.child.classes)
                 @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                   @view.opts.indentWidth +
                   @view.opts.tabOffset, glueTop), true
@@ -1637,16 +1645,17 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
-        if 'list-item' in @model.classes
+        if @model.parent? and 'list' in @model.parent.classes
           @minDimensions[0].width += LEFT_BULLET_WIDTH
 
         return null
 
       computeBoundingBoxX: (left, top) ->
-        super left, top, (if ('list-item' in @model.classes) then LEFT_BULLET_WIDTH else 0)
+        super left, top,
+          (if @model.parent? and 'list' in @model.parent.classes then LEFT_BULLET_WIDTH else 0)
 
       shouldAddTab: ->
-        if 'list-item' in @model.classes
+        if @model.parent? and 'list' in @model.parent.classes
           false
         else if @model.parent?
           parent = @model.visParent()
@@ -1812,7 +1821,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           @dropPoints = []
           @highlightAreas = []
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
+          @dropPoints[0] = @bounds[0].upperLeftCorner()
           highlightArea = @path.clone()
           highlightArea.noclip = true
           highlightArea.style.strokeColor = '#FF0'
