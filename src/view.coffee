@@ -23,6 +23,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
   DROPDOWN_ARROW_HEIGHT = 8
 
+  DROP_TRIANGLE_COLOR = '#555'
+
   DEFAULT_OPTIONS =
     padding: 5
     indentWidth: 10
@@ -1794,7 +1796,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         super
         if @model.hasDropdown()
           ctx.beginPath()
-          ctx.fillStyle = '#000'
+          ctx.fillStyle = DROP_TRIANGLE_COLOR
           ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
           ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
           ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2
