@@ -1113,7 +1113,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # must add their padding to that glue spacing, until we
       # reach an Indent, at which point we can stop.
       #
-      # Parents outside the indent must stil know that there is
+      # Parents outside the indent must still know that there is
       # a space between these line, but they wil not have
       # to colour in that space. This will be flaged
       # by the `draw` flag on the glue objects.

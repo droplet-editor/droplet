@@ -133,11 +133,15 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
 
   CSVParser.normalString = (str) ->
     has_quotes = ((str[0] is str.slice -1) and str[0] in ['"', '\''])
+    if has_quotes
+      tmp = str.match(/\"+/g)
+      has_quotes = Math.min(tmp[0].length, tmp.slice(-1)[0].length)%2 == 1
+    #console.log has_quotes
     if has_quotes and str.length > 1
       newstr = str[1...-1]
     else
       newstr = str
-    needs_quotes = (newstr[0] is ' ') or (newstr.slice(-1) is ' ') or newstr.match(',')?
+    needs_quotes = (newstr[0] is ' ') or (newstr.slice(-1) is ' ') or newstr.match(',')? or newstr.match('"')?
     if has_quotes is needs_quotes
       return str
     else if has_quotes and not needs_quotes
@@ -147,7 +151,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
         return str
     else
       return '"' + str + '"'
-
+  
     ###
     console.log start, str, end
     tmp = str.replace(/([^\"]+)(\")([^\"]+)/g, '$1$2$2$3')

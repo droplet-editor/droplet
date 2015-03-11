@@ -179,14 +179,18 @@
       }
     };
     CSVParser.normalString = function(str) {
-      var has_quotes, needs_quotes, newstr, ref;
+      var has_quotes, needs_quotes, newstr, ref, tmp;
       has_quotes = (str[0] === str.slice(-1)) && ((ref = str[0]) === '"' || ref === '\'');
+      if (has_quotes) {
+        tmp = str.match(/\"+/g);
+        has_quotes = Math.min(tmp[0].length, tmp.slice(-1)[0].length) % 2 === 1;
+      }
       if (has_quotes && str.length > 1) {
         newstr = str.slice(1, -1);
       } else {
         newstr = str;
       }
-      needs_quotes = (newstr[0] === ' ') || (newstr.slice(-1) === ' ') || (newstr.match(',') != null);
+      needs_quotes = (newstr[0] === ' ') || (newstr.slice(-1) === ' ') || (newstr.match(',') != null) || (newstr.match('"') != null);
       if (has_quotes === needs_quotes) {
         return str;
       } else if (has_quotes && !needs_quotes) {
