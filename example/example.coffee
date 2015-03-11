@@ -149,28 +149,28 @@ require ['droplet'], (droplet) ->
           {
             block: '''
             button 'Click', ->
-              ``
+              __
             '''
             title: 'Make a button and do something when clicked'
           },
           {
             block: '''
             for [1..3]
-              ``
+              __
             '''
             title: 'Do something multiple times'
           },
           {
             block: '''
             for x in [1..3]
-              ``
+              __
             '''
             title: 'Do something multiple times...?'
           },
           {
             block: '''
-            while ``
-              ``
+            while __
+              __
             '''
             title: 'Repeat something while a condition is true'
           },
@@ -183,17 +183,17 @@ require ['droplet'], (droplet) ->
           },
           {
             block: '''
-            if ``
-              ``
+            if __
+              __
             '''
             title: 'Do something only if a condition is true'
           },
           {
             block: '''
-            if ``
-              ``
+            if __
+              __
             else
-              ``
+              __
             '''
             title: 'Do something if a condition is true, otherwise do something else'
           },
@@ -203,23 +203,23 @@ require ['droplet'], (droplet) ->
         name: 'Calculate'
         color: 'green'
         blocks: [
-          {block:'x = ``', title:'Set a variable'},
-          {block:'`` + ``', title:'Add two numbers'},
-          {block:'`` - ``', title:'Subtract two numbers'},
-          {block:'`` * ``', title:'Multiply two numbers'},
-          {block:'`` / ``', title:'Divide two numbers'},
-          {block:'`` is ``', title:'Compare two values'},
-          {block:'`` < ``', title:'Compare two values'},
-          {block:'`` > ``', title:'Compare two values'},
+          {block:'x = __', title:'Set a variable'},
+          {block:'__ + __', title:'Add two numbers'},
+          {block:'__ - __', title:'Subtract two numbers'},
+          {block:'__ * __', title:'Multiply two numbers'},
+          {block:'__ / __', title:'Divide two numbers'},
+          {block:'__ is __', title:'Compare two values'},
+          {block:'__ < __', title:'Compare two values'},
+          {block:'__ > __', title:'Compare two values'},
           {block:'random [1..100]', title:'Get a random number in a range'},
-          {block:'round ``', title:'Round to the nearest integer'},
-          {block:'abs ``', title:'Absolute value'},
-          {block:'max ``, ``', title:'Get the larger of two numbers'},
-          {block:'min ``, ``', title:'Get the smaller on two numbers'},
+          {block:'round __', title:'Round to the nearest integer'},
+          {block:'abs __', title:'Absolute value'},
+          {block:'max __, __', title:'Get the larger of two numbers'},
+          {block:'min __, __', title:'Get the smaller on two numbers'},
           {
             block:'''
             f = (param) ->
-              ``
+              __
             '''
             title: 'Define a new function'
           },
@@ -239,7 +239,7 @@ require ['droplet'], (droplet) ->
           {
             block:'''
             tick 1, ->
-              ``
+              __
             '''
             title: 'Do something at equally-spaced times'
           }

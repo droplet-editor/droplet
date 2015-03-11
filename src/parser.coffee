@@ -92,7 +92,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts.color,
         opts.socketLevel,
         opts.classes,
-        false
+        opts.parsingContext
 
       @addMarkup block, opts.bounds, opts.depth
 
@@ -446,6 +446,41 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
   Parser.empty = ''
 
+  exports.ParsingContext = class ParsingContext
+    constructor: (@prefix = '', @suffix = '', @indent = '') ->
+
+    forward: (text) ->
+      lines = text.split '\n'
+      result = @prefix + lines.map((x) => @indent + x).join('\n') + @suffix
+      console.log 'text:\n', result
+      return result
+
+    backward: (segment) ->
+      head = segment.start
+      chars = 0
+      assembledStr = ''
+
+      # Scan to the end of the prefix
+      until chars >= @prefix.length or head is segment.end
+        head = head.next
+        chars += head.getStringRepresentation().length
+        if head.type is 'newline'
+          chars -= @indent.length
+
+      unless chars is @prefix.length
+        return null
+
+      until head.type is 'blockStart' or head is segment.end
+        head = head.next
+
+      if head is segment.end
+        return null
+
+      segment.start.append head.container.start
+      head.container.end.append segment.end
+
+      return segment
+
   exports.wrapParser = (CustomParser) ->
     class CustomParserFactory extends ParserFactory
       constructor: (@opts = {}) ->
@@ -455,7 +490,12 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
       parse: (text, opts) ->
         opts ?= wrapAtRoot: true
-        return @createParser(text)._parse opts
+        if opts.context?
+          return opts.context.backward(
+              @createParser(opts.context.forward(text))._parse opts
+            )
+        else
+          return @createParser(text)._parse opts
 
       parens: (leading, trailing, node, context) ->
         # leadingFn is always a getter/setter for leading

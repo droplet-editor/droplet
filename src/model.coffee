@@ -526,6 +526,8 @@ define ['droplet-helper'], (helper) ->
 
       @version = 0
 
+    getStringRepresentation: -> ''
+
     hasParent: (parent) ->
       head = @
       until head in [parent, null]
@@ -716,7 +718,7 @@ define ['droplet-helper'], (helper) ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
+    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parsingContext = null) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
@@ -853,6 +855,8 @@ define ['droplet-helper'], (helper) ->
       super
       @type = 'text'
 
+    getStringRepresentation: -> @_value
+
     # We will define getter/setter for the @value property
     # of TextToken, which is meant to be mutable but
     # also causes content change.
@@ -869,6 +873,15 @@ define ['droplet-helper'], (helper) ->
     constructor: (@specialIndent) -> super; @type = 'newline'
     stringify: (state) -> '\n' + (@specialIndent ? state.indent)
     serialize: -> '\n'
+    getStringRepresentation: -> '\n' + (@specialIndent ? @getIndent())
+    getIndent: ->
+      head = @
+      indent = ''
+      until head is null
+        if head.type is 'indent'
+          indent = head.prefix + indent
+        head = head.parent
+      return indent
     clone: -> new NewlineToken @specialIndent
 
   exports.CursorToken = class CursorToken extends Token
