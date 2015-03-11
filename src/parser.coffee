@@ -480,4 +480,10 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
 
+      canReparse: (node) ->
+        if node.parent? and 'list' in node.parent.classes
+          return false
+        else
+          return true
+
   return exports

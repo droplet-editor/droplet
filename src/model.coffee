@@ -497,11 +497,18 @@ define ['droplet-helper'], (helper) ->
       return @end.nextVisibleToken() in [@parent?.end, @parent?.parent?.end, null] or
         @end.nextVisibleToken()?.type in ['newline', 'indentStart', 'indentEnd']
 
+    parentWithQuality: (fn) ->
+      parent = @
+      until fn parent
+        console.log 'going up to', parent
+        parent = parent.parent
+      return parent
+
     visParent: ->
-      head = @parent
-      while head?.type is 'segment' and head.isLassoSegment
-        head = head.parent
-      return head
+      if @parent?
+        @parent.parentWithQuality (x) -> not (head?.type is 'segment' and head.isLassoSegment)
+      else
+        return null
 
     # Line mark mutators
     addLineMark: (mark) ->

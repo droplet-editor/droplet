@@ -1215,10 +1215,10 @@ define ['droplet-helper',
       # Reparse the parent if we are
       # in a socket
       #
-      # TODO "reparseable" property, bubble up
       # TODO performance on large programs
       if @lastHighlight.type is 'socket'
-        @reparseRawReplace @draggingBlock.parent.parent
+        @reparseRawReplace @draggingBlock.parent.parent.parentWithQuality (x) =>
+          x.type is 'block' and @mode.canReparse x
 
       else
         # If what we've dropped has a socket in it,
@@ -1836,7 +1836,9 @@ define ['droplet-helper',
       shouldRecoverCursor = false
       cursorPosition = cursorParent = null
 
-      if @cursor.hasParent @textFocus.parent
+      reparseParent = @reparseParent @textFocus
+
+      if @cursor.hasParent reparseParent
         shouldRecoverCursor = true
         cursorPosition = @getRecoverableCursorPosition()
 
@@ -1867,7 +1869,7 @@ define ['droplet-helper',
           shouldPop = true
 
       # TODO make 'reparsable' property, bubble up until then
-      unless @reparseRawReplace @textFocus.parent
+      unless @reparseRawReplace(reparseParent)
         # If we can't reparse the parent, abort all reparses
         @populateSocket @textFocus, originalText
 
@@ -2499,8 +2501,10 @@ define ['droplet-helper',
       if head.type is 'socketStart' and
           (head.next.type is 'text' or head.next is head.container.end)
         # Avoid problems with reparses
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
+        if @textFocus?
+          reparseParent = @reparseParent @textFocus
+        if @textFocus? and head.container.hasParent reparseParent
+          persistentParent = reparseParent.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -2597,7 +2601,13 @@ define ['droplet-helper',
 
     return head.container
 
+  Editor::reparseParent = (node) ->
+    node.parent.parentWithQuality((x) =>
+        x.type is 'block' and @mode.canReparse x)
+
   hook 'keydown', 0, (event, state) ->
+    if @textFocus?
+      reparseParent = @reparseParent @textFocus
     if event.which isnt TAB_KEY then return
     if event.shiftKey
       if @textFocus? then head = @textFocus.start
@@ -2608,8 +2618,8 @@ define ['droplet-helper',
         head = head.prev
 
       if head?
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
+        if @textFocus? and head.container.hasParent reparseParent
+          persistentParent = reparseParent.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -2629,8 +2639,8 @@ define ['droplet-helper',
           (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
         head = head.next
       if head?
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
+        if @textFocus? and head.container.hasParent reparseParent
+          persistentParent = reparseParent.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null

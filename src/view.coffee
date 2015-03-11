@@ -1334,7 +1334,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, bounds.y
-              console.log @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine, line - multilineChild.startLine
             if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
               right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
               right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
