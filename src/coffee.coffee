@@ -574,8 +574,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if node.objects.length > 0
             @csIndentAndMark indentDepth, node.objects, depth + 1, LIST_WRAPPER
           for object in node.objects
-            if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
-                object.properties?.length in [0, undefined]
+            subject = @getParenBase(object)
+            if subject.nodeType() is 'Value' and subject.base.nodeType() is 'Literal' and
+                subject.properties?.length in [0, undefined]
               @csBlock object, depth + 2, 100, 'blank', null, ANY_DROP
 
               # See if there is a comma after this object
@@ -659,6 +660,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       else if b.line < a.line then a
       else if a.column < b.column then b
       else a
+
+    getParenBase: (node) ->
+      while node.nodeType() is 'Value' and
+          node.base?.nodeType() is 'Parens' and
+          node.properties?.length in [0, undefined] and
+          node.base.body.expressions[0]?.nodeType() is 'Value'
+        node = node.base.body.expressions[0]
+      return node
 
     # ## getBounds ##
     # Get the boundary locations of a CoffeeScript node,

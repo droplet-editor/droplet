@@ -294,7 +294,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
                 # If the a block is embedded
                 # directly in another block, throw.
                 if stack[stack.length - 1]?.type is 'block'
-                  throw new Error 'Improper parser: block cannot nest immediately inside another block.'
+                  throw new Error "Improper parser: block cannot nest immediately inside another block: line #{i}."
 
               when 'socketStart'
                 # A socket is only allowed to be directly inside a block.
