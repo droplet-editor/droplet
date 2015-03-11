@@ -77,12 +77,12 @@
   {
     "message": "Object literal, normal form",
     "str": "foo {\n a: b,\n c: d\n}",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call any-drop\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">foo<\/socket> <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\"><block\n precedence=\"0\"\n color=\"violet\"\n socketLevel=\"0\"\n classes=\"Obj value-only\">{\n <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">a<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">b<\/socket>,\n <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">c<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">d<\/socket>\n}<\/block><\/socket><\/block><\/segment>"
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call any-drop\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">foo<\/socket> <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\"><block\n precedence=\"0\"\n color=\"purple\"\n socketLevel=\"0\"\n classes=\"Obj value-only\">{\n <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">a<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">b<\/socket>,\n <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">c<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">d<\/socket>\n}<\/block><\/socket><\/block><\/segment>"
   },
   {
     "message": "Object literal, no braces or commas",
     "str": "foo\n a: b\n c: d",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call any-drop\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">foo<\/socket>\n <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\"><block\n precedence=\"0\"\n color=\"violet\"\n socketLevel=\"0\"\n classes=\"Obj value-only\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">a<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">b<\/socket>\n <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">c<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">d<\/socket><\/block><\/socket><\/block><\/segment>"
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call any-drop\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">foo<\/socket>\n <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\"><block\n precedence=\"0\"\n color=\"purple\"\n socketLevel=\"0\"\n classes=\"Obj value-only\"><socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">a<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">b<\/socket>\n <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value forbid-all\">c<\/socket>: <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">d<\/socket><\/block><\/socket><\/block><\/segment>"
   },
   {
     "message": "String interpolation",
@@ -97,6 +97,6 @@
   {
     "message": "Array",
     "str": "[0, 1]",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"100\"\n color=\"violet\"\n socketLevel=\"0\"\n classes=\"Arr value-only\">[<indent\n prefix=\"  \"\n classes=\"\"><block\n precedence=\"100\"\n color=\"return\"\n socketLevel=\"0\"\n classes=\"Value value-only\">0, <\/block><block\n precedence=\"100\"\n color=\"return\"\n socketLevel=\"0\"\n classes=\"Value value-only\">1<\/block><\/indent>]<\/block><\/segment>"
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"100\"\n color=\"purple\"\n socketLevel=\"0\"\n classes=\"Arr value-only\">[<indent\n prefix=\"  \"\n classes=\"\"><block\n precedence=\"100\"\n color=\"return\"\n socketLevel=\"0\"\n classes=\"Value value-only\">0, <\/block><block\n precedence=\"100\"\n color=\"return\"\n socketLevel=\"0\"\n classes=\"Value value-only\">1<\/block><\/indent>]<\/block><\/segment>"
   }
 ]

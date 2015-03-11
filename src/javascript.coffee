@@ -38,7 +38,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'BinaryExpression': 'value'
     'UnaryExpression': 'value'
     'FunctionExpression': 'value'
-    'FunctionDeclaration': 'violet'
+    'FunctionDeclaration': 'purple'
     'AssignmentExpression': 'command'
     'CallExpression': 'command'
     'ReturnStatement': 'return'
@@ -193,7 +193,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'CallExpression'
           known = @lookupFunctionName node
           if not known
-            return 'violet'
+            return 'purple'
           else if known.fn.color
             return known.fn.color
           else if known.fn.value and not known.fn.command
