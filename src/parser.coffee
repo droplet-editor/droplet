@@ -191,7 +191,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     # Construct a handwritten block with the given
     # text inside
     constructHandwrittenBlock: (text) ->
-      block = new model.Block 0, 'blank', helper.ANY_DROP, ['Value', 'any-drop']
+      block = new model.Block 0, 'blank', helper.ANY_DROP, ['Value', 'blank-block']
       socket = new model.Socket 0, true
       textToken = new model.TextToken text
 

@@ -12,6 +12,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   MOSTLY_BLOCK = ['mostly-block']
   MOSTLY_VALUE = ['mostly-value']
   LIST_WRAPPER = ['list']
+  OBJ_WRAPPER = ['object', 'list']
+  BLANK_BLOCK = ['blank-block']
   VALUE_ONLY = ['value-only']
   LVALUE = ['lvalue']
   FORBID_ALL = ['forbid-all']
@@ -500,7 +502,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if node.value.nodeType() is 'Code'
             @addCode node.value, depth + 1, indentDepth
           else
-            @csSocketAndMark node.value, depth + 1, 0, indentDepth
+            @csSocketAndMark node.value, depth + 1, -1, indentDepth
 
         # ### For ###
         # Color CONTROL, options sockets @index, @source, @name, @from.
@@ -577,7 +579,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             subject = @getParenBase(object)
             if subject.nodeType() is 'Value' and subject.base.nodeType() is 'Literal' and
                 subject.properties?.length in [0, undefined]
-              @csBlock object, depth + 2, 100, 'blank', null, ANY_DROP
+              @csBlock object, depth + 2, 100, 'blank', null, BLANK_BLOCK
 
               # See if there is a comma after this object
               bounds = @getBounds object
@@ -639,11 +641,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # maybe our View architecture is wrong.
         when 'Obj'
           @csBlock node, depth, 0, 'violet', wrappingParen, VALUE_ONLY
-
-          for property in node.properties
-            if property.nodeType() is 'Assign'
-              @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
-              @csSocketAndMark property.value, depth + 1, 0, indentDepth
+          @csIndentAndMark indentDepth, node.properties, depth + 1, OBJ_WRAPPER
 
 
     locationsAreIdentical: (a, b) ->
@@ -733,6 +731,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         bounds.end.line -= 1
         bounds.end.column = @lines[bounds.end.line].length + 1
 
+      if node.nodeType() is 'Obj'
+        bounds.start = @boundMin bounds.start, @getWrappingBounds(node.properties[0], node.properties[node.properties.length - 1]).start
+
       # When we have a 'Value' object,
       # its base may have some exceptions in it,
       # in which case we want to pass on to
@@ -781,9 +782,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         parenWrapped: wrappingParen?
       }
 
-    # Add an indent node and guess
-    # at the indent depth
-    csIndent: (indentDepth, firstNode, lastNode, depth, classes = []) ->
+    getWrappingBounds: (firstNode, lastNode) ->
       first = @getBounds(firstNode).start
       last = @getBounds(lastNode).end
 
@@ -791,6 +790,15 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         first.line -= 1
         first.column = @lines[first.line].length
 
+      return {
+        start: first
+        end: last
+      }
+
+    # Add an indent node and guess
+    # at the indent depth
+    csIndent: (indentDepth, firstNode, lastNode, depth, classes = []) ->
+      {start: first, end: last} = @getWrappingBounds firstNode, lastNode
       if first.line isnt last.line
         trueDepth = @lines[last.line].length - @lines[last.line].trimLeft().length
         prefix = @lines[last.line][indentDepth...trueDepth]
@@ -799,10 +807,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         prefix = '  '
 
       @addIndent {
-        bounds: {
-          start: first
-          end: last
-        }
+        bounds: {start: first, end: last}
         depth: depth
         classes: classes
         prefix: prefix
@@ -975,12 +980,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       if ('block-only' in block.classes or
           'mostly-block' in block.classes or
           'any-drop' in block.classes or
+          'blank-block' in block.classes or
           block.type is 'segment') and not ('list' in context.classes)
         return helper.ENCOURAGE
 
       else if ('mostly-value' in block.classes or
           'value-only' in block.classes or
-          'any-drop' in block.classes) and
+          'any-drop' in block.classes or
+          'blank-block' in block.classes) and
           'list' in context.classes
         return helper.ENCOURAGE
 

@@ -1279,7 +1279,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
-            if @model.parent? and 'list' in @model.visParent().classes
+            if @model.parent? and 'list' in @model.visParent().classes and line is 0
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
               left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
@@ -1293,7 +1293,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
-            if @model.parent? and 'list' in @model.visParent().classes
+            if @model.parent? and 'list' in @model.visParent().classes and line is 0
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
               left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
               left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
@@ -1353,7 +1353,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
-              if 'list' in multilineChild.child.classes
+              if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
                 right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
                 right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
                 right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH

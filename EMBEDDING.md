@@ -151,4 +151,3 @@ Each function is associated with a configuration object.  It can specify:
 - command: true if it's a "command" block that can serve as a top-level statement.
 - (specify both value and command if it can be both).
 - color: colorname to set the color of the block.  If omitted, a default color is chosen.
-
