@@ -150,7 +150,7 @@ require ['droplet'], (droplet) ->
         }
         'pen': {
           dropdown: {
-            0: COLORS = [
+            0: COLORS = -> [
               {text: 'red', display: '<span style="color:red">red</span>'},
               {text: 'orange', display: '<span style="color:orange">orange</span>'},
               {text: 'yellow', display: '<span style="color:yellow">yellow</span>'},

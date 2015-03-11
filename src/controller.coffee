@@ -2063,11 +2063,7 @@ define ['droplet-helper',
       # Closure the text focus; dropdown should work
       # even after unfocused
       textFocus = @textFocus
-      if (typeof @textFocus.dropdown is 'function')
-        dropdown = @textFocus.dropdown()
-      else
-        dropdown = @textFocus.dropdown
-      for el, i in dropdown then do (el) =>
+      for el, i in @textFocus.dropdown() then do (el) =>
         div = document.createElement 'div'
         div.innerHTML = el.display
         div.className = 'droplet-dropdown-item'

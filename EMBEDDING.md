@@ -147,9 +147,17 @@ functions: {
       command: true,
       dropdowns: {
         0: [
-          {text: 'red', display: '<span style="color:red">red</span>'},
-          {text: 'blue', display: '<span style="color:blue">blue</span>'}
-        ]
+          // Dropdown elements can be a string
+          'blue',
+
+          // Or an object with text and display
+          {text: 'red', display: '<span style="color:red">red</span>'}
+        ],
+
+        // Dropdown element lists can also be generated on the fly by a function
+        1: function() {
+          return ['red', 'blue'];
+        }
       }
     }
 }
