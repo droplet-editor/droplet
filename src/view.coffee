@@ -41,19 +41,29 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
     ctx: document.createElement('canvas').getContext('2d')
     colors:
       error: '#ff0000'
-      return: '#ecec79'
-      control: '#efcf8f'
-      value: '#8cec79'
-      command: '#8fbfef'
-
-      red: '#f2a6a6'
-      orange: '#efcf8f'
-      yellow: '#ecec79'
-      green: '#8cec79'
-      cyan: '#79ecd9'
-      blue: '#8fbfef'
-      violet: '#bfa6f2'
-      magenta: '#f2a6e5'
+      return: '#fff59d'   # yellow
+      control: '#ffcc80'  # orange
+      value: '#a5d6a7'    # green
+      command: '#90caf9'  # blue
+      red: '#ef9a9a'
+      pink: '#f48fb1'
+      purple: '#ce93d8'
+      deeppurple: '#b39ddb'
+      indigo: '#9fa8da'
+      blue: '#90caf9'
+      lightblue: '#81d4fa'
+      cyan: '#80deea'
+      teal: '#80cbc4'
+      green: '#a5d6a7'
+      lightgreen: '#c5e1a5'
+      lime: '#e6ee9c'
+      yellow: '#fff59d'
+      amber: '#ffe082'
+      orange: '#ffcc80'
+      deeporange: '#ffab91'
+      brown: '#bcaaa4'
+      grey: '#eeeeee'
+      bluegrey: '#b0bec5'
 
   YES = -> yes
   NO = -> no
@@ -121,6 +131,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         when 'socket' then new SocketViewNode model, this
         when 'segment' then new SegmentViewNode model, this
         when 'cursor' then new CursorViewNode model, this
+
+    # Looks up a color name, or passes through a #hex color.
+    getColor: (color) ->
+      if color and '#' is color.charAt(0)
+        color
+      else
+        @opts.colors[color] ? '#ffffff'
 
     # # GenericViewNode
     # Class from which all renderer classes will
@@ -1636,7 +1653,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
       computeOwnPath: ->
         super
-        @path.style.fillColor = @view.opts.colors[@model.color] ? '#ffffff'
+
+        @path.style.fillColor = @view.getColor @model.color
         @path.style.strokeColor = '#888'
 
         @path.bevel = true
@@ -2051,6 +2069,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         return 1
 
       computeBoundingBox: ->
+
   toRGB = (hex) ->
     # Convert to 6-char hex if not already there
     if hex.length is 4
