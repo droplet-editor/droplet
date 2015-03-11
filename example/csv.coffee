@@ -95,3 +95,24 @@ require ['droplet'], (droplet) ->
       $('#palette_dialog').dialog 'close'
     else
       $("#palette_dialog").dialog 'open'
+
+  isComment = (str) ->
+    str.match(/^\s*\/\/.*$/)
+
+  window.addSocket = (line) ->
+    lines = editor.getValue().split '\n'
+    if not isComment lines[line]
+      if lines[line] isnt '' then lines[line] += '," "' else lines[line] = '" "'
+      editor.setValue(lines.join '\n')
+
+  window.removeSocket = (line) ->
+    lines = editor.getValue().split '\n'
+    if not isComment lines[line]
+      in_quotes = false
+      for i in [lines[line].length-1..1] by -1
+        if lines[line][i] is '"'
+          in_quotes = !in_quotes
+        else if lines[line][i] is ',' and not in_quotes
+          break;
+      lines[line] = lines[line].slice 0, i
+      editor.setValue(lines.join '\n')

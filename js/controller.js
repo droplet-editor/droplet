@@ -2692,7 +2692,7 @@
           this.dropletElement.appendChild(div);
           fn2(div, line);
         }
-        this.lineNumberWrapper.style.display = 'none';
+        this.addButtonWrapper.style.display = this.subtractButtonWrapper.style.display = this.lineNumberWrapper.style.display = 'none';
         this.mainCanvas.style.transition = this.highlightCanvas.style.transition = this.cursorCanvas.style.opacity = "opacity " + fadeTime + "ms linear";
         this.mainCanvas.style.opacity = this.highlightCanvas.style.opacity = this.cursorCanvas.style.opacity = 0;
         setTimeout(((function(_this) {
@@ -2856,7 +2856,7 @@
               _this.dropletElement.style.transition = _this.paletteWrapper.style.transition = '';
               _this.mainScroller.style.overflow = 'auto';
               _this.currentlyAnimating = false;
-              _this.lineNumberWrapper.style.display = 'block';
+              _this.addButtonWrapper.style.display = _this.subtractButtonWrapper.style.display = _this.lineNumberWrapper.style.display = 'block';
               _this.redrawMain();
               _this.paletteHeader.style.zIndex = 257;
               for (m = 0, len2 = translatingElements.length; m < len2; m++) {
@@ -3206,7 +3206,7 @@
         this.dropletElement.style.left = this.paletteWrapper.offsetWidth + "px";
         this.aceElement.style.top = this.aceElement.style.left = '-9999px';
         this.currentlyUsingBlocks = true;
-        this.lineNumberWrapper.style.display = 'block';
+        this.addButtonWrapper.style.display = this.subtractButtonWrapper.style.display = this.lineNumberWrapper.style.display = 'block';
         this.mainCanvas.opacity = this.paletteWrapper.opacity = this.highlightCanvas.opacity = 1;
         this.resizeBlockMode();
         return this.redrawMain();
@@ -3218,7 +3218,7 @@
         this.dropletElement.style.top = this.dropletElement.style.left = this.paletteWrapper.style.top = this.paletteWrapper.style.left = '-9999px';
         this.aceElement.style.top = this.aceElement.style.left = '0px';
         this.currentlyUsingBlocks = false;
-        this.lineNumberWrapper.style.display = 'none';
+        this.addButtonWrapper.style.display = this.subtractButtonWrapper.style.display = this.lineNumberWrapper.style.display = 'none';
         this.mainCanvas.opacity = this.highlightCanvas.opacity = 0;
         return this.resizeBlockMode();
       }
@@ -3463,16 +3463,31 @@
       this.lineNumberWrapper = document.createElement('div');
       this.gutter.appendChild(this.lineNumberWrapper);
       this.gutterVersion = -1;
+      this.dropletElement.appendChild(this.gutter);
       this.lineNumberTags = {};
-      return this.dropletElement.appendChild(this.gutter);
+      this.subtractButtonTags = {};
+      this.addButtonTags = {};
+      if (this.options.mode === 'csv') {
+        this.addButtonWrapper = document.createElement('div');
+        this.subtractButtonWrapper = document.createElement('div');
+        this.addGutter = document.createElement('div');
+        this.addGutter.id = 'add_button_wrapper';
+        this.subtractGutter = document.createElement('div');
+        this.subtractGutter.id = 'subtract_button_wrapper';
+        this.addGutter.appendChild(this.addButtonWrapper);
+        this.subtractGutter.appendChild(this.subtractButtonWrapper);
+      }
+      this.dropletElement.appendChild(this.addGutter);
+      return this.dropletElement.appendChild(this.subtractGutter);
     });
     Editor.prototype.resizeGutter = function() {
       var ref1, ref2;
       this.gutter.style.width = this.aceEditor.renderer.$gutterLayer.gutterWidth + 'px';
-      return this.gutter.style.height = (Math.max(this.dropletElement.offsetHeight, (ref1 = (ref2 = this.view.getViewNodeFor(this.tree).totalBounds) != null ? ref2.height : void 0) != null ? ref1 : 0)) + "px";
+      this.addGutter.style.width = this.subtractGutter.style.width = '30px';
+      return this.addGutter.style.height = this.subtractGutter.style.height = this.gutter.style.height = (Math.max(this.dropletElement.offsetHeight, (ref1 = (ref2 = this.view.getViewNodeFor(this.tree).totalBounds) != null ? ref2.height : void 0) != null ? ref1 : 0)) + "px";
     };
     Editor.prototype.addLineNumberForLine = function(line) {
-      var lineDiv, treeView;
+      var addDiv, lineDiv, subtractDiv, treeView;
       treeView = this.view.getViewNodeFor(this.tree);
       if (line in this.lineNumberTags) {
         lineDiv = this.lineNumberTags[line];
@@ -3485,7 +3500,35 @@
       lineDiv.style.top = (treeView.bounds[line].y + treeView.distanceToBase[line].above - this.view.opts.textHeight - this.fontAscent - this.scrollOffsets.main.y) + "px";
       lineDiv.style.height = treeView.bounds[line].height + 'px';
       lineDiv.style.fontSize = this.fontSize + 'px';
-      return this.lineNumberWrapper.appendChild(lineDiv);
+      this.lineNumberWrapper.appendChild(lineDiv);
+      if (this.options.mode === 'csv') {
+        if (line in this.addButtonTags) {
+          addDiv = this.addButtonTags[line];
+        } else {
+          addDiv = document.createElement('button');
+          addDiv.className = 'droplet-gutter-addbutton';
+          addDiv.innerText = addDiv.textContent = '+';
+          addDiv.setAttribute('onclick', "addSocket(" + line + ")");
+          this.addButtonTags[line] = addDiv;
+        }
+        if (line in this.subtractButtonTags) {
+          subtractDiv = this.subtractButtonTags[line];
+        } else {
+          subtractDiv = document.createElement('button');
+          subtractDiv.className = 'droplet-gutter-subtractbutton';
+          subtractDiv.innerText = subtractDiv.textContent = '-';
+          subtractDiv.setAttribute('onclick', "removeSocket(" + line + ")");
+          this.subtractButtonTags[line] = subtractDiv;
+        }
+        addDiv.style.top = (treeView.bounds[line].y + treeView.distanceToBase[line].above - this.view.opts.textHeight - this.fontAscent - this.scrollOffsets.main.y) + "px";
+        addDiv.style.height = treeView.bounds[line].height + 'px';
+        addDiv.style.fontSize = this.fontSize + 'px';
+        this.addButtonWrapper.appendChild(addDiv);
+        subtractDiv.style.top = (treeView.bounds[line].y + treeView.distanceToBase[line].above - this.view.opts.textHeight - this.fontAscent - this.scrollOffsets.main.y) + "px";
+        subtractDiv.style.height = treeView.bounds[line].height + 'px';
+        subtractDiv.style.fontSize = this.fontSize + 'px';
+        return this.subtractButtonWrapper.appendChild(subtractDiv);
+      }
     };
     Editor.prototype.findLineNumberAtCoordinate = function(coord) {
       var end, pivot, start, treeView;

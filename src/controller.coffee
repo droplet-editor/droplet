@@ -3056,7 +3056,7 @@ define ['droplet-helper',
             div.style.fontSize = @aceFontSize()
           ), fadeTime
 
-      @lineNumberWrapper.style.display = 'none'
+      @addButtonWrapper.style.display = @subtractButtonWrapper.style.display = @lineNumberWrapper.style.display = 'none'
 
       # Kick off fade-out transition
 
@@ -3251,7 +3251,7 @@ define ['droplet-helper',
           @mainScroller.style.overflow = 'auto'
 
           @currentlyAnimating = false
-          @lineNumberWrapper.style.display = 'block'
+          @addButtonWrapper.style.display = @subtractButtonWrapper.style.display = @lineNumberWrapper.style.display = 'block'
           @redrawMain()
           @paletteHeader.style.zIndex = 257
 
@@ -3633,7 +3633,7 @@ define ['droplet-helper',
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @currentlyUsingBlocks = true
 
-      @lineNumberWrapper.style.display = 'block'
+      @addButtonWrapper.style.display = @subtractButtonWrapper.style.display = @lineNumberWrapper.style.display = 'block'
 
       @mainCanvas.opacity = @paletteWrapper.opacity =
         @highlightCanvas.opacity = 1
@@ -3653,7 +3653,7 @@ define ['droplet-helper',
       @aceElement.style.top = @aceElement.style.left = '0px'
       @currentlyUsingBlocks = false
 
-      @lineNumberWrapper.style.display = 'none'
+      @addButtonWrapper.style.display = @subtractButtonWrapper.style.display = @lineNumberWrapper.style.display = 'none'
 
       @mainCanvas.opacity =
         @highlightCanvas.opacity = 0
@@ -3938,13 +3938,33 @@ define ['droplet-helper',
 
     @gutterVersion = -1
 
-    @lineNumberTags = {}
-
     @dropletElement.appendChild @gutter
+
+    @lineNumberTags = {}
+    @subtractButtonTags = {}
+    @addButtonTags = {}
+
+    if @options.mode is 'csv'
+      @addButtonWrapper = document.createElement 'div'
+      @subtractButtonWrapper = document.createElement 'div'
+
+      @addGutter = document.createElement 'div'
+      #@addGutter.className = 'droplet-gutter'
+      @addGutter.id = 'add_button_wrapper'
+      @subtractGutter = document.createElement 'div'
+      @subtractGutter.id = 'subtract_button_wrapper'
+      #@subtractGutter.className = 'droplet-gutter'
+
+      @addGutter.appendChild @addButtonWrapper
+      @subtractGutter.appendChild @subtractButtonWrapper
+
+    @dropletElement.appendChild @addGutter
+    @dropletElement.appendChild @subtractGutter
 
   Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-    @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+    @addGutter.style.width = @subtractGutter.style.width = '30px'
+    @addGutter.style.height = @subtractGutter.style.height = @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
 
 
   Editor::addLineNumberForLine = (line) ->
@@ -3952,19 +3972,50 @@ define ['droplet-helper',
 
     if line of @lineNumberTags
       lineDiv = @lineNumberTags[line]
-
+      
     else
       lineDiv = document.createElement 'div'
       lineDiv.className = 'droplet-gutter-line'
       lineDiv.innerText = lineDiv.textContent = line + 1
-
       @lineNumberTags[line] = lineDiv
 
     lineDiv.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @fontSize + 'px'
-
+    
     @lineNumberWrapper.appendChild lineDiv
+
+    if @options.mode is 'csv'
+
+      if line of @addButtonTags
+        addDiv = @addButtonTags[line]
+        
+      else
+        addDiv = document.createElement 'button'
+        addDiv.className = 'droplet-gutter-addbutton'
+        addDiv.innerText = addDiv.textContent = '+'
+        addDiv.setAttribute('onclick', "addSocket(#{line})")  
+        @addButtonTags[line] = addDiv
+
+      if line of @subtractButtonTags
+        subtractDiv = @subtractButtonTags[line]
+        
+      else
+        subtractDiv = document.createElement 'button'
+        subtractDiv.className = 'droplet-gutter-subtractbutton'
+        subtractDiv.innerText = subtractDiv.textContent = '-'
+        subtractDiv.setAttribute('onclick', "removeSocket(#{line})")  
+        @subtractButtonTags[line] = subtractDiv
+
+      addDiv.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
+      addDiv.style.height =  treeView.bounds[line].height + 'px'
+      addDiv.style.fontSize = @fontSize + 'px'
+      @addButtonWrapper.appendChild addDiv
+
+      subtractDiv.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
+      subtractDiv.style.height =  treeView.bounds[line].height + 'px'
+      subtractDiv.style.fontSize = @fontSize + 'px'
+      @subtractButtonWrapper.appendChild subtractDiv
 
   Editor::findLineNumberAtCoordinate = (coord) ->
     treeView = @view.getViewNodeFor @tree

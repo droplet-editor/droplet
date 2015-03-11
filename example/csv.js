@@ -15,7 +15,7 @@
   });
 
   require(['droplet'], function(droplet) {
-    var displayMessage, examplePrograms, messageElement, onChange, startingText;
+    var displayMessage, examplePrograms, isComment, messageElement, onChange, startingText;
     window.editor = new droplet.Editor(document.getElementById('editor'), {
       mode: 'csv',
       palette: [
@@ -62,7 +62,7 @@
         return messageElement.style.display = 'none';
       }), 2000);
     };
-    return document.getElementById('toggle').addEventListener('click', function() {
+    document.getElementById('toggle').addEventListener('click', function() {
       editor.toggleBlocks();
       if ($('#palette_dialog').dialog('isOpen')) {
         return $('#palette_dialog').dialog('close');
@@ -70,6 +70,37 @@
         return $("#palette_dialog").dialog('open');
       }
     });
+    isComment = function(str) {
+      return str.match(/^\s*\/\/.*$/);
+    };
+    window.addSocket = function(line) {
+      var lines;
+      lines = editor.getValue().split('\n');
+      if (!isComment(lines[line])) {
+        if (lines[line] !== '') {
+          lines[line] += '," "';
+        } else {
+          lines[line] = '" "';
+        }
+        return editor.setValue(lines.join('\n'));
+      }
+    };
+    return window.removeSocket = function(line) {
+      var i, in_quotes, j, lines, ref;
+      lines = editor.getValue().split('\n');
+      if (!isComment(lines[line])) {
+        in_quotes = false;
+        for (i = j = ref = lines[line].length - 1; j >= 1; i = j += -1) {
+          if (lines[line][i] === '"') {
+            in_quotes = !in_quotes;
+          } else if (lines[line][i] === ',' && !in_quotes) {
+            break;
+          }
+        }
+        lines[line] = lines[line].slice(0, i);
+        return editor.setValue(lines.join('\n'));
+      }
+    };
   });
 
 }).call(this);
