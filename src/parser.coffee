@@ -322,7 +322,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
               stack.push mark.token.container
             else if mark.token instanceof model.EndToken
               unless mark.token.container is stack[stack.length - 1]
-                throw new Error "Improper parser: #{head.container.type} ended too early."
+                throw new Error "Improper parser: #{head.container.type} ended too early: line #{i}"
               stack.pop()
 
             # Append the token

@@ -641,7 +641,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # maybe our View architecture is wrong.
         when 'Obj'
           @csBlock node, depth, 0, 'purple', wrappingParen, VALUE_ONLY
-          @csIndentAndMark indentDepth, node.properties, depth + 1, OBJ_WRAPPER
+          if node.properties.length > 0
+            @csIndentAndMark indentDepth, node.properties, depth + 1, OBJ_WRAPPER
 
     locationsAreIdentical: (a, b) ->
       return a.line is b.line and a.column is b.column
@@ -730,7 +731,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         bounds.end.line -= 1
         bounds.end.column = @lines[bounds.end.line].length + 1
 
-      if node.nodeType() is 'Obj'
+      if node.nodeType() is 'Obj' and node.properties.length > 0
         bounds.start = @boundMin bounds.start, @getWrappingBounds(node.properties[0], node.properties[node.properties.length - 1]).start
 
       # When we have a 'Value' object,
@@ -782,12 +783,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       }
 
     getWrappingBounds: (firstNode, lastNode) ->
+      if not firstNode? or not lastNode?
+        console.log 'err on', firstNode, firstNode?.locationData, lastNode, lastNode?.locationData
       first = @getBounds(firstNode).start
       last = @getBounds(lastNode).end
 
-      if @lines[first.line][...first.column].trim().length is 0
+      if first.line > 0 and @lines[first.line][...first.column].trim().length is 0
         first.line -= 1
-        first.column = @lines[first.line].length
+        first.column = @lines[first.line].length + 1
 
       return {
         start: first
