@@ -115,6 +115,120 @@ require ['droplet'], (droplet) ->
     ]
     ###
     mode: 'coffeescript'
+    modeOptions: {
+      functions: {
+        'write': {}
+        'button': {}
+        'click': {}
+        'round': {value: true}
+        'abs': {value: true}
+        'max': {value: true}
+        'min': {value: true}
+        'rt': {
+          dropdown: {
+            0: [
+              '30'
+              '45'
+              '60'
+              '90'
+              '120'
+              '180'
+            ]
+          }
+        }
+        'lt': {
+          dropdown: {
+            0: [
+              '30'
+              '45'
+              '60'
+              '90'
+              '120'
+              '180'
+            ]
+          }
+        }
+        'pen': {
+          dropdown: {
+            0: COLORS = -> [
+              {text: 'red', display: '<span style="color:red">red</span>'},
+              {text: 'orange', display: '<span style="color:orange">orange</span>'},
+              {text: 'yellow', display: '<span style="color:yellow">yellow</span>'},
+              {text: 'green', display: '<span style="color:green">green</span>'},
+              {text: 'blue', display: '<span style="color:blue">blue</span>'},
+              {text: 'purple', display: '<span style="color:purple">purple</span>'},
+            ]
+          }
+        }
+        'fd': {}
+        'bk': {}
+        'ht': {}
+        'st': {}
+        'pu': {}
+        'pd': {}
+        'label': {}
+        'slide': {}
+        'jump': {}
+        'play': {}
+        'tick': {}
+        'moveto': {
+          dropdown: {
+            0: MOUSE_THINGS = [
+              'lastclick'
+              'lastmousemove'
+            ]
+          }
+        }
+        'random': {
+          value: true
+          dropdown: {
+            0: [
+              'color'
+              'position'
+            ]
+          }
+        }
+        'turnto': {
+          dropdown: {
+            0: MOUSE_THINGS
+          }
+        }
+        'pressed': {
+          value: true
+          dropdown: {
+            0: [
+              "'space'"
+              "'up'"
+              "'right'"
+              "'left'"
+              "'down'"
+            ].concat('abcdefghijklmnopqrstuvwxyz'.split('').map((x) -> "'#{x}'"))
+          }
+        }
+        'wear': {
+          dropdown: {
+            0: [
+              'pointer'
+              'circle'
+              'dot'
+              'point'
+            ]
+          }
+        }
+        'dot': {dropdown: {0: COLORS}},
+        'box': {dropdown: {0: COLORS}},
+        'speed': {
+          dropdown: {
+            0: [
+              '0.1'
+              '1'
+              '10'
+              'Infinity'
+            ]
+          }
+        }
+      }
+    }
     palette: [
       {
         name: 'Draw'
@@ -211,7 +325,7 @@ require ['droplet'], (droplet) ->
           {block:'__ is __', title:'Compare two values'},
           {block:'__ < __', title:'Compare two values'},
           {block:'__ > __', title:'Compare two values'},
-          {block:'random [1..100]', title:'Get a random number in a range'},
+          {block:'random position', title:'Get a random number in a range'},
           {block:'round __', title:'Round to the nearest integer'},
           {block:'abs __', title:'Absolute value'},
           {block:'max __, __', title:'Get the larger of two numbers'},

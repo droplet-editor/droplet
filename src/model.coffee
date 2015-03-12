@@ -753,7 +753,7 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketEnd'
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @classes = []) ->
+    constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
@@ -761,9 +761,11 @@ define ['droplet-helper'], (helper) ->
 
       super
 
+    hasDropdown: -> @dropdown? and @isDroppable()
+
     isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-    _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
+    _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown
 
     _serialize_header: -> "<socket precedence=\"#{
         @precedence
@@ -771,7 +773,11 @@ define ['droplet-helper'], (helper) ->
         @handwritten
       }\" classes=\"#{
         @classes?.join?(' ') ? ''
-      }\">"
+      }\"#{
+        if @dropdown?
+          " dropdown=\"#{@dropdown?.join?(' ') ? ''}\""
+        else ''
+      }>"
 
     _serialize_footer: -> "</socket>"
 
