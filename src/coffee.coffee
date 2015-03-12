@@ -279,7 +279,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         shouldBeOneLine = true
 
       if shouldBeOneLine
-        @csSocket node, depth, 0
+        @addSocket {
+          bounds: bounds
+          depth: depth
+          precedence: 0
+          classes: ['Block']
+        }
 
       # Otherwise, wrap in an indent.
       else
@@ -786,8 +791,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       if @lines[first.line][...first.column].trim().length is 0
         first.line -= 1
         first.column = @lines[first.line].length
-
-      cosnole.log first.line, last.line
 
       if first.line isnt last.line
         trueDepth = @lines[first.line + 1].length - @lines[first.line + 1].trimLeft().length

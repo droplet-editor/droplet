@@ -107,6 +107,6 @@
       "indent": "  "
     },
     "str": "when true\n alert 10",
-    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"When mostly-block\">when <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
+    "expected": "<segment\n isLassoSegment=\"false\"><block\n precedence=\"0\"\n color=\"control\"\n socketLevel=\"0\"\n classes=\"__Case mostly-block\">when <socket\n precedence=\"0\"\n handwritten=\"false\"\n classes=\"Value\">true<\/socket><indent\n prefix=\" \"\n classes=\"\">\n<block\n precedence=\"0\"\n color=\"command\"\n socketLevel=\"0\"\n classes=\"Call works-as-method-call mostly-block\">alert <socket\n precedence=\"-1\"\n handwritten=\"false\"\n classes=\"Value\">10<\/socket><\/block><\/indent><\/block><\/segment>"
   }
 ]

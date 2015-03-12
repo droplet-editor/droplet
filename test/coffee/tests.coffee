@@ -11,14 +11,28 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     window.dumpObj = []
     for testCase in data
       strictEqual(
-        helper.xmlPrettyPrint(coffee.parse(testCase.str, wrapAtRoot: true).serialize()),
+        helper.xmlPrettyPrint(coffee.parse(testCase.str, {
+          wrapAtRoot: true
+          context: (if testCase.context? then new parser.ParsingContext(
+            testCase.context.prefix,
+            testCase.context.suffix,
+            testCase.context.indent
+          ) else null)
+        }).serialize()),
         helper.xmlPrettyPrint(testCase.expected),
         testCase.message
       )
       window.dumpObj.push {
         message: testCase.message
         str: testCase.str
-        expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+        expected: helper.xmlPrettyPrint(coffee.parse(testCase.str, {
+          wrapAtRoot: true
+          context: (if testCase.context? then new parser.ParsingContext(
+            testCase.context.prefix,
+            testCase.context.suffix,
+            testCase.context.indent
+          ) else null)
+        }).serialize()),
       }
 
   test 'Parser configurability', ->
@@ -334,7 +348,14 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     data = JSON.parse q.responseText
     for testCase in data
-      xml = coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+      xml = coffee.parse(testCase.str, {
+        wrapAtRoot: true
+        context: (if testCase.context? then new parser.ParsingContext(
+          testCase.context.prefix,
+          testCase.context.suffix,
+          testCase.context.indent
+        ) else null)
+      }).serialize()
       strictEqual(
         helper.xmlPrettyPrint(parser.parseXML(xml).serialize()),
         helper.xmlPrettyPrint(xml),

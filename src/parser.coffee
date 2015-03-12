@@ -452,7 +452,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     forward: (text) ->
       lines = text.split '\n'
       result = @prefix + lines.map((x) => @indent + x).join('\n') + @suffix
-      console.log 'text:\n', result
       return result
 
     backward: (segment) ->
