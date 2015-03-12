@@ -26,6 +26,18 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
   # and a given parser function.
   exports.Parser = class Parser
     constructor: (@text, @opts = {}) ->
+      convertFunction = (x) ->
+        if (typeof x is 'string') or x instanceof String
+          return {text: x, display: x}
+        else
+          return x
+      for key, val of @opts.functions
+        for index, options of val.dropdown then do (options) =>
+          @opts.functions[key].dropdown[index] = ->
+            if (typeof options is 'function')
+              return options().map convertFunction
+            else
+              return options.map convertFunction
       # Text can sometimes be subject to change
       # when doing error recovery, so keep a record of
       # the original text.
@@ -108,7 +120,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     addSocket: (opts) ->
       socket = new model.Socket opts.precedence,
         false,
-        opts.classes
+        opts.classes,
+        opts.dropdown
 
       @addMarkup socket, opts.bounds, opts.depth
 

@@ -38,7 +38,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'BinaryExpression': 'value'
     'UnaryExpression': 'value'
     'FunctionExpression': 'value'
-    'FunctionDeclaration': 'violet'
+    'FunctionDeclaration': 'purple'
     'AssignmentExpression': 'command'
     'CallExpression': 'command'
     'ReturnStatement': 'return'
@@ -193,7 +193,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'CallExpression'
           known = @lookupFunctionName node
           if not known
-            return 'violet'
+            return 'purple'
           else if known.fn.color
             return known.fn.color
           else if known.fn.value and not known.fn.command
@@ -370,8 +370,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           known = @lookupFunctionName node
           if not known
             @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
-          for argument in node.arguments
-            @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN
+          for argument, i in node.arguments
+            @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, known?.dropdown?[i]
         when 'MemberExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.object, depth + 1

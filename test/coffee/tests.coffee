@@ -1073,3 +1073,67 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     editor.unmark key
     ok key not of editor.markedBlocks
+
+  test 'Controller: dropdown menus', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+      modeOptions: {
+        functions: {
+          'pen': {
+            dropdown: {
+              0: [
+                {text: 'red', display: '<b>red</b>'}
+                'blue'
+              ]
+            }
+          }
+        }
+      }
+    }
+
+    editor.setEditorState true
+
+    editor.setValue '''
+    pen red
+    '''
+
+    # Assert that the arrow is there
+    strictEqual editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width, 90
+
+    # no-throw
+    editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
+    editor.showDropdown()
+
+  test 'Controller: dropdown menus with functions', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+      modeOptions: {
+        functions: {
+          'pen': {
+            dropdown: {
+              0: -> [
+                {text: 'red', display: '<b>red</b>'}
+                'blue'
+              ]
+            }
+          }
+        }
+      }
+    }
+
+    editor.setEditorState true
+
+    editor.setValue '''
+    pen red
+    '''
+
+    # Assert that the arrow is there
+    strictEqual editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width, 90
+
+    # no-throw
+    editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
+    editor.showDropdown()

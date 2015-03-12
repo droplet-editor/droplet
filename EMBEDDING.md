@@ -143,6 +143,23 @@ is an object that represents a whitelist of known functions.
 functions: {
     knownFunction: {value: true, color: red}
     myFunction: {value: true, command: true}
+    setColor: {
+      command: true,
+      dropdowns: {
+        0: [
+          // Dropdown elements can be a string
+          'blue',
+
+          // Or an object with text and display
+          {text: 'red', display: '<span style="color:red">red</span>'}
+        ],
+
+        // Dropdown element lists can also be generated on the fly by a function
+        1: function() {
+          return ['red', 'blue'];
+        }
+      }
+    }
 }
 ```
 
@@ -151,3 +168,4 @@ Each function is associated with a configuration object.  It can specify:
 - command: true if it's a "command" block that can serve as a top-level statement.
 - (specify both value and command if it can be both).
 - color: colorname to set the color of the block.  If omitted, a default color is chosen.
+- dropdown: specify dropdowns for specific arguments of a function. This can be either an array of strings, an array of objects with `text` (actual value) and `display` (html to display in the dropdown) properties, or a function that returns one of these.
