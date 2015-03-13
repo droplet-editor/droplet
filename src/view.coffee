@@ -131,6 +131,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         when 'socket' then new SocketViewNode model, this
         when 'segment' then new SegmentViewNode model, this
         when 'cursor' then new CursorViewNode model, this
+        when 'addbutton' then new AddButtonViewNode model, this
+        when 'subtractbutton' then new SubtractButtonViewNode model, this
 
     # Looks up a color name, or passes through a #hex color.
     getColor: (color) ->
@@ -2057,6 +2059,42 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         @computeOwnPath()
         @textElement.draw ctx
         ctx.globalAlpha = 0.1
+
+    class AddButtonViewNode extends TextViewNode
+      constructor: (@model, @view) -> super
+
+      computeMinDimensions: ->
+        if @computedVersion is @model.version
+          return null
+
+        @textElement = new @view.draw.Button(
+          new @view.draw.Point(0, 0),
+          '+'
+        )
+
+        height = @view.opts.textHeight
+        @minDimensions[0] = new @view.draw.Size(@textElement.bounds().width, height)
+        @minDistanceToBase[0] = {above: height, below: 0}
+
+        return null
+
+    class SubtractButtonViewNode extends TextViewNode
+      constructor: (@model, @view) -> super
+
+      computeMinDimensions: ->
+        if @computedVersion is @model.version
+          return null
+
+        @textElement = new @view.draw.Button(
+          new @view.draw.Point(0, 0),
+          '-'
+        )
+
+        height = @view.opts.textHeight
+        @minDimensions[0] = new @view.draw.Size(@textElement.bounds().width, height)
+        @minDistanceToBase[0] = {above: height, below: 0}
+
+        return null
 
     # # CursorViewNode
     # The Cursor should not be render by the standard view.

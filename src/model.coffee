@@ -720,6 +720,20 @@ define ['droplet-helper'], (helper) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
+      ###
+      @socket = new Socket @precedence, false, @classes
+      addToken = new AddButtonToken
+      subtractToken = new SubtractButtonToken
+      @socket.start.append addToken
+      addToken.append subtractToken
+      subtractToken.append @socket.end
+      ###
+
+      addToken = new AddButtonToken
+      subtractToken = new SubtractButtonToken
+      addToken.append subtractToken
+      @socket = {start: addToken, end: subtractToken}
+
       @type = 'block'
 
       super
@@ -864,6 +878,23 @@ define ['droplet-helper'], (helper) ->
     serialize: -> helper.escapeXMLText @_value
 
     clone: -> new TextToken @_value
+
+  exports.AddButtonToken = class AddButtonToken extends TextToken
+    constructor: () ->
+      super
+      @type = 'addbutton'
+
+    stringify: (state) -> ""
+
+    serialize: -> ""
+
+  exports.SubtractButtonToken = class SubtractButtonToken extends TextToken
+    constructor: () ->
+      super
+      @type = 'subtractbutton'
+
+    stringify: (state) -> ""
+    serialize: -> ""
 
   exports.NewlineToken = class NewlineToken extends Token
     constructor: (@specialIndent) -> super; @type = 'newline'

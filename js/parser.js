@@ -78,6 +78,20 @@
         var block;
         block = new model.Block(opts.precedence, opts.color, opts.socketLevel, opts.classes, false);
         return this.addMarkup(block, opts.bounds, opts.depth);
+
+        /*
+        newopts = JSON.parse(JSON.stringify(opts))
+        newopts.bounds.end.column -= 2
+        newopts.bounds.start.column = newopts.bounds.end.column - 2
+        socket = new model.Socket newopts.precedence, false, newopts.classes
+        
+        newopts2 = JSON.parse(JSON.stringify(opts))
+        newopts2.bounds.start.column = newopts2.bounds.end.column - 2
+        socket2 = new model.Socket newopts2.precedence, false, newopts2.classes
+        
+        @addMarkup socket, newopts.bounds, newopts.depth + 1
+        @addMarkup socket2, newopts2.bounds, newopts2.depth + 1
+         */
       };
 
       Parser.prototype.addSocket = function(opts) {
@@ -158,9 +172,11 @@
         block.start.append(socket.start);
         socket.start.append(textToken);
         textToken.append(socket.end);
-        socket.end.append(block.end);
+        socket.end.append(block.socket.start);
+        block.socket.end.append(block.end);
         if (this.isComment(text)) {
           block.socketLevel = helper.BLOCK_ONLY;
+          socket.end.append(block.end);
         }
         return block;
       };
@@ -208,6 +224,8 @@
             } else if (((ref2 = (ref3 = stack[stack.length - 1]) != null ? ref3.type : void 0) === 'indent' || ref2 === 'segment' || ref2 === (void 0)) && hasSomeTextAfter(lines, i)) {
               block = new model.Block(0, 'yellow', helper.BLOCK_ONLY);
               head = head.append(block.start);
+              head = head.append(block.socket.start);
+              head = block.socket.end;
               head = head.append(block.end);
             }
             head = head.append(new model.NewlineToken());
@@ -257,6 +275,10 @@
                   throw new Error("Improper parser: " + head.container.type + " ended too early.");
                 }
                 stack.pop();
+              }
+              if (mark.token instanceof model.BlockEndToken) {
+                head = head.append(mark.token.container.socket.start);
+                head = mark.token.container.socket.end;
               }
               head = head.append(mark.token);
               lastIndex = mark.location.column;
@@ -330,14 +352,22 @@
         }
       };
       parser.onclosetag = function(nodeName) {
+        var container;
         if (stack.length > 0 && nodeName === stack[stack.length - 1].node.name) {
-          head = head.append(stack[stack.length - 1].container.end);
+          container = stack[stack.length - 1].container;
+          console.log(container);
+          if (container.end instanceof model.BlockEndToken) {
+            head = head.append(container.socket.start);
+            head = head.socket.end;
+          }
+          head = head.append(container.end);
           return stack.pop();
         }
       };
       parser.onerror = function(e) {
         throw e;
       };
+      console.log(xml);
       parser.write(xml).close();
       head = head.append(root.end);
       return root;
@@ -402,7 +432,6 @@
       return str.trim();
     };
     Parser.escapeString = function(str) {
-      console.log(str);
       str = str.trim();
       return str = str[0] + str.slice(1, -1).replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1];
     };

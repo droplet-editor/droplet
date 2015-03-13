@@ -792,9 +792,9 @@
     Editor.prototype.resizeDragCanvas = function() {
       this.dragCanvas.width = 0;
       this.dragCanvas.height = 0;
-      this.highlightCanvas.width = this.dropletElement.offsetWidth;
+      this.highlightCanvas.width = this.dropletElement.offsetWidth - this.gutter.offsetWidth;
       this.highlightCanvas.style.width = this.highlightCanvas.width + "px";
-      this.highlightCanvas.height = this.dropletElement.offsetHeight;
+      this.highlightCanvas.height = this.dropletElement.offsetHeight - this.gutter.offsetWidth;
       this.highlightCanvas.style.height = this.highlightCanvas.height + "px";
       return this.highlightCanvas.style.left = this.mainCanvas.offsetLeft + "px";
     };
@@ -1843,9 +1843,9 @@
       return this.lassoSelectCtx.clearRect(0, 0, this.lassoSelectCanvas.width, this.lassoSelectCanvas.height);
     };
     Editor.prototype.resizeLassoCanvas = function() {
-      this.lassoSelectCanvas.width = this.dropletElement.offsetWidth;
+      this.lassoSelectCanvas.width = this.dropletElement.offsetWidth - this.gutter.offsetWidth;
       this.lassoSelectCanvas.style.width = this.lassoSelectCanvas.width + "px";
-      this.lassoSelectCanvas.height = this.dropletElement.offsetHeight;
+      this.lassoSelectCanvas.height = this.dropletElement.offsetHeight - this.gutter.offsetWidth;
       this.lassoSelectCanvas.style.height = this.lassoSelectCanvas.height + "px";
       return this.lassoSelectCanvas.style.left = this.mainCanvas.offsetLeft + "px";
     };
@@ -3343,9 +3343,9 @@
       return this.dropletElement.appendChild(this.cursorCanvas);
     });
     Editor.prototype.resizeCursorCanvas = function() {
-      this.cursorCanvas.width = this.dropletElement.offsetWidth;
+      this.cursorCanvas.width = this.dropletElement.offsetWidth - this.gutter.offsetWidth;
       this.cursorCanvas.style.width = this.cursorCanvas.width + "px";
-      this.cursorCanvas.height = this.dropletElement.offsetHeight;
+      this.cursorCanvas.height = this.dropletElement.offsetHeight - this.gutter.offsetWidth;
       this.cursorCanvas.style.height = this.cursorCanvas.height + "px";
       return this.cursorCanvas.style.left = this.mainCanvas.offsetLeft + "px";
     };
@@ -3476,9 +3476,9 @@
         this.subtractGutter.id = 'subtract_button_wrapper';
         this.addGutter.appendChild(this.addButtonWrapper);
         this.subtractGutter.appendChild(this.subtractButtonWrapper);
+        this.dropletElement.appendChild(this.addGutter);
+        return this.dropletElement.appendChild(this.subtractGutter);
       }
-      this.dropletElement.appendChild(this.addGutter);
-      return this.dropletElement.appendChild(this.subtractGutter);
     });
     Editor.prototype.resizeGutter = function() {
       var ref1, ref2;

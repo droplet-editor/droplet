@@ -88,6 +88,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     #   parenWrapped: Boolean
     # }
     addBlock: (opts) ->
+      #opts.bounds.end.column += 4
       block = new model.Block opts.precedence,
         opts.color,
         opts.socketLevel,
@@ -95,6 +96,19 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         false
 
       @addMarkup block, opts.bounds, opts.depth
+      ###
+      newopts = JSON.parse(JSON.stringify(opts))
+      newopts.bounds.end.column -= 2
+      newopts.bounds.start.column = newopts.bounds.end.column - 2
+      socket = new model.Socket newopts.precedence, false, newopts.classes
+
+      newopts2 = JSON.parse(JSON.stringify(opts))
+      newopts2.bounds.start.column = newopts2.bounds.end.column - 2
+      socket2 = new model.Socket newopts2.precedence, false, newopts2.classes
+
+      @addMarkup socket, newopts.bounds, newopts.depth + 1
+      @addMarkup socket2, newopts2.bounds, newopts2.depth + 1
+      ###
 
     # ## addSocket ##
     # addSocket takes {
@@ -199,10 +213,12 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       block.start.append socket.start
       socket.start.append textToken
       textToken.append socket.end
-      socket.end.append block.end
+      socket.end.append block.socket.start
+      block.socket.end.append block.end
 
       if @isComment text
         block.socketLevel = helper.BLOCK_ONLY
+        socket.end.append block.end
 
       return block
 
@@ -255,6 +271,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
             block = new model.Block 0, 'yellow', helper.BLOCK_ONLY
 
             head = head.append block.start
+            head = head.append block.socket.start
+            head = block.socket.end
             head = head.append block.end
 
           head = head.append new model.NewlineToken()
@@ -314,7 +332,10 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
               stack.pop()
 
             # Append the token
-            head = head.append mark.token
+            if mark.token instanceof model.BlockEndToken
+              head = head.append mark.token.container.socket.start
+              head = mark.token.container.socket.end
+            head = head.append mark.token ##SEE HERE
 
             lastIndex = mark.location.column
 
@@ -322,6 +343,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
           # (after the last piece of markup)
           unless lastIndex >= line.length
             head = head.append new model.TextToken(line[lastIndex...line.length])
+
+          #head = head.append new model.AddButtonToken()
+          #head = head.append new model.SubtractButtonToken()
 
           # Append the needed newline token
           head = head.append new model.NewlineToken()
@@ -379,12 +403,18 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
     parser.onclosetag = (nodeName) ->
       if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
-        head = head.append stack[stack.length - 1].container.end
+        container = stack[stack.length - 1].container
+        console.log container
+        if container.end instanceof model.BlockEndToken
+          head = head.append container.socket.start
+          head = head.socket.end
+        head = head.append container.end
         stack.pop()
 
     parser.onerror = (e) ->
       throw e
 
+    console.log xml
     parser.write(xml).close()
 
     head = head.append root.end
@@ -448,7 +478,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     str.trim()
 
   Parser.escapeString = (str) ->
-    console.log str
     str = str.trim()
     str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
 

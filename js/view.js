@@ -40,18 +40,29 @@
       ctx: document.createElement('canvas').getContext('2d'),
       colors: {
         error: '#ff0000',
-        "return": '#ecec79',
-        control: '#efcf8f',
-        value: '#8cec79',
-        command: '#8fbfef',
-        red: '#f2a6a6',
-        orange: '#efcf8f',
-        yellow: '#ecec79',
-        green: '#8cec79',
-        cyan: '#79ecd9',
-        blue: '#8fbfef',
-        violet: '#bfa6f2',
-        magenta: '#f2a6e5'
+        "return": '#fff59d',
+        control: '#ffcc80',
+        value: '#a5d6a7',
+        command: '#90caf9',
+        red: '#ef9a9a',
+        pink: '#f48fb1',
+        purple: '#ce93d8',
+        deeppurple: '#b39ddb',
+        indigo: '#9fa8da',
+        blue: '#90caf9',
+        lightblue: '#81d4fa',
+        cyan: '#80deea',
+        teal: '#80cbc4',
+        green: '#a5d6a7',
+        lightgreen: '#c5e1a5',
+        lime: '#e6ee9c',
+        yellow: '#fff59d',
+        amber: '#ffe082',
+        orange: '#ffcc80',
+        deeporange: '#ffab91',
+        brown: '#bcaaa4',
+        grey: '#eeeeee',
+        bluegrey: '#b0bec5'
       }
     };
     YES = function() {
@@ -86,7 +97,7 @@
       return true;
     };
     exports.View = View = (function() {
-      var BlockViewNode, ContainerViewNode, CursorViewNode, GenericViewNode, IndentViewNode, SegmentViewNode, SocketViewNode, TextViewNode;
+      var AddButtonViewNode, BlockViewNode, ContainerViewNode, CursorViewNode, GenericViewNode, IndentViewNode, SegmentViewNode, SocketViewNode, SubtractButtonViewNode, TextViewNode;
 
       function View(opts) {
         var option, ref;
@@ -131,6 +142,19 @@
             return new SegmentViewNode(model, this);
           case 'cursor':
             return new CursorViewNode(model, this);
+          case 'addbutton':
+            return new AddButtonViewNode(model, this);
+          case 'subtractbutton':
+            return new SubtractButtonViewNode(model, this);
+        }
+      };
+
+      View.prototype.getColor = function(color) {
+        var ref;
+        if (color && '#' === color.charAt(0)) {
+          return color;
+        } else {
+          return (ref = this.opts.colors[color]) != null ? ref : '#ffffff';
         }
       };
 
@@ -1241,9 +1265,8 @@
         };
 
         BlockViewNode.prototype.computeOwnPath = function() {
-          var ref;
           BlockViewNode.__super__.computeOwnPath.apply(this, arguments);
-          this.path.style.fillColor = (ref = this.view.opts.colors[this.model.color]) != null ? ref : '#ffffff';
+          this.path.style.fillColor = this.view.getColor(this.model.color);
           this.path.style.strokeColor = '#888';
           this.path.bevel = true;
           return this.path;
@@ -1597,6 +1620,62 @@
         return TextViewNode;
 
       })(GenericViewNode);
+
+      AddButtonViewNode = (function(superClass) {
+        extend(AddButtonViewNode, superClass);
+
+        function AddButtonViewNode(model1, view1) {
+          this.model = model1;
+          this.view = view1;
+          AddButtonViewNode.__super__.constructor.apply(this, arguments);
+        }
+
+        AddButtonViewNode.prototype.computeMinDimensions = function() {
+          var height;
+          if (this.computedVersion === this.model.version) {
+            return null;
+          }
+          this.textElement = new this.view.draw.Button(new this.view.draw.Point(0, 0), '+');
+          height = this.view.opts.textHeight;
+          this.minDimensions[0] = new this.view.draw.Size(this.textElement.bounds().width, height);
+          this.minDistanceToBase[0] = {
+            above: height,
+            below: 0
+          };
+          return null;
+        };
+
+        return AddButtonViewNode;
+
+      })(TextViewNode);
+
+      SubtractButtonViewNode = (function(superClass) {
+        extend(SubtractButtonViewNode, superClass);
+
+        function SubtractButtonViewNode(model1, view1) {
+          this.model = model1;
+          this.view = view1;
+          SubtractButtonViewNode.__super__.constructor.apply(this, arguments);
+        }
+
+        SubtractButtonViewNode.prototype.computeMinDimensions = function() {
+          var height;
+          if (this.computedVersion === this.model.version) {
+            return null;
+          }
+          this.textElement = new this.view.draw.Button(new this.view.draw.Point(0, 0), '-');
+          height = this.view.opts.textHeight;
+          this.minDimensions[0] = new this.view.draw.Size(this.textElement.bounds().width, height);
+          this.minDistanceToBase[0] = {
+            above: height,
+            below: 0
+          };
+          return null;
+        };
+
+        return SubtractButtonViewNode;
+
+      })(TextViewNode);
 
       CursorViewNode = (function(superClass) {
         extend(CursorViewNode, superClass);

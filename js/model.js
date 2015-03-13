@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['droplet-helper'], function(helper) {
-    var Block, BlockEndToken, BlockStartToken, Container, CursorToken, EndToken, FORBID, Indent, IndentEndToken, IndentStartToken, NO, NORMAL, NewlineToken, Segment, SegmentEndToken, SegmentStartToken, Socket, SocketEndToken, SocketStartToken, StartToken, TextToken, Token, YES, _id, exports, traverseOneLevel;
+    var AddButtonToken, Block, BlockEndToken, BlockStartToken, Container, CursorToken, EndToken, FORBID, Indent, IndentEndToken, IndentStartToken, NO, NORMAL, NewlineToken, Segment, SegmentEndToken, SegmentStartToken, Socket, SocketEndToken, SocketStartToken, StartToken, SubtractButtonToken, TextToken, Token, YES, _id, exports, traverseOneLevel;
     exports = {};
     YES = function() {
       return true;
@@ -839,12 +839,29 @@
       extend(Block, superClass);
 
       function Block(precedence, color, socketLevel, classes) {
+        var addToken, subtractToken;
         this.precedence = precedence != null ? precedence : 0;
         this.color = color != null ? color : 'blank';
         this.socketLevel = socketLevel != null ? socketLevel : helper.ANY_DROP;
         this.classes = classes != null ? classes : [];
         this.start = new BlockStartToken(this);
         this.end = new BlockEndToken(this);
+
+        /*
+        @socket = new Socket @precedence, false, @classes
+        addToken = new AddButtonToken
+        subtractToken = new SubtractButtonToken
+        @socket.start.append addToken
+        addToken.append subtractToken
+        subtractToken.append @socket.end
+         */
+        addToken = new AddButtonToken;
+        subtractToken = new SubtractButtonToken;
+        addToken.append(subtractToken);
+        this.socket = {
+          start: addToken,
+          end: subtractToken
+        };
         this.type = 'block';
         Block.__super__.constructor.apply(this, arguments);
       }
@@ -1116,6 +1133,44 @@
       return TextToken;
 
     })(Token);
+    exports.AddButtonToken = AddButtonToken = (function(superClass) {
+      extend(AddButtonToken, superClass);
+
+      function AddButtonToken() {
+        AddButtonToken.__super__.constructor.apply(this, arguments);
+        this.type = 'addbutton';
+      }
+
+      AddButtonToken.prototype.stringify = function(state) {
+        return "";
+      };
+
+      AddButtonToken.prototype.serialize = function() {
+        return "";
+      };
+
+      return AddButtonToken;
+
+    })(TextToken);
+    exports.SubtractButtonToken = SubtractButtonToken = (function(superClass) {
+      extend(SubtractButtonToken, superClass);
+
+      function SubtractButtonToken() {
+        SubtractButtonToken.__super__.constructor.apply(this, arguments);
+        this.type = 'subtractbutton';
+      }
+
+      SubtractButtonToken.prototype.stringify = function(state) {
+        return "";
+      };
+
+      SubtractButtonToken.prototype.serialize = function() {
+        return "";
+      };
+
+      return SubtractButtonToken;
+
+    })(TextToken);
     exports.NewlineToken = NewlineToken = (function(superClass) {
       extend(NewlineToken, superClass);
 

@@ -3958,8 +3958,8 @@ define ['droplet-helper',
       @addGutter.appendChild @addButtonWrapper
       @subtractGutter.appendChild @subtractButtonWrapper
 
-    @dropletElement.appendChild @addGutter
-    @dropletElement.appendChild @subtractGutter
+      @dropletElement.appendChild @addGutter
+      @dropletElement.appendChild @subtractGutter
 
   Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'

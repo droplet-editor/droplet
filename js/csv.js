@@ -13,7 +13,7 @@
     var CLASSES, COLORS, CSVParser, exports;
     exports = {};
     COLORS = {
-      'Default': 'violet'
+      'Default': 'cyan'
     };
     CLASSES = ['mostly-value', 'no-drop'];
     exports.CSVParser = CSVParser = (function(superClass) {
@@ -191,17 +191,28 @@
         newstr = str;
       }
       needs_quotes = (newstr[0] === ' ') || (newstr.slice(-1) === ' ') || (newstr.match(',') != null) || (newstr.match('"') != null);
-      if (has_quotes === needs_quotes) {
-        return str;
-      } else if (has_quotes && !needs_quotes) {
-        if (str.length > 1) {
-          return str.slice(1, -1);
-        } else {
-          return str;
-        }
-      } else {
-        return '"' + str + '"';
+      if (needs_quotes) {
+        console.log(newstr);
+        newstr = newstr.replace(/\"\"/g, '\"').replace(/\"/g, '\"\"');
+        console.log(newstr);
+        console.log('"' + newstr + '"');
+        newstr = '"' + newstr + '"';
       }
+      str = newstr;
+      return str;
+
+      /*
+      
+      if has_quotes is needs_quotes
+        return str
+      else if has_quotes and not needs_quotes
+        if str.length > 1
+          return str[1...-1]
+        else
+          return str
+      else
+        return '"' + str + '"'
+       */
 
       /*
       console.log start, str, end
