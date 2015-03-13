@@ -260,15 +260,11 @@ define ['droplet-helper',
         for handler in editorBindings[event.type]
           handler.call this, trackPoint, event, state
 
-        # Stop mousedown event propagation so that
+        # Stop mousedown event default behavior so that
         # we don't get bad selections
         if event.type is 'mousedown'
-          event.stopPropagation?()
           event.preventDefault?()
-
-          event.cancelBubble = true
           event.returnValue = false
-
           return false
 
       dispatchKeyEvent = (event) =>
