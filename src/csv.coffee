@@ -145,14 +145,12 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     needs_quotes = (newstr[0] is ' ') or (newstr.slice(-1) is ' ') or newstr.match(',')? or newstr.match('"')?
 
     if needs_quotes
-      console.log newstr
       newstr = newstr.replace(/\"\"/g, '\"').replace(/\"/g, '\"\"')
-      console.log newstr
-      console.log '"' + newstr + '"'
       newstr = '"' + newstr + '"'
 
     str = newstr
     return str
+
     ###
 
     if has_quotes is needs_quotes

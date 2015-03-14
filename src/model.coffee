@@ -720,19 +720,28 @@ define ['droplet-helper'], (helper) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
-      ###
+
       @socket = new Socket @precedence, false, @classes
-      addToken = new AddButtonToken
-      subtractToken = new SubtractButtonToken
-      @socket.start.append addToken
-      addToken.append subtractToken
-      subtractToken.append @socket.end
+
+      if 'no+-' not in @classes
+        addBlock = new Block @precedence, @color, @socketLevel, @classes.concat 'no+-', 'no-pick', 'add-button'
+        addToken = new AddButtonToken
+        addBlock.start.append addToken
+        addToken.append addBlock.end
+        subtractBlock = new Block @precedence, @color, @socketLevel, @classes.concat 'no+-', 'no-pick', 'subtract-button'
+        subtractToken = new SubtractButtonToken
+        subtractBlock.start.append subtractToken
+        subtractToken.append subtractBlock.end
+        addBlock.end.append subtractBlock.start
+        @socket.start.append addBlock.start
+        subtractBlock.end.append @socket.end
       ###
 
       addToken = new AddButtonToken
       subtractToken = new SubtractButtonToken
       addToken.append subtractToken
       @socket = {start: addToken, end: subtractToken}
+      ###
 
       @type = 'block'
 
@@ -879,22 +888,25 @@ define ['droplet-helper'], (helper) ->
 
     clone: -> new TextToken @_value
 
-  exports.AddButtonToken = class AddButtonToken extends TextToken
+  exports.AddButtonToken = class AddButtonToken extends Token
     constructor: () ->
       super
       @type = 'addbutton'
 
     stringify: (state) -> ""
-
     serialize: -> ""
 
-  exports.SubtractButtonToken = class SubtractButtonToken extends TextToken
+    clone: -> new AddButtonToken
+
+  exports.SubtractButtonToken = class SubtractButtonToken extends Token
     constructor: () ->
       super
       @type = 'subtractbutton'
 
     stringify: (state) -> ""
     serialize: -> ""
+
+    clone: -> new SubtractButtonToken
 
   exports.NewlineToken = class NewlineToken extends Token
     constructor: (@specialIndent) -> super; @type = 'newline'

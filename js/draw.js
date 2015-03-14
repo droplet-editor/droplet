@@ -567,7 +567,6 @@
           function Button(point1, value1) {
             this.point = point1;
             this.value = value1;
-            this.value = ' ' + this.value + ' ';
             this.wantedFont = self.fontSize + 'px ' + self.fontFamily;
             if (self.ctx.font !== this.wantedFont) {
               self.ctx.font = self.fontSize + 'px ' + self.fontFamily;
@@ -576,9 +575,12 @@
           }
 
           Button.prototype.draw = function(ctx) {
-            this._bounds.stroke(ctx, '#000');
-            this._bounds.x = this.point.x;
-            this._bounds.y = this.point.y - self.fontSize * 0.15;
+
+            /*
+            @_bounds.stroke ctx, '#000'
+            @_bounds.x = @point.x
+            @_bounds.y = @point.y - self.fontSize*0.15
+             */
             ctx.textBaseline = 'top';
             ctx.font = self.fontSize + 'px ' + self.fontFamily;
             ctx.fillStyle = '#000';

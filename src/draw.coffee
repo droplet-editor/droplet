@@ -430,7 +430,6 @@ define ['droplet-helper'], (helper) ->
 
       @Button = class Button extends Text
         constructor: (@point, @value) ->
-          @value = ' ' + @value + ' '
           @wantedFont = self.fontSize + 'px ' + self.fontFamily
 
           unless self.ctx.font is @wantedFont
@@ -439,9 +438,11 @@ define ['droplet-helper'], (helper) ->
           @_bounds = new Rectangle @point.x + self.ctx.measureText(' ').width, @point.y, self.ctx.measureText(@value).width, self.fontSize
 
         draw: (ctx) ->
+          ###
           @_bounds.stroke ctx, '#000'
           @_bounds.x = @point.x
           @_bounds.y = @point.y - self.fontSize*0.15
+          ###
           ctx.textBaseline = 'top'
           ctx.font = self.fontSize + 'px ' + self.fontFamily
           ctx.fillStyle = '#000'

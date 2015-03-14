@@ -192,10 +192,7 @@
       }
       needs_quotes = (newstr[0] === ' ') || (newstr.slice(-1) === ' ') || (newstr.match(',') != null) || (newstr.match('"') != null);
       if (needs_quotes) {
-        console.log(newstr);
         newstr = newstr.replace(/\"\"/g, '\"').replace(/\"/g, '\"\"');
-        console.log(newstr);
-        console.log('"' + newstr + '"');
         newstr = '"' + newstr + '"';
       }
       str = newstr;

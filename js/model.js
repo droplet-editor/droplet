@@ -839,29 +839,35 @@
       extend(Block, superClass);
 
       function Block(precedence, color, socketLevel, classes) {
-        var addToken, subtractToken;
+        var addBlock, addToken, subtractBlock, subtractToken;
         this.precedence = precedence != null ? precedence : 0;
         this.color = color != null ? color : 'blank';
         this.socketLevel = socketLevel != null ? socketLevel : helper.ANY_DROP;
         this.classes = classes != null ? classes : [];
         this.start = new BlockStartToken(this);
         this.end = new BlockEndToken(this);
+        this.socket = new Socket(this.precedence, false, this.classes);
+        if (indexOf.call(this.classes, 'no+-') < 0) {
+          addBlock = new Block(this.precedence, this.color, this.socketLevel, this.classes.concat('no+-', 'no-pick', 'add-button'));
+          addToken = new AddButtonToken;
+          addBlock.start.append(addToken);
+          addToken.append(addBlock.end);
+          subtractBlock = new Block(this.precedence, this.color, this.socketLevel, this.classes.concat('no+-', 'no-pick', 'subtract-button'));
+          subtractToken = new SubtractButtonToken;
+          subtractBlock.start.append(subtractToken);
+          subtractToken.append(subtractBlock.end);
+          addBlock.end.append(subtractBlock.start);
+          this.socket.start.append(addBlock.start);
+          subtractBlock.end.append(this.socket.end);
+        }
 
         /*
-        @socket = new Socket @precedence, false, @classes
+        
         addToken = new AddButtonToken
         subtractToken = new SubtractButtonToken
-        @socket.start.append addToken
         addToken.append subtractToken
-        subtractToken.append @socket.end
+        @socket = {start: addToken, end: subtractToken}
          */
-        addToken = new AddButtonToken;
-        subtractToken = new SubtractButtonToken;
-        addToken.append(subtractToken);
-        this.socket = {
-          start: addToken,
-          end: subtractToken
-        };
         this.type = 'block';
         Block.__super__.constructor.apply(this, arguments);
       }
@@ -1149,9 +1155,13 @@
         return "";
       };
 
+      AddButtonToken.prototype.clone = function() {
+        return new AddButtonToken;
+      };
+
       return AddButtonToken;
 
-    })(TextToken);
+    })(Token);
     exports.SubtractButtonToken = SubtractButtonToken = (function(superClass) {
       extend(SubtractButtonToken, superClass);
 
@@ -1168,9 +1178,13 @@
         return "";
       };
 
+      SubtractButtonToken.prototype.clone = function() {
+        return new SubtractButtonToken;
+      };
+
       return SubtractButtonToken;
 
-    })(TextToken);
+    })(Token);
     exports.NewlineToken = NewlineToken = (function(superClass) {
       extend(NewlineToken, superClass);
 

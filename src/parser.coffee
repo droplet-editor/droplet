@@ -206,7 +206,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     # Construct a handwritten block with the given
     # text inside
     constructHandwrittenBlock: (text) ->
-      block = new model.Block 0, 'blank', helper.ANY_DROP, false
+      block = new model.Block 0, 'blank', helper.ANY_DROP
       socket = new model.Socket 0, true
       textToken = new model.TextToken text
 
@@ -404,7 +404,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     parser.onclosetag = (nodeName) ->
       if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
         container = stack[stack.length - 1].container
-        console.log container
         if container.end instanceof model.BlockEndToken
           head = head.append container.socket.start
           head = head.socket.end
@@ -414,7 +413,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     parser.onerror = (e) ->
       throw e
 
-    console.log xml
     parser.write(xml).close()
 
     head = head.append root.end
