@@ -92,6 +92,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts.color,
         opts.socketLevel,
         opts.classes,
+        opts.add,
+        opts.del,
         false
 
       @addMarkup block, opts.bounds, opts.depth
@@ -109,7 +111,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     addSocket: (opts) ->
       socket = new model.Socket opts.precedence,
         false,
-        opts.classes
+        opts.classes,
+        opts.last,
+        opts.begin
 
       @addMarkup socket, opts.bounds, opts.depth
 
@@ -444,8 +448,11 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     else
       return helper.ENCOURAGE
 
-  Parser.empty = ''
+  Parser.trimString = (string, islast, isbegin) ->
+    return string.trim()
 
+  Parser.empty = ''
+  
   exports.wrapParser = (CustomParser) ->
     class CustomParserFactory extends ParserFactory
       constructor: (@opts = {}) ->
@@ -480,5 +487,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         return [leading, trailing]
 
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
+
+      trimString: (string, islast, isbegin) -> CustomParser.trimString string, islast, isbegin
 
   return exports

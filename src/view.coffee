@@ -20,6 +20,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_INDENT = 1
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
+  
+  DROP_BUTTON_COLOR = helper.DROP_BUTTON_COLOR
+  DROP_BUTTON_WIDTH = helper.DROP_BUTTON_WIDTH
+  DROP_BUTTON_PADDING = helper.DROP_BUTTON_PADDING
 
   DEFAULT_OPTIONS =
     padding: 5
@@ -1625,6 +1629,16 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
+        # If hasAdd is set
+        # Increase the width of container
+        if @model.hasAdd
+          size.width += DROP_BUTTON_WIDTH + DROP_BUTTON_PADDING
+
+        # If hasDel is set
+        # Increase the width of container
+        if @model.hasDel 
+          size.width += DROP_BUTTON_WIDTH + DROP_BUTTON_PADDING
+
         return null
 
       shouldAddTab: ->
@@ -1642,6 +1656,56 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         @path.bevel = true
 
         return @path
+
+      drawSelf: (ctx) ->
+        super
+
+        ###
+          Draw +/- buttons
+          ___   ___
+          |+|  |--|
+           
+        ###
+        if @model.hasAdd()
+          #console.log @bounds
+          # Rectangle for + button
+          ctx.beginPath()
+          ctx.fillStyle = DROP_BUTTON_COLOR
+          ctx.rect(@bounds[0].x + @bounds[0].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING, @bounds[0].y + @bounds[0].height/4, DROP_BUTTON_WIDTH, @bounds[0].height/2)
+          ctx.fill()
+          # Rectangle of length 1 [for line]
+          # Horizontal line
+          ctx.beginPath()
+          ctx.fillStyle = "#4B0082"
+          X = @bounds[0].x + @bounds[0].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING
+          Y = @bounds[0].y + @bounds[0].height/2
+          ctx.rect(X, Y, DROP_BUTTON_WIDTH, 1)
+          ctx.fill()
+
+          # Vertical line
+          ctx.beginPath()
+          ctx.fillStyle = "#4B0082"
+          X = @bounds[0].x + @bounds[0].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING + DROP_BUTTON_WIDTH/2
+          Y = @bounds[0].y + @bounds[0].height/4
+          ctx.rect(X, Y, 1, @bounds[0].height/2)
+          ctx.fill()
+
+        if @model.hasDel()
+          #console.log @bounds
+          # Rectangle for - button
+          ctx.beginPath()
+          ctx.fillStyle = DROP_BUTTON_COLOR
+          ctx.rect(@bounds[0].x + @bounds[0].width - DROP_BUTTON_WIDTH - DROP_BUTTON_PADDING, @bounds[0].y + @bounds[0].height/4, DROP_BUTTON_WIDTH, @bounds[0].height/2)
+          ctx.fill()
+          
+          # Rectangle of length 1 [for line]
+          # Horizontal line
+          ctx.beginPath()
+          ctx.fillStyle = "#000000"
+          X = @bounds[0].x + @bounds[0].width - DROP_BUTTON_WIDTH - DROP_BUTTON_PADDING
+          Y = @bounds[0].y + @bounds[0].height/2
+          ctx.rect(X, Y, DROP_BUTTON_WIDTH, 1)
+          ctx.fill()
 
       computeOwnDropArea: ->
         # Our drop area is a rectangle of

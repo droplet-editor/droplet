@@ -107,6 +107,9 @@ define ['droplet-helper'], (helper) ->
         classes: @classes
       }
 
+    islast: ->
+      return false
+
     hasParent: (parent) ->
       head = @
       until head in [parent, null]
@@ -592,6 +595,7 @@ define ['droplet-helper'], (helper) ->
     # Splice this token out of the
     # linked list.
     remove: ->
+      console.log "I am going to be removed"
       if @prev? then @prev.append @next
       else if @next? then @next.prev = null
 
@@ -716,14 +720,17 @@ define ['droplet-helper'], (helper) ->
     serialize: -> "</block>"
 
   exports.Block = class Block extends Container
-    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
+    constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @add = false, @del = false) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
 
       @type = 'block'
 
       super
-
+    
+    hasAdd: -> @add
+    hasDel: -> @del
+    
     _cloneEmpty: ->
       clone = new Block @precedence, @color, @socketLevel, @classes
       clone.currentlyParenWrapped = @currentlyParenWrapped
@@ -751,13 +758,20 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketEnd'
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @classes = []) ->
+    constructor: (@precedence = 0, @handwritten = false, @classes = [], @last = false, @begin = false) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
       @type = 'socket'
 
       super
+
+    ###
+      islast: Whether current socket is last in the block
+      isbegin: Whether current socket is the starting one in the block
+    ###
+    islast: ->  @last
+    isbegin: -> @begin
 
     isDroppable: -> @start.next is @end or @start.next.type is 'text'
 

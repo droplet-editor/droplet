@@ -43,6 +43,10 @@ define ['droplet-helper',
   MOSTLY_BLOCK = helper.MOSTLY_BLOCK
   MOSTLY_VALUE = helper.MOSTLY_VALUE
   VALUE_ONLY = helper.VALUE_ONLY
+  
+  DROP_BUTTON_COLOR = helper.DROP_BUTTON_COLOR
+  DROP_BUTTON_WIDTH = helper.DROP_BUTTON_WIDTH
+  DROP_BUTTON_PADDING = helper.DROP_BUTTON_PADDING
 
   BACKSPACE_KEY = 8
   TAB_KEY = 9
@@ -340,7 +344,7 @@ define ['droplet-helper',
 
       @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
       @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
 
       @resizeGutter()
 
@@ -1234,6 +1238,8 @@ define ['droplet-helper',
           @setTextInputFocus null
           @setTextInputFocus head.container
 
+      @fireEvent 'block-click'
+
       # Now that we've done that, we can annul stuff.
       @endDrag()
 
@@ -1823,11 +1829,9 @@ define ['droplet-helper',
   Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) ->
     if focus?.id of @extraMarks
       delete @extraMarks[focus?.id]
-
     # If there is already a focus, we
     # need to wrap some things up with it.
     if @textFocus? and @textFocus isnt focus
-
       # The first of these is an undo operation;
       # we need to add this text change to the undo stack.
       @addMicroUndoOperation 'CAPTURE_POINT'
@@ -1848,7 +1852,7 @@ define ['droplet-helper',
       # value.
       unless @textFocus.handwritten
         newParse = null
-        string = @textFocus.stringify(@mode.empty).trim()
+        string = @mode.trimString @textFocus.stringify(@mode.empty), @textFocus.islast(), @textFocus.isbegin()
         try
           newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
         catch
@@ -1954,6 +1958,18 @@ define ['droplet-helper',
 
     return null
 
+  # Convenience hit-testing block function
+  Editor::hitTestBlockInput = (point, block) ->
+    head = block.start
+    while head?
+      if head.type is 'blockStart' and head.next.type in ['text', 'socketStart', 'blockEnd', 'cursorStart'] and
+          @view.getViewNodeFor(head.container).path.contains point
+        return head.container
+      head = head.next
+
+    return null
+
+
   # Convenience functions for setting
   # the text input selection, given
   # points on the main canvas.
@@ -2003,6 +2019,25 @@ define ['droplet-helper',
     # the user has clicked
     mainPoint = @trackerPointToMain point
     hitTestResult = @hitTestTextInput mainPoint, @tree
+    hitTestBlock = @hitTestBlockInput mainPoint, @tree
+    
+    # If hasAdd is set 
+    # Call add socket 
+    if hitTestBlock?.hasAdd()
+      blockContainer = @view.getViewNodeFor(hitTestBlock)
+      diff = (blockContainer.bounds[0].x + blockContainer.bounds[0].width - mainPoint.x)
+      if diff < (2*DROP_BUTTON_WIDTH + 2*DROP_BUTTON_PADDING) 
+        if diff > (DROP_BUTTON_WIDTH + 2*DROP_BUTTON_PADDING)
+          @AddSocket(hitTestBlock)
+
+    # If hasDel is set
+    # Call del socket
+    if hitTestBlock?.hasDel()
+      blockContainer = @view.getViewNodeFor(hitTestBlock)
+      diff = (blockContainer.bounds[0].x + blockContainer.bounds[0].width - mainPoint.x)
+      if  diff < (DROP_BUTTON_WIDTH + DROP_BUTTON_PADDING) 
+        if diff > DROP_BUTTON_PADDING
+          @DelSocket(hitTestBlock)
 
     # If they have clicked a socket,
     # focus it.
@@ -2012,6 +2047,9 @@ define ['droplet-helper',
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
     if hitTestResult?
+      #if hitTestResult.islast()
+      #  @setLastSocket()
+
       unless hitTestResult is @textFocus
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -2064,7 +2102,48 @@ define ['droplet-helper',
       ), 0
 
       state.consumedHitTest = true
+  
+  # Create the add and del button dom element 
+  hook 'populate', 0, ->
+    @addButtonElement = document.createElement 'div'
+    @delButtonElement = document.createElement 'div'
+    @addButtonElement.className = 'droplet-addButton'
+    @delButtonElement.className = 'droplet-delButton'
+    @wrapperElement.appendChild @addButtonElement
+    @wrapperElement.appendChild @delButtonElement
 
+
+  # Add a new socket at the end of block  
+  Editor::AddSocket = (block) ->
+    head = block.start
+
+    while head?.next?.type not in ['blockEnd']
+      head = head.next
+
+    if head?
+      if head?.type is 'blockStart'
+        newSocket = new model.Socket()
+        newSocket.spliceIn head
+      else
+        text = new model.TextToken(",")
+        head.insert text
+        newSocket = new model.Socket()
+        newSocket.spliceIn head.next
+
+  # Remove socket from the end of the block
+  Editor::DelSocket = (block) ->
+    console.log block
+    head = block.start
+    lastCommaContainer = null
+    while head?.next?.type not in ['blockEnd']
+      if head?.type is 'text' and head?._value is ","
+        lastCommaContainer = head
+      head = head.next
+    console.log head
+    lastCommaContainer?.remove()
+    if head?.container?.type is 'socket'
+      @spliceOut head?.container
+    
 
   # On mousemove, if we are selecting,
   # we want to update the selection
@@ -2728,6 +2807,7 @@ define ['droplet-helper',
 
   hook 'keydown', 0, (event, state) ->
     if event.which is ENTER_KEY
+      console.log "I pressed Enter"
       if not @textFocus? and not event.shiftKey
         @setTextInputFocus null
 

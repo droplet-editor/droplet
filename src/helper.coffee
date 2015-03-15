@@ -11,6 +11,11 @@ define ->
   exports.DISCOURAGE = 0
   exports.FORBID = -1
 
+  exports.DROP_BUTTON_COLOR = '#008B8B' 
+  exports.DROP_BUTTON_WIDTH = 18
+  exports.DROP_BUTTON_PADDING = 10
+
+
   if window?
     window.String.prototype.trimLeft = ->
       @replace /^\s+/, ''
