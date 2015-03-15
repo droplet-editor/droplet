@@ -97,7 +97,7 @@
       return true;
     };
     exports.View = View = (function() {
-      var AddButtonViewNode, BlockViewNode, ContainerViewNode, CursorViewNode, GenericViewNode, IndentViewNode, SegmentViewNode, SocketViewNode, SubtractButtonViewNode, TextViewNode;
+      var BlockViewNode, ContainerViewNode, CursorViewNode, GenericViewNode, IndentViewNode, SegmentViewNode, SocketViewNode, TextViewNode;
 
       function View(opts) {
         var option, ref;
@@ -1241,17 +1241,45 @@
         }
 
         BlockViewNode.prototype.computeMinDimensions = function() {
-          var i, j, len1, ref, size;
+          var i, j, l, len1, len2, ref, ref1, size;
           if (this.computedVersion === this.model.version) {
             return null;
           }
           BlockViewNode.__super__.computeMinDimensions.apply(this, arguments);
-          ref = this.minDimensions;
-          for (i = j = 0, len1 = ref.length; j < len1; i = ++j) {
-            size = ref[i];
-            size.width = Math.max(size.width, this.view.opts.tabWidth + this.view.opts.tabOffset);
+          if (indexOf.call(this.model.classes, 'add-button') >= 0 || indexOf.call(this.model.classes, 'subtract-button') >= 0) {
+            ref = this.minDimensions;
+            for (i = j = 0, len1 = ref.length; j < len1; i = ++j) {
+              size = ref[i];
+              size.height = size.width = this.view.opts.textHeight + 2 * this.view.opts.padding;
+            }
+          } else {
+            ref1 = this.minDimensions;
+            for (i = l = 0, len2 = ref1.length; l < len2; i = ++l) {
+              size = ref1[i];
+              size.width = Math.max(size.width, this.view.opts.tabWidth + this.view.opts.tabOffset);
+            }
           }
           return null;
+        };
+
+        BlockViewNode.prototype.drawSelf = function(ctx, style) {
+          var fill, val;
+          BlockViewNode.__super__.drawSelf.apply(this, arguments);
+          fill = false;
+          val = "";
+          if (indexOf.call(this.model.classes, 'add-button') >= 0) {
+            val = '+';
+            fill = true;
+          } else if (indexOf.call(this.model.classes, 'subtract-button') >= 0) {
+            val = '-';
+            fill = true;
+          }
+          if (fill) {
+            ctx.textBaseline = 'center';
+            ctx.font = this.view.opts.textHeight + 'px ';
+            ctx.fillStyle = '#000';
+            return ctx.fillText(val, this.totalBounds.x + this.view.opts.padding + this.view.opts.textPadding, this.totalBounds.y + this.view.opts.padding);
+          }
         };
 
         BlockViewNode.prototype.shouldAddTab = function() {
@@ -1620,62 +1648,6 @@
         return TextViewNode;
 
       })(GenericViewNode);
-
-      AddButtonViewNode = (function(superClass) {
-        extend(AddButtonViewNode, superClass);
-
-        function AddButtonViewNode(model1, view1) {
-          this.model = model1;
-          this.view = view1;
-          AddButtonViewNode.__super__.constructor.apply(this, arguments);
-        }
-
-        AddButtonViewNode.prototype.computeMinDimensions = function() {
-          var height;
-          if (this.computedVersion === this.model.version) {
-            return null;
-          }
-          this.textElement = new this.view.draw.Button(new this.view.draw.Point(0, 0), '+');
-          height = this.view.opts.textHeight;
-          this.minDimensions[0] = new this.view.draw.Size(this.textElement.bounds().width, height);
-          this.minDistanceToBase[0] = {
-            above: height,
-            below: 0
-          };
-          return null;
-        };
-
-        return AddButtonViewNode;
-
-      })(TextViewNode);
-
-      SubtractButtonViewNode = (function(superClass) {
-        extend(SubtractButtonViewNode, superClass);
-
-        function SubtractButtonViewNode(model1, view1) {
-          this.model = model1;
-          this.view = view1;
-          SubtractButtonViewNode.__super__.constructor.apply(this, arguments);
-        }
-
-        SubtractButtonViewNode.prototype.computeMinDimensions = function() {
-          var height;
-          if (this.computedVersion === this.model.version) {
-            return null;
-          }
-          this.textElement = new this.view.draw.Button(new this.view.draw.Point(0, 0), '-');
-          height = this.view.opts.textHeight;
-          this.minDimensions[0] = new this.view.draw.Size(this.textElement.bounds().width, height);
-          this.minDistanceToBase[0] = {
-            above: height,
-            below: 0
-          };
-          return null;
-        };
-
-        return SubtractButtonViewNode;
-
-      })(TextViewNode);
 
       CursorViewNode = (function(superClass) {
         extend(CursorViewNode, superClass);

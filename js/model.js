@@ -4,7 +4,7 @@
     hasProp = {}.hasOwnProperty;
 
   define(['droplet-helper'], function(helper) {
-    var AddButtonToken, Block, BlockEndToken, BlockStartToken, Container, CursorToken, EndToken, FORBID, Indent, IndentEndToken, IndentStartToken, NO, NORMAL, NewlineToken, Segment, SegmentEndToken, SegmentStartToken, Socket, SocketEndToken, SocketStartToken, StartToken, SubtractButtonToken, TextToken, Token, YES, _id, exports, traverseOneLevel;
+    var Block, BlockEndToken, BlockStartToken, Container, CursorToken, EndToken, FORBID, Indent, IndentEndToken, IndentStartToken, NO, NORMAL, NewlineToken, Segment, SegmentEndToken, SegmentStartToken, Socket, SocketEndToken, SocketStartToken, StartToken, TextToken, Token, YES, _id, exports, traverseOneLevel;
     exports = {};
     YES = function() {
       return true;
@@ -839,35 +839,23 @@
       extend(Block, superClass);
 
       function Block(precedence, color, socketLevel, classes) {
-        var addBlock, addToken, subtractBlock, subtractToken;
+        var addBlock, subtractBlock;
         this.precedence = precedence != null ? precedence : 0;
         this.color = color != null ? color : 'blank';
         this.socketLevel = socketLevel != null ? socketLevel : helper.ANY_DROP;
         this.classes = classes != null ? classes : [];
         this.start = new BlockStartToken(this);
         this.end = new BlockEndToken(this);
-        this.socket = new Socket(this.precedence, false, this.classes);
+        this.socket = new Socket(this.precedence, false, this.classes.concat('button'));
         if (indexOf.call(this.classes, 'no+-') < 0) {
           addBlock = new Block(this.precedence, this.color, this.socketLevel, this.classes.concat('no+-', 'no-pick', 'add-button'));
-          addToken = new AddButtonToken;
-          addBlock.start.append(addToken);
-          addToken.append(addBlock.end);
+          addBlock.start.append(addBlock.end);
           subtractBlock = new Block(this.precedence, this.color, this.socketLevel, this.classes.concat('no+-', 'no-pick', 'subtract-button'));
-          subtractToken = new SubtractButtonToken;
-          subtractBlock.start.append(subtractToken);
-          subtractToken.append(subtractBlock.end);
+          subtractBlock.start.append(subtractBlock.end);
           addBlock.end.append(subtractBlock.start);
           this.socket.start.append(addBlock.start);
           subtractBlock.end.append(this.socket.end);
         }
-
-        /*
-        
-        addToken = new AddButtonToken
-        subtractToken = new SubtractButtonToken
-        addToken.append subtractToken
-        @socket = {start: addToken, end: subtractToken}
-         */
         this.type = 'block';
         Block.__super__.constructor.apply(this, arguments);
       }
@@ -1137,52 +1125,6 @@
       };
 
       return TextToken;
-
-    })(Token);
-    exports.AddButtonToken = AddButtonToken = (function(superClass) {
-      extend(AddButtonToken, superClass);
-
-      function AddButtonToken() {
-        AddButtonToken.__super__.constructor.apply(this, arguments);
-        this.type = 'addbutton';
-      }
-
-      AddButtonToken.prototype.stringify = function(state) {
-        return "";
-      };
-
-      AddButtonToken.prototype.serialize = function() {
-        return "";
-      };
-
-      AddButtonToken.prototype.clone = function() {
-        return new AddButtonToken;
-      };
-
-      return AddButtonToken;
-
-    })(Token);
-    exports.SubtractButtonToken = SubtractButtonToken = (function(superClass) {
-      extend(SubtractButtonToken, superClass);
-
-      function SubtractButtonToken() {
-        SubtractButtonToken.__super__.constructor.apply(this, arguments);
-        this.type = 'subtractbutton';
-      }
-
-      SubtractButtonToken.prototype.stringify = function(state) {
-        return "";
-      };
-
-      SubtractButtonToken.prototype.serialize = function() {
-        return "";
-      };
-
-      SubtractButtonToken.prototype.clone = function() {
-        return new SubtractButtonToken;
-      };
-
-      return SubtractButtonToken;
 
     })(Token);
     exports.NewlineToken = NewlineToken = (function(superClass) {

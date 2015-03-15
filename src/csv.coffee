@@ -151,6 +151,30 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     str = newstr
     return str
 
+  CSVParser.handleButton = (text, lineNumber, classes) ->
+    lines = text.split '\n'
+    line = lines[lineNumber]
+
+    isComment = (str) ->
+      str.match(/^\s*\/\/.*$/)
+
+    if 'add-button' in classes
+      if not isComment line
+        if line is '' then line = '" "' else line += '," "'
+
+    else if 'subtract-button' in classes
+      if not isComment line
+        in_quotes = false
+        for i in [line.length-1..1] by -1
+          if line[i] is '"'
+            in_quotes = !in_quotes
+          else if line[i] is ',' and not in_quotes
+            break;
+        line = line.slice 0, i
+
+    lines[lineNumber] = line
+    return lines.join '\n'
+
     ###
 
     if has_quotes is needs_quotes

@@ -197,6 +197,37 @@
       }
       str = newstr;
       return str;
+    };
+    CSVParser.handleButton = function(text, lineNumber, classes) {
+      var i, in_quotes, isComment, j, line, lines, ref;
+      lines = text.split('\n');
+      line = lines[lineNumber];
+      isComment = function(str) {
+        return str.match(/^\s*\/\/.*$/);
+      };
+      if (indexOf.call(classes, 'add-button') >= 0) {
+        if (!isComment(line)) {
+          if (line === '') {
+            line = '" "';
+          } else {
+            line += '," "';
+          }
+        }
+      } else if (indexOf.call(classes, 'subtract-button') >= 0) {
+        if (!isComment(line)) {
+          in_quotes = false;
+          for (i = j = ref = line.length - 1; j >= 1; i = j += -1) {
+            if (line[i] === '"') {
+              in_quotes = !in_quotes;
+            } else if (line[i] === ',' && !in_quotes) {
+              break;
+            }
+          }
+          line = line.slice(0, i);
+        }
+      }
+      lines[lineNumber] = line;
+      return lines.join('\n');
 
       /*
       

@@ -976,30 +976,12 @@ define ['droplet-helper',
     hitTestResult = @hitTest mainPoint, @tree
 
     if hitTestResult? and 'no-pick' in hitTestResult.classes
-      lineNumber = @findLineNumberAtCoordinate point.y
-      lines = @getValue().split '\n'
-      line = lines[lineNumber]
-
-      isComment = (str) ->
-        str.match(/^\s*\/\/.*$/)
-
-      if 'add-button' in hitTestResult.classes
-        if not isComment line
-          if line is '' then line = '" "' else line += '," "'
-
-      else if 'subtract-button' in  hitTestResult.classes
-        if not isComment line
-          in_quotes = false
-          for i in [line.length-1..1] by -1
-            if line[i] is '"'
-              in_quotes = !in_quotes
-            else if line[i] is ',' and not in_quotes
-              break;
-          line = line.slice 0, i
-
       @setTextInputFocus null
-      lines[lineNumber] = line
-      @setValue_raw lines.join '\n'
+
+      text = @mode.handleButton(@getValue(), @findLineNumberAtCoordinate(point.y)
+        , hitTestResult.classes)
+      @setValue_raw text
+
       state.consumedHitTest = true
 
   # If the user lifts the mouse
@@ -3090,7 +3072,7 @@ define ['droplet-helper',
             div.style.fontSize = @aceFontSize()
           ), fadeTime
 
-      @addButtonWrapper.style.display = @subtractButtonWrapper.style.display = @lineNumberWrapper.style.display = 'none'
+      @lineNumberWrapper.style.display = 'none'
 
       # Kick off fade-out transition
 

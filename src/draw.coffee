@@ -428,26 +428,6 @@ define ['droplet-helper'], (helper) ->
           ctx.fillStyle = '#000'
           ctx.fillText @value, @point.x, @point.y - self.fontAscent
 
-      @Button = class Button extends Text
-        constructor: (@point, @value) ->
-          @wantedFont = self.fontSize + 'px ' + self.fontFamily
-
-          unless self.ctx.font is @wantedFont
-            self.ctx.font = self.fontSize + 'px ' + self.fontFamily
-
-          @_bounds = new Rectangle @point.x + self.ctx.measureText(' ').width, @point.y, self.ctx.measureText(@value).width, self.fontSize
-
-        draw: (ctx) ->
-          ###
-          @_bounds.stroke ctx, '#000'
-          @_bounds.x = @point.x
-          @_bounds.y = @point.y - self.fontSize*0.15
-          ###
-          ctx.textBaseline = 'top'
-          ctx.font = self.fontSize + 'px ' + self.fontFamily
-          ctx.fillStyle = '#000'
-          ctx.fillText @value, @point.x, @point.y - self.fontAscent
-
     refreshFontCapital:  ->
       @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
 

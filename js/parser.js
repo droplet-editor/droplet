@@ -433,6 +433,9 @@
       str = str.trim();
       return str = str[0] + str.slice(1, -1).replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1];
     };
+    Parser.handleButton = function(text, lineNumber, classes) {
+      return text;
+    };
     Parser.empty = '';
     exports.wrapParser = function(CustomParser) {
       var CustomParserFactory;
@@ -489,6 +492,10 @@
 
         CustomParserFactory.prototype.escapeString = function(str) {
           return CustomParser.escapeString(str);
+        };
+
+        CustomParserFactory.prototype.handleButton = function(text, lineNumber, classes) {
+          return CustomParser.handleButton(text, lineNumber, classes);
         };
 
         return CustomParserFactory;

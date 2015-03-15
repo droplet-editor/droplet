@@ -86,7 +86,7 @@
     };
     exports.Draw = Draw = (function() {
       function Draw() {
-        var Button, NoRectangle, Path, Point, Rectangle, Size, Text, self;
+        var NoRectangle, Path, Point, Rectangle, Size, Text, self;
         this.ctx = null;
         this.fontSize = 15;
         this.fontFamily = 'Courier New, monospace';
@@ -561,35 +561,6 @@
           return Text;
 
         })();
-        this.Button = Button = (function(superClass) {
-          extend(Button, superClass);
-
-          function Button(point1, value1) {
-            this.point = point1;
-            this.value = value1;
-            this.wantedFont = self.fontSize + 'px ' + self.fontFamily;
-            if (self.ctx.font !== this.wantedFont) {
-              self.ctx.font = self.fontSize + 'px ' + self.fontFamily;
-            }
-            this._bounds = new Rectangle(this.point.x + self.ctx.measureText(' ').width, this.point.y, self.ctx.measureText(this.value).width, self.fontSize);
-          }
-
-          Button.prototype.draw = function(ctx) {
-
-            /*
-            @_bounds.stroke ctx, '#000'
-            @_bounds.x = @point.x
-            @_bounds.y = @point.y - self.fontSize*0.15
-             */
-            ctx.textBaseline = 'top';
-            ctx.font = self.fontSize + 'px ' + self.fontFamily;
-            ctx.fillStyle = '#000';
-            return ctx.fillText(this.value, this.point.x, this.point.y - self.fontAscent);
-          };
-
-          return Button;
-
-        })(Text);
       }
 
       Draw.prototype.refreshFontCapital = function() {

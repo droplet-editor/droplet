@@ -831,7 +831,7 @@
       }
     });
     hook('mousedown', 4, function(point, event, state) {
-      var hitTestResult, i, in_quotes, isComment, j, line, lineNumber, lines, mainPoint, ref1;
+      var hitTestResult, mainPoint, text;
       if (state.consumedHitTest) {
         return;
       }
@@ -841,36 +841,9 @@
       mainPoint = this.trackerPointToMain(point);
       hitTestResult = this.hitTest(mainPoint, this.tree);
       if ((hitTestResult != null) && indexOf.call(hitTestResult.classes, 'no-pick') >= 0) {
-        lineNumber = this.findLineNumberAtCoordinate(point.y);
-        lines = this.getValue().split('\n');
-        line = lines[lineNumber];
-        isComment = function(str) {
-          return str.match(/^\s*\/\/.*$/);
-        };
-        if (indexOf.call(hitTestResult.classes, 'add-button') >= 0) {
-          if (!isComment(line)) {
-            if (line === '') {
-              line = '" "';
-            } else {
-              line += '," "';
-            }
-          }
-        } else if (indexOf.call(hitTestResult.classes, 'subtract-button') >= 0) {
-          if (!isComment(line)) {
-            in_quotes = false;
-            for (i = j = ref1 = line.length - 1; j >= 1; i = j += -1) {
-              if (line[i] === '"') {
-                in_quotes = !in_quotes;
-              } else if (line[i] === ',' && !in_quotes) {
-                break;
-              }
-            }
-            line = line.slice(0, i);
-          }
-        }
         this.setTextInputFocus(null);
-        lines[lineNumber] = line;
-        this.setValue_raw(lines.join('\n'));
+        text = this.mode.handleButton(this.getValue(), this.findLineNumberAtCoordinate(point.y), hitTestResult.classes);
+        this.setValue_raw(text);
         return state.consumedHitTest = true;
       }
     });
@@ -2736,7 +2709,7 @@
           this.dropletElement.appendChild(div);
           fn2(div, line);
         }
-        this.addButtonWrapper.style.display = this.subtractButtonWrapper.style.display = this.lineNumberWrapper.style.display = 'none';
+        this.lineNumberWrapper.style.display = 'none';
         this.mainCanvas.style.transition = this.highlightCanvas.style.transition = this.cursorCanvas.style.opacity = "opacity " + fadeTime + "ms linear";
         this.mainCanvas.style.opacity = this.highlightCanvas.style.opacity = this.cursorCanvas.style.opacity = 0;
         setTimeout(((function(_this) {

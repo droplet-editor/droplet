@@ -1638,13 +1638,33 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         super
 
-        # Blocks have a shape including a lego nubby "tab", and so
-        # they need to be at least wide enough for tabWidth+tabOffset.
-        for size, i in @minDimensions
-          size.width = Math.max size.width,
-              @view.opts.tabWidth + @view.opts.tabOffset
+        if 'add-button' in @model.classes or 'subtract-button' in @model.classes
+          for size, i in @minDimensions
+            size.height = size.width = @view.opts.textHeight + 2*@view.opts.padding
+        else
+          # Blocks have a shape including a lego nubby "tab", and so
+          # they need to be at least wide enough for tabWidth+tabOffset.
+          for size, i in @minDimensions
+            size.width = Math.max size.width,
+                @view.opts.tabWidth + @view.opts.tabOffset
 
         return null
+
+      drawSelf: (ctx, style) ->
+        super
+        fill = false
+        val = ""
+        if 'add-button' in @model.classes
+          val = '+'
+          fill = true
+        else if 'subtract-button' in @model.classes
+          val = '-'
+          fill = true
+        if fill
+          ctx.textBaseline = 'center'
+          ctx.font = @view.opts.textHeight + 'px '
+          ctx.fillStyle = '#000'
+          ctx.fillText val, @totalBounds.x + @view.opts.padding + @view.opts.textPadding, @totalBounds.y + @view.opts.padding
 
       shouldAddTab: ->
         if @model.parent?
@@ -2059,42 +2079,6 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         @computeOwnPath()
         @textElement.draw ctx
         ctx.globalAlpha = 0.1
-
-    class AddButtonViewNode extends TextViewNode
-      constructor: (@model, @view) -> super
-
-      computeMinDimensions: ->
-        if @computedVersion is @model.version
-          return null
-
-        @textElement = new @view.draw.Button(
-          new @view.draw.Point(0, 0),
-          '+'
-        )
-
-        height = @view.opts.textHeight
-        @minDimensions[0] = new @view.draw.Size(@textElement.bounds().width, height)
-        @minDistanceToBase[0] = {above: height, below: 0}
-
-        return null
-
-    class SubtractButtonViewNode extends TextViewNode
-      constructor: (@model, @view) -> super
-
-      computeMinDimensions: ->
-        if @computedVersion is @model.version
-          return null
-
-        @textElement = new @view.draw.Button(
-          new @view.draw.Point(0, 0),
-          '-'
-        )
-
-        height = @view.opts.textHeight
-        @minDimensions[0] = new @view.draw.Size(@textElement.bounds().width, height)
-        @minDistanceToBase[0] = {above: height, below: 0}
-
-        return null
 
     # # CursorViewNode
     # The Cursor should not be render by the standard view.
