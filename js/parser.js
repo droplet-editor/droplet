@@ -172,8 +172,7 @@
         block.start.append(socket.start);
         socket.start.append(textToken);
         textToken.append(socket.end);
-        socket.end.append(block.socket.start);
-        block.socket.end.append(block.end);
+        socket.end.append(block.end);
         if (this.isComment(text)) {
           block.socketLevel = helper.BLOCK_ONLY;
           socket.end.append(block.end);
@@ -224,8 +223,6 @@
             } else if (((ref2 = (ref3 = stack[stack.length - 1]) != null ? ref3.type : void 0) === 'indent' || ref2 === 'segment' || ref2 === (void 0)) && hasSomeTextAfter(lines, i)) {
               block = new model.Block(0, 'yellow', helper.BLOCK_ONLY);
               head = head.append(block.start);
-              head = head.append(block.socket.start);
-              head = block.socket.end;
               head = head.append(block.end);
             }
             head = head.append(new model.NewlineToken());
@@ -275,10 +272,6 @@
                   throw new Error("Improper parser: " + head.container.type + " ended too early.");
                 }
                 stack.pop();
-              }
-              if (mark.token instanceof model.BlockEndToken) {
-                head = head.append(mark.token.container.socket.start);
-                head = mark.token.container.socket.end;
               }
               head = head.append(mark.token);
               lastIndex = mark.location.column;
@@ -355,10 +348,6 @@
         var container;
         if (stack.length > 0 && nodeName === stack[stack.length - 1].node.name) {
           container = stack[stack.length - 1].container;
-          if (container.end instanceof model.BlockEndToken) {
-            head = head.append(container.socket.start);
-            head = head.socket.end;
-          }
           head = head.append(container.end);
           return stack.pop();
         }

@@ -22,6 +22,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_GROW_DOWN = 3
 
   DEFAULT_OPTIONS =
+    buttonWidth: 13
+    buttonHeight: 13
+    buttonPadding: 10
+    buttonOffset: 5
     padding: 5
     indentWidth: 10
     indentTongueHeight: 10
@@ -1638,33 +1642,41 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         super
 
-        if 'add-button' in @model.classes or 'subtract-button' in @model.classes
-          for size, i in @minDimensions
-            size.height = size.width = @view.opts.textHeight + 2*@view.opts.padding
-        else
-          # Blocks have a shape including a lego nubby "tab", and so
-          # they need to be at least wide enough for tabWidth+tabOffset.
-          for size, i in @minDimensions
-            size.width = Math.max size.width,
-                @view.opts.tabWidth + @view.opts.tabOffset
+        # Blocks have a shape including a lego nubby "tab", and so
+        # they need to be at least wide enough for tabWidth+tabOffset.
+
+        @extraWidth = 0
+        if 'add-button' in @model.classes
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        if 'subtract-button' in @model.classes
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        for size, i in @minDimensions
+          size.width = Math.max size.width,
+              @view.opts.tabWidth + @view.opts.tabOffset
+          size.width += @extraWidth
 
         return null
 
       drawSelf: (ctx, style) ->
         super
-        fill = false
-        val = ""
+
+        start = @totalBounds.x + @totalBounds.width - @extraWidth
+
+        console.log @totalBounds
+
+        ctx.textBaseline = 'center'
+        ctx.font = @view.opts.textHeight + 'px '
+        ctx.fillStyle = '#000'
+
         if 'add-button' in @model.classes
-          val = '+'
-          fill = true
-        else if 'subtract-button' in @model.classes
-          val = '-'
-          fill = true
-        if fill
-          ctx.textBaseline = 'center'
-          ctx.font = @view.opts.textHeight + 'px '
-          ctx.fillStyle = '#000'
-          ctx.fillText val, @totalBounds.x + @view.opts.padding + @view.opts.textPadding, @totalBounds.y + @view.opts.padding
+          @addButtonRect.stroke(ctx, '#000')
+          ctx.fillText '+', start + @view.opts.buttonOffset + 2, @totalBounds.y + @view.opts.padding
+          start += @view.opts.buttonWidth + @view.opts.buttonPadding
+        if 'subtract-button' in @model.classes
+          @subtractButtonRect.stroke(ctx, '#000')
+          ctx.fillText '-', start + @view.opts.buttonOffset + 2, @totalBounds.y + @view.opts.padding
 
       shouldAddTab: ->
         if @model.parent?
@@ -1672,6 +1684,15 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           parent?.type isnt 'socket'
         else not ('mostly-value' in @model.classes or
             'value-only' in @model.classes)
+
+      computePath: ->
+        super
+        start = @totalBounds.x + @totalBounds.width - @extraWidth
+        if 'add-button' in @model.classes
+          @addButtonRect = new @view.draw.Rectangle start + @view.opts.buttonOffset, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+          start += @view.opts.buttonWidth + @view.opts.buttonPadding
+        if 'subtract-button' in @model.classes
+          @subtractButtonRect = new @view.draw.Rectangle start + @view.opts.buttonOffset, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
 
       computeOwnPath: ->
         super

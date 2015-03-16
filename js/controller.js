@@ -831,7 +831,7 @@
       }
     });
     hook('mousedown', 4, function(point, event, state) {
-      var hitTestResult, mainPoint, text;
+      var hitTestBlock, hitTestResult, line, lineNumber, mainPoint;
       if (state.consumedHitTest) {
         return;
       }
@@ -840,11 +840,20 @@
       }
       mainPoint = this.trackerPointToMain(point);
       hitTestResult = this.hitTest(mainPoint, this.tree);
-      if ((hitTestResult != null) && indexOf.call(hitTestResult.classes, 'no-pick') >= 0) {
-        this.setTextInputFocus(null);
-        text = this.mode.handleButton(this.getValue(), this.findLineNumberAtCoordinate(point.y), hitTestResult.classes);
-        this.setValue_raw(text);
-        return state.consumedHitTest = true;
+      if (hitTestResult != null) {
+        hitTestBlock = this.view.getViewNodeFor(hitTestResult);
+        lineNumber = this.findLineNumberAtCoordinate(mainPoint.y);
+        if ((hitTestBlock.addButtonRect != null) && hitTestBlock.addButtonRect.contains(mainPoint)) {
+          console.log("Plus on: ", lineNumber);
+          line = this.mode.handleButton(this.getValue().split('\n')[lineNumber], 'add-button');
+          this.populateBlock(hitTestResult, line);
+          return state.consumedHitTest = true;
+        } else if ((hitTestBlock.subtractButtonRect != null) && hitTestBlock.subtractButtonRect.contains(mainPoint)) {
+          console.log("Minus on: ", lineNumber);
+          line = this.mode.handleButton(this.getValue().split('\n')[lineNumber], 'subtract-button');
+          this.populateBlock(hitTestResult, line);
+          return state.consumedHitTest = true;
+        }
       }
     });
     hook('mouseup', 0, function(point, event, state) {
@@ -1683,6 +1692,18 @@
         }
       }
       return socket.notifyChange();
+    };
+    Editor.prototype.populateBlock = function(block, string) {
+      var newBlock, ref1;
+      newBlock = this.mode.parse(string, {
+        wrapAtRoot: false
+      }).start.next.container;
+      if ((newBlock != null ? (ref1 = newBlock.start) != null ? ref1.next : void 0 : void 0) != null) {
+        block.start.append(newBlock.start.next);
+        newBlock.end.prev.append(block.end);
+        block.notifyChange();
+        return this.redrawMain();
+      }
     };
     Editor.prototype.hitTestTextInput = function(point, block) {
       var head, ref1;

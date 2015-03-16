@@ -839,23 +839,12 @@
       extend(Block, superClass);
 
       function Block(precedence, color, socketLevel, classes) {
-        var addBlock, subtractBlock;
         this.precedence = precedence != null ? precedence : 0;
         this.color = color != null ? color : 'blank';
         this.socketLevel = socketLevel != null ? socketLevel : helper.ANY_DROP;
         this.classes = classes != null ? classes : [];
         this.start = new BlockStartToken(this);
         this.end = new BlockEndToken(this);
-        this.socket = new Socket(this.precedence, false, this.classes.concat('button'));
-        if (indexOf.call(this.classes, 'no+-') < 0) {
-          addBlock = new Block(this.precedence, this.color, this.socketLevel, this.classes.concat('no+-', 'no-pick', 'add-button'));
-          addBlock.start.append(addBlock.end);
-          subtractBlock = new Block(this.precedence, this.color, this.socketLevel, this.classes.concat('no+-', 'no-pick', 'subtract-button'));
-          subtractBlock.start.append(subtractBlock.end);
-          addBlock.end.append(subtractBlock.start);
-          this.socket.start.append(addBlock.start);
-          subtractBlock.end.append(this.socket.end);
-        }
         this.type = 'block';
         Block.__super__.constructor.apply(this, arguments);
       }

@@ -972,17 +972,23 @@ define ['droplet-helper',
     if state.consumedHitTest then return
     if not @trackerPointIsInMain(point) then return
 
-    mainPoint = @trackerPointToMain(point)
+    mainPoint = @trackerPointToMain point
     hitTestResult = @hitTest mainPoint, @tree
 
-    if hitTestResult? and 'no-pick' in hitTestResult.classes
-      @setTextInputFocus null
+    if hitTestResult?
+      hitTestBlock = @view.getViewNodeFor hitTestResult
+      lineNumber = @findLineNumberAtCoordinate(mainPoint.y)
 
-      text = @mode.handleButton(@getValue(), @findLineNumberAtCoordinate(point.y)
-        , hitTestResult.classes)
-      @setValue_raw text
-
-      state.consumedHitTest = true
+      if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
+        console.log "Plus on: ", lineNumber
+        line = @mode.handleButton @getValue().split('\n')[lineNumber], 'add-button'
+        @populateBlock hitTestResult, line
+        state.consumedHitTest = true
+      else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
+        console.log "Minus on: ", lineNumber
+        line = @mode.handleButton @getValue().split('\n')[lineNumber], 'subtract-button'
+        @populateBlock hitTestResult, line
+        state.consumedHitTest = true
 
   # If the user lifts the mouse
   # before they have dragged five pixels,
@@ -1961,6 +1967,15 @@ define ['droplet-helper',
         head = head.insert new model.NewlineToken()
 
     socket.notifyChange()
+
+  Editor::populateBlock = (block, string) ->
+    newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
+
+    if newBlock?.start?.next?
+      block.start.append newBlock.start.next
+      newBlock.end.prev.append block.end
+      block.notifyChange()
+      @redrawMain()
 
   # Convenience hit-testing function
   Editor::hitTestTextInput = (point, block) ->

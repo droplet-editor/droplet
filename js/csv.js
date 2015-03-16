@@ -15,7 +15,7 @@
     COLORS = {
       'Default': 'cyan'
     };
-    CLASSES = ['mostly-value', 'no-drop'];
+    CLASSES = ['mostly-value', 'no-drop', 'add-button', 'subtract-button'];
     exports.CSVParser = CSVParser = (function(superClass) {
       extend(CSVParser, superClass);
 
@@ -68,7 +68,8 @@
           depth: 0,
           precedence: this.getPrecedence(node),
           color: this.getColor(node),
-          socketLevel: this.getSocketLevel(node)
+          socketLevel: this.getSocketLevel(node),
+          classes: this.getClasses(node)
         });
       };
 
@@ -168,6 +169,7 @@
       return CSVParser;
 
     })(parser.Parser);
+    CSVParser.empty = '" "';
     CSVParser.parens = function(leading, trailing, node, context) {
       return [leading, trailing];
     };
@@ -183,7 +185,11 @@
       has_quotes = (str[0] === str.slice(-1)) && ((ref = str[0]) === '"' || ref === '\'');
       if (has_quotes) {
         tmp = str.match(/\"+/g);
-        has_quotes = Math.min(tmp[0].length, tmp.slice(-1)[0].length) % 2 === 1;
+        if (tmp.length === 1 && tmp[0] === str) {
+          str = '';
+        } else {
+          has_quotes = Math.min(tmp[0].length, tmp.slice(-1)[0].length) % 2 === 1;
+        }
       }
       if (has_quotes && str.length > 1) {
         newstr = str.slice(1, -1);
@@ -195,17 +201,18 @@
         newstr = newstr.replace(/\"\"/g, '\"').replace(/\"/g, '\"\"');
         newstr = '"' + newstr + '"';
       }
+      if (newstr.length === 0) {
+        newstr = '" "';
+      }
       str = newstr;
       return str;
     };
-    CSVParser.handleButton = function(text, lineNumber, classes) {
-      var i, in_quotes, isComment, j, line, lines, ref;
-      lines = text.split('\n');
-      line = lines[lineNumber];
+    CSVParser.handleButton = function(line, type) {
+      var i, in_quotes, isComment, j, ref;
       isComment = function(str) {
         return str.match(/^\s*\/\/.*$/);
       };
-      if (indexOf.call(classes, 'add-button') >= 0) {
+      if ('add-button' === type) {
         if (!isComment(line)) {
           if (line === '') {
             line = '" "';
@@ -213,7 +220,7 @@
             line += '," "';
           }
         }
-      } else if (indexOf.call(classes, 'subtract-button') >= 0) {
+      } else if ('subtract-button' === type) {
         if (!isComment(line)) {
           in_quotes = false;
           for (i = j = ref = line.length - 1; j >= 1; i = j += -1) {
@@ -226,8 +233,7 @@
           line = line.slice(0, i);
         }
       }
-      lines[lineNumber] = line;
-      return lines.join('\n');
+      return line;
 
       /*
       

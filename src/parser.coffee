@@ -213,8 +213,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       block.start.append socket.start
       socket.start.append textToken
       textToken.append socket.end
-      socket.end.append block.socket.start
-      block.socket.end.append block.end
+      socket.end.append block.end
 
       if @isComment text
         block.socketLevel = helper.BLOCK_ONLY
@@ -271,8 +270,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
             block = new model.Block 0, 'yellow', helper.BLOCK_ONLY
 
             head = head.append block.start
-            head = head.append block.socket.start
-            head = block.socket.end
             head = head.append block.end
 
           head = head.append new model.NewlineToken()
@@ -332,10 +329,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
               stack.pop()
 
             # Append the token
-            if mark.token instanceof model.BlockEndToken
-              head = head.append mark.token.container.socket.start
-              head = mark.token.container.socket.end
-            head = head.append mark.token ##SEE HERE
+            head = head.append mark.token
 
             lastIndex = mark.location.column
 
@@ -404,9 +398,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     parser.onclosetag = (nodeName) ->
       if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
         container = stack[stack.length - 1].container
-        if container.end instanceof model.BlockEndToken
-          head = head.append container.socket.start
-          head = head.socket.end
         head = head.append container.end
         stack.pop()
 

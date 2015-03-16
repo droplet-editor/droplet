@@ -21,6 +21,10 @@
     CARRIAGE_ARROW_NONE = 2;
     CARRIAGE_GROW_DOWN = 3;
     DEFAULT_OPTIONS = {
+      buttonWidth: 13,
+      buttonHeight: 13,
+      buttonPadding: 10,
+      buttonOffset: 5,
       padding: 5,
       indentWidth: 10,
       indentTongueHeight: 10,
@@ -1241,44 +1245,43 @@
         }
 
         BlockViewNode.prototype.computeMinDimensions = function() {
-          var i, j, l, len1, len2, ref, ref1, size;
+          var i, j, len1, ref, size;
           if (this.computedVersion === this.model.version) {
             return null;
           }
           BlockViewNode.__super__.computeMinDimensions.apply(this, arguments);
-          if (indexOf.call(this.model.classes, 'add-button') >= 0 || indexOf.call(this.model.classes, 'subtract-button') >= 0) {
-            ref = this.minDimensions;
-            for (i = j = 0, len1 = ref.length; j < len1; i = ++j) {
-              size = ref[i];
-              size.height = size.width = this.view.opts.textHeight + 2 * this.view.opts.padding;
-            }
-          } else {
-            ref1 = this.minDimensions;
-            for (i = l = 0, len2 = ref1.length; l < len2; i = ++l) {
-              size = ref1[i];
-              size.width = Math.max(size.width, this.view.opts.tabWidth + this.view.opts.tabOffset);
-            }
+          this.extraWidth = 0;
+          if (indexOf.call(this.model.classes, 'add-button') >= 0) {
+            this.extraWidth += this.view.opts.buttonWidth + this.view.opts.buttonPadding;
+          }
+          if (indexOf.call(this.model.classes, 'subtract-button') >= 0) {
+            this.extraWidth += this.view.opts.buttonWidth + this.view.opts.buttonPadding;
+          }
+          ref = this.minDimensions;
+          for (i = j = 0, len1 = ref.length; j < len1; i = ++j) {
+            size = ref[i];
+            size.width = Math.max(size.width, this.view.opts.tabWidth + this.view.opts.tabOffset);
+            size.width += this.extraWidth;
           }
           return null;
         };
 
         BlockViewNode.prototype.drawSelf = function(ctx, style) {
-          var fill, val;
+          var start;
           BlockViewNode.__super__.drawSelf.apply(this, arguments);
-          fill = false;
-          val = "";
+          start = this.totalBounds.x + this.totalBounds.width - this.extraWidth;
+          console.log(this.totalBounds);
+          ctx.textBaseline = 'center';
+          ctx.font = this.view.opts.textHeight + 'px ';
+          ctx.fillStyle = '#000';
           if (indexOf.call(this.model.classes, 'add-button') >= 0) {
-            val = '+';
-            fill = true;
-          } else if (indexOf.call(this.model.classes, 'subtract-button') >= 0) {
-            val = '-';
-            fill = true;
+            this.addButtonRect.stroke(ctx, '#000');
+            ctx.fillText('+', start + this.view.opts.buttonOffset + 2, this.totalBounds.y + this.view.opts.padding);
+            start += this.view.opts.buttonWidth + this.view.opts.buttonPadding;
           }
-          if (fill) {
-            ctx.textBaseline = 'center';
-            ctx.font = this.view.opts.textHeight + 'px ';
-            ctx.fillStyle = '#000';
-            return ctx.fillText(val, this.totalBounds.x + this.view.opts.padding + this.view.opts.textPadding, this.totalBounds.y + this.view.opts.padding);
+          if (indexOf.call(this.model.classes, 'subtract-button') >= 0) {
+            this.subtractButtonRect.stroke(ctx, '#000');
+            return ctx.fillText('-', start + this.view.opts.buttonOffset + 2, this.totalBounds.y + this.view.opts.padding);
           }
         };
 
@@ -1289,6 +1292,19 @@
             return (parent != null ? parent.type : void 0) !== 'socket';
           } else {
             return !(indexOf.call(this.model.classes, 'mostly-value') >= 0 || indexOf.call(this.model.classes, 'value-only') >= 0);
+          }
+        };
+
+        BlockViewNode.prototype.computePath = function() {
+          var start;
+          BlockViewNode.__super__.computePath.apply(this, arguments);
+          start = this.totalBounds.x + this.totalBounds.width - this.extraWidth;
+          if (indexOf.call(this.model.classes, 'add-button') >= 0) {
+            this.addButtonRect = new this.view.draw.Rectangle(start + this.view.opts.buttonOffset, this.totalBounds.y + this.view.opts.padding, this.view.opts.buttonWidth, this.view.opts.buttonHeight);
+            start += this.view.opts.buttonWidth + this.view.opts.buttonPadding;
+          }
+          if (indexOf.call(this.model.classes, 'subtract-button') >= 0) {
+            return this.subtractButtonRect = new this.view.draw.Rectangle(start + this.view.opts.buttonOffset, this.totalBounds.y + this.view.opts.padding, this.view.opts.buttonWidth, this.view.opts.buttonHeight);
           }
         };
 

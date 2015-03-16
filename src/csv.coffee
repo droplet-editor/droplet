@@ -11,7 +11,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     'Default': 'cyan'
   }
 
-  CLASSES = ['mostly-value', 'no-drop']
+  CLASSES = ['mostly-value', 'no-drop', 'add-button', 'subtract-button']
 
   exports.CSVParser = class CSVParser extends parser.Parser
     
@@ -48,6 +48,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
         precedence: @getPrecedence node
         color: @getColor node
         socketLevel: @getSocketLevel node
+        classes: @getClasses node
 
     csvSocket: (node) ->
       @addSocket
@@ -120,6 +121,8 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
 
       return node
 
+  CSVParser.empty = '" "'
+
   CSVParser.parens = (leading, trailing, node, context) ->
     #console.log context.id, node
     #console.log model.Container.prototype.getTokenAtLocation node.id
@@ -135,7 +138,10 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     has_quotes = ((str[0] is str.slice -1) and str[0] in ['"', '\''])
     if has_quotes
       tmp = str.match(/\"+/g)
-      has_quotes = Math.min(tmp[0].length, tmp.slice(-1)[0].length)%2 == 1
+      if tmp.length is 1 and tmp[0] is str
+        str = ''
+      else
+        has_quotes = Math.min(tmp[0].length, tmp.slice(-1)[0].length)%2 == 1
 
     if has_quotes and str.length > 1
       newstr = str[1...-1]
@@ -148,21 +154,20 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
       newstr = newstr.replace(/\"\"/g, '\"').replace(/\"/g, '\"\"')
       newstr = '"' + newstr + '"'
 
+    if newstr.length is 0
+      newstr = '" "'
     str = newstr
     return str
 
-  CSVParser.handleButton = (text, lineNumber, classes) ->
-    lines = text.split '\n'
-    line = lines[lineNumber]
-
+  CSVParser.handleButton = (line, type) ->
     isComment = (str) ->
       str.match(/^\s*\/\/.*$/)
 
-    if 'add-button' in classes
+    if 'add-button' is type
       if not isComment line
         if line is '' then line = '" "' else line += '," "'
 
-    else if 'subtract-button' in classes
+    else if 'subtract-button' is type
       if not isComment line
         in_quotes = false
         for i in [line.length-1..1] by -1
@@ -172,8 +177,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
             break;
         line = line.slice 0, i
 
-    lines[lineNumber] = line
-    return lines.join '\n'
+    return line
 
     ###
 

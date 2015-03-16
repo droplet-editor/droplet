@@ -719,20 +719,6 @@ define ['droplet-helper'], (helper) ->
     constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
-
-
-      @socket = new Socket @precedence, false, @classes.concat 'button'
-
-      if 'no+-' not in @classes
-        addBlock = new Block @precedence, @color, @socketLevel, @classes.concat 'no+-', 'no-pick', 'add-button'
-        addBlock.start.append addBlock.end
-        subtractBlock = new Block @precedence, @color, @socketLevel, @classes.concat 'no+-', 'no-pick', 'subtract-button'
-        subtractBlock.start.append subtractBlock.end
-
-        addBlock.end.append subtractBlock.start
-        @socket.start.append addBlock.start
-        subtractBlock.end.append @socket.end
-
       @type = 'block'
 
       super
