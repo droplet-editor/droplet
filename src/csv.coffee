@@ -371,8 +371,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser'], (helper, model, pa
           ret = ret + str.slice(st,str.length) + '"'
         else
           ret = ret + str.slice(st,str.length)
-    return ret    
+    return ret   
 
-  CsvScriptParser.empty = "__"
+  CsvScriptParser.getVal = (string) ->
+    return "\"\""
+
+  CsvScriptParser.empty = "\"\""
   
   return parser.wrapParser CsvScriptParser

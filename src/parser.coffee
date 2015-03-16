@@ -451,6 +451,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
   Parser.trimString = (string, islast, isbegin) ->
     return string.trim()
 
+  Parser.getVal = (string) ->
+    return string
+
   Parser.empty = ''
   
   exports.wrapParser = (CustomParser) ->
@@ -489,5 +492,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
 
       trimString: (string, islast, isbegin) -> CustomParser.trimString string, islast, isbegin
+      getVal: (string) -> CustomParser.getVal string
 
   return exports

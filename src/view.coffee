@@ -1659,35 +1659,37 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
       drawSelf: (ctx) ->
         super
-
         ###
           Draw +/- buttons
           ___   ___
           |+|  |--|
            
         ###
+        loc = @lineLength - 1
         if @model.hasAdd()
           #console.log @bounds
           # Rectangle for + button
+          #@getBounds
           ctx.beginPath()
           ctx.fillStyle = DROP_BUTTON_COLOR
-          ctx.rect(@bounds[0].x + @bounds[0].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING, @bounds[0].y + @bounds[0].height/4, DROP_BUTTON_WIDTH, @bounds[0].height/2)
+          ctx.rect(@bounds[loc].x + @bounds[loc].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING, @bounds[loc].y + @bounds[loc].height/4, DROP_BUTTON_WIDTH, @bounds[loc].height/2)
           ctx.fill()
           # Rectangle of length 1 [for line]
           # Horizontal line
           ctx.beginPath()
           ctx.fillStyle = "#4B0082"
-          X = @bounds[0].x + @bounds[0].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING
-          Y = @bounds[0].y + @bounds[0].height/2
+          X = @bounds[loc].x + @bounds[loc].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING
+          Y = @bounds[loc].y + @bounds[loc].height/2
           ctx.rect(X, Y, DROP_BUTTON_WIDTH, 1)
           ctx.fill()
 
+        
           # Vertical line
           ctx.beginPath()
           ctx.fillStyle = "#4B0082"
-          X = @bounds[0].x + @bounds[0].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING + DROP_BUTTON_WIDTH/2
-          Y = @bounds[0].y + @bounds[0].height/4
-          ctx.rect(X, Y, 1, @bounds[0].height/2)
+          X = @bounds[loc].x + @bounds[loc].width - 2*DROP_BUTTON_WIDTH - 2*DROP_BUTTON_PADDING + DROP_BUTTON_WIDTH/2
+          Y = @bounds[loc].y + @bounds[loc].height/4
+          ctx.rect(X, Y, 1, @bounds[loc].height/2)
           ctx.fill()
 
         if @model.hasDel()
@@ -1695,15 +1697,15 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           # Rectangle for - button
           ctx.beginPath()
           ctx.fillStyle = DROP_BUTTON_COLOR
-          ctx.rect(@bounds[0].x + @bounds[0].width - DROP_BUTTON_WIDTH - DROP_BUTTON_PADDING, @bounds[0].y + @bounds[0].height/4, DROP_BUTTON_WIDTH, @bounds[0].height/2)
+          ctx.rect(@bounds[loc].x + @bounds[loc].width - DROP_BUTTON_WIDTH - DROP_BUTTON_PADDING, @bounds[loc].y + @bounds[loc].height/4, DROP_BUTTON_WIDTH, @bounds[loc].height/2)
           ctx.fill()
           
           # Rectangle of length 1 [for line]
           # Horizontal line
           ctx.beginPath()
           ctx.fillStyle = "#000000"
-          X = @bounds[0].x + @bounds[0].width - DROP_BUTTON_WIDTH - DROP_BUTTON_PADDING
-          Y = @bounds[0].y + @bounds[0].height/2
+          X = @bounds[loc].x + @bounds[loc].width - DROP_BUTTON_WIDTH - DROP_BUTTON_PADDING
+          Y = @bounds[loc].y + @bounds[loc].height/2
           ctx.rect(X, Y, DROP_BUTTON_WIDTH, 1)
           ctx.fill()
 

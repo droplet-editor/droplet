@@ -595,7 +595,6 @@ define ['droplet-helper'], (helper) ->
     # Splice this token out of the
     # linked list.
     remove: ->
-      console.log "I am going to be removed"
       if @prev? then @prev.append @next
       else if @next? then @next.prev = null
 

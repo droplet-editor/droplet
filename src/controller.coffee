@@ -7,12 +7,14 @@ define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
     'droplet-csv',
+    'droplet-json'
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
     coffee,
     javascript,
     csv,
+    json,
     draw,
     model,
     view) ->
@@ -22,6 +24,7 @@ define ['droplet-helper',
     'coffee': coffee
     'javascript': javascript
     'csv': csv
+    'json': json
   }
 
   # ## Magic constants
@@ -1847,6 +1850,7 @@ define ['droplet-helper',
         shouldRecoverCursor = true
         cursorPosition = @getRecoverableCursorPosition()
 
+      console.log @textFocus
       # The second of these is a reparse attempt.
       # If we can, try to reparse the focus
       # value.
@@ -1962,7 +1966,7 @@ define ['droplet-helper',
   Editor::hitTestBlockInput = (point, block) ->
     head = block.start
     while head?
-      if head.type is 'blockStart' and head.next.type in ['text', 'socketStart', 'blockEnd', 'cursorStart'] and
+      if head.type is 'blockStart' and head.next.type in ['text', 'socketStart', 'blockEnd'] and
           @view.getViewNodeFor(head.container).path.contains point
         return head.container
       head = head.next
@@ -2025,7 +2029,8 @@ define ['droplet-helper',
     # Call add socket 
     if hitTestBlock?.hasAdd()
       blockContainer = @view.getViewNodeFor(hitTestBlock)
-      diff = (blockContainer.bounds[0].x + blockContainer.bounds[0].width - mainPoint.x)
+      line = blockContainer.lineLength
+      diff = (blockContainer.bounds[line - 1].x + blockContainer.bounds[line - 1].width - mainPoint.x)
       if diff < (2*DROP_BUTTON_WIDTH + 2*DROP_BUTTON_PADDING) 
         if diff > (DROP_BUTTON_WIDTH + 2*DROP_BUTTON_PADDING)
           @AddSocket(hitTestBlock)
@@ -2033,8 +2038,9 @@ define ['droplet-helper',
     # If hasDel is set
     # Call del socket
     if hitTestBlock?.hasDel()
+      line = blockContainer.lineLength
       blockContainer = @view.getViewNodeFor(hitTestBlock)
-      diff = (blockContainer.bounds[0].x + blockContainer.bounds[0].width - mainPoint.x)
+      diff = (blockContainer.bounds[line - 1].x + blockContainer.bounds[line - 1].width - mainPoint.x)
       if  diff < (DROP_BUTTON_WIDTH + DROP_BUTTON_PADDING) 
         if diff > DROP_BUTTON_PADDING
           @DelSocket(hitTestBlock)
@@ -2103,32 +2109,26 @@ define ['droplet-helper',
 
       state.consumedHitTest = true
   
-  # Create the add and del button dom element 
-  hook 'populate', 0, ->
-    @addButtonElement = document.createElement 'div'
-    @delButtonElement = document.createElement 'div'
-    @addButtonElement.className = 'droplet-addButton'
-    @delButtonElement.className = 'droplet-delButton'
-    @wrapperElement.appendChild @addButtonElement
-    @wrapperElement.appendChild @delButtonElement
-
 
   # Add a new socket at the end of block  
   Editor::AddSocket = (block) ->
     head = block.start
-
     while head?.next?.type not in ['blockEnd']
       head = head.next
 
-    if head?
-      if head?.type is 'blockStart'
+    if head 
+      if head.type is 'blockStart'
         newSocket = new model.Socket()
         newSocket.spliceIn head
       else
+        console.log @mode.mode
+        val = @mode.getVal("abc")
         text = new model.TextToken(",")
         head.insert text
         newSocket = new model.Socket()
+        @populateSocket newSocket, val
         newSocket.spliceIn head.next
+
 
   # Remove socket from the end of the block
   Editor::DelSocket = (block) ->
