@@ -856,6 +856,14 @@ define ['droplet-helper',
 
     node.spliceOut()
 
+  Editor::spliceInRaw = (node, location) ->
+    @applyParens node, location
+
+    last = location.next
+
+    location.append node.start
+    node.end.append last
+
   Editor::spliceIn = (node, location) ->
     @applyParens node, location
 
@@ -1200,10 +1208,17 @@ define ['droplet-helper',
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+          if @lastHighlight.type is 'indent' and 'list' in @lastHighlight.classes and
+              @lastHighlight.lineLength() is 0
+            @spliceInRaw @draggingBlock, @lastHighlight.start #MUTATION
+          else
+            @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
+          if @lastHighlight.inList() and @lastHighlight.parent.lineLength() is 0
+            @spliceInRaw @draggingBlock, @lastHighlight.end
+          else
+            @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start

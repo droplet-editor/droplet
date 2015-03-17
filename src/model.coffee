@@ -114,6 +114,15 @@ define ['droplet-helper'], (helper) ->
 
       return head is parent
 
+    inList: ->
+      @parent? and 'list' in @visParent().classes
+
+    inMultiLineList: ->
+      @inList() and @visParent().lineLength() > 0
+
+    inSingleLineList: ->
+      @inList() and @visParent().lineLength() is 0
+
     getCommonParent: (other) ->
       head = @
       until other.hasParent head
@@ -200,6 +209,18 @@ define ['droplet-helper'], (helper) ->
             @end.prev.value = value
         else unless value.length is 0
           @end.insertBefore new TextToken value
+
+    each: (f) ->
+      head = @start.next
+      until head is @end
+        f head
+        head = head.next
+      return true
+
+    lineLength: ->
+      length = 0
+      @each (el) -> length++ if el.type is 'newline'
+      return length
 
     # ## clone ##
     # Clone this container, with all the token inside,
