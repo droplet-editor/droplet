@@ -1372,10 +1372,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
-              if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
-                right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
-                right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
-                right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
+            if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
             if multilineChild.child.type is 'indent' and not ('list' in multilineChild.child.classes)

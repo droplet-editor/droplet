@@ -1007,6 +1007,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
   CoffeeScriptParser.parens = (leading, trailing, node, context) ->
     trailing trailing().replace /\s*,\s*$/, ''
+    if 'Obj' in node.classes
+      unless leading().match /.*{.*/
+        leading '{' + leading()
+      unless trailing().match /.*{.*/
+        trailing trailing() + '}'
+      return
     if context is null or context.type isnt 'socket' or
         context.precedence < node.precedence
       while true

@@ -500,7 +500,6 @@ define ['droplet-helper'], (helper) ->
     parentWithQuality: (fn) ->
       parent = @
       until fn parent
-        console.log 'going up to', parent
         parent = parent.parent
       return parent
 

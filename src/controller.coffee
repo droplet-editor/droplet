@@ -831,20 +831,7 @@ define ['droplet-helper',
       # Move the cursor to the end of it.
       return clone.end
 
-  Editor::spliceOut = (node) ->
-    leading = node.getLeadingText()
-    if node.start.next is node.end.prev
-      trailing = null
-    else
-      trailing = node.getTrailingText()
-
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), null
-
-    node.setLeadingText leading; node.setTrailingText trailing
-
-    node.spliceOut()
-
-  Editor::spliceIn = (node, location) ->
+  Editor::applyParens = (node, location) ->
     leading = node.getLeadingText()
     if node.start.next is node.end.prev
       trailing = null
@@ -857,6 +844,16 @@ define ['droplet-helper',
       (if container.type is 'block' then container.visParent() else container)?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
+
+    return node
+
+  Editor::spliceOut = (node) ->
+    @applyParens node, null
+
+    node.spliceOut()
+
+  Editor::spliceIn = (node, location) ->
+    @applyParens node, location
 
     node.spliceIn location
 
@@ -1244,6 +1241,7 @@ define ['droplet-helper',
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
         @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
+        @applyParens newBlock, oldBlock.parent
 
         if @cursor.hasParent oldBlock
           pos = @getRecoverableCursorPosition()
@@ -2658,8 +2656,9 @@ define ['droplet-helper',
     return head.container
 
   Editor::reparseParent = (node) ->
-    node.parent.parentWithQuality((x) =>
+    parent = node.parent.parentWithQuality((x) =>
         x.type is 'block' and @mode.canReparse x)
+    return parent
 
   hook 'keydown', 0, (event, state) ->
     if @textFocus?
