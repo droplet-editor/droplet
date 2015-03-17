@@ -259,6 +259,24 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         @csSocketAndMark param, depth, 0, indentDepth, FORBID_ALL
       @mark node.body, depth, 0, null, indentDepth
 
+    checkShouldBeOneLine: (node) ->
+      bounds = @getBounds node
+
+      # See if we want to wrap in a socket
+      # rather than an indent.
+      shouldBeOneLine = false
+
+      # Check to see if any parent node is occupying a line
+      # we are on. If so, we probably want to wrap in
+      # a socket rather than an indent.
+      for line in [bounds.start.line..bounds.end.line]
+        shouldBeOneLine or= @hasLineBeenMarked[line]
+
+      if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
+        shouldBeOneLine = true
+
+      return shouldBeOneLine
+
     # ## mark ##
     # Mark a single node.  The main recursive function.
     mark: (node, depth, precedence, wrappingParen, indentDepth) ->
@@ -276,18 +294,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           # whether we want to do it on one line or multiple lines.
           bounds = @getBounds node
 
-          # See if we want to wrap in a socket
-          # rather than an indent.
-          shouldBeOneLine = false
-
-          # Check to see if any parent node is occupying a line
-          # we are on. If so, we probably want to wrap in
-          # a socket rather than an indent.
-          for line in [bounds.start.line..bounds.end.line]
-            shouldBeOneLine or= @hasLineBeenMarked[line]
-
-          if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
-            shouldBeOneLine = true
+          shouldBeOneLine = @checkShouldBeOneLine node
 
           if shouldBeOneLine
             @csSocket node, depth, 0
@@ -694,6 +701,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # of the last one
         if node.expressions.length > 0
           bounds.end = @getBounds(node.expressions[node.expressions.length - 1]).end
+          bounds.start = @boundMin bounds.start, @getBounds(node.expressions[0]).start
 
         #If we have no child expressions, make the bounds actually empty.
         else
