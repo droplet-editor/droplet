@@ -838,10 +838,14 @@ define ['droplet-helper',
     else
       trailing = node.getTrailingText()
 
-    container = location.container ? location.visParent()
+    if location?
+      container = location.container ? location.visParent()
+      if container.type is 'block'
+        container = container.visParent()
+    else
+      container = null
 
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
-      (if container.type is 'block' then container.visParent() else container)?.getReader?() ? null
+    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), container?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
 

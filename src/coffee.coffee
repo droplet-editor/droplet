@@ -1,4 +1,4 @@
-# # ICE Editor CoffeeScript mode
+## ICE Editor CoffeeScript mode
 #
 # Copyright (c) Anthony Bau
 # MIT License
@@ -1010,7 +1010,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     if 'Obj' in node.classes
       unless leading().match /.*{.*/
         leading '{' + leading()
-      unless trailing().match /.*{.*/
+      unless trailing().match /.*}.*/
         trailing trailing() + '}'
       return
     if context is null or context.type isnt 'socket' or
