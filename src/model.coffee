@@ -505,7 +505,7 @@ define ['droplet-helper'], (helper) ->
 
     visParent: ->
       if @parent?
-        @parent.parentWithQuality (x) -> not (head?.type is 'segment' and head.isLassoSegment)
+        @parent.parentWithQuality (x) -> not (x?.type is 'segment' and x.isLassoSegment)
       else
         return null
 

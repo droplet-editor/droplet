@@ -1682,7 +1682,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
       shouldAddTab: ->
         if @model.parent? and 'list' in @model.visParent().classes
-          false
+          return false
         else if @model.parent?
           parent = @model.visParent()
           parent?.type isnt 'socket'

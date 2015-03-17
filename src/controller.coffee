@@ -840,7 +840,7 @@ define ['droplet-helper',
 
     if location?
       container = location.container ? location.visParent()
-      if container.type is 'block'
+      if container? and container.type is 'block'
         container = container.visParent()
     else
       container = null
