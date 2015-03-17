@@ -1462,7 +1462,7 @@ define ['droplet-helper',
         paletteHeaderRow.className = 'droplet-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
         # hide the header if there is only one group, and it has no name.
-        if @paletteGroups.length is 1 and paletteGroup.name is ''
+        if @paletteGroups.length is 1 and !paletteGroup.name
           paletteHeaderRow.style.height = 0
 
       # Create the element itself
