@@ -1696,7 +1696,10 @@ define ['droplet-helper',
           @redrawTextInput()
 
   Editor::resizeAceElement = ->
-    @aceElement.style.width = "#{@wrapperElement.offsetWidth}px"
+    width = @wrapperElement.offsetWidth
+    if @alwaysShowPalette
+      width -= @paletteElement.offsetWidth
+    @aceElement.style.width = "#{width}px"
     @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
 
   last_ = (array) -> array[array.length - 1]
