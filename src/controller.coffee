@@ -827,32 +827,49 @@ define ['droplet-helper',
       # Move the cursor to the end of it.
       return clone.end
 
-  Editor::spliceOut = (node) ->
-    leading = node.getLeadingText()
-    if node.start.next is node.end.prev
-      trailing = null
+  Editor::applyParens = (node, location) ->
+    if location?
+      container = location.container ? location.visParent()
+      if container? and container.type is 'block'
+        container = container.visParent()
+
+      head = location
+      until not head? or head is container.start or head.type is 'blockEnd'
+        head = head.prev
+      if not head? or head is container.start
+        prev = null
+      else
+        prev = head.container
+
+      head = location
+      until not head? or head is container.end or head.type is 'blockStart'
+        head = head.next
+      if not head? or head is container.end
+        next = null
+      else
+        next = head.container
     else
-      trailing = node.getTrailingText()
+      prev = next = container = null
 
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), null
+    @mode.parens prev?.getParenModifier() ? null, node.getParenModifier(), next?.getParenModifier?() ? null, container?.getReader?() ? null
 
-    node.setLeadingText leading; node.setTrailingText trailing
+    return node
+
+  Editor::spliceOut = (node) ->
+    @applyParens node, null
 
     node.spliceOut()
 
+  Editor::spliceInRaw = (node, location) ->
+    @applyParens node, location
+
+    last = location.next
+
+    location.append node.start
+    node.end.append last
+
   Editor::spliceIn = (node, location) ->
-    leading = node.getLeadingText()
-    if node.start.next is node.end.prev
-      trailing = null
-    else
-      trailing = node.getTrailingText()
-
-    container = location.container ? location.visParent()
-
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
-      (if container.type is 'block' then container.visParent() else container)?.getReader?() ? null
-
-    node.setLeadingText leading; node.setTrailingText trailing
+    @applyParens node, location
 
     node.spliceIn location
 
@@ -1062,16 +1079,15 @@ define ['droplet-helper',
         if head instanceof model.StartToken
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
-            dropPoint = @view.getViewNodeFor(head.container).dropPoint
-
-            if dropPoint?
+            for dropPoint, i in @view.getViewNodeFor(head.container).dropPoints
               @dropPointQuadTree.insert
                 x: dropPoint.x
                 y: dropPoint.y
                 w: 0
                 h: 0
                 acceptLevel: acceptLevel
-                _ice_node: head.container
+                _droplet_node: head.container
+                _droplet_index: i
 
         head = head.next
 
@@ -1119,7 +1135,7 @@ define ['droplet-helper',
 
       mainPoint = @trackerPointToMain(position)
 
-      best = null; min = Infinity
+      best = bestIndex = null; min = Infinity
 
       # Check to see if the tree is empty;
       # if it is, drop on the tree always
@@ -1145,14 +1161,15 @@ define ['droplet-helper',
             distance = mainPoint.from(point)
             distance.y *= 2; distance = distance.magnitude()
             if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-               @view.getViewNodeFor(point._ice_node).highlightArea?
-              best = point._ice_node
+               @view.getViewNodeFor(point._droplet_node).highlightAreas[point._droplet_index]?
+              best = point._droplet_node
+              bestIndex = point._droplet_index
               min = distance
 
         if best isnt @lastHighlight
           @clearHighlightCanvas()
 
-          if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          if best? then @view.getViewNodeFor(best).highlightAreas[bestIndex].draw @highlightCtx
 
           @lastHighlight = best
 
@@ -1195,10 +1212,17 @@ define ['droplet-helper',
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+          if @lastHighlight.type is 'indent' and 'list' in @lastHighlight.classes and
+              @lastHighlight.lineLength() is 0
+            @spliceInRaw @draggingBlock, @lastHighlight.start #MUTATION
+          else
+            @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
+          if @lastHighlight.inList() and @lastHighlight.parent.lineLength() is 0
+            @spliceInRaw @draggingBlock, @lastHighlight.end
+          else
+            @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
             @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
@@ -1211,10 +1235,10 @@ define ['droplet-helper',
       # Reparse the parent if we are
       # in a socket
       #
-      # TODO "reparseable" property, bubble up
       # TODO performance on large programs
       if @lastHighlight.type is 'socket'
-        @reparseRawReplace @draggingBlock.parent.parent
+        @reparseRawReplace @draggingBlock.parent.parent.parentWithQuality (x) =>
+          x.type is 'block' and @mode.canReparse x
 
       else
         # If what we've dropped has a socket in it,
@@ -1240,6 +1264,7 @@ define ['droplet-helper',
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
         @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
+        @applyParens newBlock, oldBlock.parent
 
         if @cursor.hasParent oldBlock
           pos = @getRecoverableCursorPosition()
@@ -1844,7 +1869,9 @@ define ['droplet-helper',
       shouldRecoverCursor = false
       cursorPosition = cursorParent = null
 
-      if @cursor.hasParent @textFocus.parent
+      reparseParent = @reparseParent @textFocus
+
+      if @cursor.hasParent reparseParent
         shouldRecoverCursor = true
         cursorPosition = @getRecoverableCursorPosition()
 
@@ -1875,7 +1902,7 @@ define ['droplet-helper',
           shouldPop = true
 
       # TODO make 'reparsable' property, bubble up until then
-      unless @reparseRawReplace @textFocus.parent
+      unless @reparseRawReplace(reparseParent)
         # If we can't reparse the parent, abort all reparses
         @populateSocket @textFocus, originalText
 
@@ -2555,8 +2582,10 @@ define ['droplet-helper',
       if head.type is 'socketStart' and
           (head.next.type is 'text' or head.next is head.container.end)
         # Avoid problems with reparses
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
+        if @textFocus?
+          reparseParent = @reparseParent @textFocus
+        if @textFocus? and head.container.hasParent reparseParent
+          persistentParent = reparseParent.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -2653,7 +2682,14 @@ define ['droplet-helper',
 
     return head.container
 
+  Editor::reparseParent = (node) ->
+    parent = node.parent.parentWithQuality((x) =>
+        x.type is 'block' and @mode.canReparse x)
+    return parent
+
   hook 'keydown', 0, (event, state) ->
+    if @textFocus?
+      reparseParent = @reparseParent @textFocus
     if event.which isnt TAB_KEY then return
     if event.shiftKey
       if @textFocus? then head = @textFocus.start
@@ -2664,8 +2700,8 @@ define ['droplet-helper',
         head = head.prev
 
       if head?
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
+        if @textFocus? and head.container.hasParent reparseParent
+          persistentParent = reparseParent.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null
@@ -2685,8 +2721,8 @@ define ['droplet-helper',
           (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
         head = head.next
       if head?
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
+        if @textFocus? and head.container.hasParent reparseParent
+          persistentParent = reparseParent.getCommonParent(head.container).parent
 
           chars = getCharactersTo persistentParent, head.container.start
           @setTextInputFocus null

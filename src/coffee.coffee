@@ -1,4 +1,4 @@
-# # ICE Editor CoffeeScript mode
+## ICE Editor CoffeeScript mode
 #
 # Copyright (c) Anthony Bau
 # MIT License
@@ -11,6 +11,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
   BLOCK_ONLY = ['block-only']
   MOSTLY_BLOCK = ['mostly-block']
   MOSTLY_VALUE = ['mostly-value']
+  LIST_WRAPPER = ['list']
+  OBJ_WRAPPER = ['object', 'list']
+  BLANK_BLOCK = ['blank-block']
   VALUE_ONLY = ['value-only']
   LVALUE = ['lvalue']
   FORBID_ALL = ['forbid-all']
@@ -256,6 +259,24 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         @csSocketAndMark param, depth, 0, indentDepth, FORBID_ALL
       @mark node.body, depth, 0, null, indentDepth
 
+    checkShouldBeOneLine: (node) ->
+      bounds = @getBounds node
+
+      # See if we want to wrap in a socket
+      # rather than an indent.
+      shouldBeOneLine = false
+
+      # Check to see if any parent node is occupying a line
+      # we are on. If so, we probably want to wrap in
+      # a socket rather than an indent.
+      for line in [bounds.start.line..bounds.end.line]
+        shouldBeOneLine or= @hasLineBeenMarked[line]
+
+      if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
+        shouldBeOneLine = true
+
+      return shouldBeOneLine
+
     # ## mark ##
     # Mark a single node.  The main recursive function.
     mark: (node, depth, precedence, wrappingParen, indentDepth) ->
@@ -273,18 +294,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           # whether we want to do it on one line or multiple lines.
           bounds = @getBounds node
 
-          # See if we want to wrap in a socket
-          # rather than an indent.
-          shouldBeOneLine = false
-
-          # Check to see if any parent node is occupying a line
-          # we are on. If so, we probably want to wrap in
-          # a socket rather than an indent.
-          for line in [bounds.start.line..bounds.end.line]
-            shouldBeOneLine or= @hasLineBeenMarked[line]
-
-          if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
-            shouldBeOneLine = true
+          shouldBeOneLine = @checkShouldBeOneLine node
 
           if shouldBeOneLine
             @csSocket node, depth, 0
@@ -499,7 +509,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if node.value.nodeType() is 'Code'
             @addCode node.value, depth + 1, indentDepth
           else
-            @csSocketAndMark node.value, depth + 1, 0, indentDepth
+            @csSocketAndMark node.value, depth + 1, -1, indentDepth
 
         # ### For ###
         # Color CONTROL, options sockets @index, @source, @name, @from.
@@ -571,11 +581,21 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           @csBlock node, depth, 100, 'purple', wrappingParen, VALUE_ONLY
 
           if node.objects.length > 0
-            @csIndentAndMark indentDepth, node.objects, depth + 1
+            @csIndentAndMark indentDepth, node.objects, depth + 1, LIST_WRAPPER
           for object in node.objects
-            if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
-                object.properties?.length in [0, undefined]
-              @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
+            subject = @getParenBase(object)
+            if subject.nodeType() is 'Value' and subject.base.nodeType() is 'Literal' and
+                subject.properties?.length in [0, undefined]
+              @csBlock object, depth + 2, 100, 'blank', null, BLANK_BLOCK
+
+              # See if there is a comma after this object
+              bounds = @getBounds object
+              bounds.end.column -= /,\s*$/.exec(@lines[bounds.end.line][...bounds.end.column])?[0]?.length ? 0
+              @addSocket
+                bounds: bounds
+                depth: depth + 3
+                precedence: 100
+                classes: []
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
@@ -628,12 +648,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # maybe our View architecture is wrong.
         when 'Obj'
           @csBlock node, depth, 0, 'purple', wrappingParen, VALUE_ONLY
-
-          for property in node.properties
-            if property.nodeType() is 'Assign'
-              @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
-              @csSocketAndMark property.value, depth + 1, 0, indentDepth
-
+          if node.properties.length > 0
+            @csIndentAndMark indentDepth, node.properties, depth + 1, OBJ_WRAPPER
 
     locationsAreIdentical: (a, b) ->
       return a.line is b.line and a.column is b.column
@@ -649,6 +665,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       else if b.line < a.line then a
       else if a.column < b.column then b
       else a
+
+    getParenBase: (node) ->
+      while node.nodeType() is 'Value' and
+          node.base?.nodeType() is 'Parens' and
+          node.properties?.length in [0, undefined] and
+          node.base.body.expressions[0]?.nodeType() is 'Value'
+        node = node.base.body.expressions[0]
+      return node
 
     # ## getBounds ##
     # Get the boundary locations of a CoffeeScript node,
@@ -677,6 +701,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # of the last one
         if node.expressions.length > 0
           bounds.end = @getBounds(node.expressions[node.expressions.length - 1]).end
+          bounds.start = @boundMin bounds.start, @getBounds(node.expressions[0]).start
 
         #If we have no child expressions, make the bounds actually empty.
         else
@@ -713,6 +738,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
       while @lines[bounds.end.line][...bounds.end.column].trim().length is 0
         bounds.end.line -= 1
         bounds.end.column = @lines[bounds.end.line].length + 1
+
+      if node.nodeType() is 'Obj' and node.properties.length > 0
+        bounds.start = @boundMin bounds.start, @getWrappingBounds(node.properties[0], node.properties[node.properties.length - 1]).start
 
       # When we have a 'Value' object,
       # its base may have some exceptions in it,
@@ -762,16 +790,25 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         parenWrapped: wrappingParen?
       }
 
-    # Add an indent node and guess
-    # at the indent depth
-    csIndent: (indentDepth, firstNode, lastNode, depth) ->
+    getWrappingBounds: (firstNode, lastNode) ->
+      if not firstNode? or not lastNode?
+        console.log 'err on', firstNode, firstNode?.locationData, lastNode, lastNode?.locationData
       first = @getBounds(firstNode).start
       last = @getBounds(lastNode).end
 
-      if @lines[first.line][...first.column].trim().length is 0
+      if first.line > 0 and @lines[first.line][...first.column].trim().length is 0
         first.line -= 1
-        first.column = @lines[first.line].length
+        first.column = @lines[first.line].length + 1
 
+      return {
+        start: first
+        end: last
+      }
+
+    # Add an indent node and guess
+    # at the indent depth
+    csIndent: (indentDepth, firstNode, lastNode, depth, classes = []) ->
+      {start: first, end: last} = @getWrappingBounds firstNode, lastNode
       if first.line isnt last.line
         trueDepth = @lines[last.line].length - @lines[last.line].trimLeft().length
         prefix = @lines[last.line][indentDepth...trueDepth]
@@ -780,19 +817,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         prefix = '  '
 
       @addIndent {
-        bounds: {
-          start: first
-          end: last
-        }
+        bounds: {start: first, end: last}
         depth: depth
-
+        classes: classes
         prefix: prefix
       }
 
       return trueDepth
 
-    csIndentAndMark: (indentDepth, nodes, depth) ->
-      trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth
+    csIndentAndMark: (indentDepth, nodes, depth, classes = []) ->
+      trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth, classes
       for node in nodes
         @mark node, depth + 1, 0, null, trueDepth
 
@@ -952,10 +986,18 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         return helper.DISCOURAGE
 
     else if context.type in ['indent', 'segment']
-      if 'block-only' in block.classes or
+      if ('block-only' in block.classes or
           'mostly-block' in block.classes or
           'any-drop' in block.classes or
-          block.type is 'segment'
+          'blank-block' in block.classes or
+          block.type is 'segment') and not ('list' in context.classes)
+        return helper.ENCOURAGE
+
+      else if ('mostly-value' in block.classes or
+          'value-only' in block.classes or
+          'any-drop' in block.classes or
+          'blank-block' in block.classes) and
+          'list' in context.classes
         return helper.ENCOURAGE
 
       else if 'mostly-value' in block.classes
@@ -963,19 +1005,32 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
     return helper.DISCOURAGE
 
-  CoffeeScriptParser.parens = (leading, trailing, node, context) ->
-    trailing trailing().replace /\s*,\s*$/, ''
+  CoffeeScriptParser.parens = (prev, node, next, context) ->
+    if context? and 'list' in context.classes
+      node.trailing node.trailing().replace /\s*,\s*$/, ''
+      if next?
+        node.trailing node.trailing() + ','
+      if prev?
+        prev.trailing prev.trailing().replace /\s*,\s*$/, ''
+        prev.trailing prev.trailing() + ','
+
+    if 'Obj' in node.classes
+      unless node.leading().match /.*{.*/
+        node.leading '{' + node.leading()
+      unless node.trailing().match /.*}.*/
+        node.trailing node.trailing() + '}'
+      return
     if context is null or context.type isnt 'socket' or
         context.precedence < node.precedence
       while true
-        if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-          leading leading().replace(/^\s*\(\s*/, '')
-          trailing trailing().replace(/\s*\)\s*$/, '')
+        if node.leading().match(/^\s*\(/)? and node.trailing().match(/\)\s*/)?
+          node.leading node.leading().replace(/^\s*\(\s*/, '')
+          node.trailing node.trailing().replace(/\s*\)\s*$/, '')
         else
           break
     else
-      leading '(' + leading()
-      trailing trailing() + ')'
+      node.leading '(' + node.leading()
+      node.trailing node.trailing() + ')'
 
     return
 

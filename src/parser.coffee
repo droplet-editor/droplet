@@ -104,7 +104,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts.color,
         opts.socketLevel,
         opts.classes,
-        false
 
       @addMarkup block, opts.bounds, opts.depth
 
@@ -205,7 +204,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     # Construct a handwritten block with the given
     # text inside
     constructHandwrittenBlock: (text) ->
-      block = new model.Block 0, 'blank', helper.ANY_DROP, false
+      block = new model.Block 0, 'blank', helper.ANY_DROP, ['Value', 'blank-block']
       socket = new model.Socket 0, true
       textToken = new model.TextToken text
 
@@ -308,7 +307,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
                 # If the a block is embedded
                 # directly in another block, throw.
                 if stack[stack.length - 1]?.type is 'block'
-                  throw new Error 'Improper parser: block cannot nest immediately inside another block.'
+                  throw new Error "Improper parser: block cannot nest immediately inside another block: line #{i}."
 
               when 'socketStart'
                 # A socket is only allowed to be directly inside a block.
@@ -323,7 +322,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
               stack.push mark.token.container
             else if mark.token instanceof model.EndToken
               unless mark.token.container is stack[stack.length - 1]
-                throw new Error "Improper parser: #{head.container.type} ended too early."
+                throw new Error "Improper parser: #{head.container.type} ended too early: line #{i}"
               stack.pop()
 
             # Append the token
@@ -373,7 +372,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
           container = new model.Socket attributes.precedence, attributes.handritten,
             attributes.classes?.split?(' ')
         when 'indent'
-          container = new model.Indent attributes.prefix, attributes.classe?.split?(' ')
+          container = new model.Indent attributes.prefix, attributes.classes?.split?(' ')
         when 'segment'
           # Root segment is optional
           unless stack.length is 0
@@ -438,18 +437,18 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       else
         head = head.next
 
-  Parser.parens = (leading, trailing, node, context) ->
+  Parser.parens = (prev, node, next, context) ->
     if context is null or context.type isnt 'socket' or
         context?.precedence < node.precedence
       while true
-        if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-          leading leading().replace(/^\s*\(\s*/, '')
-          trailing trailing().replace(/^\s*\)\s*/, '')
+        if node.leading().match(/^\s*\(/)? and node.trailing().match(/\)\s*/)?
+          node.leading node.leading().replace(/^\s*\(\s*/, '')
+          node.trailing node.trailing().replace(/^\s*\)\s*/, '')
         else
           break
     else
-      leading '(' + leading()
-      trailing trailing() + ')'
+      node.leading '(' + node.leading()
+      node.trailing node.trailing() + ')'
 
   Parser.drop = (block, context, pred) ->
     if block.type is 'segment' and context.type is 'socket'
@@ -470,28 +469,16 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts ?= wrapAtRoot: true
         return @createParser(text)._parse opts
 
-      parens: (leading, trailing, node, context) ->
-        # leadingFn is always a getter/setter for leading
-        leadingFn = (value) ->
-          if value?
-            leading = value
-          return leading
-
-        # trailingFn may either get/set leading or trailing;
-        # will point to leading if leading is the only token,
-        # but will point to trailing otherwise.
-        if trailing?
-          trailingFn = (value) ->
-            if value?
-              trailing = value
-            return trailing
-        else
-          trailingFn = leadingFn
-
-        CustomParser.parens leadingFn, trailingFn, node, context
-
-        return [leading, trailing]
+      parens: (prev, node, next, context) ->
+        CustomParser.parens prev, node, next, context
+        return null
 
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
+
+      canReparse: (node) ->
+        if node.parent? and 'list' in node.parent.classes
+          return false
+        else
+          return true
 
   return exports

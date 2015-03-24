@@ -21,6 +21,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
+  LEFT_BULLET_WIDTH = 13
+  BULLET_ARROW_WIDTH = 6
   DROPDOWN_ARROW_HEIGHT = 8
 
   DROP_TRIANGLE_COLOR = '#555'
@@ -44,6 +46,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
     shadowBlur: 5
     ctx: document.createElement('canvas').getContext('2d')
     colors:
+      blank: '#dfdfdf'
       error: '#ff0000'
       return: '#fff59d'   # yellow
       control: '#ffcc80'  # orange
@@ -203,7 +206,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # *Seventh pass variables*
         # computeDropAreas
         # each one is a @view.draw.Path (or null)
-        @dropArea = @highlightArea = null
+        @dropPoints = []
+        @highlightAreas = []
 
         # Versions. The corresponding
         # Model will keep corresponding version
@@ -650,7 +654,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       #
       # If we cannot drop something on this node
       # (e.g. a socket that already contains a block),
-      # set `@dropArea` to null.
+      # set `@dropPoints` to []
       #
       # Simultaneously, compute `@highlightArea`, which
       # is the white polygon that lights up
@@ -1294,6 +1298,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is NO_MULTILINE
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
+            if @model.inMultiLineList()
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Draw the right edge of the bounding box.
@@ -1304,6 +1312,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           if @multilineChildrenData[line] is MULTILINE_START
             # Draw the left edge of the bounding box.
             left.push new @view.draw.Point bounds.x, bounds.y
+            if @model.inMultiLineList()
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              left.push new @view.draw.Point bounds.x + BULLET_ARROW_WIDTH, (bounds.y + bounds.bottom()) / 2
+              left.push new @view.draw.Point bounds.x, (bounds.y + bounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             left.push new @view.draw.Point bounds.x, bounds.bottom()
 
             # Find the multiline child that's starting on this line,
@@ -1322,7 +1334,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             else
               right.push new @view.draw.Point bounds.right(), bounds.y
               right.push new @view.draw.Point bounds.right(), multilineBounds.y
-              if multilineChild.child.type is 'indent'
+              if multilineChild.child.type is 'indent' and not ('list' in multilineChild.child.classes)
                 @addTab right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.y
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
@@ -1341,6 +1353,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, bounds.y
+            if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             right.push new @view.draw.Point multilineBounds.x, bounds.bottom()
 
           # Case 4. End of an indent.
@@ -1356,9 +1372,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             unless @multilineChildrenData[line - 1] in [MULTILINE_START, MULTILINE_END_START] and
                    multilineChild.child.type is 'indent'
               right.push new @view.draw.Point multilineBounds.x, multilineBounds.y
+            if 'list' in multilineChild.child.classes and @view.getViewNodeFor(multilineChild.child).lineChildren[line - multilineChild.startLine][0].startLine is line - multilineChild.startLine
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 - BULLET_ARROW_WIDTH
+              right.push new @view.draw.Point multilineBounds.x + BULLET_ARROW_WIDTH, (multilineBounds.y + multilineBounds.bottom()) / 2
+              right.push new @view.draw.Point multilineBounds.x, (multilineBounds.y + multilineBounds.bottom()) / 2 + BULLET_ARROW_WIDTH
             right.push new @view.draw.Point multilineBounds.x, multilineBounds.bottom()
 
-            if multilineChild.child.type is 'indent'
+            if multilineChild.child.type is 'indent' and not ('list' in multilineChild.child.classes)
               @addTabReverse right, new @view.draw.Point multilineBounds.x + @view.opts.tabOffset, multilineBounds.bottom()
 
             right.push new @view.draw.Point multilineBounds.right(), multilineBounds.bottom()
@@ -1503,8 +1523,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
             # Special case for indents that start with newlines;
             # don't do any of the same-line-start multiline stuff.
             if multilineChild.child.type is 'indent' and multilineChild.child.start.next.type is 'newline'
-                right.push new @view.draw.Point @bounds[line].right(), glueTop
+              right.push new @view.draw.Point @bounds[line].right(), glueTop
 
+              unless ('list' in multilineChild.child.classes)
                 @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                   @view.opts.indentWidth +
                   @view.opts.tabOffset, glueTop), true
@@ -1586,7 +1607,9 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # ## computeOwnDropArea
       # By default, we will not have a
       # drop area (not be droppable).
-      computeOwnDropArea: -> @dropArea = @highlightArea = null
+      computeOwnDropArea: ->
+        @dropPoints = []
+        @highlightAreas = []
 
       # ## shouldAddTab
       # By default, we will ask
@@ -1646,10 +1669,21 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
+        if @model.inMultiLineList()
+          @minDimensions[0].width += LEFT_BULLET_WIDTH
+
         return null
 
+      computeBoundingBoxX: (left, line) ->
+        if line is 0 and @model.inMultiLineList()
+          super left, line, LEFT_BULLET_WIDTH
+        else
+          super left, line
+
       shouldAddTab: ->
-        if @model.parent?
+        if @model.inList()
+          return false
+        else if @model.parent?
           parent = @model.visParent()
           parent?.type isnt 'socket'
         else not ('mostly-value' in @model.classes or
@@ -1658,65 +1692,84 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       computeOwnPath: ->
         super
 
-        @path.style.fillColor = @view.getColor @model.color
-        @path.style.strokeColor = '#888'
-
-        @path.bevel = true
+        if 'blank-block' in @model.classes and @model.inSingleLineList()
+          @path.style.fillColor = 'transparent'
+          @path.style.strokeColor = 'transparent'
+          @path.bevel = false
+        else
+          @path.style.fillColor = @view.getColor @model.color
+          @path.style.strokeColor = '#888'
+          @path.bevel = true
 
         return @path
 
       computeOwnDropArea: ->
-        # Our drop area is a rectangle of
-        # height dropAreaHeight and a width
-        # equal to our last line width,
-        # positioned at the bottom of our last line.
-        if @carriageArrow is CARRIAGE_ARROW_INDENT
-          parentViewNode = @view.getViewNodeFor @model.visParent()
-          destinationBounds = parentViewNode.bounds[1]
+        if @model.inSingleLineList()
+          lastBounds = @bounds[@bounds.length - 1]
+          @dropPoints[0] = new @view.draw.Point lastBounds.right(), lastBounds.y + lastBounds.height / 2
 
-          @dropPoint = new @view.draw.Point destinationBounds.x, destinationBounds.y
-          lastBoundsLeft = destinationBounds.x
-          lastBoundsRight = destinationBounds.right()
-        else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
-          parentViewNode = @view.getViewNodeFor @model.visParent()
-          destinationBounds = parentViewNode.bounds[1]
+          @highlightAreas[0] = highlightArea = new @view.draw.Path()
 
-          @dropPoint = new @view.draw.Point destinationBounds.x,
-            @bounds[@lineLength - 1].bottom() + @view.opts.padding
-          lastBoundsLeft = destinationBounds.x
-          lastBoundsRight = @bounds[@lineLength - 1].right()
+          highlightArea.push new @view.draw.Point lastBounds.right() - 5, lastBounds.y
+          highlightArea.push new @view.draw.Point lastBounds.right() + 5, lastBounds.y
+          highlightArea.push new @view.draw.Point lastBounds.right() + 5, lastBounds.bottom()
+          highlightArea.push new @view.draw.Point lastBounds.right() - 5, lastBounds.bottom()
+
+          highlightArea.style.lineWidth = 1
+          highlightArea.style.strokeColor = '#ff0'
+          highlightArea.style.fillColor = '#ff0'
         else
-          @dropPoint = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
-          lastBoundsLeft = @bounds[@lineLength - 1].x
-          lastBoundsRight = @bounds[@lineLength - 1].right()
+          # Our drop area is a rectangle of
+          # height dropAreaHeight and a width
+          # equal to our last line width,
+          # positioned at the bottom of our last line.
+          if @carriageArrow is CARRIAGE_ARROW_INDENT
+            parentViewNode = @view.getViewNodeFor @model.visParent()
+            destinationBounds = parentViewNode.bounds[1]
 
-        # Our highlight area is the a rectangle in the same place,
-        # with a height that can be given by a different option.
+            @dropPoints[0] = new @view.draw.Point destinationBounds.x, destinationBounds.y
+            lastBoundsLeft = destinationBounds.x
+            lastBoundsRight = destinationBounds.right()
+          else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
+            parentViewNode = @view.getViewNodeFor @model.visParent()
+            destinationBounds = parentViewNode.bounds[1]
 
-        @highlightArea = new @view.draw.Path()
-        highlightAreaPoints = []
+            @dropPoints[0] = new @view.draw.Point destinationBounds.x,
+              @bounds[@lineLength - 1].bottom() + @view.opts.padding
+            lastBoundsLeft = destinationBounds.x
+            lastBoundsRight = @bounds[@lineLength - 1].right()
+          else
+            @dropPoints[0] = new @view.draw.Point @bounds[@lineLength - 1].x, @bounds[@lineLength - 1].bottom()
+            lastBoundsLeft = @bounds[@lineLength - 1].x
+            lastBoundsRight = @bounds[@lineLength - 1].right()
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y - @view.opts.highlightAreaHeight / 2
+          # Our highlight area is the a rectangle in the same place,
+          # with a height that can be given by a different option.
 
-        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoint.y - @view.opts.highlightAreaHeight / 2
+          highlightArea = new @view.draw.Path()
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoint.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightArea.push new @view.draw.Point lastBoundsLeft, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightArea.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
+          @addTabReverse highlightArea, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoint.y + @view.opts.highlightAreaHeight / 2
+          highlightArea.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2
+          highlightArea.push new @view.draw.Point lastBoundsRight, @dropPoints[0].y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightArea.push new @view.draw.Point lastBoundsRight, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightArea.push new @view.draw.Point lastBoundsRight - @view.opts.bevelClip, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2
 
-        @highlightArea.push point for point in highlightAreaPoints
+          @addTab highlightArea, new @view.draw.Point lastBoundsLeft + @view.opts.tabOffset, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2
 
-        @highlightArea.style.lineWidth = 1
-        @highlightArea.style.strokeColor = '#ff0'
-        @highlightArea.style.fillColor = '#ff0'
+          highlightArea.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2
+          highlightArea.push new @view.draw.Point lastBoundsLeft, @dropPoints[0].y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+
+          highlightArea.style.lineWidth = 1
+          highlightArea.style.strokeColor = '#ff0'
+          highlightArea.style.fillColor = '#ff0'
+
+          @highlightAreas[0] = highlightArea
+
 
     # # SocketViewNode
     class SocketViewNode extends ContainerViewNode
@@ -1827,13 +1880,16 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # things.
       computeOwnDropArea: ->
         if @model.start.next.type is 'blockStart'
-          @dropArea = @highlightArea = null
+          @dropPoints = []
+          @highlightAreas = []
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
-          @highlightArea = @path.clone()
-          @highlightArea.noclip = true
-          @highlightArea.style.strokeColor = '#FF0'
-          @highlightArea.style.lineWidth = @view.opts.padding
+          @dropPoints[0] = @bounds[0].upperLeftCorner()
+          highlightArea = @path.clone()
+          highlightArea.noclip = true
+          highlightArea.style.strokeColor = '#FF0'
+          highlightArea.style.lineWidth = @view.opts.padding
+
+          @highlightAreas[0] = highlightArea
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode
@@ -1898,42 +1954,59 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # equal to our first line width,
       # positioned at the top of our firs tline
       computeOwnDropArea: ->
-        lastBounds = new @view.draw.NoRectangle()
-        if @model.start.next.type is 'newline'
-          @dropPoint = @bounds[1].upperLeftCorner()
-          lastBounds.copy @bounds[1]
+        if @model.classes and @lineLength is 1
+          firstBounds = @bounds[0]
+          @dropPoints[0] = new @view.draw.Point firstBounds.x, firstBounds.y + firstBounds.height / 2
+
+          @highlightAreas[0] = highlightArea = new @view.draw.Path()
+
+          highlightArea.push new @view.draw.Point firstBounds.x - 5, firstBounds.y
+          highlightArea.push new @view.draw.Point firstBounds.x + 5, firstBounds.y
+          highlightArea.push new @view.draw.Point firstBounds.x + 5, firstBounds.bottom()
+          highlightArea.push new @view.draw.Point firstBounds.x - 5, firstBounds.bottom()
+
+          highlightArea.style.lineWidth = 1
+          highlightArea.style.strokeColor = '#ff0'
+          highlightArea.style.fillColor = '#ff0'
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
-          lastBounds.copy @bounds[0]
-        lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
+          lastBounds = new @view.draw.NoRectangle()
+          if @model.start.next.type is 'newline'
+            @dropPoints[0] = @bounds[1].upperLeftCorner()
+            lastBounds.copy @bounds[1]
+          else
+            @dropPoints[0] = @bounds[0].upperLeftCorner()
+            lastBounds.copy @bounds[0]
+          lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
-        # Our highlight area is the a rectangle in the same place,
-        # with a height that can be given by a different option.
+          # Our highlight area is the a rectangle in the same place,
+          # with a height that can be given by a different option.
 
-        @highlightArea = new @view.draw.Path()
-        highlightAreaPoints = []
+          highlightArea = new @view.draw.Path()
+          highlightAreaPoints = []
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+          highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-        @highlightArea.push point for point in highlightAreaPoints
+          highlightArea.push point for point in highlightAreaPoints
 
-        @highlightArea.style.lineWidth = 1
-        @highlightArea.style.strokeColor = '#ff0'
-        @highlightArea.style.fillColor = '#ff0'
+          highlightArea.style.lineWidth = 1
+          highlightArea.style.strokeColor = '#ff0'
+          highlightArea.style.fillColor = '#ff0'
+
+          @highlightAreas[0] = highlightArea
 
     # # SegmentViewNode
     # Represents a Segment. Draws little, but
@@ -1952,11 +2025,11 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # can be dropped at their beginning.
       computeOwnDropArea: ->
         if @model.isLassoSegment
-          return @dropArea = null
+          return @dropPoints = []
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
+          @dropPoints[0] = @bounds[0].upperLeftCorner()
 
-          @highlightArea = new @view.draw.Path()
+          highlightArea = new @view.draw.Path()
           highlightAreaPoints = []
 
           lastBounds = new @view.draw.NoRectangle()
@@ -1979,10 +2052,12 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
           highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-          @highlightArea.push point for point in highlightAreaPoints
+          highlightArea.push point for point in highlightAreaPoints
 
-          @highlightArea.style.fillColor = '#ff0'
-          @highlightArea.style.strokeColor = '#ff0'
+          highlightArea.style.fillColor = '#ff0'
+          highlightArea.style.strokeColor = '#ff0'
+
+          @highlightAreas[0] = highlightArea
 
           return null
 
@@ -2116,6 +2191,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
     return '#' + (twoDigitHex(k) for k in rgb).join ''
 
   avgColor = (a, factor, b) ->
+    if a is 'transparent' or b is 'transparent'
+      return 'transparent'
     a = toRGB a
     b = toRGB b
 
