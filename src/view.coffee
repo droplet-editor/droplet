@@ -21,6 +21,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
+  DROPDOWN_ARROW_HEIGHT = 8
+
+  DROP_TRIANGLE_COLOR = '#555'
+
   DEFAULT_OPTIONS =
     buttonWidth: 13
     buttonHeight: 13
@@ -1072,7 +1076,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # because of glue spacing (the space between lines
       # that keeps weird-shaped blocks continuous), which
       # can shift y-coordinates around.
-      computeBoundingBoxX: (left, line) ->
+      computeBoundingBoxX: (left, line, offset = 0) ->
         # Use cached data if possible
         if @computedVersion is @model.version and
             left is @bounds[line]?.x and not @changedBoundingBox
@@ -1104,7 +1108,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # placing children down and
         # adding padding and sizes
         # to make them not overlap.
-        childLeft = left
+        childLeft = left + offset
 
         # Get rendering info on each of these children
         for lineChild, i in @lineChildren[line]
@@ -1783,7 +1787,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           dimension.width =
               Math.max(dimension.width, @view.opts.minSocketWidth)
 
+          if @model.hasDropdown()
+            dimension.width += helper.DROPDOWN_ARROW_WIDTH
+
         return null
+
+      # ## computeBoundingBoxX (SocketViewNode)
+      computeBoundingBoxX: (left, line) ->
+        super left, line, if @model.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0
 
       # ## computeGlue
       # Sockets have one exception to normal glue spacing computation:
@@ -1807,7 +1818,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         else
           super
 
-      # ## computeOwnPath
+      # ## computeOwnPath (SocketViewNode)
       # Again, exception: sockets containing block
       # should mimic blocks exactly.
       #
@@ -1837,7 +1848,18 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         return @path
 
-      # ## computeOwnDropArea
+      # ## drawSelf (SocketViewNode)
+      drawSelf: (ctx) ->
+        super
+        if @model.hasDropdown()
+          ctx.beginPath()
+          ctx.fillStyle = DROP_TRIANGLE_COLOR
+          ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.fill()
+
+      # ## computeOwnDropArea (SocketViewNode)
       # Socket drop areas are actually the same
       # shape as the sockets themselves, which
       # is different from most other

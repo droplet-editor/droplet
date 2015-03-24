@@ -481,7 +481,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
                 # of a function call will be melded into the parent block.
                 @addCode arg, depth + 1, indentDepth
               else
-                @csSocketAndMark arg, depth + 1, precedence, indentDepth
+                @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index]
 
         # ### Code ###
         # Function definition. Color VALUE, sockets @params,
@@ -798,18 +798,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
     # ## csSocket ##
     # A similar utility function for adding sockets.
-    csSocket: (node, depth, precedence, classes = []) ->
+    csSocket: (node, depth, precedence, classes = [], dropdown) ->
       @addSocket {
         bounds: @getBounds node
-        depth: depth
-        precedence: precedence
+        depth, precedence, dropdown
         classes: getClassesFor(node).concat classes
       }
 
     # ## csSocketAndMark ##
     # Adds a socket for a node, and recursively @marks it.
-    csSocketAndMark: (node, depth, precedence, indentDepth, classes) ->
-      socket = @csSocket node, depth, precedence, classes
+    csSocketAndMark: (node, depth, precedence, indentDepth, classes, dropdown) ->
+      socket = @csSocket node, depth, precedence, classes, dropdown
       @mark node, depth + 1, precedence, null, indentDepth
       return socket
 
