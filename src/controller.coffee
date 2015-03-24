@@ -3621,6 +3621,7 @@ define ['droplet-helper',
     @aceEditor.session.setScrollTop oldScrollTop
 
     if @currentlyUsingBlocks
+      @setTextInputFocus null
       result = @setValue_raw value
       if result.success is false
         @setEditorState false
