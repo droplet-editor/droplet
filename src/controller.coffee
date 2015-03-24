@@ -260,15 +260,11 @@ define ['droplet-helper',
         for handler in editorBindings[event.type]
           handler.call this, trackPoint, event, state
 
-        # Stop mousedown event propagation so that
+        # Stop mousedown event default behavior so that
         # we don't get bad selections
         if event.type is 'mousedown'
-          event.stopPropagation?()
           event.preventDefault?()
-
-          event.cancelBubble = true
           event.returnValue = false
-
           return false
 
       dispatchKeyEvent = (event) =>
@@ -1465,6 +1461,9 @@ define ['droplet-helper',
         paletteHeaderRow = document.createElement 'div'
         paletteHeaderRow.className = 'droplet-palette-header-row'
         @paletteHeader.appendChild paletteHeaderRow
+        # hide the header if there is only one group, and it has no name.
+        if @paletteGroups.length is 1 and !paletteGroup.name
+          paletteHeaderRow.style.height = 0
 
       # Create the element itself
       paletteGroupHeader = document.createElement 'div'
@@ -1524,6 +1523,7 @@ define ['droplet-helper',
         do updatePalette
 
     @resizePalette()
+    @resizePaletteHighlight()
 
   # The next thing we need to do with the palette
   # is let people pick things up from it.
