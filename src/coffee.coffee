@@ -1005,27 +1005,32 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
     return helper.DISCOURAGE
 
-  CoffeeScriptParser.parens = (leading, trailing, node, context) ->
-    trailing trailing().replace /\s*,\s*$/, ''
+  CoffeeScriptParser.parens = (prev, node, next, context) ->
     if context? and 'list' in context.classes
-      trailing trailing() + ','
+      node.trailing node.trailing().replace /\s*,\s*$/, ''
+      if next?
+        node.trailing node.trailing() + ','
+      if prev?
+        prev.trailing prev.trailing().replace /\s*,\s*$/, ''
+        prev.trailing prev.trailing() + ','
+
     if 'Obj' in node.classes
-      unless leading().match /.*{.*/
-        leading '{' + leading()
-      unless trailing().match /.*}.*/
-        trailing trailing() + '}'
+      unless node.leading().match /.*{.*/
+        node.leading '{' + node.leading()
+      unless node.trailing().match /.*}.*/
+        node.trailing node.trailing() + '}'
       return
     if context is null or context.type isnt 'socket' or
         context.precedence < node.precedence
       while true
-        if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-          leading leading().replace(/^\s*\(\s*/, '')
-          trailing trailing().replace(/\s*\)\s*$/, '')
+        if node.leading().match(/^\s*\(/)? and node.trailing().match(/\)\s*/)?
+          node.leading node.leading().replace(/^\s*\(\s*/, '')
+          node.trailing node.trailing().replace(/\s*\)\s*$/, '')
         else
           break
     else
-      leading '(' + leading()
-      trailing trailing() + ')'
+      node.leading '(' + node.leading()
+      node.trailing node.trailing() + ')'
 
     return
 

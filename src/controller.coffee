@@ -832,22 +832,30 @@ define ['droplet-helper',
       return clone.end
 
   Editor::applyParens = (node, location) ->
-    leading = node.getLeadingText()
-    if node.start.next is node.end.prev
-      trailing = null
-    else
-      trailing = node.getTrailingText()
-
     if location?
       container = location.container ? location.visParent()
       if container? and container.type is 'block'
         container = container.visParent()
+
+      head = location
+      until not head? or head is container.start or head.type is 'blockEnd'
+        head = head.prev
+      if not head? or head is container.start
+        prev = null
+      else
+        prev = head.container
+
+      head = location
+      until not head? or head is container.end or head.type is 'blockStart'
+        head = head.next
+      if not head? or head is container.end
+        next = null
+      else
+        next = head.container
     else
-      container = null
+      prev = next = container = null
 
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), container?.getReader?() ? null
-
-    node.setLeadingText leading; node.setTrailingText trailing
+    @mode.parens prev?.getParenModifier() ? null, node.getParenModifier(), next?.getParenModifier?() ? null, container?.getReader?() ? null
 
     return node
 

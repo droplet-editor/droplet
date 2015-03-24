@@ -462,26 +462,26 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
       @mark indentDepth, node, depth + 1, bounds
 
-  JavaScriptParser.parens = (leading, trailing, node, context) ->
+  JavaScriptParser.parens = (prev, node, next, context) ->
     if context?.type is 'socket' or
        (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
        'ends-with-brace' in node.classes or
        node.type is 'segment'
-      trailing trailing().replace(/;?\s*$/, '')
+      node.trailing node.trailing().replace(/;?\s*$/, '')
     else
-      trailing trailing().replace(/;?\s*$/, ';')
+      node.trailing node.trailing().replace(/;?\s*$/, ';')
 
     if context is null or context.type isnt 'socket' or
         context.precedence > node.precedence
       while true
-        if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-          leading leading().replace(/^\s*\(\s*/, '')
-          trailing trailing().replace(/\s*\)\s*$/, '')
+        if node.leading().match(/^\s*\(/)? and node.trailing().match(/\)\s*/)?
+          node.leading node.leading().replace(/^\s*\(\s*/, '')
+          node.trailing node.trailing().replace(/\s*\)\s*$/, '')
         else
           break
     else
-      leading '(' + leading()
-      trailing trailing() + ')'
+      node.leading '(' + node.leading()
+      node.trailing node.trailing() + ')'
 
   JavaScriptParser.drop = (block, context, pred) ->
     if context.type is 'socket'

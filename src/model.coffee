@@ -14,6 +14,35 @@ define ['droplet-helper'], (helper) ->
 
   _id = 0
 
+  # FOR TESTING ONLY
+  applyParens = (mode, node, location) ->
+    if location?
+      container = location.container ? location.visParent()
+      if container? and container.type is 'block'
+        container = container.visParent()
+
+      head = location
+      until head is container.start or head.type is 'blockEnd'
+        head = head.prev
+      if head is container.start
+        prev = null
+      else
+        prev = head.container
+
+      head = location
+      until head is container.end or head.type is 'blockStart'
+        head = head.next
+      if head is container.end
+        next = null
+      else
+        next = head.container
+    else
+      prev = next = container = null
+
+    mode.parens prev?.getParenModifier() ? null, node.getParenModifier(), next?.getParenModifier?() ? null, container?.getReader?() ? null
+
+    return node
+
   # Getter/setter utility function
   Function::trigger = (prop, get, set) ->
     Object.defineProperty @prototype, prop,
@@ -107,6 +136,26 @@ define ['droplet-helper'], (helper) ->
         classes: @classes
       }
 
+    getParenModifier: ->
+      leadingFn = (value) =>
+        if value?
+          @setLeadingText value
+        return @getLeadingText()
+
+      trailingFn = (value) =>
+        if value?
+          @setTrailingText value
+        return @getTrailingText()
+
+      return {
+        leading: leadingFn
+        trailing: trailingFn
+        id: @id
+        type: @type
+        precedence: @precedence
+        classes: @classes
+      }
+
     hasParent: (parent) ->
       head = @
       until head in [parent, null]
@@ -192,6 +241,7 @@ define ['droplet-helper'], (helper) ->
 
     setLeadingText: (value) ->
       if value?
+        @version++
         if @start.next.type is 'text'
           if value.length is 0
             @start.next.remove()
@@ -202,6 +252,7 @@ define ['droplet-helper'], (helper) ->
 
     setTrailingText: (value) ->
       if value?
+        @version++
         if @end.prev.type is 'text'
           if value.length is 0
             @end.prev.remove()
@@ -392,22 +443,12 @@ define ['droplet-helper'], (helper) ->
     # USED FOR TESTING ONLY
     moveTo: (token, mode) ->
       if @start.prev? or @end.next?
-        leading = @getLeadingText()
-        trailing = @getTrailingText()
-
-        [leading, trailing] = mode.parens leading, trailing, @, null
-
-        @setLeadingText leading; @setTrailingText trailing
+        applyParens mode, @, null
 
         @spliceOut()
 
       if token?
-        leading = @getLeadingText()
-        trailing = @getTrailingText()
-
-        [leading, trailing] = mode.parens leading, trailing, @, (token.container ? token.parent)
-
-        @setLeadingText leading; @setTrailingText trailing
+        applyParens mode, @, token
 
         @spliceIn token
 
