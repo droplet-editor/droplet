@@ -146,10 +146,6 @@
             return new SegmentViewNode(model, this);
           case 'cursor':
             return new CursorViewNode(model, this);
-          case 'addbutton':
-            return new AddButtonViewNode(model, this);
-          case 'subtractbutton':
-            return new SubtractButtonViewNode(model, this);
         }
       };
 
@@ -1270,18 +1266,17 @@
           var start;
           BlockViewNode.__super__.drawSelf.apply(this, arguments);
           start = this.totalBounds.x + this.totalBounds.width - this.extraWidth;
-          console.log(this.totalBounds);
-          ctx.textBaseline = 'center';
+          ctx.textBaseline = 'top';
           ctx.font = this.view.opts.textHeight + 'px ';
           ctx.fillStyle = '#000';
           if (indexOf.call(this.model.classes, 'add-button') >= 0) {
             this.addButtonRect.stroke(ctx, '#000');
-            ctx.fillText('+', start + this.view.opts.buttonOffset + 2, this.totalBounds.y + this.view.opts.padding);
+            ctx.fillText('+', this.addButtonRect.x + 2, this.addButtonRect.y);
             start += this.view.opts.buttonWidth + this.view.opts.buttonPadding;
           }
           if (indexOf.call(this.model.classes, 'subtract-button') >= 0) {
             this.subtractButtonRect.stroke(ctx, '#000');
-            return ctx.fillText('-', start + this.view.opts.buttonOffset + 2, this.totalBounds.y + this.view.opts.padding);
+            return ctx.fillText('-', this.subtractButtonRect.x + 2, this.subtractButtonRect.y);
           }
         };
 

@@ -135,9 +135,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         when 'socket' then new SocketViewNode model, this
         when 'segment' then new SegmentViewNode model, this
         when 'cursor' then new CursorViewNode model, this
-        when 'addbutton' then new AddButtonViewNode model, this
-        when 'subtractbutton' then new SubtractButtonViewNode model, this
-
+      
     # Looks up a color name, or passes through a #hex color.
     getColor: (color) ->
       if color and '#' is color.charAt(0)
@@ -1664,19 +1662,17 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         start = @totalBounds.x + @totalBounds.width - @extraWidth
 
-        console.log @totalBounds
-
-        ctx.textBaseline = 'center'
+        ctx.textBaseline = 'top'
         ctx.font = @view.opts.textHeight + 'px '
         ctx.fillStyle = '#000'
 
         if 'add-button' in @model.classes
           @addButtonRect.stroke(ctx, '#000')
-          ctx.fillText '+', start + @view.opts.buttonOffset + 2, @totalBounds.y + @view.opts.padding
+          ctx.fillText '+', @addButtonRect.x + 2, @addButtonRect.y
           start += @view.opts.buttonWidth + @view.opts.buttonPadding
         if 'subtract-button' in @model.classes
           @subtractButtonRect.stroke(ctx, '#000')
-          ctx.fillText '-', start + @view.opts.buttonOffset + 2, @totalBounds.y + @view.opts.padding
+          ctx.fillText '-', @subtractButtonRect.x + 2, @subtractButtonRect.y
 
       shouldAddTab: ->
         if @model.parent?
