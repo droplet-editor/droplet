@@ -140,6 +140,7 @@ define ['droplet-helper',
   exports.Editor = class Editor
     constructor: (@wrapperElement, @options) ->
       @paletteGroups = @options.palette
+      @alwaysShowPalette = @options.alwaysShowPalette ? false
 
       @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -1695,7 +1696,10 @@ define ['droplet-helper',
           @redrawTextInput()
 
   Editor::resizeAceElement = ->
-    @aceElement.style.width = "#{@wrapperElement.offsetWidth}px"
+    width = @wrapperElement.offsetWidth
+    if @alwaysShowPalette
+      width -= @paletteElement.offsetWidth
+    @aceElement.style.width = "#{width}px"
     @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
 
   last_ = (array) -> array[array.length - 1]
@@ -3118,28 +3122,33 @@ define ['droplet-helper',
         @highlightCanvas.style.opacity =
         @cursorCanvas.style.opacity = 0
 
-      setTimeout (=>
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
+      if not @alwaysShowPalette
+        setTimeout (=>
+          @dropletElement.style.transition =
+            @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-        @dropletElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
-      ), fadeTime
+          @dropletElement.style.left = '0px'
+          @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        ), fadeTime
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
         @dropletElement.style.transition =
           @paletteWrapper.style.transition = ''
 
-        @dropletElement.style.top = '-9999px'
-        @dropletElement.style.left = '-9999px'
-
-        @paletteWrapper.style.top = '-9999px'
-        @paletteWrapper.style.left = '-9999px'
+        if not @alwaysShowPalette
+          @paletteWrapper.style.top = '-9999px'
+          @paletteWrapper.style.left = '-9999px'
 
         # Translate the ACE editor div into frame.
-        @aceElement.style.top = "0px"
-        @aceElement.style.left = "0px"
+        @aceElement.style.top = '0px'
+        if @alwaysShowPalette
+          @aceElement.style.left = @paletteWrapper.style.width
+        else
+          @aceElement.style.left = '0px'
+
+        @dropletElement.style.top = '-9999px'
+        @dropletElement.style.left = '-9999px'
 
         # Finalize a bunch of animations
         # that should be complete by now,
@@ -3194,7 +3203,9 @@ define ['droplet-helper',
         @aceElement.style.left = "-9999px"
 
         @paletteWrapper.style.top = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        if not @alwaysShowPalette
+          # Don't need to move palette if already showing
+          @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
         @dropletElement.style.top = "0px"
         @dropletElement.style.left = "0px"
@@ -3287,8 +3298,9 @@ define ['droplet-helper',
 
         ), translateTime
 
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = "left #{fadeTime}ms"
+        if not @alwaysShowPalette
+          @dropletElement.style.transition =
+            @paletteWrapper.style.transition = "left #{fadeTime}ms"
 
         @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
