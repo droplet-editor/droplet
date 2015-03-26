@@ -5,7 +5,7 @@
     modulo = function(a, b) { return (+a % (b = +b) + b) % b; };
 
   define(['droplet-helper', 'droplet-draw', 'droplet-model'], function(helper, draw, model) {
-    var ANY_DROP, BLOCK_ONLY, CARRIAGE_ARROW_INDENT, CARRIAGE_ARROW_NONE, CARRIAGE_ARROW_SIDEALONG, CARRIAGE_GROW_DOWN, DEFAULT_OPTIONS, MOSTLY_BLOCK, MOSTLY_VALUE, MULTILINE_END, MULTILINE_END_START, MULTILINE_MIDDLE, MULTILINE_START, NO, NO_MULTILINE, VALUE_ONLY, View, YES, arrayEq, avgColor, defaultStyleObject, exports, toHex, toRGB, twoDigitHex, zeroPad;
+    var ANY_DROP, BLOCK_ONLY, CARRIAGE_ARROW_INDENT, CARRIAGE_ARROW_NONE, CARRIAGE_ARROW_SIDEALONG, CARRIAGE_GROW_DOWN, DEFAULT_OPTIONS, DROPDOWN_ARROW_HEIGHT, DROP_TRIANGLE_COLOR, MOSTLY_BLOCK, MOSTLY_VALUE, MULTILINE_END, MULTILINE_END_START, MULTILINE_MIDDLE, MULTILINE_START, NO, NO_MULTILINE, VALUE_ONLY, View, YES, arrayEq, avgColor, defaultStyleObject, exports, toHex, toRGB, twoDigitHex, zeroPad;
     NO_MULTILINE = 0;
     MULTILINE_START = 1;
     MULTILINE_MIDDLE = 2;
@@ -20,6 +20,8 @@
     CARRIAGE_ARROW_INDENT = 1;
     CARRIAGE_ARROW_NONE = 2;
     CARRIAGE_GROW_DOWN = 3;
+    DROPDOWN_ARROW_HEIGHT = 8;
+    DROP_TRIANGLE_COLOR = '#555';
     DEFAULT_OPTIONS = {
       buttonWidth: 13,
       buttonHeight: 13,
@@ -877,8 +879,11 @@
           return null;
         };
 
-        ContainerViewNode.prototype.computeBoundingBoxX = function(left, line) {
+        ContainerViewNode.prototype.computeBoundingBoxX = function(left, line, offset) {
           var childLeft, childLine, childMargins, childView, i, j, len1, lineChild, ref, ref1, ref2, ref3;
+          if (offset == null) {
+            offset = 0;
+          }
           if (this.computedVersion === this.model.version && left === ((ref = this.bounds[line]) != null ? ref.x : void 0) && !this.changedBoundingBox) {
             return this.bounds[line];
           }
@@ -891,7 +896,7 @@
             }
             this.changedBoundingBox = true;
           }
-          childLeft = left;
+          childLeft = left + offset;
           ref3 = this.lineChildren[line];
           for (i = j = 0, len1 = ref3.length; j < len1; i = ++j) {
             lineChild = ref3[i];
@@ -1377,8 +1382,15 @@
           for (j = 0, len1 = ref.length; j < len1; j++) {
             dimension = ref[j];
             dimension.width = Math.max(dimension.width, this.view.opts.minSocketWidth);
+            if (this.model.hasDropdown()) {
+              dimension.width += helper.DROPDOWN_ARROW_WIDTH;
+            }
           }
           return null;
+        };
+
+        SocketViewNode.prototype.computeBoundingBoxX = function(left, line) {
+          return SocketViewNode.__super__.computeBoundingBoxX.call(this, left, line, this.model.hasDropdown() ? helper.DROPDOWN_ARROW_WIDTH : 0);
         };
 
         SocketViewNode.prototype.computeGlue = function() {
@@ -1408,6 +1420,18 @@
           this.path.style.fillColor = '#FFF';
           this.path.style.strokeColor = '#FFF';
           return this.path;
+        };
+
+        SocketViewNode.prototype.drawSelf = function(ctx) {
+          SocketViewNode.__super__.drawSelf.apply(this, arguments);
+          if (this.model.hasDropdown()) {
+            ctx.beginPath();
+            ctx.fillStyle = DROP_TRIANGLE_COLOR;
+            ctx.moveTo(this.bounds[0].x + helper.DROPDOWN_ARROW_PADDING, this.bounds[0].y + (this.bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2);
+            ctx.lineTo(this.bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, this.bounds[0].y + (this.bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2);
+            ctx.lineTo(this.bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, this.bounds[0].y + (this.bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2);
+            return ctx.fill();
+          }
         };
 
         SocketViewNode.prototype.computeOwnDropArea = function() {

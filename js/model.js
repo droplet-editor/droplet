@@ -903,27 +903,32 @@
     exports.Socket = Socket = (function(superClass) {
       extend(Socket, superClass);
 
-      function Socket(precedence, handwritten, classes) {
+      function Socket(precedence, handwritten, classes, dropdown) {
         this.precedence = precedence != null ? precedence : 0;
         this.handwritten = handwritten != null ? handwritten : false;
         this.classes = classes != null ? classes : [];
+        this.dropdown = dropdown != null ? dropdown : null;
         this.start = new SocketStartToken(this);
         this.end = new SocketEndToken(this);
         this.type = 'socket';
         Socket.__super__.constructor.apply(this, arguments);
       }
 
+      Socket.prototype.hasDropdown = function() {
+        return (this.dropdown != null) && this.isDroppable();
+      };
+
       Socket.prototype.isDroppable = function() {
         return this.start.next === this.end || this.start.next.type === 'text';
       };
 
       Socket.prototype._cloneEmpty = function() {
-        return new Socket(this.precedence, this.handwritten, this.accepts);
+        return new Socket(this.precedence, this.handwritten, this.classes, this.dropdown);
       };
 
       Socket.prototype._serialize_header = function() {
-        var ref, ref1;
-        return "<socket precedence=\"" + this.precedence + "\" handwritten=\"" + this.handwritten + "\" classes=\"" + ((ref = (ref1 = this.classes) != null ? typeof ref1.join === "function" ? ref1.join(' ') : void 0 : void 0) != null ? ref : '') + "\">";
+        var ref, ref1, ref2, ref3;
+        return "<socket precedence=\"" + this.precedence + "\" handwritten=\"" + this.handwritten + "\" classes=\"" + ((ref = (ref1 = this.classes) != null ? typeof ref1.join === "function" ? ref1.join(' ') : void 0 : void 0) != null ? ref : '') + "\"" + (this.dropdown != null ? " dropdown=\"" + ((ref2 = (ref3 = this.dropdown) != null ? typeof ref3.join === "function" ? ref3.join(' ') : void 0 : void 0) != null ? ref2 : '') + "\"" : '') + ">";
       };
 
       Socket.prototype._serialize_footer = function() {

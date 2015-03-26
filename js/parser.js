@@ -35,8 +35,39 @@
     })();
     exports.Parser = Parser = (function() {
       function Parser(text1, opts1) {
+        var convertFunction, fn, index, key, options, ref, ref1, val;
         this.text = text1;
         this.opts = opts1 != null ? opts1 : {};
+        convertFunction = function(x) {
+          if ((typeof x === 'string') || x instanceof String) {
+            return {
+              text: x,
+              display: x
+            };
+          } else {
+            return x;
+          }
+        };
+        ref = this.opts.functions;
+        for (key in ref) {
+          val = ref[key];
+          ref1 = val.dropdown;
+          fn = (function(_this) {
+            return function(options) {
+              return _this.opts.functions[key].dropdown[index] = function() {
+                if (typeof options === 'function') {
+                  return options().map(convertFunction);
+                } else {
+                  return options.map(convertFunction);
+                }
+              };
+            };
+          })(this);
+          for (index in ref1) {
+            options = ref1[index];
+            fn(options);
+          }
+        }
         this.originalText = this.text;
         this.markup = [];
       }
@@ -96,7 +127,7 @@
 
       Parser.prototype.addSocket = function(opts) {
         var socket;
-        socket = new model.Socket(opts.precedence, false, opts.classes);
+        socket = new model.Socket(opts.precedence, false, opts.classes, opts.dropdown);
         return this.addMarkup(socket, opts.bounds, opts.depth);
       };
 

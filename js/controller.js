@@ -213,13 +213,9 @@
               handler.call(_this, trackPoint, event, state);
             }
             if (event.type === 'mousedown') {
-              if (typeof event.stopPropagation === "function") {
-                event.stopPropagation();
-              }
               if (typeof event.preventDefault === "function") {
                 event.preventDefault();
               }
-              event.cancelBubble = true;
               event.returnValue = false;
               return false;
             }
@@ -1055,6 +1051,7 @@
             this.setTextInputFocus(head.container);
           }
         }
+        this.fireEvent('block-click');
         return this.endDrag();
       }
     });
@@ -1266,6 +1263,9 @@
             paletteHeaderRow = document.createElement('div');
             paletteHeaderRow.className = 'droplet-palette-header-row';
             _this.paletteHeader.appendChild(paletteHeaderRow);
+            if (_this.paletteGroups.length === 1 && !paletteGroup.name) {
+              paletteHeaderRow.style.height = 0;
+            }
           }
           paletteGroupHeader = document.createElement('div');
           paletteGroupHeader.className = 'droplet-palette-group-header';
@@ -1316,7 +1316,8 @@
         paletteGroup = ref1[i];
         fn1(paletteGroup, i);
       }
-      return this.resizePalette();
+      this.resizePalette();
+      return this.resizePaletteHighlight();
     };
     hook('mousedown', 6, function(point, event, state) {
       var entry, hitTestResult, j, len, palettePoint, ref1, ref2, ref3;
@@ -1563,8 +1564,8 @@
       startRow = this.textFocus.stringify(this.mode.empty).slice(0, this.hiddenInput.selectionStart).split('\n').length - 1;
       endRow = this.textFocus.stringify(this.mode.empty).slice(0, this.hiddenInput.selectionEnd).split('\n').length - 1;
       lines = this.textFocus.stringify(this.mode.empty).split('\n');
-      startPosition = textFocusView.bounds[startRow].x + this.view.opts.textPadding + this.mainCtx.measureText(last_(this.textFocus.stringify(this.mode.empty).slice(0, this.hiddenInput.selectionStart).split('\n'))).width;
-      endPosition = textFocusView.bounds[endRow].x + this.view.opts.textPadding + this.mainCtx.measureText(last_(this.textFocus.stringify(this.mode.empty).slice(0, this.hiddenInput.selectionEnd).split('\n'))).width;
+      startPosition = textFocusView.bounds[startRow].x + this.view.opts.textPadding + this.mainCtx.measureText(last_(this.textFocus.stringify(this.mode.empty).slice(0, this.hiddenInput.selectionStart).split('\n'))).width + (this.textFocus.hasDropdown() ? helper.DROPDOWN_ARROW_WIDTH : 0);
+      endPosition = textFocusView.bounds[endRow].x + this.view.opts.textPadding + this.mainCtx.measureText(last_(this.textFocus.stringify(this.mode.empty).slice(0, this.hiddenInput.selectionEnd).split('\n'))).width + (this.textFocus.hasDropdown() ? helper.DROPDOWN_ARROW_WIDTH : 0);
       if (this.hiddenInput.selectionStart === this.hiddenInput.selectionEnd) {
         this.cursorCtx.lineWidth = 1;
         this.cursorCtx.strokeStyle = '#000';
@@ -1576,7 +1577,7 @@
         if (startRow === endRow) {
           this.cursorCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.textPadding, endPosition - startPosition, this.view.opts.textHeight);
         } else {
-          this.cursorCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.textPadding, textFocusView.bounds[startRow].right() - this.view.opts.textPadding - startPosition, this.view.opts.textHeight);
+          this.cursorCtx.fillRect(startPosition, textFocusView.bounds[startRow].y + this.view.opts.textPadding + textFocusView.bounds[startRow].right() - this.view.opts.textPadding - startPosition, this.view.opts.textHeight);
           for (i = j = ref1 = startRow + 1, ref2 = endRow; ref1 <= ref2 ? j < ref2 : j > ref2; i = ref1 <= ref2 ? ++j : --j) {
             this.cursorCtx.fillRect(textFocusView.bounds[i].x, textFocusView.bounds[i].y + this.view.opts.textPadding, textFocusView.bounds[i].width, this.view.opts.textHeight);
           }
@@ -1601,6 +1602,7 @@
       if ((focus != null ? focus.id : void 0) in this.extraMarks) {
         delete this.extraMarks[focus != null ? focus.id : void 0];
       }
+      this.hideDropdown();
       if ((this.textFocus != null) && this.textFocus !== focus) {
         this.addMicroUndoOperation('CAPTURE_POINT');
         this.addMicroUndoOperation(new TextChangeOperation(this.textFocus, this.oldFocusValue, this));
@@ -1722,7 +1724,7 @@
       row = Math.floor((point.y - textFocusView.bounds[0].y) / (this.fontSize + 2 * this.view.opts.padding));
       row = Math.max(row, 0);
       row = Math.min(row, textFocusView.lineLength - 1);
-      column = Math.max(0, Math.round((point.x - textFocusView.bounds[row].x - this.view.opts.textPadding) / this.mainCtx.measureText(' ').width));
+      column = Math.max(0, Math.round((point.x - textFocusView.bounds[row].x - this.view.opts.textPadding - (this.textFocus.hasDropdown() ? helper.DROPDOWN_ARROW_WIDTH : 0)) / this.mainCtx.measureText(' ').width));
       lines = this.textFocus.stringify(this.mode.empty).split('\n').slice(0, +row + 1 || 9e9);
       lines[lines.length - 1] = lines[lines.length - 1].slice(0, column);
       return lines.join('\n').length;
@@ -1760,8 +1762,14 @@
         if (hitTestResult !== this.textFocus) {
           this.setTextInputFocus(hitTestResult);
           this.redrawMain();
+          if (hitTestResult.hasDropdown() && mainPoint.x - this.view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH) {
+            this.showDropdown();
+          }
           this.textInputSelecting = false;
         } else {
+          if (this.textFocus.hasDropdown() && mainPoint.x - this.view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH) {
+            this.showDropdown();
+          }
           this.setTextInputAnchor(mainPoint);
           this.redrawTextInput();
           this.textInputSelecting = true;
@@ -1770,6 +1778,48 @@
         return state.consumedHitTest = true;
       }
     });
+    hook('populate', 0, function() {
+      this.dropdownElement = document.createElement('div');
+      this.dropdownElement.className = 'droplet-dropdown';
+      return this.wrapperElement.appendChild(this.dropdownElement);
+    });
+    Editor.prototype.showDropdown = function() {
+      var el, fn1, i, j, len, location, ref1, textFocus;
+      if (this.textFocus.hasDropdown()) {
+        this.dropdownElement.innerHTML = '';
+        this.dropdownElement.style.display = 'inline-block';
+        textFocus = this.textFocus;
+        ref1 = this.textFocus.dropdown();
+        fn1 = (function(_this) {
+          return function(el) {
+            var div;
+            div = document.createElement('div');
+            div.innerHTML = el.display;
+            div.className = 'droplet-dropdown-item';
+            div.style.fontFamily = _this.fontFamily;
+            div.style.fontSize = _this.fontSize;
+            div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH;
+            div.addEventListener('mouseup', function() {
+              _this.populateSocket(_this.textFocus, el.text);
+              _this.hiddenInput.value = el.text;
+              _this.redrawMain();
+              return _this.hideDropdown();
+            });
+            return _this.dropdownElement.appendChild(div);
+          };
+        })(this);
+        for (i = j = 0, len = ref1.length; j < len; i = ++j) {
+          el = ref1[i];
+          fn1(el);
+        }
+        location = this.view.getViewNodeFor(this.textFocus).bounds[0];
+        this.dropdownElement.style.top = location.y + this.fontSize - this.scrollOffsets.main.y;
+        return this.dropdownElement.style.left = location.x - this.scrollOffsets.main.x + this.dropletElement.offsetLeft + this.mainCanvas.offsetLeft;
+      }
+    };
+    Editor.prototype.hideDropdown = function() {
+      return this.dropdownElement.style.display = 'none';
+    };
     hook('dblclick', 0, function(point, event, state) {
       var hitTestResult, mainPoint;
       if (state.consumedHitTest) {
@@ -3184,6 +3234,7 @@
       this.resizeTextMode();
       this.aceEditor.session.setScrollTop(oldScrollTop);
       if (this.currentlyUsingBlocks) {
+        this.setTextInputFocus(null);
         result = this.setValue_raw(value);
         if (result.success === false) {
           this.setEditorState(false);

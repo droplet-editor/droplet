@@ -10,6 +10,8 @@
     exports.ENCOURAGE = 1;
     exports.DISCOURAGE = 0;
     exports.FORBID = -1;
+    exports.DROPDOWN_ARROW_WIDTH = 15;
+    exports.DROPDOWN_ARROW_PADDING = 3;
     if (typeof window !== "undefined" && window !== null) {
       window.String.prototype.trimLeft = function() {
         return this.replace(/^\s+/, '');

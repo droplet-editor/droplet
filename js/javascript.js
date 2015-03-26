@@ -74,7 +74,7 @@
       'BinaryExpression': 'value',
       'UnaryExpression': 'value',
       'FunctionExpression': 'value',
-      'FunctionDeclaration': 'violet',
+      'FunctionDeclaration': 'purple',
       'AssignmentExpression': 'command',
       'CallExpression': 'command',
       'ReturnStatement': 'return',
@@ -264,7 +264,7 @@
           case 'CallExpression':
             known = this.lookupFunctionName(node);
             if (!known) {
-              return 'violet';
+              return 'purple';
             } else if (known.fn.color) {
               return known.fn.color;
             } else if (known.fn.value && !known.fn.command) {
@@ -361,13 +361,13 @@
       };
 
       JavaScriptParser.prototype.mark = function(indentDepth, node, depth, bounds) {
-        var argument, block, declaration, element, expression, i, j, k, known, l, len, len1, len10, len2, len3, len4, len5, len6, len7, len8, len9, m, n, o, p, param, prefix, property, q, r, ref, ref1, ref10, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, results, results1, results10, results2, results3, results4, results5, results6, results7, results8, results9, s, statement, switchCase;
+        var argument, block, declaration, element, expression, i, j, k, known, l, len, len1, len10, len2, len3, len4, len5, len6, len7, len8, len9, m, n, o, p, param, prefix, property, q, r, ref, ref1, ref10, ref11, ref2, ref3, ref4, ref5, ref6, ref7, ref8, ref9, results, results1, results10, results2, results3, results4, results5, results6, results7, results8, results9, s, statement, switchCase, t;
         switch (node.type) {
           case 'Program':
             ref = node.body;
             results = [];
-            for (i = 0, len = ref.length; i < len; i++) {
-              statement = ref[i];
+            for (j = 0, len = ref.length; j < len; j++) {
+              statement = ref[j];
               results.push(this.mark(indentDepth, statement, depth + 1, null));
             }
             return results;
@@ -379,8 +379,8 @@
             this.jsBlock(node, depth, bounds);
             ref1 = node.expressions;
             results1 = [];
-            for (j = 0, len1 = ref1.length; j < len1; j++) {
-              expression = ref1[j];
+            for (k = 0, len1 = ref1.length; k < len1; k++) {
+              expression = ref1[k];
               results1.push(this.jsSocketAndMark(indentDepth, expression, depth + 1, null));
             }
             return results1;
@@ -391,8 +391,8 @@
             this.jsSocketAndMark(indentDepth, node.id, depth + 1, null, null, ['no-drop']);
             ref2 = node.params;
             results2 = [];
-            for (k = 0, len2 = ref2.length; k < len2; k++) {
-              param = ref2[k];
+            for (l = 0, len2 = ref2.length; l < len2; l++) {
+              param = ref2[l];
               results2.push(this.jsSocketAndMark(indentDepth, param, depth + 1, null, null, ['no-drop']));
             }
             return results2;
@@ -405,8 +405,8 @@
             }
             ref3 = node.params;
             results3 = [];
-            for (l = 0, len3 = ref3.length; l < len3; l++) {
-              param = ref3[l];
+            for (m = 0, len3 = ref3.length; m < len3; m++) {
+              param = ref3[m];
               results3.push(this.jsSocketAndMark(indentDepth, param, depth + 1, null, null, ['no-drop']));
             }
             return results3;
@@ -471,8 +471,8 @@
             });
             ref4 = node.body;
             results4 = [];
-            for (m = 0, len4 = ref4.length; m < len4; m++) {
-              statement = ref4[m];
+            for (n = 0, len4 = ref4.length; n < len4; n++) {
+              statement = ref4[n];
               results4.push(this.mark(indentDepth, statement, depth + 1, null));
             }
             return results4;
@@ -501,9 +501,9 @@
             }
             ref5 = node["arguments"];
             results5 = [];
-            for (n = 0, len5 = ref5.length; n < len5; n++) {
-              argument = ref5[n];
-              results5.push(this.jsSocketAndMark(indentDepth, argument, depth + 1, NEVER_PAREN));
+            for (i = o = 0, len5 = ref5.length; o < len5; i = ++o) {
+              argument = ref5[i];
+              results5.push(this.jsSocketAndMark(indentDepth, argument, depth + 1, NEVER_PAREN, known != null ? (ref6 = known.dropdown) != null ? ref6[i] : void 0 : void 0));
             }
             return results5;
             break;
@@ -516,10 +516,10 @@
             return this.jsSocketAndMark(indentDepth, node.argument, depth + 1);
           case 'VariableDeclaration':
             this.jsBlock(node, depth, bounds);
-            ref6 = node.declarations;
+            ref7 = node.declarations;
             results6 = [];
-            for (o = 0, len6 = ref6.length; o < len6; o++) {
-              declaration = ref6[o];
+            for (p = 0, len6 = ref7.length; p < len6; p++) {
+              declaration = ref7[p];
               results6.push(this.mark(indentDepth, declaration, depth + 1));
             }
             return results6;
@@ -541,10 +541,10 @@
             return this.jsSocketAndMark(indentDepth, node.test, depth + 1);
           case 'ObjectExpression':
             this.jsBlock(node, depth, bounds);
-            ref7 = node.properties;
+            ref8 = node.properties;
             results7 = [];
-            for (p = 0, len7 = ref7.length; p < len7; p++) {
-              property = ref7[p];
+            for (q = 0, len7 = ref8.length; q < len7; q++) {
+              property = ref8[q];
               this.jsSocketAndMark(indentDepth, property.key, depth + 1);
               results7.push(this.jsSocketAndMark(indentDepth, property.value, depth + 1));
             }
@@ -553,10 +553,10 @@
           case 'SwitchStatement':
             this.jsBlock(node, depth, bounds);
             this.jsSocketAndMark(indentDepth, node.discriminant, depth + 1);
-            ref8 = node.cases;
+            ref9 = node.cases;
             results8 = [];
-            for (q = 0, len8 = ref8.length; q < len8; q++) {
-              switchCase = ref8[q];
+            for (r = 0, len8 = ref9.length; r < len8; r++) {
+              switchCase = ref9[r];
               results8.push(this.mark(indentDepth, switchCase, depth + 1, null));
             }
             return results8;
@@ -574,10 +574,10 @@
                 depth: depth + 1,
                 prefix: prefix
               });
-              ref9 = node.consequent;
+              ref10 = node.consequent;
               results9 = [];
-              for (r = 0, len9 = ref9.length; r < len9; r++) {
-                statement = ref9[r];
+              for (s = 0, len9 = ref10.length; s < len9; s++) {
+                statement = ref10[s];
                 results9.push(this.mark(indentDepth, statement, depth + 2));
               }
               return results9;
@@ -601,10 +601,10 @@
             break;
           case 'ArrayExpression':
             this.jsBlock(node, depth, bounds);
-            ref10 = node.elements;
+            ref11 = node.elements;
             results10 = [];
-            for (s = 0, len10 = ref10.length; s < len10; s++) {
-              element = ref10[s];
+            for (t = 0, len10 = ref11.length; t < len10; t++) {
+              element = ref11[t];
               if (element != null) {
                 results10.push(this.jsSocketAndMark(indentDepth, element, depth + 1, null));
               } else {
