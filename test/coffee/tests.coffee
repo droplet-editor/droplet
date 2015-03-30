@@ -1137,3 +1137,53 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     # no-throw
     editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
     editor.showDropdown()
+
+  asyncTest 'Controller: alwaysShowPalette false', ->
+    expect 4
+
+    states = []
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: [],
+      alwaysShowPalette: false
+    }
+
+    paletteWrapper = document.querySelector('.droplet-palette-wrapper')
+    aceEditor = document.querySelector('.ace_editor')
+
+    editor.on 'statechange', (usingBlocks) ->
+      states.push usingBlocks
+
+    editor.performMeltAnimation 10, 10, ->
+      strictEqual paletteWrapper.style.left, '-9999px'
+      strictEqual aceEditor.style.left, '0px'
+      editor.performFreezeAnimation 10, 10, ->
+        strictEqual paletteWrapper.style.left, '0px'
+        strictEqual aceEditor.style.left, '-9999px'
+        start()
+
+  asyncTest 'Controller: alwaysShowPalette true', ->
+    expect 4
+
+    states = []
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: [],
+      alwaysShowPalette: true
+    }
+
+    paletteWrapper = document.querySelector('.droplet-palette-wrapper')
+    aceEditor = document.querySelector('.ace_editor')
+
+    editor.on 'statechange', (usingBlocks) ->
+      states.push usingBlocks
+
+    editor.performMeltAnimation 10, 10, ->
+      strictEqual paletteWrapper.style.left, '0px'
+      strictEqual aceEditor.style.left, '270px'
+      editor.performFreezeAnimation 10, 10, ->
+        strictEqual paletteWrapper.style.left, '0px'
+        strictEqual aceEditor.style.left, '-9999px'
+        start()
