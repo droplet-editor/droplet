@@ -186,7 +186,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         isLassoSegment="false"
       ><block
         precedence="0"
-        color="return"
+        color="yellow"
         socketLevel="0"
         classes="ReturnStatement mostly-block"
       >return <socket
@@ -195,7 +195,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="2"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="CallExpression mostly-block"
       >console.log(<socket
@@ -204,7 +204,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="2"
-        color="value"
+        color="green"
         socketLevel="0"
         classes="CallExpression mostly-value"
       >Math.log(<socket
@@ -231,7 +231,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes=""
       ><block
         precedence="4"
-        color="value"
+        color="green"
         socketLevel="0"
         classes="UnaryExpression mostly-value"
       >~<socket
@@ -1100,7 +1100,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     '''
 
     # Assert that the arrow is there
-    strictEqual editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width, 90
+    strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
 
     # no-throw
     editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
@@ -1132,7 +1132,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     '''
 
     # Assert that the arrow is there
-    strictEqual editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width, 90
+    strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
 
     # no-throw
     editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container

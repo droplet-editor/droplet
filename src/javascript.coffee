@@ -34,32 +34,62 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'Math.min'    : {value: true}
     'Math.random' : {value: true}
 
-  COLORS = {
-    'BinaryExpression': 'value'
-    'UnaryExpression': 'value'
-    'FunctionExpression': 'value'
-    'FunctionDeclaration': 'purple'
-    'AssignmentExpression': 'command'
+  CATEGORIES = {
+    functions: {color: 'purple'}
+    interruptions: {color: 'yellow'}
+    comments: {color: 'gray'}
+    arithmetic: {color: 'green'}
+    logic: {color: 'cyan'}
+    containers: {color: 'orange'}
+    assignments: {color: 'blue'}
+    loops: {color: 'orange'}
+    conditionals: {color: 'orange'}
+    value: {color: 'green'}
+    command: {color: 'blue'}
+  }
+
+  LOGICAL_OPERATORS = {
+    '==': true
+    '!=': true
+    '===': true
+    '!==': true
+    '<': true
+    '<=': true
+    '>': true
+    '>=': true
+    'in': true
+    'instanceof': true
+    '||': true
+    '&&': true
+    '!': true
+  }
+
+  NODE_CATEGORIES = {
+    'BinaryExpression': 'arithmetic'  # actually, some are logic
+    'UnaryExpression': 'arithmetic'   # actually, some are logic
+    'ConditionalExpression': 'arithmetic'
+    'LogicalExpression': 'logic'
+    'FunctionExpression': 'functions'
+    'FunctionDeclaration': 'functions'
+    'AssignmentExpression': 'assignments'
+    'UpdateExpression': 'assignments'
+    'VariableDeclaration': 'assignments'
+    'ReturnStatement': 'interruptions'
+    'IfStatement': 'conditionals'
+    'SwitchStatement': 'conditionals'
+    'ForStatement': 'loops'
+    'ForInStatement': 'loops'
+    'WhileStatement': 'loops'
+    'DoWhileStatement': 'loops'
+    'NewExpression': 'containers'
+    'ObjectExpression': 'containers'
+    'ArrayExpression': 'containers'
+    'MemberExpression': 'containers'
+    'BreakStatement': 'interruptions'
+    'ThrowStatement': 'interruptions'
+    'TryStatement': 'interruptions'
     'CallExpression': 'command'
-    'ReturnStatement': 'return'
-    'MemberExpression': 'value'
-    'IfStatement': 'control'
-    'ForStatement': 'control'
-    'ForInStatement': 'control'
-    'UpdateExpression': 'command'
-    'VariableDeclaration': 'command'
-    'LogicalExpression': 'value'
-    'WhileStatement': 'control'
-    'DoWhileStatement': 'control'
-    'ObjectExpression': 'value'
-    'SwitchStatement': 'control'
-    'BreakStatement': 'return'
-    'NewExpression': 'command'
-    'ThrowStatement': 'return'
-    'TryStatement': 'control'
-    'ArrayExpression': 'value'
     'SequenceExpression': 'command'
-    'ConditionalExpression': 'value'
   }
 
   # See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
@@ -106,6 +136,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       super
 
       @opts.functions ?= KNOWN_FUNCTIONS
+      @opts.categories ?= CATEGORIES
 
       @lines = @text.split '\n'
 
@@ -186,6 +217,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         else
           return 0
 
+    lookupCategory: (node) ->
+      switch node.type
+        when 'BinaryExpression', 'UnaryExpression'
+          if LOGICAL_OPERATORS.hasOwnProperty node.operator
+            category = 'logic'
+          else
+            category = 'arithmetic'
+        else
+          category = NODE_CATEGORIES[node.type]
+      return @opts.categories[category]
+
     getColor: (node) ->
       switch node.type
         when 'ExpressionStatement'
@@ -193,15 +235,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'CallExpression'
           known = @lookupFunctionName node
           if not known
-            return 'purple'
+            return @opts.categories.command.color
           else if known.fn.color
             return known.fn.color
           else if known.fn.value and not known.fn.command
-            return 'value'
+            return @opts.categories.value.color
           else
-            return 'command'
+            return @opts.categories.command.color
         else
-          return COLORS[node.type]
+          category = @lookupCategory node
+          return category.color
 
     getSocketLevel: (node) -> helper.ANY_DROP
 
