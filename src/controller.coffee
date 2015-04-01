@@ -140,8 +140,8 @@ define ['droplet-helper',
   exports.Editor = class Editor
     constructor: (@wrapperElement, @options) ->
       @paletteGroups = @options.palette
-      @willShowPaletteWithText = @options.willShowPaletteWithText ? false
-      @showingPalette = @options.showPaletteAtStart ? true
+      @showPaletteInTextMode = @options.showPaletteInTextMode ? false
+      @paletteEnabled = @options.enablePaletteAtStart ? true
 
       @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -334,7 +334,7 @@ define ['droplet-helper',
       @resizeTextMode()
 
       @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      if @showingPalette
+      if @paletteEnabled
         @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
         @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
       else
@@ -1702,7 +1702,7 @@ define ['droplet-helper',
 
   Editor::resizeAceElement = ->
     width = @wrapperElement.offsetWidth
-    if @willShowPaletteWithText and @showingPalette
+    if @showPaletteInTextMode and @paletteEnabled
       width -= @paletteElement.offsetWidth
 
     @aceElement.style.width = "#{width}px"
@@ -3125,7 +3125,7 @@ define ['droplet-helper',
         @highlightCanvas.style.opacity =
         @cursorCanvas.style.opacity = 0
 
-      paletteDisappearingWithMelt = @showingPalette and not @willShowPaletteWithText
+      paletteDisappearingWithMelt = @paletteEnabled and not @showPaletteInTextMode
 
       if paletteDisappearingWithMelt
         # Move the palette header into the background
@@ -3146,7 +3146,7 @@ define ['droplet-helper',
 
         # Translate the ACE editor div into frame.
         @aceElement.style.top = '0px'
-        if @willShowPaletteWithText and @showingPalette
+        if @showPaletteInTextMode and @paletteEnabled
           @aceElement.style.left = @paletteWrapper.style.width
         else
           @aceElement.style.left = '0px'
@@ -3210,7 +3210,7 @@ define ['droplet-helper',
         @aceElement.style.top = "-9999px"
         @aceElement.style.left = "-9999px"
 
-        paletteAppearingWithFreeze = @showingPalette and not @willShowPaletteWithText
+        paletteAppearingWithFreeze = @paletteEnabled and not @showPaletteInTextMode
 
         if paletteAppearingWithFreeze
           @paletteWrapper.style.top = '0px'
@@ -3218,7 +3218,7 @@ define ['droplet-helper',
           @paletteHeader.style.zIndex = 0
 
         @dropletElement.style.top = "0px"
-        if @showingPalette
+        if @paletteEnabled
           @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         else
           @dropletElement.style.left = "0px"
@@ -3342,9 +3342,9 @@ define ['droplet-helper',
 
       return success: true
 
-  Editor::showPalette = (visible) ->
-    if not @currentlyAnimating and @showingPalette != visible
-      @showingPalette = visible
+  Editor::enablePalette = (enabled) ->
+    if not @currentlyAnimating and @paletteEnabled != enabled
+      @paletteEnabled = enabled
       @currentlyAnimating = true
 
       if @currentlyUsingBlocks
@@ -3352,7 +3352,7 @@ define ['droplet-helper',
       else
         activeElement = @aceElement
 
-      if not @showingPalette
+      if not @paletteEnabled
         activeElement.style.transition =
           @paletteWrapper.style.transition = "left 500ms"
 
