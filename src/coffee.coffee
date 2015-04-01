@@ -256,6 +256,71 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         @csSocketAndMark param, depth, 0, indentDepth, FORBID_ALL
       @mark node.body, depth, 0, null, indentDepth
 
+    markExpressionBlock: (indentDepth, expressions, depth, bounds = null) ->
+      # Abort if empty
+      if expressions.length is 0 then return
+
+      bounds ?= {
+        start: @getBounds(expressions[0]).start
+        end: @getBounds(expressions[expressions.length - 1]).end
+      }
+
+      # See if we want to wrap in a socket
+      # rather than an indent.
+      shouldBeOneLine = false
+
+      # Check to see if any parent node is occupying a line
+      # we are on. If so, we probably want to wrap in
+      # a socket rather than an indent.
+      for line in [bounds.start.line..bounds.end.line]
+        shouldBeOneLine or= @hasLineBeenMarked[line]
+
+      if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
+        shouldBeOneLine = true
+
+      if shouldBeOneLine
+        @addSocket {
+          bounds: bounds
+          depth: depth
+          precedence: 0
+          classes: ['Block']
+        }
+
+      # Otherwise, wrap in an indent.
+      else
+        # Determine the new indent depth by literal text inspection
+        firstLine = expressions[0].locationData.first_line
+        textLine = @lines[firstLine]
+        trueIndentDepth = textLine.length - textLine.trimLeft().length
+
+        # As a block, we also want to consume as much whitespace above us as possible
+        # (to free it from actual ICE editor blocks).
+        while bounds.start.line > 0 and @lines[bounds.start.line - 1].trim().length is 0
+          bounds.start.line -= 1
+          bounds.start.column = @lines[bounds.start.line].length + 1
+
+        # Move the boundaries back by one line,
+        # as per the standard way to add an Indent.
+        bounds.start.line -= 1
+        bounds.start.column = @lines[bounds.start.line].length + 1
+
+        @addIndent {
+          depth: depth
+          bounds: bounds
+          prefix: @lines[firstLine][indentDepth...trueIndentDepth]
+        }
+
+        # Then update indent depth data to reflect.
+        indentDepth = trueIndentDepth
+
+      # Mark children. We do this at depth + 3 to
+      # make room for semicolon wrappers where necessary.
+      for expr in expressions
+        @mark expr, depth + 3, 0, null, indentDepth
+
+      # Wrap semicolons.
+      @wrapSemicolons expressions, depth
+
     # ## mark ##
     # Mark a single node.  The main recursive function.
     mark: (node, depth, precedence, wrappingParen, indentDepth) ->
@@ -266,62 +331,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # A Block is a group of expressions,
         # which is represented by either an indent or a socket.
         when 'Block'
-          # Abort if empty
-          if node.expressions.length is 0 then return
-
-          # Otherwise, get the bounds to determine
-          # whether we want to do it on one line or multiple lines.
-          bounds = @getBounds node
-
-          # See if we want to wrap in a socket
-          # rather than an indent.
-          shouldBeOneLine = false
-
-          # Check to see if any parent node is occupying a line
-          # we are on. If so, we probably want to wrap in
-          # a socket rather than an indent.
-          for line in [bounds.start.line..bounds.end.line]
-            shouldBeOneLine or= @hasLineBeenMarked[line]
-
-          if @lines[bounds.start.line][...bounds.start.column].trim().length isnt 0
-            shouldBeOneLine = true
-
-          if shouldBeOneLine
-            @csSocket node, depth, 0
-
-          # Otherwise, wrap in an indent.
-          else
-            # Determine the new indent depth by literal text inspection
-            textLine = @lines[node.locationData.first_line]
-            trueIndentDepth = textLine.length - textLine.trimLeft().length
-
-            # As a block, we also want to consume as much whitespace above us as possible
-            # (to free it from actual ICE editor blocks).
-            while bounds.start.line > 0 and @lines[bounds.start.line - 1].trim().length is 0
-              bounds.start.line -= 1
-              bounds.start.column = @lines[bounds.start.line].length + 1
-
-            # Move the boundaries back by one line,
-            # as per the standard way to add an Indent.
-            bounds.start.line -= 1
-            bounds.start.column = @lines[bounds.start.line].length + 1
-
-            @addIndent {
-              depth: depth
-              bounds: bounds
-              prefix: @lines[node.locationData.first_line][indentDepth...trueIndentDepth]
-            }
-
-            # Then update indent depth data to reflect.
-            indentDepth = trueIndentDepth
-
-          # Mark children. We do this at depth + 3 to
-          # make room for semicolon wrappers where necessary.
-          for expr in node.expressions
-            @mark expr, depth + 3, 0, null, indentDepth
-
-          # Wrap semicolons.
-          @wrapSemicolons node.expressions, depth
+          @markExpressionBlock indentDepth, node.expressions, depth, @getBounds(node)
 
         # ### Parens ###
         # Parens are special; they get no marks
@@ -372,7 +382,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
               node.first?.base?.nodeType?() is 'Literal'
             return
 
-          @csBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY, new parser.ParsingContext('a = ')
 
           @csSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
@@ -407,7 +417,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
           # Fake-remove backticks hack
           else if node.base.nodeType() is 'Literal' and
-              node.base.value is ''
+              node.base.value is '__'
             fakeBlock =
                 @csBlock node.base, depth, 0, 'value', wrappingParen, ANY_DROP
             fakeBlock.flagToRemove = true
@@ -601,12 +611,19 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           if node.subject? then @csSocketAndMark node.subject, depth + 1, 0, indentDepth
 
           for switchCase in node.cases
-            if switchCase[0].constructor is Array
-              for condition in switchCase[0]
-                @csSocketAndMark condition, depth + 1, 0, indentDepth # (condition)
-            else
-              @csSocketAndMark switchCase[0], depth + 1, 0, indentDepth # (condition)
-            @mark switchCase[1], depth + 1, 0, null, indentDepth # (body)
+            switchCase.nodeType = -> '__Case'
+
+          @markExpressionBlock indentDepth, node.cases, depth + 1
+
+        when '__Case' # Case is an artificial flag added by Switch
+          @csBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK, new parser.ParsingContext 'switch\n', '', '  '
+
+          if node[0] instanceof Array
+            for condition in node[0]
+              @csSocketAndMark condition, depth + 1, 0, indentDepth # (condition)
+          else
+            @csSocketAndMark node[0], depth + 1, 0, indentDepth # (condition)
+          @mark node[1], depth + 1, 0, null, indentDepth # (body)
 
           if node.otherwise?
             @mark node.otherwise, depth + 1, 0, null, indentDepth
@@ -704,8 +721,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
       # Hack: Functions should end immediately
       # when their bodies end.
-      if node.nodeType() is 'Code' and node.body?
+      if node.nodeType() is 'Code'and node.body?
         bounds.end = @getBounds(node.body).end
+      if node.nodeType() is '__Case'
+        bounds.end = @getBounds(node[1]).end
 
       # The fourth is general. Sometimes we get
       # spaces at the start of the next line.
@@ -752,7 +771,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
-    csBlock: (node, depth, precedence, color, wrappingParen, classes = []) ->
+    csBlock: (node, depth, precedence, color, wrappingParen, classes = [], parsingContext) ->
       @addBlock {
         bounds: @getBounds (wrappingParen ? node)
         depth: depth
@@ -760,6 +779,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         color: color
         classes: getClassesFor(node).concat classes
         parenWrapped: wrappingParen?
+        parsingContext: parsingContext
       }
 
     # Add an indent node and guess
@@ -773,8 +793,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         first.column = @lines[first.line].length
 
       if first.line isnt last.line
-        trueDepth = @lines[last.line].length - @lines[last.line].trimLeft().length
-        prefix = @lines[last.line][indentDepth...trueDepth]
+        trueDepth = @lines[first.line + 1].length - @lines[first.line + 1].trimLeft().length
+        prefix = @lines[first.line + 1][indentDepth...trueDepth]
       else
         trueDepth = indentDepth + 2
         prefix = '  '
@@ -916,15 +936,15 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     if n < 0 or n >= lines.length
       return false
     # Refuse to add another empty backtick line if there is one already
-    if n + 1 < lines.length and /^\s*``$/.test lines[n + 1]
+    if n + 1 < lines.length and /^\s*__$/.test lines[n + 1]
       return false
     leading = /^\s*/.exec lines[n]
     # If we are all spaces then fail.
     if not leading or leading[0].length >= lines[n].length
       return false
-    lines.splice n + 1, 0, leading[0] + '  ``'
+    lines.splice n + 1, 0, leading[0] + '  __'
 
-  CoffeeScriptParser.empty = "``"
+  CoffeeScriptParser.empty = "__"
 
   CoffeeScriptParser.drop = (block, context, pred) ->
     if context.type is 'socket'

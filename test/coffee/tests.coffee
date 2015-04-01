@@ -11,14 +11,28 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     window.dumpObj = []
     for testCase in data
       strictEqual(
-        helper.xmlPrettyPrint(coffee.parse(testCase.str, wrapAtRoot: true).serialize()),
+        helper.xmlPrettyPrint(coffee.parse(testCase.str, {
+          wrapAtRoot: true
+          context: (if testCase.context? then new parser.ParsingContext(
+            testCase.context.prefix,
+            testCase.context.suffix,
+            testCase.context.indent
+          ) else null)
+        }).serialize()),
         helper.xmlPrettyPrint(testCase.expected),
         testCase.message
       )
       window.dumpObj.push {
         message: testCase.message
         str: testCase.str
-        expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+        expected: helper.xmlPrettyPrint(coffee.parse(testCase.str, {
+          wrapAtRoot: true
+          context: (if testCase.context? then new parser.ParsingContext(
+            testCase.context.prefix,
+            testCase.context.suffix,
+            testCase.context.indent
+          ) else null)
+        }).serialize()),
       }
 
   test 'Parser configurability', ->
@@ -334,7 +348,14 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     data = JSON.parse q.responseText
     for testCase in data
-      xml = coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+      xml = coffee.parse(testCase.str, {
+        wrapAtRoot: true
+        context: (if testCase.context? then new parser.ParsingContext(
+          testCase.context.prefix,
+          testCase.context.suffix,
+          testCase.context.indent
+        ) else null)
+      }).serialize()
       strictEqual(
         helper.xmlPrettyPrint(parser.parseXML(xml).serialize()),
         helper.xmlPrettyPrint(xml),
@@ -454,7 +475,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     console.log hello
     console.log world
     for i in [1..10]
-      ``
+      __
     ''', 'Move both out'
 
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
@@ -475,7 +496,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
   test 'specialIndent bug', ->
     document = coffee.parse '''
     for i in [1..10]
-      ``
+      __
     for i in [1..10]
       alert 10
     '''
@@ -504,7 +525,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual document.stringify(coffee.empty), '''
     Math.sqrt 2
-    console.log 1 + ``''', 'Unwrap'
+    console.log 1 + __''', 'Unwrap'
 
   test 'View: compute children', ->
     view_ = new view.View()
@@ -766,8 +787,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     view_ = new view.View()
 
     document = coffee.parse '''
-    if `` is a
-      ``
+    if __ is a
+      __
     '''
 
     documentView = view_.getViewNodeFor document
@@ -1035,8 +1056,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     for [1..30]
       lt 90
       lt 90, 20
-      if ``
-      ``
+      if __
+      __
       lt 90
       lt 90, 20
       dot blue, 15
@@ -1044,7 +1065,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       rt 105, 100
       rt 90
     (((((((((((((((((((((((loop))))))))))))))))))))))) = (param) ->
-      ``
+      __
     '''
 
     strictEqual editor.currentlyUsingBlocks, false

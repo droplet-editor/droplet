@@ -1234,8 +1234,12 @@ define ['droplet-helper',
       @endDrag()
 
   Editor::reparseRawReplace = (oldBlock) ->
-    try
-      newParse = @mode.parse(oldBlock.stringify(@mode.empty), wrapAtRoot: true)
+    #try
+      console.log oldBlock.parsingContext
+      newParse = @mode.parse(oldBlock.stringify(@mode.empty), {
+        wrapAtRoot: true
+        context: oldBlock.parsingContext ? null
+      })
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
@@ -1248,9 +1252,9 @@ define ['droplet-helper',
         else
           newBlock.rawReplace oldBlock
 
-    catch e
-      throw e
-      return false
+    #catch e
+    #  throw e
+    #  return false
 
   Editor::findForReal = (token) ->
     head = @tree.start; i = 0
