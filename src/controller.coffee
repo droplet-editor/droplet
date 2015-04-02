@@ -1668,9 +1668,20 @@ define ['droplet-helper',
 
     @hiddenInput.addEventListener 'focus', =>
       if @textFocus?
+        # Must ensure that @hiddenInput is within the client area
+        # or else the other divs under @dropletElement will scroll out of
+        # position when @hiddenInput receives keystrokes with focus
+        # (left and top should not be closer than 10 pixels from the edge)
+
         bounds = @view.getViewNodeFor(@textFocus).bounds[0]
-        @hiddenInput.style.left = (bounds.x + @mainCanvas.offsetLeft) + 'px'
-        @hiddenInput.style.top = bounds.y + 'px'
+        inputLeft = bounds.x + @mainCanvas.offsetLeft - @scrollOffsets.main.x
+        inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
+        inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
+        @hiddenInput.style.left = inputLeft + 'px'
+        inputTop = bounds.y - @scrollOffsets.main.y
+        inputTop = Math.min inputTop, @dropletElement.clientHeight - 10
+        inputTop = Math.max 0, inputTop
+        @hiddenInput.style.top = inputTop + 'px'
 
     @dropletElement.appendChild @hiddenInput
 
