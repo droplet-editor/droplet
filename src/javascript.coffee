@@ -36,7 +36,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
   CATEGORIES = {
     functions: {color: 'purple'}
-    interruptions: {color: 'yellow'}
+    returns: {color: 'yellow'}
     comments: {color: 'gray'}
     arithmetic: {color: 'green'}
     logic: {color: 'cyan'}
@@ -74,7 +74,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'AssignmentExpression': 'assignments'
     'UpdateExpression': 'assignments'
     'VariableDeclaration': 'assignments'
-    'ReturnStatement': 'interruptions'
+    'ReturnStatement': 'returns'
     'IfStatement': 'conditionals'
     'SwitchStatement': 'conditionals'
     'ForStatement': 'loops'
@@ -85,9 +85,9 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'ObjectExpression': 'containers'
     'ArrayExpression': 'containers'
     'MemberExpression': 'containers'
-    'BreakStatement': 'interruptions'
-    'ThrowStatement': 'interruptions'
-    'TryStatement': 'interruptions'
+    'BreakStatement': 'returns'
+    'ThrowStatement': 'returns'
+    'TryStatement': 'returns'
     'CallExpression': 'command'
     'SequenceExpression': 'command'
   }
@@ -132,11 +132,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   DEFAULT_INDENT_DEPTH = '  '
 
   exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
-    constructor: (@text, @opts = {}) ->
+    constructor: (@text, opts) ->
       super
 
       @opts.functions ?= KNOWN_FUNCTIONS
-      @opts.categories ?= CATEGORIES
+      @opts.categories = helper.extend({}, CATEGORIES, @opts.categories)
 
       @lines = @text.split '\n'
 
