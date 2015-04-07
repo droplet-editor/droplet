@@ -91,6 +91,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'TryStatement': 'returns'
     'CallExpression': 'command'
     'SequenceExpression': 'command'
+    'Identifier': 'value'
   }
 
   # See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
