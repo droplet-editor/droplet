@@ -154,7 +154,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       @mark 0, tree, 0, null
 
     fullFunctionNameArray: (node) ->
-      if node.type isnt 'CallExpression' then throw new Error
+      if node.type isnt 'CallExpression' and node.type isnt 'NewExpression'
+        throw new Error
       obj = node.callee
       props = []
       while obj.type is 'MemberExpression'
