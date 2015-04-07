@@ -1,0 +1,379 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="../vendor/qunit.css"/>
+    <style>
+      #hidden {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        height: 300px;
+        width: 500px;
+      }
+    </style>
+  </head>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <div id="hidden">
+    <canvas id="main"></canvas>
+    <div id="test-main">
+    </div>
+    <div id="test-palette">
+    </div>
+  </div>
+  <script src="../vendor/require.js"></script>
+  <script src="../vendor/ace/ace.js"></script>
+  <script src="../dist/droplet-full.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="../vendor/qunit.js"></script>
+<script>
+require([
+  'droplet-helper',
+  'droplet-coffee',
+  'droplet'],
+function(helper, Coffee, droplet) {
+  asyncTest('Parser configurability', function() {
+    var customCoffee, customSerialization, expectedSerialization;
+    customCoffee = new Coffee({
+      functions: {
+        marius: {
+          color: 'red'
+        },
+        valjean: {},
+        eponine: {
+          value: true,
+          color: 'purplish'
+        },
+        fantine: {
+          value: true
+        },
+        cosette: {
+          command: true,
+          value: true
+        }
+      }
+    });
+    window.customSerialization = customSerialization = customCoffee.parse(
+      'marius eponine 10\n' +
+      'alert random 100\n' +
+      'cosette 20\n').serialize();
+    expectedSerialization = '<segment' +
+      '  isLassoSegment="false"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="red"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-block"' +
+      '>marius <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Call works-as-method-call"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="purplish"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-value"' +
+      '>eponine <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Value">10</socket></block></socket></block>\n' +
+      '<block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call any-drop"' +
+      '><socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>alert</socket> <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Call works-as-method-call"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call any-drop"' +
+      '><socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>random</socket> <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Value">100</socket></block></socket></block>\n' +
+      '<block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call any-drop">cosette <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Value">20</socket></block>\n</segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Custom known functions work');
+    return start();
+  });
+  asyncTest('Dotted methods', function() {
+    var customCoffee, customSerialization, expectedSerialization;
+    customCoffee = new Coffee({
+      functions: {
+        'console.log': {},
+        speak: {},
+        'Math.log': {
+          value: true
+        },
+        log: {
+          value: true
+        },
+        setTimeout: {
+          command: true,
+          value: true
+        }
+      }
+    });
+    customSerialization = customCoffee.parse(
+        'console.log Math.log log x.log log').serialize();
+    expectedSerialization = '<segment' +
+      '  isLassoSegment="false"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-block"' +
+      '>console.log <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Call works-as-method-call"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="green"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-value"' +
+      '>Math.log <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Call works-as-method-call"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="green"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-value"' +
+      '>log <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Call works-as-method-call"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="green"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-value"' +
+      '><socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Literal"' +
+      '>x</socket' +
+      '>.log <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>log</socket' +
+      '></block></socket></block></socket></block></socket></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Dotted known functions work');
+    return start();
+  });
+  asyncTest('Merged code blocks', function() {
+    var customSerialization, expectedSerialization;
+    coffee = new Coffee;
+    customSerialization = coffee.parse(
+      'x = (y) -> y * y\n' +
+      'alert \'clickme\', ->\n' +
+      '  console.log \'ouch\'').serialize();
+    expectedSerialization = '<segment' +
+      '  isLassoSegment="false"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="purple"' +
+      '  socketLevel="0"' +
+      '  classes="Assign mostly-block"' +
+      '><socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Value lvalue"' +
+      '>x</socket' +
+      '> = (<socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Param forbid-all"' +
+      '>y</socket' +
+      '>) -&gt; <socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Block"' +
+      '><block' +
+      '  precedence="5"' +
+      '  color="green"' +
+      '  socketLevel="0"' +
+      '  classes="Op value-only"' +
+      '><socket' +
+      '  precedence="5"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>y</socket' +
+      '> * <socket' +
+      '  precedence="5"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>y</socket></block></socket></block' +
+      '>\n<block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-block"' +
+      '>alert <socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>\'clickme\'</socket' +
+      '>, -&gt;<indent' +
+      '  prefix="  "' +
+      '  classes=""' +
+      '>\n' +
+      '<block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-block"' +
+      '>console.log <socket' +
+      '  precedence="-1"' +
+      '  handwritten="false"' +
+      '  classes="Value"' +
+      '>\'ouch\'</socket></block></indent></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Merged code blocks work');
+    return start();
+  });
+
+  asyncTest('Custom Colors', function() {
+    var customJS, customSerialization, expectedSerialization;
+    customCoffee = new Coffee({
+      categories: {
+        functions: {color: '#111'},
+        returns: {color: '#222'},
+        comments: {color: '#333'},
+        arithmetic: {color: '#444'},
+        containers: {color: '#666'},
+        assignments: {color: '#777'},
+        loops: {color: '#888'},
+        conditionals: {color: '#999'},
+        value: {color: '#aaa'},
+        command: {color: '#bbb'}
+      }
+    });
+    customSerialization = customCoffee.parse(
+        'return b != (a += [c + d][0]);').serialize();
+    expectedSerialization = '<segment' +
+      ' isLassoSegment="false"' +
+      '><block' +
+      ' precedence="0"' +
+      ' color="#222"' +
+      ' socketLevel="0"' +
+      ' classes="Return block-only"' +
+      '>return <socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Op"' +
+      '><block' +
+      ' precedence="3"' +
+      ' color="cyan"' +
+      ' socketLevel="0"' +
+      ' classes="Op value-only"' +
+      '><socket' +
+      ' precedence="3"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>b</socket' +
+      '> != <socket' +
+      ' precedence="3"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '><block' +
+      ' precedence="0"' +
+      ' color="#bbb"' +
+      ' socketLevel="0"' +
+      ' classes="Assign mostly-block"' +
+      '>(<socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Value lvalue"' +
+      '>a</socket' +
+      '> += <socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '><block' +
+      ' precedence="0"' +
+      ' color="#aaa"' +
+      ' socketLevel="0"' +
+      ' classes="Value mostly-value"' +
+      '><socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Arr"' +
+      '><block' +
+      ' precedence="100"' +
+      ' color="#666"' +
+      ' socketLevel="0"' +
+      ' classes="Arr value-only"' +
+      '>[<indent' +
+      ' prefix="  "' +
+      ' classes=""' +
+      '><block' +
+      ' precedence="4"' +
+      ' color="#444"' +
+      ' socketLevel="0"' +
+      ' classes="Op value-only"' +
+      '><socket' +
+      ' precedence="4"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>c</socket' +
+      '> + <socket' +
+      ' precedence="4"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>d</socket' +
+      '></block' +
+      '></indent' +
+      '>]</block' +
+      '></socket' +
+      '>[<socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>0</socket' +
+      '>]</block' +
+      '></socket' +
+      '>)</block' +
+      '></socket' +
+      '></block' +
+      '></socket' +
+      '></block' +
+      '>;</segment' +
+      '>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Custom colors work');
+    return start();
+  });
+});
+</script>
+</html>

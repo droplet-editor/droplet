@@ -8,7 +8,7 @@
     "grunt-bowercopy": "latest",
     "grunt-contrib-coffee": "latest",
     "grunt-contrib-uglify": "latest",
-    "grunt-contrib-qunit": "latest",
+    "grunt-contrib-qunit": "<=0.5.2",
     "grunt-contrib-requirejs": "latest",
     "grunt-docco": "latest",
     "grunt-contrib-cssmin": "latest",

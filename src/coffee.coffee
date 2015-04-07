@@ -45,6 +45,58 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'continue'
   ]
 
+  CATEGORIES = {
+    functions: {color: 'purple'}
+    returns: {color: 'yellow'}
+    comments: {color: 'gray'}
+    arithmetic: {color: 'green'}
+    logic: {color: 'cyan'}
+    containers: {color: 'teal'}
+    assignments: {color: 'blue'}
+    loops: {color: 'orange'}
+    conditionals: {color: 'orange'}
+    value: {color: 'green'}
+    command: {color: 'blue'}
+    errors: {color: '#f00'}
+  }
+
+  NODE_CATEGORY = {
+    Parens: 'command'
+    Op: 'value'         # overridden by operator test
+    Existence: 'logic'
+    In: 'logic'
+    Value: 'value'
+    Literal: 'value'    # overridden by break, continue, errors
+    Call: 'command'     # overridden by complicated logic
+    Code: 'functions'
+    Class: 'functions'
+    Assign: 'command'   # overriden by test for function definition
+    For: 'loops'
+    While: 'loops'
+    If: 'conditionals'
+    Switch: 'conditionals'
+    Range: 'containers'
+    Arr: 'containers'
+    Obj: 'containers'
+    Return: 'returns'
+  }
+
+  LOGICAL_OPERATORS = {
+    '==': true
+    '!=': true
+    '===': true
+    '!==': true
+    '<': true
+    '<=': true
+    '>': true
+    '>=': true
+    'in': true
+    'instanceof': true
+    '||': true
+    '&&': true
+    '!': true
+  }
+
   ###
   OPERATOR_PRECEDENCES =
     '*': 5
@@ -110,10 +162,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     return tree
 
   exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
-    constructor: (@text, @opts = {}) ->
+    constructor: (@text, opts) ->
       super
 
       @opts.functions ?= KNOWN_FUNCTIONS
+      @opts.categories = helper.extend({}, CATEGORIES, @opts.categories)
 
       @lines = @text.split '\n'
 
@@ -338,7 +391,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
               if node.body.unwrap() is node.body
                 # We are filled with some things
                 # connected by semicolons; wrap them all,
-                @csBlock node, depth, -2, 'command', null, MOSTLY_BLOCK
+                @csBlock node, depth, -2, null, MOSTLY_BLOCK
 
                 for expr in node.body.expressions
                   @csSocketAndMark expr, depth + 1, -2, indentDepth
@@ -372,7 +425,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
               node.first?.base?.nodeType?() is 'Literal'
             return
 
-          @csBlock node, depth, OPERATOR_PRECEDENCES[node.operator], 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, OPERATOR_PRECEDENCES[node.operator], wrappingParen, VALUE_ONLY
 
           @csSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
 
@@ -382,13 +435,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # ### Existence ###
         # Color VALUE, socket @expression, precedence 100
         when 'Existence'
-          @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
           @csSocketAndMark node.expression, depth + 1, 101, indentDepth
 
         # ### In ###
         # Color VALUE, sockets @object and @array, precedence 100
         when 'In'
-          @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
           @csSocketAndMark node.object, depth + 1, 0, indentDepth
           @csSocketAndMark node.array, depth + 1, 0, indentDepth
 
@@ -397,7 +450,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # about this node.
         when 'Value'
           if node.properties? and node.properties.length > 0
-            @csBlock node, depth, 0, 'value', wrappingParen, MOSTLY_VALUE
+            @csBlock node, depth, 0, wrappingParen, MOSTLY_VALUE
             @csSocketAndMark node.base, depth + 1, 0, indentDepth
             for property in node.properties
               if property.nodeType() is 'Access'
@@ -409,13 +462,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
           else if node.base.nodeType() is 'Literal' and
               node.base.value is ''
             fakeBlock =
-                @csBlock node.base, depth, 0, 'value', wrappingParen, ANY_DROP
+                @csBlock node.base, depth, 0, wrappingParen, ANY_DROP
             fakeBlock.flagToRemove = true
 
           # Preserved-error backticks hack
           else if node.base.nodeType() is 'Literal' and
               /^#/.test(node.base.value)
-            @csBlock node.base, depth, 0, 'blank', wrappingParen, ANY_DROP
+            @csBlock node.base, depth, 0, wrappingParen, ANY_DROP
             errorSocket = @csSocket node.base, depth + 1, -2
             errorSocket.flagToStrip = { left: 2, right: 1 }
 
@@ -426,7 +479,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         when 'Literal'
           if node.value in STATEMENT_KEYWORDS
             # handle break and continue
-            @csBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
+            @csBlock node, depth, 0, wrappingParen, BLOCK_ONLY
           else
             # otherwise, leave it as a white block
             0
@@ -445,16 +498,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
             known = @lookupFunctionName namenodes
             if known
               if known.fn.value
-                color = known.fn.color or
-                  if known.fn.command then 'command' else 'value'
                 classes = if known.fn.command then ANY_DROP else MOSTLY_VALUE
               else
-                color = known.fn.color or 'command'
                 classes = MOSTLY_BLOCK
             else
-              color = 'command'
               classes = ANY_DROP
-            @csBlock node, depth, 0, color, wrappingParen, classes
+            @csBlock node, depth, 0, wrappingParen, classes
 
             # Some function names (like /// RegExps ///) are never editable.
             if @implicitName namenodes
@@ -468,7 +517,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
               # simple base object variable, let the variable be socketed.
               @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
           else
-            @csBlock node, depth, 0, 'command', wrappingParen, ANY_DROP
+            @csBlock node, depth, 0, wrappingParen, ANY_DROP
 
           unless node.do
             for arg, index in node.args
@@ -487,13 +536,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Function definition. Color VALUE, sockets @params,
         # and indent @body.
         when 'Code'
-          @csBlock node, depth, 0, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
           @addCode node, depth + 1, indentDepth
 
         # ### Assign ###
         # Color COMMAND, sockets @variable and @value.
         when 'Assign'
-          @csBlock node, depth, 0, 'command', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK
           @csSocketAndMark node.variable, depth + 1, 0, indentDepth, LVALUE
 
           if node.value.nodeType() is 'Code'
@@ -505,7 +554,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Color CONTROL, options sockets @index, @source, @name, @from.
         # Indent/socket @body.
         when 'For'
-          @csBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, -3, wrappingParen, MOSTLY_BLOCK
 
           for childName in ['source', 'from', 'guard', 'step']
             if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth
@@ -518,7 +567,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # ### Range ###
         # Color VALUE, sockets @from and @to.
         when 'Range'
-          @csBlock node, depth, 100, 'value', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
           @csSocketAndMark node.from, depth, 0, indentDepth
           @csSocketAndMark node.to, depth, 0, indentDepth
 
@@ -529,7 +578,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Special case: "unless" keyword; in this case
         # we want to skip the Op that wraps the condition.
         when 'If'
-          @csBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK
 
           # Check to see if we are an "unless".
           # We will deem that we are an unless if:
@@ -568,26 +617,26 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # ### Arr ###
         # Color VALUE, sockets @objects.
         when 'Arr'
-          @csBlock node, depth, 100, 'purple', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
 
           if node.objects.length > 0
             @csIndentAndMark indentDepth, node.objects, depth + 1
           for object in node.objects
             if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
                 object.properties?.length in [0, undefined]
-              @csBlock object, depth + 2, 100, 'return', null, VALUE_ONLY
+              @csBlock object, depth + 2, 100, null, VALUE_ONLY
 
         # ### Return ###
         # Color RETURN, optional socket @expression.
         when 'Return'
-          @csBlock node, depth, 0, 'return', wrappingParen, BLOCK_ONLY
+          @csBlock node, depth, 0, wrappingParen, BLOCK_ONLY
           if node.expression?
             @csSocketAndMark node.expression, depth + 1, 0, indentDepth
 
         # ### While ###
         # Color CONTROL. Socket @condition, socket/indent @body.
         when 'While'
-          @csBlock node, depth, -3, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, -3, wrappingParen, MOSTLY_BLOCK
           @csSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
           if node.guard? then @csSocketAndMark node.guard, depth + 1, 0, indentDepth
           @mark node.body, depth + 1, 0, null, indentDepth
@@ -596,7 +645,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Color CONTROL. Socket @subject, optional sockets @cases[x][0],
         # indent/socket @cases[x][1]. indent/socket @otherwise.
         when 'Switch'
-          @csBlock node, depth, 0, 'control', wrappingParen, MOSTLY_BLOCK
+          @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK
 
           if node.subject? then @csSocketAndMark node.subject, depth + 1, 0, indentDepth
 
@@ -615,7 +664,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # Color CONTROL. Optional sockets @variable, @parent. Optional indent/socket
         # @obdy.
         when 'Class'
-          @csBlock node, depth, 0, 'control', wrappingParen, ANY_DROP
+          @csBlock node, depth, 0, wrappingParen, ANY_DROP
 
           if node.variable? then @csSocketAndMark node.variable, depth + 1, 0, indentDepth, FORBID_ALL
           if node.parent? then @csSocketAndMark node.parent, depth + 1, 0, indentDepth
@@ -627,7 +676,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # TODO: This doesn't quite line up with what we want it to be visually;
         # maybe our View architecture is wrong.
         when 'Obj'
-          @csBlock node, depth, 0, 'purple', wrappingParen, VALUE_ONLY
+          @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
 
           for property in node.properties
             if property.nodeType() is 'Assign'
@@ -734,6 +783,40 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
       return bounds
 
+    # ## getColor ##
+    # Looks up color of the given node, respecting options.
+    getColor: (node) ->
+      category = NODE_CATEGORY[node.nodeType()] or 'command'
+      switch node.nodeType()
+        when 'Op'
+          if LOGICAL_OPERATORS[node.operator]
+            category = 'logic'
+          else
+            category = 'arithmetic'
+        when 'Call'
+          if node.variable?
+            namenodes = @functionNameNodes node
+            known = @lookupFunctionName namenodes
+            if known
+              if known.fn.value
+                category = known.fn.color or
+                  if known.fn.command then 'command' else 'value'
+              else
+                category = known.fn.color or 'command'
+        when 'Assign'
+          # Assignments with a function RHS are function definitions
+          if node.value.nodeType() is 'Code'
+            category = 'functions'
+        when 'Literal'
+          # Preserved errors
+          if /^#/.test(node.value)
+            category = 'error'
+          # break and continue
+          else if node.value in STATEMENT_KEYWORDS
+            category = 'returns'
+      return @opts.categories[category]?.color or category
+
+    # ## flagLineAsMarked ##
     flagLineAsMarked: (line) ->
       @hasLineBeenMarked[line] = true
       while @lines[line][@lines[line].length - 1] is '\\'
@@ -752,12 +835,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     # ## csBlock ##
     # A general utility function for adding an ICE editor
     # block around a given node.
-    csBlock: (node, depth, precedence, color, wrappingParen, classes = []) ->
+    csBlock: (node, depth, precedence, wrappingParen, classes = []) ->
       @addBlock {
         bounds: @getBounds (wrappingParen ? node)
         depth: depth
         precedence: precedence
-        color: color
+        color: @getColor(node)
         classes: getClassesFor(node).concat classes
         parenWrapped: wrappingParen?
       }
@@ -824,7 +907,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         bounds: surroundingBounds
         depth: depth + 1
         precedence: -2
-        color: 'command'
+        color: @opts.categories['command'].color
         socketLevel: ANY_DROP
         classes: ['semicolon']
       }
