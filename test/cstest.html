@@ -261,6 +261,119 @@ function(helper, Coffee, droplet) {
     return start();
   });
 
+  asyncTest('Custom Colors', function() {
+    var customJS, customSerialization, expectedSerialization;
+    customCoffee = new Coffee({
+      categories: {
+        functions: {color: '#111'},
+        returns: {color: '#222'},
+        comments: {color: '#333'},
+        arithmetic: {color: '#444'},
+        containers: {color: '#666'},
+        assignments: {color: '#777'},
+        loops: {color: '#888'},
+        conditionals: {color: '#999'},
+        value: {color: '#aaa'},
+        command: {color: '#bbb'}
+      }
+    });
+    customSerialization = customCoffee.parse(
+        'return b != (a += [c + d][0]);').serialize();
+    expectedSerialization = '<segment' +
+      ' isLassoSegment="false"' +
+      '><block' +
+      ' precedence="0"' +
+      ' color="#222"' +
+      ' socketLevel="0"' +
+      ' classes="Return block-only"' +
+      '>return <socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Op"' +
+      '><block' +
+      ' precedence="3"' +
+      ' color="cyan"' +
+      ' socketLevel="0"' +
+      ' classes="Op value-only"' +
+      '><socket' +
+      ' precedence="3"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>b</socket' +
+      '> != <socket' +
+      ' precedence="3"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '><block' +
+      ' precedence="0"' +
+      ' color="#bbb"' +
+      ' socketLevel="0"' +
+      ' classes="Assign mostly-block"' +
+      '>(<socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Value lvalue"' +
+      '>a</socket' +
+      '> += <socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '><block' +
+      ' precedence="0"' +
+      ' color="#aaa"' +
+      ' socketLevel="0"' +
+      ' classes="Value mostly-value"' +
+      '><socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Arr"' +
+      '><block' +
+      ' precedence="100"' +
+      ' color="#666"' +
+      ' socketLevel="0"' +
+      ' classes="Arr value-only"' +
+      '>[<indent' +
+      ' prefix="  "' +
+      ' classes=""' +
+      '><block' +
+      ' precedence="4"' +
+      ' color="#444"' +
+      ' socketLevel="0"' +
+      ' classes="Op value-only"' +
+      '><socket' +
+      ' precedence="4"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>c</socket' +
+      '> + <socket' +
+      ' precedence="4"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>d</socket' +
+      '></block' +
+      '></indent' +
+      '>]</block' +
+      '></socket' +
+      '>[<socket' +
+      ' precedence="0"' +
+      ' handwritten="false"' +
+      ' classes="Value"' +
+      '>0</socket' +
+      '>]</block' +
+      '></socket' +
+      '>)</block' +
+      '></socket' +
+      '></block' +
+      '></socket' +
+      '></block' +
+      '>;</segment' +
+      '>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Custom colors work');
+    return start();
+  });
 });
 </script>
 </html>
