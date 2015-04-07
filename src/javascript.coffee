@@ -40,12 +40,13 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     comments: {color: 'gray'}
     arithmetic: {color: 'green'}
     logic: {color: 'cyan'}
-    containers: {color: 'orange'}
+    containers: {color: 'teal'}
     assignments: {color: 'blue'}
     loops: {color: 'orange'}
     conditionals: {color: 'orange'}
     value: {color: 'green'}
     command: {color: 'blue'}
+    errors: {color: '#f00'}
   }
 
   LOGICAL_OPERATORS = {

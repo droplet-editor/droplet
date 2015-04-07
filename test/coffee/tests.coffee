@@ -60,7 +60,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Value">10</socket></block></socket></block>
       <block
         precedence="0"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="Call works-as-method-call any-drop"
       ><socket
@@ -73,7 +73,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Call works-as-method-call"
       ><block
         precedence="0"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="Call works-as-method-call any-drop"
       ><socket
@@ -86,7 +86,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Value">100</socket></block></socket></block>
       <block
         precedence="0"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="Call works-as-method-call any-drop">cosette <socket
         precedence="-1"
@@ -119,7 +119,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         isLassoSegment="false"
       ><block
         precedence="0"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="Call works-as-method-call mostly-block"
       >console.log <socket
@@ -128,7 +128,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Call works-as-method-call"
       ><block
         precedence="0"
-        color="value"
+        color="green"
         socketLevel="0"
         classes="Call works-as-method-call mostly-value"
       >Math.log <socket
@@ -137,7 +137,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Call works-as-method-call"
       ><block
         precedence="0"
-        color="value"
+        color="green"
         socketLevel="0"
         classes="Call works-as-method-call mostly-value"
       >log <socket
@@ -146,7 +146,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Call works-as-method-call"
       ><block
         precedence="0"
-        color="value"
+        color="green"
         socketLevel="0"
         classes="Call works-as-method-call mostly-value"
       ><socket
@@ -180,7 +180,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         isLassoSegment="false"
       ><block
         precedence="0"
-        color="command"
+        color="purple"
         socketLevel="0"
         classes="Assign mostly-block"
       ><socket
@@ -199,7 +199,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         classes="Block"
       ><block
         precedence="5"
-        color="value"
+        color="green"
         socketLevel="0"
         classes="Op value-only"
       ><socket
@@ -214,7 +214,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       >y</socket></block></socket></block>
       <block
         precedence="0"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="Call works-as-method-call mostly-block"
       >alert <socket
@@ -228,7 +228,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       >
       <block
         precedence="0"
-        color="command"
+        color="blue"
         socketLevel="0"
         classes="Call works-as-method-call mostly-block"
       >console.log <socket
