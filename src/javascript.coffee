@@ -247,7 +247,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             return @opts.categories.command.color
         else
           category = @lookupCategory node
-          return category.color
+          return category?.color or 'command'
 
     getSocketLevel: (node) -> helper.ANY_DROP
 
