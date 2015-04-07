@@ -32,7 +32,7 @@ require([
   'droplet'],
 function(helper, JavaScript, droplet) {
 
-  test('JS dotted methods', function() {
+  asyncTest('JS dotted methods', function() {
     var customJS, customSerialization, expectedSerialization;
     customJS = new JavaScript({
       functions: {
@@ -116,13 +116,14 @@ function(helper, JavaScript, droplet) {
         '>)</block></socket' +
         '>)</block></socket' +
         '>;</block></segment>';
-    return strictEqual(
+    strictEqual(
         helper.xmlPrettyPrint(customSerialization),
         helper.xmlPrettyPrint(expectedSerialization),
         'Dotted known functions work');
+    start();
   });
 
-  test('JS Custom Colors', function() {
+  asyncTest('JS Custom Colors', function() {
     var customJS, customSerialization, expectedSerialization;
     customJS = new JavaScript({
       categories: {
@@ -222,10 +223,11 @@ function(helper, JavaScript, droplet) {
       '>]</block></socket' +
       '>)</block></socket></block></socket' +
       '>;</block></segment>';
-    return strictEqual(
+    strictEqual(
         helper.xmlPrettyPrint(customSerialization),
         helper.xmlPrettyPrint(expectedSerialization),
         'JS Custom colors work');
+    start();
   });
 });
 </script>
