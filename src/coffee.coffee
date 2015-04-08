@@ -70,7 +70,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     Call: 'command'     # overridden by complicated logic
     Code: 'functions'
     Class: 'functions'
-    Assign: 'command'   # overriden by test for function definition
+    Assign: 'assignments'  # overriden by test for function definition
     For: 'loops'
     While: 'loops'
     If: 'conditionals'
