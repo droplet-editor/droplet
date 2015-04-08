@@ -932,4 +932,3 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     setTimeout verifyPaletteHidden, 500
 
-    start()
