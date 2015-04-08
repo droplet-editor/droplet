@@ -137,7 +137,9 @@ argument to setMode.
 modeOptions for both coffeescript and javascript.  Instead of passing three arrays blockFunctions, eitherFunctions, valueFunctions, we now pass a single map 'functions'.
 
 modeOptions is an object that can have a `functions` property that
-is an object that represents a whitelist of known functions.
+is an object that represents a whitelist of known functions, and a
+`categories` property that represents a set of categorized built-in
+language constructs.
 
 ```js
 functions: {
