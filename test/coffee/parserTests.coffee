@@ -20,7 +20,7 @@ describe 'Parser unity', (done) ->
   testString = (str) ->
     it 'should round-trip ' + str.split('\n')[0] +
         (if str.split('\n').length > 1 then '...' else ''), ->
-      assert.equal str, coffee.parse(str, wrapAtRoot: true).stringify()
+      assert.equal str, coffee.parse(str, wrapAtRoot: true).stringify(coffee)
   testString '/// #{x} ///'
   testString 'fd 10'
   testString 'fd 10 + 10'
@@ -49,7 +49,7 @@ describe 'Parser unity', (done) ->
     it "should round-trip on #{name}", ->
       file = fs.readFileSync(name).toString()
 
-      unparsed = coffee.parse(file, wrapAtRoot: true).stringify()
+      unparsed = coffee.parse(file, wrapAtRoot: true).stringify(coffee)
 
       filelines = file.split '\n'
       for line, i in unparsed.split '\n'

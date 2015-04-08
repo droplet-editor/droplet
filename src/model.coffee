@@ -236,13 +236,16 @@ define ['droplet-helper'], (helper) ->
     # Get a string representation of us,
     # using the `stringify()` method on all of
     # the tokens that we contain.
-    stringify: (emptyToken = '') ->
+    stringify: (config) ->
+      emptySocket = config.empty or ''
+      emptyIndent = config.emptyIndent or config.empty
       str = ''
 
       head = @start.next
       state =
         indent: ''
-        emptyToken: emptyToken
+        emptySocket: emptySocket
+        emptyIndent: emptyIndent
 
       until head is @end
         str += head.stringify state
@@ -745,7 +748,7 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketStart'
     stringify: (state) ->
       if @next is @container.end or
-        @next.type is 'text' and @next.value is '' then state.emptyToken else ''
+        @next.type is 'text' and @next.value is '' then state.emptySocket else ''
 
   exports.SocketEndToken = class SocketEndToken extends EndToken
     constructor: (@container) -> super; @type = 'socketEnd'
@@ -792,7 +795,7 @@ define ['droplet-helper'], (helper) ->
     stringify: (state) ->
       unless @container.prefix.length is 0
         state.indent = state.indent[...-@container.prefix.length]
-      if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyToken else ''
+      if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyIndent else ''
     serialize: -> "</indent>"
 
   exports.Indent = class Indent extends Container
