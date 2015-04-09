@@ -4,7 +4,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   define(['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], function(helper, model, parser, acorn) {
-    var CLASS_EXCEPTIONS, COLORS, DEFAULT_INDENT_DEPTH, JavaScriptParser, KNOWN_FUNCTIONS, NEVER_PAREN, OPERATOR_PRECEDENCES, STATEMENT_NODE_TYPES, exports;
+    var CATEGORIES, CLASS_EXCEPTIONS, DEFAULT_INDENT_DEPTH, JavaScriptParser, KNOWN_FUNCTIONS, LOGICAL_OPERATORS, NEVER_PAREN, NODE_CATEGORIES, OPERATOR_PRECEDENCES, STATEMENT_NODE_TYPES, exports;
     exports = {};
     STATEMENT_NODE_TYPES = ['ExpressionStatement', 'ReturnStatement', 'BreakStatement', 'ThrowStatement'];
     NEVER_PAREN = 100;
@@ -70,32 +70,86 @@
         value: true
       }
     };
-    COLORS = {
-      'BinaryExpression': 'value',
-      'UnaryExpression': 'value',
-      'FunctionExpression': 'value',
-      'FunctionDeclaration': 'purple',
-      'AssignmentExpression': 'command',
+    CATEGORIES = {
+      functions: {
+        color: 'purple'
+      },
+      returns: {
+        color: 'yellow'
+      },
+      comments: {
+        color: 'gray'
+      },
+      arithmetic: {
+        color: 'green'
+      },
+      logic: {
+        color: 'cyan'
+      },
+      containers: {
+        color: 'teal'
+      },
+      assignments: {
+        color: 'blue'
+      },
+      loops: {
+        color: 'orange'
+      },
+      conditionals: {
+        color: 'orange'
+      },
+      value: {
+        color: 'green'
+      },
+      command: {
+        color: 'blue'
+      },
+      errors: {
+        color: '#f00'
+      }
+    };
+    LOGICAL_OPERATORS = {
+      '==': true,
+      '!=': true,
+      '===': true,
+      '!==': true,
+      '<': true,
+      '<=': true,
+      '>': true,
+      '>=': true,
+      'in': true,
+      'instanceof': true,
+      '||': true,
+      '&&': true,
+      '!': true
+    };
+    NODE_CATEGORIES = {
+      'BinaryExpression': 'arithmetic',
+      'UnaryExpression': 'arithmetic',
+      'ConditionalExpression': 'arithmetic',
+      'LogicalExpression': 'logic',
+      'FunctionExpression': 'functions',
+      'FunctionDeclaration': 'functions',
+      'AssignmentExpression': 'assignments',
+      'UpdateExpression': 'assignments',
+      'VariableDeclaration': 'assignments',
+      'ReturnStatement': 'returns',
+      'IfStatement': 'conditionals',
+      'SwitchStatement': 'conditionals',
+      'ForStatement': 'loops',
+      'ForInStatement': 'loops',
+      'WhileStatement': 'loops',
+      'DoWhileStatement': 'loops',
+      'NewExpression': 'containers',
+      'ObjectExpression': 'containers',
+      'ArrayExpression': 'containers',
+      'MemberExpression': 'containers',
+      'BreakStatement': 'returns',
+      'ThrowStatement': 'returns',
+      'TryStatement': 'returns',
       'CallExpression': 'command',
-      'ReturnStatement': 'return',
-      'MemberExpression': 'value',
-      'IfStatement': 'control',
-      'ForStatement': 'control',
-      'ForInStatement': 'control',
-      'UpdateExpression': 'command',
-      'VariableDeclaration': 'command',
-      'LogicalExpression': 'value',
-      'WhileStatement': 'control',
-      'DoWhileStatement': 'control',
-      'ObjectExpression': 'value',
-      'SwitchStatement': 'control',
-      'BreakStatement': 'return',
-      'NewExpression': 'command',
-      'ThrowStatement': 'return',
-      'TryStatement': 'control',
-      'ArrayExpression': 'value',
       'SequenceExpression': 'command',
-      'ConditionalExpression': 'value'
+      'Identifier': 'value'
     };
     OPERATOR_PRECEDENCES = {
       '*': 5,
@@ -137,11 +191,11 @@
       function JavaScriptParser(text1, opts) {
         var base;
         this.text = text1;
-        this.opts = opts != null ? opts : {};
         JavaScriptParser.__super__.constructor.apply(this, arguments);
         if ((base = this.opts).functions == null) {
           base.functions = KNOWN_FUNCTIONS;
         }
+        this.opts.categories = helper.extend({}, CATEGORIES, this.opts.categories);
         this.lines = this.text.split('\n');
       }
 
@@ -157,7 +211,7 @@
 
       JavaScriptParser.prototype.fullFunctionNameArray = function(node) {
         var obj, props;
-        if (node.type !== 'CallExpression') {
+        if (node.type !== 'CallExpression' && node.type !== 'NewExpression') {
           throw new Error;
         }
         obj = node.callee;
@@ -256,25 +310,43 @@
         }
       };
 
+      JavaScriptParser.prototype.lookupCategory = function(node) {
+        var category;
+        switch (node.type) {
+          case 'BinaryExpression':
+          case 'UnaryExpression':
+            if (LOGICAL_OPERATORS.hasOwnProperty(node.operator)) {
+              category = 'logic';
+            } else {
+              category = 'arithmetic';
+            }
+            break;
+          default:
+            category = NODE_CATEGORIES[node.type];
+        }
+        return this.opts.categories[category];
+      };
+
       JavaScriptParser.prototype.getColor = function(node) {
-        var known;
+        var category, known;
         switch (node.type) {
           case 'ExpressionStatement':
             return this.getColor(node.expression);
           case 'CallExpression':
             known = this.lookupFunctionName(node);
             if (!known) {
-              return 'purple';
+              return this.opts.categories.command.color;
             } else if (known.fn.color) {
               return known.fn.color;
             } else if (known.fn.value && !known.fn.command) {
-              return 'value';
+              return this.opts.categories.value.color;
             } else {
-              return 'command';
+              return this.opts.categories.command.color;
             }
             break;
           default:
-            return COLORS[node.type];
+            category = this.lookupCategory(node);
+            return (category != null ? category.color : void 0) || 'command';
         }
       };
 
