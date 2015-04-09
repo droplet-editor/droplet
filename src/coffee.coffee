@@ -617,11 +617,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # ### Arr ###
         # Color VALUE, sockets @objects.
         when 'Arr'
-<<<<<<< HEAD
           @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
-=======
-          @csBlock node, depth, 100, 'purple', wrappingParen, VALUE_ONLY
->>>>>>> CSV
 
           if node.objects.length > 0
             @csIndentAndMark indentDepth, node.objects, depth + 1
@@ -680,11 +676,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
         # TODO: This doesn't quite line up with what we want it to be visually;
         # maybe our View architecture is wrong.
         when 'Obj'
-<<<<<<< HEAD
           @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
-=======
-          @csBlock node, depth, 0, 'purple', wrappingParen, VALUE_ONLY
->>>>>>> CSV
 
           for property in node.properties
             if property.nodeType() is 'Assign'

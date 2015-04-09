@@ -7,20 +7,14 @@ define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
     'droplet-csv',
-<<<<<<< HEAD
     'droplet-css'
-=======
->>>>>>> CSV
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
     coffee,
     javascript,
     csv,
-<<<<<<< HEAD
     css,
-=======
->>>>>>> CSV
     draw,
     model,
     view) ->
@@ -30,10 +24,7 @@ define ['droplet-helper',
     'coffee': coffee
     'javascript': javascript
     'csv': csv
-<<<<<<< HEAD
     'css': css
-=======
->>>>>>> CSV
   }
 
   # ## Magic constants

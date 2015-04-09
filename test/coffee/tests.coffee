@@ -790,14 +790,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     editor.unmark key
     ok key not of editor.markedBlocks
-<<<<<<< HEAD
     start()
 
   asyncTest 'Controller: dropdown menus', ->
-=======
-
-  test 'Controller: dropdown menus', ->
->>>>>>> CSV
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
@@ -823,23 +818,14 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     '''
 
     # Assert that the arrow is there
-<<<<<<< HEAD
     strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
-=======
-    strictEqual editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width, 90
->>>>>>> CSV
 
     # no-throw
     editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
     editor.showDropdown()
-<<<<<<< HEAD
     start()
 
   asyncTest 'Controller: dropdown menus with functions', ->
-=======
-
-  test 'Controller: dropdown menus with functions', ->
->>>>>>> CSV
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
@@ -865,16 +851,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     '''
 
     # Assert that the arrow is there
-<<<<<<< HEAD
     strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
-=======
-    strictEqual editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width, 90
->>>>>>> CSV
 
     # no-throw
     editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
     editor.showDropdown()
-<<<<<<< HEAD
     start()
-=======
->>>>>>> CSV

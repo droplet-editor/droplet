@@ -25,12 +25,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
   # wrapper on the above functions
   # and a given parser function.
   exports.Parser = class Parser
-<<<<<<< HEAD
     constructor: (@text, opts) ->
       @opts = helper.extend({}, opts)
-=======
-    constructor: (@text, @opts = {}) ->
->>>>>>> CSV
       convertFunction = (x) ->
         if (typeof x is 'string') or x instanceof String
           return {text: x, display: x}

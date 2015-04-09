@@ -34,7 +34,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'Math.min'    : {value: true}
     'Math.random' : {value: true}
 
-<<<<<<< HEAD
   CATEGORIES = {
     functions: {color: 'purple'}
     returns: {color: 'yellow'}
@@ -90,14 +89,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'BreakStatement': 'returns'
     'ThrowStatement': 'returns'
     'TryStatement': 'returns'
-=======
-  COLORS = {
-    'BinaryExpression': 'value'
-    'UnaryExpression': 'value'
-    'FunctionExpression': 'value'
-    'FunctionDeclaration': 'purple'
-    'AssignmentExpression': 'command'
->>>>>>> CSV
     'CallExpression': 'command'
     'SequenceExpression': 'command'
     'Identifier': 'value'
@@ -247,11 +238,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'CallExpression'
           known = @lookupFunctionName node
           if not known
-<<<<<<< HEAD
             return @opts.categories.command.color
-=======
-            return 'purple'
->>>>>>> CSV
           else if known.fn.color
             return known.fn.color
           else if known.fn.value and not known.fn.command

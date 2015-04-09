@@ -162,7 +162,6 @@ functions: {
         }
       }
     }
-<<<<<<< HEAD
 },
 
 categories: {
@@ -178,8 +177,6 @@ categories: {
     value: {color: 'green'}
     command: {color: 'blue'}
     errors: {color: '#f00'}
-=======
->>>>>>> CSV
 }
 ```
 
@@ -189,9 +186,6 @@ Each function is associated with a configuration object.  It can specify:
 - (specify both value and command if it can be both).
 - color: colorname to set the color of the block.  If omitted, a default color is chosen.
 - dropdown: specify dropdowns for specific arguments of a function. This can be either an array of strings, an array of objects with `text` (actual value) and `display` (html to display in the dropdown) properties, or a function that returns one of these.
-<<<<<<< HEAD
 
 In addition, there are categories of built-in language constructs.  Each
 of these can specify a color.
-=======
->>>>>>> CSV
