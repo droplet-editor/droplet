@@ -21,6 +21,16 @@ define ->
     window.String.prototype.trimRight = ->
       @replace /\s+$/, ''
 
+  # Like $.extend
+  exports.extend = (target) ->
+    sources = [].slice.call(arguments, 1);
+    sources.forEach (source) ->
+      if source
+        Object.getOwnPropertyNames(source).forEach (prop) ->
+          Object.defineProperty(target, prop,
+              Object.getOwnPropertyDescriptor(source, prop))
+    return target
+
   exports.xmlPrettyPrint = (str) ->
     result = ''
     xmlParser = sax.parser true

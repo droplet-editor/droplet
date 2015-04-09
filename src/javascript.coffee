@@ -34,32 +34,64 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'Math.min'    : {value: true}
     'Math.random' : {value: true}
 
-  COLORS = {
-    'BinaryExpression': 'value'
-    'UnaryExpression': 'value'
-    'FunctionExpression': 'value'
-    'FunctionDeclaration': 'purple'
-    'AssignmentExpression': 'command'
+  CATEGORIES = {
+    functions: {color: 'purple'}
+    returns: {color: 'yellow'}
+    comments: {color: 'gray'}
+    arithmetic: {color: 'green'}
+    logic: {color: 'cyan'}
+    containers: {color: 'teal'}
+    assignments: {color: 'blue'}
+    loops: {color: 'orange'}
+    conditionals: {color: 'orange'}
+    value: {color: 'green'}
+    command: {color: 'blue'}
+    errors: {color: '#f00'}
+  }
+
+  LOGICAL_OPERATORS = {
+    '==': true
+    '!=': true
+    '===': true
+    '!==': true
+    '<': true
+    '<=': true
+    '>': true
+    '>=': true
+    'in': true
+    'instanceof': true
+    '||': true
+    '&&': true
+    '!': true
+  }
+
+  NODE_CATEGORIES = {
+    'BinaryExpression': 'arithmetic'  # actually, some are logic
+    'UnaryExpression': 'arithmetic'   # actually, some are logic
+    'ConditionalExpression': 'arithmetic'
+    'LogicalExpression': 'logic'
+    'FunctionExpression': 'functions'
+    'FunctionDeclaration': 'functions'
+    'AssignmentExpression': 'assignments'
+    'UpdateExpression': 'assignments'
+    'VariableDeclaration': 'assignments'
+    'ReturnStatement': 'returns'
+    'IfStatement': 'conditionals'
+    'SwitchStatement': 'conditionals'
+    'ForStatement': 'loops'
+    'ForInStatement': 'loops'
+    'WhileStatement': 'loops'
+    'DoWhileStatement': 'loops'
+    'NewExpression': 'containers'
+    'ObjectExpression': 'containers'
+    'ArrayExpression': 'containers'
+    'MemberExpression': 'containers'
+    'BreakStatement': 'returns'
+    'ThrowStatement': 'returns'
+    'TryStatement': 'returns'
     'CallExpression': 'command'
-    'ReturnStatement': 'return'
-    'MemberExpression': 'value'
-    'IfStatement': 'control'
-    'ForStatement': 'control'
-    'ForInStatement': 'control'
-    'UpdateExpression': 'command'
-    'VariableDeclaration': 'command'
-    'LogicalExpression': 'value'
-    'WhileStatement': 'control'
-    'DoWhileStatement': 'control'
-    'ObjectExpression': 'value'
-    'SwitchStatement': 'control'
-    'BreakStatement': 'return'
-    'NewExpression': 'command'
-    'ThrowStatement': 'return'
-    'TryStatement': 'control'
-    'ArrayExpression': 'value'
     'SequenceExpression': 'command'
-    'ConditionalExpression': 'value'
+    'Identifier': 'value'
   }
 
   # See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
@@ -102,10 +134,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   DEFAULT_INDENT_DEPTH = '  '
 
   exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
-    constructor: (@text, @opts = {}) ->
+    constructor: (@text, opts) ->
       super
 
       @opts.functions ?= KNOWN_FUNCTIONS
+      @opts.categories = helper.extend({}, CATEGORIES, @opts.categories)
 
       @lines = @text.split '\n'
 
@@ -121,7 +154,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
       @mark 0, tree, 0, null
 
     fullFunctionNameArray: (node) ->
-      if node.type isnt 'CallExpression' then throw new Error
+      if node.type isnt 'CallExpression' and node.type isnt 'NewExpression'
+        throw new Error
       obj = node.callee
       props = []
       while obj.type is 'MemberExpression'
@@ -186,6 +220,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         else
           return 0
 
+    lookupCategory: (node) ->
+      switch node.type
+        when 'BinaryExpression', 'UnaryExpression'
+          if LOGICAL_OPERATORS.hasOwnProperty node.operator
+            category = 'logic'
+          else
+            category = 'arithmetic'
+        else
+          category = NODE_CATEGORIES[node.type]
+      return @opts.categories[category]
+
     getColor: (node) ->
       switch node.type
         when 'ExpressionStatement'
@@ -193,15 +238,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         when 'CallExpression'
           known = @lookupFunctionName node
           if not known
-            return 'purple'
+            return @opts.categories.command.color
           else if known.fn.color
             return known.fn.color
           else if known.fn.value and not known.fn.command
-            return 'value'
+            return @opts.categories.value.color
           else
-            return 'command'
+            return @opts.categories.command.color
         else
-          return COLORS[node.type]
+          category = @lookupCategory node
+          return category?.color or 'command'
 
     getSocketLevel: (node) -> helper.ANY_DROP
 
