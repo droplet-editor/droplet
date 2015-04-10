@@ -460,7 +460,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
 
           # Fake-remove backticks hack
           else if node.base.nodeType() is 'Literal' and
-              node.base.value is ''
+              (node.base.value is '' or node.base.value is @empty)
             fakeBlock =
                 @csBlock node.base, depth, 0, wrappingParen, ANY_DROP
             fakeBlock.flagToRemove = true
@@ -1008,6 +1008,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     lines.splice n + 1, 0, leading[0] + '  ``'
 
   CoffeeScriptParser.empty = "``"
+  CoffeeScriptParser.emptyIndent = "``"
 
   CoffeeScriptParser.drop = (block, context, pred) ->
     if context.type is 'socket'
