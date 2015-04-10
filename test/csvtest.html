@@ -1,0 +1,191 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="../vendor/qunit.css"/>
+    <style>
+      #hidden {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        height: 300px;
+        width: 500px;
+      }
+    </style>
+  </head>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <div id="hidden">
+    <canvas id="main"></canvas>
+    <div id="test-main">
+    </div>
+    <div id="test-palette">
+    </div>
+  </div>
+  <script src="../vendor/require.js"></script>
+  <script src="../vendor/ace/ace.js"></script>
+  <script src="../dist/droplet-full.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="../vendor/qunit.js"></script>
+<script>
+require([
+  'droplet-helper',
+  'droplet-csv',
+  'droplet'],
+function(helper, CSV, droplet) {
+
+  asyncTest('CSV simplest checking', function() {
+    var csv, customSerialization, expectedSerialization;
+    csv = new CSV();
+    customSerialization = csv.parse(
+        '1997,Ford,E350').serialize();
+    expectedSerialization =
+        '<segment' +
+        '  isLassoSegment="false"' +
+        '><block' +
+        '  precedence="1"' +
+        '  color="cyan"' +
+        '  socketLevel="0"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '><socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>1997</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>Ford</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>E350</socket' +
+        '></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'CSV simplest checking');
+    start();
+  });
+
+  asyncTest('CSV non-editable whitespace', function() {
+    var csv, customSerialization, expectedSerialization;
+    csv = new CSV();
+    customSerialization = csv.parse(
+        '1997 , Ford  ,  E350').serialize();
+    expectedSerialization =
+        '<segment' +
+        '  isLassoSegment="false"' +
+        '><block' +
+        '  precedence="1"' +
+        '  color="cyan"' +
+        '  socketLevel="0"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '><socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>1997</socket' +
+        '> , <socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>Ford</socket' +
+        '>  ,  <socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>E350</socket' +
+        '></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'CSV non-editable whitespace');
+    start();
+  });
+
+  asyncTest('CSV quoted comma and space', function() {
+    var csv, customSerialization, expectedSerialization;
+    csv = new CSV();
+    customSerialization = csv.parse(
+        '1997,Ford,  " E350","Super, luxurious truck"').serialize();
+    expectedSerialization =
+        '<segment' +
+        '  isLassoSegment="false"' +
+        '><block' +
+        '  precedence="1"' +
+        '  color="cyan"' +
+        '  socketLevel="0"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '><socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>1997</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>Ford</socket' +
+        '>,  <socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>" E350"</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>"Super, luxurious truck"</socket' +
+        '></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'CSV quoted comma and space');
+    start();
+  });
+
+  asyncTest('CSV quote escaping', function() {
+    var csv, customSerialization, expectedSerialization;
+    csv = new CSV();
+    customSerialization = csv.parse(
+        '1997,Ford,E350,"Super, ""luxurious"" truck"').serialize();
+    expectedSerialization =
+        '<segment' +
+        '  isLassoSegment="false"' +
+        '><block' +
+        '  precedence="1"' +
+        '  color="cyan"' +
+        '  socketLevel="0"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '><socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>1997</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>Ford</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>E350</socket' +
+        '>,<socket' +
+        '  precedence="1"' +
+        '  handwritten="false"' +
+        '  classes="mostly-value no-drop add-button subtract-button"' +
+        '>"Super, ""luxurious"" truck"</socket' +
+        '></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'CSV quote escaping');
+    start();
+  });
+
+});
+</script>
+</html>
