@@ -4,7 +4,7 @@
 ###
 
 define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, model) ->
-  
+
   exports = {}
 
   COLORS = {
@@ -14,7 +14,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
   CLASSES = ['mostly-value', 'no-drop', 'add-button', 'subtract-button']
 
   exports.CSVParser = class CSVParser extends parser.Parser
-    
+
     constructor: (@text, @opts = {}) ->
       super
       @lines = @text.split '\n'
@@ -134,7 +134,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     else
       return helper.ENCOURAGE
 
-  CSVParser.normalString = (str) ->
+  CSVParser.escapeString = (str) ->
     has_quotes = ((str[0] is str.slice -1) and str[0] in ['"', '\''])
     if has_quotes
       tmp = str.match(/\"+/g)
@@ -191,7 +191,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     else
       return '"' + str + '"'
     ###
-  
+
     ###
     console.log start, str, end
     tmp = str.replace(/([^\"]+)(\")([^\"]+)/g, '$1$2$2$3')

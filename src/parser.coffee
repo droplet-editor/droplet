@@ -477,12 +477,15 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     else
       return helper.ENCOURAGE
 
-  Parser.normalString = (str) ->
-    str.trim()
-
   Parser.escapeString = (str) ->
     str = str.trim()
-    str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
+    try
+      newParse = @parse(unparsedValue = str, wrapAtRoot: false)
+    catch
+      if str[0] is str[str.length - 1] and str[0] in ['"', '\'']
+        try
+          str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
+    return str
 
   Parser.handleButton = (text, lineNumber, classes) ->
     return text
@@ -523,8 +526,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         return [leading, trailing]
 
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
-
-      normalString: (str) -> CustomParser.normalString str
 
       escapeString: (str) -> CustomParser.escapeString str
 

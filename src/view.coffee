@@ -26,8 +26,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   DROP_TRIANGLE_COLOR = '#555'
 
   DEFAULT_OPTIONS =
-    buttonWidth: 13
-    buttonHeight: 13
+    buttonWidth: 15
+    buttonHeight: 15
     buttonPadding: 10
     buttonOffset: 5
     padding: 5
@@ -139,7 +139,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         when 'socket' then new SocketViewNode model, this
         when 'segment' then new SegmentViewNode model, this
         when 'cursor' then new CursorViewNode model, this
-      
+
     # Looks up a color name, or passes through a #hex color.
     getColor: (color) ->
       if color and '#' is color.charAt(0)
@@ -1671,11 +1671,11 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         ctx.fillStyle = '#000'
 
         if 'add-button' in @model.classes
-          @addButtonRect.stroke(ctx, '#000')
+          @addButtonRect.toPath().draw ctx
           ctx.fillText '+', @addButtonRect.x + 2, @addButtonRect.y
           start += @view.opts.buttonWidth + @view.opts.buttonPadding
         if 'subtract-button' in @model.classes
-          @subtractButtonRect.stroke(ctx, '#000')
+          @subtractButtonRect.toPath().draw ctx
           ctx.fillText '-', @subtractButtonRect.x + 2, @subtractButtonRect.y
 
       shouldAddTab: ->

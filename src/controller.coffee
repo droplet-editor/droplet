@@ -973,12 +973,12 @@ define ['droplet-helper',
       lineNumber = @findLineNumberAtCoordinate(mainPoint.y)
 
       if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-        console.log "Plus on: ", lineNumber
+        #console.log "Plus on: ", lineNumber
         line = @mode.handleButton @getValue().split('\n')[lineNumber], 'add-button'
         @populateBlock hitTestResult, line
         state.consumedHitTest = true
       else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-        console.log "Minus on: ", lineNumber
+        #console.log "Minus on: ", lineNumber
         line = @mode.handleButton @getValue().split('\n')[lineNumber], 'subtract-button'
         @populateBlock hitTestResult, line
         state.consumedHitTest = true
@@ -1878,15 +1878,10 @@ define ['droplet-helper',
       # value.
       unless @textFocus.handwritten
         newParse = null
-        string = @mode.normalString @textFocus.stringify(@mode.empty)
+        string = @mode.escapeString @textFocus.stringify(@mode.empty)
         try
           newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-        catch
-          if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
-            try
-              string = @mode.escapeString string
-              newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-              @populateSocket @textFocus, string
+          @populateSocket @textFocus, string
 
         if newParse? and newParse.start.next.type is 'blockStart' and
             newParse.start.next.container.end.next is newParse.end
@@ -4035,7 +4030,7 @@ define ['droplet-helper',
 
     if line of @lineNumberTags
       lineDiv = @lineNumberTags[line]
-      
+
     else
       lineDiv = document.createElement 'div'
       lineDiv.className = 'droplet-gutter-line'
@@ -4045,7 +4040,7 @@ define ['droplet-helper',
     lineDiv.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @fontSize + 'px'
-    
+
     @lineNumberWrapper.appendChild lineDiv
 
   Editor::findLineNumberAtCoordinate = (coord) ->
