@@ -238,7 +238,7 @@ define ['droplet-helper'], (helper) ->
     # the tokens that we contain.
     stringify: (config) ->
       emptySocket = config.empty or ''
-      emptyIndent = config.emptyIndent or config.empty
+      emptyIndent = config.emptyIndent or ''
       str = ''
 
       head = @start.next
