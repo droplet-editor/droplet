@@ -113,10 +113,10 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       console.log j
     '''
 
-    strictEqual document.getBlockOnLine(1).stringify(coffee.empty), 'console.log i', 'line 1'
-    strictEqual document.getBlockOnLine(3).stringify(coffee.empty), 'console.log k', 'line 3'
-    strictEqual document.getBlockOnLine(5).stringify(coffee.empty), 'console.log q', 'line 5'
-    strictEqual document.getBlockOnLine(7).stringify(coffee.empty), 'console.log j', 'line 7'
+    strictEqual document.getBlockOnLine(1).stringify(coffee), 'console.log i', 'line 1'
+    strictEqual document.getBlockOnLine(3).stringify(coffee), 'console.log k', 'line 3'
+    strictEqual document.getBlockOnLine(5).stringify(coffee), 'console.log q', 'line 5'
+    strictEqual document.getBlockOnLine(7).stringify(coffee), 'console.log j', 'line 7'
     start()
 
   asyncTest 'Location serialization unity', ->
@@ -142,7 +142,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log world
     for i in [1..10]
       console.log hello
@@ -150,7 +150,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log hello
     console.log world
     for i in [1..10]
@@ -159,7 +159,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log world
     for i in [1..10]
       console.log hello
@@ -167,7 +167,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log (for i in [1..10]
       console.log hello)
     ''', 'Move for into socket (req. paren wrap)'
@@ -183,7 +183,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(2).moveTo document.getBlockOnLine(1).end.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     for i in [1..10]
       for i in [1..10]
         alert 10
@@ -198,13 +198,13 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log 1 + (Math.sqrt 2)
     ''', 'Wrap'
 
     block.moveTo document.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     Math.sqrt 2
     console.log 1 + ``''', 'Unwrap'
     start()
@@ -257,7 +257,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     documentView.layout()
 
     indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-    strictEqual indentView.lineChildren[1][0].child.stringify(coffee.empty), 'alert 10', 'Relative line numbers'
+    strictEqual indentView.lineChildren[1][0].child.stringify(coffee), 'alert 10', 'Relative line numbers'
 
     document = coffee.parse '''
     console.log (for [1..10]
@@ -370,7 +370,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
 
-    strictEqual socketView.model.stringify(coffee.empty), '[[[]]]', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee), '[[[]]]', 'Correct block selected'
 
     strictEqual socketView.dimensions[0].height,
       view_.opts.textHeight + 6 * view_.opts.padding,
@@ -441,7 +441,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
 
-    strictEqual socketView.model.stringify(coffee.empty), '\'hi\'', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee), '\'hi\'', 'Correct block selected'
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 
@@ -785,7 +785,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     key = editor.mark 2, 4, {color: '#F00'}
 
-    strictEqual editor.markedBlocks[key].model.stringify(), '10 - 10'
+    strictEqual editor.markedBlocks[key].model.stringify({}), '10 - 10'
     strictEqual editor.markedBlocks[key].style.color, '#F00'
 
     editor.unmark key

@@ -568,5 +568,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     return helper.DISCOURAGE
 
   JavaScriptParser.empty = "__"
+  JavaScriptParser.emptyIndent = ""
 
   return parser.wrapParser JavaScriptParser

@@ -1241,7 +1241,7 @@ define ['droplet-helper',
 
   Editor::reparseRawReplace = (oldBlock) ->
     try
-      newParse = @mode.parse(oldBlock.stringify(@mode.empty), wrapAtRoot: true)
+      newParse = @mode.parse(oldBlock.stringify(@mode), wrapAtRoot: true)
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
@@ -1593,7 +1593,7 @@ define ['droplet-helper',
       hoverDiv = document.createElement 'div'
       hoverDiv.className = 'droplet-hover-div'
 
-      hoverDiv.title = data.title ? block.stringify(@mode.empty)
+      hoverDiv.title = data.title ? block.stringify(@mode)
 
       bounds = @view.getViewNodeFor(block).totalBounds
 
@@ -1723,7 +1723,7 @@ define ['droplet-helper',
 
   # Redraw function for text input
   Editor::redrawTextInput = ->
-    sameLength = @textFocus.stringify(@mode.empty).split('\n').length is @hiddenInput.value.split('\n').length
+    sameLength = @textFocus.stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
 
     # Set the value in the model to fit
     # the hidden input value.
@@ -1733,8 +1733,8 @@ define ['droplet-helper',
 
     # Determine the coordinate positions
     # of the typing cursor
-    startRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n').length - 1
-    endRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n').length - 1
+    startRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
     # Redraw the main canvas, on top of
     # which we will draw the cursor and
@@ -1789,17 +1789,17 @@ define ['droplet-helper',
 
     # Determine the coordinate positions
     # of the typing cursor
-    startRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n').length - 1
-    endRow = @textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n').length - 1
+    startRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
+    endRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-    lines = @textFocus.stringify(@mode.empty).split '\n'
+    lines = @textFocus.stringify(@mode).split '\n'
 
     startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionStart].split('\n'))).width +
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
       (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
     endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-      @mainCtx.measureText(last_(@textFocus.stringify(@mode.empty)[...@hiddenInput.selectionEnd].split('\n'))).width +
+      @mainCtx.measureText(last_(@textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
       (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
     # Now draw the highlight/typing cursor
@@ -1860,7 +1860,7 @@ define ['droplet-helper',
       @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue, @
       @oldFocusValue = null
 
-      originalText = @textFocus.stringify(@mode.empty)
+      originalText = @textFocus.stringify(@mode)
       shouldPop = false
       shouldRecoverCursor = false
       cursorPosition = cursorParent = null
@@ -1874,7 +1874,7 @@ define ['droplet-helper',
       # value.
       unless @textFocus.handwritten
         newParse = null
-        string = @textFocus.stringify(@mode.empty).trim()
+        string = @textFocus.stringify(@mode).trim()
         try
           newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
         catch
@@ -1922,14 +1922,14 @@ define ['droplet-helper',
       return
 
     # Record old focus value
-    @oldFocusValue = focus.stringify(@mode.empty)
+    @oldFocusValue = focus.stringify(@mode)
 
     # Now create a text token
     # with the appropriate text to put in it.
     @textFocus = focus
 
     # Immediately rerender.
-    @populateSocket focus, focus.stringify(@mode.empty)
+    @populateSocket focus, focus.stringify(@mode)
 
     @textFocus.notifyChange()
 
@@ -1937,7 +1937,7 @@ define ['droplet-helper',
     @moveCursorTo focus.end
 
     # Set the hidden input up to mirror the text.
-    @hiddenInput.value = @textFocus.stringify(@mode.empty)
+    @hiddenInput.value = @textFocus.stringify(@mode)
 
     if selectionStart? and not selectionEnd?
       selectionEnd = selectionStart
@@ -1993,7 +1993,7 @@ define ['droplet-helper',
 
     column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
-    lines = @textFocus.stringify(@mode.empty).split('\n')[..row]
+    lines = @textFocus.stringify(@mode).split('\n')[..row]
     lines[lines.length - 1] = lines[lines.length - 1][...column]
 
     return lines.join('\n').length
@@ -2005,8 +2005,8 @@ define ['droplet-helper',
   Editor::selectDoubleClick = (point) ->
     position = @getTextPosition point
 
-    before = @textFocus.stringify(@mode.empty)[...position].match(/\w*$/)[0]?.length ? 0
-    after = @textFocus.stringify(@mode.empty)[position..].match(/^\w*/)[0]?.length ? 0
+    before = @textFocus.stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
+    after = @textFocus.stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
 
     @textInputAnchor = position - before
     @textInputHead = position + after
@@ -3685,7 +3685,7 @@ define ['droplet-helper',
 
       newParse = @mode.parse value, wrapAtRoot: true
 
-      if value isnt @tree.stringify(@mode.empty)
+      if value isnt @tree.stringify(@mode)
         @addMicroUndoOperation 'CAPTURE_POINT'
       @addMicroUndoOperation new SetValueOperation @tree, newParse
 
@@ -3725,7 +3725,7 @@ define ['droplet-helper',
 
   Editor::getValue = ->
     if @currentlyUsingBlocks
-      return @addEmptyLine @tree.stringify(@mode.empty)
+      return @addEmptyLine @tree.stringify(@mode)
     else
       @getAceValue()
 
@@ -4222,7 +4222,7 @@ define ['droplet-helper',
         window.scrollTo(x, y)
 
         if @lassoSegment?
-          @copyPasteInput.value = @lassoSegment.stringify(@mode.empty)
+          @copyPasteInput.value = @lassoSegment.stringify(@mode)
         @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
   hook 'keyup', 0, (point, event, state) ->

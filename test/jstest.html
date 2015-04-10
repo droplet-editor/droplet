@@ -229,6 +229,17 @@ function(helper, JavaScript, droplet) {
         'JS Custom colors work');
     start();
   });
+
+  asyncTest('JS empty indents', function() {
+    var customJS, customSerialization, code, stringifiedJS;
+    customJS = new JavaScript();
+    code = 'if (__) {\n\n}';
+    customSerialization = customJS.parse('if (__) {\n\n}');
+    stringifiedJS = customSerialization.stringify(customJS);
+    strictEqual(code, stringifiedJS);
+    start();
+  });
+
 });
 </script>
 </html>
