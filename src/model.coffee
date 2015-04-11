@@ -719,6 +719,7 @@ define ['droplet-helper'], (helper) ->
     constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
       @start = new BlockStartToken this
       @end = new BlockEndToken this
+
       @type = 'block'
 
       super

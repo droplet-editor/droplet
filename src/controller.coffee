@@ -4017,8 +4017,10 @@ define ['droplet-helper',
     @gutter.appendChild @lineNumberWrapper
 
     @gutterVersion = -1
-    @dropletElement.appendChild @gutter
+
     @lineNumberTags = {}
+
+    @dropletElement.appendChild @gutter
 
   Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
@@ -4035,6 +4037,7 @@ define ['droplet-helper',
       lineDiv = document.createElement 'div'
       lineDiv.className = 'droplet-gutter-line'
       lineDiv.innerText = lineDiv.textContent = line + 1
+
       @lineNumberTags[line] = lineDiv
 
     lineDiv.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"

@@ -101,7 +101,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     #   parenWrapped: Boolean
     # }
     addBlock: (opts) ->
-      #opts.bounds.end.column += 4
       block = new model.Block opts.precedence,
         opts.color,
         opts.socketLevel,
@@ -109,19 +108,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         false
 
       @addMarkup block, opts.bounds, opts.depth
-      ###
-      newopts = JSON.parse(JSON.stringify(opts))
-      newopts.bounds.end.column -= 2
-      newopts.bounds.start.column = newopts.bounds.end.column - 2
-      socket = new model.Socket newopts.precedence, false, newopts.classes
-
-      newopts2 = JSON.parse(JSON.stringify(opts))
-      newopts2.bounds.start.column = newopts2.bounds.end.column - 2
-      socket2 = new model.Socket newopts2.precedence, false, newopts2.classes
-
-      @addMarkup socket, newopts.bounds, newopts.depth + 1
-      @addMarkup socket2, newopts2.bounds, newopts2.depth + 1
-      ###
 
     # ## addSocket ##
     # addSocket takes {
@@ -220,7 +206,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     # Construct a handwritten block with the given
     # text inside
     constructHandwrittenBlock: (text) ->
-      block = new model.Block 0, 'blank', helper.ANY_DROP
+      block = new model.Block 0, 'blank', helper.ANY_DROP, false
       socket = new model.Socket 0, true
       textToken = new model.TextToken text
 
@@ -352,9 +338,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
           unless lastIndex >= line.length
             head = head.append new model.TextToken(line[lastIndex...line.length])
 
-          #head = head.append new model.AddButtonToken()
-          #head = head.append new model.SubtractButtonToken()
-
           # Append the needed newline token
           head = head.append new model.NewlineToken()
 
@@ -411,8 +394,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
     parser.onclosetag = (nodeName) ->
       if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
-        container = stack[stack.length - 1].container
-        head = head.append container.end
+        head = head.append stack[stack.length - 1].container.end
         stack.pop()
 
     parser.onerror = (e) ->
