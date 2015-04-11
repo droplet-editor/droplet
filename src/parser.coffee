@@ -473,11 +473,13 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     return text
 
   Parser.empty = ''
+  Parser.emptyIndent = ''
 
   exports.wrapParser = (CustomParser) ->
     class CustomParserFactory extends ParserFactory
       constructor: (@opts = {}) ->
         @empty = CustomParser.empty
+        @emptyIndent = CustomParser.emptyIndent
 
       createParser: (text) -> new CustomParser text, @opts
 
