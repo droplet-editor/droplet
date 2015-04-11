@@ -1671,12 +1671,20 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         ctx.fillStyle = '#000'
 
         if 'add-button' in @model.classes
-          @addButtonRect.toPath().draw ctx
-          ctx.fillText '+', @addButtonRect.x + 2, @addButtonRect.y
+          path = @addButtonRect.toPath()
+          path.style.fillColor = "#0F0"
+          path.bevel = true;
+          path.draw ctx
+          ctx.fillStyle = "#000"
+          ctx.fillText '+', @addButtonRect.x + 3, @addButtonRect.y
           start += @view.opts.buttonWidth + @view.opts.buttonPadding
         if 'subtract-button' in @model.classes
-          @subtractButtonRect.toPath().draw ctx
-          ctx.fillText '-', @subtractButtonRect.x + 2, @subtractButtonRect.y
+          path = @subtractButtonRect.toPath()
+          path.style.fillColor = "#F00"
+          path.bevel = true;
+          path.draw ctx
+          ctx.fillStyle = "#000"
+          ctx.fillText '-', @subtractButtonRect.x + 3, @subtractButtonRect.y
 
       shouldAddTab: ->
         if @model.parent?
