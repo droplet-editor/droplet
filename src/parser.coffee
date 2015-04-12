@@ -469,7 +469,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
           str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
     return str
 
-  Parser.handleButton = (text, lineNumber, classes) ->
+  Parser.handleButton = (text, command, classes) ->
     return text
 
   Parser.empty = ''
@@ -513,6 +513,6 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
       escapeString: (str) -> CustomParser.escapeString str
 
-      handleButton: (text, lineNumber, classes) -> CustomParser.handleButton text, lineNumber, classes
+      handleButton: (text, command, classes) -> CustomParser.handleButton text, command, classes
 
   return exports

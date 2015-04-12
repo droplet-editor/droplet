@@ -970,16 +970,14 @@ define ['droplet-helper',
 
     if hitTestResult?
       hitTestBlock = @view.getViewNodeFor hitTestResult
-      lineNumber = @findLineNumberAtCoordinate(mainPoint.y)
+      str = hitTestResult.stringify(@mode)
 
       if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-        #console.log "Plus on: ", lineNumber
-        line = @mode.handleButton @getValue().split('\n')[lineNumber], 'add-button'
+        line = @mode.handleButton str, 'add-button', hitTestResult.classes
         @populateBlock hitTestResult, line
         state.consumedHitTest = true
       else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-        #console.log "Minus on: ", lineNumber
-        line = @mode.handleButton @getValue().split('\n')[lineNumber], 'subtract-button'
+        line = @mode.handleButton str, 'subtract-button', hitTestResult.classes
         @populateBlock hitTestResult, line
         state.consumedHitTest = true
 
@@ -1972,8 +1970,8 @@ define ['droplet-helper',
     newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
 
     if newBlock?.start?.next?
-      block.start.append newBlock.start.next
-      newBlock.end.prev.append block.end
+      block.start.prev.append newBlock.start
+      newBlock.end.append block.end.next
       block.notifyChange()
       @redrawMain()
 

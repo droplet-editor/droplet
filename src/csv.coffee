@@ -11,7 +11,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     'Default': 'cyan'
   }
 
-  CLASSES = ['mostly-value', 'no-drop', 'add-button', 'subtract-button']
+  CLASSES = ['mostly-value', 'no-drop']
 
   exports.CSVParser = class CSVParser extends parser.Parser
 
@@ -23,7 +23,14 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
 
     getPrecedence: (node) -> 1
 
-    getClasses: (node) -> CLASSES
+    getClasses: (node) ->
+      switch node.type
+        when 'Statement'
+          return CLASSES.concat 'add-button', 'subtract-button'
+        when 'EmptyStatement'
+          return CLASSES.concat 'add-button'
+
+      return CLASSES
 
     getColor: (node) -> COLORS['Default']
 
@@ -63,7 +70,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
       @mark root
 
     mark: (node) ->
-      if node.type is 'Statement'
+      if node.type is 'Statement' or node.type is 'EmptyStatement'
         @csvBlock node
       else if node.type is 'Value'
         @csvSocket node
@@ -96,8 +103,10 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
       if type is 'Tree'
         text = text.split '\n'
         for row, i in text
-          if (row.length is 0) or (@isComment row)
+          if @isComment row
             node.children.push @getNode(row, 'Comment', i, 0, row.length)
+          else if row.length is 0
+            node.children.push @getNode(row, 'EmptyStatement', i, 0, row.length)
           else
             node.children.push @getNode(row, 'Statement', i, 0, row.length)
       else if type is 'Statement'
@@ -159,25 +168,25 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
     str = newstr
     return str
 
-  CSVParser.handleButton = (line, type) ->
+  CSVParser.handleButton = (text, command, classes) ->
     isComment = (str) ->
       str.match(/^\s*\/\/.*$/)
 
-    if 'add-button' is type
-      if not isComment line
-        if line is '' then line = '" "' else line += '," "'
+    if command is 'add-button'
+      if not isComment text
+        if text is '' then text = '" "' else text += '," "'
 
-    else if 'subtract-button' is type
-      if not isComment line
+    else if command is 'subtract-button'
+      if not isComment text
         in_quotes = false
-        for i in [line.length-1..1] by -1
-          if line[i] is '"'
+        for i in [text.length-1..1] by -1
+          if text[i] is '"'
             in_quotes = !in_quotes
-          else if line[i] is ',' and not in_quotes
+          else if text[i] is ',' and not in_quotes
             break;
-        line = line.slice 0, i
+        text = text.slice 0, i
 
-    return line
+    return text
 
     ###
 
