@@ -1970,6 +1970,7 @@ define ['droplet-helper',
     newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
 
     if newBlock?.start?.next?
+      @textFocus = null
       block.start.prev.append newBlock.start
       newBlock.end.append block.end.next
       block.notifyChange()
