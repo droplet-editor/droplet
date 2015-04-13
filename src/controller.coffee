@@ -140,6 +140,8 @@ define ['droplet-helper',
   exports.Editor = class Editor
     constructor: (@wrapperElement, @options) ->
       @paletteGroups = @options.palette
+      @showPaletteInTextMode = @options.showPaletteInTextMode ? false
+      @paletteEnabled = @options.enablePaletteAtStart ? true
 
       @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -331,9 +333,13 @@ define ['droplet-helper',
     resizeBlockMode: ->
       @resizeTextMode()
 
-      @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
       @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
-      @dropletElement.style.width ="#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      if @paletteEnabled
+        @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
+        @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      else
+        @dropletElement.style.left = "0px"
+        @dropletElement.style.width = "#{@wrapperElement.offsetWidth}px"
 
       @resizeGutter()
 
@@ -1662,9 +1668,20 @@ define ['droplet-helper',
 
     @hiddenInput.addEventListener 'focus', =>
       if @textFocus?
+        # Must ensure that @hiddenInput is within the client area
+        # or else the other divs under @dropletElement will scroll out of
+        # position when @hiddenInput receives keystrokes with focus
+        # (left and top should not be closer than 10 pixels from the edge)
+
         bounds = @view.getViewNodeFor(@textFocus).bounds[0]
-        @hiddenInput.style.left = (bounds.x + @mainCanvas.offsetLeft) + 'px'
-        @hiddenInput.style.top = bounds.y + 'px'
+        inputLeft = bounds.x + @mainCanvas.offsetLeft - @scrollOffsets.main.x
+        inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
+        inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
+        @hiddenInput.style.left = inputLeft + 'px'
+        inputTop = bounds.y - @scrollOffsets.main.y
+        inputTop = Math.min inputTop, @dropletElement.clientHeight - 10
+        inputTop = Math.max 0, inputTop
+        @hiddenInput.style.top = inputTop + 'px'
 
     @dropletElement.appendChild @hiddenInput
 
@@ -1695,7 +1712,11 @@ define ['droplet-helper',
           @redrawTextInput()
 
   Editor::resizeAceElement = ->
-    @aceElement.style.width = "#{@wrapperElement.offsetWidth}px"
+    width = @wrapperElement.offsetWidth
+    if @showPaletteInTextMode and @paletteEnabled
+      width -= @paletteElement.offsetWidth
+
+    @aceElement.style.width = "#{width}px"
     @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
 
   last_ = (array) -> array[array.length - 1]
@@ -3032,9 +3053,6 @@ define ['droplet-helper',
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
-      # Move the palette header into the background
-      @paletteHeader.style.zIndex = 0
-
       # Compute where the text will end up
       # in the ace editor
       {textElements, translationVectors} = @computePlaintextTranslationVectors()
@@ -3118,28 +3136,38 @@ define ['droplet-helper',
         @highlightCanvas.style.opacity =
         @cursorCanvas.style.opacity = 0
 
-      setTimeout (=>
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
+      paletteDisappearingWithMelt = @paletteEnabled and not @showPaletteInTextMode
 
-        @dropletElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
-      ), fadeTime
+      if paletteDisappearingWithMelt
+        # Move the palette header into the background
+        @paletteHeader.style.zIndex = 0
+
+        setTimeout (=>
+          @dropletElement.style.transition =
+            @paletteWrapper.style.transition = "left #{translateTime}ms"
+
+          @dropletElement.style.left = '0px'
+          @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        ), fadeTime
 
       setTimeout (=>
         # Translate the ICE editor div out of frame.
         @dropletElement.style.transition =
           @paletteWrapper.style.transition = ''
 
+        # Translate the ACE editor div into frame.
+        @aceElement.style.top = '0px'
+        if @showPaletteInTextMode and @paletteEnabled
+          @aceElement.style.left = @paletteWrapper.style.width
+        else
+          @aceElement.style.left = '0px'
+
+        if paletteDisappearingWithMelt
+          @paletteWrapper.style.top = '-9999px'
+          @paletteWrapper.style.left = '-9999px'
+
         @dropletElement.style.top = '-9999px'
         @dropletElement.style.left = '-9999px'
-
-        @paletteWrapper.style.top = '-9999px'
-        @paletteWrapper.style.left = '-9999px'
-
-        # Translate the ACE editor div into frame.
-        @aceElement.style.top = "0px"
-        @aceElement.style.left = "0px"
 
         # Finalize a bunch of animations
         # that should be complete by now,
@@ -3193,13 +3221,18 @@ define ['droplet-helper',
         @aceElement.style.top = "-9999px"
         @aceElement.style.left = "-9999px"
 
-        @paletteWrapper.style.top = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        paletteAppearingWithFreeze = @paletteEnabled and not @showPaletteInTextMode
+
+        if paletteAppearingWithFreeze
+          @paletteWrapper.style.top = '0px'
+          @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+          @paletteHeader.style.zIndex = 0
 
         @dropletElement.style.top = "0px"
-        @dropletElement.style.left = "0px"
-
-        @paletteHeader.style.zIndex = 0
+        if @paletteEnabled
+          @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        else
+          @dropletElement.style.left = "0px"
 
         {textElements, translationVectors} = @computePlaintextTranslationVectors()
 
@@ -3287,11 +3320,12 @@ define ['droplet-helper',
 
         ), translateTime
 
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = "left #{fadeTime}ms"
+        @dropletElement.style.transition = "left #{fadeTime}ms"
 
-        @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
-        @paletteWrapper.style.left = '0px'
+        if paletteAppearingWithFreeze
+          @paletteWrapper.style.transition = @dropletElement.style.transition
+          @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+          @paletteWrapper.style.left = '0px'
 
         setTimeout (=>
           @dropletElement.style.transition =
@@ -3318,6 +3352,60 @@ define ['droplet-helper',
       ), 0
 
       return success: true
+
+  Editor::enablePalette = (enabled) ->
+    if not @currentlyAnimating and @paletteEnabled != enabled
+      @paletteEnabled = enabled
+      @currentlyAnimating = true
+
+      if @currentlyUsingBlocks
+        activeElement = @dropletElement
+      else
+        activeElement = @aceElement
+
+      if not @paletteEnabled
+        activeElement.style.transition =
+          @paletteWrapper.style.transition = "left 500ms"
+
+        activeElement.style.left = '0px'
+        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+
+        @paletteHeader.style.zIndex = 0
+
+        @resize()
+
+        setTimeout (=>
+          activeElement.style.transition =
+            @paletteWrapper.style.transition = ''
+
+          @paletteWrapper.style.top = '-9999px'
+          @paletteWrapper.style.left = '-9999px'
+
+          @currentlyAnimating = false
+        ), 500
+
+      else
+        @paletteWrapper.style.top = '0px'
+        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        @paletteHeader.style.zIndex = 257
+
+        setTimeout (=>
+          activeElement.style.transition =
+            @paletteWrapper.style.transition = "left 500ms"
+
+          activeElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+          @paletteWrapper.style.left = '0px'
+
+          setTimeout (=>
+            activeElement.style.transition =
+              @paletteWrapper.style.transition = ''
+
+            @resize()
+
+            @currentlyAnimating = false
+          ), 500
+        ), 0
+
 
   Editor::toggleBlocks = (cb) ->
     if @currentlyUsingBlocks

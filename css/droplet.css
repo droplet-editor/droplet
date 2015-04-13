@@ -133,6 +133,11 @@
   z-index: -999;
   opacity: 0;
   -webkit-touch-callout: none;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: 0;
 }
 .droplet-hover-div {
   position: absolute;
