@@ -130,7 +130,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
 
       return node
 
-  CSVParser.empty = '" "'
+  CSVParser.empty = '""'
 
   CSVParser.parens = (leading, trailing, node, context) ->
     #console.log context.id, node
@@ -164,7 +164,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
       newstr = '"' + newstr + '"'
 
     if newstr.length is 0
-      newstr = '" "'
+      newstr = '""'
     str = newstr
     return str
 
@@ -174,7 +174,7 @@ define ['droplet-helper', 'droplet-parser', 'droplet-model'], (helper, parser, m
 
     if command is 'add-button'
       if not isComment text
-        if text is '' then text = '" "' else text += '," "'
+        if text is '' then text = '""' else text += ',""'
 
     else if command is 'subtract-button'
       if not isComment text
