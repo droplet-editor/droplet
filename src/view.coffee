@@ -28,8 +28,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   DEFAULT_OPTIONS =
     buttonWidth: 15
     buttonHeight: 15
-    buttonPadding: 10
-    buttonOffset: 5
+    buttonPadding: 6
     padding: 5
     indentWidth: 10
     indentTongueHeight: 10
@@ -1664,27 +1663,24 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       drawSelf: (ctx, style) ->
         super
 
-        start = @totalBounds.x + @totalBounds.width - @extraWidth
-
-        ctx.textBaseline = 'top'
-        ctx.font = @view.opts.textHeight + 'px '
-        ctx.fillStyle = '#000'
+        drawButton = (text, rect, ctx) =>
+          path = rect.toPath().reverse()
+          path.style.fillColor = @view.getColor @model.color
+          path.bevel = true;
+          path.draw ctx
+          textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
+          dx = rect.width - textElement.bounds().width
+          dy = rect.height - @view.opts.textHeight
+          console.log dx, dy
+          textElement.translate
+            x: rect.x + Math.ceil(dx / 2)
+            y: rect.y + Math.ceil(dy)
+          textElement.draw ctx
 
         if 'add-button' in @model.classes
-          path = @addButtonRect.toPath()
-          path.style.fillColor = "#0F0"
-          path.bevel = true;
-          path.draw ctx
-          ctx.fillStyle = "#000"
-          ctx.fillText '+', @addButtonRect.x + 3, @addButtonRect.y
-          start += @view.opts.buttonWidth + @view.opts.buttonPadding
+          drawButton '+', @addButtonRect, ctx
         if 'subtract-button' in @model.classes
-          path = @subtractButtonRect.toPath()
-          path.style.fillColor = "#F00"
-          path.bevel = true;
-          path.draw ctx
-          ctx.fillStyle = "#000"
-          ctx.fillText '-', @subtractButtonRect.x + 3, @subtractButtonRect.y
+          drawButton '-', @subtractButtonRect, ctx
 
       shouldAddTab: ->
         if @model.parent?
@@ -1697,10 +1693,10 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         super
         start = @totalBounds.x + @totalBounds.width - @extraWidth
         if 'add-button' in @model.classes
-          @addButtonRect = new @view.draw.Rectangle start + @view.opts.buttonOffset, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+          @addButtonRect = new @view.draw.Rectangle start, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
           start += @view.opts.buttonWidth + @view.opts.buttonPadding
         if 'subtract-button' in @model.classes
-          @subtractButtonRect = new @view.draw.Rectangle start + @view.opts.buttonOffset, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+          @subtractButtonRect = new @view.draw.Rectangle start, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
 
       computeOwnPath: ->
         super
