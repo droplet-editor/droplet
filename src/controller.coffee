@@ -394,6 +394,34 @@ define ['droplet-helper',
 
       @rebuildPalette()
 
+    debugModel: (model) ->
+      text = ''
+      cur = model.start
+      while cur
+        token = ''
+        switch cur.type
+          when 'blockStart'
+            token = '|bs|'
+          when 'text'
+            token = cur.value
+          when 'blockEnd'
+            token = '|be|'
+          when 'cursor'
+            token = '|c|'
+          when 'segmentEnd'
+            token = '|se|'
+          when 'newline'
+            token = '|nl|'
+          else
+            throw 'unexpected: ' + cur.type
+
+        text += token
+        cur = cur.next
+      return text
+
+
+
+
 
   Editor::resize = ->
     if @currentlyUsingBlocks
@@ -834,33 +862,31 @@ define ['droplet-helper',
       return clone.end
 
   Editor::spliceOut = (node) ->
-    leading = node.getLeadingText()
-    if node.start.next is node.end.prev
-      trailing = null
-    else
-      trailing = node.getTrailingText()
-
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(), null
-
-    node.setLeadingText leading; node.setTrailingText trailing
-
+    @prepareNode node, null
     node.spliceOut()
 
   Editor::spliceIn = (node, location) ->
+    container = location.container ? location.visParent()
+    if container.type is 'block'
+      container = container.visParent()
+
+    @prepareNode node, container
+    node.spliceIn location
+
+
+  Editor::prepareNode = (node, context) ->
     leading = node.getLeadingText()
     if node.start.next is node.end.prev
       trailing = null
     else
       trailing = node.getTrailingText()
 
-    container = location.container ? location.visParent()
-
     [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
-      (if container.type is 'block' then container.visParent() else container)?.getReader?() ? null
+      context?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
 
-    node.spliceIn location
+
 
   # At population-time, we will
   # want to set up a few fields.
@@ -1192,6 +1218,8 @@ define ['droplet-helper',
       return
 
     if not @currentlyUsingBlocks
+      @prepareNode @draggingBlock, null
+
       # TODO handle multiline
       text = ''
       cur = @draggingBlock.start
