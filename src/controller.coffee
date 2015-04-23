@@ -1111,67 +1111,76 @@ define ['droplet-helper',
   # translate the drag canvas into place,
   # as well as highlighting any focused drop areas.
   hook 'mousemove', 0, (point, event, state) ->
-    if @draggingBlock?
-      # Translate the drag canvas into position.
-      position = new @draw.Point(
-        point.x + @draggingOffset.x,
-        point.y + @draggingOffset.y
-      )
+    if not @draggingBlock?
+      return
 
-      rect = @wrapperElement.getBoundingClientRect()
+    if not @currentlyUsingBlocks
+      # get top left of dragging block
+      topLeftX = event.clientX + @draggingOffset.x
+      topLeftY = event.clientY + @draggingOffset.y
+      pos = @aceEditor.renderer.screenToTextCoordinates topLeftX, topLeftY
+      @aceEditor.session.selection.moveToPosition pos
 
-      @dragCanvas.style.top = "#{position.y - rect.top}px"
-      @dragCanvas.style.left = "#{position.x - rect.left}px"
+    # Translate the drag canvas into position.
+    position = new @draw.Point(
+      point.x + @draggingOffset.x,
+      point.y + @draggingOffset.y
+    )
 
-      mainPoint = @trackerPointToMain(position)
+    rect = @wrapperElement.getBoundingClientRect()
 
-      best = null; min = Infinity
+    @dragCanvas.style.top = "#{position.y - rect.top}px"
+    @dragCanvas.style.left = "#{position.x - rect.left}px"
 
-      # Check to see if the tree is empty;
-      # if it is, drop on the tree always
-      head = @tree.start.next
-      while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
-        head = head.next
+    mainPoint = @trackerPointToMain(position)
 
-      if head is @tree.end and
-          @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
-          @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
-        @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
-        @lastHighlight = @tree
+    best = null; min = Infinity
 
-      else
-        # Find the closest droppable block
-        testPoints = @dropPointQuadTree.retrieve {
-          x: mainPoint.x - MAX_DROP_DISTANCE
-          y: mainPoint.y - MAX_DROP_DISTANCE
-          w: MAX_DROP_DISTANCE * 2
-          h: MAX_DROP_DISTANCE * 2
-        }, (point) =>
-          unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
-            distance = mainPoint.from(point)
-            distance.y *= 2; distance = distance.magnitude()
-            if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-               @view.getViewNodeFor(point._ice_node).highlightArea?
-              best = point._ice_node
-              min = distance
+    # Check to see if the tree is empty;
+    # if it is, drop on the tree always
+    head = @tree.start.next
+    while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
+      head = head.next
 
-        if best isnt @lastHighlight
-          @clearHighlightCanvas()
+    if head is @tree.end and
+        @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
+        @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
+      @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
+      @lastHighlight = @tree
 
-          if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+    else
+      # Find the closest droppable block
+      testPoints = @dropPointQuadTree.retrieve {
+        x: mainPoint.x - MAX_DROP_DISTANCE
+        y: mainPoint.y - MAX_DROP_DISTANCE
+        w: MAX_DROP_DISTANCE * 2
+        h: MAX_DROP_DISTANCE * 2
+      }, (point) =>
+        unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
+          distance = mainPoint.from(point)
+          distance.y *= 2; distance = distance.magnitude()
+          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+             @view.getViewNodeFor(point._ice_node).highlightArea?
+            best = point._ice_node
+            min = distance
 
-          @lastHighlight = best
+      if best isnt @lastHighlight
+        @clearHighlightCanvas()
 
-      palettePoint = @trackerPointToPalette position
+        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
 
-      if @wouldDelete(position)
-        if @begunTrash
-          @dragCanvas.style.opacity = 0.85
-        else
-          @dragCanvas.style.opacity = 0.3
-      else
+        @lastHighlight = best
+
+    palettePoint = @trackerPointToPalette position
+
+    if @wouldDelete(position)
+      if @begunTrash
         @dragCanvas.style.opacity = 0.85
-        @begunTrash = false
+      else
+        @dragCanvas.style.opacity = 0.3
+    else
+      @dragCanvas.style.opacity = 0.85
+      @begunTrash = false
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
