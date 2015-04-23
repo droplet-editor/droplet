@@ -1188,7 +1188,20 @@ define ['droplet-helper',
   hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
-    if @draggingBlock? and @lastHighlight?
+    if not @draggingBlock?
+      return
+
+    if not @currentlyUsingBlocks
+      # TODO handle multiline
+      text = ''
+      cur = @draggingBlock.start
+      while cur.next
+        cur = cur.next
+        if cur.value
+          text += cur.value
+      @aceEditor.onTextInput text
+    else if  @lastHighlight?
+
       if @inTree @draggingBlock
         # Since we removed this from the tree,
         # we will need to log an undo operation
