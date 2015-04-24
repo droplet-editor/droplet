@@ -394,34 +394,6 @@ define ['droplet-helper',
 
       @rebuildPalette()
 
-    debugModel: (model) ->
-      text = ''
-      cur = model.start
-      while cur
-        token = ''
-        switch cur.type
-          when 'blockStart'
-            token = '|bs|'
-          when 'text'
-            token = cur.value
-          when 'blockEnd'
-            token = '|be|'
-          when 'cursor'
-            token = '|c|'
-          when 'segmentEnd'
-            token = '|se|'
-          when 'newline'
-            token = '|nl|'
-          else
-            throw 'unexpected: ' + cur.type
-
-        text += token
-        cur = cur.next
-      return text
-
-
-
-
 
   Editor::resize = ->
     if @currentlyUsingBlocks
@@ -649,26 +621,25 @@ define ['droplet-helper',
     new @draw.Point(point.x - gbr.left + @scrollOffsets.palette.x,
                     point.y - gbr.top + @scrollOffsets.palette.y)
 
-  Editor::trackerPointIsInMain = (point) ->
-    if not @mainCanvas.offsetParent?
+  Editor::trackerPointIsInElement = (point, element) ->
+    if not element.offsetParent?
       return false
-    gbr = @mainCanvas.getBoundingClientRect()
+    gbr = element.getBoundingClientRect()
     return point.x >= gbr.left and point.x < gbr.right and
            point.y >= gbr.top and point.y < gbr.bottom
+
+  Editor::trackerPointIsInMain = (point) ->
+    return this.trackerPointIsInElement point, @mainCanvas
 
   Editor::trackerPointIsInMainScroller = (point) ->
-    if not @mainScroller.offsetParent?
-      return false
-    gbr = @mainScroller.getBoundingClientRect()
-    return point.x >= gbr.left and point.x < gbr.right and
-           point.y >= gbr.top and point.y < gbr.bottom
+    return this.trackerPointIsInElement point, @mainScroller
 
   Editor::trackerPointIsInPalette = (point) ->
-    if not @paletteCanvas.offsetParent?
-      return false
-    gbr = @paletteCanvas.getBoundingClientRect()
-    return point.x >= gbr.left and point.x < gbr.right and
-           point.y >= gbr.top and point.y < gbr.bottom
+    return this.trackerPointIsInElement point, @paletteCanvas
+
+  Editor::trackerPointIsInAce = (point) ->
+    return this.trackerPointIsInElement point, @aceElement
+
 
   # ### hitTest
   # Simple function for going through a linked-list block
@@ -1137,76 +1108,75 @@ define ['droplet-helper',
   # translate the drag canvas into place,
   # as well as highlighting any focused drop areas.
   hook 'mousemove', 0, (point, event, state) ->
-    if not @draggingBlock?
-      return
+    if @draggingBlock?
+      # Translate the drag canvas into position.
+      position = new @draw.Point(
+        point.x + @draggingOffset.x,
+        point.y + @draggingOffset.y
+      )
 
-    if not @currentlyUsingBlocks
-      # get top left of dragging block
-      topLeftX = event.clientX + @draggingOffset.x
-      topLeftY = event.clientY + @draggingOffset.y
-      pos = @aceEditor.renderer.screenToTextCoordinates topLeftX, topLeftY
-      @aceEditor.session.selection.moveToPosition pos
+      if not @currentlyUsingBlocks
+        if @trackerPointIsInAce position
+          pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
+          @aceEditor.focus()
+          @aceEditor.session.selection.moveToPosition pos
+        else
+          @aceEditor.blur()
 
-    # Translate the drag canvas into position.
-    position = new @draw.Point(
-      point.x + @draggingOffset.x,
-      point.y + @draggingOffset.y
-    )
+      rect = @wrapperElement.getBoundingClientRect()
 
-    rect = @wrapperElement.getBoundingClientRect()
+      @dragCanvas.style.top = "#{position.y - rect.top}px"
+      @dragCanvas.style.left = "#{position.x - rect.left}px"
 
-    @dragCanvas.style.top = "#{position.y - rect.top}px"
-    @dragCanvas.style.left = "#{position.x - rect.left}px"
+      mainPoint = @trackerPointToMain(position)
 
-    mainPoint = @trackerPointToMain(position)
+      best = null; min = Infinity
 
-    best = null; min = Infinity
+      # Check to see if the tree is empty;
+      # if it is, drop on the tree always
+      head = @tree.start.next
+      while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
+        head = head.next
 
-    # Check to see if the tree is empty;
-    # if it is, drop on the tree always
-    head = @tree.start.next
-    while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
-      head = head.next
+      if head is @tree.end and
+          @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
+          @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
+        @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
+        @lastHighlight = @tree
 
-    if head is @tree.end and
-        @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
-        @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
-      @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
-      @lastHighlight = @tree
-
-    else
-      # Find the closest droppable block
-      testPoints = @dropPointQuadTree.retrieve {
-        x: mainPoint.x - MAX_DROP_DISTANCE
-        y: mainPoint.y - MAX_DROP_DISTANCE
-        w: MAX_DROP_DISTANCE * 2
-        h: MAX_DROP_DISTANCE * 2
-      }, (point) =>
-        unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
-          distance = mainPoint.from(point)
-          distance.y *= 2; distance = distance.magnitude()
-          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-             @view.getViewNodeFor(point._ice_node).highlightArea?
-            best = point._ice_node
-            min = distance
-
-      if best isnt @lastHighlight
-        @clearHighlightCanvas()
-
-        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
-
-        @lastHighlight = best
-
-    palettePoint = @trackerPointToPalette position
-
-    if @wouldDelete(position)
-      if @begunTrash
-        @dragCanvas.style.opacity = 0.85
       else
-        @dragCanvas.style.opacity = 0.3
-    else
-      @dragCanvas.style.opacity = 0.85
-      @begunTrash = false
+        # Find the closest droppable block
+        testPoints = @dropPointQuadTree.retrieve {
+          x: mainPoint.x - MAX_DROP_DISTANCE
+          y: mainPoint.y - MAX_DROP_DISTANCE
+          w: MAX_DROP_DISTANCE * 2
+          h: MAX_DROP_DISTANCE * 2
+        }, (point) =>
+          unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
+            distance = mainPoint.from(point)
+            distance.y *= 2; distance = distance.magnitude()
+            if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+               @view.getViewNodeFor(point._ice_node).highlightArea?
+              best = point._ice_node
+              min = distance
+
+        if best isnt @lastHighlight
+          @clearHighlightCanvas()
+
+          if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+
+          @lastHighlight = best
+
+      palettePoint = @trackerPointToPalette position
+
+      if @wouldDelete(position)
+        if @begunTrash
+          @dragCanvas.style.opacity = 0.85
+        else
+          @dragCanvas.style.opacity = 0.3
+      else
+        @dragCanvas.style.opacity = 0.85
+        @begunTrash = false
 
   hook 'mouseup', 0, ->
     clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
@@ -1214,80 +1184,76 @@ define ['droplet-helper',
   hook 'mouseup', 1, (point, event, state) ->
     # We will consume this event iff we dropped it successfully
     # in the root tree.
-    if not @draggingBlock?
-      return
+    if @draggingBlock?
+      if not @currentlyUsingBlocks
+        position = new @draw.Point(
+          point.x + @draggingOffset.x,
+          point.y + @draggingOffset.y
+        )
 
-    if not @currentlyUsingBlocks
-      @prepareNode @draggingBlock, null
+        if @trackerPointIsInAce position
+          @prepareNode @draggingBlock, null
+          @aceEditor.onTextInput @draggingBlock.stringify @mode
+      else if  @lastHighlight?
 
-      # TODO handle multiline
-      text = ''
-      cur = @draggingBlock.start
-      while cur.next
-        cur = cur.next
-        if cur.value
-          text += cur.value
-      @aceEditor.onTextInput text
-    else if  @lastHighlight?
+        if @inTree @draggingBlock
+          # Since we removed this from the tree,
+          # we will need to log an undo operation
+          # to put it back in.
+          @addMicroUndoOperation 'CAPTURE_POINT'
 
-      if @inTree @draggingBlock
-        # Since we removed this from the tree,
-        # we will need to log an undo operation
-        # to put it back in.
-        @addMicroUndoOperation 'CAPTURE_POINT'
+          @addMicroUndoOperation new PickUpOperation @draggingBlock
 
-        @addMicroUndoOperation new PickUpOperation @draggingBlock
+          # Remove the block from the tree.
+          @spliceOut @draggingBlock
 
-        # Remove the block from the tree.
-        @spliceOut @draggingBlock
+        @clearHighlightCanvas()
 
-      @clearHighlightCanvas()
+        # Depending on what the highlighted element is,
+        # we might want to drop the block at its
+        # beginning or at its end.
+        #
+        # We will need to log undo operations here too.
+        switch @lastHighlight.type
+          when 'indent', 'socket'
+            @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
+            @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+          when 'block'
+            @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
+            @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
+          else
+            if @lastHighlight is @tree
+              @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
+              @spliceIn @draggingBlock, @tree.start #MUTATION
 
-      # Depending on what the highlighted element is,
-      # we might want to drop the block at its
-      # beginning or at its end.
-      #
-      # We will need to log undo operations here too.
-      switch @lastHighlight.type
-        when 'indent', 'socket'
-          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
-        when 'block'
-          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
+        # Move the cursor to the position we just
+        # dropped the block
+        @moveCursorTo @draggingBlock.end, true
+
+        # Reparse the parent if we are
+        # in a socket
+        #
+        # TODO "reparseable" property, bubble up
+        # TODO performance on large programs
+        if @lastHighlight.type is 'socket'
+          @reparseRawReplace @draggingBlock.parent.parent
+
         else
-          if @lastHighlight is @tree
-            @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
-            @spliceIn @draggingBlock, @tree.start #MUTATION
+          # If what we've dropped has a socket in it,
+          # focus it.
+          head = @draggingBlock.start
+          until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
+            head = head.next
 
-      # Move the cursor to the position we just
-      # dropped the block
-      @moveCursorTo @draggingBlock.end, true
+          if head.type is 'socketStart'
+            @setTextInputFocus null
+            @setTextInputFocus head.container
 
-      # Reparse the parent if we are
-      # in a socket
-      #
-      # TODO "reparseable" property, bubble up
-      # TODO performance on large programs
-      if @lastHighlight.type is 'socket'
-        @reparseRawReplace @draggingBlock.parent.parent
+        # Fire the event for sound
+        @fireEvent 'block-click'
 
-      else
-        # If what we've dropped has a socket in it,
-        # focus it.
-        head = @draggingBlock.start
-        until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
-          head = head.next
-
-        if head.type is 'socketStart'
-          @setTextInputFocus null
-          @setTextInputFocus head.container
-
-      # Fire the event for sound
-      @fireEvent 'block-click'
-
-      # Now that we've done that, we can annul stuff.
-      @endDrag()
+        # Now that we've done that, we can annul stuff.
+        @endDrag()
 
   Editor::reparseRawReplace = (oldBlock) ->
     try
