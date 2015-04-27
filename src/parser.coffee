@@ -25,7 +25,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
   # wrapper on the above functions
   # and a given parser function.
   exports.Parser = class Parser
-    constructor: (@text, @opts = {}) ->
+    constructor: (@text, opts) ->
+      @opts = helper.extend({}, opts)
       convertFunction = (x) ->
         if (typeof x is 'string') or x instanceof String
           return {text: x, display: x}
@@ -458,11 +459,13 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
       return helper.ENCOURAGE
 
   Parser.empty = ''
+  Parser.emptyIndent = ''
 
   exports.wrapParser = (CustomParser) ->
     class CustomParserFactory extends ParserFactory
       constructor: (@opts = {}) ->
         @empty = CustomParser.empty
+        @emptyIndent = CustomParser.emptyIndent
 
       createParser: (text) -> new CustomParser text, @opts
 

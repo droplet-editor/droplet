@@ -33,9 +33,16 @@ require ['droplet'], (droplet) ->
     # Options for the CoffeeScript parser
     # (the JavaScript parser currently takes the same options)
     modeOptions: {
-      blockFunctions: ['fd', 'rt', 'lt', 'alert'] # Override which blocks turn blue (names not here will be purple and have editable names)
-      valueFunctions: ['sin', 'cos'] # Same for green blocks. Defaults are the pencilcode functions.
-      eitherFunctions: ['write', 'confirm']
+      functions: {
+        fd: { command: true, color: 'red'}
+        bk: { command: true, color: 'blue'}
+        sin: { command: false, value: true, color: 'green' }
+      }
+      categories: {
+        conditionals: { color: 'purple' }
+        loops: { color: 'green' }
+        functions: { color: '#49e' }
+      }
     }
 
     # Palette description
