@@ -1,11 +1,13 @@
 {
   "coffee-script": "../vendor/coffee-script",
+  "antlr":"../antlr/main-full",
   "acorn": "../vendor/acorn",
   "droplet-view": "view",
   "droplet-controller": "controller",
   "droplet-model": "model",
   "droplet-draw": "draw",
   "droplet-coffee": "coffee",
+  "droplet-java": "java",
   "droplet-javascript": "javascript",
   "droplet-parser": "parser",
   "droplet-helper": "helper",

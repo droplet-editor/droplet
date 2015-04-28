@@ -6,11 +6,13 @@
 define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
+    'droplet-java',
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
     coffee,
     javascript,
+    java,
     draw,
     model,
     view) ->
@@ -19,6 +21,7 @@ define ['droplet-helper',
     'coffeescript': coffee
     'coffee': coffee
     'javascript': javascript
+    'java': java
   }
 
   # ## Magic constants
@@ -144,8 +147,10 @@ define ['droplet-helper',
       @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
       if @options.mode of modes
+        console.log 'setting valid mode', @options.mode
         @mode = new modes[@options.mode] @options.modeOptions
       else
+        console.log 'setting invalid mode, default coffee'
         @mode = new coffee @options.modeOptions
 
       @draw = new draw.Draw()
