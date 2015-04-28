@@ -1186,14 +1186,33 @@ define ['droplet-helper',
     # in the root tree.
     if @draggingBlock?
       if not @currentlyUsingBlocks
+        # See if we can drop the block's text in ace mode.
         position = new @draw.Point(
           point.x + @draggingOffset.x,
           point.y + @draggingOffset.y
         )
 
         if @trackerPointIsInAce position
+          # Get the line of text we're dropping into
+          pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
+          line = @aceEditor.session.getLine pos.row
+          leadingWhitespace = /^(\s*)/.exec(line)[0]
+          prefix = ''
+          if pos.column == line.length and leadingWhitespace.length != line.length
+            # We're at the end of a non-empty line.
+            # Stick our inserted text on a new line
+            # with the same indentation
+            prefix = '\n' + leadingWhitespace
+
+          # Call prepareNode, which may append with a semicolon
           @prepareNode @draggingBlock, null
-          @aceEditor.onTextInput @draggingBlock.stringify @mode
+          text = prefix + @draggingBlock.stringify @mode
+
+          if not prefix and text[text.length - 1] == ';'
+            # Add a potentially indented new line if
+            # we didn't already do so.
+            text += '\n' + leadingWhitespace
+          @aceEditor.onTextInput text
       else if  @lastHighlight?
 
         if @inTree @draggingBlock

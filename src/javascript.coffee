@@ -515,9 +515,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
        node.type is 'segment'
       trailing trailing().replace(/;?\s*$/, '')
     else
-      # If we weren't given a context, assume we're in ace mode and also add a newline
-      lineEnd = ';' + (if context then '' else '\n')
-      trailing trailing().replace(/;?\s*$/, lineEnd)
+      trailing trailing().replace(/;?\s*$/, ';')
 
     if context is null or context.type isnt 'socket' or
         context.precedence > node.precedence
