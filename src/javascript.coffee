@@ -417,7 +417,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           if not known
             @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
           for argument, i in node.arguments
-            @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, known?.dropdown?[i]
+            @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
         when 'MemberExpression'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.object, depth + 1
@@ -497,7 +497,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         classes: @getClasses node
         socketLevel: @getSocketLevel node
 
-    jsSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes) ->
+    jsSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes, dropdown) ->
       unless node.type is 'BlockStatement'
         @addSocket
           bounds: bounds ? @getBounds node
@@ -505,6 +505,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           precedence: precedence
           classes: classes ? []
           accepts: @getAcceptsRule node
+          dropdown: dropdown
 
       @mark indentDepth, node, depth + 1, bounds
 
