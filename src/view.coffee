@@ -1656,7 +1656,8 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         for size, i in @minDimensions
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
-          size.width += @extraWidth
+
+        @minDimensions[@minDimensions.length - 1].width += @extraWidth
 
         return null
 
@@ -1671,7 +1672,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
           dx = rect.width - textElement.bounds().width
           dy = rect.height - @view.opts.textHeight
-          console.log dx, dy
+          #console.log dx, dy
           textElement.translate
             x: rect.x + Math.ceil(dx / 2)
             y: rect.y + Math.ceil(dy)
@@ -1691,12 +1692,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
       computePath: ->
         super
-        start = @totalBounds.x + @totalBounds.width - @extraWidth
+        console.log @bounds
+        lastRect = @bounds[@bounds.length - 1]
+        start = lastRect.x + lastRect.width - @extraWidth
         if 'add-button' in @model.classes
-          @addButtonRect = new @view.draw.Rectangle start, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+          @addButtonRect = new @view.draw.Rectangle start, lastRect.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
           start += @view.opts.buttonWidth + @view.opts.buttonPadding
         if 'subtract-button' in @model.classes
-          @subtractButtonRect = new @view.draw.Rectangle start, @totalBounds.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+          @subtractButtonRect = new @view.draw.Rectangle start, lastRect.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
 
       computeOwnPath: ->
         super
