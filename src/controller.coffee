@@ -2139,8 +2139,9 @@ define ['droplet-helper',
 
       location = @view.getViewNodeFor(@textFocus).bounds[0]
 
-      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y
-      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft
+      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
+      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+      @dropdownElement.style.minWidth = location.width + 'px'
 
   Editor::hideDropdown= ->
     @dropdownElement.style.display = 'none'
