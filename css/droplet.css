@@ -240,6 +240,7 @@
   opacity: 0.5;
 }
 .droplet-dropdown {
+  display: none;
   max-height: 150px;
   position: absolute;
   background-color: #FFF;
