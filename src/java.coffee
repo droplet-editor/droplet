@@ -25,10 +25,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
     isComment: (text) ->
       text.match(/^\s*\/\/.*$/)
 
-    markRoot: ->
+    markRoot: (context = 'compilationUnit') ->
       # Build the actual parse tree
       @parser.buildParseTrees = true
-      parseTree = @parser.compilationUnit()
+      parseTree = @parser[context]()
 
       # Parse
       @mark parseTree, '', 0
@@ -76,29 +76,41 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
       else if rule in SKIPS then return 'skip'
       else return 'block'
 
-    mark: (node, prefix, depth, pass, rule, context) ->
+    detNode: (node) -> @det(node.parser.ruleNames[node.ruleIndex])
+
+    getDropType: (context) -> ({
+      'block': 'mostly-value'
+      'indent': 'mostly-block'
+      'skip': 'mostly-block'
+    })[@detNode(context)]
+
+    mark: (node, prefix, depth, pass, rules, context) ->
       unless pass
         context = node.parentCtx
-        if node.rule?
-          rule = node.parser.ruleNames[node.ruleIndex]
 
+      rules ?= []
+      if node.ruleIndex?
+        rules.push node.parser.ruleNames[node.ruleIndex]
+
+      # Pass through to child
       if node.children? and node.children.length is 1
-        @mark node.children[0], prefix, depth, true, rule, context
+        @mark node.children[0], prefix, depth, true, rules, context
 
       else if node.children?
-        switch @det(node.parser.ruleNames[node.ruleIndex])
+        switch @detNode node
           when 'block'
-            if context? and
-                @det(context.parser.ruleNames[context.ruleIndex]) is 'block'
+            if context? and @detNode(context) is 'block'
               @addSocket
                 bounds: @getBounds(node)
                 depth: depth
-                classes: [rule]
+                classes: [rules[0]]
 
             @addBlock
               bounds: @getBounds(node)
               depth: depth + 1
               color: (COLORS[node.parser.ruleNames[node.ruleIndex]] ? 'violet')
+              classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
+              parseContext: rules[0]
 
           when 'indent'
             start = @getBounds(node.children[0]).start
@@ -123,10 +135,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
             oldPrefix = prefix
             prefix = @guessPrefix bounds
 
-            console.log "Prefix: '#{prefix}'", "OldPrefix: '#{oldPrefix}'"
-
-            console.log 'added prefix length', prefix[oldPrefix.length...prefix.length].length
-
             @addIndent
               bounds: bounds
               depth: depth
@@ -134,5 +142,14 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
 
         for child in node.children
           @mark child, prefix, depth + 2, false
+
+  JavaParser.drop = (block, context, pred) ->
+    if context.type is 'socket'
+      if context.classes[0] in block.classes
+        return helper.ENCOURAGE
+      else
+        return helper.DISCOURAGE
+
+  JavaParser.parens = (leading, trailing, node, context) ->
 
   return parser.wrapParser JavaParser

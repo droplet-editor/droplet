@@ -50,7 +50,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         wrapAtRoot: true
       }
       # Generate the list of tokens
-      do @markRoot
+      @markRoot opts.context
 
       # Sort by position and depth
       do @sortMarkup
@@ -105,6 +105,8 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         opts.socketLevel,
         opts.classes,
         false
+
+      block.parseContext = opts.parseContext # TODO unhack
 
       @addMarkup block, opts.bounds, opts.depth
 

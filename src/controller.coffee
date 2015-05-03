@@ -1240,7 +1240,10 @@ define ['droplet-helper',
 
   Editor::reparseRawReplace = (oldBlock) ->
     try
-      newParse = @mode.parse(oldBlock.stringify(@mode.empty), wrapAtRoot: true)
+      newParse = @mode.parse(oldBlock.stringify(@mode.empty), {
+        wrapAtRoot: true
+        context: oldBlock.parseContext
+      })
       newBlock = newParse.start.next.container
       if newParse.start.next.container.end is newParse.end.prev and
           newBlock?.type is 'block'
