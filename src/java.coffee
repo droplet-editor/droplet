@@ -6,9 +6,33 @@
 define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, model, parser, antlr) ->
   exports = {}
 
+  # CONFIG SECTION
   INDENTS = ['block', 'classBody']
-  SKIPS = ['compilationUnit']
-  COLORS = {}
+  SKIPS = ['compilationUnit',
+    'classDeclaration',
+    'memberDeclaration',
+    'constructorDeclaration',
+    'methodDeclaration',
+    'formalParameters',
+    'formalParameterList'
+  ]
+  PARENS = [
+    'statement'
+    'primary'
+  ]
+  SOCKET_TOKENS = [
+    'Identifier'
+    'IntegerLiteral'
+    'StringLiteral'
+  ]
+  COLORS = {
+    'typeDeclaration': 'control'
+    'classBodyDeclaration': 'control'
+    'variableDeclarator': 'command'
+    'formalParameter': 'command'
+    'statementExpression': 'command'
+    'expression': 'value'
+  }
 
   exports.JavaParser = class JavaParser extends parser.Parser
     constructor: (@text, @opts = {}) ->
@@ -74,9 +98,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
     det: (rule) ->
       if rule in INDENTS then return 'indent'
       else if rule in SKIPS then return 'skip'
+      else if rule in PARENS then return 'parens'
       else return 'block'
 
     detNode: (node) -> @det(node.parser.ruleNames[node.ruleIndex])
+    detToken: (node) -> if (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type] in SOCKET_TOKENS then 'socket' else 'none'
 
     getDropType: (context) -> ({
       'block': 'mostly-value'
@@ -84,9 +110,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
       'skip': 'mostly-block'
     })[@detNode(context)]
 
-    mark: (node, prefix, depth, pass, rules, context) ->
+    getColor: (rules) ->
+      for el, i in rules
+        if el of COLORS
+          return COLORS[el]
+      return 'violet'
+
+    mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
         context = node.parentCtx
+        while context? and @detNode(context) is 'skip'
+          context = context.parentCtx
 
       rules ?= []
       if node.ruleIndex?
@@ -94,23 +128,61 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
 
       # Pass through to child
       if node.children? and node.children.length is 1
-        @mark node.children[0], prefix, depth, true, rules, context
+        @mark node.children[0], prefix, depth, true, rules, context, wrap
 
       else if node.children?
         switch @detNode node
           when 'block'
+            if wrap?
+              bounds = @getBounds wrap
+            else
+              bounds = @getBounds node
+
             if context? and @detNode(context) is 'block'
               @addSocket
-                bounds: @getBounds(node)
+                bounds: bounds
                 depth: depth
                 classes: [rules[0]]
 
             @addBlock
-              bounds: @getBounds(node)
+              bounds: bounds
               depth: depth + 1
-              color: (COLORS[node.parser.ruleNames[node.ruleIndex]] ? 'violet')
+              color: @getColor rules
               classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
-              parseContext: rules[0]
+              parseContext: (if wrap? then wrap.parser.ruleNames[wrap.ruleIndex] else rules[0])
+
+          when 'parens'
+            # Parens are assumed to wrap the only child that has children
+            child = null; ok = true
+            for el, i in node.children
+              if el.children?
+                if child?
+                  ok = false
+                  break
+                else
+                  child = el
+            if ok
+              @mark child, prefix, depth, true, rules, context, wrap ? node
+              return
+
+            else
+              if wrap?
+                bounds = @getBounds wrap
+              else
+                bounds = @getBounds node
+
+              if context? and @detNode(context) is 'block'
+                @addSocket
+                  bounds: bounds
+                  depth: depth
+                  classes: [rules[0]]
+
+              @addBlock
+                bounds: bounds
+                depth: depth + 1
+                color: @getColor rules
+                classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
+                parseContext: (if wrap? then wrap.parser.ruleNames[wrap.ruleIndex] else rules[0])
 
           when 'indent'
             start = @getBounds(node.children[0]).start
@@ -119,7 +191,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                 break
               else
                 start = @getBounds(child).end
-                console.log child.symbol.toString(), @getBounds(child).end
 
             end = @getBounds(node.children[node.children.length - 1]).end
             for child, i in node.children by -1
@@ -142,6 +213,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
 
         for child in node.children
           @mark child, prefix, depth + 2, false
+      else if context? and @detNode(context) is 'block'
+        if @detToken(node) is 'socket'
+          @addSocket
+            bounds: @getBounds node
+            depth: depth
+            classes: [rules[0]]
 
   JavaParser.drop = (block, context, pred) ->
     if context.type is 'socket'

@@ -3,17 +3,19 @@ JavaLexer = require './JavaLexer'
 JavaParser = require './JavaParser'
 
 input = '''
-class Vector {
+public class Vector {
   double x, y;
   public Vector (double _x, double _y) {
-    x = _x; y = _y;
+    x = 'hello';
   }
-  public mag() {
+  /*
+  public int mag() {
     return Math.sqrt(x * x + y * y);
   }
-  public add(Vector other) {
+  public int add(Vector other) {
     return new Vector(other.x + x, other.y + y);
   }
+  */
 }
 '''
 
@@ -29,6 +31,7 @@ print = (el, indent) ->
     console.log indent + parser.ruleNames[el.ruleIndex] + "(#{el.start.line}:#{el.start.column}, #{el.stop.line}:#{el.stop.column})"
   else
     console.log indent + el.symbol
+    console.log parser.symbolicNames[el.symbol.type]
   if el.children?
     for child in el.children
       print(child, '--' + indent)
