@@ -7,12 +7,14 @@ define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
     'droplet-java',
+    'droplet-c',
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
     coffee,
     javascript,
     java,
+    cmode,
     draw,
     model,
     view) ->
@@ -22,6 +24,7 @@ define ['droplet-helper',
     'coffee': coffee
     'javascript': javascript
     'java': java
+    'c': cmode
   }
 
   # ## Magic constants

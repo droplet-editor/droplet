@@ -8,6 +8,8 @@
   "droplet-draw": "draw",
   "droplet-coffee": "coffee",
   "droplet-java": "java",
+  "droplet-c": "c",
+  "droplet-antlr-parser": "antlr",
   "droplet-javascript": "javascript",
   "droplet-parser": "parser",
   "droplet-helper": "helper",
