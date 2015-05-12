@@ -1202,11 +1202,18 @@ define ['droplet-helper',
             # We're at the end of a non-empty line.
             # Stick our inserted text on a new line
             # with the same indentation
-            prefix = '\n' + leadingWhitespace
+            prefix = '\n'
 
           # Call prepareNode, which may append with a semicolon
           @prepareNode @draggingBlock, null
-          text = prefix + @draggingBlock.stringify @mode
+          text = @draggingBlock.stringify @mode
+
+          # add leadingWhitespace to each line
+          text = text.split('\n').map((line, index) =>
+            return (if index == 0 then '' else leadingWhitespace) + line
+          ).join('\n')
+
+          text = prefix + text
 
           if not prefix and text[text.length - 1] == ';'
             # Add a potentially indented new line if
