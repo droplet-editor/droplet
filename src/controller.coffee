@@ -8,6 +8,8 @@ define ['droplet-helper',
     'droplet-javascript',
     'droplet-java',
     'droplet-c',
+    'droplet-objc',
+    'droplet-scala',
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
@@ -15,6 +17,8 @@ define ['droplet-helper',
     javascript,
     java,
     cmode,
+    objc,
+    scala,
     draw,
     model,
     view) ->
@@ -25,6 +29,8 @@ define ['droplet-helper',
     'javascript': javascript
     'java': java
     'c': cmode
+    'objc': objc
+    'scala': scala
   }
 
   # ## Magic constants

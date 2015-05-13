@@ -1,18 +1,19 @@
 antlr4 = require 'antlr4'
-CLexer = require './CLexer'
-CParser = require './CParser'
+JavaLexer = require './JavaLexer'
+JavaParser = require './JavaParser'
 
 input = '''
-int main(int n, char* args[]) {
-  int i = 1 + 2 + 3;
-  return 0;
+public class Test {
+  public Test() {
+    (a + 1) = (1 + 2 + (3 + 4));
+  }
 }
 '''
 
 chars = new antlr4.InputStream input
-lexer = new CLexer.CLexer chars
+lexer = new JavaLexer.JavaLexer chars
 tokens = new antlr4.CommonTokenStream lexer
-parser = new CParser.CParser tokens
+parser = new JavaParser.JavaParser tokens
 parser.buildParseTrees = true
 parseTree = parser.compilationUnit()
 

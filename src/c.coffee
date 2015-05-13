@@ -13,7 +13,7 @@ define ['droplet-parser', 'droplet-antlr-parser'], (parser, antlrHelper) ->
     'parameterList',
     'argumentExpressionList',
     'initDeclaratorList']
-  PARENS = ['expressionStatement']
+  PARENS = ['expressionStatement', 'primaryExpression']
   SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'Constant']
   COLORS_FORWARD = {
     'statement': 'command'

@@ -9,6 +9,8 @@
   "droplet-coffee": "coffee",
   "droplet-java": "java",
   "droplet-c": "c",
+  "droplet-objc": "objc",
+  "droplet-scala": "scala",
   "droplet-antlr-parser": "antlr",
   "droplet-javascript": "javascript",
   "droplet-parser": "parser",

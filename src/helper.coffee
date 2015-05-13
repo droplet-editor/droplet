@@ -93,6 +93,11 @@ define ->
       fontMetricsCache[fontStyle] = result
     return result
 
+  exports.clipLines = (lines, start, end) ->
+    lines[start.row][start.col..] +
+    lines[start.row + 1...end.row].join('\n') +
+    lines[end.row][..end.col]
+
   exports.getFontHeight = (family, size) ->
     metrics = fontMetrics family, size
     return metrics.descent - metrics.prettytop

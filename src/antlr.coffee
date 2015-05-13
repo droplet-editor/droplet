@@ -6,7 +6,52 @@
 define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, model, parser, antlr) ->
   exports = {}
 
-  exports.createANTLRParser = (config, name) ->
+  exports.createANTLRParser = (config, name, root) ->
+    root ?= 'compilationUnit'
+
+    getBounds = (node) ->
+      if node.start? and node.stop?
+        return {
+          start: {
+            line: node.start.line - 1
+            column: node.start.column
+          }
+          end: {
+            line: node.stop.line - 1
+            column: node.stop.column + node.stop.stop - node.stop.start + 1
+          }
+        }
+      else
+        return {
+          start: {
+            line: node.symbol.line - 1
+            column: node.symbol.column
+          }
+          end: {
+            line: node.symbol.line - 1
+            column: node.symbol.column + node.symbol.stop - node.symbol.start + 1
+          }
+        }
+
+    removeParens = (text, expressionType) ->
+      chars = new antlr.antlr4.InputStream(text)
+      lexer = new antlr["#{name}Lexer"]["#{name}Lexer"](chars)
+      tokens = new antlr.antlr4.CommonTokenStream(lexer)
+      parser = new antlr["#{name}Parser"]["#{name}Parser"](tokens)
+
+      lines = text.split '\n'
+
+      parser.buildParseTrees = true
+      parseTree = parser[expressionType]()
+      while parseTree.children? and
+            parseTree.children.length is 1 and
+            parseTree.parser.ruleNames[parseTree.ruleIndex] is expressionType
+        parseTree = parseTree.children[0]
+
+      {start, end} = getBounds parseTree
+
+      return helper.clipText lines, start, end
+
     class ANTLRParser extends parser.Parser
       constructor: (@text, @opts = {}) ->
         super
@@ -22,7 +67,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
       isComment: (text) ->
         text.match(/^\s*\/\/.*$/)
 
-      markRoot: (context = 'compilationUnit') ->
+      markRoot: (context = root) ->
         # Build the actual parse tree
         @parser.buildParseTrees = true
         parseTree = @parser[context]()
@@ -44,29 +89,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
             max = val
         return best
 
-      getBounds: (node) ->
-        if node.start? and node.stop?
-          return {
-            start: {
-              line: node.start.line - 1
-              column: node.start.column
-            }
-            end: {
-              line: node.stop.line - 1
-              column: node.stop.column + node.stop.stop - node.stop.start + 1
-            }
-          }
-        else
-          return {
-            start: {
-              line: node.symbol.line - 1
-              column: node.symbol.column
-            }
-            end: {
-              line: node.symbol.line - 1
-              column: node.symbol.column + node.symbol.stop - node.symbol.start + 1
-            }
-          }
 
       det: (rule) ->
         if rule in config.INDENTS then return 'indent'
@@ -75,7 +97,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
         else return 'block'
 
       detNode: (node) -> @det(node.parser.ruleNames[node.ruleIndex])
-      detToken: (node) -> if (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type] in config.SOCKET_TOKENS then 'socket' else 'none'
+      detToken: (node) ->
+        if node.symbol?
+          if (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type] in config.SOCKET_TOKENS then 'socket' else 'none'
+        else 'none'
 
       getDropType: (context) -> ({
         'block': 'mostly-value'
@@ -110,15 +135,15 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
           switch @detNode node
             when 'block'
               if wrap?
-                bounds = @getBounds wrap
+                bounds = getBounds wrap
               else
-                bounds = @getBounds node
+                bounds = getBounds node
 
               if context? and @detNode(context) is 'block'
                 @addSocket
                   bounds: bounds
                   depth: depth
-                  classes: [rules[0]]
+                  classes: rules
 
               @addBlock
                 bounds: bounds
@@ -143,15 +168,15 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
 
               else
                 if wrap?
-                  bounds = @getBounds wrap
+                  bounds = getBounds wrap
                 else
-                  bounds = @getBounds node
+                  bounds = getBounds node
 
                 if context? and @detNode(context) is 'block'
                   @addSocket
                     bounds: bounds
                     depth: depth
-                    classes: [rules[0]]
+                    classes: rules
 
                 @addBlock
                   bounds: bounds
@@ -161,17 +186,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                   parseContext: (if wrap? then wrap.parser.ruleNames[wrap.ruleIndex] else rules[0])
 
             when 'indent'
-              start = @getBounds(node.children[0]).start
+              start = getBounds(node.children[0]).start
               for child, i in node.children
                 if child.children?
                   break
                 else
-                  start = @getBounds(child).end
+                  start = getBounds(child).end
 
-              end = @getBounds(node.children[node.children.length - 1]).end
+              end = getBounds(node.children[node.children.length - 1]).end
               for child, i in node.children by -1
                 if child.children?
-                  end = @getBounds(child).end
+                  end = getBounds(child).end
                   break
 
               bounds = {
@@ -192,16 +217,17 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
         else if context? and @detNode(context) is 'block'
           if @detToken(node) is 'socket'
             @addSocket
-              bounds: @getBounds node
+              bounds: getBounds node
               depth: depth
-              classes: [rules[0]]
+              classes: rules
 
     ANTLRParser.drop = (block, context, pred) ->
       if context.type is 'socket'
-        if context.classes[0] in block.classes
-          return helper.ENCOURAGE
-        else
-          return helper.DISCOURAGE
+        for c in context.classes
+          if c in block.classes
+            return helper.ENCOURAGE
+          else
+            return helper.DISCOURAGE
 
     # Doesn't yet deal with parens
     ANTLRParser.parens = (leading, trailing, node, context) ->
