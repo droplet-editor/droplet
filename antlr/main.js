@@ -7,5 +7,7 @@ module.exports = {
   ObjCLexer: require('./ObjCLexer'),
   ObjCParser: require('./ObjCParser'),
   ScalaLexer: require('./ScalaLexer'),
-  ScalaParser: require('./ScalaParser')
+  ScalaParser: require('./ScalaParser'),
+  jvmBasicLexer: require('./jvmBasicLexer'),
+  jvmBasicParser: require('./jvmBasicParser')
 }

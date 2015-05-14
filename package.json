@@ -36,5 +36,8 @@
   "bugs": {
     "url": "https://github.com/dabbler0/droplet/issues"
   },
-  "homepage": "https://github.com/dabbler0/droplet"
+  "homepage": "https://github.com/dabbler0/droplet",
+  "dependencies": {
+    "filbert": "^0.1.13"
+  }
 }

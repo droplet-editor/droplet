@@ -1,21 +1,21 @@
 antlr4 = require 'antlr4'
-JavaLexer = require './JavaLexer'
-JavaParser = require './JavaParser'
+Python3Lexer = require './Python3Lexer'
+Python3Parser = require './Python3Parser'
 
 input = '''
-public class Test {
-  public Test() {
-    (a + 1) = (1 + 2 + (3 + 4));
-  }
-}
+def main():
+  print('hello')
+print('goodbye')
 '''
 
 chars = new antlr4.InputStream input
-lexer = new JavaLexer.JavaLexer chars
+lexer = new Python3Lexer.Python3Lexer chars
 tokens = new antlr4.CommonTokenStream lexer
-parser = new JavaParser.JavaParser tokens
+parser = new Python3Parser.Python3Parser tokens
 parser.buildParseTrees = true
-parseTree = parser.compilationUnit()
+parseTree = parser.file_input()
+
+console.log tokens.tokens
 
 print = (el, indent) ->
   if el.ruleIndex?
@@ -27,6 +27,6 @@ print = (el, indent) ->
     for child in el.children
       print(child, '--' + indent)
 
-print parseTree, ''
+#print parseTree, ''
 
 exports.parser = parser

@@ -11,6 +11,7 @@ define ['droplet-helper',
     'droplet-objc',
     'droplet-scala',
     'droplet-python',
+    'droplet-basic',
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
@@ -21,6 +22,7 @@ define ['droplet-helper',
     objc,
     scala,
     python,
+    basic,
     draw,
     model,
     view) ->
@@ -28,6 +30,7 @@ define ['droplet-helper',
   modes = {
     'coffeescript': coffee
     'coffee': coffee
+    'basic': basic
     'javascript': javascript
     'java': java
     'c': cmode
