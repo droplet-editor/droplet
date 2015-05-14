@@ -1193,25 +1193,40 @@ define ['droplet-helper',
         )
 
         if @trackerPointIsInAce position
+          leadingWhitespaceRegex = /^(\s*)/
           # Get the line of text we're dropping into
           pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
           line = @aceEditor.session.getLine pos.row
-          leadingWhitespace = /^(\s*)/.exec(line)[0]
+          currentIndentation = leadingWhitespaceRegex.exec(line)[0]
+
           prefix = ''
-          if pos.column == line.length and leadingWhitespace.length != line.length
+          indentation = currentIndentation
+          suffix = ''
+
+          if currentIndentation.length == line.length
+            # line is whitespace only.
+            # Append with a newline
+            suffix = '\n' + indentation
+          else if pos.column == line.length
             # We're at the end of a non-empty line.
-            # Stick our inserted text on a new line
-            # with the same indentation
-            prefix = '\n' + leadingWhitespace
+            # Insert a new line, and base our indentation off of the next line
+            prefix = '\n'
+            nextLine = @aceEditor.session.getLine(pos.row + 1)
+            indentation = leadingWhitespaceRegex.exec(nextLine)[0]
+          else
 
           # Call prepareNode, which may append with a semicolon
           @prepareNode @draggingBlock, null
-          text = prefix + @draggingBlock.stringify @mode
+          text = @draggingBlock.stringify @mode
 
-          if not prefix and text[text.length - 1] == ';'
-            # Add a potentially indented new line if
-            # we didn't already do so.
-            text += '\n' + leadingWhitespace
+          # Indent each line, unless it's the first line and wasn't placed on
+          # a newline
+          text = text.split('\n').map((line, index) =>
+            return (if index == 0 and prefix == '' then '' else indentation) + line
+          ).join('\n')
+
+          text = prefix + text + suffix
+
           @aceEditor.onTextInput text
       else if  @lastHighlight?
 
