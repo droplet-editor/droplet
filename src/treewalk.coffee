@@ -6,22 +6,8 @@
 define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, model, parser, antlr) ->
   exports = {}
 
-  exports.createTreewalkParser = (parse, config) ->
-    removeParens = (text, expressionType) ->
-      lines = text.split '\n'
-
-      parser.buildParseTrees = true
-      parseTree = parser[expressionType]()
-      while parseTree.children? and
-            parseTree.children.length is 1 and
-            parseTree.parser.ruleNames[parseTree.ruleIndex] is expressionType
-        parseTree = parseTree.children[0]
-
-      {start, end} = getBounds parseTree
-
-      return helper.clipText lines, start, end
-
-    class ANTLRParser extends parser.Parser
+  exports.createTreewalkParser = (parse, config, root) ->
+    class TreewalkParser extends parser.Parser
       constructor: (@text, @opts = {}) ->
         super
 
@@ -57,10 +43,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
         else if rule in config.PARENS then return 'parens'
         else return 'block'
 
-      detNode: (node) -> @det(node.parser.ruleNames[node.ruleIndex])
+      detNode: (node) -> @det(node.type)
       detToken: (node) ->
-        if node.symbol?
-          if (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type] in config.SOCKET_TOKENS then 'socket' else 'none'
+        if node.type?
+          if node.type in config.SOCKET_TOKENS then 'socket' else 'none'
         else 'none'
 
       getDropType: (context) -> ({
@@ -80,44 +66,45 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
 
       mark: (node, prefix, depth, pass, rules, context, wrap) ->
         unless pass
-          context = node.parentCtx
+          context = node.parent
           while context? and @detNode(context) is 'skip'
-            context = context.parentCtx
+            context = context.parent
 
         rules ?= []
-        if node.ruleIndex?
-          rules.push node.parser.ruleNames[node.ruleIndex]
+        rules.push node.type
 
-        # Pass through to child
-        if node.children? and node.children.length is 1
+        # Pass through to child if single-child
+        if node.children.length is 1
           @mark node.children[0], prefix, depth, true, rules, context, wrap
 
-        else if node.children?
+        else if node.children.length > 0
           switch @detNode node
             when 'block'
               if wrap?
-                bounds = getBounds wrap
+                bounds = wrap.bounds
               else
-                bounds = getBounds node
+                bounds = node.bounds
 
               if context? and @detNode(context) is 'block'
                 @addSocket
                   bounds: bounds
                   depth: depth
                   classes: rules
+              else
 
               @addBlock
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor rules
                 classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
-                parseContext: (if wrap? then wrap.parser.ruleNames[wrap.ruleIndex] else rules[0])
+                parseContext: (if wrap? then wrap.type else rules[0])
 
             when 'parens'
+              console.log 'parensing', node.type
               # Parens are assumed to wrap the only child that has children
               child = null; ok = true
               for el, i in node.children
-                if el.children?
+                if el.children.length > 0
                   if child?
                     ok = false
                     break
@@ -128,10 +115,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                 return
 
               else
+                console.log 'NOT OKAY TO PARENS'
                 if wrap?
-                  bounds = getBounds wrap
+                  bounds = wrap.bounds
                 else
-                  bounds = getBounds node
+                  bounds = node.bounds
 
                 if context? and @detNode(context) is 'block'
                   @addSocket
@@ -144,20 +132,20 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                   depth: depth + 1
                   color: @getColor rules
                   classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
-                  parseContext: (if wrap? then wrap.parser.ruleNames[wrap.ruleIndex] else rules[0])
+                  parseContext: (if wrap? then wrap.type else rules[0])
 
-            when 'indent'
-              start = getBounds(node.children[0]).start
+            when 'indent' if @det(context) is 'block'
+              start = node.children[0].bounds.start
               for child, i in node.children
-                if child.children?
+                if child.children.length > 0
                   break
                 else
-                  start = getBounds(child).end
+                  start = child.bounds.end
 
-              end = getBounds(node.children[node.children.length - 1]).end
+              end = node.children[node.children.length - 1].bounds.end
               for child, i in node.children by -1
-                if child.children?
-                  end = getBounds(child).end
+                if child.children.length > 0
+                  end = child.bounds.end
                   break
 
               bounds = {
@@ -178,11 +166,11 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
         else if context? and @detNode(context) is 'block'
           if @detToken(node) is 'socket'
             @addSocket
-              bounds: getBounds node
+              bounds: node.bounds
               depth: depth
               classes: rules
 
-    ANTLRParser.drop = (block, context, pred) ->
+    TreewalkParser.drop = (block, context, pred) ->
       if context.type is 'socket'
         for c in context.classes
           if c in block.classes
@@ -191,8 +179,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
             return helper.DISCOURAGE
 
     # Doesn't yet deal with parens
-    ANTLRParser.parens = (leading, trailing, node, context) ->
+    TreewalkParser.parens = (leading, trailing, node, context) ->
 
-    return ANTLRParser
+    return TreewalkParser
 
   return exports

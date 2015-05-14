@@ -6,6 +6,8 @@
 define ['droplet-parser', 'droplet-antlr-parser'], (parser, antlrHelper) ->
   INDENTS = ['block', 'classBody']
   SKIPS = ['compilationUnit',
+    'variableDeclarators'
+    'variableDeclarator'
     'classDeclaration',
     'memberDeclaration',
     'constructorDeclaration',
@@ -15,6 +17,8 @@ define ['droplet-parser', 'droplet-antlr-parser'], (parser, antlrHelper) ->
   ]
   PARENS = [
     'statement'
+    'blockStatement'
+    'localVariableDeclarationStatement'
     'primary'
   ]
   SOCKET_TOKENS = [
@@ -28,12 +32,13 @@ define ['droplet-parser', 'droplet-antlr-parser'], (parser, antlrHelper) ->
     'variableDeclarator': 'command'
     'formalParameter': 'command'
     'statementExpression': 'command'
+    'blockStatement': 'command'
     'expression': 'value'
   }
   COLORS_BACKWARD = {}
 
   config = {
-    INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD
+    INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD,
   }
 
-  return parser.wrapParser antlrHelper.createANTLRParser config, 'Java'
+  return parser.wrapParser antlrHelper.createANTLRParser 'Java', config

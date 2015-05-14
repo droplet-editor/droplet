@@ -39,4 +39,4 @@ define ['droplet-parser', 'droplet-antlr-parser'], (parser, antlrHelper) ->
     INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD
   }
 
-  return parser.wrapParser antlrHelper.createANTLRParser config, 'C'
+  return parser.wrapParser antlrHelper.createANTLRParser 'C', config

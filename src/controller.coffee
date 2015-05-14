@@ -10,6 +10,7 @@ define ['droplet-helper',
     'droplet-c',
     'droplet-objc',
     'droplet-scala',
+    'droplet-python',
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
@@ -19,6 +20,7 @@ define ['droplet-helper',
     cmode,
     objc,
     scala,
+    python,
     draw,
     model,
     view) ->
@@ -29,6 +31,7 @@ define ['droplet-helper',
     'javascript': javascript
     'java': java
     'c': cmode
+    'python': python,
     'objc': objc
     'scala': scala
   }
