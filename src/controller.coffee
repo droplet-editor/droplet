@@ -874,7 +874,33 @@ define ['droplet-helper',
 
     node.setLeadingText leading; node.setTrailingText trailing
 
+    # EMERGENCY PAREN PROTOCOL
+    container = container.visParent()
+    head = location
+    len = 0
+    until head is container.start
+      head = head.prev
+      len += head.stringify().length
+
     node.spliceIn location
+    oldNode = node.stringify()
+
+    # Attempt a reparse
+    console.log 'attempting emergency reparse', container.stringify()
+    reparsed = @mode.parse(container.stringify(@mode.empty), {
+      wrapAtRoot: true
+      context: container.parseContext
+    }).start.next.container
+
+    head = reparsed.start
+    newlen = 0
+    until newlen is len and head.type is 'blockStart' and head.container.stringify() is oldNode or head is reparsed.end
+      head = head.next
+      newlen += head.stringify().length
+
+    if head is reparsed.end
+      node.setLeadingText '(' + node.getLeadingText()
+      node.setTrailingText node.getTrailingText() + ')'
 
   # At population-time, we will
   # want to set up a few fields.
