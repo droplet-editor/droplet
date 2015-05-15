@@ -104,7 +104,7 @@ define ->
       lines[end.line][...end.column]
     else
       console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
-      return lines[start.line][start.column + 1...end.column]
+      return lines[start.line][start.column...end.column]
 
   exports.getFontHeight = (family, size) ->
     metrics = fontMetrics family, size

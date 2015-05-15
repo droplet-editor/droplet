@@ -1,21 +1,17 @@
 antlr4 = require 'antlr4'
-Python3Lexer = require './Python3Lexer'
-Python3Parser = require './Python3Parser'
+logoLexer = require './logoLexer'
+logoParser = require './logoParser'
 
 input = '''
-def main():
-  print('hello')
-print('goodbye')
+repeat 3 [fd 10]
 '''
 
 chars = new antlr4.InputStream input
-lexer = new Python3Lexer.Python3Lexer chars
+lexer = new logoLexer.logoLexer chars
 tokens = new antlr4.CommonTokenStream lexer
-parser = new Python3Parser.Python3Parser tokens
+parser = new logoParser.logoParser tokens
 parser.buildParseTrees = true
-parseTree = parser.file_input()
-
-console.log tokens.tokens
+parseTree = parser.prog()
 
 print = (el, indent) ->
   if el.ruleIndex?
@@ -27,6 +23,6 @@ print = (el, indent) ->
     for child in el.children
       print(child, '--' + indent)
 
-#print parseTree, ''
+print parseTree, ''
 
 exports.parser = parser

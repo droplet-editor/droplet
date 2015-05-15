@@ -8,7 +8,7 @@ define ['droplet-helper',
     'droplet-javascript',
     'droplet-java',
     'droplet-c',
-    'droplet-objc',
+    'droplet-logo',
     'droplet-scala',
     'droplet-python',
     'droplet-basic',
@@ -19,7 +19,7 @@ define ['droplet-helper',
     javascript,
     java,
     cmode,
-    objc,
+    logo,
     scala,
     python,
     basic,
@@ -35,7 +35,7 @@ define ['droplet-helper',
     'java': java
     'c': cmode
     'python': python,
-    'objc': objc
+    'logo': logo
     'scala': scala
   }
 

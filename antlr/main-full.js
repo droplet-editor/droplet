@@ -693,7 +693,7 @@ CLexer.grammarFileName = "C.g4";
 exports.CLexer = CLexer;
 
 
-},{"antlr4/index":57}],2:[function(require,module,exports){
+},{"antlr4/index":60}],2:[function(require,module,exports){
 // Generated from C.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -1465,7 +1465,7 @@ CListener.prototype.exitDeclarationList = function(ctx) {
 
 
 exports.CListener = CListener;
-},{"antlr4/index":57}],3:[function(require,module,exports){
+},{"antlr4/index":60}],3:[function(require,module,exports){
 // Generated from C.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -11375,7 +11375,7 @@ CParser.prototype.declarationList_sempred = function(localctx, predIndex) {
 
 exports.CParser = CParser;
 
-},{"./CListener":2,"antlr4/index":57}],4:[function(require,module,exports){
+},{"./CListener":2,"antlr4/index":60}],4:[function(require,module,exports){
 // Generated from Java.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -11972,7 +11972,7 @@ JavaLexer.grammarFileName = "Java.g4";
 exports.JavaLexer = JavaLexer;
 
 
-},{"antlr4/index":57}],5:[function(require,module,exports){
+},{"antlr4/index":60}],5:[function(require,module,exports){
 // Generated from Java.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -12897,7 +12897,7 @@ JavaListener.prototype.exitArguments = function(ctx) {
 
 
 exports.JavaListener = JavaListener;
-},{"antlr4/index":57}],6:[function(require,module,exports){
+},{"antlr4/index":60}],6:[function(require,module,exports){
 // Generated from Java.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -23358,7 +23358,7 @@ JavaParser.prototype.expression_sempred = function(localctx, predIndex) {
 
 exports.JavaParser = JavaParser;
 
-},{"./JavaListener":5,"antlr4/index":57}],7:[function(require,module,exports){
+},{"./JavaListener":5,"antlr4/index":60}],7:[function(require,module,exports){
 // Generated from ObjC.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -24108,7 +24108,7 @@ ObjCLexer.grammarFileName = "ObjC.g4";
 exports.ObjCLexer = ObjCLexer;
 
 
-},{"antlr4/index":57}],8:[function(require,module,exports){
+},{"antlr4/index":60}],8:[function(require,module,exports){
 // Generated from ObjC.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -25240,7 +25240,7 @@ ObjCListener.prototype.exitConstant = function(ctx) {
 
 
 exports.ObjCListener = ObjCListener;
-},{"antlr4/index":57}],9:[function(require,module,exports){
+},{"antlr4/index":60}],9:[function(require,module,exports){
 // Generated from ObjC.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -37157,7 +37157,7 @@ ObjCParser.prototype.constant = function() {
 
 exports.ObjCParser = ObjCParser;
 
-},{"./ObjCListener":8,"antlr4/index":57}],10:[function(require,module,exports){
+},{"./ObjCListener":8,"antlr4/index":60}],10:[function(require,module,exports){
 // Generated from Scala.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -37570,7 +37570,7 @@ ScalaLexer.grammarFileName = "Scala.g4";
 exports.ScalaLexer = ScalaLexer;
 
 
-},{"antlr4/index":57}],11:[function(require,module,exports){
+},{"antlr4/index":60}],11:[function(require,module,exports){
 // Generated from Scala.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -38513,7 +38513,7 @@ ScalaListener.prototype.exitCompilationUnit = function(ctx) {
 
 
 exports.ScalaListener = ScalaListener;
-},{"antlr4/index":57}],12:[function(require,module,exports){
+},{"antlr4/index":60}],12:[function(require,module,exports){
 // Generated from Scala.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -49800,7 +49800,7 @@ ScalaParser.prototype.simpleExpr1_sempred = function(localctx, predIndex) {
 
 exports.ScalaParser = ScalaParser;
 
-},{"./ScalaListener":11,"antlr4/index":57}],13:[function(require,module,exports){
+},{"./ScalaListener":11,"antlr4/index":60}],13:[function(require,module,exports){
 // Generated from jvmBasic.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -50307,7 +50307,7 @@ jvmBasicLexer.grammarFileName = "jvmBasic.g4";
 exports.jvmBasicLexer = jvmBasicLexer;
 
 
-},{"antlr4/index":57}],14:[function(require,module,exports){
+},{"antlr4/index":60}],14:[function(require,module,exports){
 // Generated from jvmBasic.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -51214,7 +51214,7 @@ jvmBasicListener.prototype.exitAbsfunc = function(ctx) {
 
 
 exports.jvmBasicListener = jvmBasicListener;
-},{"antlr4/index":57}],15:[function(require,module,exports){
+},{"antlr4/index":60}],15:[function(require,module,exports){
 // Generated from jvmBasic.g4 by ANTLR 4.5
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -60957,7 +60957,3830 @@ jvmBasicParser.prototype.absfunc = function() {
 
 exports.jvmBasicParser = jvmBasicParser;
 
-},{"./jvmBasicListener":14,"antlr4/index":57}],16:[function(require,module,exports){
+},{"./jvmBasicListener":14,"antlr4/index":60}],16:[function(require,module,exports){
+// Generated from logo.g4 by ANTLR 4.5
+// jshint ignore: start
+var antlr4 = require('antlr4/index');
+
+
+var serializedATN = ["\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd",
+    "\2\61\u013a\b\1\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b",
+    "\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4",
+    "\20\t\20\4\21\t\21\4\22\t\22\4\23\t\23\4\24\t\24\4\25\t\25\4\26\t\26",
+    "\4\27\t\27\4\30\t\30\4\31\t\31\4\32\t\32\4\33\t\33\4\34\t\34\4\35\t",
+    "\35\4\36\t\36\4\37\t\37\4 \t \4!\t!\4\"\t\"\4#\t#\4$\t$\4%\t%\4&\t&",
+    "\4\'\t\'\4(\t(\4)\t)\4*\t*\4+\t+\4,\t,\4-\t-\4.\t.\4/\t/\4\60\t\60\3",
+    "\2\3\2\3\2\3\3\3\3\3\3\3\3\3\4\3\4\3\5\3\5\3\6\3\6\3\6\3\6\3\6\3\6\3",
+    "\6\3\7\3\7\3\b\3\b\3\t\3\t\3\t\3\n\3\n\3\13\3\13\3\f\3\f\3\r\3\r\3\r",
+    "\3\r\3\r\3\16\3\16\3\16\3\16\3\16\3\16\3\17\3\17\3\20\3\20\3\21\3\21",
+    "\3\22\3\22\3\23\3\23\3\23\3\24\3\24\3\24\3\24\3\24\3\24\3\24\3\24\3",
+    "\25\3\25\3\25\3\26\3\26\3\26\3\26\3\26\3\26\3\26\3\26\3\26\3\27\3\27",
+    "\3\27\3\30\3\30\3\30\3\30\3\30\3\30\3\31\3\31\3\31\3\32\3\32\3\32\3",
+    "\32\3\32\3\33\3\33\3\33\3\34\3\34\3\34\3\34\3\34\3\34\3\34\3\34\3\34",
+    "\3\34\3\34\3\34\3\35\3\35\3\35\3\36\3\36\3\36\3\36\3\36\3\36\3\37\3",
+    "\37\3\37\3 \3 \3 \3 \3 \3 \3 \3 \3!\3!\3!\3\"\3\"\3\"\3\"\3\"\3\"\3",
+    "\"\3\"\3\"\3\"\3\"\3#\3#\3#\3$\3$\3$\3$\3$\3$\3$\3$\3$\3$\3$\3%\3%\3",
+    "%\3%\3%\3&\3&\3&\3&\3&\3\'\3\'\3\'\3\'\3\'\3\'\3(\3(\3(\3(\3(\3(\3)",
+    "\3)\3)\3)\3)\3)\3)\3*\3*\3*\3*\3+\3+\3+\3,\3,\7,\u0121\n,\f,\16,\u0124",
+    "\13,\3-\6-\u0127\n-\r-\16-\u0128\3.\3.\7.\u012d\n.\f.\16.\u0130\13.",
+    "\3/\5/\u0133\n/\3/\3/\3\60\3\60\3\60\3\60\2\2\61\3\3\5\4\7\5\t\6\13",
+    "\7\r\b\17\t\21\n\23\13\25\f\27\r\31\16\33\17\35\20\37\21!\22#\23%\24",
+    "\'\25)\26+\27-\30/\31\61\32\63\33\65\34\67\359\36;\37= ?!A\"C#E$G%I",
+    "&K\'M(O)Q*S+U,W-Y.[/]\60_\61\3\2\7\4\2C\\c|\6\2\62;C\\aac|\3\2\62;\4",
+    "\2\f\f\17\17\5\2\13\f\17\17\"\"\u013d\2\3\3\2\2\2\2\5\3\2\2\2\2\7\3",
+    "\2\2\2\2\t\3\2\2\2\2\13\3\2\2\2\2\r\3\2\2\2\2\17\3\2\2\2\2\21\3\2\2",
+    "\2\2\23\3\2\2\2\2\25\3\2\2\2\2\27\3\2\2\2\2\31\3\2\2\2\2\33\3\2\2\2",
+    "\2\35\3\2\2\2\2\37\3\2\2\2\2!\3\2\2\2\2#\3\2\2\2\2%\3\2\2\2\2\'\3\2",
+    "\2\2\2)\3\2\2\2\2+\3\2\2\2\2-\3\2\2\2\2/\3\2\2\2\2\61\3\2\2\2\2\63\3",
+    "\2\2\2\2\65\3\2\2\2\2\67\3\2\2\2\29\3\2\2\2\2;\3\2\2\2\2=\3\2\2\2\2",
+    "?\3\2\2\2\2A\3\2\2\2\2C\3\2\2\2\2E\3\2\2\2\2G\3\2\2\2\2I\3\2\2\2\2K",
+    "\3\2\2\2\2M\3\2\2\2\2O\3\2\2\2\2Q\3\2\2\2\2S\3\2\2\2\2U\3\2\2\2\2W\3",
+    "\2\2\2\2Y\3\2\2\2\2[\3\2\2\2\2]\3\2\2\2\2_\3\2\2\2\3a\3\2\2\2\5d\3\2",
+    "\2\2\7h\3\2\2\2\tj\3\2\2\2\13l\3\2\2\2\rs\3\2\2\2\17u\3\2\2\2\21w\3",
+    "\2\2\2\23z\3\2\2\2\25|\3\2\2\2\27~\3\2\2\2\31\u0080\3\2\2\2\33\u0085",
+    "\3\2\2\2\35\u008b\3\2\2\2\37\u008d\3\2\2\2!\u008f\3\2\2\2#\u0091\3\2",
+    "\2\2%\u0093\3\2\2\2\'\u0096\3\2\2\2)\u009e\3\2\2\2+\u00a1\3\2\2\2-\u00aa",
+    "\3\2\2\2/\u00ad\3\2\2\2\61\u00b3\3\2\2\2\63\u00b6\3\2\2\2\65\u00bb\3",
+    "\2\2\2\67\u00be\3\2\2\29\u00ca\3\2\2\2;\u00cd\3\2\2\2=\u00d3\3\2\2\2",
+    "?\u00d6\3\2\2\2A\u00de\3\2\2\2C\u00e1\3\2\2\2E\u00ec\3\2\2\2G\u00ef",
+    "\3\2\2\2I\u00fa\3\2\2\2K\u00ff\3\2\2\2M\u0104\3\2\2\2O\u010a\3\2\2\2",
+    "Q\u0110\3\2\2\2S\u0117\3\2\2\2U\u011b\3\2\2\2W\u011e\3\2\2\2Y\u0126",
+    "\3\2\2\2[\u012a\3\2\2\2]\u0132\3\2\2\2_\u0136\3\2\2\2ab\7v\2\2bc\7q",
+    "\2\2c\4\3\2\2\2de\7g\2\2ef\7p\2\2fg\7f\2\2g\6\3\2\2\2hi\7<\2\2i\b\3",
+    "\2\2\2jk\7.\2\2k\n\3\2\2\2lm\7t\2\2mn\7g\2\2no\7r\2\2op\7g\2\2pq\7c",
+    "\2\2qr\7v\2\2r\f\3\2\2\2st\7]\2\2t\16\3\2\2\2uv\7_\2\2v\20\3\2\2\2w",
+    "x\7k\2\2xy\7h\2\2y\22\3\2\2\2z{\7>\2\2{\24\3\2\2\2|}\7@\2\2}\26\3\2",
+    "\2\2~\177\7?\2\2\177\30\3\2\2\2\u0080\u0081\7o\2\2\u0081\u0082\7c\2",
+    "\2\u0082\u0083\7m\2\2\u0083\u0084\7g\2\2\u0084\32\3\2\2\2\u0085\u0086",
+    "\7r\2\2\u0086\u0087\7t\2\2\u0087\u0088\7k\2\2\u0088\u0089\7p\2\2\u0089",
+    "\u008a\7v\2\2\u008a\34\3\2\2\2\u008b\u008c\7-\2\2\u008c\36\3\2\2\2\u008d",
+    "\u008e\7/\2\2\u008e \3\2\2\2\u008f\u0090\7,\2\2\u0090\"\3\2\2\2\u0091",
+    "\u0092\7\61\2\2\u0092$\3\2\2\2\u0093\u0094\7h\2\2\u0094\u0095\7f\2\2",
+    "\u0095&\3\2\2\2\u0096\u0097\7h\2\2\u0097\u0098\7q\2\2\u0098\u0099\7",
+    "t\2\2\u0099\u009a\7y\2\2\u009a\u009b\7c\2\2\u009b\u009c\7t\2\2\u009c",
+    "\u009d\7f\2\2\u009d(\3\2\2\2\u009e\u009f\7d\2\2\u009f\u00a0\7m\2\2\u00a0",
+    "*\3\2\2\2\u00a1\u00a2\7d\2\2\u00a2\u00a3\7c\2\2\u00a3\u00a4\7e\2\2\u00a4",
+    "\u00a5\7m\2\2\u00a5\u00a6\7y\2\2\u00a6\u00a7\7c\2\2\u00a7\u00a8\7t\2",
+    "\2\u00a8\u00a9\7f\2\2\u00a9,\3\2\2\2\u00aa\u00ab\7t\2\2\u00ab\u00ac",
+    "\7v\2\2\u00ac.\3\2\2\2\u00ad\u00ae\7t\2\2\u00ae\u00af\7k\2\2\u00af\u00b0",
+    "\7i\2\2\u00b0\u00b1\7j\2\2\u00b1\u00b2\7v\2\2\u00b2\60\3\2\2\2\u00b3",
+    "\u00b4\7n\2\2\u00b4\u00b5\7v\2\2\u00b5\62\3\2\2\2\u00b6\u00b7\7n\2\2",
+    "\u00b7\u00b8\7g\2\2\u00b8\u00b9\7h\2\2\u00b9\u00ba\7v\2\2\u00ba\64\3",
+    "\2\2\2\u00bb\u00bc\7e\2\2\u00bc\u00bd\7u\2\2\u00bd\66\3\2\2\2\u00be",
+    "\u00bf\7e\2\2\u00bf\u00c0\7n\2\2\u00c0\u00c1\7g\2\2\u00c1\u00c2\7c\2",
+    "\2\u00c2\u00c3\7t\2\2\u00c3\u00c4\7u\2\2\u00c4\u00c5\7e\2\2\u00c5\u00c6",
+    "\7t\2\2\u00c6\u00c7\7g\2\2\u00c7\u00c8\7g\2\2\u00c8\u00c9\7p\2\2\u00c9",
+    "8\3\2\2\2\u00ca\u00cb\7r\2\2\u00cb\u00cc\7w\2\2\u00cc:\3\2\2\2\u00cd",
+    "\u00ce\7r\2\2\u00ce\u00cf\7g\2\2\u00cf\u00d0\7p\2\2\u00d0\u00d1\7w\2",
+    "\2\u00d1\u00d2\7r\2\2\u00d2<\3\2\2\2\u00d3\u00d4\7r\2\2\u00d4\u00d5",
+    "\7f\2\2\u00d5>\3\2\2\2\u00d6\u00d7\7r\2\2\u00d7\u00d8\7g\2\2\u00d8\u00d9",
+    "\7p\2\2\u00d9\u00da\7f\2\2\u00da\u00db\7q\2\2\u00db\u00dc\7y\2\2\u00dc",
+    "\u00dd\7p\2\2\u00dd@\3\2\2\2\u00de\u00df\7j\2\2\u00df\u00e0\7v\2\2\u00e0",
+    "B\3\2\2\2\u00e1\u00e2\7j\2\2\u00e2\u00e3\7k\2\2\u00e3\u00e4\7f\2\2\u00e4",
+    "\u00e5\7g\2\2\u00e5\u00e6\7v\2\2\u00e6\u00e7\7w\2\2\u00e7\u00e8\7t\2",
+    "\2\u00e8\u00e9\7v\2\2\u00e9\u00ea\7n\2\2\u00ea\u00eb\7g\2\2\u00ebD\3",
+    "\2\2\2\u00ec\u00ed\7u\2\2\u00ed\u00ee\7v\2\2\u00eeF\3\2\2\2\u00ef\u00f0",
+    "\7u\2\2\u00f0\u00f1\7j\2\2\u00f1\u00f2\7q\2\2\u00f2\u00f3\7y\2\2\u00f3",
+    "\u00f4\7v\2\2\u00f4\u00f5\7w\2\2\u00f5\u00f6\7t\2\2\u00f6\u00f7\7v\2",
+    "\2\u00f7\u00f8\7n\2\2\u00f8\u00f9\7g\2\2\u00f9H\3\2\2\2\u00fa\u00fb",
+    "\7j\2\2\u00fb\u00fc\7q\2\2\u00fc\u00fd\7o\2\2\u00fd\u00fe\7g\2\2\u00fe",
+    "J\3\2\2\2\u00ff\u0100\7u\2\2\u0100\u0101\7v\2\2\u0101\u0102\7q\2\2\u0102",
+    "\u0103\7r\2\2\u0103L\3\2\2\2\u0104\u0105\7n\2\2\u0105\u0106\7c\2\2\u0106",
+    "\u0107\7d\2\2\u0107\u0108\7g\2\2\u0108\u0109\7n\2\2\u0109N\3\2\2\2\u010a",
+    "\u010b\7u\2\2\u010b\u010c\7g\2\2\u010c\u010d\7v\2\2\u010d\u010e\7z\2",
+    "\2\u010e\u010f\7{\2\2\u010fP\3\2\2\2\u0110\u0111\7t\2\2\u0111\u0112",
+    "\7c\2\2\u0112\u0113\7p\2\2\u0113\u0114\7f\2\2\u0114\u0115\7q\2\2\u0115",
+    "\u0116\7o\2\2\u0116R\3\2\2\2\u0117\u0118\7h\2\2\u0118\u0119\7q\2\2\u0119",
+    "\u011a\7t\2\2\u011aT\3\2\2\2\u011b\u011c\7$\2\2\u011c\u011d\5W,\2\u011d",
+    "V\3\2\2\2\u011e\u0122\t\2\2\2\u011f\u0121\t\3\2\2\u0120\u011f\3\2\2",
+    "\2\u0121\u0124\3\2\2\2\u0122\u0120\3\2\2\2\u0122\u0123\3\2\2\2\u0123",
+    "X\3\2\2\2\u0124\u0122\3\2\2\2\u0125\u0127\t\4\2\2\u0126\u0125\3\2\2",
+    "\2\u0127\u0128\3\2\2\2\u0128\u0126\3\2\2\2\u0128\u0129\3\2\2\2\u0129",
+    "Z\3\2\2\2\u012a\u012e\7=\2\2\u012b\u012d\n\5\2\2\u012c\u012b\3\2\2\2",
+    "\u012d\u0130\3\2\2\2\u012e\u012c\3\2\2\2\u012e\u012f\3\2\2\2\u012f\\",
+    "\3\2\2\2\u0130\u012e\3\2\2\2\u0131\u0133\7\17\2\2\u0132\u0131\3\2\2",
+    "\2\u0132\u0133\3\2\2\2\u0133\u0134\3\2\2\2\u0134\u0135\7\f\2\2\u0135",
+    "^\3\2\2\2\u0136\u0137\t\6\2\2\u0137\u0138\3\2\2\2\u0138\u0139\b\60\2",
+    "\2\u0139`\3\2\2\2\7\2\u0122\u0128\u012e\u0132\3\b\2\2"].join("");
+
+
+var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
+
+var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
+
+function logoLexer(input) {
+	antlr4.Lexer.call(this, input);
+    this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
+    return this;
+}
+
+logoLexer.prototype = Object.create(antlr4.Lexer.prototype);
+logoLexer.prototype.constructor = logoLexer;
+
+logoLexer.EOF = antlr4.Token.EOF;
+logoLexer.T__0 = 1;
+logoLexer.T__1 = 2;
+logoLexer.T__2 = 3;
+logoLexer.T__3 = 4;
+logoLexer.T__4 = 5;
+logoLexer.T__5 = 6;
+logoLexer.T__6 = 7;
+logoLexer.T__7 = 8;
+logoLexer.T__8 = 9;
+logoLexer.T__9 = 10;
+logoLexer.T__10 = 11;
+logoLexer.T__11 = 12;
+logoLexer.T__12 = 13;
+logoLexer.T__13 = 14;
+logoLexer.T__14 = 15;
+logoLexer.T__15 = 16;
+logoLexer.T__16 = 17;
+logoLexer.T__17 = 18;
+logoLexer.T__18 = 19;
+logoLexer.T__19 = 20;
+logoLexer.T__20 = 21;
+logoLexer.T__21 = 22;
+logoLexer.T__22 = 23;
+logoLexer.T__23 = 24;
+logoLexer.T__24 = 25;
+logoLexer.T__25 = 26;
+logoLexer.T__26 = 27;
+logoLexer.T__27 = 28;
+logoLexer.T__28 = 29;
+logoLexer.T__29 = 30;
+logoLexer.T__30 = 31;
+logoLexer.T__31 = 32;
+logoLexer.T__32 = 33;
+logoLexer.T__33 = 34;
+logoLexer.T__34 = 35;
+logoLexer.T__35 = 36;
+logoLexer.T__36 = 37;
+logoLexer.T__37 = 38;
+logoLexer.T__38 = 39;
+logoLexer.T__39 = 40;
+logoLexer.T__40 = 41;
+logoLexer.STRINGLITERAL = 42;
+logoLexer.STRING = 43;
+logoLexer.NUMBER = 44;
+logoLexer.COMMENT = 45;
+logoLexer.EOL = 46;
+logoLexer.WS = 47;
+
+
+logoLexer.modeNames = [ "DEFAULT_MODE" ];
+
+logoLexer.literalNames = [ 'null', "'to'", "'end'", "':'", "','", "'repeat'", 
+                           "'['", "']'", "'if'", "'<'", "'>'", "'='", "'make'", 
+                           "'print'", "'+'", "'-'", "'*'", "'/'", "'fd'", 
+                           "'forward'", "'bk'", "'backward'", "'rt'", "'right'", 
+                           "'lt'", "'left'", "'cs'", "'clearscreen'", "'pu'", 
+                           "'penup'", "'pd'", "'pendown'", "'ht'", "'hideturtle'", 
+                           "'st'", "'showturtle'", "'home'", "'stop'", "'label'", 
+                           "'setxy'", "'random'", "'for'" ];
+
+logoLexer.symbolicNames = [ 'null', 'null', 'null', 'null', 'null', 'null', 
+                            'null', 'null', 'null', 'null', 'null', 'null', 
+                            'null', 'null', 'null', 'null', 'null', 'null', 
+                            'null', 'null', 'null', 'null', 'null', 'null', 
+                            'null', 'null', 'null', 'null', 'null', 'null', 
+                            'null', 'null', 'null', 'null', 'null', 'null', 
+                            'null', 'null', 'null', 'null', 'null', 'null', 
+                            "STRINGLITERAL", "STRING", "NUMBER", "COMMENT", 
+                            "EOL", "WS" ];
+
+logoLexer.ruleNames = [ "T__0", "T__1", "T__2", "T__3", "T__4", "T__5", 
+                        "T__6", "T__7", "T__8", "T__9", "T__10", "T__11", 
+                        "T__12", "T__13", "T__14", "T__15", "T__16", "T__17", 
+                        "T__18", "T__19", "T__20", "T__21", "T__22", "T__23", 
+                        "T__24", "T__25", "T__26", "T__27", "T__28", "T__29", 
+                        "T__30", "T__31", "T__32", "T__33", "T__34", "T__35", 
+                        "T__36", "T__37", "T__38", "T__39", "T__40", "STRINGLITERAL", 
+                        "STRING", "NUMBER", "COMMENT", "EOL", "WS" ];
+
+logoLexer.grammarFileName = "logo.g4";
+
+
+
+exports.logoLexer = logoLexer;
+
+
+},{"antlr4/index":60}],17:[function(require,module,exports){
+// Generated from logo.g4 by ANTLR 4.5
+// jshint ignore: start
+var antlr4 = require('antlr4/index');
+
+// This class defines a complete listener for a parse tree produced by logoParser.
+function logoListener() {
+	antlr4.tree.ParseTreeListener.call(this);
+	return this;
+}
+
+logoListener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
+logoListener.prototype.constructor = logoListener;
+
+// Enter a parse tree produced by logoParser#prog.
+logoListener.prototype.enterProg = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#prog.
+logoListener.prototype.exitProg = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#line.
+logoListener.prototype.enterLine = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#line.
+logoListener.prototype.exitLine = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#cmd.
+logoListener.prototype.enterCmd = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#cmd.
+logoListener.prototype.exitCmd = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#procedureInvocation.
+logoListener.prototype.enterProcedureInvocation = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#procedureInvocation.
+logoListener.prototype.exitProcedureInvocation = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#procedureDeclaration.
+logoListener.prototype.enterProcedureDeclaration = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#procedureDeclaration.
+logoListener.prototype.exitProcedureDeclaration = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#parameterDeclarations.
+logoListener.prototype.enterParameterDeclarations = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#parameterDeclarations.
+logoListener.prototype.exitParameterDeclarations = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#func.
+logoListener.prototype.enterFunc = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#func.
+logoListener.prototype.exitFunc = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#repeat.
+logoListener.prototype.enterRepeat = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#repeat.
+logoListener.prototype.exitRepeat = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#block.
+logoListener.prototype.enterBlock = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#block.
+logoListener.prototype.exitBlock = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#ife.
+logoListener.prototype.enterIfe = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#ife.
+logoListener.prototype.exitIfe = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#comparison.
+logoListener.prototype.enterComparison = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#comparison.
+logoListener.prototype.exitComparison = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#comparisonOperator.
+logoListener.prototype.enterComparisonOperator = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#comparisonOperator.
+logoListener.prototype.exitComparisonOperator = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#make.
+logoListener.prototype.enterMake = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#make.
+logoListener.prototype.exitMake = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#print.
+logoListener.prototype.enterPrint = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#print.
+logoListener.prototype.exitPrint = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#quotedstring.
+logoListener.prototype.enterQuotedstring = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#quotedstring.
+logoListener.prototype.exitQuotedstring = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#name.
+logoListener.prototype.enterName = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#name.
+logoListener.prototype.exitName = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#value.
+logoListener.prototype.enterValue = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#value.
+logoListener.prototype.exitValue = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#signExpression.
+logoListener.prototype.enterSignExpression = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#signExpression.
+logoListener.prototype.exitSignExpression = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#multiplyingExpression.
+logoListener.prototype.enterMultiplyingExpression = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#multiplyingExpression.
+logoListener.prototype.exitMultiplyingExpression = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#expression.
+logoListener.prototype.enterExpression = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#expression.
+logoListener.prototype.exitExpression = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#deref.
+logoListener.prototype.enterDeref = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#deref.
+logoListener.prototype.exitDeref = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#fd.
+logoListener.prototype.enterFd = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#fd.
+logoListener.prototype.exitFd = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#bk.
+logoListener.prototype.enterBk = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#bk.
+logoListener.prototype.exitBk = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#rt.
+logoListener.prototype.enterRt = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#rt.
+logoListener.prototype.exitRt = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#lt.
+logoListener.prototype.enterLt = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#lt.
+logoListener.prototype.exitLt = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#cs.
+logoListener.prototype.enterCs = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#cs.
+logoListener.prototype.exitCs = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#pu.
+logoListener.prototype.enterPu = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#pu.
+logoListener.prototype.exitPu = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#pd.
+logoListener.prototype.enterPd = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#pd.
+logoListener.prototype.exitPd = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#ht.
+logoListener.prototype.enterHt = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#ht.
+logoListener.prototype.exitHt = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#st.
+logoListener.prototype.enterSt = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#st.
+logoListener.prototype.exitSt = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#home.
+logoListener.prototype.enterHome = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#home.
+logoListener.prototype.exitHome = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#stop.
+logoListener.prototype.enterStop = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#stop.
+logoListener.prototype.exitStop = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#label.
+logoListener.prototype.enterLabel = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#label.
+logoListener.prototype.exitLabel = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#setxy.
+logoListener.prototype.enterSetxy = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#setxy.
+logoListener.prototype.exitSetxy = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#random.
+logoListener.prototype.enterRandom = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#random.
+logoListener.prototype.exitRandom = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#fore.
+logoListener.prototype.enterFore = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#fore.
+logoListener.prototype.exitFore = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#number.
+logoListener.prototype.enterNumber = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#number.
+logoListener.prototype.exitNumber = function(ctx) {
+};
+
+
+// Enter a parse tree produced by logoParser#comment.
+logoListener.prototype.enterComment = function(ctx) {
+};
+
+// Exit a parse tree produced by logoParser#comment.
+logoListener.prototype.exitComment = function(ctx) {
+};
+
+
+
+exports.logoListener = logoListener;
+},{"antlr4/index":60}],18:[function(require,module,exports){
+// Generated from logo.g4 by ANTLR 4.5
+// jshint ignore: start
+var antlr4 = require('antlr4/index');
+var logoListener = require('./logoListener').logoListener;
+var grammarFileName = "logo.g4";
+
+var serializedATN = ["\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd",
+    "\3\61\u0123\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b",
+    "\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4\20",
+    "\t\20\4\21\t\21\4\22\t\22\4\23\t\23\4\24\t\24\4\25\t\25\4\26\t\26\4",
+    "\27\t\27\4\30\t\30\4\31\t\31\4\32\t\32\4\33\t\33\4\34\t\34\4\35\t\35",
+    "\4\36\t\36\4\37\t\37\4 \t \4!\t!\4\"\t\"\4#\t#\4$\t$\4%\t%\4&\t&\4\'",
+    "\t\'\3\2\5\2P\n\2\3\2\6\2S\n\2\r\2\16\2T\3\2\5\2X\n\2\3\3\6\3[\n\3\r",
+    "\3\16\3\\\3\3\5\3`\n\3\3\3\3\3\3\3\5\3e\n\3\3\3\5\3h\n\3\3\4\3\4\3\4",
+    "\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\5\4|\n",
+    "\4\3\5\3\5\7\5\u0080\n\5\f\5\16\5\u0083\13\5\3\6\3\6\3\6\7\6\u0088\n",
+    "\6\f\6\16\6\u008b\13\6\3\6\5\6\u008e\n\6\3\6\5\6\u0091\n\6\3\6\6\6\u0094",
+    "\n\6\r\6\16\6\u0095\3\6\3\6\3\7\3\7\3\7\3\7\7\7\u009e\n\7\f\7\16\7\u00a1",
+    "\13\7\3\b\3\b\3\t\3\t\3\t\3\t\3\n\3\n\6\n\u00ab\n\n\r\n\16\n\u00ac\3",
+    "\n\3\n\3\13\3\13\3\13\3\13\3\f\3\f\3\f\3\f\3\r\3\r\3\16\3\16\3\16\3",
+    "\16\3\17\3\17\3\17\5\17\u00c2\n\17\3\20\3\20\3\20\7\20\u00c7\n\20\f",
+    "\20\16\20\u00ca\13\20\3\20\3\20\3\21\3\21\3\22\3\22\3\22\5\22\u00d3",
+    "\n\22\3\23\7\23\u00d6\n\23\f\23\16\23\u00d9\13\23\3\23\3\23\3\23\5\23",
+    "\u00de\n\23\3\24\3\24\3\24\7\24\u00e3\n\24\f\24\16\24\u00e6\13\24\3",
+    "\25\3\25\3\25\7\25\u00eb\n\25\f\25\16\25\u00ee\13\25\3\26\3\26\3\26",
+    "\3\27\3\27\3\27\3\30\3\30\3\30\3\31\3\31\3\31\3\32\3\32\3\32\3\33\3",
+    "\33\3\34\3\34\3\35\3\35\3\36\3\36\3\37\3\37\3 \3 \3!\3!\3\"\3\"\3#\3",
+    "#\3#\3#\3$\3$\3$\3%\3%\3%\3%\3%\3%\3%\3%\3%\3&\3&\3\'\3\'\3\'\2\2(\2",
+    "\4\6\b\n\f\16\20\22\24\26\30\32\34\36 \"$&(*,.\60\62\64\668:<>@BDFH",
+    "JL\2\17\3\2\13\r\3\2\t\t\3\2\20\21\3\2\22\23\3\2\24\25\3\2\26\27\3\2",
+    "\30\31\3\2\32\33\3\2\34\35\3\2\36\37\3\2 !\3\2\"#\3\2$%\u0127\2R\3\2",
+    "\2\2\4g\3\2\2\2\6{\3\2\2\2\b}\3\2\2\2\n\u0084\3\2\2\2\f\u0099\3\2\2",
+    "\2\16\u00a2\3\2\2\2\20\u00a4\3\2\2\2\22\u00a8\3\2\2\2\24\u00b0\3\2\2",
+    "\2\26\u00b4\3\2\2\2\30\u00b8\3\2\2\2\32\u00ba\3\2\2\2\34\u00be\3\2\2",
+    "\2\36\u00c3\3\2\2\2 \u00cd\3\2\2\2\"\u00d2\3\2\2\2$\u00d7\3\2\2\2&\u00df",
+    "\3\2\2\2(\u00e7\3\2\2\2*\u00ef\3\2\2\2,\u00f2\3\2\2\2.\u00f5\3\2\2\2",
+    "\60\u00f8\3\2\2\2\62\u00fb\3\2\2\2\64\u00fe\3\2\2\2\66\u0100\3\2\2\2",
+    "8\u0102\3\2\2\2:\u0104\3\2\2\2<\u0106\3\2\2\2>\u0108\3\2\2\2@\u010a",
+    "\3\2\2\2B\u010c\3\2\2\2D\u010e\3\2\2\2F\u0112\3\2\2\2H\u0115\3\2\2\2",
+    "J\u011e\3\2\2\2L\u0120\3\2\2\2NP\5\4\3\2ON\3\2\2\2OP\3\2\2\2PQ\3\2\2",
+    "\2QS\7\60\2\2RO\3\2\2\2ST\3\2\2\2TR\3\2\2\2TU\3\2\2\2UW\3\2\2\2VX\5",
+    "\4\3\2WV\3\2\2\2WX\3\2\2\2X\3\3\2\2\2Y[\5\6\4\2ZY\3\2\2\2[\\\3\2\2\2",
+    "\\Z\3\2\2\2\\]\3\2\2\2]_\3\2\2\2^`\5L\'\2_^\3\2\2\2_`\3\2\2\2`h\3\2",
+    "\2\2ah\5L\'\2bd\5\34\17\2ce\5L\'\2dc\3\2\2\2de\3\2\2\2eh\3\2\2\2fh\5",
+    "\n\6\2gZ\3\2\2\2ga\3\2\2\2gb\3\2\2\2gf\3\2\2\2h\5\3\2\2\2i|\5\20\t\2",
+    "j|\5,\27\2k|\5.\30\2l|\5\60\31\2m|\5\62\32\2n|\5\64\33\2o|\5\66\34\2",
+    "p|\58\35\2q|\5:\36\2r|\5<\37\2s|\5> \2t|\5B\"\2u|\5D#\2v|\5\32\16\2",
+    "w|\5\b\5\2x|\5\24\13\2y|\5@!\2z|\5H%\2{i\3\2\2\2{j\3\2\2\2{k\3\2\2\2",
+    "{l\3\2\2\2{m\3\2\2\2{n\3\2\2\2{o\3\2\2\2{p\3\2\2\2{q\3\2\2\2{r\3\2\2",
+    "\2{s\3\2\2\2{t\3\2\2\2{u\3\2\2\2{v\3\2\2\2{w\3\2\2\2{x\3\2\2\2{y\3\2",
+    "\2\2{z\3\2\2\2|\7\3\2\2\2}\u0081\5 \21\2~\u0080\5(\25\2\177~\3\2\2\2",
+    "\u0080\u0083\3\2\2\2\u0081\177\3\2\2\2\u0081\u0082\3\2\2\2\u0082\t\3",
+    "\2\2\2\u0083\u0081\3\2\2\2\u0084\u0085\7\3\2\2\u0085\u0089\5 \21\2\u0086",
+    "\u0088\5\f\7\2\u0087\u0086\3\2\2\2\u0088\u008b\3\2\2\2\u0089\u0087\3",
+    "\2\2\2\u0089\u008a\3\2\2\2\u008a\u008d\3\2\2\2\u008b\u0089\3\2\2\2\u008c",
+    "\u008e\7\60\2\2\u008d\u008c\3\2\2\2\u008d\u008e\3\2\2\2\u008e\u0093",
+    "\3\2\2\2\u008f\u0091\5\4\3\2\u0090\u008f\3\2\2\2\u0090\u0091\3\2\2\2",
+    "\u0091\u0092\3\2\2\2\u0092\u0094\7\60\2\2\u0093\u0090\3\2\2\2\u0094",
+    "\u0095\3\2\2\2\u0095\u0093\3\2\2\2\u0095\u0096\3\2\2\2\u0096\u0097\3",
+    "\2\2\2\u0097\u0098\7\4\2\2\u0098\13\3\2\2\2\u0099\u009a\7\5\2\2\u009a",
+    "\u009f\5 \21\2\u009b\u009c\7\6\2\2\u009c\u009e\5\f\7\2\u009d\u009b\3",
+    "\2\2\2\u009e\u00a1\3\2\2\2\u009f\u009d\3\2\2\2\u009f\u00a0\3\2\2\2\u00a0",
+    "\r\3\2\2\2\u00a1\u009f\3\2\2\2\u00a2\u00a3\5F$\2\u00a3\17\3\2\2\2\u00a4",
+    "\u00a5\7\7\2\2\u00a5\u00a6\5J&\2\u00a6\u00a7\5\22\n\2\u00a7\21\3\2\2",
+    "\2\u00a8\u00aa\7\b\2\2\u00a9\u00ab\5\6\4\2\u00aa\u00a9\3\2\2\2\u00ab",
+    "\u00ac\3\2\2\2\u00ac\u00aa\3\2\2\2\u00ac\u00ad\3\2\2\2\u00ad\u00ae\3",
+    "\2\2\2\u00ae\u00af\7\t\2\2\u00af\23\3\2\2\2\u00b0\u00b1\7\n\2\2\u00b1",
+    "\u00b2\5\26\f\2\u00b2\u00b3\5\22\n\2\u00b3\25\3\2\2\2\u00b4\u00b5\5",
+    "(\25\2\u00b5\u00b6\5\30\r\2\u00b6\u00b7\5(\25\2\u00b7\27\3\2\2\2\u00b8",
+    "\u00b9\t\2\2\2\u00b9\31\3\2\2\2\u00ba\u00bb\7\16\2\2\u00bb\u00bc\7,",
+    "\2\2\u00bc\u00bd\5\"\22\2\u00bd\33\3\2\2\2\u00be\u00c1\7\17\2\2\u00bf",
+    "\u00c2\5\"\22\2\u00c0\u00c2\5\36\20\2\u00c1\u00bf\3\2\2\2\u00c1\u00c0",
+    "\3\2\2\2\u00c2\35\3\2\2\2\u00c3\u00c8\7\b\2\2\u00c4\u00c7\5\36\20\2",
+    "\u00c5\u00c7\n\3\2\2\u00c6\u00c4\3\2\2\2\u00c6\u00c5\3\2\2\2\u00c7\u00ca",
+    "\3\2\2\2\u00c8\u00c6\3\2\2\2\u00c8\u00c9\3\2\2\2\u00c9\u00cb\3\2\2\2",
+    "\u00ca\u00c8\3\2\2\2\u00cb\u00cc\7\t\2\2\u00cc\37\3\2\2\2\u00cd\u00ce",
+    "\7-\2\2\u00ce!\3\2\2\2\u00cf\u00d3\7,\2\2\u00d0\u00d3\5(\25\2\u00d1",
+    "\u00d3\5*\26\2\u00d2\u00cf\3\2\2\2\u00d2\u00d0\3\2\2\2\u00d2\u00d1\3",
+    "\2\2\2\u00d3#\3\2\2\2\u00d4\u00d6\t\4\2\2\u00d5\u00d4\3\2\2\2\u00d6",
+    "\u00d9\3\2\2\2\u00d7\u00d5\3\2\2\2\u00d7\u00d8\3\2\2\2\u00d8\u00dd\3",
+    "\2\2\2\u00d9\u00d7\3\2\2\2\u00da\u00de\5J&\2\u00db\u00de\5*\26\2\u00dc",
+    "\u00de\5\16\b\2\u00dd\u00da\3\2\2\2\u00dd\u00db\3\2\2\2\u00dd\u00dc",
+    "\3\2\2\2\u00de%\3\2\2\2\u00df\u00e4\5$\23\2\u00e0\u00e1\t\5\2\2\u00e1",
+    "\u00e3\5$\23\2\u00e2\u00e0\3\2\2\2\u00e3\u00e6\3\2\2\2\u00e4\u00e2\3",
+    "\2\2\2\u00e4\u00e5\3\2\2\2\u00e5\'\3\2\2\2\u00e6\u00e4\3\2\2\2\u00e7",
+    "\u00ec\5&\24\2\u00e8\u00e9\t\4\2\2\u00e9\u00eb\5&\24\2\u00ea\u00e8\3",
+    "\2\2\2\u00eb\u00ee\3\2\2\2\u00ec\u00ea\3\2\2\2\u00ec\u00ed\3\2\2\2\u00ed",
+    ")\3\2\2\2\u00ee\u00ec\3\2\2\2\u00ef\u00f0\7\5\2\2\u00f0\u00f1\5 \21",
+    "\2\u00f1+\3\2\2\2\u00f2\u00f3\t\6\2\2\u00f3\u00f4\5(\25\2\u00f4-\3\2",
+    "\2\2\u00f5\u00f6\t\7\2\2\u00f6\u00f7\5(\25\2\u00f7/\3\2\2\2\u00f8\u00f9",
+    "\t\b\2\2\u00f9\u00fa\5(\25\2\u00fa\61\3\2\2\2\u00fb\u00fc\t\t\2\2\u00fc",
+    "\u00fd\5(\25\2\u00fd\63\3\2\2\2\u00fe\u00ff\t\n\2\2\u00ff\65\3\2\2\2",
+    "\u0100\u0101\t\13\2\2\u0101\67\3\2\2\2\u0102\u0103\t\f\2\2\u01039\3",
+    "\2\2\2\u0104\u0105\t\r\2\2\u0105;\3\2\2\2\u0106\u0107\t\16\2\2\u0107",
+    "=\3\2\2\2\u0108\u0109\7&\2\2\u0109?\3\2\2\2\u010a\u010b\7\'\2\2\u010b",
+    "A\3\2\2\2\u010c\u010d\7(\2\2\u010dC\3\2\2\2\u010e\u010f\7)\2\2\u010f",
+    "\u0110\5(\25\2\u0110\u0111\5(\25\2\u0111E\3\2\2\2\u0112\u0113\7*\2\2",
+    "\u0113\u0114\5(\25\2\u0114G\3\2\2\2\u0115\u0116\7+\2\2\u0116\u0117\7",
+    "\b\2\2\u0117\u0118\5 \21\2\u0118\u0119\5(\25\2\u0119\u011a\5(\25\2\u011a",
+    "\u011b\5(\25\2\u011b\u011c\7\t\2\2\u011c\u011d\5\22\n\2\u011dI\3\2\2",
+    "\2\u011e\u011f\7.\2\2\u011fK\3\2\2\2\u0120\u0121\7/\2\2\u0121M\3\2\2",
+    "\2\31OTW\\_dg{\u0081\u0089\u008d\u0090\u0095\u009f\u00ac\u00c1\u00c6",
+    "\u00c8\u00d2\u00d7\u00dd\u00e4\u00ec"].join("");
+
+
+var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
+
+var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
+
+var sharedContextCache = new antlr4.PredictionContextCache();
+
+var literalNames = [ 'null', "'to'", "'end'", "':'", "','", "'repeat'", 
+                     "'['", "']'", "'if'", "'<'", "'>'", "'='", "'make'", 
+                     "'print'", "'+'", "'-'", "'*'", "'/'", "'fd'", "'forward'", 
+                     "'bk'", "'backward'", "'rt'", "'right'", "'lt'", "'left'", 
+                     "'cs'", "'clearscreen'", "'pu'", "'penup'", "'pd'", 
+                     "'pendown'", "'ht'", "'hideturtle'", "'st'", "'showturtle'", 
+                     "'home'", "'stop'", "'label'", "'setxy'", "'random'", 
+                     "'for'" ];
+
+var symbolicNames = [ 'null', 'null', 'null', 'null', 'null', 'null', 'null', 
+                      'null', 'null', 'null', 'null', 'null', 'null', 'null', 
+                      'null', 'null', 'null', 'null', 'null', 'null', 'null', 
+                      'null', 'null', 'null', 'null', 'null', 'null', 'null', 
+                      'null', 'null', 'null', 'null', 'null', 'null', 'null', 
+                      'null', 'null', 'null', 'null', 'null', 'null', 'null', 
+                      "STRINGLITERAL", "STRING", "NUMBER", "COMMENT", "EOL", 
+                      "WS" ];
+
+var ruleNames =  [ "prog", "line", "cmd", "procedureInvocation", "procedureDeclaration", 
+                   "parameterDeclarations", "func", "repeat", "block", "ife", 
+                   "comparison", "comparisonOperator", "make", "print", 
+                   "quotedstring", "name", "value", "signExpression", "multiplyingExpression", 
+                   "expression", "deref", "fd", "bk", "rt", "lt", "cs", 
+                   "pu", "pd", "ht", "st", "home", "stop", "label", "setxy", 
+                   "random", "fore", "number", "comment" ];
+
+function logoParser (input) {
+	antlr4.Parser.call(this, input);
+    this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
+    this.ruleNames = ruleNames;
+    this.literalNames = literalNames;
+    this.symbolicNames = symbolicNames;
+    return this;
+}
+
+logoParser.prototype = Object.create(antlr4.Parser.prototype);
+logoParser.prototype.constructor = logoParser;
+
+Object.defineProperty(logoParser.prototype, "atn", {
+	get : function() {
+		return atn;
+	}
+});
+
+logoParser.EOF = antlr4.Token.EOF;
+logoParser.T__0 = 1;
+logoParser.T__1 = 2;
+logoParser.T__2 = 3;
+logoParser.T__3 = 4;
+logoParser.T__4 = 5;
+logoParser.T__5 = 6;
+logoParser.T__6 = 7;
+logoParser.T__7 = 8;
+logoParser.T__8 = 9;
+logoParser.T__9 = 10;
+logoParser.T__10 = 11;
+logoParser.T__11 = 12;
+logoParser.T__12 = 13;
+logoParser.T__13 = 14;
+logoParser.T__14 = 15;
+logoParser.T__15 = 16;
+logoParser.T__16 = 17;
+logoParser.T__17 = 18;
+logoParser.T__18 = 19;
+logoParser.T__19 = 20;
+logoParser.T__20 = 21;
+logoParser.T__21 = 22;
+logoParser.T__22 = 23;
+logoParser.T__23 = 24;
+logoParser.T__24 = 25;
+logoParser.T__25 = 26;
+logoParser.T__26 = 27;
+logoParser.T__27 = 28;
+logoParser.T__28 = 29;
+logoParser.T__29 = 30;
+logoParser.T__30 = 31;
+logoParser.T__31 = 32;
+logoParser.T__32 = 33;
+logoParser.T__33 = 34;
+logoParser.T__34 = 35;
+logoParser.T__35 = 36;
+logoParser.T__36 = 37;
+logoParser.T__37 = 38;
+logoParser.T__38 = 39;
+logoParser.T__39 = 40;
+logoParser.T__40 = 41;
+logoParser.STRINGLITERAL = 42;
+logoParser.STRING = 43;
+logoParser.NUMBER = 44;
+logoParser.COMMENT = 45;
+logoParser.EOL = 46;
+logoParser.WS = 47;
+
+logoParser.RULE_prog = 0;
+logoParser.RULE_line = 1;
+logoParser.RULE_cmd = 2;
+logoParser.RULE_procedureInvocation = 3;
+logoParser.RULE_procedureDeclaration = 4;
+logoParser.RULE_parameterDeclarations = 5;
+logoParser.RULE_func = 6;
+logoParser.RULE_repeat = 7;
+logoParser.RULE_block = 8;
+logoParser.RULE_ife = 9;
+logoParser.RULE_comparison = 10;
+logoParser.RULE_comparisonOperator = 11;
+logoParser.RULE_make = 12;
+logoParser.RULE_print = 13;
+logoParser.RULE_quotedstring = 14;
+logoParser.RULE_name = 15;
+logoParser.RULE_value = 16;
+logoParser.RULE_signExpression = 17;
+logoParser.RULE_multiplyingExpression = 18;
+logoParser.RULE_expression = 19;
+logoParser.RULE_deref = 20;
+logoParser.RULE_fd = 21;
+logoParser.RULE_bk = 22;
+logoParser.RULE_rt = 23;
+logoParser.RULE_lt = 24;
+logoParser.RULE_cs = 25;
+logoParser.RULE_pu = 26;
+logoParser.RULE_pd = 27;
+logoParser.RULE_ht = 28;
+logoParser.RULE_st = 29;
+logoParser.RULE_home = 30;
+logoParser.RULE_stop = 31;
+logoParser.RULE_label = 32;
+logoParser.RULE_setxy = 33;
+logoParser.RULE_random = 34;
+logoParser.RULE_fore = 35;
+logoParser.RULE_number = 36;
+logoParser.RULE_comment = 37;
+
+function ProgContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_prog;
+    return this;
+}
+
+ProgContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ProgContext.prototype.constructor = ProgContext;
+
+ProgContext.prototype.EOL = function(i) {
+	if(i===undefined) {
+		i = null;
+	}
+    if(i===null) {
+        return this.getTokens(logoParser.EOL);
+    } else {
+        return this.getToken(logoParser.EOL, i);
+    }
+};
+
+
+ProgContext.prototype.line = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(LineContext);
+    } else {
+        return this.getTypedRuleContext(LineContext,i);
+    }
+};
+
+ProgContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterProg(this);
+	}
+};
+
+ProgContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitProg(this);
+	}
+};
+
+
+
+
+logoParser.ProgContext = ProgContext;
+
+logoParser.prototype.prog = function() {
+
+    var localctx = new ProgContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 0, logoParser.RULE_prog);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 80; 
+        this._errHandler.sync(this);
+        var _alt = 1;
+        do {
+        	switch (_alt) {
+        	case 1:
+        		this.state = 77;
+        		_la = this._input.LA(1);
+        		if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__0) | (1 << logoParser.T__4) | (1 << logoParser.T__7) | (1 << logoParser.T__11) | (1 << logoParser.T__12) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRING - 32)) | (1 << (logoParser.COMMENT - 32)))) !== 0)) {
+        		    this.state = 76;
+        		    this.line();
+        		}
+
+        		this.state = 79;
+        		this.match(logoParser.EOL);
+        		break;
+        	default:
+        		throw new antlr4.error.NoViableAltException(this);
+        	}
+        	this.state = 82; 
+        	this._errHandler.sync(this);
+        	_alt = this._interp.adaptivePredict(this._input,1, this._ctx);
+        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
+        this.state = 85;
+        _la = this._input.LA(1);
+        if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__0) | (1 << logoParser.T__4) | (1 << logoParser.T__7) | (1 << logoParser.T__11) | (1 << logoParser.T__12) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRING - 32)) | (1 << (logoParser.COMMENT - 32)))) !== 0)) {
+            this.state = 84;
+            this.line();
+        }
+
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function LineContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_line;
+    return this;
+}
+
+LineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+LineContext.prototype.constructor = LineContext;
+
+LineContext.prototype.cmd = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(CmdContext);
+    } else {
+        return this.getTypedRuleContext(CmdContext,i);
+    }
+};
+
+LineContext.prototype.comment = function() {
+    return this.getTypedRuleContext(CommentContext,0);
+};
+
+LineContext.prototype.print = function() {
+    return this.getTypedRuleContext(PrintContext,0);
+};
+
+LineContext.prototype.procedureDeclaration = function() {
+    return this.getTypedRuleContext(ProcedureDeclarationContext,0);
+};
+
+LineContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterLine(this);
+	}
+};
+
+LineContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitLine(this);
+	}
+};
+
+
+
+
+logoParser.LineContext = LineContext;
+
+logoParser.prototype.line = function() {
+
+    var localctx = new LineContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 2, logoParser.RULE_line);
+    var _la = 0; // Token type
+    try {
+        this.state = 101;
+        switch(this._input.LA(1)) {
+        case logoParser.T__4:
+        case logoParser.T__7:
+        case logoParser.T__11:
+        case logoParser.T__17:
+        case logoParser.T__18:
+        case logoParser.T__19:
+        case logoParser.T__20:
+        case logoParser.T__21:
+        case logoParser.T__22:
+        case logoParser.T__23:
+        case logoParser.T__24:
+        case logoParser.T__25:
+        case logoParser.T__26:
+        case logoParser.T__27:
+        case logoParser.T__28:
+        case logoParser.T__29:
+        case logoParser.T__30:
+        case logoParser.T__31:
+        case logoParser.T__32:
+        case logoParser.T__33:
+        case logoParser.T__34:
+        case logoParser.T__35:
+        case logoParser.T__36:
+        case logoParser.T__37:
+        case logoParser.T__38:
+        case logoParser.T__40:
+        case logoParser.STRING:
+            this.enterOuterAlt(localctx, 1);
+            this.state = 88; 
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            do {
+                this.state = 87;
+                this.cmd();
+                this.state = 90; 
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__4) | (1 << logoParser.T__7) | (1 << logoParser.T__11) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRING - 32)))) !== 0));
+            this.state = 93;
+            _la = this._input.LA(1);
+            if(_la===logoParser.COMMENT) {
+                this.state = 92;
+                this.comment();
+            }
+
+            break;
+        case logoParser.COMMENT:
+            this.enterOuterAlt(localctx, 2);
+            this.state = 95;
+            this.comment();
+            break;
+        case logoParser.T__12:
+            this.enterOuterAlt(localctx, 3);
+            this.state = 96;
+            this.print();
+            this.state = 98;
+            _la = this._input.LA(1);
+            if(_la===logoParser.COMMENT) {
+                this.state = 97;
+                this.comment();
+            }
+
+            break;
+        case logoParser.T__0:
+            this.enterOuterAlt(localctx, 4);
+            this.state = 100;
+            this.procedureDeclaration();
+            break;
+        default:
+            throw new antlr4.error.NoViableAltException(this);
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function CmdContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_cmd;
+    return this;
+}
+
+CmdContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+CmdContext.prototype.constructor = CmdContext;
+
+CmdContext.prototype.repeat = function() {
+    return this.getTypedRuleContext(RepeatContext,0);
+};
+
+CmdContext.prototype.fd = function() {
+    return this.getTypedRuleContext(FdContext,0);
+};
+
+CmdContext.prototype.bk = function() {
+    return this.getTypedRuleContext(BkContext,0);
+};
+
+CmdContext.prototype.rt = function() {
+    return this.getTypedRuleContext(RtContext,0);
+};
+
+CmdContext.prototype.lt = function() {
+    return this.getTypedRuleContext(LtContext,0);
+};
+
+CmdContext.prototype.cs = function() {
+    return this.getTypedRuleContext(CsContext,0);
+};
+
+CmdContext.prototype.pu = function() {
+    return this.getTypedRuleContext(PuContext,0);
+};
+
+CmdContext.prototype.pd = function() {
+    return this.getTypedRuleContext(PdContext,0);
+};
+
+CmdContext.prototype.ht = function() {
+    return this.getTypedRuleContext(HtContext,0);
+};
+
+CmdContext.prototype.st = function() {
+    return this.getTypedRuleContext(StContext,0);
+};
+
+CmdContext.prototype.home = function() {
+    return this.getTypedRuleContext(HomeContext,0);
+};
+
+CmdContext.prototype.label = function() {
+    return this.getTypedRuleContext(LabelContext,0);
+};
+
+CmdContext.prototype.setxy = function() {
+    return this.getTypedRuleContext(SetxyContext,0);
+};
+
+CmdContext.prototype.make = function() {
+    return this.getTypedRuleContext(MakeContext,0);
+};
+
+CmdContext.prototype.procedureInvocation = function() {
+    return this.getTypedRuleContext(ProcedureInvocationContext,0);
+};
+
+CmdContext.prototype.ife = function() {
+    return this.getTypedRuleContext(IfeContext,0);
+};
+
+CmdContext.prototype.stop = function() {
+    return this.getTypedRuleContext(StopContext,0);
+};
+
+CmdContext.prototype.fore = function() {
+    return this.getTypedRuleContext(ForeContext,0);
+};
+
+CmdContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterCmd(this);
+	}
+};
+
+CmdContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitCmd(this);
+	}
+};
+
+
+
+
+logoParser.CmdContext = CmdContext;
+
+logoParser.prototype.cmd = function() {
+
+    var localctx = new CmdContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 4, logoParser.RULE_cmd);
+    try {
+        this.state = 121;
+        switch(this._input.LA(1)) {
+        case logoParser.T__4:
+            this.enterOuterAlt(localctx, 1);
+            this.state = 103;
+            this.repeat();
+            break;
+        case logoParser.T__17:
+        case logoParser.T__18:
+            this.enterOuterAlt(localctx, 2);
+            this.state = 104;
+            this.fd();
+            break;
+        case logoParser.T__19:
+        case logoParser.T__20:
+            this.enterOuterAlt(localctx, 3);
+            this.state = 105;
+            this.bk();
+            break;
+        case logoParser.T__21:
+        case logoParser.T__22:
+            this.enterOuterAlt(localctx, 4);
+            this.state = 106;
+            this.rt();
+            break;
+        case logoParser.T__23:
+        case logoParser.T__24:
+            this.enterOuterAlt(localctx, 5);
+            this.state = 107;
+            this.lt();
+            break;
+        case logoParser.T__25:
+        case logoParser.T__26:
+            this.enterOuterAlt(localctx, 6);
+            this.state = 108;
+            this.cs();
+            break;
+        case logoParser.T__27:
+        case logoParser.T__28:
+            this.enterOuterAlt(localctx, 7);
+            this.state = 109;
+            this.pu();
+            break;
+        case logoParser.T__29:
+        case logoParser.T__30:
+            this.enterOuterAlt(localctx, 8);
+            this.state = 110;
+            this.pd();
+            break;
+        case logoParser.T__31:
+        case logoParser.T__32:
+            this.enterOuterAlt(localctx, 9);
+            this.state = 111;
+            this.ht();
+            break;
+        case logoParser.T__33:
+        case logoParser.T__34:
+            this.enterOuterAlt(localctx, 10);
+            this.state = 112;
+            this.st();
+            break;
+        case logoParser.T__35:
+            this.enterOuterAlt(localctx, 11);
+            this.state = 113;
+            this.home();
+            break;
+        case logoParser.T__37:
+            this.enterOuterAlt(localctx, 12);
+            this.state = 114;
+            this.label();
+            break;
+        case logoParser.T__38:
+            this.enterOuterAlt(localctx, 13);
+            this.state = 115;
+            this.setxy();
+            break;
+        case logoParser.T__11:
+            this.enterOuterAlt(localctx, 14);
+            this.state = 116;
+            this.make();
+            break;
+        case logoParser.STRING:
+            this.enterOuterAlt(localctx, 15);
+            this.state = 117;
+            this.procedureInvocation();
+            break;
+        case logoParser.T__7:
+            this.enterOuterAlt(localctx, 16);
+            this.state = 118;
+            this.ife();
+            break;
+        case logoParser.T__36:
+            this.enterOuterAlt(localctx, 17);
+            this.state = 119;
+            this.stop();
+            break;
+        case logoParser.T__40:
+            this.enterOuterAlt(localctx, 18);
+            this.state = 120;
+            this.fore();
+            break;
+        default:
+            throw new antlr4.error.NoViableAltException(this);
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ProcedureInvocationContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_procedureInvocation;
+    return this;
+}
+
+ProcedureInvocationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ProcedureInvocationContext.prototype.constructor = ProcedureInvocationContext;
+
+ProcedureInvocationContext.prototype.name = function() {
+    return this.getTypedRuleContext(NameContext,0);
+};
+
+ProcedureInvocationContext.prototype.expression = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(ExpressionContext);
+    } else {
+        return this.getTypedRuleContext(ExpressionContext,i);
+    }
+};
+
+ProcedureInvocationContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterProcedureInvocation(this);
+	}
+};
+
+ProcedureInvocationContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitProcedureInvocation(this);
+	}
+};
+
+
+
+
+logoParser.ProcedureInvocationContext = ProcedureInvocationContext;
+
+logoParser.prototype.procedureInvocation = function() {
+
+    var localctx = new ProcedureInvocationContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 6, logoParser.RULE_procedureInvocation);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 123;
+        this.name();
+        this.state = 127;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__2) | (1 << logoParser.T__13) | (1 << logoParser.T__14))) !== 0) || _la===logoParser.T__39 || _la===logoParser.NUMBER) {
+            this.state = 124;
+            this.expression();
+            this.state = 129;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ProcedureDeclarationContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_procedureDeclaration;
+    return this;
+}
+
+ProcedureDeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ProcedureDeclarationContext.prototype.constructor = ProcedureDeclarationContext;
+
+ProcedureDeclarationContext.prototype.name = function() {
+    return this.getTypedRuleContext(NameContext,0);
+};
+
+ProcedureDeclarationContext.prototype.parameterDeclarations = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(ParameterDeclarationsContext);
+    } else {
+        return this.getTypedRuleContext(ParameterDeclarationsContext,i);
+    }
+};
+
+ProcedureDeclarationContext.prototype.EOL = function(i) {
+	if(i===undefined) {
+		i = null;
+	}
+    if(i===null) {
+        return this.getTokens(logoParser.EOL);
+    } else {
+        return this.getToken(logoParser.EOL, i);
+    }
+};
+
+
+ProcedureDeclarationContext.prototype.line = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(LineContext);
+    } else {
+        return this.getTypedRuleContext(LineContext,i);
+    }
+};
+
+ProcedureDeclarationContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterProcedureDeclaration(this);
+	}
+};
+
+ProcedureDeclarationContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitProcedureDeclaration(this);
+	}
+};
+
+
+
+
+logoParser.ProcedureDeclarationContext = ProcedureDeclarationContext;
+
+logoParser.prototype.procedureDeclaration = function() {
+
+    var localctx = new ProcedureDeclarationContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 8, logoParser.RULE_procedureDeclaration);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 130;
+        this.match(logoParser.T__0);
+        this.state = 131;
+        this.name();
+        this.state = 135;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while(_la===logoParser.T__2) {
+            this.state = 132;
+            this.parameterDeclarations();
+            this.state = 137;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 139;
+        var la_ = this._interp.adaptivePredict(this._input,10,this._ctx);
+        if(la_===1) {
+            this.state = 138;
+            this.match(logoParser.EOL);
+
+        }
+        this.state = 145; 
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        do {
+            this.state = 142;
+            _la = this._input.LA(1);
+            if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__0) | (1 << logoParser.T__4) | (1 << logoParser.T__7) | (1 << logoParser.T__11) | (1 << logoParser.T__12) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRING - 32)) | (1 << (logoParser.COMMENT - 32)))) !== 0)) {
+                this.state = 141;
+                this.line();
+            }
+
+            this.state = 144;
+            this.match(logoParser.EOL);
+            this.state = 147; 
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__0) | (1 << logoParser.T__4) | (1 << logoParser.T__7) | (1 << logoParser.T__11) | (1 << logoParser.T__12) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRING - 32)) | (1 << (logoParser.COMMENT - 32)) | (1 << (logoParser.EOL - 32)))) !== 0));
+        this.state = 149;
+        this.match(logoParser.T__1);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ParameterDeclarationsContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_parameterDeclarations;
+    return this;
+}
+
+ParameterDeclarationsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ParameterDeclarationsContext.prototype.constructor = ParameterDeclarationsContext;
+
+ParameterDeclarationsContext.prototype.name = function() {
+    return this.getTypedRuleContext(NameContext,0);
+};
+
+ParameterDeclarationsContext.prototype.parameterDeclarations = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(ParameterDeclarationsContext);
+    } else {
+        return this.getTypedRuleContext(ParameterDeclarationsContext,i);
+    }
+};
+
+ParameterDeclarationsContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterParameterDeclarations(this);
+	}
+};
+
+ParameterDeclarationsContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitParameterDeclarations(this);
+	}
+};
+
+
+
+
+logoParser.ParameterDeclarationsContext = ParameterDeclarationsContext;
+
+logoParser.prototype.parameterDeclarations = function() {
+
+    var localctx = new ParameterDeclarationsContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 10, logoParser.RULE_parameterDeclarations);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 151;
+        this.match(logoParser.T__2);
+        this.state = 152;
+        this.name();
+        this.state = 157;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input,13,this._ctx)
+        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if(_alt===1) {
+                this.state = 153;
+                this.match(logoParser.T__3);
+                this.state = 154;
+                this.parameterDeclarations(); 
+            }
+            this.state = 159;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input,13,this._ctx);
+        }
+
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function FuncContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_func;
+    return this;
+}
+
+FuncContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+FuncContext.prototype.constructor = FuncContext;
+
+FuncContext.prototype.random = function() {
+    return this.getTypedRuleContext(RandomContext,0);
+};
+
+FuncContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterFunc(this);
+	}
+};
+
+FuncContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitFunc(this);
+	}
+};
+
+
+
+
+logoParser.FuncContext = FuncContext;
+
+logoParser.prototype.func = function() {
+
+    var localctx = new FuncContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 12, logoParser.RULE_func);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 160;
+        this.random();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function RepeatContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_repeat;
+    return this;
+}
+
+RepeatContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+RepeatContext.prototype.constructor = RepeatContext;
+
+RepeatContext.prototype.number = function() {
+    return this.getTypedRuleContext(NumberContext,0);
+};
+
+RepeatContext.prototype.block = function() {
+    return this.getTypedRuleContext(BlockContext,0);
+};
+
+RepeatContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterRepeat(this);
+	}
+};
+
+RepeatContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitRepeat(this);
+	}
+};
+
+
+
+
+logoParser.RepeatContext = RepeatContext;
+
+logoParser.prototype.repeat = function() {
+
+    var localctx = new RepeatContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 14, logoParser.RULE_repeat);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 162;
+        this.match(logoParser.T__4);
+        this.state = 163;
+        this.number();
+        this.state = 164;
+        this.block();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function BlockContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_block;
+    return this;
+}
+
+BlockContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+BlockContext.prototype.constructor = BlockContext;
+
+BlockContext.prototype.cmd = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(CmdContext);
+    } else {
+        return this.getTypedRuleContext(CmdContext,i);
+    }
+};
+
+BlockContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterBlock(this);
+	}
+};
+
+BlockContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitBlock(this);
+	}
+};
+
+
+
+
+logoParser.BlockContext = BlockContext;
+
+logoParser.prototype.block = function() {
+
+    var localctx = new BlockContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 16, logoParser.RULE_block);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 166;
+        this.match(logoParser.T__5);
+        this.state = 168; 
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        do {
+            this.state = 167;
+            this.cmd();
+            this.state = 170; 
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__4) | (1 << logoParser.T__7) | (1 << logoParser.T__11) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRING - 32)))) !== 0));
+        this.state = 172;
+        this.match(logoParser.T__6);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function IfeContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_ife;
+    return this;
+}
+
+IfeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+IfeContext.prototype.constructor = IfeContext;
+
+IfeContext.prototype.comparison = function() {
+    return this.getTypedRuleContext(ComparisonContext,0);
+};
+
+IfeContext.prototype.block = function() {
+    return this.getTypedRuleContext(BlockContext,0);
+};
+
+IfeContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterIfe(this);
+	}
+};
+
+IfeContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitIfe(this);
+	}
+};
+
+
+
+
+logoParser.IfeContext = IfeContext;
+
+logoParser.prototype.ife = function() {
+
+    var localctx = new IfeContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 18, logoParser.RULE_ife);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 174;
+        this.match(logoParser.T__7);
+        this.state = 175;
+        this.comparison();
+        this.state = 176;
+        this.block();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ComparisonContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_comparison;
+    return this;
+}
+
+ComparisonContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ComparisonContext.prototype.constructor = ComparisonContext;
+
+ComparisonContext.prototype.expression = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(ExpressionContext);
+    } else {
+        return this.getTypedRuleContext(ExpressionContext,i);
+    }
+};
+
+ComparisonContext.prototype.comparisonOperator = function() {
+    return this.getTypedRuleContext(ComparisonOperatorContext,0);
+};
+
+ComparisonContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterComparison(this);
+	}
+};
+
+ComparisonContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitComparison(this);
+	}
+};
+
+
+
+
+logoParser.ComparisonContext = ComparisonContext;
+
+logoParser.prototype.comparison = function() {
+
+    var localctx = new ComparisonContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 20, logoParser.RULE_comparison);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 178;
+        this.expression();
+        this.state = 179;
+        this.comparisonOperator();
+        this.state = 180;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ComparisonOperatorContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_comparisonOperator;
+    return this;
+}
+
+ComparisonOperatorContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ComparisonOperatorContext.prototype.constructor = ComparisonOperatorContext;
+
+
+ComparisonOperatorContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterComparisonOperator(this);
+	}
+};
+
+ComparisonOperatorContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitComparisonOperator(this);
+	}
+};
+
+
+
+
+logoParser.ComparisonOperatorContext = ComparisonOperatorContext;
+
+logoParser.prototype.comparisonOperator = function() {
+
+    var localctx = new ComparisonOperatorContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 22, logoParser.RULE_comparisonOperator);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 182;
+        _la = this._input.LA(1);
+        if(!((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__8) | (1 << logoParser.T__9) | (1 << logoParser.T__10))) !== 0))) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function MakeContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_make;
+    return this;
+}
+
+MakeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+MakeContext.prototype.constructor = MakeContext;
+
+MakeContext.prototype.STRINGLITERAL = function() {
+    return this.getToken(logoParser.STRINGLITERAL, 0);
+};
+
+MakeContext.prototype.value = function() {
+    return this.getTypedRuleContext(ValueContext,0);
+};
+
+MakeContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterMake(this);
+	}
+};
+
+MakeContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitMake(this);
+	}
+};
+
+
+
+
+logoParser.MakeContext = MakeContext;
+
+logoParser.prototype.make = function() {
+
+    var localctx = new MakeContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 24, logoParser.RULE_make);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 184;
+        this.match(logoParser.T__11);
+        this.state = 185;
+        this.match(logoParser.STRINGLITERAL);
+        this.state = 186;
+        this.value();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function PrintContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_print;
+    return this;
+}
+
+PrintContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+PrintContext.prototype.constructor = PrintContext;
+
+PrintContext.prototype.value = function() {
+    return this.getTypedRuleContext(ValueContext,0);
+};
+
+PrintContext.prototype.quotedstring = function() {
+    return this.getTypedRuleContext(QuotedstringContext,0);
+};
+
+PrintContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterPrint(this);
+	}
+};
+
+PrintContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitPrint(this);
+	}
+};
+
+
+
+
+logoParser.PrintContext = PrintContext;
+
+logoParser.prototype.print = function() {
+
+    var localctx = new PrintContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 26, logoParser.RULE_print);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 188;
+        this.match(logoParser.T__12);
+        this.state = 191;
+        switch(this._input.LA(1)) {
+        case logoParser.T__2:
+        case logoParser.T__13:
+        case logoParser.T__14:
+        case logoParser.T__39:
+        case logoParser.STRINGLITERAL:
+        case logoParser.NUMBER:
+            this.state = 189;
+            this.value();
+            break;
+        case logoParser.T__5:
+            this.state = 190;
+            this.quotedstring();
+            break;
+        default:
+            throw new antlr4.error.NoViableAltException(this);
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function QuotedstringContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_quotedstring;
+    return this;
+}
+
+QuotedstringContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+QuotedstringContext.prototype.constructor = QuotedstringContext;
+
+QuotedstringContext.prototype.quotedstring = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(QuotedstringContext);
+    } else {
+        return this.getTypedRuleContext(QuotedstringContext,i);
+    }
+};
+
+QuotedstringContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterQuotedstring(this);
+	}
+};
+
+QuotedstringContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitQuotedstring(this);
+	}
+};
+
+
+
+
+logoParser.QuotedstringContext = QuotedstringContext;
+
+logoParser.prototype.quotedstring = function() {
+
+    var localctx = new QuotedstringContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 28, logoParser.RULE_quotedstring);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 193;
+        this.match(logoParser.T__5);
+        this.state = 198;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << logoParser.T__0) | (1 << logoParser.T__1) | (1 << logoParser.T__2) | (1 << logoParser.T__3) | (1 << logoParser.T__4) | (1 << logoParser.T__5) | (1 << logoParser.T__7) | (1 << logoParser.T__8) | (1 << logoParser.T__9) | (1 << logoParser.T__10) | (1 << logoParser.T__11) | (1 << logoParser.T__12) | (1 << logoParser.T__13) | (1 << logoParser.T__14) | (1 << logoParser.T__15) | (1 << logoParser.T__16) | (1 << logoParser.T__17) | (1 << logoParser.T__18) | (1 << logoParser.T__19) | (1 << logoParser.T__20) | (1 << logoParser.T__21) | (1 << logoParser.T__22) | (1 << logoParser.T__23) | (1 << logoParser.T__24) | (1 << logoParser.T__25) | (1 << logoParser.T__26) | (1 << logoParser.T__27) | (1 << logoParser.T__28) | (1 << logoParser.T__29) | (1 << logoParser.T__30))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (logoParser.T__31 - 32)) | (1 << (logoParser.T__32 - 32)) | (1 << (logoParser.T__33 - 32)) | (1 << (logoParser.T__34 - 32)) | (1 << (logoParser.T__35 - 32)) | (1 << (logoParser.T__36 - 32)) | (1 << (logoParser.T__37 - 32)) | (1 << (logoParser.T__38 - 32)) | (1 << (logoParser.T__39 - 32)) | (1 << (logoParser.T__40 - 32)) | (1 << (logoParser.STRINGLITERAL - 32)) | (1 << (logoParser.STRING - 32)) | (1 << (logoParser.NUMBER - 32)) | (1 << (logoParser.COMMENT - 32)) | (1 << (logoParser.EOL - 32)) | (1 << (logoParser.WS - 32)))) !== 0)) {
+            this.state = 196;
+            var la_ = this._interp.adaptivePredict(this._input,16,this._ctx);
+            switch(la_) {
+            case 1:
+                this.state = 194;
+                this.quotedstring();
+                break;
+
+            case 2:
+                this.state = 195;
+                _la = this._input.LA(1);
+                if(_la<=0 || _la===logoParser.T__6) {
+                this._errHandler.recoverInline(this);
+                }
+                else {
+                    this.consume();
+                }
+                break;
+
+            }
+            this.state = 200;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 201;
+        this.match(logoParser.T__6);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function NameContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_name;
+    return this;
+}
+
+NameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+NameContext.prototype.constructor = NameContext;
+
+NameContext.prototype.STRING = function() {
+    return this.getToken(logoParser.STRING, 0);
+};
+
+NameContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterName(this);
+	}
+};
+
+NameContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitName(this);
+	}
+};
+
+
+
+
+logoParser.NameContext = NameContext;
+
+logoParser.prototype.name = function() {
+
+    var localctx = new NameContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 30, logoParser.RULE_name);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 203;
+        this.match(logoParser.STRING);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ValueContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_value;
+    return this;
+}
+
+ValueContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ValueContext.prototype.constructor = ValueContext;
+
+ValueContext.prototype.STRINGLITERAL = function() {
+    return this.getToken(logoParser.STRINGLITERAL, 0);
+};
+
+ValueContext.prototype.expression = function() {
+    return this.getTypedRuleContext(ExpressionContext,0);
+};
+
+ValueContext.prototype.deref = function() {
+    return this.getTypedRuleContext(DerefContext,0);
+};
+
+ValueContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterValue(this);
+	}
+};
+
+ValueContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitValue(this);
+	}
+};
+
+
+
+
+logoParser.ValueContext = ValueContext;
+
+logoParser.prototype.value = function() {
+
+    var localctx = new ValueContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 32, logoParser.RULE_value);
+    try {
+        this.state = 208;
+        var la_ = this._interp.adaptivePredict(this._input,18,this._ctx);
+        switch(la_) {
+        case 1:
+            this.enterOuterAlt(localctx, 1);
+            this.state = 205;
+            this.match(logoParser.STRINGLITERAL);
+            break;
+
+        case 2:
+            this.enterOuterAlt(localctx, 2);
+            this.state = 206;
+            this.expression();
+            break;
+
+        case 3:
+            this.enterOuterAlt(localctx, 3);
+            this.state = 207;
+            this.deref();
+            break;
+
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function SignExpressionContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_signExpression;
+    return this;
+}
+
+SignExpressionContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+SignExpressionContext.prototype.constructor = SignExpressionContext;
+
+SignExpressionContext.prototype.number = function() {
+    return this.getTypedRuleContext(NumberContext,0);
+};
+
+SignExpressionContext.prototype.deref = function() {
+    return this.getTypedRuleContext(DerefContext,0);
+};
+
+SignExpressionContext.prototype.func = function() {
+    return this.getTypedRuleContext(FuncContext,0);
+};
+
+SignExpressionContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterSignExpression(this);
+	}
+};
+
+SignExpressionContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitSignExpression(this);
+	}
+};
+
+
+
+
+logoParser.SignExpressionContext = SignExpressionContext;
+
+logoParser.prototype.signExpression = function() {
+
+    var localctx = new SignExpressionContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 34, logoParser.RULE_signExpression);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 213;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while(_la===logoParser.T__13 || _la===logoParser.T__14) {
+            this.state = 210;
+            _la = this._input.LA(1);
+            if(!(_la===logoParser.T__13 || _la===logoParser.T__14)) {
+            this._errHandler.recoverInline(this);
+            }
+            else {
+                this.consume();
+            }
+            this.state = 215;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 219;
+        switch(this._input.LA(1)) {
+        case logoParser.NUMBER:
+            this.state = 216;
+            this.number();
+            break;
+        case logoParser.T__2:
+            this.state = 217;
+            this.deref();
+            break;
+        case logoParser.T__39:
+            this.state = 218;
+            this.func();
+            break;
+        default:
+            throw new antlr4.error.NoViableAltException(this);
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function MultiplyingExpressionContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_multiplyingExpression;
+    return this;
+}
+
+MultiplyingExpressionContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+MultiplyingExpressionContext.prototype.constructor = MultiplyingExpressionContext;
+
+MultiplyingExpressionContext.prototype.signExpression = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(SignExpressionContext);
+    } else {
+        return this.getTypedRuleContext(SignExpressionContext,i);
+    }
+};
+
+MultiplyingExpressionContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterMultiplyingExpression(this);
+	}
+};
+
+MultiplyingExpressionContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitMultiplyingExpression(this);
+	}
+};
+
+
+
+
+logoParser.MultiplyingExpressionContext = MultiplyingExpressionContext;
+
+logoParser.prototype.multiplyingExpression = function() {
+
+    var localctx = new MultiplyingExpressionContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 36, logoParser.RULE_multiplyingExpression);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 221;
+        this.signExpression();
+        this.state = 226;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input,21,this._ctx)
+        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if(_alt===1) {
+                this.state = 222;
+                _la = this._input.LA(1);
+                if(!(_la===logoParser.T__15 || _la===logoParser.T__16)) {
+                this._errHandler.recoverInline(this);
+                }
+                else {
+                    this.consume();
+                }
+                this.state = 223;
+                this.signExpression(); 
+            }
+            this.state = 228;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input,21,this._ctx);
+        }
+
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ExpressionContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_expression;
+    return this;
+}
+
+ExpressionContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ExpressionContext.prototype.constructor = ExpressionContext;
+
+ExpressionContext.prototype.multiplyingExpression = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(MultiplyingExpressionContext);
+    } else {
+        return this.getTypedRuleContext(MultiplyingExpressionContext,i);
+    }
+};
+
+ExpressionContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterExpression(this);
+	}
+};
+
+ExpressionContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitExpression(this);
+	}
+};
+
+
+
+
+logoParser.ExpressionContext = ExpressionContext;
+
+logoParser.prototype.expression = function() {
+
+    var localctx = new ExpressionContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 38, logoParser.RULE_expression);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 229;
+        this.multiplyingExpression();
+        this.state = 234;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input,22,this._ctx)
+        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if(_alt===1) {
+                this.state = 230;
+                _la = this._input.LA(1);
+                if(!(_la===logoParser.T__13 || _la===logoParser.T__14)) {
+                this._errHandler.recoverInline(this);
+                }
+                else {
+                    this.consume();
+                }
+                this.state = 231;
+                this.multiplyingExpression(); 
+            }
+            this.state = 236;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input,22,this._ctx);
+        }
+
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function DerefContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_deref;
+    return this;
+}
+
+DerefContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+DerefContext.prototype.constructor = DerefContext;
+
+DerefContext.prototype.name = function() {
+    return this.getTypedRuleContext(NameContext,0);
+};
+
+DerefContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterDeref(this);
+	}
+};
+
+DerefContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitDeref(this);
+	}
+};
+
+
+
+
+logoParser.DerefContext = DerefContext;
+
+logoParser.prototype.deref = function() {
+
+    var localctx = new DerefContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 40, logoParser.RULE_deref);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 237;
+        this.match(logoParser.T__2);
+        this.state = 238;
+        this.name();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function FdContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_fd;
+    return this;
+}
+
+FdContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+FdContext.prototype.constructor = FdContext;
+
+FdContext.prototype.expression = function() {
+    return this.getTypedRuleContext(ExpressionContext,0);
+};
+
+FdContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterFd(this);
+	}
+};
+
+FdContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitFd(this);
+	}
+};
+
+
+
+
+logoParser.FdContext = FdContext;
+
+logoParser.prototype.fd = function() {
+
+    var localctx = new FdContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 42, logoParser.RULE_fd);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 240;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__17 || _la===logoParser.T__18)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+        this.state = 241;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function BkContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_bk;
+    return this;
+}
+
+BkContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+BkContext.prototype.constructor = BkContext;
+
+BkContext.prototype.expression = function() {
+    return this.getTypedRuleContext(ExpressionContext,0);
+};
+
+BkContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterBk(this);
+	}
+};
+
+BkContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitBk(this);
+	}
+};
+
+
+
+
+logoParser.BkContext = BkContext;
+
+logoParser.prototype.bk = function() {
+
+    var localctx = new BkContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 44, logoParser.RULE_bk);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 243;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__19 || _la===logoParser.T__20)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+        this.state = 244;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function RtContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_rt;
+    return this;
+}
+
+RtContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+RtContext.prototype.constructor = RtContext;
+
+RtContext.prototype.expression = function() {
+    return this.getTypedRuleContext(ExpressionContext,0);
+};
+
+RtContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterRt(this);
+	}
+};
+
+RtContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitRt(this);
+	}
+};
+
+
+
+
+logoParser.RtContext = RtContext;
+
+logoParser.prototype.rt = function() {
+
+    var localctx = new RtContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 46, logoParser.RULE_rt);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 246;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__21 || _la===logoParser.T__22)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+        this.state = 247;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function LtContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_lt;
+    return this;
+}
+
+LtContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+LtContext.prototype.constructor = LtContext;
+
+LtContext.prototype.expression = function() {
+    return this.getTypedRuleContext(ExpressionContext,0);
+};
+
+LtContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterLt(this);
+	}
+};
+
+LtContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitLt(this);
+	}
+};
+
+
+
+
+logoParser.LtContext = LtContext;
+
+logoParser.prototype.lt = function() {
+
+    var localctx = new LtContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 48, logoParser.RULE_lt);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 249;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__23 || _la===logoParser.T__24)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+        this.state = 250;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function CsContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_cs;
+    return this;
+}
+
+CsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+CsContext.prototype.constructor = CsContext;
+
+
+CsContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterCs(this);
+	}
+};
+
+CsContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitCs(this);
+	}
+};
+
+
+
+
+logoParser.CsContext = CsContext;
+
+logoParser.prototype.cs = function() {
+
+    var localctx = new CsContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 50, logoParser.RULE_cs);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 252;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__25 || _la===logoParser.T__26)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function PuContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_pu;
+    return this;
+}
+
+PuContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+PuContext.prototype.constructor = PuContext;
+
+
+PuContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterPu(this);
+	}
+};
+
+PuContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitPu(this);
+	}
+};
+
+
+
+
+logoParser.PuContext = PuContext;
+
+logoParser.prototype.pu = function() {
+
+    var localctx = new PuContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 52, logoParser.RULE_pu);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 254;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__27 || _la===logoParser.T__28)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function PdContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_pd;
+    return this;
+}
+
+PdContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+PdContext.prototype.constructor = PdContext;
+
+
+PdContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterPd(this);
+	}
+};
+
+PdContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitPd(this);
+	}
+};
+
+
+
+
+logoParser.PdContext = PdContext;
+
+logoParser.prototype.pd = function() {
+
+    var localctx = new PdContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 54, logoParser.RULE_pd);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 256;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__29 || _la===logoParser.T__30)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function HtContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_ht;
+    return this;
+}
+
+HtContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+HtContext.prototype.constructor = HtContext;
+
+
+HtContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterHt(this);
+	}
+};
+
+HtContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitHt(this);
+	}
+};
+
+
+
+
+logoParser.HtContext = HtContext;
+
+logoParser.prototype.ht = function() {
+
+    var localctx = new HtContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 56, logoParser.RULE_ht);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 258;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__31 || _la===logoParser.T__32)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function StContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_st;
+    return this;
+}
+
+StContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+StContext.prototype.constructor = StContext;
+
+
+StContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterSt(this);
+	}
+};
+
+StContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitSt(this);
+	}
+};
+
+
+
+
+logoParser.StContext = StContext;
+
+logoParser.prototype.st = function() {
+
+    var localctx = new StContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 58, logoParser.RULE_st);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 260;
+        _la = this._input.LA(1);
+        if(!(_la===logoParser.T__33 || _la===logoParser.T__34)) {
+        this._errHandler.recoverInline(this);
+        }
+        else {
+            this.consume();
+        }
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function HomeContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_home;
+    return this;
+}
+
+HomeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+HomeContext.prototype.constructor = HomeContext;
+
+
+HomeContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterHome(this);
+	}
+};
+
+HomeContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitHome(this);
+	}
+};
+
+
+
+
+logoParser.HomeContext = HomeContext;
+
+logoParser.prototype.home = function() {
+
+    var localctx = new HomeContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 60, logoParser.RULE_home);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 262;
+        this.match(logoParser.T__35);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function StopContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_stop;
+    return this;
+}
+
+StopContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+StopContext.prototype.constructor = StopContext;
+
+
+StopContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterStop(this);
+	}
+};
+
+StopContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitStop(this);
+	}
+};
+
+
+
+
+logoParser.StopContext = StopContext;
+
+logoParser.prototype.stop = function() {
+
+    var localctx = new StopContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 62, logoParser.RULE_stop);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 264;
+        this.match(logoParser.T__36);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function LabelContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_label;
+    return this;
+}
+
+LabelContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+LabelContext.prototype.constructor = LabelContext;
+
+
+LabelContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterLabel(this);
+	}
+};
+
+LabelContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitLabel(this);
+	}
+};
+
+
+
+
+logoParser.LabelContext = LabelContext;
+
+logoParser.prototype.label = function() {
+
+    var localctx = new LabelContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 64, logoParser.RULE_label);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 266;
+        this.match(logoParser.T__37);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function SetxyContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_setxy;
+    return this;
+}
+
+SetxyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+SetxyContext.prototype.constructor = SetxyContext;
+
+SetxyContext.prototype.expression = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(ExpressionContext);
+    } else {
+        return this.getTypedRuleContext(ExpressionContext,i);
+    }
+};
+
+SetxyContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterSetxy(this);
+	}
+};
+
+SetxyContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitSetxy(this);
+	}
+};
+
+
+
+
+logoParser.SetxyContext = SetxyContext;
+
+logoParser.prototype.setxy = function() {
+
+    var localctx = new SetxyContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 66, logoParser.RULE_setxy);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 268;
+        this.match(logoParser.T__38);
+        this.state = 269;
+        this.expression();
+        this.state = 270;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function RandomContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_random;
+    return this;
+}
+
+RandomContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+RandomContext.prototype.constructor = RandomContext;
+
+RandomContext.prototype.expression = function() {
+    return this.getTypedRuleContext(ExpressionContext,0);
+};
+
+RandomContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterRandom(this);
+	}
+};
+
+RandomContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitRandom(this);
+	}
+};
+
+
+
+
+logoParser.RandomContext = RandomContext;
+
+logoParser.prototype.random = function() {
+
+    var localctx = new RandomContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 68, logoParser.RULE_random);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 272;
+        this.match(logoParser.T__39);
+        this.state = 273;
+        this.expression();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function ForeContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_fore;
+    return this;
+}
+
+ForeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ForeContext.prototype.constructor = ForeContext;
+
+ForeContext.prototype.name = function() {
+    return this.getTypedRuleContext(NameContext,0);
+};
+
+ForeContext.prototype.expression = function(i) {
+    if(i===undefined) {
+        i = null;
+    }
+    if(i===null) {
+        return this.getTypedRuleContexts(ExpressionContext);
+    } else {
+        return this.getTypedRuleContext(ExpressionContext,i);
+    }
+};
+
+ForeContext.prototype.block = function() {
+    return this.getTypedRuleContext(BlockContext,0);
+};
+
+ForeContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterFore(this);
+	}
+};
+
+ForeContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitFore(this);
+	}
+};
+
+
+
+
+logoParser.ForeContext = ForeContext;
+
+logoParser.prototype.fore = function() {
+
+    var localctx = new ForeContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 70, logoParser.RULE_fore);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 275;
+        this.match(logoParser.T__40);
+        this.state = 276;
+        this.match(logoParser.T__5);
+        this.state = 277;
+        this.name();
+        this.state = 278;
+        this.expression();
+        this.state = 279;
+        this.expression();
+        this.state = 280;
+        this.expression();
+        this.state = 281;
+        this.match(logoParser.T__6);
+        this.state = 282;
+        this.block();
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function NumberContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_number;
+    return this;
+}
+
+NumberContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+NumberContext.prototype.constructor = NumberContext;
+
+NumberContext.prototype.NUMBER = function() {
+    return this.getToken(logoParser.NUMBER, 0);
+};
+
+NumberContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterNumber(this);
+	}
+};
+
+NumberContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitNumber(this);
+	}
+};
+
+
+
+
+logoParser.NumberContext = NumberContext;
+
+logoParser.prototype.number = function() {
+
+    var localctx = new NumberContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 72, logoParser.RULE_number);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 284;
+        this.match(logoParser.NUMBER);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+function CommentContext(parser, parent, invokingState) {
+	if(parent===undefined) {
+	    parent = null;
+	}
+	if(invokingState===undefined || invokingState===null) {
+		invokingState = -1;
+	}
+	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = logoParser.RULE_comment;
+    return this;
+}
+
+CommentContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+CommentContext.prototype.constructor = CommentContext;
+
+CommentContext.prototype.COMMENT = function() {
+    return this.getToken(logoParser.COMMENT, 0);
+};
+
+CommentContext.prototype.enterRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.enterComment(this);
+	}
+};
+
+CommentContext.prototype.exitRule = function(listener) {
+    if(listener instanceof logoListener ) {
+        listener.exitComment(this);
+	}
+};
+
+
+
+
+logoParser.CommentContext = CommentContext;
+
+logoParser.prototype.comment = function() {
+
+    var localctx = new CommentContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 74, logoParser.RULE_comment);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 286;
+        this.match(logoParser.COMMENT);
+    } catch (re) {
+    	if(re instanceof antlr4.error.RecognitionException) {
+	        localctx.exception = re;
+	        this._errHandler.reportError(this, re);
+	        this._errHandler.recover(this, re);
+	    } else {
+	    	throw re;
+	    }
+    } finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+
+
+exports.logoParser = logoParser;
+
+},{"./logoListener":17,"antlr4/index":60}],19:[function(require,module,exports){
 module.exports = {
   antlr4: require('antlr4'),
   JavaLexer: require('./JavaLexer'),
@@ -60969,10 +64792,12 @@ module.exports = {
   ScalaLexer: require('./ScalaLexer'),
   ScalaParser: require('./ScalaParser'),
   jvmBasicLexer: require('./jvmBasicLexer'),
-  jvmBasicParser: require('./jvmBasicParser')
+  jvmBasicParser: require('./jvmBasicParser'),
+  logoLexer: require('./logoLexer'),
+  logoParser: require('./logoParser')
 }
 
-},{"./CLexer":1,"./CParser":3,"./JavaLexer":4,"./JavaParser":6,"./ObjCLexer":7,"./ObjCParser":9,"./ScalaLexer":10,"./ScalaParser":12,"./jvmBasicLexer":13,"./jvmBasicParser":15,"antlr4":57}],17:[function(require,module,exports){
+},{"./CLexer":1,"./CParser":3,"./JavaLexer":4,"./JavaParser":6,"./ObjCLexer":7,"./ObjCParser":9,"./ScalaLexer":10,"./ScalaParser":12,"./jvmBasicLexer":13,"./jvmBasicParser":15,"./logoLexer":16,"./logoParser":18,"antlr4":60}],20:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -61373,7 +65198,7 @@ BufferedTokenStream.prototype.fill = function() {
 
 exports.BufferedTokenStream = BufferedTokenStream;
 
-},{"./IntervalSet":22,"./Lexer":24,"./Token":30}],18:[function(require,module,exports){
+},{"./IntervalSet":25,"./Lexer":27,"./Token":33}],21:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -61468,7 +65293,7 @@ CommonTokenFactory.prototype.createThin = function(type, text) {
 
 exports.CommonTokenFactory = CommonTokenFactory;
 
-},{"./Token":30}],19:[function(require,module,exports){
+},{"./Token":33}],22:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -61597,7 +65422,7 @@ CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
 };
 
 exports.CommonTokenStream = CommonTokenStream;
-},{"./BufferedTokenStream":17,"./Token":30}],20:[function(require,module,exports){
+},{"./BufferedTokenStream":20,"./Token":33}],23:[function(require,module,exports){
 //
 //  [The "BSD license"]
 //   Copyright (c) 2012 Terence Parr
@@ -61652,7 +65477,7 @@ FileStream.prototype.constructor = FileStream;
 
 exports.FileStream = FileStream;
 
-},{"./InputStream":21,"fs":61}],21:[function(require,module,exports){
+},{"./InputStream":24,"fs":64}],24:[function(require,module,exports){
 // 
 //  [The "BSD license"]
 //   Copyright (c) 2012 Terence Parr
@@ -61788,7 +65613,7 @@ InputStream.prototype.toString = function() {
 
 exports.InputStream = InputStream;
 
-},{"./Token":30}],22:[function(require,module,exports){
+},{"./Token":33}],25:[function(require,module,exports){
 /*jslint smarttabs:true */
 
 var Token = require('./Token').Token;
@@ -62083,7 +65908,7 @@ IntervalSet.prototype.elementName = function(literalNames, symbolicNames, a) {
 exports.Interval = Interval;
 exports.IntervalSet = IntervalSet;
 
-},{"./Token":30}],23:[function(require,module,exports){
+},{"./Token":33}],26:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -62308,7 +66133,7 @@ LL1Analyzer.prototype._LOOK = function(s, stopState , ctx, look, lookBusy, calle
 exports.LL1Analyzer = LL1Analyzer;
 
 
-},{"./IntervalSet":22,"./PredictionContext":27,"./Token":30,"./Utils":31,"./atn/ATNConfig":33,"./atn/ATNState":38,"./atn/Transition":46}],24:[function(require,module,exports){
+},{"./IntervalSet":25,"./PredictionContext":30,"./Token":33,"./Utils":34,"./atn/ATNConfig":36,"./atn/ATNState":41,"./atn/Transition":49}],27:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -62702,7 +66527,7 @@ Lexer.prototype.recover = function(re) {
 
 exports.Lexer = Lexer;
 
-},{"./CommonTokenFactory":18,"./Recognizer":28,"./Token":30,"./error/Errors":55}],25:[function(require,module,exports){
+},{"./CommonTokenFactory":21,"./Recognizer":31,"./Token":33,"./error/Errors":58}],28:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -63393,7 +67218,7 @@ Parser.prototype.setTrace = function(trace) {
 };
 
 exports.Parser = Parser;
-},{"./Lexer":24,"./Recognizer":28,"./Token":30,"./atn/ATNDeserializationOptions":35,"./atn/ATNDeserializer":36,"./error/ErrorStrategy":54,"./tree/Tree":58}],26:[function(require,module,exports){
+},{"./Lexer":27,"./Recognizer":31,"./Token":33,"./atn/ATNDeserializationOptions":38,"./atn/ATNDeserializer":39,"./error/ErrorStrategy":57,"./tree/Tree":61}],29:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -63626,7 +67451,7 @@ InterpreterRuleContext.prototype = Object.create(ParserRuleContext.prototype);
 InterpreterRuleContext.prototype.constructor = InterpreterRuleContext;
 
 exports.ParserRuleContext = ParserRuleContext;
-},{"./IntervalSet":22,"./RuleContext":29,"./tree/Tree":58}],27:[function(require,module,exports){
+},{"./IntervalSet":25,"./RuleContext":32,"./tree/Tree":61}],30:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -64378,7 +68203,7 @@ exports.SingletonPredictionContext = SingletonPredictionContext;
 exports.predictionContextFromRuleContext = predictionContextFromRuleContext;
 exports.getCachedPredictionContext = getCachedPredictionContext;
 
-},{"./RuleContext":29}],28:[function(require,module,exports){
+},{"./RuleContext":32}],31:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -64551,7 +68376,7 @@ Object.defineProperty(Recognizer.prototype, "state", {
 
 exports.Recognizer = Recognizer;
 
-},{"./Token":30,"./error/ErrorListener":53}],29:[function(require,module,exports){
+},{"./Token":33,"./error/ErrorListener":56}],32:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2013 Terence Parr
 //  Copyright (c) 2013 Sam Harwell
@@ -64718,7 +68543,7 @@ RuleContext.prototype.toString = function(ruleNames, stop) {
 };
 
 
-},{"./tree/Tree":58,"./tree/Trees":59}],30:[function(require,module,exports){
+},{"./tree/Tree":61,"./tree/Trees":62}],33:[function(require,module,exports){
 //[The "BSD license"]
 // Copyright (c) 2012 Terence Parr
 // Copyright (c) 2012 Sam Harwell
@@ -64895,7 +68720,7 @@ CommonToken.prototype.toString = function() {
 exports.Token = Token;
 exports.CommonToken = CommonToken;
 
-},{}],31:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 function arrayToString(a) {
 	return "[" + a.join(", ") + "]";
 }
@@ -65097,7 +68922,7 @@ exports.DoubleDict = DoubleDict;
 exports.escapeWhitespace = escapeWhitespace;
 exports.arrayToString = arrayToString;
 
-},{}],32:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2013 Terence Parr
 //  Copyright (c) 2013 Sam Harwell
@@ -65264,7 +69089,7 @@ ATN.prototype.getExpectedTokens = function( stateNumber, ctx ) {
 ATN.INVALID_ALT_NUMBER = 0;
 
 exports.ATN = ATN;
-},{"./../IntervalSet":22,"./../LL1Analyzer":23,"./../Token":30}],33:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../LL1Analyzer":26,"./../Token":33}],36:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -65443,7 +69268,7 @@ LexerATNConfig.prototype.checkNonGreedyDecision = function(source, target) {
 
 exports.ATNConfig = ATNConfig;
 exports.LexerATNConfig = LexerATNConfig;
-},{"./ATNState":38,"./SemanticContext":45}],34:[function(require,module,exports){
+},{"./ATNState":41,"./SemanticContext":48}],37:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -65726,7 +69551,7 @@ OrderedATNConfigSet.prototype.constructor = OrderedATNConfigSet;
 exports.ATNConfigSet = ATNConfigSet;
 exports.OrderedATNConfigSet = OrderedATNConfigSet;
 
-},{"./../PredictionContext":27,"./../Utils":31,"./ATN":32,"./SemanticContext":45}],35:[function(require,module,exports){
+},{"./../PredictionContext":30,"./../Utils":34,"./ATN":35,"./SemanticContext":48}],38:[function(require,module,exports){
 //[The "BSD license"]
 // Copyright (c) 2013 Terence Parr
 // Copyright (c) 2013 Sam Harwell
@@ -65777,7 +69602,7 @@ ATNDeserializationOptions.defaultOptions.readOnly = true;
 
 exports.ATNDeserializationOptions = ATNDeserializationOptions;
 
-},{}],36:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2013 Terence Parr
 //  Copyright (c) 2013 Sam Harwell
@@ -66468,7 +70293,7 @@ ATNDeserializer.prototype.lexerActionFactory = function(type, data1, data2) {
    
 
 exports.ATNDeserializer = ATNDeserializer;
-},{"./../IntervalSet":22,"./../Token":30,"./ATN":32,"./ATNDeserializationOptions":35,"./ATNState":38,"./ATNType":39,"./LexerAction":41,"./Transition":46}],37:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../Token":33,"./ATN":35,"./ATNDeserializationOptions":38,"./ATNState":41,"./ATNType":42,"./LexerAction":44,"./Transition":49}],40:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2013 Terence Parr
@@ -66545,7 +70370,7 @@ ATNSimulator.prototype.getCachedContext = function(context) {
 
 exports.ATNSimulator = ATNSimulator;
 
-},{"./../PredictionContext":27,"./../dfa/DFAState":50,"./ATNConfigSet":34}],38:[function(require,module,exports){
+},{"./../PredictionContext":30,"./../dfa/DFAState":53,"./ATNConfigSet":37}],41:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -66897,7 +70722,7 @@ exports.PlusBlockStartState = PlusBlockStartState;
 exports.StarBlockStartState = StarBlockStartState;
 exports.BasicBlockStartState = BasicBlockStartState;
 
-},{}],39:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2013 Terence Parr
 //  Copyright (c) 2013 Sam Harwell
@@ -66940,7 +70765,7 @@ ATNType.PARSER = 1;
 exports.ATNType = ATNType;
 
 
-},{}],40:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -67603,7 +71428,7 @@ LexerATNSimulator.prototype.getTokenName = function(tt) {
 
 exports.LexerATNSimulator = LexerATNSimulator;
 
-},{"./../Lexer":24,"./../PredictionContext":27,"./../Token":30,"./../dfa/DFAState":50,"./../error/Errors":55,"./ATN":32,"./ATNConfig":33,"./ATNConfigSet":34,"./ATNSimulator":37,"./ATNState":38,"./LexerActionExecutor":42,"./Transition":46}],41:[function(require,module,exports){
+},{"./../Lexer":27,"./../PredictionContext":30,"./../Token":33,"./../dfa/DFAState":53,"./../error/Errors":58,"./ATN":35,"./ATNConfig":36,"./ATNConfigSet":37,"./ATNSimulator":40,"./ATNState":41,"./LexerActionExecutor":45,"./Transition":49}],44:[function(require,module,exports){
 //
  //[The "BSD license"]
  // Copyright (c) 2013 Terence Parr
@@ -67988,7 +71813,7 @@ exports.LexerTypeAction = LexerTypeAction;
 exports.LexerPushModeAction = LexerPushModeAction;
 exports.LexerPopModeAction = LexerPopModeAction;
 exports.LexerModeAction = LexerModeAction;
-},{}],42:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2013 Terence Parr
@@ -68165,7 +71990,7 @@ LexerActionExecutor.prototype.equals = function(other) {
 
 exports.LexerActionExecutor = LexerActionExecutor;
 
-},{"./LexerAction":41}],43:[function(require,module,exports){
+},{"./LexerAction":44}],46:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -69852,7 +73677,7 @@ ParserATNSimulator.prototype.reportAmbiguity = function(dfa, D, startIndex, stop
 };
             
 exports.ParserATNSimulator = ParserATNSimulator;
-},{"./../IntervalSet":22,"./../ParserRuleContext":26,"./../PredictionContext":27,"./../RuleContext":29,"./../Token":30,"./../Utils":31,"./../dfa/DFAState":50,"./../error/Errors":55,"./ATN":32,"./ATNConfig":33,"./ATNConfigSet":34,"./ATNSimulator":37,"./ATNState":38,"./PredictionMode":44,"./SemanticContext":45,"./Transition":46}],44:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../ParserRuleContext":29,"./../PredictionContext":30,"./../RuleContext":32,"./../Token":33,"./../Utils":34,"./../dfa/DFAState":53,"./../error/Errors":58,"./ATN":35,"./ATNConfig":36,"./ATNConfigSet":37,"./ATNSimulator":40,"./ATNState":41,"./PredictionMode":47,"./SemanticContext":48,"./Transition":49}],47:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -70436,7 +74261,7 @@ PredictionMode.getSingleViableAlt = function(altsets) {
 };
 
 exports.PredictionMode = PredictionMode;
-},{"./../Utils":31,"./ATN":32,"./ATNState":38}],45:[function(require,module,exports){
+},{"./../Utils":34,"./ATN":35,"./ATNState":41}],48:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -70859,7 +74684,7 @@ exports.SemanticContext = SemanticContext;
 exports.PrecedencePredicate = PrecedencePredicate;
 exports.Predicate = Predicate;
 
-},{"./../Utils":31}],46:[function(require,module,exports){
+},{"./../Utils":34}],49:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -71200,13 +75025,13 @@ exports.WildcardTransition = WildcardTransition;
 exports.PredicateTransition = PredicateTransition;
 exports.PrecedencePredicateTransition = PrecedencePredicateTransition;
 exports.AbstractPredicateTransition = AbstractPredicateTransition;
-},{"./../IntervalSet":22,"./../Token":30,"./SemanticContext":45}],47:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../Token":33,"./SemanticContext":48}],50:[function(require,module,exports){
 exports.ATN = require('./ATN').ATN;
 exports.ATNDeserializer = require('./ATNDeserializer').ATNDeserializer;
 exports.LexerATNSimulator = require('./LexerATNSimulator').LexerATNSimulator;
 exports.ParserATNSimulator = require('./ParserATNSimulator').ParserATNSimulator;
 exports.PredictionMode = require('./PredictionMode').PredictionMode;
-},{"./ATN":32,"./ATNDeserializer":36,"./LexerATNSimulator":40,"./ParserATNSimulator":43,"./PredictionMode":44}],48:[function(require,module,exports){
+},{"./ATN":35,"./ATNDeserializer":39,"./LexerATNSimulator":43,"./ParserATNSimulator":46,"./PredictionMode":47}],51:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -71385,7 +75210,7 @@ DFA.prototype.toLexerString = function() {
 
 exports.DFA = DFA;
 
-},{"./../atn/ATNConfigSet":34,"./DFASerializer":49,"./DFAState":50}],49:[function(require,module,exports){
+},{"./../atn/ATNConfigSet":37,"./DFASerializer":52,"./DFAState":53}],52:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -71490,7 +75315,7 @@ exports.DFASerializer = DFASerializer;
 exports.LexerDFASerializer = LexerDFASerializer;
 
 
-},{}],50:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -71657,13 +75482,13 @@ DFAState.prototype.hashString = function() {
 
 exports.DFAState = DFAState;
 exports.PredPrediction = PredPrediction;
-},{"./../atn/ATNConfigSet":34}],51:[function(require,module,exports){
+},{"./../atn/ATNConfigSet":37}],54:[function(require,module,exports){
 exports.DFA = require('./DFA').DFA;
 exports.DFASerializer = require('./DFASerializer').DFASerializer;
 exports.LexerDFASerializer = require('./DFASerializer').LexerDFASerializer;
 exports.PredPrediction = require('./DFAState').PredPrediction;
 
-},{"./DFA":48,"./DFASerializer":49,"./DFAState":50}],52:[function(require,module,exports){
+},{"./DFA":51,"./DFASerializer":52,"./DFAState":53}],55:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -71799,7 +75624,7 @@ DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, co
 };
 
 exports.DiagnosticErrorListener = DiagnosticErrorListener;
-},{"./../IntervalSet":22,"./../Utils":31,"./ErrorListener":53}],53:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../Utils":34,"./ErrorListener":56}],56:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -71912,7 +75737,7 @@ exports.ConsoleErrorListener = ConsoleErrorListener;
 exports.ProxyErrorListener = ProxyErrorListener;
 
 
-},{}],54:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 //
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
@@ -72695,7 +76520,7 @@ BailErrorStrategy.prototype.sync = function(recognizer) {
 
 exports.BailErrorStrategy = BailErrorStrategy;
 exports.DefaultErrorStrategy = DefaultErrorStrategy;
-},{"./../IntervalSet":22,"./../Token":30,"./../atn/ATNState":38,"./Errors":55}],55:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../Token":33,"./../atn/ATNState":41,"./Errors":58}],58:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -72889,7 +76714,7 @@ exports.LexerNoViableAltException = LexerNoViableAltException;
 exports.InputMismatchException = InputMismatchException;
 exports.FailedPredicateException = FailedPredicateException;
 
-},{"./../atn/Transition":46}],56:[function(require,module,exports){
+},{"./../atn/Transition":49}],59:[function(require,module,exports){
 exports.RecognitionException = require('./Errors').RecognitionException;
 exports.NoViableAltException = require('./Errors').NoViableAltException;
 exports.LexerNoViableAltException = require('./Errors').LexerNoViableAltException;
@@ -72898,7 +76723,7 @@ exports.FailedPredicateException = require('./Errors').FailedPredicateException;
 exports.DiagnosticErrorListener = require('./DiagnosticErrorListener').DiagnosticErrorListener;
 exports.BailErrorStrategy = require('./ErrorStrategy').BailErrorStrategy;
 exports.ErrorListener = require('./ErrorListener').ErrorListener;
-},{"./DiagnosticErrorListener":52,"./ErrorListener":53,"./ErrorStrategy":54,"./Errors":55}],57:[function(require,module,exports){
+},{"./DiagnosticErrorListener":55,"./ErrorListener":56,"./ErrorStrategy":57,"./Errors":58}],60:[function(require,module,exports){
 exports.atn = require('./atn/index');
 exports.dfa = require('./dfa/index');
 exports.tree = require('./tree/index');
@@ -72916,7 +76741,7 @@ exports.ParserRuleContext = require('./ParserRuleContext').ParserRuleContext;
 exports.Interval = require('./IntervalSet').Interval;
 exports.Utils = require('./Utils');
 
-},{"./CommonTokenStream":19,"./FileStream":20,"./InputStream":21,"./IntervalSet":22,"./Lexer":24,"./Parser":25,"./ParserRuleContext":26,"./PredictionContext":27,"./Token":30,"./Utils":31,"./atn/index":47,"./dfa/index":51,"./error/index":56,"./tree/index":60}],58:[function(require,module,exports){
+},{"./CommonTokenStream":22,"./FileStream":23,"./InputStream":24,"./IntervalSet":25,"./Lexer":27,"./Parser":28,"./ParserRuleContext":29,"./PredictionContext":30,"./Token":33,"./Utils":34,"./atn/index":50,"./dfa/index":54,"./error/index":59,"./tree/index":63}],61:[function(require,module,exports){
 // [The "BSD license"]
 //  Copyright (c) 2012 Terence Parr
 //  Copyright (c) 2012 Sam Harwell
@@ -73144,7 +76969,7 @@ exports.ParseTreeListener = ParseTreeListener;
 exports.ParseTreeVisitor = ParseTreeVisitor;
 exports.ParseTreeWalker = ParseTreeWalker;
 exports.INVALID_INTERVAL = INVALID_INTERVAL;
-},{"./../IntervalSet":22,"./../Token":30}],59:[function(require,module,exports){
+},{"./../IntervalSet":25,"./../Token":33}],62:[function(require,module,exports){
 /*
  * [The "BSD license"]
  *  Copyright (c) 2012 Terence Parr
@@ -73304,14 +77129,14 @@ Trees.descendants = function(t) {
 
 
 exports.Trees = Trees;
-},{"./../ParserRuleContext":26,"./../Token":30,"./../Utils":31,"./Tree":58}],60:[function(require,module,exports){
+},{"./../ParserRuleContext":29,"./../Token":33,"./../Utils":34,"./Tree":61}],63:[function(require,module,exports){
 var Tree = require('./Tree');
 exports.Trees = require('./Tree').Trees;
 exports.RuleNode = Tree.RuleNode;
 exports.ParseTreeListener = Tree.ParseTreeListener;
 exports.ParseTreeVisitor = Tree.ParseTreeVisitor;
 exports.ParseTreeWalker = Tree.ParseTreeWalker;
-},{"./Tree":58}],61:[function(require,module,exports){
+},{"./Tree":61}],64:[function(require,module,exports){
 
-},{}]},{},[16])(16)
+},{}]},{},[19])(19)
 });

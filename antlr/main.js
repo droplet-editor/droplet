@@ -9,5 +9,7 @@ module.exports = {
   ScalaLexer: require('./ScalaLexer'),
   ScalaParser: require('./ScalaParser'),
   jvmBasicLexer: require('./jvmBasicLexer'),
-  jvmBasicParser: require('./jvmBasicParser')
+  jvmBasicParser: require('./jvmBasicParser'),
+  logoLexer: require('./logoLexer'),
+  logoParser: require('./logoParser')
 }
