@@ -94,9 +94,17 @@ define ->
     return result
 
   exports.clipLines = (lines, start, end) ->
-    lines[start.row][start.col..] +
-    lines[start.row + 1...end.row].join('\n') +
-    lines[end.row][..end.col]
+    if start.line isnt end.line
+      console.log 'pieces:',
+        "'#{lines[start.line][start.column..]}'",
+        "'#{lines[start.line + 1...end.line].join('\n')}'",
+        "'#{lines[end.line][...end.column]}'"
+      return lines[start.line][start.column..] +
+      lines[start.line + 1...end.line].join('\n') +
+      lines[end.line][...end.column]
+    else
+      console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
+      return lines[start.line][start.column + 1...end.column]
 
   exports.getFontHeight = (family, size) ->
     metrics = fontMetrics family, size

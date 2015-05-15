@@ -2,7 +2,7 @@
   "coffee-script": "../vendor/coffee-script",
   "antlr":"../antlr/main-full",
   "acorn": "../vendor/acorn",
-  "filbert": "../vendor/filbert",
+  "skulpt": "../vendor/skulpt",
   "droplet-view": "view",
   "droplet-controller": "controller",
   "droplet-model": "model",

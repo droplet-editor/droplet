@@ -90,7 +90,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                   bounds: bounds
                   depth: depth
                   classes: rules
-              else
 
               @addBlock
                 bounds: bounds
@@ -100,7 +99,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                 parseContext: (if wrap? then wrap.type else rules[0])
 
             when 'parens'
-              console.log 'parensing', node.type
               # Parens are assumed to wrap the only child that has children
               child = null; ok = true
               for el, i in node.children
@@ -115,7 +113,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                 return
 
               else
-                console.log 'NOT OKAY TO PARENS'
                 if wrap?
                   bounds = wrap.bounds
                 else
@@ -134,12 +131,12 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                   classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
                   parseContext: (if wrap? then wrap.type else rules[0])
 
-            when 'indent' if @det(context) is 'block'
-              start = node.children[0].bounds.start
+            when 'indent' then if @det(context) is 'block'
+              start = origin = node.children[0].bounds.start
               for child, i in node.children
                 if child.children.length > 0
                   break
-                else
+                else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0
                   start = child.bounds.end
 
               end = node.children[node.children.length - 1].bounds.end
