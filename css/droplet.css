@@ -185,7 +185,7 @@
 .droplet-transitioning-element {
   position: absolute;
   white-space: pre;
-  z-index: 300;
+  z-index: 256;
 }
 .droplet-transitioning-gutter {
   box-sizing: border-box;
