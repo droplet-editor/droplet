@@ -3280,7 +3280,7 @@ define ['droplet-helper',
           @paletteHeader.style.zIndex = 0
 
         @dropletElement.style.top = "0px"
-        if @paletteEnabled
+        if @paletteEnabled and not paletteAppearingWithFreeze
           @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         else
           @dropletElement.style.left = "0px"
