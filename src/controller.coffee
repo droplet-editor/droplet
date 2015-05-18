@@ -3209,7 +3209,7 @@ define ['droplet-helper',
         # Translate the ACE editor div into frame.
         @aceElement.style.top = '0px'
         if @showPaletteInTextMode and @paletteEnabled
-          @aceElement.style.left = @paletteWrapper.style.width
+          @aceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         else
           @aceElement.style.left = '0px'
 
