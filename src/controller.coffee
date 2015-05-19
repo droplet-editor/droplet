@@ -7,12 +7,14 @@ define ['droplet-helper',
     'droplet-coffee',
     'droplet-javascript',
     'droplet-csv',
+    'droplet-html',
     'droplet-draw',
     'droplet-model',
     'droplet-view'], (helper,
     coffee,
     javascript,
     csv,
+    html,
     draw,
     model,
     view) ->
@@ -22,6 +24,7 @@ define ['droplet-helper',
     'coffee': coffee
     'javascript': javascript
     'csv': csv
+    'html': html
   }
 
   # ## Magic constants
