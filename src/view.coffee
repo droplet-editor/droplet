@@ -1692,7 +1692,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
       computePath: ->
         super
-        console.log @bounds
+        #console.log @bounds
         lastRect = @bounds[@bounds.length - 1]
         start = lastRect.x + lastRect.width - @extraWidth
         if 'add-button' in @model.classes
