@@ -7,6 +7,15 @@ notify = (message) ->
     fallback: 0
   ), ->
 
+serveNoDottedFiles = (connect, options, middlewares) ->
+  # Avoid leaking .git/.svn or other dotted files from test servers.
+  middlewares.unshift (req, res, next) ->
+    if req.url.indexOf('/.') < 0 then return next()
+    res.statusCode = 404
+    res.setHeader('Content-Type', 'text/html');
+    res.end "Cannot GET #{req.url}"
+  return middlewares
+
 module.exports = (grunt) ->
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
@@ -130,10 +139,12 @@ module.exports = (grunt) ->
       testserver:
         options:
           hostname: '0.0.0.0'
+          middleware: serveNoDottedFiles
       qunitserver:
         options:
           hostname: '0.0.0.0'
           port: 8942
+          middleware: serveNoDottedFiles
 
     watch:
       options:
