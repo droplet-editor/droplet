@@ -864,7 +864,7 @@ define ['droplet-helper',
   hook 'populate', 0, ->
     @clickedPoint = null
     @clickedBlock = null
-    @clickedBlockIsPaletteBlock = false
+    @clickedBlockPaletteEntry = null
 
     @draggingBlock = null
     @draggingOffset = null
@@ -948,7 +948,7 @@ define ['droplet-helper',
       # Record the hit test result (the block we want to pick up)
       @setTextInputFocus null
       @clickedBlock = hitTestResult
-      @clickedBlockIsPaletteBlock = false
+      @clickedBlockPaletteEntry = null
 
       # Move the cursor somewhere nearby
       @moveCursorTo @clickedBlock.start.next
@@ -998,11 +998,11 @@ define ['droplet-helper',
       #
       # NOTE: this really falls under "PALETTE SUPPORT", but must
       # go here. Try to organise this better.
-      if @clickedBlockIsPaletteBlock
+      if @clickedBlockPaletteEntry
         @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToPalette(@clickedPoint))
 
-        @draggingBlock = @draggingBlock.clone()
+        @draggingBlock = (@clickedBlockPaletteEntry.expansion or @draggingBlock).clone()
 
       else
         # Find the line on the block that we have
@@ -1083,7 +1083,7 @@ define ['droplet-helper',
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
-      @clickedBlockIsPaletteBlock = false
+      @clickedBlockPaletteEntry = null
 
       @begunTrash = @wouldDelete position
 
@@ -1532,12 +1532,19 @@ define ['droplet-helper',
 
       newPaletteBlocks = []
 
+      parseBlock = (code) =>
+        block = @mode.parse(code).start.next.container
+        block.spliceOut()
+        block.parent = null
+        return block
+
       # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
-        newBlock = @mode.parse(data.block).start.next.container
-        newBlock.spliceOut(); newBlock.parent = null
+        newBlock = parseBlock(data.block)
+        expansion = if data.expansion? then parseBlock(data.expansion) else null
         newPaletteBlocks.push
           block: newBlock
+          expansion: expansion
           title: data.title
           id: data.id
 
@@ -1601,12 +1608,12 @@ define ['droplet-helper',
           @setTextInputFocus null
           @clickedBlock = entry.block
           @clickedPoint = point
-          @clickedBlockIsPaletteBlock = true
+          @clickedBlockPaletteEntry = entry
           state.consumedHitTest = true
           @fireEvent 'pickblock', [entry.id]
           return
 
-    @clickedBlockIsPaletteBlock = false
+    @clickedBlockPaletteEntry = null
 
   # PALETTE HIGHLIGHT CODE
   # ================================
@@ -2469,7 +2476,7 @@ define ['droplet-helper',
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
       @setTextInputFocus null
       @clickedBlock = @lassoSegment
-      @clickedBlockIsPaletteBlock = false
+      @clickedBlockPaletteEntry = null
       @clickedPoint = point
 
       state.consumedHitTest = true
