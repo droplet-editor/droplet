@@ -1002,7 +1002,11 @@ define ['droplet-helper',
         @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToPalette(@clickedPoint))
 
-        @draggingBlock = (@clickedBlockPaletteEntry.expansion or @draggingBlock).clone()
+        # Substitute in expansion for this palette entry, if supplied.
+        expansion = @clickedBlockPaletteEntry.expansion
+        if 'function' is typeof expansion then expansion = expansion();
+        if (expansion) then expansion = parseBlock(@mode, expansion);
+        @draggingBlock = (expansion or @draggingBlock).clone()
 
       else
         # Find the line on the block that we have
@@ -1501,6 +1505,12 @@ define ['droplet-helper',
 
     @setPalette @paletteGroups
 
+  parseBlock = (mode, code) =>
+    block = mode.parse(code).start.next.container
+    block.spliceOut()
+    block.parent = null
+    return block
+
   Editor::setPalette = (paletteGroups) ->
     @paletteHeader.innerHTML = ''
     @paletteGroups = paletteGroups
@@ -1532,16 +1542,10 @@ define ['droplet-helper',
 
       newPaletteBlocks = []
 
-      parseBlock = (code) =>
-        block = @mode.parse(code).start.next.container
-        block.spliceOut()
-        block.parent = null
-        return block
-
       # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
-        newBlock = parseBlock(data.block)
-        expansion = if data.expansion? then parseBlock(data.expansion) else null
+        newBlock = parseBlock(@mode, data.block)
+        expansion = data.expansion or null
         newPaletteBlocks.push
           block: newBlock
           expansion: expansion
