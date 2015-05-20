@@ -333,13 +333,13 @@ define ['droplet-helper',
     resizeBlockMode: ->
       @resizeTextMode()
 
-      @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
+      @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
       if @paletteEnabled
         @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
-        @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+        @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.offsetWidth}px"
       else
         @dropletElement.style.left = "0px"
-        @dropletElement.style.width = "#{@wrapperElement.offsetWidth}px"
+        @dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
 
       @resizeGutter()
 
@@ -864,7 +864,7 @@ define ['droplet-helper',
   hook 'populate', 0, ->
     @clickedPoint = null
     @clickedBlock = null
-    @clickedBlockIsPaletteBlock = false
+    @clickedBlockPaletteEntry = null
 
     @draggingBlock = null
     @draggingOffset = null
@@ -948,7 +948,7 @@ define ['droplet-helper',
       # Record the hit test result (the block we want to pick up)
       @setTextInputFocus null
       @clickedBlock = hitTestResult
-      @clickedBlockIsPaletteBlock = false
+      @clickedBlockPaletteEntry = null
 
       # Move the cursor somewhere nearby
       @moveCursorTo @clickedBlock.start.next
@@ -998,11 +998,15 @@ define ['droplet-helper',
       #
       # NOTE: this really falls under "PALETTE SUPPORT", but must
       # go here. Try to organise this better.
-      if @clickedBlockIsPaletteBlock
+      if @clickedBlockPaletteEntry
         @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
           @trackerPointToPalette(@clickedPoint))
 
-        @draggingBlock = @draggingBlock.clone()
+        # Substitute in expansion for this palette entry, if supplied.
+        expansion = @clickedBlockPaletteEntry.expansion
+        if 'function' is typeof expansion then expansion = expansion();
+        if (expansion) then expansion = parseBlock(@mode, expansion);
+        @draggingBlock = (expansion or @draggingBlock).clone()
 
       else
         # Find the line on the block that we have
@@ -1083,7 +1087,7 @@ define ['droplet-helper',
 
       # Now we are done with the "clickedX" suite of stuff.
       @clickedPoint = @clickedBlock = null
-      @clickedBlockIsPaletteBlock = false
+      @clickedBlockPaletteEntry = null
 
       @begunTrash = @wouldDelete position
 
@@ -1501,6 +1505,12 @@ define ['droplet-helper',
 
     @setPalette @paletteGroups
 
+  parseBlock = (mode, code) =>
+    block = mode.parse(code).start.next.container
+    block.spliceOut()
+    block.parent = null
+    return block
+
   Editor::setPalette = (paletteGroups) ->
     @paletteHeader.innerHTML = ''
     @paletteGroups = paletteGroups
@@ -1534,10 +1544,11 @@ define ['droplet-helper',
 
       # Parse all the blocks in this palette and clone them
       for data in paletteGroup.blocks
-        newBlock = @mode.parse(data.block).start.next.container
-        newBlock.spliceOut(); newBlock.parent = null
+        newBlock = parseBlock(@mode, data.block)
+        expansion = data.expansion or null
         newPaletteBlocks.push
           block: newBlock
+          expansion: expansion
           title: data.title
           id: data.id
 
@@ -1601,12 +1612,12 @@ define ['droplet-helper',
           @setTextInputFocus null
           @clickedBlock = entry.block
           @clickedPoint = point
-          @clickedBlockIsPaletteBlock = true
+          @clickedBlockPaletteEntry = entry
           state.consumedHitTest = true
           @fireEvent 'pickblock', [entry.id]
           return
 
-    @clickedBlockIsPaletteBlock = false
+    @clickedBlockPaletteEntry = null
 
   # PALETTE HIGHLIGHT CODE
   # ================================
@@ -1762,12 +1773,12 @@ define ['droplet-helper',
           @redrawTextInput()
 
   Editor::resizeAceElement = ->
-    width = @wrapperElement.offsetWidth
+    width = @wrapperElement.clientWidth
     if @showPaletteInTextMode and @paletteEnabled
       width -= @paletteElement.offsetWidth
 
     @aceElement.style.width = "#{width}px"
-    @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
+    @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
 
   last_ = (array) -> array[array.length - 1]
 
@@ -2469,7 +2480,7 @@ define ['droplet-helper',
     if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
       @setTextInputFocus null
       @clickedBlock = @lassoSegment
-      @clickedBlockIsPaletteBlock = false
+      @clickedBlockPaletteEntry = null
       @clickedPoint = point
 
       state.consumedHitTest = true
@@ -3100,7 +3111,7 @@ define ['droplet-helper',
       else
         @mainScroller.style.overflowX = 'hidden'
       @mainScroller.style.overflowY = 'hidden'
-      @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
+      @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
@@ -3263,7 +3274,7 @@ define ['droplet-helper',
       setTimeout (=>
         # Hide scrollbars and increase width
         @mainScroller.style.overflow = 'hidden'
-        @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
+        @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
         @redrawMain noText: true
 
