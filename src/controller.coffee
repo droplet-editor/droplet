@@ -333,13 +333,13 @@ define ['droplet-helper',
     resizeBlockMode: ->
       @resizeTextMode()
 
-      @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
+      @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
       if @paletteEnabled
         @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
-        @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+        @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.offsetWidth}px"
       else
         @dropletElement.style.left = "0px"
-        @dropletElement.style.width = "#{@wrapperElement.offsetWidth}px"
+        @dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
 
       @resizeGutter()
 
@@ -1762,12 +1762,12 @@ define ['droplet-helper',
           @redrawTextInput()
 
   Editor::resizeAceElement = ->
-    width = @wrapperElement.offsetWidth
+    width = @wrapperElement.clientWidth
     if @showPaletteInTextMode and @paletteEnabled
       width -= @paletteElement.offsetWidth
 
     @aceElement.style.width = "#{width}px"
-    @aceElement.style.height = "#{@wrapperElement.offsetHeight}px"
+    @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
 
   last_ = (array) -> array[array.length - 1]
 
@@ -3100,7 +3100,7 @@ define ['droplet-helper',
       else
         @mainScroller.style.overflowX = 'hidden'
       @mainScroller.style.overflowY = 'hidden'
-      @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
+      @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
       @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
@@ -3263,7 +3263,7 @@ define ['droplet-helper',
       setTimeout (=>
         # Hide scrollbars and increase width
         @mainScroller.style.overflow = 'hidden'
-        @dropletElement.style.width = @wrapperElement.offsetWidth + 'px'
+        @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
         @redrawMain noText: true
 
