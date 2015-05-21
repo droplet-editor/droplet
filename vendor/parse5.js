@@ -1089,16 +1089,16 @@ SimpleApiParser.prototype._handleToken = function (token) {
         this.currentTokenLocation = token.location;
 
     if (token.type === Tokenizer.START_TAG_TOKEN)
-        this.handlers.startTag(token.tagName, token.attrs, token.selfClosing);
+        this.handlers.startTag(token.tagName, token.attrs, token.selfClosing, token.location);
 
     else if (token.type === Tokenizer.END_TAG_TOKEN)
-        this.handlers.endTag(token.tagName);
+        this.handlers.endTag(token.tagName, token.location);
 
     else if (token.type === Tokenizer.COMMENT_TOKEN)
-        this.handlers.comment(token.data);
+        this.handlers.comment(token.data, token.location);
 
     else if (token.type === Tokenizer.DOCTYPE_TOKEN)
-        this.handlers.doctype(token.name, token.publicId, token.systemId);
+        this.handlers.doctype(token.name, token.publicId, token.systemId, token.location);
 
 };
 
@@ -1452,7 +1452,7 @@ Preprocessor.prototype.advanceAndPeekCodePoint = function () {
 
     //NOTE: all U+000D CARRIAGE RETURN (CR) characters must be converted to U+000A LINE FEED (LF) characters
     if (cp === $.CARRIAGE_RETURN) {
-        this.skipNextNewLine = true;
+        //this.skipNextNewLine = true;
         return $.LINE_FEED;
     }
 
@@ -6357,7 +6357,7 @@ function preStartTagInBody(p, token) {
     p._insertElement(token, NS.HTML);
     //NOTE: If the next token is a U+000A LINE FEED (LF) character token, then ignore that token and move
     //on to the next one. (Newlines at the start of pre blocks are ignored as an authoring convenience.)
-    p.skipNextNewLine = true;
+    //p.skipNextNewLine = true;
     p.framesetOk = false;
 }
 
@@ -6518,7 +6518,7 @@ function textareaStartTagInBody(p, token) {
     p._insertElement(token, NS.HTML);
     //NOTE: If the next token is a U+000A LINE FEED (LF) character token, then ignore that token and move
     //on to the next one. (Newlines at the start of textarea elements are ignored as an authoring convenience.)
-    p.skipNextNewLine = true;
+    //p.skipNextNewLine = true;
     p.tokenizer.state = Tokenizer.MODE.RCDATA;
     p.originalInsertionMode = p.insertionMode;
     p.framesetOk = false;

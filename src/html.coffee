@@ -3,7 +3,7 @@
   Do not copy. Think something new and innovative instead
 ###
 
-define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) ->
+define ['droplet-helper', 'droplet-parser', 'parse5', 'html-nodes', 'html-stack'], (helper, parser, parse5, model, html_stack) ->
 
   exports = {}
 
@@ -15,21 +15,55 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
   DEFAULT_INDENT_DEPTH = '  '
 
+  stack = new html_stack.Stack()
+  htmlParser = new parse5.SimpleApiParser {
+    doctype: (name, publicId, systemId, location) ->
+      #console.log(name, publicId, systemId, location)
+      stack.push(new model.tagNode 'empty', 'doctype', location)
+      #stack.debug()
+    startTag: (tagName, attrs, selfClosing, location) ->
+      #console.log( tagName, attrs, selfClosing, location)
+      if selfClosing
+        stack.push(new model.tagNode 'empty', tagName, location)
+      else
+        node = new model.tagNode('start', tagName, location)
+        stack.start(new model.blockNode node)
+      #stack.debug()
+    endTag: (tagName, location) ->
+      #console.log( tagName, location)
+      stack.end(location)
+      #stack.debug()
+    text: (text, location) ->
+      #console.log(text.length, text, location)
+      textTmp = text.trimLeft()
+      location.start += text.length - textTmp.length
+      text = textTmp.trimRight()
+      location.end -= textTmp.length - text.length
+      stack.push new model.textNode location
+      #stack.debug()
+    comment: (text, location) ->
+      #console.log( text, location)
+      stack.push new model.commentNode location
+      #stack.debug()
+    }, {locationInfo: true}
+
+
   exports.HTMLParser = class HTMLParser extends parser.Parser
 
     constructor: (@text, @opts = {}) ->
       super
-      @htmlParser = new parse5.Parser parse5.TreeAdapters.default, {locationInfo: true}
+
+      @lines = @text.split '\n'
+
       @positions = []
       line = 0
       column = 0
       for val, i in @text
+        @positions[i] = {'line': line, 'column': column}
+        column++
         if val is '\n'
           line++
           column = 0
-          continue
-        @positions[i] = {'line': line, 'column': column}
-        column++
 
     getAcceptsRule: (node) -> default: helper.NORMAL
 
@@ -41,12 +75,19 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
     getBounds: (node) ->
       bounds = {
-        start: @positions[node.__location.start]
-        end: @positions[node.__location.end-1]
+        start: @positions[node.location.start]
+        end: @positions[node.location.end]
       }
-      bounds.end.column += 1
 
       return bounds
+
+    makeBounds: (location) ->
+      line = @positions[location.end].line - 1
+      column = @lines[line].length
+      return {
+        start: @positions[location.start]
+        end: {line: line, column: column}
+      }
 
     getSocketLevel: (node) -> helper.ANY_DROP
 
@@ -69,7 +110,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         classes: classes ? []
         acccepts: @getAcceptsRule node
 
-      @mark indentDepth, node, depth + 1, bounds
+      #@mark indentDepth, node, depth + 1, bounds
 
     getIndentPrefix: (bounds, indentDepth) ->
       if bounds.end.line - bounds.start.line < 1
@@ -79,25 +120,76 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         return line[indentDepth...(line.length - line.trimLeft().length)]
 
     markRoot: ->
-      root = @htmlParser.parse @text
-      console.log root
-      @mark 0, root, 0, null
+      try
+        stack.clear()
+        stack.start(new model.blockNode(new model.tagNode('start', 'document', {start:null, end:null})))
+        htmlParser.parse @text
+        root = stack.top()
+        console.log root
+        @mark 0, root, 0, null
+      catch e
+        console.log e
+        console.log e.stack
 
     mark: (indentDepth, node, depth, bounds) ->
-      switch node.nodeName
-        when '#document'
-          for rule in node.childNodes
-            @mark indentDepth, rule, depth + 1, null
-        when '#documentType'
+      if node.name is 'document'
+        for child in node.children
+          @mark indentDepth, child, depth + 1, null
+        return
+
+      switch node.type
+        when 'blockTag'
           @htmlBlock node, depth, bounds
-        when 'html'
+          depth += 1
+          prefix = @getIndentPrefix(@makeBounds(node.consequentLocation), indentDepth)
+          indentDepth += prefix.length
+          console.log "Adding Indent: ", JSON.stringify(@makeBounds node.consequentLocation)
+          @addIndent
+            bounds: @makeBounds(node.consequentLocation)
+            depth: depth
+            prefix: prefix
+          for child in node.children
+            @mark indentDepth, child, depth + 1, null
+        when 'emptyTag'
           @htmlBlock node, depth, bounds
+        #when 'text'
+        #  if node.location.start isnt node.location.end
+        #    @htmlSocketAndMark indentDepth, node, depth + 1, null
+      ###
+      if node.type is 'document'
+        for rule in node.childNodes
+          @mark indentDepth, rule, depth + 1, null
+
+      else if node.type is 'doctype'
+        @htmlBlock node, depth, bounds
+
+      else if isSpecial node.nodeName
+        #Do something...
+
+      else if isBlock node.nodeName
+        @htmlBlock node, depth, bounds
+
+        if node.childNodes? and node.childNodes.length isnt 0
+          console.log node
+          bounds = @makeBounds(node.childNodes[0].__location.start, node.childNodes[node.childNodes.length - 1].__location.end)
+          prefix = @getIndentPrefix(bounds, indentDepth)
+          indentDepth += prefix.length
+          @addIndent
+            bounds: bounds
+            depth: depth
+            prefix: prefix
+
           for child in node.childNodes
             @mark indentDepth, child, depth+1, null
-        when 'declaration'
-          @htmlBlock node, depth, bounds
-          @htmlSocketAndMark indentDepth, node.property, depth + 1, null
-          @htmlSocketAndMark indentDepth, node.value, depth + 1, null
+
+      else if isEmpty node.nodeName
+        @htmlBlock node, depth, bounds
+
+      else if node.nodeName is 'declaration'
+        @htmlBlock node, depth, bounds
+        @htmlSocketAndMark indentDepth, node.property, depth + 1, null
+        @htmlSocketAndMark indentDepth, node.value, depth + 1, null
+      ###
 
     isComment: (text) ->
       text.match(/^\s*\/\/.*$/)
