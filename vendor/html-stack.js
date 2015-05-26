@@ -57,4 +57,37 @@ define(["exports"], function(exports)
 			text = html;
 		}
 	}
+
+	exports.setAttribs = function(node, string, offset)
+	{
+		if(node.attribsSet)
+			return;
+		node.attributes = [];
+		var start = 1;
+		var end = 0;
+		var squotes = false;
+		var dquotes = false;
+		for (var i = 0; i < string.length; i++)
+		{
+			if(string[i] == '"')
+			{
+				if(!squotes)
+					dquotes = !dquotes;
+			}
+			else if(string[i] == '\'')
+			{
+				if(!dquotes)
+					squotes = !squotes;
+			}
+			if(!squotes && !dquotes && (string[i] == '>' || /\s/.test(string[i])))
+			{
+				end = i;
+				if(start < end)
+					node.attributes.push({start: start+offset, end: end+offset});
+				start = i+1;
+			}
+		}
+		node.attributes.shift();
+		node.attribsSet = true;
+	}
 });

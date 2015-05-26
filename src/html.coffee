@@ -191,6 +191,9 @@ define ['droplet-helper', 'droplet-parser', 'parse5', 'html-nodes', 'html-stack'
         when 'blockTag'
           @htmlBlock node, depth, bounds
           @mark indentDepth, node.consequent, depth + 1, null
+          html_stack.setAttribs(node, @text[node.location.start...node.consequent.location.start], node.location.start);
+          for attrib in node.attributes
+            @htmlSocketAndMark indentDepth, {location: attrib}, depth + 1, null
 
         when 'consequent'
           if not @inline node
@@ -213,6 +216,9 @@ define ['droplet-helper', 'droplet-parser', 'parse5', 'html-nodes', 'html-stack'
 
         when 'emptyTag'
           @htmlBlock node, depth, bounds
+          html_stack.setAttribs(node, @text[node.location.start...node.location.end], node.location.start);
+          for attrib in node.attributes
+            @htmlSocketAndMark indentDepth, {location: attrib}, depth + 1, null
 
         when 'text'
           @htmlBlock node, depth, bounds

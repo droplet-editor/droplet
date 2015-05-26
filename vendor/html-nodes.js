@@ -15,6 +15,7 @@ define(["exports"], function(exports)
 		this.type = type + "Tag";
 		this.name = name;
 		this.location = location;
+		this.attribsSet = false;
 	}
 	exports.blockNode = function(startTag)
 	{
@@ -24,5 +25,6 @@ define(["exports"], function(exports)
 		this.consequent = {type: 'consequent'};
 		this.consequent.location = {start: startTag.location.end};
 		this.consequent.children = [];
+		this.attribsSet = false;
 	}
 });
