@@ -29,16 +29,17 @@ require ['droplet'], (droplet) ->
     descriptive: '''
       <!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">
       <HTML>
-         <HEAD>
-            <TITLE>
-               A Small Hello
-            </TITLE>
-         </HEAD>
-         <BODY>
-            <H1>Hi</H1>
-            <P>This is very minimal <b>hello world</b> HTML document.</P>
-         </BODY>
+        <HEAD>
+          <TITLE>
+            A Small Hello
+          </TITLE>
+        </HEAD>
+        <BODY>
+          <H1>Hi</H1>
+          <P>This is very minimal <b>hello world</b> HTML document.</P>
+        </BODY>
       </HTML>
+
       '''
 
     empty: ''
