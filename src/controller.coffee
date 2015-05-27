@@ -305,9 +305,9 @@ define ['droplet-helper',
 
       # If we were given an unrecognized mode or asked to start in text mode,
       # flip into text mode here
-      blockMode = @mode? && !@options.textModeAtStart
+      useBlockMode = @mode? && !@options.textModeAtStart
       # Always call @setEditorState to ensure palette is positioned properly
-      @setEditorState blockMode
+      @setEditorState useBlockMode
 
       return this
 
