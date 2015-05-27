@@ -27,6 +27,7 @@ define ['droplet-parser', 'droplet-antlr-parser'], (parser, antlrHelper) ->
     'StringLiteral'
   ]
   COLORS_FORWARD = {
+    'statement': 'control'
     'typeDeclaration': 'control'
     'classBodyDeclaration': 'control'
     'variableDeclarator': 'command'

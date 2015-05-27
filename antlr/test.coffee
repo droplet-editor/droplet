@@ -1,17 +1,23 @@
 antlr4 = require 'antlr4'
-logoLexer = require './logoLexer'
-logoParser = require './logoParser'
+JavaLexer = require './JavaLexer'
+JavaParser = require './JavaParser'
 
 input = '''
-repeat 3 [fd 10]
+public class Test {
+  public Test() {
+    while(true) {
+      System.out.println('hello');
+    }
+  }
+}
 '''
 
 chars = new antlr4.InputStream input
-lexer = new logoLexer.logoLexer chars
+lexer = new JavaLexer.JavaLexer chars
 tokens = new antlr4.CommonTokenStream lexer
-parser = new logoParser.logoParser tokens
+parser = new JavaParser.JavaParser tokens
 parser.buildParseTrees = true
-parseTree = parser.prog()
+parseTree = parser.compilationUnit()
 
 print = (el, indent) ->
   if el.ruleIndex?

@@ -43,7 +43,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
         else if rule in config.PARENS then return 'parens'
         else return 'block'
 
-      detNode: (node) -> @det(node.type)
+      detNode: (node) -> if node.blockified then 'block' else @det(node.type)
       detToken: (node) ->
         if node.type?
           if node.type in config.SOCKET_TOKENS then 'socket' else 'none'
@@ -67,7 +67,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
       mark: (node, prefix, depth, pass, rules, context, wrap) ->
         unless pass
           context = node.parent
-          while context? and @detNode(context) is 'skip'
+          while context? and @detNode(context) in ['skip', 'parens']
             context = context.parent
 
         rules ?= []
@@ -113,6 +113,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                 return
 
               else
+                node.blockified = true
+
                 if wrap?
                   bounds = wrap.bounds
                 else
@@ -137,6 +139,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'antlr'], (helper, 
                 if child.children.length > 0
                   break
                 else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0
+                  console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
                   start = child.bounds.end
 
               end = node.children[node.children.length - 1].bounds.end
