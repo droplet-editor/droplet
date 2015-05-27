@@ -4239,7 +4239,7 @@ define ['droplet-helper',
           str = @copyPasteInput.value; minIndent = Infinity
 
           for line in str.split '\n'
-            minIndent = Math.min minIndent, str.length - str.trimLeft().length
+            minIndent = Math.min minIndent, line.length - line.trimLeft().length
 
           str = (for line in str.split '\n'
             line[minIndent...]
