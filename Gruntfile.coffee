@@ -48,6 +48,7 @@ module.exports = (grunt) ->
           {dest: 'example/csv.js', src: 'example/csv.coffee'}
           {dest: 'example/example-js.js', src: 'example/example-js.coffee'}
           {dest: 'example/test.js', src: 'example/test.coffee'}
+          {dest: 'example/html.js', src: 'example/html.coffee'}
         ]
 
     qunit:

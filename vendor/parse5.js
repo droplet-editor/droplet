@@ -1089,16 +1089,16 @@ SimpleApiParser.prototype._handleToken = function (token) {
         this.currentTokenLocation = token.location;
 
     if (token.type === Tokenizer.START_TAG_TOKEN)
-        this.handlers.startTag(token.tagName, token.attrs, token.selfClosing, token.location);
+        this.handlers.startTag(token.tagName, token.attrs, token.selfClosing);
 
     else if (token.type === Tokenizer.END_TAG_TOKEN)
-        this.handlers.endTag(token.tagName, token.location);
+        this.handlers.endTag(token.tagName);
 
     else if (token.type === Tokenizer.COMMENT_TOKEN)
-        this.handlers.comment(token.data, token.location);
+        this.handlers.comment(token.data);
 
     else if (token.type === Tokenizer.DOCTYPE_TOKEN)
-        this.handlers.doctype(token.name, token.publicId, token.systemId, token.location);
+        this.handlers.doctype(token.name, token.publicId, token.systemId);
 
 };
 
@@ -1452,7 +1452,7 @@ Preprocessor.prototype.advanceAndPeekCodePoint = function () {
 
     //NOTE: all U+000D CARRIAGE RETURN (CR) characters must be converted to U+000A LINE FEED (LF) characters
     if (cp === $.CARRIAGE_RETURN) {
-        //this.skipNextNewLine = true;
+        this.skipNextNewLine = true;
         return $.LINE_FEED;
     }
 
@@ -4521,7 +4521,10 @@ var $ = HTML.TAG_NAMES;
 
 function setEndLocation(element, endTagToken) {
     if (element.__location)
+    {
+        element.__indentLocation = {start: element.__location.end, end: endTagToken.location.start};
         element.__location.end = endTagToken.location.end;
+    }
 }
 
 //NOTE: patch open elements stack, so we can assign end location for the elements
@@ -6357,7 +6360,7 @@ function preStartTagInBody(p, token) {
     p._insertElement(token, NS.HTML);
     //NOTE: If the next token is a U+000A LINE FEED (LF) character token, then ignore that token and move
     //on to the next one. (Newlines at the start of pre blocks are ignored as an authoring convenience.)
-    //p.skipNextNewLine = true;
+    p.skipNextNewLine = true;
     p.framesetOk = false;
 }
 
@@ -6518,7 +6521,7 @@ function textareaStartTagInBody(p, token) {
     p._insertElement(token, NS.HTML);
     //NOTE: If the next token is a U+000A LINE FEED (LF) character token, then ignore that token and move
     //on to the next one. (Newlines at the start of textarea elements are ignored as an authoring convenience.)
-    //p.skipNextNewLine = true;
+    p.skipNextNewLine = true;
     p.tokenizer.state = Tokenizer.MODE.RCDATA;
     p.originalInsertionMode = p.insertionMode;
     p.framesetOk = false;
@@ -7937,7 +7940,7 @@ process.nextTick = function (fun) {
         }
     }
     queue.push(new Item(fun, args));
-    if (!draining) {
+    if (queue.length === 1 && !draining) {
         setTimeout(drainQueue, 0);
     }
 };
