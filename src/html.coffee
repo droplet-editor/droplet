@@ -73,14 +73,111 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
       return bounds
 
+    genBounds: (location) ->
+      bounds = {
+        start: @positions[location.start]
+        end: @positions[location.end]
+      }
+
+      return bounds
+
     isBlockNode: (node) ->
-      return node.__indentLocation?
+      return node.blockNode is true
 
     inline: (node) ->
       bounds = @getBounds node
       return bounds.start.line is bounds.end.line
 
+    setAttribs: (node, string) ->
+      offset = node.__location.start
+      node.attributes = []
+      start = 1
+      end = 0
+      squotes = dquotes = false #Inside single or Double quotes respectively
+      for ch, i in string
+        if ch is '"' and not squotes
+          dquotes = not dquotes
+        else if ch is '\'' and not dquotes
+          squotes = not squotes
+        if not squotes and not dquotes and (ch is '>' or /\s/.test ch)
+          end = i
+          if start < end
+            node.attributes.push {start: start+offset, end: end+offset}
+          start = i+1
+      node.attributes.shift()
+      #console.log node.attributes
+
+    fixBounds: (node) ->
+
+      if not node
+        return
+
+      if node.nodeName is '#document' or node.nodeName is '#document-fragment'
+        node.type = 'document'
+        if node.childNodes?
+          for child in node.childNodes
+            @fixBounds child
+        return
+
+      if not node.__location
+        parent = node.parentNode
+        ind = parent.childNodes.indexOf node
+        parent.childNodes = parent.childNodes[0...ind].concat(node.childNodes).concat parent.childNodes[ind+1...]
+        @fixBounds parent.childNodes[ind]
+        return
+
+      if node.nodeName is '#text'
+        node.type = 'text'
+        @trimText node
+        if node.value.length is 0
+          node.remove = true
+        return
+
+      if node.nodeName is '#comment'
+        node.type = 'comment'
+        return
+
+      if not @isBlockNode node
+        node.type = 'emptyTag'
+        if node.__location?
+          @setAttribs node, @text[node.__location.start...node.__location.end]
+        return
+
+      node.type = 'blockTag'
+
+      if node.childNodes?
+        newList = []
+        for child in node.childNodes
+          @fixBounds child
+        for child in node.childNodes
+          if !child.remove
+            newList.push child
+        node.childNodes = newList
+        ###
+        Alternate logic for the above part - Maybe slower
+        i = 0
+        while i < node.childNodes.length
+          if node.childNodes[i].remove is true
+            node.childNodes.splice i, 1
+          else
+            i++   ###
+
+      #console.log node
+
+      node.__indentLocation = {start: node.__startTagLocation.end}
+
+      if node.childNodes?.length > 0
+        node.__indentLocation.end = node.childNodes[node.childNodes.length - 1].__location.end
+      else
+        node.__indentLocation.end = node.__startTagLocation.end
+
+      if not node.__endTagLocation
+        node.__location.end = node.__indentLocation.end
+
+      @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
+
     makeIndentBounds: (node) ->
+      ###
       loc = node.__indentLocation
       lines = @text[loc.start...loc.end].split('\n')
       for i in [lines.length-1..0] by -1
@@ -91,7 +188,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
       if loc.start > loc.end
         loc.end = loc.start
-
+      ###
       bounds = {
         start: @positions[node.__indentLocation.start]
         end: @positions[node.__indentLocation.end]
@@ -100,24 +197,18 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       return bounds
 
     trimText: (node) ->
-      if node.value.trim().length is 0
-        node.value = ""
-        return
-      loc = node.location       #change to __location
       text = node.value
-      lines = text.split('\n')
-      for i in [lines.length-1..0] by -1
-        if lines[i].trim().length is 0
-          loc.end -= lines[i].length + 1
-          text = text[0... loc.end - loc.start]
-        else
-          break
-      node.value = text
+      location = node.__location
+      rigthtTrimText = text.trimRight()
+      leftTrimText = rigthtTrimText.trimLeft()
+      node.value = leftTrimText
+      location.start += rigthtTrimText.length - leftTrimText.length
+      location.end = location.start + leftTrimText.length
 
     getSocketLevel: (node) -> helper.ANY_DROP
 
     htmlBlock: (node, depth, bounds) ->
-      console.log "Adding Block: ", JSON.stringify(bounds ? @getBounds node)
+      #console.log "Adding Block: ", JSON.stringify(bounds ? @getBounds node)
       @addBlock
         bounds: bounds ? @getBounds node
         depth: depth
@@ -126,8 +217,8 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         classes: @getClasses node
         socketLevel: @getSocketLevel node
 
-    htmlSocket: (indentDepth, node, depth, precedence, bounds, classes) ->
-      console.log "Adding Socket: ", JSON.stringify(bounds ? @getBounds node)
+    htmlSocket: (node, depth, precedence, bounds, classes) ->
+      #console.log "Adding Socket: ", JSON.stringify(bounds ? @getBounds node)
       @addSocket
         bounds: bounds ? @getBounds node
         depth: depth
@@ -161,52 +252,50 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
           line++
           column = 0
       @positions[@text.length] = {'line': line, 'column': column}
-      positions = @positions
+      window.positions = @positions
+      window.text = @text
 
       try
         root = htmlParser.parse @text
         console.log root
+        @fixBounds root
         @mark 0, root, 0, null
       catch e
         console.log e.stack
 
     mark: (indentDepth, node, depth, bounds) ->
-      switch node.nodeName
-        when '#document'
+
+      switch node.type
+        when 'document'
           for child in node.childNodes
             @mark indentDepth, child, depth + 1, null
-          return
 
-        when '#text'
-          @trimText node
-          if node.value.length isnt 0
+        when 'emptyTag'
+          @htmlBlock node, depth, bounds
+          for attrib in node.attributes
+            if attrib.end - attrib.start > 1
+              @htmlSocket node, depth + 1, null, @genBounds attrib
+
+        when 'blockTag'
+          @htmlBlock node, depth, bounds
+          for attrib in node.attributes
+            @htmlSocket node, depth + 1, null, @genBounds attrib
+          if node.__indentLocation.start isnt node.__indentLocation.end
+            depth++
+            #console.log "Adding Indent: ", JSON.stringify @makeIndentBounds node
+            prefix = @getIndentPrefix(@makeIndentBounds(node), indentDepth, depth)
+            indentDepth += prefix.length
+            @addIndent
+              bounds: @makeIndentBounds node
+              depth: depth
+              prefix: prefix
+            for child in node.childNodes
+              @mark indentDepth, child, depth + 1, null
+
+        when 'text'
+          if node.__location.start isnt node.__location.end
             @htmlBlock node, depth, bounds
-            #console.log node.location
-            @htmlSocket indentDepth, node, depth + 1, null
-          return
-
-        when '#comment'
-          return
-
-      unless node.__location?
-        return
-
-      if @isBlockNode node
-        @htmlBlock node, depth, bounds
-        depth++
-        indentBounds = @makeIndentBounds node
-        prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
-        indentDepth += prefix.length
-        console.log "Adding Indent: ", JSON.stringify(indentBounds)
-        @addIndent
-          bounds: indentBounds
-          depth: depth
-          prefix: prefix
-        for child in node.childNodes
-          @mark indentDepth, child, depth + 1, null
-      else
-        @htmlBlock node, depth, bounds
-
+            @htmlSocket node, depth + 1, null
 
     isComment: (text) ->
       text.match(/<!--.*-->/)
@@ -293,10 +382,10 @@ define ['droplet-helper', 'droplet-parser', 'parse5', 'html-nodes', 'html-stack'
       #stack.debug()
     text: (text, location) ->
       #console.log(text.length, text, location)
-      leftTrimtext = text.trimLeft()
-      location.start += text.length - leftTrimtext.length
-      rigthtTrimText = leftTrimtext.trimRight()
-      location.end -= leftTrimtext.length - rigthtTrimText.length
+      leftTrimText = text.trimLeft()
+      location.start += text.length - leftTrimText.length
+      rigthtTrimText = leftTrimText.trimRight()
+      location.end -= leftTrimText.length - rigthtTrimText.length
       if rigthtTrimText.length isnt 0
         stack.push new model.textNode location
       #stack.debug()
@@ -450,5 +539,43 @@ define ['droplet-helper', 'droplet-parser', 'parse5', 'html-nodes', 'html-stack'
     return [leading, trainling]
 
   return parser.wrapParser HTMLParser
+
+  ###
+
+
+###          CODE FOR ATTRIBUTES
+
+  exports.setAttribs = function(node, string, offset)
+  {
+    if(node.attribsSet)
+      return;
+    node.attributes = [];
+    var start = 1;
+    var end = 0;
+    var squotes = false;
+    var dquotes = false;
+    for (var i = 0; i < string.length; i++)
+    {
+      if(string[i] == '"')
+      {
+        if(!squotes)
+          dquotes = !dquotes;
+      }
+      else if(string[i] == '\'')
+      {
+        if(!dquotes)
+          squotes = !squotes;
+      }
+      if(!squotes && !dquotes && (string[i] == '>' || /\s/.test(string[i])))
+      {
+        end = i;
+        if(start < end)
+          node.attributes.push({start: start+offset, end: end+offset});
+        start = i+1;
+      }
+    }
+    node.attributes.shift();
+    node.attribsSet = true;
+  }
 
   ###

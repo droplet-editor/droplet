@@ -4520,11 +4520,13 @@ var $ = HTML.TAG_NAMES;
 
 
 function setEndLocation(element, endTagToken) {
-    if (element.__location)
-    {
-        element.__indentLocation = {start: element.__location.end, end: endTagToken.location.start};
+    element.blockNode = true;
+    if(element.__startTagLocation == undefined && element.__location)
+        element.__startTagLocation = JSON.parse(JSON.stringify(element.__location));
+    if(endTagToken.location && endTagToken.type == "END_TAG_TOKEN" && element.tagName == endTagToken.tagName)
+        element.__endTagLocation = JSON.parse(JSON.stringify(endTagToken.location));
+    if (element.__location && endTagToken.location)
         element.__location.end = endTagToken.location.end;
-    }
 }
 
 //NOTE: patch open elements stack, so we can assign end location for the elements
