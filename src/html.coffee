@@ -115,8 +115,11 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       if node.nodeName is '#document' or node.nodeName is '#document-fragment'
         node.type = 'document'
         if node.childNodes?
-          for child in node.childNodes
-            @fixBounds child
+          i = 0
+          loop
+            @fixBounds node.childNodes[i]
+            i++
+            break if i >= node.childNodes.length
         return
 
       if not node.__location
@@ -146,9 +149,12 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       node.type = 'blockTag'
 
       if node.childNodes?
+        i = 0
+        loop
+          @fixBounds node.childNodes[i]
+          i++
+          break if i >= node.childNodes.length
         newList = []
-        for child in node.childNodes
-          @fixBounds child
         for child in node.childNodes
           if !child.remove
             newList.push child
