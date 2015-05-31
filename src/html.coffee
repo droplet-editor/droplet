@@ -25,7 +25,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
     'hr': 'lime',
     'html': 'amber',
     'iframe': 'green',
-    'img': 'grey',
+    'img': 'green',
     'input': 'brown',
     'label': 'lightblue',
     'li': 'pink',
@@ -107,6 +107,19 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       node.attributes.shift()
       #console.log node.attributes
 
+    cleanTree: (node) ->
+      if not node
+        return
+
+      if node.childNodes?
+        i = 0
+        while i < node.childNodes.length
+          @cleanTree node.childNodes[i]
+          if not node.childNodes[i].__location
+            node.childNodes = node.childNodes[0...i].concat(node.childNodes[i].childNodes || []).concat node.childNodes[i+1...]
+          else
+            i++
+
     fixBounds: (node) ->
 
       if not node
@@ -120,13 +133,6 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
             @fixBounds node.childNodes[i]
             i++
             break if i >= node.childNodes.length
-        return
-
-      if not node.__location
-        parent = node.parentNode
-        ind = parent.childNodes.indexOf node
-        parent.childNodes = parent.childNodes[0...ind].concat(node.childNodes).concat parent.childNodes[ind+1...]
-        @fixBounds parent.childNodes[ind]
         return
 
       if node.nodeName is '#text'
@@ -264,6 +270,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       try
         root = htmlParser.parse @text
         console.log root
+        @cleanTree root
         @fixBounds root
         @mark 0, root, 0, null
       catch e
@@ -299,9 +306,12 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
               @mark indentDepth, child, depth + 1, null
 
         when 'text'
-          if node.__location.start isnt node.__location.end
-            @htmlBlock node, depth, bounds
-            @htmlSocket node, depth + 1, null
+          @htmlBlock node, depth, bounds
+          @htmlSocket node, depth + 1, null
+
+        when 'comment'
+          @htmlBlock node, depth, bounds
+          @htmlSocket node, depth + 1, null
 
     isComment: (text) ->
       text.match(/<!--.*-->/)
