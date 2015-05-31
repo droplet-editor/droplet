@@ -4520,7 +4520,6 @@ var $ = HTML.TAG_NAMES;
 
 
 function setEndLocation(element, endTagToken) {
-    element.blockNode = true;
     if(element.__startTagLocation == undefined && element.__location)
         element.__startTagLocation = JSON.parse(JSON.stringify(element.__location));
     if(endTagToken.location && endTagToken.type == "END_TAG_TOKEN" && element.tagName == endTagToken.tagName)
@@ -4611,6 +4610,8 @@ exports.assign = function (parser) {
         //NOTE: _attachElementToTree is called from _appendElement, _insertElement and _insertTemplate methods.
         //So we will use token location stored in this methods for the element.
         element.__location = this.attachableElementLocation || null;
+        if(element.__startTagLocation == undefined)
+            element.__startTagLocation = JSON.parse(JSON.stringify(element.__location));
         this.attachableElementLocation = null;
         parserProto._attachElementToTree.call(this, element);
     };

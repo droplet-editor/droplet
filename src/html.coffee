@@ -48,6 +48,12 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
   DEFAULT_INDENT_DEPTH = '  '
 
+  EMPTY_ELEMENTS = ['#documentType', 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr']
+
+  BLOCK_ELEMENTS = ['address', 'article', 'aside', 'audio', 'blockquote', 'canvas', 'dd', 'div', 'dl', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'main', 'nav', 'noscript', 'ol', 'output', 'p', 'pre', 'section', 'table', 'tfoot', 'ul', 'video']
+
+  INLINE_ELEMENTS = ['b', 'big', 'i', 'small', 'tt', 'abbr', 'acronym', 'cite', 'dfn', 'em', 'kbd', 'strong', 'samp', 'var', 'a', 'bdo', 'br', 'img', 'map', 'object', 'q', 'script', 'span', 'sub', 'sup', 'button', 'input', 'label', 'select', 'textarea']
+
   htmlParser = new parse5.Parser null, {decodeHtmlEntities: false, locationInfo: true}
 
   exports.HTMLParser = class HTMLParser extends parser.Parser
@@ -82,7 +88,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       return bounds
 
     isBlockNode: (node) ->
-      return node.blockNode is true
+      return node.nodeName not in EMPTY_ELEMENTS
 
     inline: (node) ->
       bounds = @getBounds node
@@ -125,14 +131,26 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       if not node
         return
 
+      if node.childNodes?
+        for child in node.childNodes
+          @fixBounds child
+        newList = []
+        for child in node.childNodes
+          if !child.remove
+            newList.push child
+        node.childNodes = newList
+        ###
+        Alternate logic for the above part - Maybe slower
+        i = 0
+        while i < node.childNodes.length
+          if node.childNodes[i].remove is true
+            node.childNodes.splice i, 1
+          else
+            i++   ###
+
+
       if node.nodeName is '#document' or node.nodeName is '#document-fragment'
         node.type = 'document'
-        if node.childNodes?
-          i = 0
-          loop
-            @fixBounds node.childNodes[i]
-            i++
-            break if i >= node.childNodes.length
         return
 
       if node.nodeName is '#text'
@@ -153,26 +171,6 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         return
 
       node.type = 'blockTag'
-
-      if node.childNodes?
-        i = 0
-        loop
-          @fixBounds node.childNodes[i]
-          i++
-          break if i >= node.childNodes.length
-        newList = []
-        for child in node.childNodes
-          if !child.remove
-            newList.push child
-        node.childNodes = newList
-        ###
-        Alternate logic for the above part - Maybe slower
-        i = 0
-        while i < node.childNodes.length
-          if node.childNodes[i].remove is true
-            node.childNodes.splice i, 1
-          else
-            i++   ###
 
       #console.log node
 
@@ -205,6 +203,14 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         start: @positions[node.__indentLocation.start]
         end: @positions[node.__indentLocation.end]
       }
+
+      if node.__endTagLocation?
+        lastLine = @positions[node.__endTagLocation.start].line - 1
+        if lastLine > bounds.end.line or (lastLine is bounds.end.line and @lines[lastLine].length > bounds.end.column)
+          bounds.end = {
+            line: lastLine
+            column: @lines[lastLine].length
+          }
 
       return bounds
 
@@ -253,6 +259,14 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         else
           return DEFAULT_INDENT_DEPTH
 
+    handleText: (node, depth) ->
+      text = node.value.split '\n'
+      loc = {start: node.__location.start}
+      for line in text
+        loc.end = loc.start + line.length
+        @htmlSocket node, depth, null, @genBounds loc
+        loc.start = loc.end + 1
+
     markRoot: ->
       @positions = []
       line = 0
@@ -269,9 +283,9 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
       try
         root = htmlParser.parse @text
-        console.log root
         @cleanTree root
         @fixBounds root
+        window.root = root
         @mark 0, root, 0, null
       catch e
         console.log e.stack
@@ -293,13 +307,14 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
           @htmlBlock node, depth, bounds
           for attrib in node.attributes
             @htmlSocket node, depth + 1, null, @genBounds attrib
-          if node.__indentLocation.start isnt node.__indentLocation.end
+          indentBounds = @makeIndentBounds node
+          if indentBounds.start.line isnt indentBounds.end.line or indentBounds.start.column isnt indentBounds.end.column
             depth++
             #console.log "Adding Indent: ", JSON.stringify @makeIndentBounds node
-            prefix = @getIndentPrefix(@makeIndentBounds(node), indentDepth, depth)
+            prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
             indentDepth += prefix.length
             @addIndent
-              bounds: @makeIndentBounds node
+              bounds: indentBounds
               depth: depth
               prefix: prefix
             for child in node.childNodes
@@ -308,10 +323,14 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         when 'text'
           @htmlBlock node, depth, bounds
           @htmlSocket node, depth + 1, null
+          #@handleText node, depth + 1
 
         when 'comment'
           @htmlBlock node, depth, bounds
           @htmlSocket node, depth + 1, null
+          #node.value = node.data
+          #node.__location.start += 4
+          #@handleText node, depth + 1
 
     isComment: (text) ->
       text.match(/<!--.*-->/)
