@@ -1795,7 +1795,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           @dropPoints = []
           @highlightAreas = []
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
+          @dropPoints = [@bounds[0].upperLeftCorner()]
           highlightArea = @path.clone()
           highlightArea.noclip = true
           highlightArea.style.strokeColor = '#FF0'
