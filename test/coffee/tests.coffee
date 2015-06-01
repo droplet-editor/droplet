@@ -794,8 +794,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual blockView.carriageArrow, 1, 'Carriage arrow flag is set'
 
-    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
-    strictEqual blockView.dropPoint.y,
+    strictEqual blockView.dropPoints[0].x, view_.opts.indentWidth, 'Drop point is on the left'
+    strictEqual blockView.dropPoints[0].y,
       1 * view_.opts.textHeight +
       4 * view_.opts.padding +
       2 * view_.opts.textPadding, 'Drop point is further down'
@@ -821,7 +821,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual blockView.carriageArrow, 0, 'Carriage arrow flag is set'
 
-    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
+    strictEqual blockView.dropPoints[0].x, view_.opts.indentWidth, 'Drop point is on the left'
 
     indent = block.end.next.container
     indentView = view_.getViewNodeFor indent
