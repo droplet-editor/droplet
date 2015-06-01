@@ -133,6 +133,11 @@
   z-index: -999;
   opacity: 0;
   -webkit-touch-callout: none;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: 0;
 }
 .droplet-hover-div {
   position: absolute;
@@ -180,7 +185,7 @@
 .droplet-transitioning-element {
   position: absolute;
   white-space: pre;
-  z-index: 300;
+  z-index: 256;
 }
 .droplet-transitioning-gutter {
   box-sizing: border-box;
@@ -235,6 +240,7 @@
   opacity: 0.5;
 }
 .droplet-dropdown {
+  display: none;
   max-height: 150px;
   position: absolute;
   background-color: #FFF;

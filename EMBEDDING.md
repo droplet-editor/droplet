@@ -147,7 +147,7 @@ functions: {
     myFunction: {value: true, command: true}
     setColor: {
       command: true,
-      dropdowns: {
+      dropdown: {
         0: [
           // Dropdown elements can be a string
           'blue',

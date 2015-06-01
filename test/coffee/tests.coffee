@@ -858,7 +858,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor.showDropdown()
     start()
 
-  asyncTest 'Controller: alwaysShowPalette false', ->
+  asyncTest 'Controller: showPaletteInTextMode false', ->
     expect 4
 
     states = []
@@ -866,7 +866,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
       palette: [],
-      alwaysShowPalette: false
+      showPaletteInTextMode: false
     }
 
     paletteWrapper = document.querySelector('.droplet-palette-wrapper')
@@ -883,7 +883,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         strictEqual aceEditor.style.left, '-9999px'
         start()
 
-  asyncTest 'Controller: alwaysShowPalette true', ->
+  asyncTest 'Controller: showPaletteInTextMode true', ->
     expect 4
 
     states = []
@@ -891,7 +891,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
       palette: [],
-      alwaysShowPalette: true
+      showPaletteInTextMode: true
     }
 
     paletteWrapper = document.querySelector('.droplet-palette-wrapper')
@@ -907,3 +907,28 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         strictEqual paletteWrapper.style.left, '0px'
         strictEqual aceEditor.style.left, '-9999px'
         start()
+
+  asyncTest 'Controller: enablePalette false', ->
+    expect 4
+
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
+
+    paletteWrapper = document.querySelector('.droplet-palette-wrapper')
+    dropletWrapper = document.querySelector('.droplet-wrapper-div')
+
+    strictEqual paletteWrapper.style.left, '0px'
+    strictEqual dropletWrapper.style.left, '270px'
+
+    verifyPaletteHidden = ->
+      strictEqual paletteWrapper.style.left, '-9999px'
+      strictEqual dropletWrapper.style.left, '0px'
+      start()
+
+    editor.enablePalette false
+
+    setTimeout verifyPaletteHidden, 500
+

@@ -54,7 +54,11 @@ require ['droplet'], (droplet) ->
           {
             block: "for [1..3]\n  ``"
             title: "Repeat some code" # title-text
-          }
+          },
+          {
+            block: "playSomething()"
+            expansion: "playSomething 'arguments', 100, 'too long to show'"
+          },
         ]
       }
     ]
@@ -209,7 +213,7 @@ MyParser.drop = (block, context, preceding) ->
   # block: the block that user is dragging
   # context: the place the user is dropping that block into
   # preceding: if in sequence, the block immediately before
-  
+
   # block, context, and preceding will have
   # properties `classes` (from when you created the block),
   # `precedence`, and `type` ('block', 'socket', 'indent', or 'segment')
