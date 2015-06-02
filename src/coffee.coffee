@@ -20,6 +20,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     'alert'       : {}
     'prompt'      : {}
     'console.log' : {}
+    '*.toString'  : {}
     'Math.abs'    : {value: true}
     'Math.acos'   : {value: true}
     'Math.asin'   : {value: true}
@@ -292,13 +293,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
     lookupFunctionName: (nn) ->
       # Test the name nodes list against the given list, and return
       # null if not found, or a tuple of information about the match.
-      if nn.length > 1
-        full = (nn.map (n) -> n?.value or '*').join '.'
-        if full of @opts.functions
-          return name: full, dotted: true, fn: @opts.functions[full]
-      last = nn[nn.length - 1]
-      if last? and last.value of @opts.functions
-        return name: last.value, dotted: false, fn: @opts.functions[last.value]
+      full = (nn.map (n) -> n?.value or '*').join '.'
+      if full of @opts.functions
+        return name: full, anyobj: false, fn: @opts.functions[full]
+      last = nn[nn.length - 1]?.value
+      if nn.length > 1 and (wildcard = '*.' + last) not of @opts.functions
+        wildcard = null  # no match for '*.name'
+      if not wildcard and (wildcard = '?.' + last) not of @opts.functions
+        wildcard = null  # no match for '?.name'
+      if wildcard isnt null
+        return name: last, anyobj: true, fn: @opts.functions[wildcard]
       return null
 
     # ## addCode ##
@@ -512,7 +516,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'coffee-script'], (
               # In the 'advanced' case where the methodname should be
               # editable, treat the whole (x.y.fn) as an expression to socket.
               @csSocketAndMark node.variable, depth + 1, 0, indentDepth
-            else if not known.dotted and node.variable.properties?.length > 0
+            else if known.anyobj and node.variable.properties?.length > 0
               # In the 'beginner' case of a simple method call with a
               # simple base object variable, let the variable be socketed.
               @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth

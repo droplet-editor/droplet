@@ -120,11 +120,14 @@ require ['droplet'], (droplet) ->
         'write': {}
         'button': {}
         'click': {}
+        'alert': {}
+        'prompt': {}
         'round': {value: true}
         'abs': {value: true}
         'max': {value: true}
         'min': {value: true}
-        'rt': {
+        'Math.random': {value: true}
+        '?.rt': {
           dropdown: {
             0: [
               '30'
@@ -136,7 +139,7 @@ require ['droplet'], (droplet) ->
             ]
           }
         }
-        'lt': {
+        '?.lt': {
           dropdown: {
             0: [
               '30'
@@ -148,7 +151,7 @@ require ['droplet'], (droplet) ->
             ]
           }
         }
-        'pen': {
+        '?.pen': {
           dropdown: {
             0: COLORS = -> [
               {text: 'red', display: '<span style="color:red">red</span>'},
@@ -160,18 +163,18 @@ require ['droplet'], (droplet) ->
             ]
           }
         }
-        'fd': {}
-        'bk': {}
-        'ht': {}
-        'st': {}
-        'pu': {}
-        'pd': {}
-        'label': {}
-        'slide': {}
-        'jump': {}
-        'play': {}
-        'tick': {}
-        'moveto': {
+        '?.fd': {}
+        '?.bk': {}
+        '?.ht': {}
+        '?.st': {}
+        '?.pu': {}
+        '?.pd': {}
+        '?.label': {}
+        '?.slide': {}
+        '?.jump': {}
+        '?.play': {}
+        '?.tick': {}
+        '?.moveto': {
           dropdown: {
             0: MOUSE_THINGS = [
               'lastclick'
@@ -188,7 +191,7 @@ require ['droplet'], (droplet) ->
             ]
           }
         }
-        'turnto': {
+        '?.turnto': {
           dropdown: {
             0: MOUSE_THINGS
           }
@@ -205,7 +208,7 @@ require ['droplet'], (droplet) ->
             ].concat('abcdefghijklmnopqrstuvwxyz'.split('').map((x) -> "'#{x}'"))
           }
         }
-        'wear': {
+        '?.wear': {
           dropdown: {
             0: [
               'pointer'
@@ -215,9 +218,9 @@ require ['droplet'], (droplet) ->
             ]
           }
         }
-        'dot': {dropdown: {0: COLORS}},
-        'box': {dropdown: {0: COLORS}},
-        'speed': {
+        '?.dot': {dropdown: {0: COLORS}},
+        '?.box': {dropdown: {0: COLORS}},
+        '?.speed': {
           dropdown: {
             0: [
               '0.1'
