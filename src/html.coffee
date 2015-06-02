@@ -11,6 +11,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
   COLORS = {
     'Default': 'cyan',
+    '#comment': 'grey'
     'a': 'grey',
     'b': 'teal',
     'body': 'return',
@@ -214,11 +215,29 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
     trimText: (node) ->
       text = node.value
       location = node.__location
+      text = text.split '\n'
+      i = 0
+      while text[i].trim().length is 0
+        location.start += text[i].length + 1
+        i++
+      j = text.length - 1
+      while text[j].trim().length is 0
+        j--
+      text = text[i..j].join '\n'
+      location.end = location.start + text.length
+      if i isnt 0
+        leftTrimText = text.trimLeft()
+        location.start += text.length - leftTrimText.length
+        text = leftTrimText
+      node.value = text
+      ###
       rigthtTrimText = text.trimRight()
       leftTrimText = rigthtTrimText.trimLeft()
       node.value = leftTrimText
       location.start += rigthtTrimText.length - leftTrimText.length
       location.end = location.start + leftTrimText.length
+      console.log node.value, JSON.stringify location
+      ###
 
     getSocketLevel: (node) -> helper.ANY_DROP
 
@@ -325,6 +344,8 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
         when 'comment'
           @htmlBlock node, depth, bounds
+          node.__location.start += 4
+          node.__location.end -= 3
           @htmlSocket node, depth + 1, null
           #node.value = node.data
           #node.__location.start += 4
