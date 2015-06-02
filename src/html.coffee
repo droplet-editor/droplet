@@ -57,6 +57,24 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
   FLOW_ELEMENTS = (BLOCK_ELEMENTS.concat INLINE_ELEMENTS).sort()
 
+  METADATA_CONTENT = ['base', 'link', 'meta', 'noscript', 'script', 'style', 'template', 'title']
+
+  FLOW_CONTENT = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'bdi', 'bdo', 'blockquote', 'br', 'button', 'canvas', 'cite', 'code', 'data', 'datalist', 'del', 'dfn', 'div', 'dl', 'em', 'embed', 'fieldset', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'main', 'map', 'mark', 'math', 'meter', 'nav', 'noscript', 'object', 'ol', 'output', 'p', 'pre', 'progress', 'q', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'span', 'strong', 'sub', 'sup', 'svg', 'table', 'template', 'textarea', 'time', 'u', 'ul', 'var', 'video', 'wbr', '#text']
+
+  SECTIONING_CONTENT = ['article', 'aside', 'nav', 'section']
+
+  HEADING_CONTENT = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+
+  PHRASING_CONTENT = ['a', 'abbr', 'area', 'audio', 'b', 'bdi', 'bdo', 'br', 'button', 'canvas', 'cite', 'code', 'data', 'datalist', 'del', 'dfn', 'em', 'embed', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'map', 'mark', 'math', 'meter', 'noscript', 'object', 'output', 'progress', 'q', 'ruby', 's', 'samp', 'script', 'select', 'small', 'span', 'strong', 'sub', 'sup', 'svg', 'template', 'textarea', 'time', 'u', 'var', 'video', 'wbr', '#text']
+
+  EMBEDDED_CONTENT = ['audio', 'canvas', 'embed', 'iframe', 'img', 'math', 'object', 'svg', 'video']
+
+  INTERACTIVE_CONTENT = ['a', 'audio', 'button', 'embed', 'iframe', 'img', 'input', 'keygen', 'label', 'object', 'select', 'textarea', 'video']
+
+  PALPABLE_CONTENT = ['a', 'abbr', 'address', 'article', 'aside', 'audio', 'b', 'bdi', 'bdo', 'blockquote', 'button', 'canvas', 'cite', 'code', 'data', 'dfn', 'div', 'dl', 'em', 'embed', 'fieldset', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'main', 'map', 'mark', 'math', 'meter', 'nav', 'object', 'ol', 'output', 'p', 'pre', 'progress', 'q', 'ruby', 's', 'samp', 'section', 'select', 'small', 'span', 'strong', 'sub', 'sup', 'svg', 'table', 'textarea', 'time', 'u', 'ul', 'var', 'video', '#text']
+
+  SCRIPT_SUPPORTING = ['script', 'template']
+
   htmlParser = new parse5.Parser null, {decodeHtmlEntities: false, locationInfo: true}
 
   exports.HTMLParser = class HTMLParser extends parser.Parser
@@ -365,6 +383,13 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
     contextType = context.classes[0]
     predType = pred?.classes[0]
 
+    check = (blockType, allowList, forbidList = []) ->
+      if blockType in allowList and blockType not in forbidList
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+
+    ###
     if blockType is '#documentType'
       if contextType is '__segment' and predType is '__segment'
         return helper.ENCOURAGE
@@ -419,17 +444,235 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         return helper.ENCOURAGE
       return helper.FORBID
 
+    if contextType in ['div', 'center', 'blockquote', 'iframe', 'noscript', 'noframes']
+      if blockType in FLOW_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
 
+    if contextType is 'form'
+      if blockType isnt 'form' and blockType in FLOW_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType is 'table'
+      if blockType in ['caption', 'colgroup', 'col', 'thead', 'tbody', 'tr']
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType is 'tbody'
+      if blockType is 'tr'
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType is 'tr'
+      if blockType in ['td', 'th']
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType in ['tr' ,'td']
+      if blockType in FLOW_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType is 'address'
+      if blockType is 'p' or blockType in INLINE_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType is 'fieldset'
+      if blockType in ['#text', 'legend'] or blockType in FLOW_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType is 'legend'
+      if blockType in INLINE_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
+
+    if contextType in ['tt', 'i', 'b', 'u', 's', 'strike', 'big', 'small', 'font', 'em', 'strong', 'dfn', 'code', 'samp', 'kbd', 'var', 'cite', 'abbr', 'acronym', 'sub', 'sup', 'q', 'span', 'bdo']
+      if blockType in INLINE_ELEMENTS
+        return helper.ENCOURAGE
+      return helper.FORBID
 
     if contextType is '#attribute' or contextType is '#text'
       return helper.FORBID
+
     if blockType is '#text'
-      if contextType is '__segment'
-        return helper.FORBID
-      else
+      if contextType isnt '__segment'
         return helper.ENCOURAGE
+      return helper.FORBID
+
     if contextType is 'body' or contextType in BLOCK_ELEMENTS
       return helper.ENCOURAGE
+    ###
+
+    switch contextType
+      when 'html'
+        return check blockType, ['head', 'body']
+      when 'head'
+        return check blockType, METADATA_CONTENT
+      when 'title'
+        return check blockType, ['#text']
+      when 'style'
+        return check blockType, ['#text']
+      when 'body'
+        return check blockType, FLOW_CONTENT
+      when 'article'
+        return check blockType, FLOW_CONTENT
+      when 'section'
+        return check blockType, FLOW_CONTENT
+      when 'nav'
+        return check blockType, FLOW_CONTENT, ['main']
+      when 'aside'
+        return check blockType, FLOW_CONTENT, ['main']
+      when 'header'
+        return check blockType, FLOW_CONTENT, ['header', 'footer', 'main']
+      when 'footer'
+        return check blockType, FLOW_CONTENT, ['header', 'footer', 'main']
+      when 'address'
+        return check blockType, FLOW_CONTENT, HEADING_CONTENT.concat(SECTIONING_CONTENT).concat(['header', 'footer', 'address'])
+      when 'p'
+        return check blockType, PHRASING_CONTENT
+      when 'pre'
+        return check blockType, PHRASING_CONTENT
+      when 'blockquote'
+        return check blockType, FLOW_CONTENT
+      when 'ol'
+        return check blockType, SCRIPT_SUPPORTING.concat 'li'
+      when 'ul'
+        return check blockType, SCRIPT_SUPPORTING.concat 'li'
+      when 'li'
+        return check blockType, FLOW_CONTENT
+      when 'dl'
+        return check blockType, ['dt', 'dd']
+      when 'dt'
+        return check blockType, FLOW_CONTENT, HEADING_CONTENT.concat(SECTIONING_CONTENT).concat(['header', 'footer'])
+      when 'dd'
+        return check blockType, FLOW_CONTENT
+      when 'figure'
+        return check blockType, FLOW_CONTENT.concat 'figcaption'
+      when 'figcaption'
+        return check blockType, FLOW_CONTENT
+      when 'div'
+        return check blockType, FLOW_CONTENT
+      when 'main'
+        return check blockType, FLOW_CONTENT
+      when 'a'
+        return check blockType, PHRASING_CONTENT, INTERACTIVE_CONTENT  #SHOULD BE TRANSPARENT, INTERACTIVE
+      when 'em'
+        return check blockType, PHRASING_CONTENT
+      when 'strong'
+        return check blockType, PHRASING_CONTENT
+      when 'small'
+        return check blockType, PHRASING_CONTENT
+      when 's'
+        return check blockType, PHRASING_CONTENT
+      when 'cite'
+        return check blockType, PHRASING_CONTENT
+      when 'q'
+        return check blockType, PHRASING_CONTENT
+      when 'dfn'
+        return check blockType, PHRASING_CONTENT, ['dfn']
+      when 'abbr'
+        return check blockType, PHRASING_CONTENT
+      when 'data'
+        return check blockType, PHRASING_CONTENT
+      when 'time'
+        return check blockType, PHRASING_CONTENT
+      when 'code'
+        return check blockType, PHRASING_CONTENT
+      when 'var'
+        return check blockType, PHRASING_CONTENT
+      when 'samp'
+        return check blockType, PHRASING_CONTENT
+      when 'kbd'
+        return check blockType, PHRASING_CONTENT
+      when 'mark'
+        return check blockType, PHRASING_CONTENT
+      when 'ruby'
+        return check blockType, PHRASING_CONTENT.concat ['rb', 'rt', 'rtc', 'rp']
+      when 'rb'
+        return check blockType, PHRASING_CONTENT
+      when 'rt'
+        return check blockType, PHRASING_CONTENT
+      when 'rtc'
+        return check blockType, PHRASING_CONTENT.concat 'rt'
+      when 'rp'
+        return check blockType, PHRASING_CONTENT
+      when 'bdi'
+        return check blockType, PHRASING_CONTENT
+      when 'bdo'
+        return check blockType, PHRASING_CONTENT
+      when 'span'
+        return check blockType, PHRASING_CONTENT
+      when 'ins'
+        return check blockType, PHRASING_CONTENT  #Transparent
+      when 'del'
+        return check blockType, PHRASING_CONTENT  #Transparent
+      when 'iframe'
+        return check blockType, ['#documentType', '#comment', 'html']
+      when 'object'                #HANDLE ALL TYPES OF EMBEDDED CONTENT
+        return check blockType, []
+      when 'map'
+        return check blockType, PHRASING_CONTENT  #Transparent
+      when 'table'
+        return check blockType, ['caption', 'colgroup', 'thead', 'tfoot', 'tr'].concat SCRIPT_SUPPORTING
+      when 'caption'
+        return check blockType, FLOW_CONTENT, ['table']
+      when 'colgroup'
+        return check blockType, ['span', 'col', 'template']
+      when 'tbody'
+        return check blockType, SCRIPT_SUPPORTING.concat 'tr'
+      when 'thead'
+        return check blockType, SCRIPT_SUPPORTING.concat 'tr'
+      when 'tfoot'
+        return check blockType, SCRIPT_SUPPORTING.concat 'tr'
+      when 'tr'
+        return check blockType, SCRIPT_SUPPORTING.concat ['td', 'th']
+      when 'td'
+        return check blockType, FLOW_CONTENT
+      when 'th'
+        return check blockType, FLOW_CONTENT, HEADING_CONTENT.concat(SECTIONING_CONTENT).concat(['header', 'footer'])
+      when 'form'
+        return check blockType, FLOW_CONTENT, ['form']
+      when 'label'
+        return check blockType, PHRASING_CONTENT, ['label']
+      when 'button'
+        return check blockType, PHRASING_CONTENT, INTERACTIVE_CONTENT
+      when 'select'
+        return check blockType, SCRIPT_SUPPORTING.concat ['option', 'optgroup']
+      when 'datalist'
+        return check blockType, PHRASING_CONTENT.concat 'option'
+      when 'optgroup'
+        return check blockType, SCRIPT_SUPPORTING.concat 'option'
+      when 'option'
+        return check blockType, '#text'
+      when 'textarea'
+        return check blockType, '#text'
+      when 'output'
+        return check blockType, PHRASING_CONTENT
+      when 'progress'
+        return check blockType, PHRASING_CONTENT, ['progress']
+      when 'meter'
+        return check blockType, PHRASING_CONTENT, ['meter']
+      when 'fieldset'
+        return check blockType, FLOW_CONTENT.concat 'legend'
+      when 'legend'
+        return check blockType, PHRASING_CONTENT
+      when 'script'
+        return check blockType, '#text'
+      when 'noscript'
+        return check blockType, FLOW_CONTENT.concat ['link', 'style', 'meta']
+      when 'template'
+        return check blockType, METADATA_CONTENT.concat(FLOW_CONTENT).concat(['ol', 'ul', 'dl', 'figure', 'ruby', 'object', 'video', 'audio', 'table', 'colgroup', 'thead', 'tbody', 'tfoot', 'tr', 'fieldset', 'select'])
+      when 'canvas'
+        return check blockType, FLOW_CONTENT
+
+    if contextType in HEADING_CONTENT
+      return check blockType, PHRASING_CONTENT
+
+    if contextType in ['sub', 'sup', 'i', 'b', 'u']
+      return check blockType, PHRASING_CONTENT
 
     return helper.FORBID
 
