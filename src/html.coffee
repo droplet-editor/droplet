@@ -118,6 +118,13 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       bounds = @getBounds node
       return bounds.start.line is bounds.end.line
 
+    hasAttribute: (node, attribute) ->
+      if node.attrs?
+        for attr in node.attrs
+          if attr.name is attribute
+            return true
+      return false
+
     setAttribs: (node, string) ->
       offset = node.__location.start
       node.attributes = []
@@ -319,6 +326,10 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         root = htmlParser.parse @text
         @cleanTree root
         @fixBounds root
+        if root.childNodes.length is 0
+          root = htmlParser.parseFragment @text
+          @cleanTree root
+          @fixBounds root
         window.root = root
         @mark 0, root, 0, null
       catch e
@@ -354,6 +365,9 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
               classes: @getClasses node
             for child in node.childNodes
               @mark indentDepth, child, depth + 1, null
+          else
+            if node.nodeName isnt 'script' or not @hasAttribute node, 'src'
+              @htmlSocket node, depth + 1, null, indentBounds
 
         when 'text'
           @htmlBlock node, depth, bounds
@@ -377,8 +391,6 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
   HTMLParser.drop = (block, context, pred) ->
 
-    # Going by https://www.cs.tut.fi/~jkorpela/html/nesting.html
-
     blockType = block.classes[0]
     contextType = context.classes[0]
     predType = pred?.classes[0]
@@ -388,8 +400,8 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         return helper.ENCOURAGE
       return helper.FORBID
 
-
     ###
+    # Going by https://www.cs.tut.fi/~jkorpela/html/nesting.html
     if blockType is '#documentType'
       if contextType is '__segment' and predType is '__segment'
         return helper.ENCOURAGE
@@ -616,7 +628,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
       when 'map'
         return check blockType, PHRASING_CONTENT  #Transparent
       when 'table'
-        return check blockType, ['caption', 'colgroup', 'thead', 'tfoot', 'tr'].concat SCRIPT_SUPPORTING
+        return check blockType, ['caption', 'colgroup', 'thead', 'tfoot', 'tbody', 'tr'].concat SCRIPT_SUPPORTING
       when 'caption'
         return check blockType, FLOW_CONTENT, ['table']
       when 'colgroup'
@@ -667,6 +679,10 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         return check blockType, METADATA_CONTENT.concat(FLOW_CONTENT).concat(['ol', 'ul', 'dl', 'figure', 'ruby', 'object', 'video', 'audio', 'table', 'colgroup', 'thead', 'tbody', 'tfoot', 'tr', 'fieldset', 'select'])
       when 'canvas'
         return check blockType, FLOW_CONTENT
+      when '__segment'
+        if blockType is '#documentType'
+          return check predType, [undefined, '__segment']
+        return check blockType, ['html']
 
     if contextType in HEADING_CONTENT
       return check blockType, PHRASING_CONTENT
