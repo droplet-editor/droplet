@@ -366,7 +366,8 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
             for child in node.childNodes
               @mark indentDepth, child, depth + 1, null
           else
-            if node.nodeName isnt 'script' or not @hasAttribute node, 'src'
+            if (node.nodeName isnt 'script' or not @hasAttribute node, 'src') and
+                node.__indentLocation.end isnt node.__location.end
               @htmlSocket node, depth + 1, null, indentBounds
 
         when 'text'
