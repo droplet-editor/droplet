@@ -11,12 +11,25 @@ define ->
   exports.DISCOURAGE = 0
   exports.FORBID = -1
 
+  exports.DROPDOWN_ARROW_WIDTH = 15
+  exports.DROPDOWN_ARROW_PADDING = 3
+
   if window?
     window.String.prototype.trimLeft = ->
       @replace /^\s+/, ''
 
     window.String.prototype.trimRight = ->
       @replace /\s+$/, ''
+
+  # Like $.extend
+  exports.extend = (target) ->
+    sources = [].slice.call(arguments, 1);
+    sources.forEach (source) ->
+      if source
+        Object.getOwnPropertyNames(source).forEach (prop) ->
+          Object.defineProperty(target, prop,
+              Object.getOwnPropertyDescriptor(source, prop))
+    return target
 
   exports.xmlPrettyPrint = (str) ->
     result = ''

@@ -9,5 +9,6 @@
   "droplet-javascript": "javascript",
   "droplet-parser": "parser",
   "droplet-helper": "helper",
+  "droplet-csv": "csv",
   "droplet": "main"
 }
