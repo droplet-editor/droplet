@@ -472,6 +472,12 @@ require ['droplet'], (droplet) ->
 
   editor.aceEditor.on 'change', onChange
 
+  # Log something when gutter clicked
+  onGutterMousedown = (c) ->
+    editor.toggleGutterDecoration(c.line, 'droplet-breakpoint')
+
+  editor.on 'guttermousedown', onGutterMousedown
+
   # Trigger immediately
   do onChange
 
