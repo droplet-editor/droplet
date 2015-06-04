@@ -3854,7 +3854,8 @@ define ['droplet-helper',
 
   Editor::setEditorState = (useBlocks) ->
     if useBlocks
-      @setValue @getAceValue()
+      unless @currentlyUsingBlocks
+        @setValue @getAceValue()
 
       @dropletElement.style.top = '0px'
       if @paletteEnabled
@@ -3873,13 +3874,15 @@ define ['droplet-helper',
         @highlightCanvas.opacity = 1
 
       @resizeBlockMode(); @redrawMain()
-
+      
     else
       paletteVisibleInNewState = @paletteEnabled and @showPaletteInTextMode
 
       oldScrollTop = @aceEditor.session.getScrollTop()
 
-      @setAceValue @getValue()
+      if @currentlyUsingBlocks
+        @setAceValue @getValue()
+
       @aceEditor.resize true
 
       @aceEditor.session.setScrollTop oldScrollTop
