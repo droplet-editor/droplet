@@ -1167,7 +1167,7 @@ define ['droplet-helper',
       if head is @tree.end and
           @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
           @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
-        @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
+        @view.getViewNodeFor(@tree).highlightAreas[0].draw @highlightCtx
         @lastHighlight = @tree
 
       else
