@@ -873,6 +873,7 @@ define ['droplet-helper',
     @draggingOffset = null
 
     @lastHighlight = null
+    @lastHighlightIndex = null
 
     # We will also have to initialize the
     # drag canvas.
@@ -1169,6 +1170,7 @@ define ['droplet-helper',
           @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
         @view.getViewNodeFor(@tree).highlightAreas[0].draw @highlightCtx
         @lastHighlight = @tree
+        @lastHighlightIndex = 0
 
       else
         # Find the closest droppable block
@@ -1187,12 +1189,13 @@ define ['droplet-helper',
               bestIndex = point._droplet_index
               min = distance
 
-        if best isnt @lastHighlight
+        if best isnt @lastHighlight or bestIndex isnt @lastHighlightIndex
           @clearHighlightCanvas()
 
           if best? then @view.getViewNodeFor(best).highlightAreas[bestIndex].draw @highlightCtx
 
           @lastHighlight = best
+          @lastHighlightIndex = bestIndex
 
       palettePoint = @trackerPointToPalette position
 
@@ -1454,6 +1457,7 @@ define ['droplet-helper',
       @draggingBlock = null
       @draggingOffset = null
       @lastHighlight = null
+      @lastHighlightIndex = null
 
       @clearDrag()
       @redrawMain()
@@ -3924,6 +3928,7 @@ define ['droplet-helper',
     @draggingBlock = null
     @draggingOffset = null
     @lastHighlight = null
+    @lastHighlightIndex = null
 
     @clearDrag()
     @redrawMain()
