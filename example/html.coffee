@@ -73,6 +73,7 @@ require ['droplet'], (droplet) ->
           {block:'<em></em>'}
           {block:'<strong></strong>'}
           {block:'<small></small>'}
+          {block:'<big></big>'}
           {block:'<cite></cite>'}
           {block:'<q></q>'}
           {block:'<dfn></dfn>'}
@@ -117,6 +118,17 @@ require ['droplet'], (droplet) ->
           {block:'<noscript></noscript>'}
           {block:'<template>\n  \n</template>'}
           {block:'<canvas></canvas>'}
+          {block:'<applet code="">\n  \n</applet>'}
+          {block:'<basefont color="" size="" />'}
+          {block:'<bgsound src="" />'}
+          {block:'<center>\n  \n</center>'}
+          {block:'<command type="" label="" />'}
+          {block:'<font sixe="" color="">\n  \n</font>'}
+          {block:'<frameset cols="">\n  \n</frameset>'}
+          {block:'<marquee></marquee>'}
+          {block:'<strike></strike>'}
+          {block:'<tt></tt>'}
+          {block:'<svg>\n  \n</svg>'}
         ]
       }
       {
