@@ -14,6 +14,7 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
     'alert'       : {}
     'prompt'      : {}
     'console.log' : {}
+    '*.toString'  : {value: true}
     'Math.abs'    : {value: true}
     'Math.acos'   : {value: true}
     'Math.asin'   : {value: true}
@@ -169,13 +170,16 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
     lookupFunctionName: (node) ->
       fname = @fullFunctionNameArray node
-      if fname.length > 1
-        full = fname.join '.'
-        if full of @opts.functions
-          return name: full, dotted: true, fn: @opts.functions[full]
+      full = fname.join '.'
+      if full of @opts.functions
+        return name: full, anyobj: false, fn: @opts.functions[full]
       last = fname[fname.length - 1]
-      if last of @opts.functions
-        return name: last, dotted: false, fn: @opts.functions[last]
+      if fname.length > 1 and (wildcard = '*.' + last) not of @opts.functions
+        wildcard = null  # no match for '*.foo'
+      if not wildcard and (wildcard = '?.' + last) not of @opts.functions
+        wildcard = null  # no match for '?.foo'
+      if wildcard isnt null
+        return name: last, anyobj: true, fn: @opts.functions[wildcard]
       return null
 
     getAcceptsRule: (node) -> default: helper.NORMAL
@@ -416,6 +420,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           known = @lookupFunctionName node
           if not known
             @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
+          else if known.anyobj and node.callee.type is 'MemberExpression'
+            @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN
           for argument, i in node.arguments
             @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
         when 'MemberExpression'

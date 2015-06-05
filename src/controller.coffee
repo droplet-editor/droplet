@@ -155,6 +155,9 @@ define ['droplet-helper',
 
       @draw = new draw.Draw()
 
+      # No gutter decorations to start
+      @gutterDecorations = {}
+
       # ## DOM Population
       # This stage of ICE Editor construction populates the given wrapper
       # element with all the necessary ICE editor components.
@@ -636,6 +639,9 @@ define ['droplet-helper',
 
   Editor::trackerPointIsInMainScroller = (point) ->
     return this.trackerPointIsInElement point, @mainScroller
+
+  Editor::trackerPointIsInGutter = (point) ->
+    return this.trackerPointIsInElement point, @gutter
 
   Editor::trackerPointIsInPalette = (point) ->
     return this.trackerPointIsInElement point, @paletteCanvas
@@ -4171,6 +4177,48 @@ define ['droplet-helper',
 
     @dropletElement.appendChild @gutter
 
+  Editor::addGutterDecoration = (row, className) ->
+    if not @gutterDecorations[row]
+      @gutterDecorations[row] = []
+    decorations = @gutterDecorations[row]
+    if className in decorations then return
+    decorations.push className
+    # rebuild class attribute on row # row
+    # overkill here:
+    @redrawMain()
+
+  Editor::removeGutterDecoration = (row, className) ->
+    @redrawMain()
+    if not @gutterDecorations[row] then return
+    decorations = @gutterDecorations[row]
+    if className not in decorations
+      return
+    decorations.splice(decorations.indexOf(className), 1)
+    if decorations.length == 0
+      @gutterDecorations[row] = null
+    # rebuild class attribute on row # row
+    # overkill here:
+    @redrawMain()
+
+  Editor::hasGutterDecoration = (row, className) ->
+    if not @gutterDecorations[row] then return false
+    return className in @gutterDecorations[row]
+
+  Editor::toggleGutterDecoration = (row, className) ->
+    if @hasGutterDecoration(row, className)
+      @removeGutterDecoration row, className
+    else
+      @addGutterDecoration row, className
+
+  hook 'mousedown', 11, (point, event, state) ->
+    # check if mousedown within the gutter
+    if not @trackerPointIsInGutter(point) then return
+    mainPoint = @trackerPointToMain point
+    treeView = @view.getViewNodeFor @tree
+    clickedLine = @findLineNumberAtCoordinate mainPoint.y
+    @fireEvent 'guttermousedown', [{line: clickedLine, event: event}]
+    true
+
   Editor::resizeGutter = ->
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
     @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
@@ -4184,12 +4232,14 @@ define ['droplet-helper',
 
     else
       lineDiv = document.createElement 'div'
-      lineDiv.className = 'droplet-gutter-line'
       lineDiv.innerText = lineDiv.textContent = line + 1
-
       @lineNumberTags[line] = lineDiv
 
-    lineDiv.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
+    lineDiv.className = 'droplet-gutter-line'
+    if @gutterDecorations[line]
+      lineDiv.className += ' ' + @gutterDecorations[line].join(' ')
+    lineDiv.style.top = "#{treeView.bounds[line].y}px"
+    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @fontSize + 'px'
 
