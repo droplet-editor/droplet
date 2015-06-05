@@ -1888,6 +1888,16 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           highlightArea.style.lineWidth = @view.opts.padding
 
           @highlightAreas.push highlightArea
+          if @model.start.next.type is 'text'
+            @dropPoints.push new @view.draw.Point @bounds[0].right(), @bounds[0].y
+            newPath = @path.clone()
+            newPath._points = JSON.parse JSON.stringify newPath._points
+            for point in newPath._points
+              point.x += 20
+            newPath.noclip = true
+            newPath.style.strokeColor = '#FF0'
+            newPath.style.lineWidth = @view.opts.padding
+            @highlightAreas.push newPath
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode

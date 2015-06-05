@@ -1279,9 +1279,16 @@ define ['droplet-helper',
         #
         # We will need to log undo operations here too.
         switch @lastHighlight.type
-          when 'indent', 'socket'
+          when 'indent'
             @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
             @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+          when 'socket'
+            @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
+            if @lastHighlightIndex isnt 0 and @lastHighlight.start.next.type is 'text'
+              @spliceIn @draggingBlock, @lastHighlight.start.next #MUTATION
+            else
+              @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+
           when 'block'
             @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
             @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
