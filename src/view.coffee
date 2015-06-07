@@ -1888,16 +1888,29 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           highlightArea.style.lineWidth = @view.opts.padding
 
           @highlightAreas.push highlightArea
+
           if @model.start.next.type is 'text'
-            @dropPoints.push new @view.draw.Point @bounds[0].right(), @bounds[0].y
-            newPath = @path.clone()
-            newPath._points = JSON.parse JSON.stringify newPath._points
-            for point in newPath._points
-              point.x += 20
-            newPath.noclip = true
-            newPath.style.strokeColor = '#FF0'
-            newPath.style.lineWidth = @view.opts.padding
-            @highlightAreas.push newPath
+            textView = @view.getViewNodeFor @model.start.next
+            pointy = textView.bounds[0].y
+            pointx = -2 + textView.bounds[0].x + @view.opts.textPadding #+ (if textView.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
+            for location in @model.dropLocations
+              startPoint = new @view.draw.Point pointx + location*@view.draw.ctx.measureText(' ').width, pointy
+              @dropPoints.push startPoint
+
+              highlightArea = new @view.draw.Path()
+              highlightAreaPoints = []
+
+              highlightAreaPoints.push startPoint
+              highlightAreaPoints.push startPoint.plus {x: @view.draw.ctx.measureText(' ').width, y: 0}
+              highlightAreaPoints.push startPoint.plus {x: @view.draw.ctx.measureText(' ').width, y: @view.draw.getGlobalFontSize()}
+              highlightAreaPoints.push startPoint.plus {x: 0, y: @view.draw.getGlobalFontSize()}
+
+              highlightArea.push point for point in highlightAreaPoints
+
+              highlightArea.style.lineWidth = 5
+              highlightArea.style.strokeColor = '#ff0'
+
+              @highlightAreas.push highlightArea
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode

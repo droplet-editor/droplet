@@ -754,7 +754,7 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketEnd'
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+    constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null, @dropLocations = []) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
@@ -766,7 +766,7 @@ define ['droplet-helper'], (helper) ->
 
     isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-    _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown
+    _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown, @dropLocations
 
     _serialize_header: -> "<socket precedence=\"#{
         @precedence

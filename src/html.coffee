@@ -276,7 +276,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         classes: @getClasses node
         socketLevel: @getSocketLevel node
 
-    htmlSocket: (node, depth, precedence, bounds, classes) ->
+    htmlSocket: (node, depth, precedence, bounds, classes, dropLocations) ->
       #console.log "Adding Socket: ", JSON.stringify(bounds ? @getBounds node)
       @addSocket
         bounds: bounds ? @getBounds node
@@ -284,6 +284,7 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
         precedence: precedence
         classes: classes ? @getClasses node
         acccepts: @getAcceptsRule node
+        dropLocations: dropLocations
 
     getIndentPrefix: (bounds, indentDepth, depth) ->
       #console.log JSON.stringify(bounds), indentDepth, depth
@@ -372,7 +373,15 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
 
         when 'text'
           @htmlBlock node, depth, bounds
-          @htmlSocket node, depth + 1, null
+          dropLocations = []
+          count = 0
+          text = node.value.split /\s/
+          for line, i in text
+            if i isnt text.length - 1
+              count += line.length
+              dropLocations.push count
+            count += 1
+          @htmlSocket node, depth + 1, null, null, null, dropLocations
           #@handleText node, depth + 1
 
         when 'comment'
@@ -395,6 +404,8 @@ define ['droplet-helper', 'droplet-parser', 'parse5'], (helper, parser, parse5) 
     blockType = block.classes[0]
     contextType = context.classes[0]
     predType = pred?.classes[0]
+
+    return helper.ENCOURAGE
 
     check = (blockType, allowList, forbidList = []) ->
       if blockType in allowList and blockType not in forbidList

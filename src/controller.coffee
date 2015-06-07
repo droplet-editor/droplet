@@ -1281,6 +1281,7 @@ define ['droplet-helper',
         # beginning or at its end.
         #
         # We will need to log undo operations here too.
+        lostParent = false
         switch @lastHighlight.type
           when 'indent'
             @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
@@ -1288,7 +1289,16 @@ define ['droplet-helper',
           when 'socket'
             @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
             if @lastHighlightIndex isnt 0 and @lastHighlight.start.next.type is 'text'
-              @spliceIn @draggingBlock, @lastHighlight.start.next #MUTATION
+              breakInd = @lastHighlight.dropLocations[@lastHighlightIndex - 1]
+              string = @lastHighlight.start.next._value
+              string = string[...breakInd] + @draggingBlock.stringify(@mode.empty) + string[breakInd...]
+              newBlock = @mode.parse string
+              block = @lastHighlight.parent
+              block.start.prev.append newBlock.start.next
+              newBlock.end.prev.append block.end.next
+              block.notifyChange()
+              @redrawMain()
+              lostParent = true
             else
               @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
 
@@ -1309,19 +1319,20 @@ define ['droplet-helper',
         #
         # TODO "reparseable" property, bubble up
         # TODO performance on large programs
-        if @lastHighlight.type is 'socket'
-          @reparseRawReplace @draggingBlock.parent.parent
+        if not lostParent
+          if @lastHighlight.type is 'socket'
+            @reparseRawReplace @draggingBlock.parent.parent
 
-        else
-          # If what we've dropped has a socket in it,
-          # focus it.
-          head = @draggingBlock.start
-          until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
-            head = head.next
+          else
+            # If what we've dropped has a socket in it,
+            # focus it.
+            head = @draggingBlock.start
+            until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
+              head = head.next
 
-          if head.type is 'socketStart'
-            @setTextInputFocus null
-            @setTextInputFocus head.container
+            if head.type is 'socketStart'
+              @setTextInputFocus null
+              @setTextInputFocus head.container
 
         # Fire the event for sound
         @fireEvent 'block-click'
