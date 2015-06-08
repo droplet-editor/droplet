@@ -2179,12 +2179,14 @@ define ['droplet-helper',
         div.style.fontSize = @fontSize
         div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
-        div.addEventListener 'mouseup', =>
-          @populateSocket @textFocus, el.text
-          @hiddenInput.value = el.text
+        handleClick = (text) =>
+          @populateSocket @textFocus, text
+          @hiddenInput.value = text
 
           @redrawMain()
           @hideDropdown()
+
+        div.addEventListener 'mouseup', el.click?.bind(null, handleClick) or handleClick.bind(null, el.text)
         @dropdownElement.appendChild div
 
       location = @view.getViewNodeFor(@textFocus).bounds[0]
