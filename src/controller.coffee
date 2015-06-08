@@ -1292,12 +1292,15 @@ define ['droplet-helper',
               breakInd = @lastHighlight.dropLocations[@lastHighlightIndex - 1]
               string = @lastHighlight.start.next._value
               string = string[...breakInd] + @draggingBlock.stringify(@mode.empty) + string[breakInd...]
-              newBlock = @mode.parse string
-              block = @lastHighlight.parent
-              block.start.prev.append newBlock.start.next
-              newBlock.end.prev.append block.end.next
-              block.notifyChange()
-              @redrawMain()
+              @populateSocket @lastHighlight, string
+              reparseable = @lastHighlight
+              while reparseable.type isnt 'block' or 'not-reparseable' in reparseable.classes
+                console.log reparseable
+                if not reparseable.parent
+                  break
+                reparseable = reparseable.parent
+              console.log reparseable
+              @reparseRawReplace reparseable
               lostParent = true
             else
               @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
