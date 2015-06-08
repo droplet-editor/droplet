@@ -88,8 +88,8 @@ require ['droplet'], (droplet) ->
           {block: 'random(1, 100)', title: 'Get a random number in a range'}
           {block: 'round(__)', title: 'Round to the nearest integer'}
           {block: 'abs(__)', title: 'Absolute value'}
-          {block: 'max(__, __)', title: 'Absolute value'}
-          {block: 'min(__, __)', title: 'Absolute value'}
+          {block: 'max(__, __)', title: 'Get the larger of two numbers'}
+          {block: 'min(__, __)', title: 'Get the smaller on two numbers'}
         ]
       }
       {

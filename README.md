@@ -1,7 +1,7 @@
 Droplet Editor
 =================
 
-[![Build Status](https://travis-ci.org/dabbler0/droplet.svg?branch=master)](https://travis-ci.org/dabbler0/droplet)
+[![Build Status](https://travis-ci.org/sakagg/droplet.svg?branch=HTML)](https://travis-ci.org/sakagg/droplet)
 
 Droplet seeks to re-envision "block programming" as "text editing". It is useful as a transitional tool for beginners using languages like Scratch, and is a go-to text editor for everyone on mobile devices (where keyboards don't work so well).
 
@@ -33,9 +33,16 @@ require ['droplet'], (droplet) ->
     # Options for the CoffeeScript parser
     # (the JavaScript parser currently takes the same options)
     modeOptions: {
-      blockFunctions: ['fd', 'rt', 'lt', 'alert'] # Override which blocks turn blue (names not here will be purple and have editable names)
-      valueFunctions: ['sin', 'cos'] # Same for green blocks. Defaults are the pencilcode functions.
-      eitherFunctions: ['write', 'confirm']
+      functions: {
+        fd: { command: true, color: 'red'}
+        bk: { command: true, color: 'blue'}
+        sin: { command: false, value: true, color: 'green' }
+      }
+      categories: {
+        conditionals: { color: 'purple' }
+        loops: { color: 'green' }
+        functions: { color: '#49e' }
+      }
     }
 
     # Palette description
@@ -47,7 +54,11 @@ require ['droplet'], (droplet) ->
           {
             block: "for [1..3]\n  ``"
             title: "Repeat some code" # title-text
-          }
+          },
+          {
+            block: "playSomething()"
+            expansion: "playSomething 'arguments', 100, 'too long to show'"
+          },
         ]
       }
     ]
@@ -202,7 +213,7 @@ MyParser.drop = (block, context, preceding) ->
   # block: the block that user is dragging
   # context: the place the user is dropping that block into
   # preceding: if in sequence, the block immediately before
-  
+
   # block, context, and preceding will have
   # properties `classes` (from when you created the block),
   # `precedence`, and `type` ('block', 'socket', 'indent', or 'segment')

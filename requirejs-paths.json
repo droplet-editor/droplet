@@ -1,6 +1,9 @@
 {
   "coffee-script": "../vendor/coffee-script",
   "acorn": "../vendor/acorn",
+  "parse5": "../vendor/parse5",
+  "html-nodes": "../vendor/html-nodes",
+  "html-stack": "../vendor/html-stack",
   "droplet-view": "view",
   "droplet-controller": "controller",
   "droplet-model": "model",
@@ -9,5 +12,7 @@
   "droplet-javascript": "javascript",
   "droplet-parser": "parser",
   "droplet-helper": "helper",
+  "droplet-csv": "csv",
+  "droplet-html": "html",
   "droplet": "main"
 }

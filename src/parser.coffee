@@ -25,7 +25,20 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
   # wrapper on the above functions
   # and a given parser function.
   exports.Parser = class Parser
-    constructor: (@text, @opts = {}) ->
+    constructor: (@text, opts) ->
+      @opts = helper.extend({}, opts)
+      convertFunction = (x) ->
+        if (typeof x is 'string') or x instanceof String
+          return {text: x, display: x}
+        else
+          return x
+      for key, val of @opts.functions
+        for index, options of val.dropdown then do (options) =>
+          @opts.functions[key].dropdown[index] = ->
+            if (typeof options is 'function')
+              return options().map convertFunction
+            else
+              return options.map convertFunction
       # Text can sometimes be subject to change
       # when doing error recovery, so keep a record of
       # the original text.
@@ -109,7 +122,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     addSocket: (opts) ->
       socket = new model.Socket opts.precedence,
         false,
-        opts.classes
+        opts.classes,
+        opts.dropdown,
+        opts.dropLocations
 
       @addMarkup socket, opts.bounds, opts.depth
 
@@ -203,6 +218,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
       if @isComment text
         block.socketLevel = helper.BLOCK_ONLY
+        socket.end.append block.end
 
       return block
 
@@ -444,12 +460,27 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
     else
       return helper.ENCOURAGE
 
+  Parser.escapeString = (str) ->
+    str = str.trim()
+    try
+      newParse = @parse(unparsedValue = str, wrapAtRoot: false)
+    catch
+      if str[0] is str[str.length - 1] and str[0] in ['"', '\'']
+        try
+          str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
+    return str
+
+  Parser.handleButton = (text, command, classes) ->
+    return text
+
   Parser.empty = ''
+  Parser.emptyIndent = ''
 
   exports.wrapParser = (CustomParser) ->
     class CustomParserFactory extends ParserFactory
       constructor: (@opts = {}) ->
         @empty = CustomParser.empty
+        @emptyIndent = CustomParser.emptyIndent
 
       createParser: (text) -> new CustomParser text, @opts
 
@@ -480,5 +511,9 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
         return [leading, trailing]
 
       drop: (block, context, pred) -> CustomParser.drop block, context, pred
+
+      escapeString: (str) -> CustomParser.escapeString str
+
+      handleButton: (text, command, classes) -> CustomParser.handleButton text, command, classes
 
   return exports

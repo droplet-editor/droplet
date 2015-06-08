@@ -236,13 +236,16 @@ define ['droplet-helper'], (helper) ->
     # Get a string representation of us,
     # using the `stringify()` method on all of
     # the tokens that we contain.
-    stringify: (emptyToken = '') ->
+    stringify: (config) ->
+      emptySocket = config.empty or ''
+      emptyIndent = config.emptyIndent or ''
       str = ''
 
       head = @start.next
       state =
         indent: ''
-        emptyToken: emptyToken
+        emptySocket: emptySocket
+        emptyIndent: emptyIndent
 
       until head is @end
         str += head.stringify state
@@ -745,13 +748,13 @@ define ['droplet-helper'], (helper) ->
     constructor: (@container) -> super; @type = 'socketStart'
     stringify: (state) ->
       if @next is @container.end or
-        @next.type is 'text' and @next.value is '' then state.emptyToken else ''
+        @next.type is 'text' and @next.value is '' then state.emptySocket else ''
 
   exports.SocketEndToken = class SocketEndToken extends EndToken
     constructor: (@container) -> super; @type = 'socketEnd'
 
   exports.Socket = class Socket extends Container
-    constructor: (@precedence = 0, @handwritten = false, @classes = []) ->
+    constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null, @dropLocations = []) ->
       @start = new SocketStartToken this
       @end = new SocketEndToken this
 
@@ -759,9 +762,11 @@ define ['droplet-helper'], (helper) ->
 
       super
 
+    hasDropdown: -> @dropdown? and @isDroppable()
+
     isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-    _cloneEmpty: -> new Socket @precedence, @handwritten, @accepts
+    _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown, @dropLocations
 
     _serialize_header: -> "<socket precedence=\"#{
         @precedence
@@ -769,7 +774,11 @@ define ['droplet-helper'], (helper) ->
         @handwritten
       }\" classes=\"#{
         @classes?.join?(' ') ? ''
-      }\">"
+      }\"#{
+        if @dropdown?
+          " dropdown=\"#{@dropdown?.join?(' ') ? ''}\""
+        else ''
+      }>"
 
     _serialize_footer: -> "</socket>"
 
@@ -786,7 +795,7 @@ define ['droplet-helper'], (helper) ->
     stringify: (state) ->
       unless @container.prefix.length is 0
         state.indent = state.indent[...-@container.prefix.length]
-      if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyToken else ''
+      if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyIndent else ''
     serialize: -> "</indent>"
 
   exports.Indent = class Indent extends Container

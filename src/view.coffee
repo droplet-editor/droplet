@@ -21,7 +21,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
   CARRIAGE_ARROW_NONE = 2
   CARRIAGE_GROW_DOWN = 3
 
+  DROPDOWN_ARROW_HEIGHT = 8
+
+  DROP_TRIANGLE_COLOR = '#555'
+
   DEFAULT_OPTIONS =
+    buttonWidth: 15
+    buttonHeight: 15
+    buttonPadding: 6
     padding: 5
     indentWidth: 10
     indentTongueHeight: 10
@@ -41,19 +48,29 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
     ctx: document.createElement('canvas').getContext('2d')
     colors:
       error: '#ff0000'
-      return: '#ecec79'
-      control: '#efcf8f'
-      value: '#8cec79'
-      command: '#8fbfef'
-
-      red: '#f2a6a6'
-      orange: '#efcf8f'
-      yellow: '#ecec79'
-      green: '#8cec79'
-      cyan: '#79ecd9'
-      blue: '#8fbfef'
-      violet: '#bfa6f2'
-      magenta: '#f2a6e5'
+      return: '#fff59d'   # yellow
+      control: '#ffcc80'  # orange
+      value: '#a5d6a7'    # green
+      command: '#90caf9'  # blue
+      red: '#ef9a9a'
+      pink: '#f48fb1'
+      purple: '#ce93d8'
+      deeppurple: '#b39ddb'
+      indigo: '#9fa8da'
+      blue: '#90caf9'
+      lightblue: '#81d4fa'
+      cyan: '#80deea'
+      teal: '#80cbc4'
+      green: '#a5d6a7'
+      lightgreen: '#c5e1a5'
+      lime: '#e6ee9c'
+      yellow: '#fff59d'
+      amber: '#ffe082'
+      orange: '#ffcc80'
+      deeporange: '#ffab91'
+      brown: '#bcaaa4'
+      grey: '#eeeeee'
+      bluegrey: '#b0bec5'
 
   YES = -> yes
   NO = -> no
@@ -121,6 +138,13 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         when 'socket' then new SocketViewNode model, this
         when 'segment' then new SegmentViewNode model, this
         when 'cursor' then new CursorViewNode model, this
+
+    # Looks up a color name, or passes through a #hex color.
+    getColor: (color) ->
+      if color and '#' is color.charAt(0)
+        color
+      else
+        @opts.colors[color] ? '#ffffff'
 
     # # GenericViewNode
     # Class from which all renderer classes will
@@ -1052,7 +1076,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # because of glue spacing (the space between lines
       # that keeps weird-shaped blocks continuous), which
       # can shift y-coordinates around.
-      computeBoundingBoxX: (left, line) ->
+      computeBoundingBoxX: (left, line, offset = 0) ->
         # Use cached data if possible
         if @computedVersion is @model.version and
             left is @bounds[line]?.x and not @changedBoundingBox
@@ -1084,7 +1108,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         # placing children down and
         # adding padding and sizes
         # to make them not overlap.
-        childLeft = left
+        childLeft = left + offset
 
         # Get rendering info on each of these children
         for lineChild, i in @lineChildren[line]
@@ -1114,7 +1138,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
       # must add their padding to that glue spacing, until we
       # reach an Indent, at which point we can stop.
       #
-      # Parents outside the indent must stil know that there is
+      # Parents outside the indent must still know that there is
       # a space between these line, but they wil not have
       # to colour in that space. This will be flaged
       # by the `draw` flag on the glue objects.
@@ -1624,11 +1648,43 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         # Blocks have a shape including a lego nubby "tab", and so
         # they need to be at least wide enough for tabWidth+tabOffset.
+
+        @extraWidth = 0
+        if 'add-button' in @model.classes
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        if 'subtract-button' in @model.classes
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
         for size, i in @minDimensions
           size.width = Math.max size.width,
               @view.opts.tabWidth + @view.opts.tabOffset
 
+        @minDimensions[@minDimensions.length - 1].width += @extraWidth
+
         return null
+
+      drawSelf: (ctx, style) ->
+        super
+
+        drawButton = (text, rect, ctx) =>
+          path = rect.toPath().reverse()
+          path.style.fillColor = @view.getColor @model.color
+          path.bevel = true;
+          path.draw ctx
+          textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
+          dx = rect.width - textElement.bounds().width
+          dy = rect.height - @view.opts.textHeight
+          #console.log dx, dy
+          textElement.translate
+            x: rect.x + Math.ceil(dx / 2)
+            y: rect.y + Math.ceil(dy)
+          textElement.draw ctx
+
+        if 'add-button' in @model.classes
+          drawButton '+', @addButtonRect, ctx
+        if 'subtract-button' in @model.classes
+          drawButton '-', @subtractButtonRect, ctx
 
       shouldAddTab: ->
         if @model.parent?
@@ -1637,9 +1693,21 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         else not ('mostly-value' in @model.classes or
             'value-only' in @model.classes)
 
+      computePath: ->
+        super
+        #console.log @bounds
+        lastRect = @bounds[@bounds.length - 1]
+        start = lastRect.x + lastRect.width - @extraWidth
+        if 'add-button' in @model.classes
+          @addButtonRect = new @view.draw.Rectangle start, lastRect.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+          start += @view.opts.buttonWidth + @view.opts.buttonPadding
+        if 'subtract-button' in @model.classes
+          @subtractButtonRect = new @view.draw.Rectangle start, lastRect.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+
       computeOwnPath: ->
         super
-        @path.style.fillColor = @view.opts.colors[@model.color] ? '#ffffff'
+
+        @path.style.fillColor = @view.getColor @model.color
         @path.style.strokeColor = '#888'
 
         @path.bevel = true
@@ -1731,7 +1799,14 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           dimension.width =
               Math.max(dimension.width, @view.opts.minSocketWidth)
 
+          if @model.hasDropdown()
+            dimension.width += helper.DROPDOWN_ARROW_WIDTH
+
         return null
+
+      # ## computeBoundingBoxX (SocketViewNode)
+      computeBoundingBoxX: (left, line) ->
+        super left, line, if @model.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0
 
       # ## computeGlue
       # Sockets have one exception to normal glue spacing computation:
@@ -1755,7 +1830,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         else
           super
 
-      # ## computeOwnPath
+      # ## computeOwnPath (SocketViewNode)
       # Again, exception: sockets containing block
       # should mimic blocks exactly.
       #
@@ -1785,7 +1860,18 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
 
         return @path
 
-      # ## computeOwnDropArea
+      # ## drawSelf (SocketViewNode)
+      drawSelf: (ctx) ->
+        super
+        if @model.hasDropdown()
+          ctx.beginPath()
+          ctx.fillStyle = DROP_TRIANGLE_COLOR
+          ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2
+          ctx.fill()
+
+      # ## computeOwnDropArea (SocketViewNode)
       # Socket drop areas are actually the same
       # shape as the sockets themselves, which
       # is different from most other
@@ -1795,13 +1881,36 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
           @dropPoints = []
           @highlightAreas = []
         else
-          @dropPoint = @bounds[0].upperLeftCorner()
+          @dropPoints = [@bounds[0].upperLeftCorner()]
           highlightArea = @path.clone()
           highlightArea.noclip = true
           highlightArea.style.strokeColor = '#FF0'
           highlightArea.style.lineWidth = @view.opts.padding
 
           @highlightAreas.push highlightArea
+
+          if @model.start.next.type is 'text'
+            textView = @view.getViewNodeFor @model.start.next
+            pointy = textView.bounds[0].y
+            pointx = -2 + textView.bounds[0].x + @view.opts.textPadding #+ (if textView.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
+            for location in @model.dropLocations
+              startPoint = new @view.draw.Point pointx + location*@view.draw.ctx.measureText(' ').width, pointy
+              @dropPoints.push startPoint
+
+              highlightArea = new @view.draw.Path()
+              highlightAreaPoints = []
+
+              highlightAreaPoints.push startPoint
+              highlightAreaPoints.push startPoint.plus {x: @view.draw.ctx.measureText(' ').width, y: 0}
+              highlightAreaPoints.push startPoint.plus {x: @view.draw.ctx.measureText(' ').width, y: @view.draw.getGlobalFontSize()}
+              highlightAreaPoints.push startPoint.plus {x: 0, y: @view.draw.getGlobalFontSize()}
+
+              highlightArea.push point for point in highlightAreaPoints
+
+              highlightArea.style.lineWidth = 5
+              highlightArea.style.strokeColor = '#ff0'
+
+              @highlightAreas.push highlightArea
 
     # # IndentViewNode
     class IndentViewNode extends ContainerViewNode
@@ -2063,6 +2172,7 @@ define ['droplet-helper', 'droplet-draw', 'droplet-model'], (helper, draw, model
         return 1
 
       computeBoundingBox: ->
+
   toRGB = (hex) ->
     # Convert to 6-char hex if not already there
     if hex.length is 4

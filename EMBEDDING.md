@@ -137,12 +137,46 @@ argument to setMode.
 modeOptions for both coffeescript and javascript.  Instead of passing three arrays blockFunctions, eitherFunctions, valueFunctions, we now pass a single map 'functions'.
 
 modeOptions is an object that can have a `functions` property that
-is an object that represents a whitelist of known functions.
+is an object that represents a whitelist of known functions, and a
+`categories` property that represents a set of categorized built-in
+language constructs.
 
 ```js
 functions: {
     knownFunction: {value: true, color: red}
     myFunction: {value: true, command: true}
+    setColor: {
+      command: true,
+      dropdown: {
+        0: [
+          // Dropdown elements can be a string
+          'blue',
+
+          // Or an object with text and display
+          {text: 'red', display: '<span style="color:red">red</span>'}
+        ],
+
+        // Dropdown element lists can also be generated on the fly by a function
+        1: function() {
+          return ['red', 'blue'];
+        }
+      }
+    }
+},
+
+categories: {
+    functions: {color: 'purple'}
+    returns: {color: 'yellow'}
+    comments: {color: 'gray'}
+    arithmetic: {color: 'green'}
+    logic: {color: 'cyan'}
+    containers: {color: 'teal'}
+    assignments: {color: 'blue'}
+    loops: {color: 'orange'}
+    conditionals: {color: 'orange'}
+    value: {color: 'green'}
+    command: {color: 'blue'}
+    errors: {color: '#f00'}
 }
 ```
 
@@ -151,4 +185,7 @@ Each function is associated with a configuration object.  It can specify:
 - command: true if it's a "command" block that can serve as a top-level statement.
 - (specify both value and command if it can be both).
 - color: colorname to set the color of the block.  If omitted, a default color is chosen.
+- dropdown: specify dropdowns for specific arguments of a function. This can be either an array of strings, an array of objects with `text` (actual value) and `display` (html to display in the dropdown) properties, or a function that returns one of these.
 
+In addition, there are categories of built-in language constructs.  Each
+of these can specify a color.

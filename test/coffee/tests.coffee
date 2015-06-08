@@ -2,7 +2,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
   coffee = new Coffee()
 
-  test 'Parser success', ->
+  asyncTest 'Parser success', ->
     q = new XMLHttpRequest()
     q.open 'GET', '/test/data/parserSuccess.json', false
     q.send()
@@ -20,314 +20,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         str: testCase.str
         expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
       }
+    start()
 
-  test 'Parser configurability', ->
-    customCoffee = new Coffee {
-      functions:
-        marius: {color: 'red'}
-        valjean: {}
-        eponine: {value: true, color: 'purplish'}
-        fantine: {value: true}
-        cosette: {command: true, value:true}
-    }
-
-    window.customSerialization = customSerialization = customCoffee.parse('''
-      marius eponine 10
-      alert random 100
-      cosette 20
-    ''').serialize()
-
-    expectedSerialization = '''
-      <segment
-        isLassoSegment="false"
-      ><block
-        precedence="0"
-        color="red"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-block"
-      >marius <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Call works-as-method-call"
-      ><block
-        precedence="0"
-        color="purplish"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-value"
-      >eponine <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Value">10</socket></block></socket></block>
-      <block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Call works-as-method-call any-drop"
-      ><socket
-        precedence="0"
-        handwritten="false"
-        classes="Value"
-      >alert</socket> <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Call works-as-method-call"
-      ><block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Call works-as-method-call any-drop"
-      ><socket
-        precedence="0"
-        handwritten="false"
-        classes="Value"
-      >random</socket> <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Value">100</socket></block></socket></block>
-      <block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Call works-as-method-call any-drop">cosette <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Value">20</socket></block></segment>
-    '''
-
-    strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
-      'Custom known functions work'
-    )
-
-  test 'Dotted methods', ->
-    customCoffee = new Coffee {
-      functions:
-        'console.log': {}
-        speak        : {}
-        'Math.log'   : {value: true}
-        log          : {value:true}
-        setTimeout   : {command:true, value:true}
-    }
-
-    customSerialization = customCoffee.parse('''
-      console.log Math.log log x.log log
-    ''').serialize()
-
-    expectedSerialization = '''
-      <segment
-        isLassoSegment="false"
-      ><block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-block"
-      >console.log <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Call works-as-method-call"
-      ><block
-        precedence="0"
-        color="value"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-value"
-      >Math.log <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Call works-as-method-call"
-      ><block
-        precedence="0"
-        color="value"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-value"
-      >log <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Call works-as-method-call"
-      ><block
-        precedence="0"
-        color="value"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-value"
-      ><socket
-        precedence="0"
-        handwritten="false"
-        classes="Literal"
-      >x</socket
-      >.log <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Value"
-      >log</socket
-      ></block></socket></block></socket></block></socket></block></segment>
-    '''
-    strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
-      'Dotted known functions work'
-    )
-
-  test 'JS dotted methods', ->
-    customJS = new JavaScript {
-      functions:
-        'console.log': {}
-        speak        : {}
-        'Math.log'   : {value: true}
-        log          : {value: true, color: 'red'}
-        setTimeout   : {command:true, value:true}
-    }
-
-    customSerialization = customJS.parse('''
-      return console.log(Math.log(log(x.log(~log))));
-    ''').serialize()
-
-    expectedSerialization = '''
-      <segment
-        isLassoSegment="false"
-      ><block
-        precedence="0"
-        color="return"
-        socketLevel="0"
-        classes="ReturnStatement mostly-block"
-      >return <socket
-        precedence="0"
-        handwritten="false"
-        classes=""
-      ><block
-        precedence="2"
-        color="command"
-        socketLevel="0"
-        classes="CallExpression mostly-block"
-      >console.log(<socket
-        precedence="100"
-        handwritten="false"
-        classes=""
-      ><block
-        precedence="2"
-        color="value"
-        socketLevel="0"
-        classes="CallExpression mostly-value"
-      >Math.log(<socket
-        precedence="100"
-        handwritten="false"
-        classes=""
-      ><block
-        precedence="2"
-        color="red"
-        socketLevel="0"
-        classes="CallExpression mostly-value"
-      >log(<socket
-        precedence="100"
-        handwritten="false"
-        classes=""
-      ><block
-        precedence="2"
-        color="red"
-        socketLevel="0"
-        classes="CallExpression mostly-value"
-      >x.log(<socket
-        precedence="100"
-        handwritten="false"
-        classes=""
-      ><block
-        precedence="4"
-        color="value"
-        socketLevel="0"
-        classes="UnaryExpression mostly-value"
-      >~<socket
-        precedence="4"
-        handwritten="false"
-        classes=""
-      >log</socket></block></socket
-      >)</block></socket
-      >)</block></socket
-      >)</block></socket
-      >)</block></socket
-      >;</block></segment>
-    '''
-    strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
-      'Dotted known functions work'
-    )
-
-  test 'Merged code blocks', ->
-    coffee = new Coffee
-    customSerialization = coffee.parse('''
-      x = (y) -> y * y
-      alert 'clickme', ->
-        console.log 'ouch'
-    ''').serialize()
-
-    expectedSerialization = '''
-      <segment
-        isLassoSegment="false"
-      ><block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Assign mostly-block"
-      ><socket
-        precedence="0"
-        handwritten="false"
-        classes="Value lvalue"
-      >x</socket
-      > = (<socket
-        precedence="0"
-        handwritten="false"
-        classes="Param forbid-all"
-      >y</socket
-      >) -&gt; <socket
-        precedence="0"
-        handwritten="false"
-        classes="Block"
-      ><block
-        precedence="5"
-        color="value"
-        socketLevel="0"
-        classes="Op value-only"
-      ><socket
-        precedence="5"
-        handwritten="false"
-        classes="Value"
-      >y</socket
-      > * <socket
-        precedence="5"
-        handwritten="false"
-        classes="Value"
-      >y</socket></block></socket></block>
-      <block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-block"
-      >alert <socket
-        precedence="0"
-        handwritten="false"
-        classes="Value"
-      >'clickme'</socket
-      >, -&gt;<indent
-        prefix="  "
-        classes=""
-      >
-      <block
-        precedence="0"
-        color="command"
-        socketLevel="0"
-        classes="Call works-as-method-call mostly-block"
-      >console.log <socket
-        precedence="-1"
-        handwritten="false"
-        classes="Value"
-      >'ouch'</socket></block></indent></block></segment>
-    '''
-    strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
-      'Merged code blocks work'
-    )
-
-  test 'XML parser unity', ->
+  asyncTest 'XML parser unity', ->
     q = new XMLHttpRequest()
     q.open 'GET', '/test/data/parserSuccess.json', false
     q.send()
@@ -340,8 +35,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         helper.xmlPrettyPrint(xml),
         'Parser unity for: ' + testCase.message
       )
+    start()
 
-  test 'Basic token operations', ->
+  asyncTest 'Basic token operations', ->
     a = new model.Token()
     b = new model.Token()
     c = new model.Token()
@@ -359,8 +55,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual a.next, c, 'remove removes token'
     strictEqual c.prev, a, 'remove removes token'
+    start()
 
-  test 'Containers and parents', ->
+  asyncTest 'Containers and parents', ->
     cont1 = new model.Container()
     cont2 = new model.Container()
 
@@ -402,8 +99,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     cont3.spliceIn g
 
     strictEqual h.parent, cont2, 'splice in parents still work'
+    start()
 
-  test 'Get block on line', ->
+  asyncTest 'Get block on line', ->
     document = coffee.parse '''
     for i in [1..10]
       console.log i
@@ -415,12 +113,13 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       console.log j
     '''
 
-    strictEqual document.getBlockOnLine(1).stringify(coffee.empty), 'console.log i', 'line 1'
-    strictEqual document.getBlockOnLine(3).stringify(coffee.empty), 'console.log k', 'line 3'
-    strictEqual document.getBlockOnLine(5).stringify(coffee.empty), 'console.log q', 'line 5'
-    strictEqual document.getBlockOnLine(7).stringify(coffee.empty), 'console.log j', 'line 7'
+    strictEqual document.getBlockOnLine(1).stringify(coffee), 'console.log i', 'line 1'
+    strictEqual document.getBlockOnLine(3).stringify(coffee), 'console.log k', 'line 3'
+    strictEqual document.getBlockOnLine(5).stringify(coffee), 'console.log q', 'line 5'
+    strictEqual document.getBlockOnLine(7).stringify(coffee), 'console.log j', 'line 7'
+    start()
 
-  test 'Location serialization unity', ->
+  asyncTest 'Location serialization unity', ->
     document = coffee.parse '''
     for i in [1..10]
       console.log hello
@@ -432,8 +131,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     until head is document.end
       strictEqual document.getTokenAtLocation(head.getSerializedLocation()), head, 'Equality for ' + head.type
       head = head.next
+    start()
 
-  test 'Block move', ->
+  asyncTest 'Block move', ->
     document = coffee.parse '''
     for i in [1..10]
       console.log hello
@@ -442,7 +142,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log world
     for i in [1..10]
       console.log hello
@@ -450,7 +150,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(2).moveTo document.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log hello
     console.log world
     for i in [1..10]
@@ -459,7 +159,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log world
     for i in [1..10]
       console.log hello
@@ -467,12 +167,13 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log (for i in [1..10]
       console.log hello)
     ''', 'Move for into socket (req. paren wrap)'
+    start()
 
-  test 'specialIndent bug', ->
+  asyncTest 'specialIndent bug', ->
     document = coffee.parse '''
     for i in [1..10]
       ``
@@ -482,13 +183,14 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     document.getBlockOnLine(2).moveTo document.getBlockOnLine(1).end.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     for i in [1..10]
       for i in [1..10]
         alert 10
     '''
+    start()
 
-  test 'Paren wrap', ->
+  asyncTest 'Paren wrap', ->
     document = coffee.parse '''
     Math.sqrt 2
     console.log 1 + 1
@@ -496,17 +198,18 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     console.log 1 + (Math.sqrt 2)
     ''', 'Wrap'
 
     block.moveTo document.start, coffee
 
-    strictEqual document.stringify(coffee.empty), '''
+    strictEqual document.stringify(coffee), '''
     Math.sqrt 2
     console.log 1 + ``''', 'Unwrap'
+    start()
 
-  test 'View: compute children', ->
+  asyncTest 'View: compute children', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -554,7 +257,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     documentView.layout()
 
     indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-    strictEqual indentView.lineChildren[1][0].child.stringify(coffee.empty), 'alert 10', 'Relative line numbers'
+    strictEqual indentView.lineChildren[1][0].child.stringify(coffee), 'alert 10', 'Relative line numbers'
 
     document = coffee.parse '''
     console.log (for [1..10]
@@ -568,8 +271,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual blockView.lineChildren[1].length, 1, 'One child in indent in socket'
     strictEqual blockView.multilineChildrenData[1], 3, 'Indent end data'
+    start()
 
-  test 'View: compute dimensions', ->
+  asyncTest 'View: compute dimensions', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -624,8 +328,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual documentView.dimensions[1].height,
       view_.opts.textHeight + 2 * view_.opts.padding,
       'Renders empty lines'
+    start()
 
-  test 'View: bounding box flag stuff', ->
+  asyncTest 'View: bounding box flag stuff', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -650,8 +355,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual blockView.path._points[0].y,
       view_.opts.textHeight * 3 + view_.opts.padding * 6 + view_.opts.textPadding * 6,
       'Final path points are O.K.'
+    start()
 
-  test 'View: sockets caching', ->
+  asyncTest 'View: sockets caching', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -664,7 +370,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
 
-    strictEqual socketView.model.stringify(coffee.empty), '[[[]]]', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee), '[[[]]]', 'Correct block selected'
 
     strictEqual socketView.dimensions[0].height,
       view_.opts.textHeight + 6 * view_.opts.padding,
@@ -677,8 +383,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual socketView.dimensions[0].height,
       view_.opts.textHeight + 2 * view_.opts.textPadding,
       'Final height is O.K.'
+    start()
 
-  test 'View: bottomLineSticksToTop bug', ->
+  asyncTest 'View: bottomLineSticksToTop bug', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -720,8 +427,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       1 * view_.opts.textHeight +
       8 * view_.opts.padding -
       1 * view_.opts.indentTongueHeight, 'Dragging other block in works'
+    start()
 
-  test 'View: triple-quote sockets caching issue', ->
+  asyncTest 'View: triple-quote sockets caching issue', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -733,7 +441,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
 
-    strictEqual socketView.model.stringify(coffee.empty), '\'hi\'', 'Correct block selected'
+    strictEqual socketView.model.stringify(coffee), '\'hi\'', 'Correct block selected'
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 
@@ -761,8 +469,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
     strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'
+    start()
 
-  test 'View: empty socket heights', ->
+  asyncTest 'View: empty socket heights', ->
     view_ = new view.View()
 
     document = coffee.parse '''
@@ -777,8 +486,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     fullSocketView = view_.getViewNodeFor document.getTokenAtLocation(9).container
 
     strictEqual emptySocketView.dimensions[0].height, fullSocketView.dimensions[0].height, 'Full and empty sockets same height'
+    start()
 
-  test 'View: indent carriage arrow', ->
+  asyncTest 'View: indent carriage arrow', ->
     view_ = new view.View()
 
     document = parser.parseXML '''
@@ -794,8 +504,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual blockView.carriageArrow, 1, 'Carriage arrow flag is set'
 
-    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
-    strictEqual blockView.dropPoint.y,
+    strictEqual blockView.dropPoints[0].x, view_.opts.indentWidth, 'Drop point is on the left'
+    strictEqual blockView.dropPoints[0].y,
       1 * view_.opts.textHeight +
       4 * view_.opts.padding +
       2 * view_.opts.textPadding, 'Drop point is further down'
@@ -804,8 +514,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     indentView = view_.getViewNodeFor indent
 
     strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue'
+    start()
 
-  test 'View: sidealong carriage arrow', ->
+  asyncTest 'View: sidealong carriage arrow', ->
     view_ = new view.View()
 
     document = parser.parseXML '''
@@ -821,7 +532,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual blockView.carriageArrow, 0, 'Carriage arrow flag is set'
 
-    strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
+    strictEqual blockView.dropPoints[0].x, view_.opts.indentWidth, 'Drop point is on the left'
 
     indent = block.end.next.container
     indentView = view_.getViewNodeFor indent
@@ -830,6 +541,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
       view_.opts.textHeight +
       2 * view_.opts.textPadding +
       3 * view_.opts.padding, 'Carriage arrow causes expand'
+    start()
 
   asyncTest 'Controller: ace editor mode', ->
     editor = new droplet.Editor document.getElementById('test-main'), {
@@ -909,7 +621,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     # TODO, fix layout in test environment, and test pickblock event.
     start()
 
-  test 'Controller: cursor motion and rendering', ->
+  asyncTest 'Controller: cursor motion and rendering', ->
     states = []
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
@@ -1009,8 +721,9 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct at origin (x - up)'
     strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct at origin (y - up)'
+    start()
 
-  test 'Controller: setMode', ->
+  asyncTest 'Controller: setMode', ->
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
@@ -1019,8 +732,10 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     strictEqual 'coffeescript', editor.getMode()
     editor.setMode 'javascript'
     strictEqual 'javascript', editor.getMode()
+    start()
 
-  test 'Controller: setValue errors', ->
+  ###
+  asyncTest 'Controller: setValue errors', ->
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
@@ -1048,8 +763,10 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     '''
 
     strictEqual editor.currentlyUsingBlocks, false
+    start()
+  ###
 
-  test 'Controller: arbitrary row/column marking', ->
+  asyncTest 'Controller: arbitrary row/column marking', ->
     document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
@@ -1068,8 +785,150 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
 
     key = editor.mark 2, 4, {color: '#F00'}
 
-    strictEqual editor.markedBlocks[key].model.stringify(), '10 - 10'
+    strictEqual editor.markedBlocks[key].model.stringify({}), '10 - 10'
     strictEqual editor.markedBlocks[key].style.color, '#F00'
 
     editor.unmark key
     ok key not of editor.markedBlocks
+    start()
+
+  asyncTest 'Controller: dropdown menus', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+      modeOptions: {
+        functions: {
+          'pen': {
+            dropdown: {
+              0: [
+                {text: 'red', display: '<b>red</b>'}
+                'blue'
+              ]
+            }
+          }
+        }
+      }
+    }
+
+    editor.setEditorState true
+
+    editor.setValue '''
+    pen red
+    '''
+
+    # Assert that the arrow is there
+    strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
+
+    # no-throw
+    editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
+    editor.showDropdown()
+    start()
+
+  asyncTest 'Controller: dropdown menus with functions', ->
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+      modeOptions: {
+        functions: {
+          'pen': {
+            dropdown: {
+              0: -> [
+                {text: 'red', display: '<b>red</b>'}
+                'blue'
+              ]
+            }
+          }
+        }
+      }
+    }
+
+    editor.setEditorState true
+
+    editor.setValue '''
+    pen red
+    '''
+
+    # Assert that the arrow is there
+    strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
+
+    # no-throw
+    editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
+    editor.showDropdown()
+    start()
+
+  asyncTest 'Controller: showPaletteInTextMode false', ->
+    expect 4
+
+    states = []
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: [],
+      showPaletteInTextMode: false
+    }
+
+    paletteWrapper = document.querySelector('.droplet-palette-wrapper')
+    aceEditor = document.querySelector('.ace_editor')
+
+    editor.on 'statechange', (usingBlocks) ->
+      states.push usingBlocks
+
+    editor.performMeltAnimation 10, 10, ->
+      strictEqual paletteWrapper.style.left, '-9999px'
+      strictEqual aceEditor.style.left, '0px'
+      editor.performFreezeAnimation 10, 10, ->
+        strictEqual paletteWrapper.style.left, '0px'
+        strictEqual aceEditor.style.left, '-9999px'
+        start()
+
+  asyncTest 'Controller: showPaletteInTextMode true', ->
+    expect 4
+
+    states = []
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: [],
+      showPaletteInTextMode: true
+    }
+
+    paletteWrapper = document.querySelector('.droplet-palette-wrapper')
+    aceEditor = document.querySelector('.ace_editor')
+
+    editor.on 'statechange', (usingBlocks) ->
+      states.push usingBlocks
+
+    editor.performMeltAnimation 10, 10, ->
+      strictEqual paletteWrapper.style.left, '0px'
+      strictEqual aceEditor.style.left, '270px'
+      editor.performFreezeAnimation 10, 10, ->
+        strictEqual paletteWrapper.style.left, '0px'
+        strictEqual aceEditor.style.left, '-9999px'
+        start()
+
+  asyncTest 'Controller: enablePalette false', ->
+    expect 4
+
+    document.getElementById('test-main').innerHTML = ''
+    editor = new droplet.Editor document.getElementById('test-main'), {
+      mode: 'coffeescript'
+      palette: []
+    }
+
+    paletteWrapper = document.querySelector('.droplet-palette-wrapper')
+    dropletWrapper = document.querySelector('.droplet-wrapper-div')
+
+    strictEqual paletteWrapper.style.left, '0px'
+    strictEqual dropletWrapper.style.left, '270px'
+
+    verifyPaletteHidden = ->
+      strictEqual paletteWrapper.style.left, '-9999px'
+      strictEqual dropletWrapper.style.left, '0px'
+      start()
+
+    editor.enablePalette false
+
+    setTimeout verifyPaletteHidden, 500
+
