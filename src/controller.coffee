@@ -2179,14 +2179,21 @@ define ['droplet-helper',
         div.style.fontSize = @fontSize
         div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
-        handleClick = (text) =>
+        setText = (text) =>
+          # Attempting to populate the socket after the dropdown has closed should no-op
+          return if @dropdownElement.style.display == 'none'
+
           @populateSocket @textFocus, text
           @hiddenInput.value = text
 
           @redrawMain()
           @hideDropdown()
 
-        div.addEventListener 'mouseup', el.click?.bind(null, handleClick) or handleClick.bind(null, el.text)
+        div.addEventListener 'mouseup', ->
+          if el.click
+            el.click(setText)
+          else
+            setText(el.text)
         @dropdownElement.appendChild div
 
       location = @view.getViewNodeFor(@textFocus).bounds[0]
