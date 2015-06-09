@@ -146,7 +146,6 @@ function(helper, JavaScript, droplet) {
         '>)</block></socket' +
         '>)</block></socket' +
         '>;</block></segment>';
-    console.log(expectedSerialization.substring(expectedSerialization.indexOf('\n') + 1295));
     strictEqual(
         helper.xmlPrettyPrint(customSerialization),
         helper.xmlPrettyPrint(expectedSerialization),
