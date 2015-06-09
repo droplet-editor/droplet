@@ -157,6 +157,9 @@ functions: {
 
           // Or an object with text and display
           {text: 'red', display: '<span style="color:red">red</span>'}
+
+          // Or a display and a click handler (call the provided callback to set the value)
+          {display: 'click me', click: (callback) -> callback('clicked')}
         ],
 
         // Dropdown element lists can also be generated on the fly by a function
