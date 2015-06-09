@@ -582,6 +582,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
         start()
 
   asyncTest 'Controller: palette events', ->
+    document.getElementById('test-main').innerHTML = ''
     editor = new droplet.Editor document.getElementById('test-main'), {
       mode: 'coffeescript'
       palette: [{
