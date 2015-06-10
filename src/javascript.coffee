@@ -437,8 +437,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             @jsSocketAndMark indentDepth, node.init, depth
         when 'LogicalExpression'
           @jsBlock node, depth, bounds
-          @jsSocketAndMark indentDepth, node.left, depth + 1
-          @jsSocketAndMark indentDepth, node.right, depth + 1
+          @jsSocketAndMark indentDepth, node.left, depth + 1, @getPrecedence node
+          @jsSocketAndMark indentDepth, node.right, depth + 1, @getPrecedence node
         when 'WhileStatement', 'DoWhileStatement'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.body, depth + 1
