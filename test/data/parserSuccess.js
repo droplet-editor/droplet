@@ -1,4 +1,4 @@
-[
+window.parserSuccessData = [
   {
     "message": "Function call",
     "str": "alert 10",

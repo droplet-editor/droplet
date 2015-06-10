@@ -145,6 +145,9 @@ language constructs.
 functions: {
     knownFunction: {value: true, color: red}
     myFunction: {value: true, command: true}
+    'Math.random': {value: true}
+    '*.toString': {value: true}
+    '?.fd': { ommand: true}
     setColor: {
       command: true,
       dropdown: {
@@ -154,6 +157,9 @@ functions: {
 
           // Or an object with text and display
           {text: 'red', display: '<span style="color:red">red</span>'}
+
+          // Or a display and a click handler (call the provided callback to set the value)
+          {display: 'click me', click: (callback) -> callback('clicked')}
         ],
 
         // Dropdown element lists can also be generated on the fly by a function
@@ -179,6 +185,11 @@ categories: {
     errors: {color: '#f00'}
 }
 ```
+
+Functions are recognized by name, and may be bare (global) function names
+or fully-qualified names like 'Math.random'; or they may be wildcard
+method names.  '*.toString' matches any method named toString, and
+'?.fd' matches any method or top-level function named 'fd'.
 
 Each function is associated with a configuration object.  It can specify:
 - value: true if it's a "value" block that should be usable as a value in expressions.

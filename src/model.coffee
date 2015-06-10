@@ -809,7 +809,7 @@ define ['droplet-helper'], (helper) ->
 
       super
 
-    _cloneEmpty: -> new Indent @prefix
+    _cloneEmpty: -> new Indent @prefix, @classes
     _serialize_header: -> "<indent prefix=\"#{
       @prefix
     }\" classes=\"#{

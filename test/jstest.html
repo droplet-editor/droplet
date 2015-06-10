@@ -23,7 +23,7 @@
   <script src="../vendor/require.js"></script>
   <script src="../vendor/ace/ace.js"></script>
   <script src="../dist/droplet-full.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="jquery.min.js"></script>
   <script src="../vendor/qunit.js"></script>
 <script>
 require([
@@ -41,8 +41,11 @@ function(helper, JavaScript, droplet) {
         'Math.log': {
           value: true
         },
-        log: {
-          value: true,
+        '*.toString': {
+          value: true
+        },
+        '?.pos': {
+          command: true,
           color: 'red'
         },
         setTimeout: {
@@ -52,11 +55,25 @@ function(helper, JavaScript, droplet) {
       }
     });
     customSerialization = customJS.parse(
-        'return console.log(Math.log(log(x.log(~log))));').serialize();
+        'x.pos(100);\n' +
+        'return console.log(Math.log(log(x.toString(~pos()))));').serialize();
     expectedSerialization =
         '<segment' +
-        '  isLassoSegment="false"' +
-        '><block' +
+        '  isLassoSegment="false">' +
+        '<block' +
+        '  precedence="2"' +
+        '  color="red"' +
+        '  socketLevel="0"' +
+        '  classes="CallExpression mostly-block"><socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>x</socket' +
+        '>.pos(<socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes="">100</socket>);</block>\n' +
+        '<block' +
         '  precedence="0"' +
         '  color="yellow"' +
         '  socketLevel="0"' +
@@ -85,19 +102,27 @@ function(helper, JavaScript, droplet) {
         '  classes=""' +
         '><block' +
         '  precedence="2"' +
-        '  color="red"' +
+        '  color="blue"' +
         '  socketLevel="0"' +
-        '  classes="CallExpression mostly-value"' +
-        '>log(<socket' +
+        '  classes="CallExpression any-drop"' +
+        '><socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>log</socket>(<socket' +
         '  precedence="100"' +
         '  handwritten="false"' +
         '  classes=""' +
         '><block' +
         '  precedence="2"' +
-        '  color="red"' +
+        '  color="green"' +
         '  socketLevel="0"' +
         '  classes="CallExpression mostly-value"' +
-        '>x.log(<socket' +
+        '><socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>x</socket>.toString(<socket' +
         '  precedence="100"' +
         '  handwritten="false"' +
         '  classes=""' +
@@ -110,7 +135,12 @@ function(helper, JavaScript, droplet) {
         '  precedence="4"' +
         '  handwritten="false"' +
         '  classes=""' +
-        '>log</socket></block></socket' +
+        '><block' +
+        '  precedence="2"' +
+        '  color="red"' +
+        '  socketLevel="0"' +
+        '  classes="CallExpression mostly-block"' +
+        '>pos()</block></socket></block></socket' +
         '>)</block></socket' +
         '>)</block></socket' +
         '>)</block></socket' +
