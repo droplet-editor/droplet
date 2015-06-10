@@ -1327,12 +1327,13 @@ define ['droplet-helper',
           newBlock?.type is 'block'
         @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
 
-        if @cursor.hasParent oldBlock
-          pos = @getRecoverableCursorPosition()
-          newBlock.rawReplace oldBlock
-          @recoverCursorPosition pos
-        else
-          newBlock.rawReplace oldBlock
+        # Recover the cursor position before and after.
+        # TODO upon refactoring, the cursor should no longer
+        # need to be recovered; it should be a row/col pointer
+        # all the time.
+        pos = @getRecoverableCursorPosition()
+        newBlock.rawReplace oldBlock
+        @recoverCursorPosition pos
 
     catch e
       # Attempt to bubble up the reparse, passing along
@@ -3006,19 +3007,9 @@ define ['droplet-helper',
   # ================================
 
   Editor::copyAceEditor = ->
-    clearTimeout @changeFromAceTimer
-    @changeFromAceTimer = null
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
     @resizeBlockMode()
     return @setValue_raw @getAceValue()
-
-  Editor::changeFromAceEditor = ->
-    if @changeFromAceTimer then return
-    @changeFromAceTimer = setTimeout (=>
-      result = @copyAceEditor()
-      if not result.success and result.error
-        @fireEvent 'parseerror', [result.error]
-    ), 0
 
   hook 'populate', 0, ->
     @aceElement = document.createElement 'div'
@@ -3034,13 +3025,6 @@ define ['droplet-helper',
     if acemode is 'coffeescript' then acemode = 'coffee'
     @aceEditor.getSession().setMode 'ace/mode/' + acemode
     @aceEditor.getSession().setTabSize 2
-
-    @aceEditor.on 'change', =>
-      if @suppressAceChangeEvent then return
-      if @currentlyUsingBlocks
-        @changeFromAceEditor()
-      else
-        @fireEvent 'change', []
 
     @currentlyUsingBlocks = true
     @currentlyAnimating = false
