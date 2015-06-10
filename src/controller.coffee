@@ -4260,8 +4260,8 @@ define ['droplet-helper',
     lineDiv.className = 'droplet-gutter-line'
     if @gutterDecorations[line]
       lineDiv.className += ' ' + @gutterDecorations[line].join(' ')
-    lineDiv.style.top = "#{treeView.bounds[line].y}px"
-    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
+    lineDiv.style.top = "#{treeView.bounds[line].y - @scrollOffsets.main.y}px"
+    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @fontSize + 'px'
 

@@ -20,7 +20,7 @@
   <script src="../vendor/require.js"></script>
   <script src="../vendor/ace/ace.js"></script>
   <script src="../dist/droplet-full.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="jquery.min.js"></script>
   <script src="../vendor/qunit.js"></script>
 <script>
 require([
@@ -30,7 +30,6 @@ require([
   'droplet-view',
   'droplet'
 ], function(helper, model, parser, view, droplet) {
-
   function simulate(type, target, options) {
     if ('string' == typeof(target)) {
       target = $(target).get(0);

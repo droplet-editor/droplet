@@ -3,13 +3,8 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
   coffee = new Coffee()
 
   asyncTest 'Parser success', ->
-    q = new XMLHttpRequest()
-    q.open 'GET', '/test/data/parserSuccess.json', false
-    q.send()
-
-    data = JSON.parse q.responseText
     window.dumpObj = []
-    for testCase in data
+    for testCase in parserSuccessData
       strictEqual(
         helper.xmlPrettyPrint(coffee.parse(testCase.str, wrapAtRoot: true).serialize()),
         helper.xmlPrettyPrint(testCase.expected),
@@ -23,12 +18,7 @@ require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 
     start()
 
   asyncTest 'XML parser unity', ->
-    q = new XMLHttpRequest()
-    q.open 'GET', '/test/data/parserSuccess.json', false
-    q.send()
-
-    data = JSON.parse q.responseText
-    for testCase in data
+    for testCase in parserSuccessData
       xml = coffee.parse(testCase.str, wrapAtRoot: true).serialize()
       strictEqual(
         helper.xmlPrettyPrint(parser.parseXML(xml).serialize()),
