@@ -125,6 +125,12 @@ function(helper, Coffee, droplet) {
         'Math.log': {
           value: true
         },
+        '*.toString': {
+          value: true
+        },
+        '?.fd': {
+          command: true
+        },
         log: {
           value: true
         },
@@ -135,7 +141,7 @@ function(helper, Coffee, droplet) {
       }
     });
     customSerialization = customCoffee.parse(
-        'console.log Math.log log x.log log').serialize();
+        'console.log Math.log log x.toString log.fd()\nfd()').serialize();
     expectedSerialization = '<segment' +
       '  isLassoSegment="false"' +
       '><block' +
@@ -174,13 +180,32 @@ function(helper, Coffee, droplet) {
       '  precedence="0"' +
       '  handwritten="false"' +
       '  classes="Literal"' +
-      '>x</socket' +
-      '>.log <socket' +
+      '>x</socket>.toString <socket' +
       '  precedence="-1"' +
       '  handwritten="false"' +
-      '  classes="Value"' +
-      '>log</socket' +
-      '></block></socket></block></socket></block></socket></block></segment>';
+      '  classes="Call works-as-method-call"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-block"' +
+      '><socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes="Literal"' +
+      '>log</socket>.fd()' +
+      '</block></socket>' +
+      '</block></socket>' +
+      '</block></socket>' +
+      '</block></socket>' +
+      '</block' +
+      '>\n<block' +
+      '  precedence="0"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="Call works-as-method-call mostly-block"' +
+      '>fd()</block></segment>';
+    console.log(expectedSerialization.substr(1281));
     strictEqual(
         helper.xmlPrettyPrint(customSerialization),
         helper.xmlPrettyPrint(expectedSerialization),
