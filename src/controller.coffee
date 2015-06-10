@@ -1004,8 +1004,8 @@ define ['droplet-helper',
 
         # Substitute in expansion for this palette entry, if supplied.
         expansion = @clickedBlockPaletteEntry.expansion
-        if 'function' is typeof expansion then expansion = expansion();
-        if (expansion) then expansion = parseBlock(@mode, expansion);
+        if 'function' is typeof expansion then expansion = expansion()
+        if (expansion) then expansion = parseBlock(@mode, expansion)
         @draggingBlock = (expansion or @draggingBlock).clone()
 
       else
@@ -1293,7 +1293,12 @@ define ['droplet-helper',
         # Now that we've done that, we can annul stuff.
         @endDrag()
 
-  Editor::reparseRawReplace = (oldBlock) ->
+  Editor::reparseRawReplace = (oldBlock, originalTrigger = oldBlock) ->
+    # Get the parent in case we need to bubble
+    # up later
+    parent = oldBlock.visParent()
+
+    # Attempt to parse the block we are given out-of-context
     try
       newParse = @mode.parse(oldBlock.stringify(@mode), wrapAtRoot: true)
       newBlock = newParse.start.next.container
@@ -1309,8 +1314,15 @@ define ['droplet-helper',
           newBlock.rawReplace oldBlock
 
     catch e
-      throw e
-      return false
+      # Attempt to bubble up the reparse, passing along
+      # the original block that triggered the reparse.
+      if parent?
+        return @reparseRawReplace parent, originalTrigger
+      else
+        # Mark the original triggering block as having caused
+        # an error.
+        @markBlock originalTrigger, {color: '#F00'}
+        return false
 
   Editor::findForReal = (token) ->
     head = @tree.start; i = 0
@@ -1931,8 +1943,32 @@ define ['droplet-helper',
         cursorPosition = @getRecoverableCursorPosition()
 
       # The second of these is a reparse attempt.
+      #
       # If we can, try to reparse the focus
       # value.
+      #
+      # When reparsing occurs, we first try to treat the socket
+      # as a separate block (inserting parentheses, etc), then fall
+      # back on reparsing it with original text before giving up.
+      #
+      # For instance:
+      #
+      # (a * b)
+      #   -> edits [b] to [b + c]
+      #   -> reparse to b + c
+      #   -> inserts with parens to (a * (b + c))
+      #   -> finished.
+      #
+      # OR
+      #
+      # function (a) {}
+      #   -> edits [a] to [a, b]
+      #   -> reparse to a, b
+      #   -> inserts with parens to function((a, b)) {}
+      #   -> FAILS.
+      #   -> Fall back to raw reparsing the parent with unparenthesized text
+      #   -> Reparses function(a, b) {} with two paremeters.
+      #   -> Finsihed.
       unless @textFocus.handwritten
         newParse = null
         string = @textFocus.stringify(@mode).trim()
@@ -1956,16 +1992,15 @@ define ['droplet-helper',
           @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
           shouldPop = true
 
-      # TODO make 'reparsable' property, bubble up until then
+      # See if the parent is still parseable
       unless @reparseRawReplace @textFocus.parent
-        # If we can't reparse the parent, abort all reparses
+        # If it is not, revert to the original text
         @populateSocket @textFocus, originalText
-
         if shouldPop then @undoStack.pop()
 
-        #@extraMarks[@textFocus.id] =
-        #  model: @textFocus
-        #  style: {color: '#F00'}
+        # Attempt to reparse the parent again with
+        # the original text; otherwise fail.
+        @reparseRawReplace @textFocus.parent
 
         @redrawMain()
 
@@ -2637,13 +2672,12 @@ define ['droplet-helper',
 
       if head.type is 'socketStart' and
           (head.next.type is 'text' or head.next is head.container.end)
-        # Avoid problems with reparses
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
-
-          chars = getCharactersTo persistentParent, head.container.start
+        # Avoid problems with reparses by getting text offset location
+        # of the given socket before reparsing and recovering it afterward.
+        if @textFocus?
+          chars = @getCharactersTo head.container.start
           @setTextInputFocus null
-          socket = getSocketAtChar persistentParent, chars
+          socket = @getSocketAtChar chars
         else
           socket = head.container
           @setTextInputFocus null
@@ -2714,18 +2748,18 @@ define ['droplet-helper',
     @setTextInputFocus null
     @scrollCursorIntoPosition()
 
-  getCharactersTo = (parent, token) ->
+  Editor::getCharactersTo = (token) ->
     head = token
     chars = 0
 
-    until head is parent.start
+    until head is @tree.start
       if head.type is 'text' then chars += head.value.length
       head = head.prev
 
     return chars
 
-  getSocketAtChar = (parent, chars) ->
-    head = parent.start
+  Editor::getSocketAtChar = (chars) ->
+    head = @tree.start
     charsCounted = 0
 
     until charsCounted >= chars and head.type is 'socketStart' and
@@ -2747,12 +2781,12 @@ define ['droplet-helper',
         head = head.prev
 
       if head?
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
-
-          chars = getCharactersTo persistentParent, head.container.start
+        # Avoid problems with reparses by getting text offset location
+        # of the given socket before reparsing and recovering it afterward.
+        if @textFocus?
+          chars = @getCharactersTo head.container.start
           @setTextInputFocus null
-          socket = getSocketAtChar persistentParent, chars
+          socket = @getSocketAtChar chars
         else
           socket = head.container
           @setTextInputFocus null
@@ -2768,12 +2802,12 @@ define ['droplet-helper',
           (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
         head = head.next
       if head?
-        if @textFocus? and head.container.hasParent @textFocus.parent
-          persistentParent = @textFocus.getCommonParent(head.container).parent
-
-          chars = getCharactersTo persistentParent, head.container.start
+        # Avoid problems with reparses by getting text offset location
+        # of the given socket before reparsing and recovering it afterward.
+        if @textFocus?
+          chars = @getCharactersTo head.container.start
           @setTextInputFocus null
-          socket = getSocketAtChar persistentParent, chars
+          socket = @getSocketAtChar chars
         else
           socket = head.container
           @setTextInputFocus null
@@ -3632,6 +3666,16 @@ define ['droplet-helper',
         style: style
 
     @redrawHighlights()
+
+  Editor::markBlock = (block, style) ->
+    key = @nextMarkedBlockId++
+
+    @markedBlocks[key] = {
+      model: block
+      style: style
+    }
+
+    return key
 
   # ## Mark
   # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
