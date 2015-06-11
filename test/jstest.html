@@ -68,8 +68,8 @@ function(helper, JavaScript, droplet) {
         '  precedence="100"' +
         '  handwritten="false"' +
         '  classes=""' +
-        '>x</socket' +
-        '>.pos(<socket' +
+        '>x</socket>.pos(' +
+        '<socket' +
         '  precedence="100"' +
         '  handwritten="false"' +
         '  classes="">100</socket>);</block>\n' +
@@ -404,6 +404,176 @@ function(helper, JavaScript, droplet) {
         helper.xmlPrettyPrint(customSerialization),
         helper.xmlPrettyPrint(expectedSerialization),
         'JS Custom colors work');
+    start();
+  });
+
+  asyncTest('JS LogicalExpressions', function() {
+    var customJS, customSerialization, expectedSerialization;
+    customJS = new JavaScript();
+    customSerialization = customJS.parse(
+        'a && b').serialize();
+    expectedSerialization =
+        '<segment' +
+        '  isLassoSegment="false"' +
+        '><block' +
+        '  precedence="13"' +
+        '  color="cyan"' +
+        '  socketLevel="0"' +
+        '  classes="LogicalExpression mostly-value"' +
+        '><socket' +
+        '  precedence="13"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>a</socket> &amp;&amp; ' +
+        '<socket' +
+        '  precedence="13"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>b</socket></block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Logical expression precedences are assigned.');
+    start();
+  });
+
+  asyncTest('JS Elif', function() {
+    var customJS, customSerialization, expectedSerialization;
+    customJS = new JavaScript();
+    customSerialization = customJS.parse(
+        'if (a == 0) {\n' +
+        '  fd(0);\n' +
+        '} else if (a == 1) {\n' +
+        '  fd(100);\n' +
+        '} else if (a == 2) {\n' +
+        '  fd(200);\n' +
+        '}'
+    ).serialize();
+    expectedSerialization =
+      '<segment' +
+      '  isLassoSegment="false"' +
+      '><block' +
+      '  precedence="0"' +
+      '  color="orange"' +
+      '  socketLevel="0"' +
+      '  classes="ends-with-brace block-only IfStatement"' +
+      '>if (' +
+      '<socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '><block' +
+      '  precedence="9"' +
+      '  color="cyan"' +
+      '  socketLevel="0"' +
+      '  classes="BinaryExpression mostly-value"' +
+      '><socket' +
+      '  precedence="9"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>a</socket> == ' +
+      '<socket' +
+      '  precedence="9"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>0</socket></block></socket>) {' +
+      '<indent' +
+      '  prefix="  "' +
+      '  classes=""' +
+      '>\n<block' +
+      '  precedence="2"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="CallExpression any-drop"' +
+      '><socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>fd</socket>(<socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>0</socket>);</block></indent>' +
+      '\n} else if (' +
+      '<socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '><block ' +
+      '  precedence="9"' +
+      '  color="cyan"' +
+      '  socketLevel="0"' +
+      '  classes="BinaryExpression mostly-value"' +
+      '><socket' +
+      '  precedence="9"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>a</socket> == ' +
+      '<socket' +
+      '  precedence="9"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>1</socket></block></socket>) {' +
+      '<indent' +
+      '  prefix="  "'+
+      '  classes=""' +
+      '>\n<block' +
+      '  precedence="2"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="CallExpression any-drop"' +
+      '><socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>fd</socket>(' +
+      '<socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>100</socket>);</block></indent>' +
+      '\n} else if (' +
+      '<socket' +
+      '  precedence="0"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '><block' +
+      '  precedence="9"' +
+      '  color="cyan"' +
+      '  socketLevel="0"' +
+      '  classes="BinaryExpression mostly-value"' +
+      '><socket' +
+      '  precedence="9"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>a</socket> == ' +
+      '<socket' +
+      '  precedence="9"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>2</socket></block></socket>) {' +
+      '<indent prefix="  "' +
+      '  classes=""' +
+      '>\n<block' +
+      '  precedence="2"' +
+      '  color="blue"' +
+      '  socketLevel="0"' +
+      '  classes="CallExpression any-drop"' +
+      '><socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>fd</socket>(' +
+      '<socket' +
+      '  precedence="100"' +
+      '  handwritten="false"' +
+      '  classes=""' +
+      '>200</socket>);</block></indent>\n' +
+      '}</block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Combines if-else');
     start();
   });
 
