@@ -266,7 +266,7 @@ define ['droplet-helper', 'droplet-model'], (helper, model) ->
 
           else if stack[stack.length - 1]?.type in ['indent', 'segment', undefined] and
               hasSomeTextAfter(lines, i)
-            block = new model.Block 0, 'yellow', helper.BLOCK_ONLY
+            block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
 
             head = head.append block.start
             head = head.append block.end
