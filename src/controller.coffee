@@ -3132,6 +3132,8 @@ define ['droplet-helper',
 
   Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
     if @currentlyUsingBlocks and not @currentlyAnimating
+      @hideDropdown()
+
       @fireEvent 'statechange', [false]
 
       @setAceValue @getValue()
@@ -3883,8 +3885,10 @@ define ['droplet-helper',
         @highlightCanvas.opacity = 1
 
       @resizeBlockMode(); @redrawMain()
-      
+
     else
+      @hideDropdown()
+
       paletteVisibleInNewState = @paletteEnabled and @showPaletteInTextMode
 
       oldScrollTop = @aceEditor.session.getScrollTop()
