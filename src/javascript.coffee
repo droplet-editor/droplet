@@ -420,8 +420,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsSocketAndMark indentDepth, node.left, depth + 1, OPERATOR_PRECEDENCES[node.operator]
           @jsSocketAndMark indentDepth, node.right, depth + 1, OPERATOR_PRECEDENCES[node.operator]
         when 'UnaryExpression'
-          @jsBlock node, depth, bounds
-          @jsSocketAndMark indentDepth, node.argument, depth + 1, @getPrecedence node
+          unless node.operator in ['-', '+'] and
+              node.argument.type in ['Identifier', 'Literal']
+            @jsBlock node, depth, bounds
+            @jsSocketAndMark indentDepth, node.argument, depth + 1, @getPrecedence node
         when 'ExpressionStatement'
           @mark indentDepth, node.expression, depth + 1, @getBounds node
         when 'Identifier'
