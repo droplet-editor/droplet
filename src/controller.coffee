@@ -3606,6 +3606,12 @@ define ['droplet-helper',
       bounds.unite @view.getViewNodeFor(record.block).getBounds()
 
     @mainScrollerStuffing.style.width = "#{bounds.right()}px"
+
+    # We add some extra height to the bottom
+    # of the document so that the last block isn't
+    # jammed up against the edge of the screen.
+    #
+    # Default this extra space to fontSize (approx. 1 line).
     @mainScrollerStuffing.style.height = "#{bounds.bottom() + (@options.extraBottomHeight ? @fontSize)}px"
 
   hook 'redraw_palette', 0, ->
