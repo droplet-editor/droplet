@@ -3606,7 +3606,7 @@ define ['droplet-helper',
       bounds.unite @view.getViewNodeFor(record.block).getBounds()
 
     @mainScrollerStuffing.style.width = "#{bounds.right()}px"
-    @mainScrollerStuffing.style.height = "#{bounds.bottom()}px"
+    @mainScrollerStuffing.style.height = "#{bounds.bottom() + (@options.extraBottomHeight ? @fontSize)}px"
 
   hook 'redraw_palette', 0, ->
     bounds = new @draw.NoRectangle()
