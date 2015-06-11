@@ -375,8 +375,19 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
           @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
-          if node.alternate?
-            @jsSocketAndMark indentDepth, node.alternate, depth + 1, 10
+
+          # As long as the else fits the "else-if" pattern,
+          # don't mark a new block. Instead, mark the condition
+          # and body and continue down the elseif chain.
+          currentElif = node.alternate
+          while currentElif?
+            if currentElif.type is 'IfStatement'
+              @jsSocketAndMark indentDepth, currentElif.test, depth + 1, null
+              @jsSocketAndMark indentDepth, currentElif.consequent, depth + 1, null
+              currentElif = currentElif.alternate
+            else
+              @jsSocketAndMark indentDepth, currentElif, depth + 1, 10
+              currentElif = null
         when 'ForStatement'
           @jsBlock node, depth, bounds
           if node.init?

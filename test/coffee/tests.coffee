@@ -1,6 +1,7 @@
 require ['droplet-helper', 'droplet-model', 'droplet-parser', 'droplet-coffee', 'droplet-javascript', 'droplet-view', 'droplet'], (helper, model, parser, Coffee, JavaScript, view, droplet) ->
 
   coffee = new Coffee()
+  javascript = new JavaScript()
 
   asyncTest 'Parser success', ->
     window.dumpObj = []
