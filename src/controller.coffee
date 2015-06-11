@@ -931,7 +931,7 @@ define ['droplet-helper',
     @highlightCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
     @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
 
-    @highlightCanvas.height = @dropletElement.offsetHeight - @gutter.offsetWidth
+    @highlightCanvas.height = @dropletElement.offsetHeight
     @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
 
     @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -2372,7 +2372,7 @@ define ['droplet-helper',
     @lassoSelectCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
     @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
 
-    @lassoSelectCanvas.height = @dropletElement.offsetHeight - @gutter.offsetWidth
+    @lassoSelectCanvas.height = @dropletElement.offsetHeight
     @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
 
     @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
@@ -4108,7 +4108,7 @@ define ['droplet-helper',
     @cursorCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
     @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
 
-    @cursorCanvas.height = @dropletElement.offsetHeight - @gutter.offsetWidth
+    @cursorCanvas.height = @dropletElement.offsetHeight
     @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
 
     @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
