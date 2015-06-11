@@ -98,6 +98,10 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
   # See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
   # These numbers are "19 - x" so that the lowest numbers bind most tightly.
   OPERATOR_PRECEDENCES = {
+    '++': 3
+    '--': 3
+    '!': 4
+    '~': 4
     '*': 5
     '/': 5
     '%': 5
@@ -149,8 +153,6 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
         line: 0
         allowReturnOutsideFunction: true
       })
-
-      #console.log 'PROGRAM IS', JSON.stringify tree, null, 2
 
       @mark 0, tree, 0, null
 
@@ -204,15 +206,15 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
 
     getPrecedence: (node) ->
       switch node.type
-        when 'BinaryExpression'
+        when 'BinaryExpression', 'LogicalExpression'
           return OPERATOR_PRECEDENCES[node.operator]
         when 'AssignStatement'
           return 16
         when 'UnaryExpression'
           if node.prefix
-            return 4
+            return OPERATOR_PRECEDENCES[node.operator] ? 4
           else
-            return 3
+            return OPERATOR_PRECEDENCES[node.operator] ? 3
         when 'CallExpression'
           return 2
         when 'NewExpression'
@@ -441,8 +443,8 @@ define ['droplet-helper', 'droplet-model', 'droplet-parser', 'acorn'], (helper, 
             @jsSocketAndMark indentDepth, node.init, depth
         when 'LogicalExpression'
           @jsBlock node, depth, bounds
-          @jsSocketAndMark indentDepth, node.left, depth + 1
-          @jsSocketAndMark indentDepth, node.right, depth + 1
+          @jsSocketAndMark indentDepth, node.left, depth + 1, @getPrecedence node
+          @jsSocketAndMark indentDepth, node.right, depth + 1, @getPrecedence node
         when 'WhileStatement', 'DoWhileStatement'
           @jsBlock node, depth, bounds
           @jsSocketAndMark indentDepth, node.body, depth + 1
