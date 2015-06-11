@@ -21,6 +21,8 @@
   <script src="../vendor/ace/ace.js"></script>
   <script src="../dist/droplet-full.js"></script>
   <script src="jquery.min.js"></script>
+  <script src="bililiteRange.js"></script>
+  <script src="jquery.sendkeys.js"></script>
   <script src="../vendor/qunit.js"></script>
 <script>
 require([
@@ -149,6 +151,120 @@ require([
       { location: '.droplet-main-scroller', dx: 40, dy: 80 });
     equal(editor.getValue().trim(), 'pen red\na1 = b\na2 = b');
     start();
+  });
+  asyncTest('Controller: reparse fallback', function() {
+    var editor, states;
+    states = [];
+    document.getElementById('test-main').innerHTML = '';
+    varcount = 0;
+    window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+      mode: 'javascript',
+      palette: [{
+        name: 'Draw',
+        color: 'blue',
+        blocks: [{
+          block: 'pen()',
+          expansion: 'pen red',
+          title: 'ptest'
+        }, {
+          block: 'a = b',
+          expansion: function() { return 'a' + (++varcount) + ' = b'; },
+          title: 'ftest'
+        },
+        ],
+      }]
+    });
+
+    editor.setEditorState(true);
+    editor.setValue('var hello = function (a) {}');
+
+    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30});
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30});
+
+    ok(editor.textFocus, 'Has text focus');
+    equal(editor.textFocus.stringify({empty: ''}), 'a');
+
+    $('.droplet-hidden-input').sendkeys('a, b');
+
+    setTimeout(function() {
+      ok(editor.textFocus, 'Editor still has textFocus');
+      equal(editor.textFocus.stringify({empty: ''}), 'a, b');
+
+      simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300});
+
+      // Did not insert parentheses
+      equal(editor.getValue().trim(), 'var hello = function (a, b) {}');
+
+      // Sockets are separate
+      simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30});
+      simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30});
+
+      ok(editor.textFocus != null, 'Has text focus');
+
+      equal(editor.textFocus.stringify({empty: ''}), 'a');
+
+      start();
+    }, 10);
+  });
+  asyncTest('Controller: does not throw on reparse error', function() {
+    var editor, states;
+    states = [];
+    document.getElementById('test-main').innerHTML = '';
+    varcount = 0;
+    window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+      mode: 'javascript',
+      palette: [{
+        name: 'Draw',
+        color: 'blue',
+        blocks: [{
+          block: 'pen()',
+          expansion: 'pen red',
+          title: 'ptest'
+        }, {
+          block: 'a = b',
+          expansion: function() { return 'a' + (++varcount) + ' = b'; },
+          title: 'ftest'
+        },
+        ],
+      }]
+    });
+
+    editor.setEditorState(true);
+    editor.setValue('var hello = function (a) {}');
+
+    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30});
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30});
+
+    ok(editor.textFocus, 'Has text focus');
+    equal(editor.textFocus.stringify({empty: ''}), 'a');
+
+    $('.droplet-hidden-input').sendkeys('18n');
+
+    setTimeout(function() {
+      ok(editor.textFocus, 'Editor still has textFocus');
+      equal(editor.textFocus.stringify({empty: ''}), '18n');
+
+      simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300});
+
+      ok(true, 'Does not throw on reparse');
+
+      var foundErrorMark = false;
+      for (key in editor.markedBlocks) {
+        var val = editor.markedBlocks[key];
+        if (val.model.stringify({empty: ''}) === 'function (18n) {}' &&
+            val.style.color === '#F00') {
+          foundErrorMark = true
+          break;
+        }
+        else {
+          console.lo
+        }
+      }
+
+      ok(foundErrorMark, 'Marks block with a red line');
+
+      start();
+    }, 10);
   });
 });
 </script>
