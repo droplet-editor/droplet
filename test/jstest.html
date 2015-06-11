@@ -300,6 +300,65 @@ function(helper, JavaScript, droplet) {
     start();
   });
 
+  asyncTest('JS omits unary +/- for literals', function() {
+    var customJS, customSerialization, expectedSerialization;
+    customJS = new JavaScript();
+    customSerialization = customJS.parse(
+        'foo(+1, -1, +a());').serialize();
+    expectedSerialization =
+        '<segment' +
+        '  isLassoSegment="false"' +
+        '><block' +
+        '  precedence="2"' +
+        '  color="blue"' +
+        '  socketLevel="0"' +
+        '  classes="CallExpression any-drop"' +
+        '><socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>foo</socket>(' +
+        '<socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>+1</socket>, ' +
+        '<socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>-1</socket>, ' +
+        '<socket' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '><block '  +
+        '  precedence="6"' +
+        '  color="green"' +
+        '  socketLevel="0"' +
+        '  classes="UnaryExpression mostly-value"' +
+        '>+<socket ' +
+        '  precedence="6"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '><block ' +
+        '  precedence="2"' +
+        '  color="blue"' +
+        '  socketLevel="0"' +
+        '  classes="CallExpression any-drop"' +
+        '><socket ' +
+        '  precedence="100"' +
+        '  handwritten="false"' +
+        '  classes=""' +
+        '>a</socket>()</block></socket></block>' +
+        '</socket>);</block></segment>';
+    strictEqual(
+        helper.xmlPrettyPrint(customSerialization),
+        helper.xmlPrettyPrint(expectedSerialization),
+        'Unary literal +/- are not parsed, but unary nonliteral operators are');
+    start();
+  });
+
   asyncTest('JS Custom Colors', function() {
     var customJS, customSerialization, expectedSerialization;
     customJS = new JavaScript({
