@@ -1,4 +1,4 @@
-# # ICE Editor controller
+# Droplet controller.
 #
 # Copyright (c) 2014 Anthony Bau
 # MIT License.
