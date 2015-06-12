@@ -64,6 +64,7 @@ $('#toggle').on 'click', ->
 
 # Stuff for testing convenience
 $('#update').on 'click', ->
+  localStorage.setItem 'config', dropletConfig.getValue()
   createEditor JSON.parse dropletConfig.getValue()
 
 configCurrentlyOut = localStorage.getItem('configOut') is 'yes'
