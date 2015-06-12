@@ -96,43 +96,31 @@ Adding a Language
 Make a CoffeeScript (or JavaScript) file that looks like this:
 
 ```coffeescript
-define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
-  class MyParser extends parser.Parser
-    markRoot: ->
+helper = require './helper.coffee'
+parser = require './parser.coffee'
 
-  return parser.wrapParser MyParser
+class MyParser extends parser.Parser
+  markRoot: ->
+
+module.exports = parser.wrapParser MyParser
 ```
 
-Put it in `src/myparser.coffee`. Add it to the build system in `requirejs-paths.json`:
+Put it in `src/myparser.coffee`.
 
-```javascript
-{
-  // etc...
-  "droplet-myparser": "myparser" // meaning "myparser.coffee" -- or whatever you named your file
-  // etc...
-}
-```
-
-Require it from the controller:
+Require it from `modes.coffee`:
 
 ```coffeescript
-define ['droplet-helper',
-    'droplet-coffee',
-    'droplet-javascript',
-    'droplet-myparser', # This is us!
-    'droplet-draw' # etc, etc..
-    # ...
-  ], (helper,
-  coffee,
-  javascript,
-  myparser, # Us again!
-  draw, # etc, etc..
-  # ...
-  ) ->
-    modes = {
-      # etc.. etc..
-      'mylanguage': myparser
-    }
+javascript = require './javascript.coffee'
+coffee = require './coffee.coffee'
+myparser = require './myparser.coffee'
+
+module.exports = {
+  'javascript': javascript
+  'coffee': coffee
+  'coffeescript': coffee
+  'myparser': myparser
+  'myparser-alias': myparser
+}
 ```
 
 Then grunt. Your mode is integrated!
