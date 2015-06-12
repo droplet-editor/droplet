@@ -58,9 +58,31 @@ createEditor = (options) ->
 
 createEditor JSON.parse dropletConfig.getValue()
 
-$('#update').on 'click', ->
-  createEditor JSON.parse dropletConfig.getValue()
-
 $('#toggle').on 'click', ->
   editor.toggleBlocks()
   localStorage.setItem 'blocks', (if editor.currentlyUsingBlocks then 'yes' else 'no')
+
+# Stuff for testing convenience
+$('#update').on 'click', ->
+  createEditor JSON.parse dropletConfig.getValue()
+
+configCurrentlyOut = localStorage.getItem('configOut') is 'yes'
+
+updateConfigDrawerState = ->
+  if configCurrentlyOut
+    $('#left-panel').css 'display', 'block'
+    $('#right-panel').css 'left', '525px'
+  else
+    $('#left-panel').css 'display', 'none'
+    $('#right-panel').css 'left', '25px'
+
+  editor.resize()
+
+  localStorage.setItem 'configOut', (if configCurrentlyOut then 'yes' else 'no')
+
+$('#close').on 'click', ->
+  configCurrentlyOut = not configCurrentlyOut
+  updateConfigDrawerState()
+
+setTimeout updateConfigDrawerState, 0
+
