@@ -1,7 +1,7 @@
 helper = require '../../src/helper.coffee'
 model = require '../../src/model.coffee'
 view = require '../../src/view.coffee'
-droplet = require '../../dist/droplet-full'
+droplet = require '../../dist/droplet-full.js'
 
 `
 // Mouse event simluation function

@@ -17,7 +17,9 @@
     "grunt-contrib-uglify": "latest",
     "grunt-contrib-watch": "latest",
     "grunt-docco": "latest",
-    "grunt-mocha-spawn": "latest"
+    "grunt-mocha-spawn": "latest",
+    "grunt-mocha-test": "^0.12.7",
+    "mocha": "^2.2.5"
   },
   "description": "A transparent block editor",
   "main": "dist/ice.min.js",
@@ -33,7 +35,7 @@
     "url": "https://github.com/dabbler0/droplet.git"
   },
   "author": "Anthony Bau",
-  "license": "MIT License",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/dabbler0/droplet/issues"
   },

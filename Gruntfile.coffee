@@ -36,21 +36,14 @@ module.exports = (grunt) ->
             (for x in grunt.file.expand('test/*.html')
               'http://localhost:8942/' + x)
 
-    mocha_spawn:
+    mochaTest:
       test:
-        src: ['test/js/parserTests.js']
+        src: ['test/src/parserTests.coffee']
         options:
           reporter: 'list'
-
-    coffee:
-      quickbuild_prep:
-        files: [{
-          expand: true
-          cwd: 'src/'
-          src: ['*.coffee']
-          dest: 'js/'
-          ext: '.js'
-        }]
+          compilers:
+            'coffee': 'coffee-script/register'
+          timeout: 10000
 
     browserify:
       build:
@@ -109,9 +102,7 @@ module.exports = (grunt) ->
       build:
         files:
           'dist/droplet-full.min.js': [
-            'vendor/sax.js'
-            'vendor/quadtree.js'
-            'dist/droplet.js'
+            'dist/droplet-full.js'
           ]
 
     connect:
@@ -139,7 +130,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-connect'
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
   grunt.loadNpmTasks 'grunt-contrib-qunit'
-  grunt.loadNpmTasks 'grunt-mocha-spawn'
+  grunt.loadNpmTasks 'grunt-mocha-test'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-browserify'
@@ -168,6 +159,6 @@ module.exports = (grunt) ->
         grunt.config 'qunit.all', (x for x in grunt.file.expand('test/*.html'))
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
-      grunt.task.run 'mocha_spawn'
+      grunt.task.run 'mochaTest'
 
   grunt.registerTask 'testserver', ['connect:testserver', 'watch']
