@@ -1,22 +1,35 @@
 path = require 'path'
 
-notify = (message) ->
-  grunt.util.spawn (
-    cmd: 'notify-send'
-    args: [message, '--urgency=low']
-    fallback: 0
-  ), ->
+browserify = require 'browserify'
+coffeeify = require 'coffeeify'
+watchify = require 'watchify'
+
+livereload = require 'tiny-lr'
+
+fs = require 'fs'
 
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
   middlewares.unshift (req, res, next) ->
     if req.url.indexOf('/.') < 0 then return next()
     res.statusCode = 404
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html')
     res.end "Cannot GET #{req.url}"
   return middlewares
 
 module.exports = (grunt) ->
+  # Assemble a list of files not to try to
+  # do browserify on; these are the ones that contain
+  # require() calls from different modules systems or
+  # are already packaged.
+  NO_PARSE = [
+    require.resolve('./vendor/coffee-script')
+    require.resolve('./vendor/acorn')
+  ]
+
+  try
+    NO_PARSE.push require.resolve './dist/droplet-full'
+
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
 
@@ -32,31 +45,8 @@ module.exports = (grunt) ->
           'quadtree.js' : 'quadtree/quadtree.js'
           'qunit.js' : 'qunit/qunit/qunit.js'
           'qunit.css' : 'qunit/qunit/qunit.css'
-          'require.js' : 'requirejs/require.js'
           'acorn.js' : 'acorn/acorn.js'
           'sax.js': 'sax/lib/sax.js'
-
-      ,
-    coffee:
-      options:
-        sourceMap: true
-      build:
-        files: [
-          {
-            expand: true
-            cwd: 'src/'
-            src: ['*.coffee']
-            dest: 'js/'
-            ext: '.js'
-          }
-
-          {dest: 'test/js/parserTests.js', src: 'test/coffee/parserTests.coffee'}
-          {dest: 'test/js/tests.js', src: 'test/coffee/tests.coffee'}
-
-          {dest: 'example/example.js', src: 'example/example.coffee'}
-          {dest: 'example/example-js.js', src: 'example/example-js.coffee'}
-          {dest: 'example/test.js', src: 'example/test.coffee'}
-        ]
 
     qunit:
       all:
@@ -66,74 +56,81 @@ module.exports = (grunt) ->
             (for x in grunt.file.expand('test/*.html')
               'http://localhost:8942/' + x)
 
-    mocha_spawn:
+    mochaTest:
       test:
-        src: ['test/js/parserTests.js']
+        src: ['test/src/parserTests.coffee']
         options:
           reporter: 'list'
+          compilers:
+            'coffee': 'coffee-script/register'
+          timeout: 10000
 
-    docco:
-      debug:
-        src: ['src/*.coffee']
+    browserify:
+      build:
+        files:
+          'dist/droplet-full.js': ['./src/main.coffee']
         options:
-          output: 'docs/'
-          layout: 'parallel'
+          transform: ['coffeeify']
+          browserifyOptions:
+            standalone: 'droplet'
+            noParse: NO_PARSE
+          banner: '''
+          /* Droplet.
+           * Copyright (c) <%=grunt.template.today('yyyy')%> Anthony Bau.
+           * MIT License.
+           *
+           * Date: <%=grunt.template.today('yyyy-mm-dd')%>
+           */
+          '''
+      test:
+        files:
+          'test/js/tests.js': ['test/src/tests.coffee']
+          'test/js/uitest.js': ['test/src/uitest.coffee']
+          'test/js/jstest.js': ['test/src/jstest.coffee']
+          'test/js/cstest.js': ['test/src/cstest.coffee']
+        options:
+          transform: ['coffeeify']
+          browserifyOptions:
+            noParse: NO_PARSE
 
-    requirejs:
-      compile:
-        options:
-          baseUrl: 'js'
-          paths: require('./requirejs-paths.json')
-          name: 'droplet'
-          optimize: 'none'
-          out: 'dist/droplet.js'
+    watchify:
+      options:
+        standalone: 'droplet'
+
+        callback: (b) ->
+          b.transform(coffeeify)
+          return b
+
+        browserifyOptions:
+          noParse: NO_PARSE
+
+      watch:
+        src: ['./src/main.coffee']
+        dest: 'dist/droplet-full.js'
 
     cssmin:
       options:
         banner: '''
-           /* Droplet stylesheet.
-           Copyright (c) 2014 Anthony Bau.
-           MIT License.
-           */'''
+          /* Droplet. | (c) <%=grunt.template.today('yyyy')%> Anthony Bau. | MIT License.
+           */
+          '''
       minify:
         src: ['css/droplet.css']
         dest: 'dist/droplet.min.css'
         ext: '.min.css'
 
-    concat:
-      options:
-        banner: '''
-           /* Droplet.
-           Copyright (c) 2014 Anthony Bau.
-           MIT License.
-           */
-           (function() {'''
-        separator: ';'
-        footer: '}).call(this);'
-      build:
-        files:
-          'dist/droplet-full.js': [
-            'vendor/sax.js'
-            'vendor/quadtree.js'
-            'dist/droplet.js'
-          ]
-
     uglify:
       options:
         banner: '''
-          /* Droplet.
-          Copyright (c) 2014 Anthony Bau.
-          MIT License.
-          */
+          /* Droplet. | (c) <%=grunt.template.today('yyyy')%> Anthony Bau. | MIT License.
+           */
         '''
         sourceMap: true
 
       build:
         files:
           'dist/droplet-full.min.js': [
-            'vendor/sax.js'
-            'vendor/quadtree.js'
-            'dist/droplet.js'
+            'dist/droplet-full.js'
           ]
 
     connect:
@@ -147,36 +144,32 @@ module.exports = (grunt) ->
           port: 8942
           middleware: serveNoDottedFiles
 
-    watch:
-      options:
-        nospawn: true
-        livereload: true
-      sources:
-        files: ['src/*.coffee', 'example/*.coffee']
-        tasks: ['quickbuild', 'notify-done']
-
   grunt.loadNpmTasks 'grunt-bowercopy'
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
-  grunt.loadNpmTasks 'grunt-contrib-concat'
   grunt.loadNpmTasks 'grunt-contrib-connect'
   grunt.loadNpmTasks 'grunt-contrib-cssmin'
-  grunt.loadNpmTasks 'grunt-contrib-requirejs'
   grunt.loadNpmTasks 'grunt-contrib-qunit'
-  grunt.loadNpmTasks 'grunt-mocha-spawn'
+  grunt.loadNpmTasks 'grunt-mocha-test'
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
-  grunt.loadNpmTasks 'grunt-docco'
+  grunt.loadNpmTasks 'grunt-browserify'
+  grunt.loadNpmTasks 'grunt-watchify'
 
   grunt.registerTask 'default',
-    ['quickbuild']
-  grunt.registerTask 'quickbuild',
-    ['coffee']
-  grunt.registerTask 'all',
-    ['coffee', 'docco', 'requirejs', 'uglify', 'concat', 'cssmin', 'test']
+    ['build']
 
-  grunt.registerTask 'notify-done', ->
-    notify 'Compilation complete.'
+  grunt.registerTask 'build',
+    ['browserify:build']
+
+  grunt.registerTask 'dist',
+    ['build', 'uglify', 'cssmin']
+
+  grunt.registerTask 'buildtests',
+    ['browserify:test']
+
+  grunt.registerTask 'all',
+    ['dist', 'buildtests', 'test']
 
   grunt.task.registerTask 'test',
     'Run unit tests, or just one test.',
@@ -187,19 +180,49 @@ module.exports = (grunt) ->
         grunt.config 'qunit.all', (x for x in grunt.file.expand('test/*.html'))
       grunt.task.run 'connect:qunitserver'
       grunt.task.run 'qunit:all'
-      grunt.task.run 'mocha_spawn'
+      grunt.task.run 'mochaTest'
 
-  grunt.registerTask 'testserver', ['connect:testserver', 'watch']
-  grunt.registerTask 'notify-done', ->
-    grunt.util.spawn (
-      cmd: 'notify-send'
-      args: ['Recompiled.', '--urgency=low']
-      fallback: 0), ->
+  grunt.task.registerTask 'watchify', ->
+    # Prevent the task from terminating
+    @async()
 
-  grunt.event.on 'watch', (action, filepath) ->
-    if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
-      d = path.dirname filepath
-      if /src|coffee$/.test(d) then d = path.dirname(d) + '/js'
-      destination = d + '/' + path.basename(filepath).replace('.coffee', '.js')
-      coffeeFiles = {}; coffeeFiles[destination] = [filepath]
-      grunt.config 'coffee.build.files', coffeeFiles
+    b = browserify {
+      cache: {}
+      packageCache: {}
+      noParse: [
+        require.resolve('./vendor/coffee-script')
+        require.resolve('./vendor/acorn')
+      ]
+      delay: 100
+      standalone: 'droplet'
+    }
+
+    b.require './src/main.coffee'
+    b.transform coffeeify
+
+    w = watchify(b)
+
+    # Compile once through first
+    stream = fs.createWriteStream 'dist/droplet-full.js'
+    w.bundle().pipe stream
+
+    stream.once 'close', ->
+      console.log 'Initial bundle complete.'
+
+      lrserver = livereload()
+
+      lrserver.listen 35729, ->
+        console.log 'Livereload server listening on 35729'
+
+      w.on 'update', ->
+        stream = fs.createWriteStream 'dist/droplet-full.js'
+        w.bundle().pipe stream
+        stream.once 'close', ->
+          console.log 'Rebuilt.'
+          lrserver.changed {
+            body: {
+              files: ['dist/droplet-full.js']
+            }
+          }
+
+  grunt.registerTask 'testserver', ['connect:testserver', 'watchify']

@@ -7,7 +7,7 @@ Droplet seeks to re-envision "block programming" as "text editing". It is useful
 
 How to Embed
 ------------
-To embed, call new droplet.Editor() on a div.
+Droplet is a browserify package, so you can include it with npm, requirejs, or as a browser global. To embed, call `new droplet.Editor()` on a div.
 
 ```html
 <html>
@@ -19,55 +19,55 @@ To embed, call new droplet.Editor() on a div.
 }
 </style>
 </head>
-<div id="editor">
-</div>
+<script src="dist/droplet-full.min.js"></script>
+<script src="index.coffee" type="text-coffeescript"></script>
+<div id="editor"></div>
 </html>
 ```
 
 ```coffeescript
-require ['droplet'], (droplet) ->
-  editor = new droplet.Editor document.getElementById('editor'), {
-    # Language
-    mode: 'coffeescript'
+editor = new droplet.Editor document.getElementById('editor'), {
+  # Language
+  mode: 'coffeescript'
 
-    # Options for the CoffeeScript parser
-    # (the JavaScript parser currently takes the same options)
-    modeOptions: {
-      functions: {
-        fd: { command: true, color: 'red'}
-        bk: { command: true, color: 'blue'}
-        sin: { command: false, value: true, color: 'green' }
-      }
-      categories: {
-        conditionals: { color: 'purple' }
-        loops: { color: 'green' }
-        functions: { color: '#49e' }
-      }
+  # Options for the CoffeeScript parser
+  # (the JavaScript parser currently takes the same options)
+  modeOptions: {
+    functions: {
+      fd: { command: true, color: 'red'}
+      bk: { command: true, color: 'blue'}
+      sin: { command: false, value: true, color: 'green' }
     }
-
-    # Palette description
-    palette: [
-     {
-        name: 'Palette category'
-        color: 'blue' # Header color
-        blocks: [
-          {
-            block: "for [1..3]\n  ``"
-            title: "Repeat some code" # title-text
-          },
-          {
-            block: "playSomething()"
-            expansion: "playSomething 'arguments', 100, 'too long to show'"
-          },
-        ]
-      }
-    ]
+    categories: {
+      conditionals: { color: 'purple' }
+      loops: { color: 'green' }
+      functions: { color: '#49e' }
+    }
   }
 
-  editor.setValue '''
-  for i in [1..10]
-    document.write 'hello world'
-  '''
+  # Palette description
+  palette: [
+   {
+      name: 'Palette category'
+      color: 'blue' # Header color
+      blocks: [
+        {
+          block: "for [1..3]\n  ``"
+          title: "Repeat some code" # title-text
+        },
+        {
+          block: "playSomething()"
+          expansion: "playSomething 'arguments', 100, 'too long to show'"
+        },
+      ]
+    }
+  ]
+}
+
+editor.setValue '''
+for i in [1..10]
+  document.write 'hello world'
+'''
 ```
 
 Contributing
