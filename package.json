@@ -4,6 +4,7 @@
   "devDependencies": {
     "browserify": "^10.2.4",
     "browserify-shim": "^3.8.8",
+    "coffeeify": "^1.1.0",
     "grunt": "latest",
     "grunt-banner": "latest",
     "grunt-bowercopy": "latest",
@@ -19,7 +20,9 @@
     "grunt-docco": "latest",
     "grunt-mocha-spawn": "latest",
     "grunt-mocha-test": "^0.12.7",
-    "mocha": "^2.2.5"
+    "mocha": "^2.2.5",
+    "tiny-lr": "^0.1.5",
+    "watchify": "^3.2.2"
   },
   "description": "A transparent block editor",
   "main": "dist/ice.min.js",
@@ -50,6 +53,7 @@
   "homepage": "https://github.com/dabbler0/droplet",
   "dependencies": {
     "acorn": "^1.2.2",
+    "grunt-watchify": "^0.1.0",
     "sax": "^1.1.1"
   }
 }

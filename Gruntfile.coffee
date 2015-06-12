@@ -1,5 +1,13 @@
 path = require 'path'
 
+browserify = require 'browserify'
+coffeeify = require 'coffeeify'
+watchify = require 'watchify'
+
+livereload = require 'tiny-lr'
+
+fs = require 'fs'
+
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
   middlewares.unshift (req, res, next) ->
@@ -48,7 +56,7 @@ module.exports = (grunt) ->
     browserify:
       build:
         files:
-          'dist/droplet-full.js': ['src/main.coffee']
+          'dist/droplet-full.js': ['./src/main.coffee']
         options:
           transform: ['coffeeify']
           browserifyOptions:
@@ -79,6 +87,25 @@ module.exports = (grunt) ->
               require.resolve('./vendor/acorn')
               require.resolve('./dist/droplet-full')
             ]
+
+    watchify:
+      options:
+        standalone: 'droplet'
+
+        callback: (b) ->
+          b.transform(coffeeify)
+          return b
+
+        browserifyOptions:
+          noParse: [
+            require.resolve('./vendor/coffee-script')
+            require.resolve('./vendor/acorn')
+            require.resolve('./dist/droplet-full')
+          ]
+
+      watch:
+        src: ['./src/main.coffee']
+        dest: 'dist/droplet-full.js'
 
     cssmin:
       options:
@@ -116,14 +143,6 @@ module.exports = (grunt) ->
           port: 8942
           middleware: serveNoDottedFiles
 
-    watch:
-      options:
-        nospawn: true
-        livereload: true
-      sources:
-        files: ['src/*.coffee']
-        tasks: ['build']
-
   grunt.loadNpmTasks 'grunt-bowercopy'
   grunt.loadNpmTasks 'grunt-banner'
   grunt.loadNpmTasks 'grunt-contrib-coffee'
@@ -134,6 +153,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-contrib-uglify'
   grunt.loadNpmTasks 'grunt-contrib-watch'
   grunt.loadNpmTasks 'grunt-browserify'
+  grunt.loadNpmTasks 'grunt-watchify'
 
   grunt.registerTask 'default',
     ['build']
@@ -161,4 +181,47 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mochaTest'
 
-  grunt.registerTask 'testserver', ['connect:testserver', 'watch']
+  grunt.task.registerTask 'watchify', ->
+    # Prevent the task from terminating
+    @async()
+
+    b = browserify {
+      cache: {}
+      packageCache: {}
+      noParse: [
+        require.resolve('./vendor/coffee-script')
+        require.resolve('./vendor/acorn')
+      ]
+      delay: 100
+      standalone: 'droplet'
+    }
+
+    b.require './src/main.coffee'
+    b.transform coffeeify
+
+    w = watchify(b)
+
+    # Compile once through first
+    stream = fs.createWriteStream 'dist/droplet-full.js'
+    w.bundle().pipe stream
+
+    stream.once 'close', ->
+      console.log 'Initial bundle complete.'
+
+      lrserver = livereload()
+
+      lrserver.listen 35729, ->
+        console.log 'Livereload server listening on 35729'
+
+      w.on 'update', ->
+        stream = fs.createWriteStream 'dist/droplet-full.js'
+        w.bundle().pipe stream
+        stream.once 'close', ->
+          console.log 'Rebuilt.'
+          lrserver.changed {
+            body: {
+              files: ['dist/droplet-full.js']
+            }
+          }
+
+  grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
