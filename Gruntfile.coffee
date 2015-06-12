@@ -130,8 +130,8 @@ module.exports = (grunt) ->
         nospawn: true
         livereload: true
       sources:
-        files: ['src/*.coffee', 'example/*.coffee']
-        tasks: ['quickbuild', 'notify-done']
+        files: ['src/*.coffee']
+        tasks: ['build']
 
   grunt.loadNpmTasks 'grunt-bowercopy'
   grunt.loadNpmTasks 'grunt-banner'
@@ -145,7 +145,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-browserify'
 
   grunt.registerTask 'default',
-    ['quickbuild']
+    ['build']
 
   grunt.registerTask 'build',
     ['browserify:build']
@@ -170,12 +170,4 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mocha_spawn'
 
-  grunt.registerTask 'testserver', ['coffee:quickbuild_prep', 'connect:testserver', 'watch']
-
-  grunt.event.on 'watch', (action, filepath) ->
-    if grunt.file.isMatch(grunt.config('watch.sources.files'), filepath)
-      d = path.dirname filepath
-      if /src|coffee$/.test(d) then d = path.dirname(d) + '/js'
-      destination = d + '/' + path.basename(filepath).replace('.coffee', '.js')
-      coffeeFiles = {}; coffeeFiles[destination] = [filepath]
-      grunt.config 'coffee.build.files', coffeeFiles
+  grunt.registerTask 'testserver', ['connect:testserver', 'watch']
