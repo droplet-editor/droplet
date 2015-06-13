@@ -7,7 +7,7 @@ Droplet seeks to re-envision "block programming" as "text editing". It is useful
 
 How to Embed
 ------------
-To embed, call new droplet.Editor() on a div.
+Droplet is a browserify package, so you can include it with npm, requirejs, or as a browser global. To embed, call `new droplet.Editor()` on a div.
 
 ```html
 <html>
@@ -19,55 +19,55 @@ To embed, call new droplet.Editor() on a div.
 }
 </style>
 </head>
-<div id="editor">
-</div>
+<script src="dist/droplet-full.min.js"></script>
+<script src="index.coffee" type="text-coffeescript"></script>
+<div id="editor"></div>
 </html>
 ```
 
 ```coffeescript
-require ['droplet'], (droplet) ->
-  editor = new droplet.Editor document.getElementById('editor'), {
-    # Language
-    mode: 'coffeescript'
+editor = new droplet.Editor document.getElementById('editor'), {
+  # Language
+  mode: 'coffeescript'
 
-    # Options for the CoffeeScript parser
-    # (the JavaScript parser currently takes the same options)
-    modeOptions: {
-      functions: {
-        fd: { command: true, color: 'red'}
-        bk: { command: true, color: 'blue'}
-        sin: { command: false, value: true, color: 'green' }
-      }
-      categories: {
-        conditionals: { color: 'purple' }
-        loops: { color: 'green' }
-        functions: { color: '#49e' }
-      }
+  # Options for the CoffeeScript parser
+  # (the JavaScript parser currently takes the same options)
+  modeOptions: {
+    functions: {
+      fd: { command: true, color: 'red'}
+      bk: { command: true, color: 'blue'}
+      sin: { command: false, value: true, color: 'green' }
     }
-
-    # Palette description
-    palette: [
-     {
-        name: 'Palette category'
-        color: 'blue' # Header color
-        blocks: [
-          {
-            block: "for [1..3]\n  ``"
-            title: "Repeat some code" # title-text
-          },
-          {
-            block: "playSomething()"
-            expansion: "playSomething 'arguments', 100, 'too long to show'"
-          },
-        ]
-      }
-    ]
+    categories: {
+      conditionals: { color: 'purple' }
+      loops: { color: 'green' }
+      functions: { color: '#49e' }
+    }
   }
 
-  editor.setValue '''
-  for i in [1..10]
-    document.write 'hello world'
-  '''
+  # Palette description
+  palette: [
+   {
+      name: 'Palette category'
+      color: 'blue' # Header color
+      blocks: [
+        {
+          block: "for [1..3]\n  ``"
+          title: "Repeat some code" # title-text
+        },
+        {
+          block: "playSomething()"
+          expansion: "playSomething 'arguments', 100, 'too long to show'"
+        },
+      ]
+    }
+  ]
+}
+
+editor.setValue '''
+for i in [1..10]
+  document.write 'hello world'
+'''
 ```
 
 Contributing
@@ -96,43 +96,31 @@ Adding a Language
 Make a CoffeeScript (or JavaScript) file that looks like this:
 
 ```coffeescript
-define ['droplet-helper', 'droplet-parser'], (helper, parser) ->
-  class MyParser extends parser.Parser
-    markRoot: ->
+helper = require './helper.coffee'
+parser = require './parser.coffee'
 
-  return parser.wrapParser MyParser
+class MyParser extends parser.Parser
+  markRoot: ->
+
+module.exports = parser.wrapParser MyParser
 ```
 
-Put it in `src/myparser.coffee`. Add it to the build system in `requirejs-paths.json`:
+Put it in `src/myparser.coffee`.
 
-```javascript
-{
-  // etc...
-  "droplet-myparser": "myparser" // meaning "myparser.coffee" -- or whatever you named your file
-  // etc...
-}
-```
-
-Require it from the controller:
+Require it from `modes.coffee`:
 
 ```coffeescript
-define ['droplet-helper',
-    'droplet-coffee',
-    'droplet-javascript',
-    'droplet-myparser', # This is us!
-    'droplet-draw' # etc, etc..
-    # ...
-  ], (helper,
-  coffee,
-  javascript,
-  myparser, # Us again!
-  draw, # etc, etc..
-  # ...
-  ) ->
-    modes = {
-      # etc.. etc..
-      'mylanguage': myparser
-    }
+javascript = require './javascript.coffee'
+coffee = require './coffee.coffee'
+myparser = require './myparser.coffee'
+
+module.exports = {
+  'javascript': javascript
+  'coffee': coffee
+  'coffeescript': coffee
+  'myparser': myparser
+  'myparser-alias': myparser
+}
 ```
 
 Then grunt. Your mode is integrated!

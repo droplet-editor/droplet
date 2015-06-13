@@ -1,22 +1,11 @@
-requirejs = require 'requirejs'
 assert = require 'assert'
 fs = require 'fs'
 
-requirejs.config
-  nodeRequire: require
-  baseUrl: __dirname
-  paths:
-    'droplet-coffee': '../../dist/droplet'
-    'coffee-script': '../../vendor/coffee-script.js'
+Coffee = require '../../src/languages/coffee.coffee'
+
+coffee = new Coffee()
 
 describe 'Parser unity', (done) ->
-  coffee = null
-
-  before (done) ->
-    requirejs ['droplet-coffee'], (module) ->
-      coffee = new module()
-      done()
-
   testString = (str) ->
     it 'should round-trip ' + str.split('\n')[0] +
         (if str.split('\n').length > 1 then '...' else ''), ->
