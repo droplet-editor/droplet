@@ -1,11 +1,10 @@
-path = require 'path'
-
 browserify = require 'browserify'
 coffeeify = require 'coffeeify'
 watchify = require 'watchify'
 
 livereload = require 'tiny-lr'
 
+path = require 'path'
 fs = require 'fs'
 
 serveNoDottedFiles = (connect, options, middlewares) ->
@@ -23,13 +22,11 @@ module.exports = (grunt) ->
   # require() calls from different modules systems or
   # are already packaged.
   NO_PARSE = [
-    require.resolve('./vendor/coffee-script')
-    require.resolve('./vendor/acorn')
-    require.resolve('./vendor/skulpt.js')
+    path.resolve('./vendor/coffee-script.js')
+    path.resolve('./vendor/acorn.js')
+    path.resolve('./vendor/skulpt.js')
+    path.resolve('./dist/droplet-full.js')
   ]
-
-  try
-    NO_PARSE.push require.resolve './dist/droplet-full'
 
   grunt.initConfig
     pkg: grunt.file.readJSON 'package.json'
