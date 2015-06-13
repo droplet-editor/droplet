@@ -853,6 +853,44 @@ Editor::spliceIn = (node, location) ->
   @prepareNode node, container
   node.spliceIn location
 
+  # EMERGENCY PAREN PROTOCOL
+  container = container.visParent()
+
+  if container?
+    head = location
+    len = 0
+    until head is container.start
+      head = head.prev
+      len += head.stringify(@mode).length
+
+    node.spliceIn location
+
+    oldNode = node.stringify(@mode)
+
+    # Attempt a reparse to see if the structure changed.
+    # We will not try to do anything if the reparse fails
+    # (presumably whoever called us will bubble up or
+    # abort gracefully)
+    try
+      reparsed = @mode.parse(container.stringify(@mode), {
+        wrapAtRoot: true
+        context: container.parseContext
+      }).start.next.container
+
+      head = reparsed.start
+      newlen = 0
+
+      # Check to see if there is a block where we thought there
+      # was a block before (the things we just dropped in)
+      until newlen is len and head.type is 'blockStart' and head.container.stringify(@mode) is oldNode or
+          head is reparsed.end
+        head = head.next
+        newlen += head.stringify(@mode).length
+
+      # If not, insert parentheses
+      if head is reparsed.end
+        node.setLeadingText '(' + node.getLeadingText()
+        node.setTrailingText node.getTrailingText() + ')'
 
 Editor::prepareNode = (node, context) ->
   leading = node.getLeadingText()
