@@ -1,4 +1,4 @@
-# Droplet editor view
+# Droplet editor view.
 #
 # Copyright (c) 2014 Anthony Bau
 # MIT License

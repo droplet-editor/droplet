@@ -1309,7 +1309,10 @@ Editor::reparseRawReplace = (oldBlock, originalTrigger = oldBlock) ->
 
   # Attempt to parse the block we are given out-of-context
   try
-    newParse = @mode.parse(oldBlock.stringify(@mode), wrapAtRoot: true)
+    newParse = @mode.parse(oldBlock.stringify(@mode), {
+      wrapAtRoot: true
+      context: oldBlock.parseContext
+    })
     newBlock = newParse.start.next.container
     if newParse.start.next.container.end is newParse.end.prev and
         newBlock?.type is 'block'

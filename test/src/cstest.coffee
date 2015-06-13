@@ -1,5 +1,5 @@
 helper = require '../../src/helper.coffee'
-Coffee = require '../../src/coffee.coffee'
+Coffee = require '../../src/languages/coffee.coffee'
 
 asyncTest 'Parser configurability', ->
   customCoffee = new Coffee({

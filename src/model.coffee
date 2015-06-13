@@ -1,4 +1,4 @@
-# # ICE Editor model
+# Droplet model.
 #
 # Copyright (c) 2014 Anthony Bau
 # MIT License

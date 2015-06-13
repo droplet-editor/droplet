@@ -1,7 +1,7 @@
 assert = require 'assert'
 fs = require 'fs'
 
-Coffee = require '../../src/coffee.coffee'
+Coffee = require '../../src/languages/coffee.coffee'
 
 coffee = new Coffee()
 

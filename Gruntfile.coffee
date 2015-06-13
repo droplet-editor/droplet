@@ -25,6 +25,7 @@ module.exports = (grunt) ->
   NO_PARSE = [
     require.resolve('./vendor/coffee-script')
     require.resolve('./vendor/acorn')
+    require.resolve('./vendor/skulpt.js')
   ]
 
   try
@@ -92,21 +93,6 @@ module.exports = (grunt) ->
           transform: ['coffeeify']
           browserifyOptions:
             noParse: NO_PARSE
-
-    watchify:
-      options:
-        standalone: 'droplet'
-
-        callback: (b) ->
-          b.transform(coffeeify)
-          return b
-
-        browserifyOptions:
-          noParse: NO_PARSE
-
-      watch:
-        src: ['./src/main.coffee']
-        dest: 'dist/droplet-full.js'
 
     cssmin:
       options:
@@ -189,10 +175,7 @@ module.exports = (grunt) ->
     b = browserify {
       cache: {}
       packageCache: {}
-      noParse: [
-        require.resolve('./vendor/coffee-script')
-        require.resolve('./vendor/acorn')
-      ]
+      noParse: NO_PARSE
       delay: 100
       standalone: 'droplet'
     }

@@ -1,5 +1,5 @@
 helper = require '../../src/helper.coffee'
-JavaScript = require '../../src/javascript.coffee'
+JavaScript = require '../../src/languages/javascript.coffee'
 
 asyncTest 'JS dotted methods', ->
   customJS = new JavaScript({

@@ -1,4 +1,4 @@
-# # Parser.coffee
+# Droplet parser wrapper.
 # Utility functions for defining ICE editor parsers.
 #
 # Copyright (c) 2014 Anthony Bau
@@ -28,8 +28,7 @@ exports.ParserFactory = class ParserFactory
 # wrapper on the above functions
 # and a given parser function.
 exports.Parser = class Parser
-  constructor: (@text, opts) ->
-    @opts = helper.extend({}, opts)
+  constructor: (@text, @opts = {}) ->
     convertFunction = (x) ->
       if (typeof x is 'string') or x instanceof String
         return {text: x, display: x}
@@ -54,7 +53,7 @@ exports.Parser = class Parser
       wrapAtRoot: true
     }
     # Generate the list of tokens
-    do @markRoot
+    @markRoot opts.context
 
     # Sort by position and depth
     do @sortMarkup
@@ -109,6 +108,8 @@ exports.Parser = class Parser
       opts.socketLevel,
       opts.classes,
       false
+
+    block.parseContext = opts.parseContext # TODO unhack
 
     @addMarkup block, opts.bounds, opts.depth
 

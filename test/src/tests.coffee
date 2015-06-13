@@ -5,8 +5,8 @@ view = require '../../src/view.coffee'
 controller = require '../../src/controller.coffee'
 
 parser = require '../../src/parser.coffee'
-Coffee = require '../../src/coffee.coffee'
-JavaScript = require '../../src/javascript.coffee'
+Coffee = require '../../src/languages/coffee.coffee'
+JavaScript = require '../../src/languages/javascript.coffee'
 
 droplet = require '../../dist/droplet-full.js'
 

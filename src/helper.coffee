@@ -1,3 +1,7 @@
+# Droplet helper functions.
+#
+# Copyright (c) 2015 Anthony Bau.
+# MIT License.
 sax = require 'sax'
 
 exports.ANY_DROP = 0
@@ -101,6 +105,19 @@ exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
       result.ex - (result.descent - result.baseline)))
     fontMetricsCache[fontStyle] = result
   return result
+
+exports.clipLines = (lines, start, end) ->
+  if start.line isnt end.line
+    console.log 'pieces:',
+      "'#{lines[start.line][start.column..]}'",
+      "'#{lines[start.line + 1...end.line].join('\n')}'",
+      "'#{lines[end.line][...end.column]}'"
+    return lines[start.line][start.column..] +
+    lines[start.line + 1...end.line].join('\n') +
+    lines[end.line][...end.column]
+  else
+    console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
+    return lines[start.line][start.column...end.column]
 
 exports.getFontHeight = (family, size) ->
   metrics = fontMetrics family, size
