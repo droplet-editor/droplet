@@ -970,6 +970,30 @@ hook 'mousedown', 1, (point, event, state) ->
     # the hit test opportunity for this event.
     state.consumedHitTest = true
 
+# If the user clicks inside a block
+# and the block contains a button
+# which is either add or subtract button
+# call the handleButton callback
+hook 'mousedown', 4, (point, event, state) ->
+  if state.consumedHitTest then return
+  if not @trackerPointIsInMain(point) then return
+
+  mainPoint = @trackerPointToMain point
+  hitTestResult = @hitTest mainPoint, @tree
+
+  if hitTestResult?
+    hitTestBlock = @view.getViewNodeFor hitTestResult
+    str = hitTestResult.stringify(@mode)
+
+    if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
+      line = @mode.handleButton str, 'add-button', hitTestResult.classes
+      @populateBlock hitTestResult, line
+      state.consumedHitTest = true
+    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
+      line = @mode.handleButton str, 'subtract-button', hitTestResult.classes
+      @populateBlock hitTestResult, line
+      state.consumedHitTest = true
+
 # If the user lifts the mouse
 # before they have dragged five pixels,
 # abort stuff.
@@ -1987,15 +2011,10 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
     #   -> Finsihed.
     unless @textFocus.handwritten
       newParse = null
-      string = @textFocus.stringify(@mode).trim()
+      string = @mode.escapeString @textFocus.stringify(@mode)
       try
         newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-      catch
-        if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
-          try
-            string = escapeString string
-            newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-            @populateSocket @textFocus, string
+        @populateSocket @textFocus, string
 
       if newParse? and newParse.start.next.type is 'blockStart' and
           newParse.start.next.container.end.next is newParse.end
@@ -2080,6 +2099,16 @@ Editor::populateSocket = (socket, string) ->
       head = head.insert new model.NewlineToken()
 
   socket.notifyChange()
+
+Editor::populateBlock = (block, string) ->
+  newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
+
+  if newBlock?.start?.next?
+    @textFocus = null
+    block.start.prev.append newBlock.start
+    newBlock.end.append block.end.next
+    block.notifyChange()
+    @redrawMain()
 
 # Convenience hit-testing function
 Editor::hitTestTextInput = (point, block) ->

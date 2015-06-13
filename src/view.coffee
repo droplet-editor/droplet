@@ -29,6 +29,9 @@ DROPDOWN_ARROW_HEIGHT = 8
 DROP_TRIANGLE_COLOR = '#555'
 
 DEFAULT_OPTIONS =
+  buttonWidth: 15
+  buttonHeight: 15
+  buttonPadding: 6
   padding: 5
   indentWidth: 10
   indentTongueHeight: 10
@@ -1135,7 +1138,7 @@ exports.View = class View
     # must add their padding to that glue spacing, until we
     # reach an Indent, at which point we can stop.
     #
-    # Parents outside the indent must stil know that there is
+    # Parents outside the indent must still know that there is
     # a space between these line, but they wil not have
     # to colour in that space. This will be flaged
     # by the `draw` flag on the glue objects.
@@ -1641,13 +1644,44 @@ exports.View = class View
 
       super
 
+      @extraWidth = 0
+      if 'add-button' in @model.classes
+        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+      if 'subtract-button' in @model.classes
+        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
       # Blocks have a shape including a lego nubby "tab", and so
       # they need to be at least wide enough for tabWidth+tabOffset.
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
 
+      @minDimensions[@minDimensions.length - 1].width += @extraWidth
+
       return null
+
+    drawSelf: (ctx, style) ->
+      super
+
+      drawButton = (text, rect, ctx) =>
+        path = rect.toPath().reverse()
+        path.style.fillColor = @view.getColor @model.color
+        path.bevel = true;
+        path.draw ctx
+        textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
+        dx = rect.width - textElement.bounds().width
+        dy = rect.height - @view.opts.textHeight
+        #console.log dx, dy
+        textElement.translate
+          x: rect.x + Math.ceil(dx / 2)
+          y: rect.y + Math.ceil(dy)
+        textElement.draw ctx
+
+      if 'add-button' in @model.classes
+        drawButton '+', @addButtonRect, ctx
+      if 'subtract-button' in @model.classes
+        drawButton '-', @subtractButtonRect, ctx
 
     shouldAddTab: ->
       if @model.parent?
@@ -1655,6 +1689,17 @@ exports.View = class View
         parent?.type isnt 'socket'
       else not ('mostly-value' in @model.classes or
           'value-only' in @model.classes)
+
+    computePath: ->
+      super
+      #console.log @bounds
+      lastRect = @bounds[@bounds.length - 1]
+      start = lastRect.x + lastRect.width - @extraWidth
+      if 'add-button' in @model.classes
+        @addButtonRect = new @view.draw.Rectangle start, lastRect.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
+        start += @view.opts.buttonWidth + @view.opts.buttonPadding
+      if 'subtract-button' in @model.classes
+        @subtractButtonRect = new @view.draw.Rectangle start, lastRect.y + @view.opts.padding, @view.opts.buttonWidth, @view.opts.buttonHeight
 
     computeOwnPath: ->
       super

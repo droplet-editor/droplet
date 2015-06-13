@@ -462,6 +462,19 @@ Parser.drop = (block, context, pred) ->
   else
     return helper.ENCOURAGE
 
+Parser.escapeString = (str) ->
+  str = str.trim()
+  try
+    newParse = @parse(unparsedValue = str, wrapAtRoot: false)
+  catch
+    if str[0] is str[str.length - 1] and str[0] in ['"', '\'']
+      try
+        str = str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
+  return str
+
+Parser.handleButton = (text, command, classes) ->
+  return text
+
 Parser.empty = ''
 Parser.emptyIndent = ''
 
@@ -500,3 +513,7 @@ exports.wrapParser = (CustomParser) ->
       return [leading, trailing]
 
     drop: (block, context, pred) -> CustomParser.drop block, context, pred
+
+    escapeString: (str) -> CustomParser.escapeString str
+
+    handleButton: (text, command, classes) -> CustomParser.handleButton text, command, classes
