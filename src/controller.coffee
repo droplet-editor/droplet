@@ -4246,7 +4246,7 @@ hook 'populate', 0, ->
     # mousedown event.
     row = e.getDocumentPosition().row
     e.stop()
-    @fireEvent 'guttermousedown', {line: row, event: e.domEvent}
+    @fireEvent 'guttermousedown', [{line: row, event: e.domEvent}]
 
 hook 'mousedown', 11, (point, event, state) ->
   # Check if mousedown within the gutter
@@ -4274,7 +4274,13 @@ Editor::setBreakpoint = (row) ->
   @redrawGutter false
 
 Editor::clearBreakpoint = (row) ->
+  @aceEditor.session.clearBreakpoint(row)
   @breakpoints[row] = false
+  @redrawGutter false
+
+Editor::clearBreakpoints = (row) ->
+  @aceEditor.session.clearBreakpoints()
+  @breakpoints = {}
   @redrawGutter false
 
 Editor::getBreakpoints = (row) ->
