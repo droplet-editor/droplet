@@ -4235,7 +4235,7 @@ hook 'populate', 0, ->
   @annotations = {}
   @breakpoints = {}
 
-  @aceEditor.on 'guttermousedown', (e) ->
+  @aceEditor.on 'guttermousedown', (e) =>
     # Ensure that the click actually happened
     # on a line and not just in gutter space.
     target = e.domEvent.target
