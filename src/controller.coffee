@@ -4273,7 +4273,7 @@ Editor::setBreakpoint = (row) ->
   # selectively apply classes
   @redrawGutter false
 
-Editor::getBreakpoitns = (row) ->
+Editor::getBreakpoints = (row) ->
   @aceEditor.session.getBreakpoints()
 
 Editor::setAnnotations = (annotations) ->
@@ -4283,6 +4283,8 @@ Editor::setAnnotations = (annotations) ->
   for el, i in annotations
     @annotations[el.row] ?= []
     @annotations[el.row].push el
+
+  console.log 'Just set annotations. They are now', @annotations
 
   @redrawGutter false
 
@@ -4308,12 +4310,12 @@ Editor::addLineNumberForLine = (line) ->
   # Add annotation mouseover text
   # and graphics
   if @annotations[line]?
-    lineDiv.className += ' ' + @annotations[line].map((x) -> x.type).join(' ')
+    lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
     lineDiv.title = @annotations[line].map((x) -> x.text).join('\n')
 
   # Add breakpoint graphics
   if @breakpoints[line]
-    lineDiv.className += ' droplet-gutter-breakpoint'
+    lineDiv.className += ' droplet_breakpoint'
 
   lineDiv.style.top = "#{treeView.bounds[line].y}px"
   lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
@@ -4321,6 +4323,12 @@ Editor::addLineNumberForLine = (line) ->
   lineDiv.style.fontSize = @fontSize + 'px'
 
   @lineNumberWrapper.appendChild lineDiv
+
+getMostSevereAnnotationType = (arr) ->
+  for el, i in arr
+    if el.type is 'error'
+      return 'error'
+  return 'warning'
 
 Editor::findLineNumberAtCoordinate = (coord) ->
   treeView = @view.getViewNodeFor @tree
