@@ -3603,7 +3603,8 @@ hook 'redraw_main', 1, ->
   # jammed up against the edge of the screen.
   #
   # Default this extra space to fontSize (approx. 1 line).
-  @mainScrollerStuffing.style.height = "#{bounds.bottom() + (@options.extraBottomHeight ? @fontSize)}px"
+  @mainScrollerStuffing.style.height = "#{bounds.bottom() +
+    (@options.extraBottomHeight ? @fontSize)}px"
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
@@ -4287,7 +4288,9 @@ Editor::setAnnotations = (annotations) ->
 
 Editor::resizeGutter = ->
   @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-  @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
+  @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
+    (@view.getViewNodeFor(@tree).totalBounds?.bottom?() ? 0) +
+    (@options.extraBottomHeight ? @fontSize))}px"
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree
@@ -4358,7 +4361,7 @@ Editor::redrawGutter = (changedBox = true) ->
       delete @lineNumberTags[line]
 
   if changedBox
-    @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
+    @resizeGutter()
 
 Editor::setPaletteWidth = (width) ->
   @paletteWrapper.style.width = width + 'px'
