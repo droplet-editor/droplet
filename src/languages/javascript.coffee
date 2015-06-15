@@ -207,7 +207,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           return [node.type, 'mostly-block']
       if node.type.match(/Expression$/)?
         return [node.type, 'mostly-value']
-      else if node.type.match(/(Statement|Declaration)$/)?
+      else if node.type.match(/Declaration$/)?
+        return [node.type, 'block-only']
+      else if node.type.match(/Statement$/)?
         return [node.type, 'mostly-block']
       else
         return [node.type, 'any-drop']
@@ -416,7 +418,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.test?
           @jsSocketAndMark indentDepth, node.test, depth + 1, 10
         if node.update?
-          @jsSocketAndMark indentDepth, node.update, depth + 1, 10
+          @jsSocketAndMark indentDepth, node.update, depth + 1, 10, null, ['for-statement-update']
 
         @mark indentDepth, node.body, depth + 1
       when 'BlockStatement'
@@ -585,7 +587,9 @@ JavaScriptParser.drop = (block, context, pred) ->
     else if 'value-only' in block.classes or
         'mostly-value' in block.classes or
         'any-drop' in block.classes or
-        'for-statement-init' in context.classes
+        'for-statement-init' in context.classes or
+        ('mostly-block' in block.classes and
+        'for-statement-update' in context.classes)
       return helper.ENCOURAGE
 
     else if 'mostly-block' in block.classes
