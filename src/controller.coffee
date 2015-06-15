@@ -3002,7 +3002,7 @@ Editor::copyAceEditor = ->
   @resizeBlockMode()
   return @setValue_raw @getAceValue()
 
-hook 'populate', 0, ->
+hook 'populate', 1, ->
   @aceElement = document.createElement 'div'
   @aceElement.className = 'droplet-ace'
 
@@ -4226,54 +4226,68 @@ hook 'populate', 0, ->
 
   @lineNumberTags = {}
 
-  @dropletElement.appendChild @gutter
+  @mainScroller.appendChild @gutter
 
-Editor::addGutterDecoration = (row, className) ->
-  if not @gutterDecorations[row]
-    @gutterDecorations[row] = []
-  decorations = @gutterDecorations[row]
-  if className in decorations then return
-  decorations.push className
-  # rebuild class attribute on row # row
-  # overkill here:
-  @redrawMain()
+  # Record of embedder-set annotations
+  # and breakpoints used in rendering.
+  # Should mirror ace all the time.
+  @annotations = {}
+  @breakpoints = {}
 
-Editor::removeGutterDecoration = (row, className) ->
-  @redrawMain()
-  if not @gutterDecorations[row] then return
-  decorations = @gutterDecorations[row]
-  if className not in decorations
-    return
-  decorations.splice(decorations.indexOf(className), 1)
-  if decorations.length == 0
-    @gutterDecorations[row] = null
-  # rebuild class attribute on row # row
-  # overkill here:
-  @redrawMain()
+  @aceEditor.on 'guttermousedown', (e) ->
+    # Ensure that the click actually happened
+    # on a line and not just in gutter space.
+    target = e.domEvent.target
+    if target.className.indexOf('ace_gutter-cell') is -1
+      return
 
-Editor::hasGutterDecoration = (row, className) ->
-  if not @gutterDecorations[row] then return false
-  return className in @gutterDecorations[row]
-
-Editor::toggleGutterDecoration = (row, className) ->
-  if @hasGutterDecoration(row, className)
-    @removeGutterDecoration row, className
-  else
-    @addGutterDecoration row, className
+    # Otherwise, get the row and fire a Droplet gutter
+    # mousedown event.
+    row = e.getDocumentPosition().row
+    e.stop()
+    @fireEvent 'guttermousedown', {line: row, event: e.domEvent}
 
 hook 'mousedown', 11, (point, event, state) ->
-  # check if mousedown within the gutter
+  # Check if mousedown within the gutter
   if not @trackerPointIsInGutter(point) then return
+
+  # Find the line that was clicked
   mainPoint = @trackerPointToMain point
   treeView = @view.getViewNodeFor @tree
   clickedLine = @findLineNumberAtCoordinate mainPoint.y
   @fireEvent 'guttermousedown', [{line: clickedLine, event: event}]
-  true
+
+  # Prevent other hooks from taking this event
+  return true
+
+Editor::setBreakpoint = (row) ->
+  # Delegate
+  @aceEditor.session.setBreakpoint(row)
+
+  # Add to our own records
+  @breakpoints[row] = true
+
+  # Redraw gutter.
+  # TODO: if this ends up being a performance issue,
+  # selectively apply classes
+  @redrawGutter false
+
+Editor::getBreakpoitns = (row) ->
+  @aceEditor.session.getBreakpoints()
+
+Editor::setAnnotations = (annotations) ->
+  @aceEditor.session.setAnnotations annotations
+
+  @annotations = {}
+  for el, i in annotations
+    @annotations[el.row] ?= []
+    @annotations[el.row].push el
+
+  @redrawGutter false
 
 Editor::resizeGutter = ->
   @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
   @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
-
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree
@@ -4287,9 +4301,18 @@ Editor::addLineNumberForLine = (line) ->
     @lineNumberTags[line] = lineDiv
 
   lineDiv.className = 'droplet-gutter-line'
-  if @gutterDecorations[line]
-    lineDiv.className += ' ' + @gutterDecorations[line].join(' ')
-  lineDiv.style.top = "#{treeView.bounds[line].y - @scrollOffsets.main.y}px"
+
+  # Add annotation mouseover text
+  # and graphics
+  if @annotations[line]?
+    lineDiv.className += ' ' + @annotations[line].map((x) -> x.type).join(' ')
+    lineDiv.title = @annotations[line].map((x) -> x.text).join('\n')
+
+  # Add breakpoint graphics
+  if @breakpoints[line]
+    lineDiv.className += ' droplet-gutter-breakpoint'
+
+  lineDiv.style.top = "#{treeView.bounds[line].y}px"
   lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
   lineDiv.style.height =  treeView.bounds[line].height + 'px'
   lineDiv.style.fontSize = @fontSize + 'px'
@@ -4318,6 +4341,9 @@ Editor::findLineNumberAtCoordinate = (coord) ->
   return pivot
 
 hook 'redraw_main', 0, (changedBox) ->
+  @redrawGutter(changedBox)
+
+Editor::redrawGutter = (changedBox = true) ->
   treeView = @view.getViewNodeFor @tree
 
   top = @findLineNumberAtCoordinate @scrollOffsets.main.y

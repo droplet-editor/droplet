@@ -38,7 +38,7 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
   }
 '''
 
-window.editor = editor = null
+editor = null
 
 # Droplet itself
 createEditor = (options) ->
@@ -55,6 +55,8 @@ createEditor = (options) ->
 
   editor.on 'change', ->
     localStorage.setItem 'text', editor.getValue()
+
+  window.editor = editor
 
 createEditor JSON.parse dropletConfig.getValue()
 

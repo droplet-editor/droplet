@@ -194,6 +194,7 @@ module.exports = (grunt) ->
         console.log 'Livereload server listening on 35729'
 
       w.on 'update', ->
+        console.log 'File changed...'
         stream = fs.createWriteStream 'dist/droplet-full.js'
         w.bundle().pipe stream
         stream.once 'close', ->
