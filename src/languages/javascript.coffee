@@ -389,16 +389,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           else
             @jsSocketAndMark indentDepth, currentElif, depth + 1, 10
             currentElif = null
-      when 'ForStatement'
-        @jsBlock node, depth, bounds
-        if node.init?
-          @jsSocketAndMark indentDepth, node.init, depth + 1, NEVER_PAREN, null, ['for-statement-init']
-        if node.test?
-          @jsSocketAndMark indentDepth, node.test, depth + 1, 10
-        if node.update?
-          @jsSocketAndMark indentDepth, node.update, depth + 1, 10
-
-        @mark indentDepth, node.body, depth + 1
       when 'ForInStatement'
         @jsBlock node, depth, bounds
         if node.left?
