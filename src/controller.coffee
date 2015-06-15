@@ -1256,6 +1256,9 @@ hook 'mouseup', 1, (point, event, state) ->
 
       @clearHighlightCanvas()
 
+      # Fire an event for a sound
+      @fireEvent 'sound', [@lastHighlight.type]
+
       # Depending on what the highlighted element is,
       # we might want to drop the block at its
       # beginning or at its end.
