@@ -4273,6 +4273,10 @@ Editor::setBreakpoint = (row) ->
   # selectively apply classes
   @redrawGutter false
 
+Editor::clearBreakpoint = (row) ->
+  @breakpoints[row] = false
+  @redrawGutter false
+
 Editor::getBreakpoints = (row) ->
   @aceEditor.session.getBreakpoints()
 
