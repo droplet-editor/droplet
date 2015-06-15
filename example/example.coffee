@@ -71,10 +71,10 @@ configCurrentlyOut = localStorage.getItem('configOut') is 'yes'
 
 updateConfigDrawerState = ->
   if configCurrentlyOut
-    $('#left-panel').css 'display', 'block'
+    $('#left-panel').css 'left', '0px'
     $('#right-panel').css 'left', '525px'
   else
-    $('#left-panel').css 'display', 'none'
+    $('#left-panel').css 'left', '-500px'
     $('#right-panel').css 'left', '25px'
 
   editor.resize()
@@ -85,5 +85,4 @@ $('#close').on 'click', ->
   configCurrentlyOut = not configCurrentlyOut
   updateConfigDrawerState()
 
-setTimeout updateConfigDrawerState, 0
-
+updateConfigDrawerState()
