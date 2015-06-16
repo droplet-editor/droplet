@@ -3621,7 +3621,10 @@ hook 'redraw_palette', 0, ->
 hook 'populate', 0, ->
   @fontSize = 15
   @fontFamily = 'Courier New'
-  @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
+
+  metrics = helper.fontMetrics(@fontFamily, @fontSize)
+  @fontAscent = metrics.prettytop
+  @fontDescent = metrics.descent
 
 Editor::setFontSize_raw = (fontSize) ->
   unless @fontSize is fontSize
@@ -3633,7 +3636,9 @@ Editor::setFontSize_raw = (fontSize) ->
     @view.opts.textHeight =
       @dragView.opts.textHeight = helper.getFontHeight @fontFamily, @fontSize
 
-    @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
+    metrics = helper.fontMetrics(@fontFamily, @fontSize)
+    @fontAscent = metrics.prettytop
+    @fontDescent = metrics.descent
 
     @view.clearCache()
 
@@ -4294,8 +4299,6 @@ Editor::setAnnotations = (annotations) ->
     @annotations[el.row] ?= []
     @annotations[el.row].push el
 
-  console.log 'Just set annotations. They are now', @annotations
-
   @redrawGutter false
 
 Editor::resizeGutter = ->
@@ -4321,7 +4324,7 @@ Editor::addLineNumberForLine = (line) ->
   # and graphics
   if @annotations[line]?
     lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
-    lineDiv.style.backgroundPosition = "2px #{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+    #lineDiv.style.backgroundPosition = "2px #{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
     lineDiv.title = @annotations[line].map((x) -> x.text).join('\n')
 
   # Add breakpoint graphics
@@ -4329,17 +4332,25 @@ Editor::addLineNumberForLine = (line) ->
     lineDiv.className += ' droplet_breakpoint'
 
   lineDiv.style.top = "#{treeView.bounds[line].y}px"
+
   lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+  lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @fontDescent}"
+
   lineDiv.style.height =  treeView.bounds[line].height + 'px'
   lineDiv.style.fontSize = @fontSize + 'px'
 
   @lineNumberWrapper.appendChild lineDiv
 
+TYPE_SEVERITY = {
+  'error': 2
+  'warning': 1
+  'info': 0
+}
+TYPE_FROM_SEVERITY = ['info', 'warning', 'error']
 getMostSevereAnnotationType = (arr) ->
-  for el, i in arr
-    if el.type is 'error'
-      return 'error'
-  return 'warning'
+  result = TYPE_FROM_SEVERITY[Math.max.apply(this, arr.map((x) -> TYPE_SEVERITY[x.type]))]
+  console.log 'annotation type', result
+  return result
 
 Editor::findLineNumberAtCoordinate = (coord) ->
   treeView = @view.getViewNodeFor @tree
