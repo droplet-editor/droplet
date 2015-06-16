@@ -286,6 +286,7 @@ exports.Editor = class Editor
     # ## Document initialization
     # We start of with an empty document
     @tree = new model.Segment()
+    @tree.isRoot = true
     @tree.start.insert @cursor
 
     @resizeBlockMode()
