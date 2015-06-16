@@ -4384,7 +4384,10 @@ hook 'populate', 1, ->
         blocks = @mode.parse str
 
         @addMicroUndoOperation 'CAPTURE_POINT'
-        if @lassoSegment?
+        if @lassoSegment? and @inTree(@lassoSegment)
+          # Make sure the cursor is outside the lasso segment
+          # (although it should be already)
+          @moveCursorTo @lassoSegment.end.nextVisibleToken(), true
           @addMicroUndoOperation new PickUpOperation @lassoSegment
           @spliceOut @lassoSegment; @lassoSegment = null
 
