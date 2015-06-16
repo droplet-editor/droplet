@@ -4321,6 +4321,7 @@ Editor::addLineNumberForLine = (line) ->
   # and graphics
   if @annotations[line]?
     lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
+    lineDiv.style.backgroundPosition = "2px #{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
     lineDiv.title = @annotations[line].map((x) -> x.text).join('\n')
 
   # Add breakpoint graphics
