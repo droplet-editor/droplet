@@ -24,6 +24,7 @@ CURSOR_WIDTH_DECREASE = 3
 CURSOR_HEIGHT_DECREASE = 2
 CURSOR_UNFOCUSED_OPACITY = 0.5
 DEBUG_FLAG = false
+DROPDOWN_SCROLLBAR_PADDING = 17
 
 ANY_DROP = helper.ANY_DROP
 BLOCK_ONLY = helper.BLOCK_ONLY
@@ -1800,6 +1801,11 @@ hook 'populate', 1, ->
 
         @redrawTextInput()
 
+        # Update the dropdown size to match
+        # the new length, if it is visible.
+        if @dropdownVisible
+          @formatDropdown()
+
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
   if @showPaletteInTextMode and @paletteEnabled
@@ -2191,10 +2197,23 @@ hook 'populate', 0, ->
   @dropdownElement.className = 'droplet-dropdown'
   @wrapperElement.appendChild @dropdownElement
 
+  @dropdownVisible = false
+
+# Update the dropdown to match
+# the current text focus font and size.
+Editor::formatDropdown = ->
+  @dropdownElement.style.fontFamily = @fontFamily
+  @dropdownElement.style.fontSize = @fontSize
+  @dropdownElement.style.minWidth = @view.getViewNodeFor(@textFocus).bounds[0].width
+
 Editor::showDropdown = ->
   if @textFocus.hasDropdown()
+    @dropdownVisible = true
+
     @dropdownElement.innerHTML = ''
     @dropdownElement.style.display = 'inline-block'
+
+    @formatDropdown()
 
     # Closure the text focus; dropdown should work
     # even after unfocused
@@ -2204,10 +2223,8 @@ Editor::showDropdown = ->
       div.innerHTML = el.display
       div.className = 'droplet-dropdown-item'
 
-      # Match fonts
-      div.style.fontFamily = @fontFamily
-      div.style.fontSize = @fontSize
       div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
+      div.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
 
       setText = (text) =>
         # Attempting to populate the socket after the dropdown has closed should no-op
@@ -2233,6 +2250,7 @@ Editor::showDropdown = ->
     @dropdownElement.style.minWidth = location.width + 'px'
 
 Editor::hideDropdown= ->
+  @dropdownVisible = false
   @dropdownElement.style.display = 'none'
 
 hook 'dblclick', 0, (point, event, state) ->
