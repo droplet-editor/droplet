@@ -3223,6 +3223,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       translatingElements.push div
 
       div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+      # Add annotation
+      if @annotations[line]?
+        div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
       div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
       @dropletElement.appendChild div
@@ -3404,6 +3407,9 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
             lineHeight - aceScrollTop}px"
 
         div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+        # Add annotation
+        if @annotations[line]?
+          div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
         translatingElements.push div
 
@@ -4240,6 +4246,11 @@ hook 'populate', 0, ->
   @annotations = {}
   @breakpoints = {}
 
+  @tooltipElement = document.createElement 'div'
+  @tooltipElement.className = 'droplet-tooltip'
+
+  @dropletElement.appendChild @tooltipElement
+
   @aceEditor.on 'guttermousedown', (e) =>
     # Ensure that the click actually happened
     # on a line and not just in gutter space.
@@ -4324,7 +4335,18 @@ Editor::addLineNumberForLine = (line) ->
   # and graphics
   if @annotations[line]?
     lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
-    lineDiv.title = @annotations[line].map((x) -> x.text).join('\n')
+
+    title = @annotations[line].map((x) -> x.text).join('\n')
+
+    lineDiv.addEventListener 'mouseover', =>
+      @tooltipElement.innerText =
+        @tooltipElement.textContent = title
+      @tooltipElement.style.display = 'block'
+    lineDiv.addEventListener 'mousemove', (event) =>
+      @tooltipElement.style.left = event.pageX
+      @tooltipElement.style.top = event.pageY
+    lineDiv.addEventListener 'mouseout', =>
+      @tooltipElement.style.display = 'none'
 
   # Add breakpoint graphics
   if @breakpoints[line]
