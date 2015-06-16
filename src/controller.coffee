@@ -4324,7 +4324,6 @@ Editor::addLineNumberForLine = (line) ->
   # and graphics
   if @annotations[line]?
     lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
-    #lineDiv.style.backgroundPosition = "2px #{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
     lineDiv.title = @annotations[line].map((x) -> x.text).join('\n')
 
   # Add breakpoint graphics
@@ -4348,9 +4347,7 @@ TYPE_SEVERITY = {
 }
 TYPE_FROM_SEVERITY = ['info', 'warning', 'error']
 getMostSevereAnnotationType = (arr) ->
-  result = TYPE_FROM_SEVERITY[Math.max.apply(this, arr.map((x) -> TYPE_SEVERITY[x.type]))]
-  console.log 'annotation type', result
-  return result
+  TYPE_FROM_SEVERITY[Math.max.apply(this, arr.map((x) -> TYPE_SEVERITY[x.type]))]
 
 Editor::findLineNumberAtCoordinate = (coord) ->
   treeView = @view.getViewNodeFor @tree
