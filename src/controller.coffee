@@ -3638,6 +3638,7 @@ Editor::setFontSize_raw = (fontSize) ->
 
     @paletteHeader.style.fontSize = "#{fontSize}px"
     @gutter.style.fontSize = "#{fontSize}px"
+    @tooltipElement.style.fontSize = "#{fontSize}px"
 
     @view.opts.textHeight =
       @dragView.opts.textHeight = helper.getFontHeight @fontFamily, @fontSize
@@ -3665,6 +3666,7 @@ Editor::setFontFamily = (fontFamily) ->
 
   @view.clearCache(); @dragView.clearCache()
   @gutter.style.fontFamily = fontFamily
+  @tooltipElement.style.fontFamily = fontFamily
 
   @redrawMain()
   @rebuildPalette()
