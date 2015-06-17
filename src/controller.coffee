@@ -1088,7 +1088,7 @@ hook 'mousemove', 1, (point, event, state) ->
               w: 0
               h: 0
               acceptLevel: acceptLevel
-              _ice_node: head.container
+              _droplet_node: head.container
 
       head = head.next
 
@@ -1170,8 +1170,8 @@ hook 'mousemove', 0, (point, event, state) ->
           distance = mainPoint.from(point)
           distance.y *= 2; distance = distance.magnitude()
           if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-             @view.getViewNodeFor(point._ice_node).highlightArea?
-            best = point._ice_node
+             @view.getViewNodeFor(point._droplet_node).highlightArea?
+            best = point._droplet_node
             min = distance
 
       if best isnt @lastHighlight
