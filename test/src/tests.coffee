@@ -129,7 +129,7 @@ asyncTest 'Location serialization unity', ->
 
   head = document.start.next
   until head is document.end
-    strictEqual document.getTokenAtLocation(head.getSerializedLocation()), head, 'Equality for ' + head.type
+    strictEqual document.getFromLocation(head.getLocation()), head, 'Equality for ' + head.type
     head = head.next
   start()
 
@@ -368,7 +368,7 @@ asyncTest 'View: sockets caching', ->
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
-  socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
+  socketView = view_.getViewNodeFor getNthToken(document, 8).container
 
   strictEqual socketView.model.stringify(coffee), '[[[]]]', 'Correct block selected'
 
@@ -376,7 +376,7 @@ asyncTest 'View: sockets caching', ->
     view_.opts.textHeight + 6 * view_.opts.padding,
     'Original height is O.K.'
 
-  (block = document.getTokenAtLocation(9).container).spliceOut()
+  (block = getNthToken(document, 9).container).spliceOut()
   block.spliceIn(document.getBlockOnLine(1).start.prev.prev)
   documentView.layout()
 
@@ -439,7 +439,7 @@ asyncTest 'View: triple-quote sockets caching issue', ->
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
-  socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+  socketView = view_.getViewNodeFor getNthToken(document, 4).container
 
   strictEqual socketView.model.stringify(coffee), '\'hi\'', 'Correct block selected'
   strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
@@ -465,7 +465,7 @@ asyncTest 'View: triple-quote sockets caching issue', ->
   socketView.model.notifyChange()
   documentView.layout()
 
-  socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+  socketView = view_.getViewNodeFor getNthToken(document, 4).container
 
   strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
   strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'
@@ -482,8 +482,8 @@ asyncTest 'View: empty socket heights', ->
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
-  emptySocketView = view_.getViewNodeFor document.getTokenAtLocation(6).container
-  fullSocketView = view_.getViewNodeFor document.getTokenAtLocation(9).container
+  emptySocketView = view_.getViewNodeFor getNthToken(document, 6).container
+  fullSocketView = view_.getViewNodeFor getNthToken(document, 9).container
 
   strictEqual emptySocketView.dimensions[0].height, fullSocketView.dimensions[0].height, 'Full and empty sockets same height'
   start()
@@ -933,3 +933,8 @@ asyncTest 'Controller: enablePalette false', ->
 
   setTimeout verifyPaletteHidden, 500
 
+getNthToken = (document, n) ->
+  head = document.start
+  for [1...n]
+    head = head.next
+  return head

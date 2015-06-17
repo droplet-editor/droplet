@@ -29,7 +29,7 @@ exports.isTreeValid = (tree) ->
     lastHare = hare
     hare = hare.next
     unless hare?
-      window._ice_debug_lastHare = lastHare
+      window._droplet_debug_lastHare = lastHare
       throw new Error 'Ran off the end of the document before EOF'
     if lastHare isnt hare.prev
       throw new Error 'Linked list is not properly bidirectional'
@@ -49,7 +49,7 @@ exports.isTreeValid = (tree) ->
     lastHare = hare
     hare = hare.next
     unless hare?
-      window._ice_debug_lastHare = lastHare
+      window._droplet_debug_lastHare = lastHare
       throw new Error 'Ran off the end of the document before EOF'
     if lastHare isnt hare.prev
       throw new Error 'Linked list is not properly bidirectional'
@@ -235,18 +235,11 @@ exports.Container = class Container
   # using the `stringify()` method on all of
   # the tokens that we contain.
   stringify: (config) ->
-    emptySocket = config.empty or ''
-    emptyIndent = config.emptyIndent or ''
     str = ''
 
-    head = @start.next
-    state =
-      indent: ''
-      emptySocket: emptySocket
-      emptyIndent: emptyIndent
-
+    head = @start
     until head is @end
-      str += head.stringify state
+      str += head.stringify config
       head = head.next
 
     return str
@@ -426,44 +419,6 @@ exports.Container = class Container
         head.start.parent = head.end.parent = this
         head.correctParentTree()
 
-  # ## find ##
-  # A utility function for finding the innermost
-  # token fitting (fn), assuming there is only
-  # one such token.
-  find: (fn, excludes = []) ->
-    head = @start
-
-    until head is @end
-      examined = if head instanceof StartToken then head.container else head
-
-      # Skip over things in the excludes array
-      if examined in excludes
-        head = examined.end
-
-      unless head instanceof EndToken or head.type in ['newline', 'cursor']
-        if fn(examined) then return examined
-
-      head = head.next
-
-    if fn(this) then return this
-
-  # ## getTokenAtLocation ##
-  # Get the `loc`th token from the start.
-  getTokenAtLocation: (loc) ->
-    # A location of "null" means token "null"
-    if not loc? then null
-    else if loc is 0 then @start
-    else
-      head = @start; count = 1
-
-      until count is loc or head is @end
-        unless head?.type is 'cursor' then count++
-        head = head.next
-
-      head = head.next while head?.type is 'cursor'
-
-      return head
-
   # ## getBlockOnLine ##
   # Get the innermost block that contains
   # the given line.
@@ -513,6 +468,42 @@ exports.Container = class Container
 
   clearLineMarks: ->
     @lineMarkStyles = []
+
+  # ## getFromLocation ##
+  # Given a DropletLocation, find the token at that row, column, and length.
+  getFromLocation: (location) ->
+    head = @start
+
+    row = 0
+
+    until row is location.row
+      head = head.next
+      if head instanceof NewlineToken
+        row += 1
+
+    if head instanceof NewlineToken
+      col = head.stringify().length - 1
+    else
+      col = head.stringify().length
+
+    until col >= location.col
+      head = head.next
+      col += head.stringify().length
+
+    # If _we_ were the one who made the length equal,
+    # move over; locations always refer to the _start_ of the token.
+    if col is location.col and head.stringify().length > 0
+      head = head.next
+
+    if location.length?
+      until (head.container ? head).stringify().length is location.length
+        head = head.next
+
+    if location.type?
+      until head.type is location.type
+        head = head.next
+
+    return head
 
 # Token
 # ==================
@@ -649,8 +640,48 @@ exports.Token = class Token
       head = head.prev
     return count
 
+  # Get the indent level here
+  getIndent: ->
+    head = @
+    prefix = ''
+    while head?
+      if head.type is 'indent'
+        prefix = head.prefix + prefix
+      head = head.parent
+    return prefix
+
+  getLocation: ->
+    location = new DropletLocation(); head = @prev
+
+    location.type = @type
+    if @ instanceof StartToken or @ instanceof EndToken
+      location.length = @container.stringify().length
+    else
+      location.length = @stringify().length
+
+    until (not head?) or head instanceof NewlineToken
+      location.col += head.stringify().length
+      head = head.prev
+    if head?
+      location.col += head.stringify().length - 1
+
+    while head?
+      if head instanceof NewlineToken
+        location.row += 1
+      head = head.prev
+
+    return location
+
   stringify: -> ''
   serialize: -> ''
+
+class DropletLocation
+  constructor: (
+    @row = 0,
+    @col = 0,
+    @type = null,
+    @length = null
+  ) ->
 
 exports.StartToken = class StartToken extends Token
   constructor: (@container) ->
@@ -744,9 +775,11 @@ exports.Block = class Block extends Container
 
 exports.SocketStartToken = class SocketStartToken extends StartToken
   constructor: (@container) -> super; @type = 'socketStart'
-  stringify: (state) ->
+  stringify: (config) ->
     if @next is @container.end or
-      @next.type is 'text' and @next.value is '' then state.emptySocket else ''
+        @next.type is 'text' and @next.value is ''
+      return config.empty ? ''
+    else ''
 
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
@@ -785,15 +818,13 @@ exports.Socket = class Socket extends Container
 
 exports.IndentStartToken = class IndentStartToken extends StartToken
   constructor: (@container) -> super; @type = 'indentStart'
-  stringify: (state) ->
-    state.indent += @container.prefix; ''
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: (state) ->
-    unless @container.prefix.length is 0
-      state.indent = state.indent[...-@container.prefix.length]
-    if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyIndent else ''
+  stringify: (config) ->
+    if @previousVisibleToken().previousVisibleToken() is @container.start
+      return config.emptyIndent ? ''
+    else ''
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
@@ -867,14 +898,14 @@ exports.TextToken = class TextToken extends Token
     @_value = value
     @notifyChange()
 
-  stringify: (state) -> @_value
+  stringify: -> @_value
   serialize: -> helper.escapeXMLText @_value
 
   clone: -> new TextToken @_value
 
 exports.NewlineToken = class NewlineToken extends Token
   constructor: (@specialIndent) -> super; @type = 'newline'
-  stringify: (state) -> '\n' + (@specialIndent ? state.indent)
+  stringify: -> '\n' + (@specialIndent ? @getIndent())
   serialize: -> '\n'
   clone: -> new NewlineToken @specialIndent
 
