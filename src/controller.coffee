@@ -766,14 +766,14 @@ class PickUpOperation extends UndoOperation
     while beforeToken?.prev? and beforeToken.type in ['newline', 'segmentStart', 'cursor']
       beforeToken = beforeToken.prev
 
-    @before = beforeToken?.getSerializedLocation() ? null
+    @before = beforeToken?.getLocation() ? null
 
   undo: (editor) ->
     # If the block used to be at null, we don't need to do anything.
     unless @before? then return
 
     # Move a clone into position.
-    editor.spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @before
+    editor.spliceIn (clone = @block.clone()), editor.tree.getFromLocation @before
 
     # If the block was the lasso select, register it
     # as such.
@@ -788,7 +788,7 @@ class PickUpOperation extends UndoOperation
     unless @before? then return
 
     # Find the block we want to remove
-    blockStart = editor.tree.getTokenAtLocation @before
+    blockStart = editor.tree.getFromLocation @before
     until blockStart.type is @block.start.type then blockStart = blockStart.next
 
     # Move it to null.
@@ -800,12 +800,12 @@ class PickUpOperation extends UndoOperation
 
     # Move the cursor somewhere close to what we
     # just deleted.
-    return editor.tree.getTokenAtLocation @before
+    return editor.tree.getFromLocation @before
 
 class DropOperation extends UndoOperation
   constructor: (block, dest) ->
     @block = block.clone()
-    @dest = dest?.getSerializedLocation() ? null
+    @dest = dest?.getLocation() ? null
 
     if dest?.type is 'socketStart'
       @displacedSocketText = dest.container.contents()
@@ -816,7 +816,7 @@ class DropOperation extends UndoOperation
     unless @dest? then return
 
     # Find the block we want to remove
-    blockStart = editor.tree.getTokenAtLocation @dest
+    blockStart = editor.tree.getFromLocation @dest
     until blockStart.type is @block.start.type then blockStart = blockStart.next
 
     # Move it to null.
@@ -826,18 +826,18 @@ class DropOperation extends UndoOperation
     # socket text from dropping a block
     # into a socket. If so, do so.
     if @displacedSocketText?
-      editor.tree.getTokenAtLocation(@dest).insert @displacedSocketText.clone()
+      editor.tree.getFromLocation(@dest).insert @displacedSocketText.clone()
 
     # Move the cursor somewhere close to what we
     # just deleted.
-    return editor.tree.getTokenAtLocation @dest
+    return editor.tree.getFromLocation @dest
 
   redo: (editor) ->
     # If the operation was a no-op, redo is a no-op.
     unless @dest? then return
 
     # Move a clone into position.
-    editor.spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @dest
+    editor.spliceIn (clone = @block.clone()), editor.tree.getFromLocation @dest
 
     # Move the cursor to the end of it.
     return clone.end
@@ -1734,28 +1734,28 @@ hook 'rebuild_palette', 1, ->
 class TextChangeOperation extends UndoOperation
   constructor: (socket, @before, editor) ->
     @after = socket.stringify(editor.mode.empty)
-    @socket = socket.start.getSerializedLocation()
+    @socket = socket.start.getLocation()
 
   undo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
+    socket = editor.tree.getFromLocation(@socket).container
     editor.populateSocket socket, @before
 
   redo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
+    socket = editor.tree.getFromLocation(@socket).container
     editor.populateSocket @socket, @after
 
 class TextReparseOperation extends UndoOperation
   constructor: (socket, @before) ->
     @after = socket.start.next.container
-    @socket = socket.start.getSerializedLocation()
+    @socket = socket.start.getLocation()
 
   undo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
+    socket = editor.tree.getFromLocation(@socket).container
     editor.spliceOut socket.start.next.container
     socket.start.insert new model.TextToken @before
 
   redo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
+    socket = editor.tree.getFromLocation(@socket).container
     socket.start.append socket.end; socket.notifyChange()
     editor.spliceIn @after.clone(), socket
 
@@ -2311,34 +2311,34 @@ hook 'mouseup', 0, (point, event, state) ->
 # dropped in order to work.
 class CreateSegmentOperation extends UndoOperation
   constructor: (segment) ->
-    @first = segment.start.getSerializedLocation()
-    @last = segment.end.getSerializedLocation() - 2
+    @first = segment.start.getLocation()
+    @last = segment.end.getLocation() - 2
     @lassoSelect = segment.isLassoSegment
 
   undo: (editor) ->
-    editor.tree.getTokenAtLocation(@first).container.unwrap()
+    editor.tree.getFromLocation(@first).container.unwrap()
 
-    return editor.tree.getTokenAtLocation @first
+    return editor.tree.getFromLocation @first
 
   redo: (editor) ->
     segment = new model.Segment()
     segment.isLassoSegment = @lassoSelect
-    segment.wrap editor.tree.getTokenAtLocation(@first),
-      editor.tree.getTokenAtLocation(@last)
+    segment.wrap editor.tree.getFromLocation(@first),
+      editor.tree.getFromLocation(@last)
 
     return segment.end
 
 class DestroySegmentOperation extends UndoOperation
   constructor: (segment) ->
-    @first = segment.start.getSerializedLocation()
-    @last = segment.end.getSerializedLocation() - 2
+    @first = segment.start.getLocation()
+    @last = segment.end.getLocation() - 2
     @lassoSelect = segment.isLassoSegment
 
   undo: (editor) ->
     segment = new model.Segment()
     segment.isLassoSegment = @lassoSelect
-    segment.wrap editor.tree.getTokenAtLocation(@first),
-      editor.tree.getTokenAtLocation(@last)
+    segment.wrap editor.tree.getFromLocation(@first),
+      editor.tree.getFromLocation(@last)
 
     if @lassoSelect
       editor.lassoSegment = segment
@@ -2346,9 +2346,9 @@ class DestroySegmentOperation extends UndoOperation
     return segment.end
 
   redo: (editor) ->
-    editor.tree.getTokenAtLocation(@first).container.unwrap()
+    editor.tree.getFromLocation(@first).container.unwrap()
 
-    return editor.tree.getTokenAtLocation @first
+    return editor.tree.getFromLocation @first
 
 # The lasso select
 # will have its own canvas
@@ -2993,16 +2993,16 @@ containsCursor = (block) ->
 class ReparseOperation extends UndoOperation
   constructor: (block, parse) ->
     @before = block.clone()
-    @location = block.start.getSerializedLocation()
+    @location = block.start.getLocation()
     @after = parse.clone()
 
   undo: (editor) ->
-    block = editor.tree.getTokenAtLocation(@location).container
+    block = editor.tree.getFromLocation(@location).container
     newBlock = @before.clone()
     newBlock.rawReplace block
 
   redo: (editor) ->
-    block = editor.tree.getTokenAtLocation(@location).container
+    block = editor.tree.getFromLocation(@location).container
     newBlock = @after.clone()
     newBlock.rawReplace block
 

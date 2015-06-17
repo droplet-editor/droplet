@@ -56,7 +56,10 @@ module.exports = (grunt) ->
 
     mochaTest:
       test:
-        src: ['test/src/parserTests.coffee']
+        src: [
+          'test/src/parserTests.coffee'
+          'test/src/modelTests.coffee'
+        ]
         options:
           reporter: 'list'
           compilers:
