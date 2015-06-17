@@ -762,6 +762,8 @@ exports.Socket = class Socket extends Container
 
   hasDropdown: -> @dropdown? and @isDroppable()
 
+  editable: -> (not (@dropdown? and @dropdown.exclusive)) and @isDroppable()
+
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
   _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown
