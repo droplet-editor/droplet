@@ -3,6 +3,7 @@ coffee = require './languages/coffee.coffee'
 c = require './languages/c.coffee'
 java = require './languages/java.coffee'
 python = require './languages/python.coffee'
+html = require './languages/html.coffee'
 
 module.exports = {
   'javascript': javascript
@@ -11,4 +12,5 @@ module.exports = {
   'c': c
   'java': java
   'python': python
+  'html': html
 }
