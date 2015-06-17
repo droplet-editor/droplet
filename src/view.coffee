@@ -826,7 +826,7 @@ exports.View = class View
       line = 0
 
       # Go to all our immediate children.
-      @model.shallowEach (head) =>
+      @model.traverseOneLevel (head, isContainer) =>
         # If the child is a newline, simply advance the
         # line counter.
         if head.type is 'newline'

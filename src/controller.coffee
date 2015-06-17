@@ -2294,6 +2294,52 @@ hook 'mouseup', 0, (point, event, state) ->
 # LASSO SELECT SUPPORT
 # ===============================
 
+# We need undo operations for create/destroy segment
+# so that other undo operations work properly in
+# the tree -- for instance, DropOperation needs
+# to have the segment in the tree that is being
+# dropped in order to work.
+class CreateSegmentOperation extends UndoOperation
+  constructor: (segment) ->
+    @first = segment.start.getLocation()
+    @last = segment.end.getLocation() - 2
+    @lassoSelect = segment.isLassoSegment
+
+  undo: (editor) ->
+    editor.tree.getFromLocation(@first).container.unwrap()
+
+    return editor.tree.getFromLocation @first
+
+  redo: (editor) ->
+    segment = new model.Segment()
+    segment.isLassoSegment = @lassoSelect
+    segment.wrap editor.tree.getFromLocation(@first),
+      editor.tree.getFromLocation(@last)
+
+    return segment.end
+
+class DestroySegmentOperation extends UndoOperation
+  constructor: (segment) ->
+    @first = segment.start.getLocation()
+    @last = segment.end.getLocation() - 2
+    @lassoSelect = segment.isLassoSegment
+
+  undo: (editor) ->
+    segment = new model.Segment()
+    segment.isLassoSegment = @lassoSelect
+    segment.wrap editor.tree.getFromLocation(@first),
+      editor.tree.getFromLocation(@last)
+
+    if @lassoSelect
+      editor.lassoSegment = segment
+
+    return segment.end
+
+  redo: (editor) ->
+    editor.tree.getFromLocation(@first).container.unwrap()
+
+    return editor.tree.getFromLocation @first
+
 # The lasso select
 # will have its own canvas
 # for drawing the lasso. This needs
@@ -2306,7 +2352,7 @@ hook 'populate', 0, ->
   @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
 
   @lassoSelectAnchor = null
-  @lassoSelection = null
+  @lassoSegment = null
 
   @dropletElement.appendChild @lassoSelectCanvas
 
@@ -2327,8 +2373,24 @@ Editor::resizeLassoCanvas = ->
   @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
 Editor::clearLassoSelection = ->
-  @lassoSelection = null
-  @redrawMain()
+  @lassoSegment = null
+
+  head = @tree.start
+  needToRedraw = false
+  until head is @tree.end
+    if head.type is 'segmentStart' and head.container.isLassoSegment
+      next = head.next
+
+      @addMicroUndoOperation new DestroySegmentOperation head.container
+      head.container.unwrap() #MUTATION
+      needToRedraw = true
+
+      head = next
+
+    else
+      head = head.next
+
+  if needToRedraw then @redrawMain()
 
 # On mousedown, if nobody has taken
 # a hit test yet, start a lasso select.
@@ -2357,9 +2419,8 @@ hook 'mousemove', 0, (point, event, state) ->
   if @lassoSelectAnchor?
     mainPoint = @trackerPointToMain point
 
-    @clearLassoSelectCanvas(); @clearHighlightCanvas()
+    @clearLassoSelectCanvas()
 
-    # Find and draw the lasso rectangle
     lassoRectangle = new @draw.Rectangle(
       Math.min(@lassoSelectAnchor.x, mainPoint.x),
       Math.min(@lassoSelectAnchor.y, mainPoint.y),
@@ -2367,42 +2428,36 @@ hook 'mousemove', 0, (point, event, state) ->
       Math.abs(@lassoSelectAnchor.y - mainPoint.y)
     )
 
+    first = @tree.start
+    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
+      first = first.next
+
+    last = @tree.end
+    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
+      last = last.prev
+
+    @clearLassoSelectCanvas(); @clearHighlightCanvas()
+
     @lassoSelectCtx.strokeStyle = '#00f'
     @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
       lassoRectangle.y - @scrollOffsets.main.y,
       lassoRectangle.width,
       lassoRectangle.height
 
-    # Find the first block (if it exists) that intersects
-    # the lasso rectangle
-    first = @tree.start
-    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
-      first = first.next
-
-    # Find the last block (if it exists) that intersects
-    # the lasso rectangle
-    last = @tree.end
-    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
-      last = last.prev
-
-    # If the lasso rectangle intersected anything,
-    # get the appropriate selection and highlight it.
     if first and last?
       [first, last] = validateLassoSelection @tree, first, last
-      @lassoSelection = {start: first, end: last}
-      @drawLassoSelection()
-    else
-      @lassoSelection = null
+      @drawTemporaryLasso first, last
 
-Editor::drawLassoSelection = ->
+
+Editor::drawTemporaryLasso = (first, last) ->
   mainCanvasRectangle = new @draw.Rectangle(
     @scrollOffsets.main.x,
     @scrollOffsets.main.y,
     @mainCanvas.width,
     @mainCanvas.height
   )
-  head = @lassoSelection.start
-  until head is @lassoSelection.end
+  head = first
+  until head is last
     if head instanceof model.StartToken
       @view.getViewNodeFor(head.container).draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
       head = head.container.end
@@ -2445,17 +2500,50 @@ validateLassoSelection = (tree, first, last) ->
 # doing a lasso select, insert a lasso
 # select segment.
 hook 'mouseup', 0, (point, event, state) ->
-  if @lassoSelection?
-    @moveCursorAfter @lassoSelection.end
+  if @lassoSelectAnchor?
+    mainPoint = @trackerPointToMain point
+    lassoRectangle = new @draw.Rectangle(
+        Math.min(@lassoSelectAnchor.x, mainPoint.x),
+        Math.min(@lassoSelectAnchor.y, mainPoint.y),
+        Math.abs(@lassoSelectAnchor.x - mainPoint.x),
+        Math.abs(@lassoSelectAnchor.y - mainPoint.y)
+    )
+
+    @lassoSelectAnchor = null
+    @clearLassoSelectCanvas()
+
+    first = @tree.start
+    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
+      first = first.next
+
+    last = @tree.end
+    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
+      last = last.prev
+
+    unless first? and last? then return
+
+    [first, last] = validateLassoSelection @tree, first, last
+
+    @lassoSegment = new model.Segment()
+    @lassoSegment.isLassoSegment = true
+
+    @lassoSegment.wrap first, last
+
+    @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
+
+    # Move the cursor to the segment we just created
+    @moveCursorAfter @lassoSegment.end.nextVisibleToken(), true
+
+    @redrawMain()
 
 # On mousedown, we might want to
 # pick a selected segment up; check.
 hook 'mousedown', 3, (point, event, state) ->
   if state.consumedHitTest then return
 
-  if @hitTestLassoSelection(@trackerPointToMain(point))
+  if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
     @setTextInputFocus null
-    @clickedBlock = @lassoSelection
+    @clickedBlock = @lassoSegment
     @clickedBlockPaletteEntry = null
     @clickedPoint = point
 
@@ -2673,6 +2761,7 @@ Editor::deleteLassoSegment = ->
   @addMicroUndoOperation new PickUpOperation @lassoSegment
 
   @spliceOut @lassoSegment
+  @lassoSegment = null
 
   @redrawMain()
 
