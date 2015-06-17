@@ -234,12 +234,12 @@ exports.Container = class Container
   # Get a string representation of us,
   # using the `stringify()` method on all of
   # the tokens that we contain.
-  stringify: (config) ->
+  stringify: ->
     str = ''
 
     head = @start
     until head is @end
-      str += head.stringify config
+      str += head.stringify()
       head = head.next
 
     return str
@@ -650,7 +650,7 @@ exports.Token = class Token
       head = head.parent
     return prefix
 
-  getLocation: ->
+  getLocation: () ->
     location = new DropletLocation(); head = @prev
 
     location.type = @type
@@ -775,17 +775,17 @@ exports.Block = class Block extends Container
 
 exports.SocketStartToken = class SocketStartToken extends StartToken
   constructor: (@container) -> super; @type = 'socketStart'
-  stringify: (config) ->
+  stringify: ->
     if @next is @container.end or
         @next.type is 'text' and @next.value is ''
-      return config.empty ? ''
+      return @container.emptyString
     else ''
 
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
 exports.Socket = class Socket extends Container
-  constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -797,7 +797,7 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
@@ -821,14 +821,14 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: (config) ->
+  stringify: ->
     if @previousVisibleToken().previousVisibleToken() is @container.start
-      return config.emptyIndent ? ''
+      return @container.emptyString
     else ''
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@prefix = '', @classes = []) ->
+  constructor: (@emptyString, @prefix = '', @classes = []) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -838,7 +838,7 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @prefix, @classes
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
   _serialize_header: -> "<indent prefix=\"#{
     @prefix
   }\" classes=\"#{
@@ -908,13 +908,6 @@ exports.NewlineToken = class NewlineToken extends Token
   stringify: -> '\n' + (@specialIndent ? @getIndent())
   serialize: -> '\n'
   clone: -> new NewlineToken @specialIndent
-
-exports.CursorToken = class CursorToken extends Token
-  constructor: -> super; @type = 'cursor'
-  isVisible: NO
-  isAffect: NO
-  serialize: -> '<cursor/>'
-  clone: -> new CursorToken()
 
 # Utility function for traversing all
 # the blocks at the same nesting depth

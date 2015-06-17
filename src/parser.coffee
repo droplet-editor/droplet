@@ -124,7 +124,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket opts.precedence,
+    socket = new model.Socket @empty, opts.precedence,
       false,
       opts.classes,
       opts.dropdown
@@ -141,7 +141,7 @@ exports.Parser = class Parser
   #   prefix: String
   # }
   addIndent: (opts) ->
-    indent = new model.Indent opts.prefix, opts.classes
+    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes
 
     @addMarkup indent, opts.bounds, opts.depth
 
@@ -211,7 +211,7 @@ exports.Parser = class Parser
   # text inside
   constructHandwrittenBlock: (text) ->
     block = new model.Block 0, 'blank', helper.ANY_DROP, false
-    socket = new model.Socket 0, true
+    socket = new model.Socket @empty, 0, true
     textToken = new model.TextToken text
 
     block.start.append socket.start
@@ -368,6 +368,9 @@ exports.parseXML = (xml) ->
       unless i is tokens.length - 1
         head = head.append new model.NewlineToken()
 
+  # TODO Improve serialization format
+  # for test updates. Currently no longer unity
+  # because @empty is not preserved.
   parser.onopentag = (node) ->
     attributes = node.attributes
     switch node.name
@@ -375,10 +378,10 @@ exports.parseXML = (xml) ->
         container = new model.Block attributes.precedence, attributes.color,
           attributes.socketLevel, attributes.classes?.split?(' ')
       when 'socket'
-        container = new model.Socket attributes.precedence, attributes.handritten,
+        container = new model.Socket '', attributes.precedence, attributes.handritten,
           attributes.classes?.split?(' ')
       when 'indent'
-        container = new model.Indent attributes.prefix, attributes.classe?.split?(' ')
+        container = new model.Indent '', attributes.prefix, attributes.classes?.split?(' ')
       when 'segment'
         # Root segment is optional
         unless stack.length is 0
