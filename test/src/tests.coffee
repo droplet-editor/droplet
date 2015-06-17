@@ -642,7 +642,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
   strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct (x - down)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  editor.moveCursorAfter editor.cursor.next
 
   strictEqual editor.determineCursorPosition().x, 0,
     'Cursor position correct after \'alert 10\' (x - down)'
@@ -651,7 +651,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     2 * editor.view.opts.padding +
     2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  editor.moveCursorAfter editor.cursor.next
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'if a is b\' (x - down)'
@@ -660,7 +660,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     6 * editor.view.opts.padding +
     4 * editor.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  editor.moveCursorAfter editor.cursor.next
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'alert 20\' (x - down)'
@@ -669,7 +669,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     8 * editor.view.opts.padding +
     6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  editor.moveCursorAfter editor.cursor.next
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct at end of indent (x - down)'
@@ -678,11 +678,11 @@ asyncTest 'Controller: cursor motion and rendering', ->
     10 * editor.view.opts.padding +
     8 * editor.view.opts.textPadding, 'Cursor position at end of indent (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  editor.moveCursorAfter editor.cursor.next
 
-  strictEqual editor.cursor.parent.type, 'indent', 'Cursor skipped middle of block'
+  strictEqual editor.cursor.type, 'indentStart', 'Cursor skipped middle of block'
 
-  editor.moveCursorUp()
+  editor.moveCursorBefore editor.cursor.prev
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct at end of indent (x - up)'
@@ -691,7 +691,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     10 * editor.view.opts.padding +
     8 * editor.view.opts.textPadding, 'Cursor position at end of indent (y - up)'
 
-  editor.moveCursorUp()
+  editor.moveCursorBefore editor.cursor.prev
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'alert 20\' (x - up)'
@@ -700,7 +700,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     8 * editor.view.opts.padding +
     6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - up)'
 
-  editor.moveCursorUp()
+  editor.moveCursorBefore editor.cursor.prev
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'if a is b\' (y - up)'
@@ -709,7 +709,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     6 * editor.view.opts.padding +
     4 * editor.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - up)'
 
-  editor.moveCursorUp()
+  editor.moveCursorBefore editor.cursor.prev
 
   strictEqual editor.determineCursorPosition().x, 0,
     'Cursor position correct after \'alert 10\' (x - up)'
@@ -718,7 +718,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     2 * editor.view.opts.padding +
     2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - up)'
 
-  editor.moveCursorUp()
+  editor.moveCursorBefore editor.cursor.prev
 
   strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct at origin (x - up)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct at origin (y - up)'

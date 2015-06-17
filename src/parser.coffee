@@ -474,7 +474,13 @@ exports.wrapParser = (CustomParser) ->
       @empty = CustomParser.empty
       @emptyIndent = CustomParser.emptyIndent
 
-    createParser: (text) -> new CustomParser text, @opts
+    # TODO kind of hacky assignation of @empty,
+    # maybe change the api?
+    createParser: (text) ->
+      parser = new CustomParser text, @opts
+      parser.empty = @empty
+      parser.emptyIndent = @emptyIndent
+      return parser
 
     parse: (text, opts) ->
       opts ?= wrapAtRoot: true
