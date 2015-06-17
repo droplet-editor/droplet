@@ -2159,8 +2159,8 @@ hook 'mousedown', 2, (point, event, state) ->
         @setTextInputFocus hitTestResult
         @redrawMain()
 
-      if hitTestResult.hasDropdown() and
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
+      if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
+          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
         @showDropdown hitTestResult
 
       @textInputSelecting = false
