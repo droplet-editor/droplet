@@ -70,6 +70,11 @@ exports.isTreeValid = (tree) ->
 
   return true
 
+# List
+# ====
+exports.List = class List
+  constructor: -
+
 # Container
 # ==================
 # A generic XML-style container from which
@@ -358,32 +363,6 @@ exports.Container = class Container
 
     @notifyChange()
 
-  # ## moveTo ##
-  # Convenience function for testing;
-  # splice out then splice in.
-  #
-  # USED FOR TESTING ONLY
-  moveTo: (token, mode) ->
-    if @start.prev? or @end.next?
-      leading = @getLeadingText()
-      trailing = @getTrailingText()
-
-      [leading, trailing] = mode.parens leading, trailing, @, null
-
-      @setLeadingText leading; @setTrailingText trailing
-
-      @spliceOut()
-
-    if token?
-      leading = @getLeadingText()
-      trailing = @getTrailingText()
-
-      [leading, trailing] = mode.parens leading, trailing, @, (token.container ? token.parent)
-
-      @setLeadingText leading; @setTrailingText trailing
-
-      @spliceIn token
-
   # ## notifyChange ##
   # Increase version number (for caching purposes)
   notifyChange: ->
@@ -391,22 +370,6 @@ exports.Container = class Container
     while head?
       head.version++
       head = head.parent
-
-  # ## wrap ##
-  # Insert ourselves _around_ some other
-  # tokens.
-  wrap: (first, last) ->
-    @parent = @start.parent = @end.parent = first.parent
-    first.prev.append @start
-    @start.append first
-
-    @end.append last.next
-    last.append @end
-
-    traverseOneLevel first, (head, isContainer) =>
-      head.parent = this
-
-    @notifyChange()
 
   # ## correctParentTree ##
   # Generally called immediately after assembling
