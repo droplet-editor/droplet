@@ -120,6 +120,7 @@ module.exports = (grunt) ->
       testserver:
         options:
           hostname: '0.0.0.0'
+          port: 8001
           middleware: serveNoDottedFiles
       qunitserver:
         options:
@@ -190,7 +191,7 @@ module.exports = (grunt) ->
 
       lrserver = livereload()
 
-      lrserver.listen 35729, ->
+      lrserver.listen 35730, ->
         console.log 'Livereload server listening on 35729'
 
       w.on 'update', ->
