@@ -247,11 +247,12 @@
   z-index: 10000;
   border: 1px solid #DDD;
   border-radius: 2px;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
 }
 .droplet-dropdown-item {
   cursor: pointer;
+  padding-right: 5px;
 }
 .droplet-dropdown-item:hover {
   background-color: #DDD;
