@@ -1159,21 +1159,31 @@ hook 'mousemove', 0, (point, event, state) ->
       @lastHighlight = @tree
 
     else
-      # Find the closest droppable block
-      testPoints = @dropPointQuadTree.retrieve {
-        x: mainPoint.x - MAX_DROP_DISTANCE
-        y: mainPoint.y - MAX_DROP_DISTANCE
-        w: MAX_DROP_DISTANCE * 2
-        h: MAX_DROP_DISTANCE * 2
-      }, (point) =>
-        unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
-          distance = mainPoint.from(point)
-          distance.y *= 2; distance = distance.magnitude()
-          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-             @view.getViewNodeFor(point._droplet_node).highlightArea?
-            best = point._droplet_node
-            min = distance
+      # If the user is touching the original location,
+      # assume they want to replace the block where they found it.
+      if @hitTest mainPoint, @draggingBlock
+        best = null
+      # Otherwise, find the closest droppable block
+      else
+        testPoints = @dropPointQuadTree.retrieve {
+          x: mainPoint.x - MAX_DROP_DISTANCE
+          y: mainPoint.y - MAX_DROP_DISTANCE
+          w: MAX_DROP_DISTANCE * 2
+          h: MAX_DROP_DISTANCE * 2
+        }, (point) =>
+          unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
+            # Find a modified "distance" to the point
+            # that weights horizontal distance more
+            distance = mainPoint.from(point)
+            distance.y *= 2; distance = distance.magnitude()
 
+            # Select the node that is closest by said "distance"
+            if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+               @view.getViewNodeFor(point._droplet_node).highlightArea?
+              best = point._droplet_node
+              min = distance
+
+      # Update highlight if necessary.
       if best isnt @lastHighlight
         @clearHighlightCanvas()
 
