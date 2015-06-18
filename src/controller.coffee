@@ -844,12 +844,37 @@ class DropOperation extends UndoOperation
 
 Editor::spliceOut = (node) ->
   @prepareNode node, null
+
+  parent = node.parent
+
   node.spliceOut()
+
+  # If there is a remembered socket value for this socket,
+  # repopulate it
+  if @rememberedSocketValue? and parent?.type is 'socket'
+    if @getCharactersTo(parent.start) is @rememberedSocketValue.position
+      @populateSocket parent, @rememberedSocketValue.text
+    else
+
+  # Otherwise, we're mutating, so kill the remembered socket value.
+  else
+    @rememberedSocketValue = null
 
 Editor::spliceIn = (node, location) ->
   container = location.container ? location.visParent()
   if container.type is 'block'
     container = container.visParent()
+
+  # Get a reparse-independent pointer to this socket
+  # and remember what the value was, in case the user
+  # immeduately pulls the block back out.
+  if location.type is 'socketStart'
+    @rememberedSocketValue = {
+      position: @getCharactersTo @lastHighlight.start
+      text: @lastHighlight.stringify({empty: ''})
+    }
+  else
+    @rememberedSocketValue = null
 
   @prepareNode node, container
   node.spliceIn location
@@ -1278,6 +1303,7 @@ hook 'mouseup', 1, (point, event, state) ->
       switch @lastHighlight.type
         when 'indent', 'socket'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
+
           @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
         when 'block'
           @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
@@ -3746,7 +3772,7 @@ Editor::mark = (line, col, style) ->
   # Find the first block after the given column number
   head = lineStart.next
   until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
-    chars += head.stringify().length
+    chars += head.stringify({empty: ''}).length
     head = head.next
 
   if head.type is 'newline'

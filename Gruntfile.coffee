@@ -7,6 +7,9 @@ livereload = require 'tiny-lr'
 path = require 'path'
 fs = require 'fs'
 
+LR_PORT = 35730
+TESTSERVER_PORT = 8001
+
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
   middlewares.unshift (req, res, next) ->
@@ -123,6 +126,7 @@ module.exports = (grunt) ->
       testserver:
         options:
           hostname: '0.0.0.0'
+          port: TESTSERVER_PORT
           middleware: serveNoDottedFiles
       qunitserver:
         options:
@@ -193,8 +197,8 @@ module.exports = (grunt) ->
 
       lrserver = livereload()
 
-      lrserver.listen 35729, ->
-        console.log 'Livereload server listening on 35729'
+      lrserver.listen LR_PORT, ->
+        console.log "Livereload server listening on #{LR_PORT}"
 
       w.on 'update', ->
         console.log 'File changed...'
