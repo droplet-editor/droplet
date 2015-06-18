@@ -286,6 +286,7 @@ exports.Editor = class Editor
     # ## Document initialization
     # We start of with an empty document
     @tree = new model.Segment()
+    @tree.isRoot = true
     @tree.start.insert @cursor
 
     @resizeBlockMode()
@@ -1087,7 +1088,7 @@ hook 'mousemove', 1, (point, event, state) ->
               w: 0
               h: 0
               acceptLevel: acceptLevel
-              _ice_node: head.container
+              _droplet_node: head.container
 
       head = head.next
 
@@ -1178,8 +1179,8 @@ hook 'mousemove', 0, (point, event, state) ->
 
             # Select the node that is closest by said "distance"
             if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-               @view.getViewNodeFor(point._ice_node).highlightArea?
-              best = point._ice_node
+               @view.getViewNodeFor(point._droplet_node).highlightArea?
+              best = point._droplet_node
               min = distance
 
       # Update highlight if necessary.
@@ -1265,6 +1266,9 @@ hook 'mouseup', 1, (point, event, state) ->
         @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
+
+      # Fire an event for a sound
+      @fireEvent 'sound', [@lastHighlight.type]
 
       # Depending on what the highlighted element is,
       # we might want to drop the block at its
@@ -3012,7 +3016,7 @@ Editor::copyAceEditor = ->
   @resizeBlockMode()
   return @setValue_raw @getAceValue()
 
-hook 'populate', 0, ->
+hook 'populate', 1, ->
   @aceElement = document.createElement 'div'
   @aceElement.className = 'droplet-ace'
 
@@ -3233,6 +3237,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       translatingElements.push div
 
       div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+      # Add annotation
+      if @annotations[line]?
+        div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
       div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
 
       @dropletElement.appendChild div
@@ -3414,6 +3421,9 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
             lineHeight - aceScrollTop}px"
 
         div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+        # Add annotation
+        if @annotations[line]?
+          div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
         translatingElements.push div
 
@@ -3613,7 +3623,8 @@ hook 'redraw_main', 1, ->
   # jammed up against the edge of the screen.
   #
   # Default this extra space to fontSize (approx. 1 line).
-  @mainScrollerStuffing.style.height = "#{bounds.bottom() + (@options.extraBottomHeight ? @fontSize)}px"
+  @mainScrollerStuffing.style.height = "#{bounds.bottom() +
+    (@options.extraBottomHeight ? @fontSize)}px"
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
@@ -3630,7 +3641,10 @@ hook 'redraw_palette', 0, ->
 hook 'populate', 0, ->
   @fontSize = 15
   @fontFamily = 'Courier New'
-  @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
+
+  metrics = helper.fontMetrics(@fontFamily, @fontSize)
+  @fontAscent = metrics.prettytop
+  @fontDescent = metrics.descent
 
 Editor::setFontSize_raw = (fontSize) ->
   unless @fontSize is fontSize
@@ -3638,11 +3652,14 @@ Editor::setFontSize_raw = (fontSize) ->
 
     @paletteHeader.style.fontSize = "#{fontSize}px"
     @gutter.style.fontSize = "#{fontSize}px"
+    @tooltipElement.style.fontSize = "#{fontSize}px"
 
     @view.opts.textHeight =
       @dragView.opts.textHeight = helper.getFontHeight @fontFamily, @fontSize
 
-    @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
+    metrics = helper.fontMetrics(@fontFamily, @fontSize)
+    @fontAscent = metrics.prettytop
+    @fontDescent = metrics.descent
 
     @view.clearCache()
 
@@ -3663,6 +3680,7 @@ Editor::setFontFamily = (fontFamily) ->
 
   @view.clearCache(); @dragView.clearCache()
   @gutter.style.fontFamily = fontFamily
+  @tooltipElement.style.fontFamily = fontFamily
 
   @redrawMain()
   @rebuildPalette()
@@ -4236,54 +4254,85 @@ hook 'populate', 0, ->
 
   @lineNumberTags = {}
 
-  @dropletElement.appendChild @gutter
+  @mainScroller.appendChild @gutter
 
-Editor::addGutterDecoration = (row, className) ->
-  if not @gutterDecorations[row]
-    @gutterDecorations[row] = []
-  decorations = @gutterDecorations[row]
-  if className in decorations then return
-  decorations.push className
-  # rebuild class attribute on row # row
-  # overkill here:
-  @redrawMain()
+  # Record of embedder-set annotations
+  # and breakpoints used in rendering.
+  # Should mirror ace all the time.
+  @annotations = {}
+  @breakpoints = {}
 
-Editor::removeGutterDecoration = (row, className) ->
-  @redrawMain()
-  if not @gutterDecorations[row] then return
-  decorations = @gutterDecorations[row]
-  if className not in decorations
-    return
-  decorations.splice(decorations.indexOf(className), 1)
-  if decorations.length == 0
-    @gutterDecorations[row] = null
-  # rebuild class attribute on row # row
-  # overkill here:
-  @redrawMain()
+  @tooltipElement = document.createElement 'div'
+  @tooltipElement.className = 'droplet-tooltip'
 
-Editor::hasGutterDecoration = (row, className) ->
-  if not @gutterDecorations[row] then return false
-  return className in @gutterDecorations[row]
+  @dropletElement.appendChild @tooltipElement
 
-Editor::toggleGutterDecoration = (row, className) ->
-  if @hasGutterDecoration(row, className)
-    @removeGutterDecoration row, className
-  else
-    @addGutterDecoration row, className
+  @aceEditor.on 'guttermousedown', (e) =>
+    # Ensure that the click actually happened
+    # on a line and not just in gutter space.
+    target = e.domEvent.target
+    if target.className.indexOf('ace_gutter-cell') is -1
+      return
+
+    # Otherwise, get the row and fire a Droplet gutter
+    # mousedown event.
+    row = e.getDocumentPosition().row
+    e.stop()
+    @fireEvent 'guttermousedown', [{line: row, event: e.domEvent}]
 
 hook 'mousedown', 11, (point, event, state) ->
-  # check if mousedown within the gutter
+  # Check if mousedown within the gutter
   if not @trackerPointIsInGutter(point) then return
+
+  # Find the line that was clicked
   mainPoint = @trackerPointToMain point
   treeView = @view.getViewNodeFor @tree
   clickedLine = @findLineNumberAtCoordinate mainPoint.y
   @fireEvent 'guttermousedown', [{line: clickedLine, event: event}]
-  true
+
+  # Prevent other hooks from taking this event
+  return true
+
+Editor::setBreakpoint = (row) ->
+  # Delegate
+  @aceEditor.session.setBreakpoint(row)
+
+  # Add to our own records
+  @breakpoints[row] = true
+
+  # Redraw gutter.
+  # TODO: if this ends up being a performance issue,
+  # selectively apply classes
+  @redrawGutter false
+
+Editor::clearBreakpoint = (row) ->
+  @aceEditor.session.clearBreakpoint(row)
+  @breakpoints[row] = false
+  @redrawGutter false
+
+Editor::clearBreakpoints = (row) ->
+  @aceEditor.session.clearBreakpoints()
+  @breakpoints = {}
+  @redrawGutter false
+
+Editor::getBreakpoints = (row) ->
+  @aceEditor.session.getBreakpoints()
+
+Editor::setAnnotations = (annotations) ->
+  @aceEditor.session.setAnnotations annotations
+
+  @annotations = {}
+  for el, i in annotations
+    @annotations[el.row] ?= []
+    @annotations[el.row].push el
+
+  @redrawGutter false
 
 Editor::resizeGutter = ->
   @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
-  @gutter.style.height = "#{Math.max @dropletElement.offsetHeight, @view.getViewNodeFor(@tree).totalBounds?.height ? 0}px"
-
+  @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
+    (@view.getViewNodeFor(@tree).totalBounds?.bottom?() ? 0) +
+    (@options.extraBottomHeight ? @fontSize))}px"
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree
@@ -4297,14 +4346,46 @@ Editor::addLineNumberForLine = (line) ->
     @lineNumberTags[line] = lineDiv
 
   lineDiv.className = 'droplet-gutter-line'
-  if @gutterDecorations[line]
-    lineDiv.className += ' ' + @gutterDecorations[line].join(' ')
-  lineDiv.style.top = "#{treeView.bounds[line].y - @scrollOffsets.main.y}px"
+
+  # Add annotation mouseover text
+  # and graphics
+  if @annotations[line]?
+    lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
+
+    title = @annotations[line].map((x) -> x.text).join('\n')
+
+    lineDiv.addEventListener 'mouseover', =>
+      @tooltipElement.innerText =
+        @tooltipElement.textContent = title
+      @tooltipElement.style.display = 'block'
+    lineDiv.addEventListener 'mousemove', (event) =>
+      @tooltipElement.style.left = event.pageX
+      @tooltipElement.style.top = event.pageY
+    lineDiv.addEventListener 'mouseout', =>
+      @tooltipElement.style.display = 'none'
+
+  # Add breakpoint graphics
+  if @breakpoints[line]
+    lineDiv.className += ' droplet_breakpoint'
+
+  lineDiv.style.top = "#{treeView.bounds[line].y}px"
+
   lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+  lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @fontDescent}"
+
   lineDiv.style.height =  treeView.bounds[line].height + 'px'
   lineDiv.style.fontSize = @fontSize + 'px'
 
   @lineNumberWrapper.appendChild lineDiv
+
+TYPE_SEVERITY = {
+  'error': 2
+  'warning': 1
+  'info': 0
+}
+TYPE_FROM_SEVERITY = ['info', 'warning', 'error']
+getMostSevereAnnotationType = (arr) ->
+  TYPE_FROM_SEVERITY[Math.max.apply(this, arr.map((x) -> TYPE_SEVERITY[x.type]))]
 
 Editor::findLineNumberAtCoordinate = (coord) ->
   treeView = @view.getViewNodeFor @tree
@@ -4328,6 +4409,9 @@ Editor::findLineNumberAtCoordinate = (coord) ->
   return pivot
 
 hook 'redraw_main', 0, (changedBox) ->
+  @redrawGutter(changedBox)
+
+Editor::redrawGutter = (changedBox = true) ->
   treeView = @view.getViewNodeFor @tree
 
   top = @findLineNumberAtCoordinate @scrollOffsets.main.y
@@ -4342,7 +4426,7 @@ hook 'redraw_main', 0, (changedBox) ->
       delete @lineNumberTags[line]
 
   if changedBox
-    @gutter.style.height = "#{Math.max @mainScroller.offsetHeight, treeView.totalBounds.height}px"
+    @resizeGutter()
 
 Editor::setPaletteWidth = (width) ->
   @paletteWrapper.style.width = width + 'px'
@@ -4391,7 +4475,10 @@ hook 'populate', 1, ->
         blocks = @mode.parse str
 
         @addMicroUndoOperation 'CAPTURE_POINT'
-        if @lassoSegment?
+        if @lassoSegment? and @inTree(@lassoSegment)
+          # Make sure the cursor is outside the lasso segment
+          # (although it should be already)
+          @moveCursorTo @lassoSegment.end.nextVisibleToken(), true
           @addMicroUndoOperation new PickUpOperation @lassoSegment
           @spliceOut @lassoSegment; @lassoSegment = null
 

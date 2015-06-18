@@ -194,14 +194,19 @@ module.exports = (grunt) ->
         console.log 'Livereload server listening on 35729'
 
       w.on 'update', ->
+        console.log 'File changed...'
         stream = fs.createWriteStream 'dist/droplet-full.js'
-        w.bundle().pipe stream
-        stream.once 'close', ->
-          console.log 'Rebuilt.'
-          lrserver.changed {
-            body: {
-              files: ['dist/droplet-full.js']
+        try
+          w.bundle().pipe stream
+          stream.once 'close', ->
+            console.log 'Rebuilt.'
+            lrserver.changed {
+              body: {
+                files: ['dist/droplet-full.js']
+              }
             }
-          }
+        catch e
+          console.log 'BUILD FAILED.'
+          console.log e.stack
 
   grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
