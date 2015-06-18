@@ -128,14 +128,16 @@ exports.View = class View
   # ## createView
   # Given a model object, create a renderer object
   # of the appropriate type.
-  createView: (model) ->
-    switch model.type
-      when 'text' then new TextViewNode model, this
-      when 'block' then new BlockViewNode model, this
-      when 'indent' then new IndentViewNode model, this
-      when 'socket' then new SocketViewNode model, this
-      when 'segment' then new SegmentViewNode model, this
-      when 'cursor' then new CursorViewNode model, this
+  createView: (entity) ->
+    if (entity instanceof model.List) and not
+       (entity instanceof model.Container)
+      return new ListViewNode entity, this
+    switch entity.type
+      when 'text' then new TextViewNode entity, this
+      when 'block' then new BlockViewNode entity, this
+      when 'indent' then new IndentViewNode entity, this
+      when 'socket' then new SocketViewNode entity, this
+      when 'segment' then new SegmentViewNode entity, this
 
   # Looks up a color name, or passes through a #hex color.
   getColor: (color) ->
@@ -180,11 +182,11 @@ exports.View = class View
       @dimensions = [] # Dimensions on each line
       @distanceToBase = [] # {above:n, below:n}
 
+      @carriageArrow = CARRIAGE_ARROW_NONE
+
       @bevels =
-        topLeft: false
-        topRight: false
-        bottomLeft: false
-        bottomRight: false
+        top: false
+        bottom: false
 
       # *Third/fifth pass variables*
       # computeBoundingBoxX, computeBoundingBoxY
@@ -274,7 +276,10 @@ exports.View = class View
     computeChildren: -> @lineLength
 
     computeCarriageArrow: ->
-      @carriageArrow = CARRIAGE_ARROW_NONE
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).computeCarriageArrow()
+
+      return @carriageArrow
 
     # ## computeMargins (GenericViewNode)
     # Compute the amount of margin required outside the child
@@ -381,12 +386,10 @@ exports.View = class View
       else @midMargins
 
     computeBevels: ->
-      @bevels =
-        topLeft: false
-        topRight: false
-        bottomLeft: false
-        bottomRight: false
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).computeBevels()
 
+      return @bevels
 
     # ## computeMinDimensions (GenericViewNode)
     # Compute the size of our bounding box on each
@@ -415,7 +418,7 @@ exports.View = class View
     # line that we contain.
     #
     # Return child node.
-    computeDimensions: (startLine, force, root = false) ->
+    computeDimensions: (force, root = false) ->
       if @computedVersion is @model.version and not force and not @invalidate
         return
 
@@ -434,6 +437,7 @@ exports.View = class View
           (@topLineSticksToBottom or @bottomLineSticksToTop or
            (@lineLength > 1 and not @model.isLastOnLine()))
         parentNode = @view.getViewNodeFor @model.parent
+        startLine = @model.getLinesToParent()
 
         # grow below if "stick to bottom" is set.
         if @topLineSticksToBottom
@@ -473,11 +477,9 @@ exports.View = class View
 
       for childObj in @children
         if childObj in @lineChildren[0] or childObj in @lineChildren[@lineLength - 1]
-          @view.getViewNodeFor(childObj.child).computeDimensions(
-              childObj.startLine, changed)
+          @view.getViewNodeFor(childObj.child).computeDimensions(changed)
         else
-          @view.getViewNodeFor(childObj.child).computeDimensions(
-            childObj.startLine, false)
+          @view.getViewNodeFor(childObj.child).computeDimensions(false)
 
       return null
 
@@ -795,15 +797,11 @@ exports.View = class View
 
       ctx.globalAlpha = 1
 
-  # # ContainerViewNode
-  # Class from which `socketView`, `indentView`, `blockView`, and `segmentView` extend.
-  # Contains function for dealing with multiple children, making polygons to wrap
-  # multiple lines, etc.
-  class ContainerViewNode extends GenericViewNode
+  class ListViewNode extends GenericViewNode
     constructor: (@model, @view) ->
       super
 
-    # ## computeChildren (ContainerViewNode)
+    # ## computeChildren (ListViewNode)
     # Figure out which children lie on each line,
     # and compute `@multilineChildrenData` simultaneously.
     #
@@ -901,69 +899,7 @@ exports.View = class View
 
       return @lineLength
 
-    computeCarriageArrow: (root = false) ->
-      oldCarriageArrow = @carriageArrow
-      @carriageArrow = CARRIAGE_ARROW_NONE
-
-      parent = @model.parent
-
-      if (not root) and parent?.type is 'indent' and
-          @view.getViewNodeFor(parent).lineLength > 1 and
-          @lineLength is 1
-        head = @model.start
-        until head is parent.start or head.type is 'newline'
-          head = head.prev
-
-        if head is parent.start
-          if @model.isLastOnLine()
-            @carriageArrow = CARRIAGE_ARROW_INDENT
-          else
-            @carriageArrow = CARRIAGE_GROW_DOWN
-        else unless @model.isFirstOnLine()
-          @carriageArrow = CARRIAGE_ARROW_SIDEALONG
-
-      if @carriageArrow isnt oldCarriageArrow
-        @changedBoundingBox = true
-
-      if @computedVersion is @model.version and
-         (not @model.parent? or
-         @model.parent.version is @view.getViewNodeFor(@model.parent).computedVersion)
-        return null
-
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).computeCarriageArrow()
-
-      return null
-
-    computeBevels: ->
-      oldBevels = @bevels
-      @bevels =
-        top: true
-        bottom: true
-
-      if (@model.parent?.type is 'indent' or @model.parent?.isRoot) and
-         @model.start.prev?.type is 'newline' and
-         @model.start.prev?.prev isnt @model.parent.start
-        @bevels.top = false
-
-      if (@model.parent?.type is 'indent' or @model.parent?.isRoot) and
-         @model.end.next?.type is 'newline'
-        @bevels.bottom = false
-
-      unless oldBevels.top is @bevels.top and
-          oldBevels.bottom is @bevels.bottom
-        @changedBoundingBox = true
-
-      if @computedVersion is @model.version
-        return null
-
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).computeBevels()
-
-      return null
-
-
-    # ## computeDimensions (ContainerViewNode)
+    # ## computeDimensions (ListViewNode)
     # Compute the size of our bounding box on each line.
     computeMinDimensions: ->
       # If we can, use cached data.
@@ -1020,6 +956,7 @@ exports.View = class View
           else
             bottomMargin = margins.bottom
 
+
           @minDistanceToBase[desiredLine].above = Math.max(
             @minDistanceToBase[desiredLine].above,
             minDistanceToBase[line].above + margins.top)
@@ -1067,7 +1004,7 @@ exports.View = class View
 
       return null
 
-    # ## computeBoundingBoxX (ContainerViewNode)
+    # ## computeBoundingBoxX (ListViewNode)
     # Layout bounding box positions horizontally.
     # This needs to be separate from y-coordinate computation
     # because of glue spacing (the space between lines
@@ -1122,84 +1059,6 @@ exports.View = class View
       # computed.
       return @bounds[line]
 
-    # ## computeGlue
-    # Compute the necessary glue spacing between lines.
-    #
-    # If a block has disconnected blocks, e.g.
-    # ```
-    # someLongFunctionName '''hello
-    # world'''
-    # ```
-    #
-    # it requires glue spacing. Then, any surrounding blocks
-    # must add their padding to that glue spacing, until we
-    # reach an Indent, at which point we can stop.
-    #
-    # Parents outside the indent must stil know that there is
-    # a space between these line, but they wil not have
-    # to colour in that space. This will be flaged
-    # by the `draw` flag on the glue objects.
-    computeGlue: ->
-      # Use our cache if possible
-      if @computedVersion is @model.version and
-          not @changedBoundingBox
-        return @glue
-
-      # Immediately recurse, as we will
-      # need to know child glue info in order
-      # to compute our own (adding padding, etc.).
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).computeGlue()
-
-      @glue = {}
-
-
-      # Go through every pair of adjacent bounding boxes
-      # to see if they overlap or not
-      for box, line in @bounds when line < @bounds.length - 1
-
-        @glue[line] = {
-          type: 'normal'
-          height: 0
-          draw: false
-        }
-
-        # We will always have glue spacing at least as big
-        # as the biggest child's glue spacing.
-        for lineChild in @lineChildren[line]
-          childView = @view.getViewNodeFor lineChild.child
-          childLine = line - lineChild.startLine
-
-          if childLine of childView.glue
-            # Either add padding or not, depending
-            # on whether there is an indent between us.
-            @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height
-
-          if childView.carriageArrow isnt CARRIAGE_ARROW_NONE
-            @glue[line].height = Math.max @glue[line].height, @view.opts.padding
-
-        # Additionally, we add glue spacing padding if we are disconnected
-        # from the bounding box on the next line.
-        unless @multilineChildrenData[line] is MULTILINE_MIDDLE or @model.type is 'segment'
-          # Find the horizontal overlap between these two bounding rectangles,
-          # which is our right edge minus their left, or vice versa.
-          overlap = Math.min @bounds[line].right() - @bounds[line + 1].x, @bounds[line + 1].right() - @bounds[line].x
-
-          # If we are starting an indent, then our "bounding box"
-          # on the next line is not actually how we will be visualized;
-          # instead, we must connect to the small rectangle
-          # on the left of a C-shaped indent thing. So,
-          # compute overlap with that as well.
-          if @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
-            overlap = Math.min overlap, @bounds[line + 1].x + @view.opts.indentWidth - @bounds[line].x
-
-          # If the overlap is too small, demand glue.
-          if overlap < @view.opts.padding and @model.type isnt 'indent'
-            @glue[line].height += @view.opts.padding
-            @glue[line].draw = true
-
-      # Return the glue we just computed.
-      return @glue
 
     # ## computeBoundingBoxY
     # Layout a line vertically.
@@ -1258,6 +1117,197 @@ exports.View = class View
       @computeNewVersionNumber()
 
       return changedBoundingBox
+
+    # ## absorbCache
+    # A hacky thing to get a view node of a new List
+    # to acquire all the properties of its children
+    # TODO re-examine
+    absorbCache: ->
+      @computeChildren()
+      @computeCarriageArrow true
+      @computeMargins()
+      @computeBevels()
+      @computeMinDimensions()
+      @computeDimensions 0, false, true
+      # Replacement for computeAllBoundingBoxX
+      for size, line in @dimensions
+        child = @lineChildren[line][0]
+        childView = @view.getViewNodeFor child.child
+        left = childView.bounds[line - child.startLine].x
+        @computeBoundingBoxX left, line
+      @computeGlue()
+      # Replacement for computeAllBoundingBoxY
+      for size, line in @dimensions
+        child = @lineChildren[line][0]
+        childView = @view.getViewNodeFor child.child
+        top = childView.bounds[line - child.startLine].y
+        @computeBoundingBoxY top, line
+      @computePath()
+      @computeDropAreas()
+
+      return true
+
+    # ## computeGlue
+    # Compute the necessary glue spacing between lines.
+    #
+    # If a block has disconnected blocks, e.g.
+    # ```
+    # someLongFunctionName '''hello
+    # world'''
+    # ```
+    #
+    # it requires glue spacing. Then, any surrounding blocks
+    # must add their padding to that glue spacing, until we
+    # reach an Indent, at which point we can stop.
+    #
+    # Parents outside the indent must stil know that there is
+    # a space between these line, but they wil not have
+    # to colour in that space. This will be flaged
+    # by the `draw` flag on the glue objects.
+    computeGlue: ->
+      # Use our cache if possible
+      if @computedVersion is @model.version and
+          not @changedBoundingBox
+        return @glue
+
+      # Immediately recurse, as we will
+      # need to know child glue info in order
+      # to compute our own (adding padding, etc.).
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).computeGlue()
+
+      @glue = {}
+
+
+      # Go through every pair of adjacent bounding boxes
+      # to see if they overlap or not
+      for box, line in @bounds when line < @bounds.length - 1
+
+        @glue[line] = {
+          type: 'normal'
+          height: 0
+          draw: false
+        }
+
+        # We will always have glue spacing at least as big
+        # as the biggest child's glue spacing.
+        for lineChild in @lineChildren[line]
+          childView = @view.getViewNodeFor lineChild.child
+          childLine = line - lineChild.startLine
+
+          if childLine of childView.glue
+            # Either add padding or not, depending
+            # on whether there is an indent between us.
+            @glue[line].height = Math.max @glue[line].height, childView.glue[childLine].height
+
+          if childView.carriageArrow isnt CARRIAGE_ARROW_NONE
+            @glue[line].height = Math.max @glue[line].height, @view.opts.padding
+
+      # Return the glue we just computed.
+      return @glue
+
+    # ## drawShadow
+    # Draw the drop-shadow of the path on the given
+    # context.
+    drawShadow: (ctx, x, y) ->
+      @path.drawShadow ctx, x, y, @view.opts.shadowBlur
+
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).drawShadow ctx, x, y
+
+      return null
+
+  # # ContainerViewNode
+  # Class from which `socketView`, `indentView`, `blockView`, and `segmentView` extend.
+  # Contains function for dealing with multiple children, making polygons to wrap
+  # multiple lines, etc.
+  class ContainerViewNode extends ListViewNode
+    constructor: (@model, @view) ->
+      super
+
+    computeCarriageArrow: (root = false) ->
+      oldCarriageArrow = @carriageArrow
+      @carriageArrow = CARRIAGE_ARROW_NONE
+
+      parent = @model.parent
+
+      if (not root) and parent?.type is 'indent' and
+          @view.getViewNodeFor(parent).lineLength > 1 and
+          @lineLength is 1
+        head = @model.start
+        until head is parent.start or head.type is 'newline'
+          head = head.prev
+
+        if head is parent.start
+          if @model.isLastOnLine()
+            @carriageArrow = CARRIAGE_ARROW_INDENT
+          else
+            @carriageArrow = CARRIAGE_GROW_DOWN
+        else unless @model.isFirstOnLine()
+          @carriageArrow = CARRIAGE_ARROW_SIDEALONG
+
+      if @carriageArrow isnt oldCarriageArrow
+        @changedBoundingBox = true
+
+      if @computedVersion is @model.version and
+         (not @model.parent? or
+         @model.parent.version is @view.getViewNodeFor(@model.parent).computedVersion)
+        return null
+
+      super
+
+    computeGlue: ->
+      # Use our cache if possible
+      if @computedVersion is @model.version and
+          not @changedBoundingBox
+        return @glue
+
+      for box, line in @bounds when line < @bounds.length - 1
+        # Additionally, we add glue spacing padding if we are disconnected
+        # from the bounding box on the next line.
+        unless @multilineChildrenData[line] is MULTILINE_MIDDLE
+          # Find the horizontal overlap between these two bounding rectangles,
+          # which is our right edge minus their left, or vice versa.
+          overlap = Math.min @bounds[line].right() - @bounds[line + 1].x, @bounds[line + 1].right() - @bounds[line].x
+
+          # If we are starting an indent, then our "bounding box"
+          # on the next line is not actually how we will be visualized;
+          # instead, we must connect to the small rectangle
+          # on the left of a C-shaped indent thing. So,
+          # compute overlap with that as well.
+          if @multilineChildrenData[line] in [MULTILINE_START, MULTILINE_END_START]
+            overlap = Math.min overlap, @bounds[line + 1].x + @view.opts.indentWidth - @bounds[line].x
+
+          # If the overlap is too small, demand glue.
+          if overlap < @view.opts.padding and @model.type isnt 'indent'
+            @glue[line].height += @view.opts.padding
+            @glue[line].draw = true
+
+      return @glue
+
+    computeBevels: ->
+      oldBevels = @bevels
+      @bevels =
+        top: true
+        bottom: true
+
+      if (@model.parent?.type in ['indent', 'segment']) and
+         @model.start.prev?.type is 'newline' and
+         @model.start.prev?.prev isnt @model.parent.start
+        @bevels.top = false
+
+      if (@model.parent?.type in ['indent', 'segment']) and
+         @model.end.next?.type is 'newline'
+        @bevels.bottom = false
+
+      unless oldBevels.top is @bevels.top and
+          oldBevels.bottom is @bevels.bottom
+        @changedBoundingBox = true
+
+      if @computedVersion is @model.version
+        return null
+
+      super
 
     # ## computeOwnPath
     # Using bounding box data, compute the polygon
@@ -1620,17 +1670,6 @@ exports.View = class View
 
       return null
 
-    # ## drawShadow
-    # Draw the drop-shadow of the path on the given
-    # context.
-    drawShadow: (ctx, x, y) ->
-      @path.drawShadow ctx, x, y, @view.opts.shadowBlur
-
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).drawShadow ctx, x, y
-
-      return null
-
   # # BlockViewNode
   class BlockViewNode extends ContainerViewNode
     constructor: -> super
@@ -1987,25 +2026,6 @@ exports.View = class View
 
         return null
 
-    # ## drawSelf
-    #
-    # A Segment has no drawn representation.
-    drawSelf: (ctx, style) -> null
-
-    # ## draw
-    #
-    # A Segment can be a lasso select
-    # container, in which case it
-    # should set the "selected" style
-    # on all of its children during
-    # the draw phase.
-    draw: (ctx, boundingRect, style) ->
-      style ?= defaultStyleObject()
-
-      if @model.isLassoSegment then style.selected++
-      super
-      if @model.isLassoSegment then style.selected--
-
   # # TextViewNode
   #
   # TextViewNode does not extend ContainerViewNode.
@@ -2080,18 +2100,6 @@ exports.View = class View
       @computeOwnPath()
       @textElement.draw ctx
       ctx.globalAlpha = 0.1
-
-  # # CursorViewNode
-  # The Cursor should not be render by the standard view.
-  # Thus everything here is a no-op.
-  class CursorViewNode extends GenericViewNode
-    constructor: (@model, @view) -> super
-
-    computeChildren: ->
-      @multilineChildrenData = [0]
-      return 1
-
-    computeBoundingBox: ->
 
 toRGB = (hex) ->
   # Convert to 6-char hex if not already there

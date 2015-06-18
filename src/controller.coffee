@@ -529,6 +529,7 @@ Editor::redrawHighlights = ->
       delete @extraMarks[id]
 
   @redrawCursors()
+  @redrawLassoHighlight()
 
 Editor::clearCursorCanvas = ->
   @cursorCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
@@ -856,18 +857,17 @@ Editor::spliceIn = (node, location) ->
 
 
 Editor::prepareNode = (node, context) ->
-  leading = node.getLeadingText()
-  if node.start.next is node.end.prev
-    trailing = null
-  else
-    trailing = node.getTrailingText()
+  if node instanceof model.Container
+    leading = node.getLeadingText()
+    if node.start.next is node.end.prev
+      trailing = null
+    else
+      trailing = node.getTrailingText()
 
-  [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
-    context?.getReader?() ? null
+    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
+      context?.getReader?() ? null
 
-  node.setLeadingText leading; node.setTrailingText trailing
-
-
+    node.setLeadingText leading; node.setTrailingText trailing
 
 # At population-time, we will
 # want to set up a few fields.
@@ -1039,8 +1039,9 @@ hook 'mousemove', 1, (point, event, state) ->
       unless @draggingOffset?
         @draggingOffset = viewNode.bounds[0].upperLeftCorner().from mainPoint
 
-    @draggingBlock.ephemeral = true
-    @draggingBlock.clearLineMarks()
+    # TODO figure out what to do with lists here
+    #@draggingBlock.ephemeral = true
+    #@draggingBlock.clearLineMarks()
 
     # Draw the new dragging block on the drag canvas.
     #
@@ -1252,8 +1253,8 @@ hook 'mouseup', 1, (point, event, state) ->
 
         @addMicroUndoOperation new PickUpOperation @draggingBlock
 
-        # Remove the block from the tree.
-        @spliceOut @draggingBlock
+      # Remove the block from the tree.
+      @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
 
@@ -1428,8 +1429,8 @@ hook 'mouseup', 0, (point, event, state) ->
 
       @addMicroUndoOperation new PickUpOperation @draggingBlock
 
-      # Remove the block from the tree.
-      @spliceOut @draggingBlock
+    # Remove the block from the tree.
+    @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
@@ -1746,7 +1747,7 @@ class TextReparseOperation extends UndoOperation
 
   redo: (editor) ->
     socket = editor.tree.getFromLocation(@socket).container
-    socket.start.append socket.end; socket.notifyChange()
+    helper.connect socket.start, socket.end; socket.notifyChange()
     editor.spliceIn @after.clone(), socket
 
 # At populate-time, we need
@@ -2004,7 +2005,7 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
       if newParse? and newParse.start.next.type is 'blockStart' and
           newParse.start.next.container.end.next is newParse.end
         # Empty the socket
-        @textFocus.start.append @textFocus.end
+        helper.connect @textFocus.start, @textFocus.end
 
         # Splice the other in
         @spliceIn newParse.start.next.container, @textFocus.start
@@ -2075,7 +2076,7 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 
 Editor::populateSocket = (socket, string) ->
   lines = string.split '\n'
-  socket.start.append socket.end
+  helper.connect socket.start, socket.end
   head = socket.start
 
   for line, i in lines
@@ -2294,52 +2295,6 @@ hook 'mouseup', 0, (point, event, state) ->
 # LASSO SELECT SUPPORT
 # ===============================
 
-# We need undo operations for create/destroy segment
-# so that other undo operations work properly in
-# the tree -- for instance, DropOperation needs
-# to have the segment in the tree that is being
-# dropped in order to work.
-class CreateSegmentOperation extends UndoOperation
-  constructor: (segment) ->
-    @first = segment.start.getLocation()
-    @last = segment.end.getLocation() - 2
-    @lassoSelect = segment.isLassoSegment
-
-  undo: (editor) ->
-    editor.tree.getFromLocation(@first).container.unwrap()
-
-    return editor.tree.getFromLocation @first
-
-  redo: (editor) ->
-    segment = new model.Segment()
-    segment.isLassoSegment = @lassoSelect
-    segment.wrap editor.tree.getFromLocation(@first),
-      editor.tree.getFromLocation(@last)
-
-    return segment.end
-
-class DestroySegmentOperation extends UndoOperation
-  constructor: (segment) ->
-    @first = segment.start.getLocation()
-    @last = segment.end.getLocation() - 2
-    @lassoSelect = segment.isLassoSegment
-
-  undo: (editor) ->
-    segment = new model.Segment()
-    segment.isLassoSegment = @lassoSelect
-    segment.wrap editor.tree.getFromLocation(@first),
-      editor.tree.getFromLocation(@last)
-
-    if @lassoSelect
-      editor.lassoSegment = segment
-
-    return segment.end
-
-  redo: (editor) ->
-    editor.tree.getFromLocation(@first).container.unwrap()
-
-    return editor.tree.getFromLocation @first
-
 # The lasso select
 # will have its own canvas
 # for drawing the lasso. This needs
@@ -2446,23 +2401,20 @@ hook 'mousemove', 0, (point, event, state) ->
 
     if first and last?
       [first, last] = validateLassoSelection @tree, first, last
-      @drawTemporaryLasso first, last
+      @lassoSegment = new model.List first, last
+      @redrawLassoHighlight()
 
-
-Editor::drawTemporaryLasso = (first, last) ->
-  mainCanvasRectangle = new @draw.Rectangle(
-    @scrollOffsets.main.x,
-    @scrollOffsets.main.y,
-    @mainCanvas.width,
-    @mainCanvas.height
-  )
-  head = first
-  until head is last
-    if head instanceof model.StartToken
-      @view.getViewNodeFor(head.container).draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
-      head = head.container.end
-    else
-      head = head.next
+Editor::redrawLassoHighlight = ->
+  if @lassoSegment?
+    mainCanvasRectangle = new @draw.Rectangle(
+      @scrollOffsets.main.x,
+      @scrollOffsets.main.y,
+      @mainCanvas.width,
+      @mainCanvas.height
+    )
+    view = @view.getViewNodeFor(@lassoSegment)
+    view.absorbCache()
+    view.draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -2524,12 +2476,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     [first, last] = validateLassoSelection @tree, first, last
 
-    @lassoSegment = new model.Segment()
-    @lassoSegment.isLassoSegment = true
-
-    @lassoSegment.wrap first, last
-
-    @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
+    @lassoSegment = new model.List first, last
 
     # Move the cursor to the segment we just created
     @moveCursorAfter @lassoSegment.end.next, true

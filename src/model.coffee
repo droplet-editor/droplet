@@ -73,6 +73,7 @@ exports.isTreeValid = (tree) ->
 
 exports.List = class List
   constructor: (@start, @end) ->
+    @id = _id++
 
   # ## spliceIn ##
   # Insert ourselves into a linked
@@ -99,19 +100,21 @@ exports.List = class List
 
       # Remove socket content when necessary
       when 'socketStart'
-        token.append token.container.end
+        helper.connect token, token.container.end
 
     # Literally splice in
     last = token.next
 
-    token.append @start
+    helper.connect token, @start
 
     if token instanceof StartToken
       @setParent token.container
     else
       @setParent token.parent
 
-    @end.append last
+    helper.connect @end, last
+
+    @notifyChange()
 
   # ## spliceOut ##
   # Remove ourselves from the linked
@@ -148,18 +151,91 @@ exports.List = class List
       last = last.next
       last.prev.remove()
 
+    @notifyChange()
+
     # Literally unsplice
-    if @start.prev? then @start.prev.append @end.next
-    else if @end.next? then @end.next.prev = null
+    helper.connect @start.prev, @end.next
 
     @start.prev = @end.next = null
 
+    console.log 'just removed.'
+    @notifyChange()
+
     @setParent null
+
+  notifyChange: ->
+    @traverseOneLevel (head) ->
+      head.notifyChange()
+
+  traverseOneLevel: (fn) ->
+    traverseOneLevel @start, fn, @end
+
+  isFirstOnLine: ->
+    return @start.prev in [@parent?.start, @parent?.parent?.start, null] or
+      @start.prev?.type is 'newline'
+
+  isLastOnLine: ->
+    return @end.next in [@parent?.end, @parent?.parent?.end, null] or
+      @end.next?.type in ['newline', 'indentStart', 'indentEnd']
+
+  getReader: -> {type: 'segment', classes: []}
 
   setParent: (parent) ->
     traverseOneLevel @start, ((head)->
       head.setParent parent
     ), @end
+
+  # ## clone ##
+  # Clone this container, with all the token inside,
+  # but with no linked-list pointers in common.
+  clone: ->
+    assembler = head = {}
+
+    @traverseOneLevel (head) =>
+      # If we have hit a container,
+      # ask it to clone, so that
+      # we copy over appropriate metadata.
+      if head instanceof Container
+        clone = head.clone()
+        helper.connect assembler, clone.start
+        assembler = clone.end
+
+      # Otherwise, helper.connect just, a cloned
+      # version of this token.
+      else unless head.type is 'cursor'
+        assembler = helper.connect assembler, head.clone()
+
+    head = head.next; head.prev = null
+
+    clone = new List head, assembler
+    clone.correctParentTree()
+
+    return clone
+
+  # ## correctParentTree ##
+  # Generally called immediately after assembling
+  # a token stream by hand; corrects the entire
+  # parent tree for the linked list.
+  correctParentTree: ->
+    @traverseOneLevel (head) =>
+      head.parent = this
+      if head instanceof Container
+        head.start.parent = head.end.parent = this
+        head.correctParentTree()
+
+  # ## stringify ##
+  # Get a string representation of us,
+  # using the `stringify()` method on all of
+  # the tokens that we contain.
+  stringify: ->
+    str = ''
+
+    head = @start
+    until head is @end
+      str += head.stringify()
+      head = head.next
+
+    return str
 
 # Container
 # ==================
@@ -176,7 +252,7 @@ exports.Container = class Container extends List
     @id = ++_id
     @parent = null
     @version = 0
-    @start.append @end
+    helper.connect @start, @end
 
     @ephemeral = false
 
@@ -227,22 +303,35 @@ exports.Container = class Container extends List
 
     return head?
 
-  # Notify change at the same time as splicing.
-  spliceIn: (token) ->
-    super token
-    @ephemeral = false
-    @notifyChange()
+  clone: ->
+    selfClone = @_cloneEmpty()
+    assembler = selfClone.start
 
-  spliceOut: ->
-    @notifyChange()
-    super()
+    @traverseOneLevel (head) =>
+      # If we have hit a container,
+      # ask it to clone, so that
+      # we copy over appropriate metadata.
+      if head instanceof Container
+        clone = head.clone()
+        helper.connect assembler, clone.start
+        assembler = clone.end
+
+      # Otherwise, helper.connect just, a cloned
+      # version of this token.
+      else unless head.type is 'cursor'
+        assembler = helper.connect assembler, head.clone()
+
+    helper.connect assembler, selfClone.end
+    selfClone.correctParentTree()
+
+    return selfClone
 
   rawReplace: (other) ->
     if other.start.prev?
-      other.start.prev.append @start
+      helper.connect other.start.prev, @start
 
     if other.end.next?
-      @end.append other.end.next
+      helper.connect @end, other.end.next
 
     @start.parent = @end.parent = @parent = other.parent
 
@@ -302,51 +391,6 @@ exports.Container = class Container extends List
           @end.prev.value = value
       else unless value.length is 0
         @end.insertBefore new TextToken value
-
-  # ## clone ##
-  # Clone this container, with all the token inside,
-  # but with no linked-list pointers in common.
-  clone: ->
-    # Clone ourselves empty first;
-    # we will fill with appropriate
-    # tokens.
-    selfClone = @_cloneEmpty()
-
-    assembler = selfClone.start
-
-    @traverseOneLevel (head) =>
-      # If we have hit a container,
-      # ask it to clone, so that
-      # we copy over appropriate metadata.
-      if head instanceof Container
-        clone = head.clone()
-        assembler.append clone.start
-        assembler = clone.end
-
-      # Otherwise, just append a cloned
-      # version of this token.
-      else unless head.type is 'cursor'
-        assembler = assembler.append head.clone()
-
-    assembler.append selfClone.end
-
-    selfClone.correctParentTree()
-
-    return selfClone
-
-  # ## stringify ##
-  # Get a string representation of us,
-  # using the `stringify()` method on all of
-  # the tokens that we contain.
-  stringify: ->
-    str = ''
-
-    head = @start
-    until head is @end
-      str += head.stringify()
-      head = head.next
-
-    return str
 
   # ## serialize ##
   # Simple debugging output representation
@@ -409,17 +453,6 @@ exports.Container = class Container extends List
       head.version++
       head = head.parent
 
-  # ## correctParentTree ##
-  # Generally called immediately after assembling
-  # a token stream by hand; corrects the entire
-  # parent tree for the linked list.
-  correctParentTree: ->
-    @traverseOneLevel (head) =>
-      head.parent = this
-      if head instanceof Container
-        head.start.parent = head.end.parent = this
-        head.correctParentTree()
-
   # ## getBlockOnLine ##
   # Get the innermost block that contains
   # the given line.
@@ -446,14 +479,6 @@ exports.Container = class Container extends List
   traverseOneLevel: (fn) ->
     unless @start.next is @end
       traverseOneLevel @start.next, fn, @end.prev
-
-  isFirstOnLine: ->
-    return @start.prev in [@parent?.start, @parent?.parent?.start, null] or
-      @start.prev?.type is 'newline'
-
-  isLastOnLine: ->
-    return @end.next in [@parent?.end, @parent?.parent?.end, null] or
-      @end.next?.type in ['newline', 'indentStart', 'indentEnd']
 
   # Line mark mutators
   addLineMark: (mark) ->
@@ -543,15 +568,6 @@ exports.Token = class Token
 
     return head?
 
-  # ## append ##
-  # Link this token to another
-  # in the linked list.
-  append: (token) ->
-    @next = token; unless token then return
-    token.prev = this
-
-    return token
-
   # ## insert ##
   insert: (token) ->
     if token instanceof StartToken or
@@ -576,7 +592,7 @@ exports.Token = class Token
   # Splice this token out of the
   # linked list.
   remove: ->
-    if @prev? then @prev.append @next
+    if @prev? then helper.connect @prev, @next
     else if @next? then @next.prev = null
 
     @prev = @next = @parent = null
@@ -651,12 +667,6 @@ exports.StartToken = class StartToken extends Token
   constructor: (@container) ->
     super; @markup = 'begin'
 
-  append: (token) ->
-    @next = token; unless token? then return
-    token.prev = this
-
-    return token
-
   insert: (token) ->
     if token instanceof StartToken or
        token instanceof EndToken
@@ -674,12 +684,6 @@ exports.StartToken = class StartToken extends Token
 exports.EndToken = class EndToken extends Token
   constructor: (@container) ->
     super; @markup = 'end'
-
-  append: (token) ->
-    @next = token; unless token? then return
-    token.prev = this
-
-    return token
 
   insert: (token) ->
     if token instanceof StartToken or

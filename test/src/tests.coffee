@@ -43,14 +43,14 @@ asyncTest 'Basic token operations', ->
   c = new model.Token()
   d = new model.Token()
 
-  strictEqual a.append(b), b, 'append() return argument'
+  strictEqual helper.connect(a, b), b, 'connect() return argument'
 
-  strictEqual a.prev, null, 'append assembles correct linked list'
-  strictEqual a.next, b, 'append assembles correct linked list'
-  strictEqual b.prev, a, 'append assembles correct linked list'
-  strictEqual b.next, null, 'append assembles correct linked list'
+  strictEqual a.prev, null, 'connect assembles correct linked list'
+  strictEqual a.next, b, 'connect assembles correct linked list'
+  strictEqual b.prev, a, 'connect assembles correct linked list'
+  strictEqual b.next, null, 'connect assembles correct linked list'
 
-  b.append c
+  helper.connect b, c
   b.remove()
 
   strictEqual a.next, c, 'remove removes token'
@@ -68,8 +68,7 @@ asyncTest 'Containers and parents', ->
   e = cont2.end
   f = cont1.end
 
-  a.append(b).append(c).append(d)
-   .append(e).append(f)
+  helper.string [a, b, c, d, e, f]
 
   cont1.correctParentTree()
 
@@ -82,7 +81,7 @@ asyncTest 'Containers and parents', ->
 
   g = new model.Token()
   h = new model.Token()
-  g.append h
+  helper.connect g, h
 
   list = new model.List g, h
   list.spliceIn d
@@ -446,13 +445,15 @@ asyncTest 'View: triple-quote sockets caching issue', ->
   strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
   strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 
-  socketView.model.start.append socketView.model.end
-  socketView.model.start.append(new model.TextToken('"""'))
-    .append(new model.NewlineToken())
-    .append(new model.TextToken('hello'))
-    .append(new model.NewlineToken())
-    .append(new model.TextToken('world"""'))
-    .append(socketView.model.end)
+  helper.string [
+    socketView.model.start
+    new model.TextToken('"""')
+    new model.NewlineToken()
+    new model.TextToken('hello')
+    new model.NewlineToken()
+    new model.TextToken('world"""')
+    socketView.model.end
+  ]
 
   socketView.model.notifyChange()
 
@@ -460,8 +461,11 @@ asyncTest 'View: triple-quote sockets caching issue', ->
 
   strictEqual socketView.topLineSticksToBottom, true, 'Intermediate topstick O.K.'
 
-  socketView.model.start.append new model.TextToken('\'hi\'')
-    .append socketView.model.end
+  helper.string [
+    socketView.model.start
+    new model.TextToken('\'hi\'')
+    socketView.model.end
+  ]
 
   socketView.model.notifyChange()
   documentView.layout()

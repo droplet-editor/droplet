@@ -214,10 +214,10 @@ exports.Parser = class Parser
     socket = new model.Socket @empty, 0, true
     textToken = new model.TextToken text
 
-    block.start.append socket.start
-    socket.start.append textToken
-    textToken.append socket.end
-    socket.end.append block.end
+    helper.connect block.start, socket.start
+    helper.connect socket.start, textToken
+    helper.connect textToken, socket.end
+    helper.connect socket.end, block.end
 
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
@@ -244,7 +244,7 @@ exports.Parser = class Parser
 
     for line, i in lines
       # If there is no markup on this line,
-      # simply append the text of this line to the document
+      # helper.connect simply, the text of this line to the document
       # (stripping things as needed for indent)
       if not (i of markupOnLines)
         # If this line is not properly indented,
@@ -262,20 +262,20 @@ exports.Parser = class Parser
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
             block = @constructHandwrittenBlock line
 
-            head.append block.start
+            helper.connect head, block.start
             head = block.end
 
           else
-            head = head.append new model.TextToken line
+            head = helper.connect head, new model.TextToken line
 
         else if stack[stack.length - 1]?.type in ['indent', 'segment', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
 
-          head = head.append block.start
-          head = head.append block.end
+          head = helper.connect head, block.start
+          head = helper.connect head, block.end
 
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
 
       # If there is markup on this line, insert it.
       else
@@ -293,11 +293,11 @@ exports.Parser = class Parser
             if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
               block = @constructHandwrittenBlock line[lastIndex...mark.location.column]
 
-              head.append block.start
+              helper.connect head, block.start
               head = block.end
 
             else
-              head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+              head = helper.connect head, new model.TextToken(line[lastIndex...mark.location.column])
 
           # Note, if we have inserted something,
           # the new indent depth and the new stack.
@@ -332,25 +332,25 @@ exports.Parser = class Parser
             stack.pop()
 
           # Append the token
-          head = head.append mark.token
+          head = helper.connect head, mark.token
 
           lastIndex = mark.location.column
 
         # Append the rest of the string
         # (after the last piece of markup)
         unless lastIndex >= line.length
-          head = head.append new model.TextToken(line[lastIndex...line.length])
+          head = helper.connect head, new model.TextToken(line[lastIndex...line.length])
 
         # Append the needed newline token
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
 
     # Pop off the last newline token, which is not necessary
     head = head.prev
     head.next.remove()
 
     # Reinsert the end token of the document,
-    # which we previously threw away by using "append"
-    head = head.append document.end
+    # which we previously threw away by using "connect"
+    head = helper.connect head, document.end
 
     # Return the document
     return document
@@ -364,9 +364,9 @@ exports.parseXML = (xml) ->
     tokens = text.split '\n'
     for token, i in tokens
       unless token.length is 0
-        head = head.append new model.TextToken token
+        head = helper.connect head, new model.TextToken token
       unless i is tokens.length - 1
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
 
   # TODO Improve serialization format
   # for test updates. Currently no longer unity
@@ -387,7 +387,7 @@ exports.parseXML = (xml) ->
         unless stack.length is 0
           container = new model.Segment()
       when 'br'
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
         return null
 
     if container?
@@ -396,11 +396,11 @@ exports.parseXML = (xml) ->
         container: container
       }
 
-      head = head.append container.start
+      head = helper.connect head, container.start
 
   parser.onclosetag = (nodeName) ->
     if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
-      head = head.append stack[stack.length - 1].container.end
+      head = helper.connect head, stack[stack.length - 1].container.end
       stack.pop()
 
   parser.onerror = (e) ->
@@ -408,7 +408,7 @@ exports.parseXML = (xml) ->
 
   parser.write(xml).close()
 
-  head = head.append root.end
+  head = helper.connect head, root.end
   root.correctParentTree()
 
   return root
