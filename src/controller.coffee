@@ -2210,6 +2210,8 @@ Editor::showDropdown = ->
   if @textFocus.hasDropdown()
     @dropdownVisible = true
 
+    dropdownItems = []
+
     @dropdownElement.innerHTML = ''
     @dropdownElement.style.display = 'inline-block'
 
@@ -2223,8 +2225,9 @@ Editor::showDropdown = ->
       div.innerHTML = el.display
       div.className = 'droplet-dropdown-item'
 
+      dropdownItems.push div
+
       div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
-      div.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
 
       setText = (text) =>
         # Attempting to populate the socket after the dropdown has closed should no-op
@@ -2243,11 +2246,24 @@ Editor::showDropdown = ->
           setText(el.text)
       @dropdownElement.appendChild div
 
-    location = @view.getViewNodeFor(@textFocus).bounds[0]
+      @dropdownElement.style.top = '-9999px'
+      @dropdownElement.style.left = '-9999px'
 
-    @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
-    @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
-    @dropdownElement.style.minWidth = location.width + 'px'
+    # Wait for a render. Then,
+    # if the div is scrolled vertically, add
+    # some padding on the right. After checking for this,
+    # move the dropdown element into position
+    setTimeout (=>
+      if @dropdownElement.offsetHeight < @dropdownElement.scrollHeight
+        for el in dropdownItems
+          el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
+
+      location = @view.getViewNodeFor(@textFocus).bounds[0]
+
+      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
+      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+      @dropdownElement.style.minWidth = location.width + 'px'
+    ), 0
 
 Editor::hideDropdown= ->
   @dropdownVisible = false

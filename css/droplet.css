@@ -252,7 +252,7 @@
 }
 .droplet-dropdown-item {
   cursor: pointer;
-  padding-right: 17px; /* To make room for the scrollbar (17px is the width on most browsers) */
+  padding-right: 5px;
 }
 .droplet-dropdown-item:hover {
   background-color: #DDD;
