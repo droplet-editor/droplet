@@ -1217,8 +1217,8 @@ hook 'mouseup', 1, (point, event, state) ->
         indentation = currentIndentation
         suffix = ''
 
-        if currentIndentation.length == line.length
-          # line is whitespace only.
+        if currentIndentation.length == line.length or currentIndentation.length == pos.column
+          # line is whitespace only or we're inserting at the beginning of a line
           # Append with a newline
           suffix = '\n' + indentation
         else if pos.column == line.length
