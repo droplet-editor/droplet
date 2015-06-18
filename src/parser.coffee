@@ -409,6 +409,7 @@ exports.parseXML = (xml) ->
   parser.write(xml).close()
 
   head = head.append root.end
+  root.correctParentTree()
 
   return root
 

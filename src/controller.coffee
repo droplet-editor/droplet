@@ -703,9 +703,9 @@ class UndoOperation
 Editor::removeBlankLines = ->
   # If we have blank lines at the end,
   # get rid of them
-  head = @tree.end.previousVisibleToken()
+  head = @tree.end.prev
   while head?.type is 'newline'
-    next = head.previousVisibleToken()
+    next = head.prev
     head.remove()
     head = next
 
@@ -847,9 +847,9 @@ Editor::spliceOut = (node) ->
   node.spliceOut()
 
 Editor::spliceIn = (node, location) ->
-  container = location.container ? location.visParent()
+  container = location.container ? location.parent
   if container.type is 'block'
-    container = container.visParent()
+    container = container.parent
 
   @prepareNode node, container
   node.spliceIn location
@@ -1111,10 +1111,10 @@ Editor::getAcceptLevel = (drag, drop) ->
     else
       return @mode.drop drag.getReader(), drop.getReader(), null
   else if drop.type is 'block'
-    if drop.visParent().type is 'socket'
+    if drop.parent.type is 'socket'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
+      return @mode.drop drag.getReader(), drop.parent.getReader(), drop
   else
     return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
 
@@ -1309,7 +1309,7 @@ hook 'mouseup', 1, (point, event, state) ->
 Editor::reparseRawReplace = (oldBlock, originalTrigger = oldBlock) ->
   # Get the parent in case we need to bubble
   # up later
-  parent = oldBlock.visParent()
+  parent = oldBlock.parent
 
   # Attempt to parse the block we are given out-of-context
   try
@@ -2532,7 +2532,7 @@ hook 'mouseup', 0, (point, event, state) ->
     @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
 
     # Move the cursor to the segment we just created
-    @moveCursorAfter @lassoSegment.end.nextVisibleToken(), true
+    @moveCursorAfter @lassoSegment.end.next, true
 
     @redrawMain()
 
@@ -2559,7 +2559,7 @@ Editor::cursorInValidPosition = ->
 
 # A cursor is only allowed to be on a line.
 Editor::moveCursorAfter = (destination) ->
-  unless destination?
+  if destination is @tree.end or not destination?
     return
 
   unless @inTree destination
@@ -4312,14 +4312,14 @@ hook 'populate', 1, ->
         if @lassoSegment? and @inTree(@lassoSegment)
           # Make sure the cursor is outside the lasso segment
           # (although it should be already)
-          @moveCursorAfter @lassoSegment.end.nextVisibleToken(), true
+          @moveCursorAfter @lassoSegment.end.next, true
           @addMicroUndoOperation new PickUpOperation @lassoSegment
           @spliceOut @lassoSegment; @lassoSegment = null
 
         @addMicroUndoOperation new DropOperation blocks, @cursor
 
         @spliceIn blocks, @cursor
-        unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
+        unless blocks.end.next.type in ['newline', 'indentEnd']
           blocks.end.insert new model.NewlineToken()
 
         @addMicroUndoOperation new DestroySegmentOperation blocks

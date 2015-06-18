@@ -81,10 +81,11 @@ asyncTest 'Containers and parents', ->
   strictEqual f.parent, null, 'correctParentTree() output is correct (f)'
 
   g = new model.Token()
-  h = new model.Token
+  h = new model.Token()
   g.append h
-  d.append g
-  h.append e
+
+  list = new model.List g, h
+  list.spliceIn d
 
   strictEqual a.parent, null, 'splice in parents still work'
   strictEqual b.parent, cont1, 'splice in parents still work'
@@ -492,9 +493,11 @@ asyncTest 'View: indent carriage arrow', ->
   view_ = new view.View()
 
   document = parser.parseXML '''
-  <block>hello <indent><block>my <socket>name</socket></block>
+  <block>hello <indent prefix="  "><block>my <socket>name</socket></block>
   <block>is elder <socket>price</socket></block></indent></block>
   '''
+
+  console.log document.stringify()
 
   documentView = view_.getViewNodeFor document
   documentView.layout()
@@ -520,9 +523,11 @@ asyncTest 'View: sidealong carriage arrow', ->
   view_ = new view.View()
 
   document = parser.parseXML '''
-  <block>hello <indent>
+  <block>hello <indent prefix="  ">
   <block>my <socket>name</socket></block><block>is elder <socket>price</socket></block></indent></block>
   '''
+
+  console.log document.stringify()
 
   documentView = view_.getViewNodeFor document
   documentView.layout()

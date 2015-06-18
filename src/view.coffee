@@ -826,7 +826,7 @@ exports.View = class View
       line = 0
 
       # Go to all our immediate children.
-      @model.traverseOneLevel (head, isContainer) =>
+      @model.traverseOneLevel (head) =>
         # If the child is a newline, simply advance the
         # line counter.
         if head.type is 'newline'
@@ -905,7 +905,7 @@ exports.View = class View
       oldCarriageArrow = @carriageArrow
       @carriageArrow = CARRIAGE_ARROW_NONE
 
-      parent = @model.visParent()
+      parent = @model.parent
 
       if (not root) and parent?.type is 'indent' and
           @view.getViewNodeFor(parent).lineLength > 1 and
@@ -941,13 +941,13 @@ exports.View = class View
         top: true
         bottom: true
 
-      if (@model.visParent()?.type is 'indent' or @model.visParent()?.isRoot) and
-         @model.start.previousAffectToken()?.type is 'newline' and
-         @model.start.previousAffectToken()?.previousAffectToken() isnt @model.visParent().start
+      if (@model.parent?.type is 'indent' or @model.parent?.isRoot) and
+         @model.start.prev?.type is 'newline' and
+         @model.start.prev?.prev isnt @model.parent.start
         @bevels.top = false
 
-      if (@model.visParent()?.type is 'indent' or @model.visParent()?.isRoot) and
-         @model.end.nextAffectToken()?.type is 'newline'
+      if (@model.parent?.type is 'indent' or @model.parent?.isRoot) and
+         @model.end.next?.type is 'newline'
         @bevels.bottom = false
 
       unless oldBevels.top is @bevels.top and
@@ -1453,14 +1453,14 @@ exports.View = class View
             right.push new @view.draw.Point innerRight, @bounds[line].bottom()
             right.push new @view.draw.Point innerRight, @bounds[line + 1].y
         else if @carriageArrow is CARRIAGE_GROW_DOWN
-          parentViewNode = @view.getViewNodeFor @model.visParent()
+          parentViewNode = @view.getViewNodeFor @model.parent
           destinationBounds = parentViewNode.bounds[1]
 
           right.push new @view.draw.Point @bounds[line].right(), destinationBounds.y - @view.opts.padding
           left.push new @view.draw.Point @bounds[line].x, destinationBounds.y - @view.opts.padding
 
         else if @carriageArrow is CARRIAGE_ARROW_INDENT
-          parentViewNode = @view.getViewNodeFor @model.visParent()
+          parentViewNode = @view.getViewNodeFor @model.parent
           destinationBounds = parentViewNode.bounds[1]
 
           right.push new @view.draw.Point @bounds[line].right(), destinationBounds.y
@@ -1472,7 +1472,7 @@ exports.View = class View
 
           @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset, destinationBounds.y
         else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG and @model.isLastOnLine()
-          parentViewNode = @view.getViewNodeFor @model.visParent()
+          parentViewNode = @view.getViewNodeFor @model.parent
           destinationBounds = parentViewNode.bounds[@model.getLinesToParent()]
 
           right.push new @view.draw.Point @bounds[line].right(), destinationBounds.bottom() + @view.opts.padding
@@ -1651,7 +1651,7 @@ exports.View = class View
 
     shouldAddTab: ->
       if @model.parent?
-        parent = @model.visParent()
+        parent = @model.parent
         parent?.type isnt 'socket'
       else not ('mostly-value' in @model.classes or
           'value-only' in @model.classes)
@@ -1672,14 +1672,14 @@ exports.View = class View
       # equal to our last line width,
       # positioned at the bottom of our last line.
       if @carriageArrow is CARRIAGE_ARROW_INDENT
-        parentViewNode = @view.getViewNodeFor @model.visParent()
+        parentViewNode = @view.getViewNodeFor @model.parent
         destinationBounds = parentViewNode.bounds[1]
 
         @dropPoint = new @view.draw.Point destinationBounds.x, destinationBounds.y
         lastBoundsLeft = destinationBounds.x
         lastBoundsRight = destinationBounds.right()
       else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG
-        parentViewNode = @view.getViewNodeFor @model.visParent()
+        parentViewNode = @view.getViewNodeFor @model.parent
         destinationBounds = parentViewNode.bounds[1]
 
         @dropPoint = new @view.draw.Point destinationBounds.x,
@@ -1770,7 +1770,7 @@ exports.View = class View
 
       # Do not add padding to the glue
       # if our child is a block.
-      if @model.start.nextVisibleToken().type is 'blockStart'
+      if @model.start.next.type is 'blockStart'
         view = @view.getViewNodeFor @model.start.next.container
         @glue = view.computeGlue()
 
