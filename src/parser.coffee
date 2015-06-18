@@ -36,13 +36,13 @@ exports.Parser = class Parser
         return x
     for key, val of @opts.functions
       for index, options of val.dropdown then do (options) =>
-        exclusive = false
-        if options.exclusive?
-          exclusive = options.exclusive
+        dropdownOnly = false
+        if options.dropdownOnly?
+          dropdownOnly = options.dropdownOnly
           options = options.options
 
         @opts.functions[key].dropdown[index] = {
-          exclusive: exclusive
+          dropdownOnly: dropdownOnly
           options: options
           generate: ->
             if (typeof options is 'function')

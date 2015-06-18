@@ -24,6 +24,7 @@ CURSOR_WIDTH_DECREASE = 3
 CURSOR_HEIGHT_DECREASE = 2
 CURSOR_UNFOCUSED_OPACITY = 0.5
 DEBUG_FLAG = false
+DROPDOWN_SCROLLBAR_PADDING = 17
 
 ANY_DROP = helper.ANY_DROP
 BLOCK_ONLY = helper.BLOCK_ONLY
@@ -1227,8 +1228,8 @@ hook 'mouseup', 1, (point, event, state) ->
         indentation = currentIndentation
         suffix = ''
 
-        if currentIndentation.length == line.length
-          # line is whitespace only.
+        if currentIndentation.length == line.length or currentIndentation.length == pos.column
+          # line is whitespace only or we're inserting at the beginning of a line
           # Append with a newline
           suffix = '\n' + indentation
         else if pos.column == line.length
@@ -1811,6 +1812,11 @@ hook 'populate', 1, ->
 
         @redrawTextInput()
 
+        # Update the dropdown size to match
+        # the new length, if it is visible.
+        if @dropdownVisible
+          @formatDropdown()
+
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
   if @showPaletteInTextMode and @paletteEnabled
@@ -2203,20 +2209,34 @@ hook 'populate', 0, ->
   @dropdownElement.className = 'droplet-dropdown'
   @wrapperElement.appendChild @dropdownElement
 
+  @dropdownElement.innerHTML = ''
+  @dropdownElement.style.display = 'inline-block'
+  @dropdownVisible = false
+
+# Update the dropdown to match
+# the current text focus font and size.
+Editor::formatDropdown = (socket = @textFocus) ->
+  @dropdownElement.style.fontFamily = @fontFamily
+  @dropdownElement.style.fontSize = @fontSize
+  @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
+
 Editor::showDropdown = (socket = @textFocus) ->
+  @dropdownVisible = true
+
+  dropdownItems = []
+
   @dropdownElement.innerHTML = ''
   @dropdownElement.style.display = 'inline-block'
 
-  # Closure the text focus; dropdown should work
-  # even after unfocused
+  @formatDropdown socket
+
   for el, i in socket.dropdown.generate() then do (el) =>
     div = document.createElement 'div'
     div.innerHTML = el.display
     div.className = 'droplet-dropdown-item'
 
-    # Match fonts
-    div.style.fontFamily = @fontFamily
-    div.style.fontSize = @fontSize
+    dropdownItems.push div
+
     div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
     setText = (text) =>
@@ -2234,15 +2254,30 @@ Editor::showDropdown = (socket = @textFocus) ->
         el.click(setText)
       else
         setText(el.text)
+
     @dropdownElement.appendChild div
 
-  location = @view.getViewNodeFor(socket).bounds[0]
+  @dropdownElement.style.top = '-9999px'
+  @dropdownElement.style.left = '-9999px'
 
-  @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
-  @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
-  @dropdownElement.style.minWidth = location.width + 'px'
+  # Wait for a render. Then,
+  # if the div is scrolled vertically, add
+  # some padding on the right. After checking for this,
+  # move the dropdown element into position
+  setTimeout (=>
+    if @dropdownElement.offsetHeight < @dropdownElement.scrollHeight
+      for el in dropdownItems
+        el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
+
+    location = @view.getViewNodeFor(socket).bounds[0]
+
+    @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
+    @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+    @dropdownElement.style.minWidth = location.width + 'px'
+  ), 0
 
 Editor::hideDropdown= ->
+  @dropdownVisible = false
   @dropdownElement.style.display = 'none'
 
 hook 'dblclick', 0, (point, event, state) ->
