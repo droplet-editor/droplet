@@ -205,3 +205,33 @@ asyncTest 'Controller: does not throw on reparse error', ->
 
     start()
   ), 10)
+
+asyncTest 'Controller: Can replace a block where we found it', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'javascript',
+    palette: []
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('for (var i = 0; i < 5; i++) {\n' +
+                   '  fd(10);\n' +
+                   '}\n')
+  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 30})
+  simulate('mousemove', '.droplet-drag-cover'
+    {location: '.droplet-main-scroller-stuffing', dx: 305, dy: 35})
+  simulate('mouseup', '.droplet-drag-cover'
+    {location: '.droplet-main-scroller-stuffing', dx: 305, dy: 35})
+  equal(editor.getValue() , 'for (var i = 0; i < 5; i++) {\n' +
+                            '  fd(10);\n' +
+                            '}\n')
+
+  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 30})
+  simulate('mousemove', '.droplet-drag-cover'
+    {location: '.droplet-main-scroller-stuffing', dx: 290, dy: 25})
+  simulate('mouseup', '.droplet-drag-cover'
+    {location: '.droplet-main-scroller-stuffing', dx: 290, dy: 25})
+  equal(editor.getValue() , 'for (var i = 0; i < i++; __) {\n' +
+                            '  fd(10);\n' +
+                            '}\n')
+  start()
