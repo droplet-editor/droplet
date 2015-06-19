@@ -615,11 +615,21 @@ JavaScriptParser.drop = (block, context, pred) ->
 
   return helper.DISCOURAGE
 
+# Check to see if a "for" loop is standard, for beginner mode.
+# We will simplify any loop of the form:
+# ```
+# for (var i = X; i < Y; i++) {
+#   // etc...
+# }
+# `
+# Where "var" is optional and "i++" can be pre- or postincrement.
 isStandardForLoop = (node) ->
   unless node.init? and node.test? and node.update?
     return false
 
-  # A standard for loop starts with "var a =" or "a = "
+  # A standard for loop starts with "var a =" or "a = ".
+  # Determine the variable name so that we can check against it
+  # in the other two expression.
   if node.init.type is 'VariableDeclaration'
     variableName = node.init.declarations[0].id.name
   else if node.init.type is 'AssignmentExpression' and
