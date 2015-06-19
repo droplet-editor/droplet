@@ -2457,9 +2457,9 @@ Editor::redrawLassoHighlight = ->
       @mainCanvas.width,
       @mainCanvas.height
     )
-    view = @view.getViewNodeFor(@lassoSegment)
-    view.absorbCache()
-    view.draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
+    lassoView = @view.getViewNodeFor(@lassoSegment)
+    lassoView.absorbCache()
+    lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
