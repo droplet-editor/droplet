@@ -477,9 +477,9 @@ exports.View = class View
 
       for childObj in @children
         if childObj in @lineChildren[0] or childObj in @lineChildren[@lineLength - 1]
-          @view.getViewNodeFor(childObj.child).computeDimensions(changed)
+          @view.getViewNodeFor(childObj.child).computeDimensions(changed, not (@model instanceof model.Container)) #(hack)
         else
-          @view.getViewNodeFor(childObj.child).computeDimensions(false)
+          @view.getViewNodeFor(childObj.child).computeDimensions(false, not (@model instanceof model.Container)) #(hack)
 
       return null
 
@@ -540,7 +540,8 @@ exports.View = class View
     # would require glue between 'hello' and 'world'.
     #
     # This is a void function that should be overridden.
-    computeGlue: -> @glue = {}
+    computeGlue: ->
+      @glue = {}
 
     # ## computeBoundingBoxY (GenericViewNode)
     # Like computeBoundingBoxX. We must separate
@@ -1106,7 +1107,7 @@ exports.View = class View
       @computeMargins()
       @computeBevels()
       @computeMinDimensions()
-      @computeDimensions 0, false, true
+      @computeDimensions 0, true
       @computeAllBoundingBoxX left
       @computeGlue()
       @computeAllBoundingBoxY top
@@ -1128,7 +1129,7 @@ exports.View = class View
       @computeMargins()
       @computeBevels()
       @computeMinDimensions()
-      @computeDimensions 0, false, true
+      @computeDimensions 0, true
       # Replacement for computeAllBoundingBoxX
       for size, line in @dimensions
         child = @lineChildren[line][0]
@@ -1177,7 +1178,6 @@ exports.View = class View
         @view.getViewNodeFor(childObj.child).computeGlue()
 
       @glue = {}
-
 
       # Go through every pair of adjacent bounding boxes
       # to see if they overlap or not
@@ -1261,6 +1261,8 @@ exports.View = class View
       if @computedVersion is @model.version and
           not @changedBoundingBox
         return @glue
+
+      super
 
       for box, line in @bounds when line < @bounds.length - 1
         # Additionally, we add glue spacing padding if we are disconnected

@@ -520,7 +520,9 @@ asyncTest 'View: indent carriage arrow', ->
   indent = block.start.prev.container
   indentView = view_.getViewNodeFor indent
 
-  strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue'
+
+  ok indentView.glue[0]?, 'Carriage arrow causes glue (exists)'
+  strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue (correct height)'
   start()
 
 asyncTest 'View: sidealong carriage arrow', ->
