@@ -224,7 +224,10 @@ exports.Editor = class Editor
 
     # Instantiate an ICE editor view
     @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
-    @paletteView = new view.View extend_ @standardViewSettings, {showDropdowns: false, respectEphemeral: true}
+    @paletteView = new view.View extend_ @standardViewSettings, {
+      showDropdowns: @options.showDropdownInPalette ? false
+      respectEphemeral: true
+    }
     @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
 
     boundListeners = []
