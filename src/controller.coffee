@@ -2851,7 +2851,7 @@ hook 'keydown', 0, (event, state) ->
     else head = @cursor
 
     until (not head?) or head.type is 'socketEnd' and
-        head.container.editble()
+        head.container.editable()
       head = head.prev
 
     if head?
