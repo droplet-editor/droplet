@@ -455,3 +455,45 @@ asyncTest 'JS Elif', ->
       helper.xmlPrettyPrint(expectedSerialization),
       'Combines if-else')
   start()
+
+asyncTest 'JS beginner mode loops', ->
+  customJS = new JavaScript({
+    categories: {loops: {color: 'green', beginner: true}}
+  })
+  customSerialization = customJS.parse(
+    '''
+    for (var i = 0; i < 10; i++) {
+      go();
+    }
+    '''
+  ).serialize()
+  expectedSerialization =
+    '<segment' +
+    '  isLassoSegment="false"' +
+    '><block' +
+    '  precedence="0"' +
+    '  color="green"' +
+    '  socketLevel="0"' +
+    '  classes="ends-with-brace block-only ForStatement"' +
+    '>for (var i = 0; i &amp;lt; <socket' +
+    '  precedence="0"' +
+    '  handwritten="false"' +
+    '  classes=""' +
+    '>10</socket>; i++) {<indent' +
+    '  prefix="  "' +
+    '  classes=""' +
+    '>\n<block' +
+    '  precedence="2"' +
+    '  color="blue"' +
+    '  socketLevel="0"' +
+    '  classes="CallExpression any-drop"' +
+    '><socket' +
+    '  precedence="100"' +
+    '  handwritten="false"' +
+    '  classes=""' +
+    '>go</socket>();</block></indent>\n}</block></segment>'
+  strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Combines if-else')
+  start()

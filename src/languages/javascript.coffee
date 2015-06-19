@@ -413,12 +413,20 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.alternate, depth + 1, 10
       when 'ForStatement'
         @jsBlock node, depth, bounds
-        if node.init?
-          @jsSocketAndMark indentDepth, node.init, depth + 1, NEVER_PAREN, null, ['for-statement-init']
-        if node.test?
-          @jsSocketAndMark indentDepth, node.test, depth + 1, 10
-        if node.update?
-          @jsSocketAndMark indentDepth, node.update, depth + 1, 10, null, ['for-statement-update']
+
+        # If we are in beginner mode, check to see if the for loop
+        # matches the "standard" way, and if so only mark the loop
+        # limit (the "b" in "for (...;a < b;...)").
+        if @opts.categories.loops.beginner and isStandardForLoop(node)
+           @jsSocketAndMark indentDepth, node.test.right
+
+        else
+          if node.init?
+            @jsSocketAndMark indentDepth, node.init, depth + 1, NEVER_PAREN, null, ['for-statement-init']
+          if node.test?
+            @jsSocketAndMark indentDepth, node.test, depth + 1, 10
+          if node.update?
+            @jsSocketAndMark indentDepth, node.update, depth + 1, 10, null, ['for-statement-update']
 
         @mark indentDepth, node.body, depth + 1
       when 'BlockStatement'
@@ -606,6 +614,39 @@ JavaScriptParser.drop = (block, context, pred) ->
       return helper.DISCOURAGE
 
   return helper.DISCOURAGE
+
+# Check to see if a "for" loop is standard, for beginner mode.
+# We will simplify any loop of the form:
+# ```
+# for (var i = X; i < Y; i++) {
+#   // etc...
+# }
+# `
+# Where "var" is optional and "i++" can be pre- or postincrement.
+isStandardForLoop = (node) ->
+  unless node.init? and node.test? and node.update?
+    return false
+
+  # A standard for loop starts with "var a =" or "a = ".
+  # Determine the variable name so that we can check against it
+  # in the other two expression.
+  if node.init.type is 'VariableDeclaration'
+    variableName = node.init.declarations[0].id.name
+  else if node.init.type is 'AssignmentExpression' and
+      node.operator is '=' and
+      node.left.type is 'Identifier'
+    variableName = node.left.name
+  else
+    return false
+
+  return (node.test.type is 'BinaryExpression' and
+      node.test.operator is '<' and
+      node.test.left.type is 'Identifier' and
+      node.test.left.name is variableName and
+      node.update.type is 'UpdateExpression' and
+      node.update.operator is '++' and
+      node.update.argument.type is 'Identifier' and
+      node.update.argument.name is variableName)
 
 JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
