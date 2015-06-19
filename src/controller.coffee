@@ -24,6 +24,7 @@ CURSOR_WIDTH_DECREASE = 3
 CURSOR_HEIGHT_DECREASE = 2
 CURSOR_UNFOCUSED_OPACITY = 0.5
 DEBUG_FLAG = false
+DROPDOWN_SCROLLBAR_PADDING = 17
 
 ANY_DROP = helper.ANY_DROP
 BLOCK_ONLY = helper.BLOCK_ONLY
@@ -1089,7 +1090,7 @@ hook 'mousemove', 1, (point, event, state) ->
               w: 0
               h: 0
               acceptLevel: acceptLevel
-              _ice_node: head.container
+              _droplet_node: head.container
 
       head = head.next
 
@@ -1160,21 +1161,31 @@ hook 'mousemove', 0, (point, event, state) ->
       @lastHighlight = @tree
 
     else
-      # Find the closest droppable block
-      testPoints = @dropPointQuadTree.retrieve {
-        x: mainPoint.x - MAX_DROP_DISTANCE
-        y: mainPoint.y - MAX_DROP_DISTANCE
-        w: MAX_DROP_DISTANCE * 2
-        h: MAX_DROP_DISTANCE * 2
-      }, (point) =>
-        unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
-          distance = mainPoint.from(point)
-          distance.y *= 2; distance = distance.magnitude()
-          if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-             @view.getViewNodeFor(point._ice_node).highlightArea?
-            best = point._ice_node
-            min = distance
+      # If the user is touching the original location,
+      # assume they want to replace the block where they found it.
+      if @hitTest mainPoint, @draggingBlock
+        best = null
+      # Otherwise, find the closest droppable block
+      else
+        testPoints = @dropPointQuadTree.retrieve {
+          x: mainPoint.x - MAX_DROP_DISTANCE
+          y: mainPoint.y - MAX_DROP_DISTANCE
+          w: MAX_DROP_DISTANCE * 2
+          h: MAX_DROP_DISTANCE * 2
+        }, (point) =>
+          unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
+            # Find a modified "distance" to the point
+            # that weights horizontal distance more
+            distance = mainPoint.from(point)
+            distance.y *= 2; distance = distance.magnitude()
 
+            # Select the node that is closest by said "distance"
+            if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+               @view.getViewNodeFor(point._droplet_node).highlightArea?
+              best = point._droplet_node
+              min = distance
+
+      # Update highlight if necessary.
       if best isnt @lastHighlight
         @clearHighlightCanvas()
 
@@ -1218,8 +1229,8 @@ hook 'mouseup', 1, (point, event, state) ->
         indentation = currentIndentation
         suffix = ''
 
-        if currentIndentation.length == line.length
-          # line is whitespace only.
+        if currentIndentation.length == line.length or currentIndentation.length == pos.column
+          # line is whitespace only or we're inserting at the beginning of a line
           # Append with a newline
           suffix = '\n' + indentation
         else if pos.column == line.length
@@ -1294,7 +1305,7 @@ hook 'mouseup', 1, (point, event, state) ->
         # If what we've dropped has a socket in it,
         # focus it.
         head = @draggingBlock.start
-        until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
+        until head.type is 'socketStart' and head.container.editable() or head is @draggingBlock.end
           head = head.next
 
         if head.type is 'socketStart'
@@ -1802,6 +1813,11 @@ hook 'populate', 1, ->
 
         @redrawTextInput()
 
+        # Update the dropdown size to match
+        # the new length, if it is visible.
+        if @dropdownVisible
+          @formatDropdown()
+
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
   if @showPaletteInTextMode and @paletteEnabled
@@ -2090,7 +2106,7 @@ Editor::populateSocket = (socket, string) ->
 Editor::hitTestTextInput = (point, block) ->
   head = block.start
   while head?
-    if head.type is 'socketStart' and head.next.type in ['text', 'socketEnd'] and
+    if head.type is 'socketStart' and head.container.isDroppable() and
         @view.getViewNodeFor(head.container).path.contains point
       return head.container
     head = head.next
@@ -2156,12 +2172,13 @@ hook 'mousedown', 2, (point, event, state) ->
 
   if hitTestResult?
     unless hitTestResult is @textFocus
-      @setTextInputFocus hitTestResult
-      @redrawMain()
+      if hitTestResult.editable()
+        @setTextInputFocus hitTestResult
+        @redrawMain()
 
-      if hitTestResult.hasDropdown() and
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
-        @showDropdown()
+      if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
+          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
+        @showDropdown hitTestResult
 
       @textInputSelecting = false
 
@@ -2193,48 +2210,75 @@ hook 'populate', 0, ->
   @dropdownElement.className = 'droplet-dropdown'
   @wrapperElement.appendChild @dropdownElement
 
-Editor::showDropdown = ->
-  if @textFocus.hasDropdown()
-    @dropdownElement.innerHTML = ''
-    @dropdownElement.style.display = 'inline-block'
+  @dropdownElement.innerHTML = ''
+  @dropdownElement.style.display = 'inline-block'
+  @dropdownVisible = false
 
-    # Closure the text focus; dropdown should work
-    # even after unfocused
-    textFocus = @textFocus
-    for el, i in @textFocus.dropdown() then do (el) =>
-      div = document.createElement 'div'
-      div.innerHTML = el.display
-      div.className = 'droplet-dropdown-item'
+# Update the dropdown to match
+# the current text focus font and size.
+Editor::formatDropdown = (socket = @textFocus) ->
+  @dropdownElement.style.fontFamily = @fontFamily
+  @dropdownElement.style.fontSize = @fontSize
+  @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
 
-      # Match fonts
-      div.style.fontFamily = @fontFamily
-      div.style.fontSize = @fontSize
-      div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
+Editor::showDropdown = (socket = @textFocus) ->
+  @dropdownVisible = true
 
-      setText = (text) =>
-        # Attempting to populate the socket after the dropdown has closed should no-op
-        return if @dropdownElement.style.display == 'none'
+  dropdownItems = []
 
-        @populateSocket @textFocus, text
-        @hiddenInput.value = text
+  @dropdownElement.innerHTML = ''
+  @dropdownElement.style.display = 'inline-block'
 
-        @redrawMain()
-        @hideDropdown()
+  @formatDropdown socket
 
-      div.addEventListener 'mouseup', ->
-        if el.click
-          el.click(setText)
-        else
-          setText(el.text)
-      @dropdownElement.appendChild div
+  for el, i in socket.dropdown.generate() then do (el) =>
+    div = document.createElement 'div'
+    div.innerHTML = el.display
+    div.className = 'droplet-dropdown-item'
 
-    location = @view.getViewNodeFor(@textFocus).bounds[0]
+    dropdownItems.push div
+
+    div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
+
+    setText = (text) =>
+      # Attempting to populate the socket after the dropdown has closed should no-op
+      return if @dropdownElement.style.display == 'none'
+
+      @populateSocket socket, text
+      @hiddenInput.value = text
+
+      @redrawMain()
+      @hideDropdown()
+
+    div.addEventListener 'mouseup', ->
+      if el.click
+        el.click(setText)
+      else
+        setText(el.text)
+
+    @dropdownElement.appendChild div
+
+  @dropdownElement.style.top = '-9999px'
+  @dropdownElement.style.left = '-9999px'
+
+  # Wait for a render. Then,
+  # if the div is scrolled vertically, add
+  # some padding on the right. After checking for this,
+  # move the dropdown element into position
+  setTimeout (=>
+    if @dropdownElement.offsetHeight < @dropdownElement.scrollHeight
+      for el in dropdownItems
+        el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
+
+    location = @view.getViewNodeFor(socket).bounds[0]
 
     @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
     @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
     @dropdownElement.style.minWidth = location.width + 'px'
+  ), 0
 
 Editor::hideDropdown= ->
+  @dropdownVisible = false
   @dropdownElement.style.display = 'none'
 
 hook 'dblclick', 0, (point, event, state) ->
@@ -2249,11 +2293,12 @@ hook 'dblclick', 0, (point, event, state) ->
   # If they have clicked a socket,
   # focus it, and
   unless hitTestResult is @textFocus
-    @setTextInputFocus null
-    @redrawMain()
-    hitTestResult = @hitTestTextInput mainPoint, @tree
+    if hitTestResult.editable()
+      @setTextInputFocus null
+      @redrawMain()
+      hitTestResult = @hitTestTextInput mainPoint, @tree
 
-  if hitTestResult?
+  if hitTestResult? and hitTestResult.editable()
     @setTextInputFocus hitTestResult
     @redrawMain()
 
@@ -2604,7 +2649,7 @@ Editor::getSocketAtChar = (chars) ->
   charsCounted = 0
 
   until charsCounted >= chars and head.type is 'socketStart' and
-      (head.next.type is 'text' or head.next is head.container.end)
+      head.container.isDroppable()
     if head.type is 'text' then charsCounted += head.value.length
 
     head = head.next
@@ -2618,7 +2663,7 @@ hook 'keydown', 0, (event, state) ->
     else head = @cursor
 
     until (not head?) or head.type is 'socketEnd' and
-        (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
+        head.container.editble()
       head = head.prev
 
     if head?
@@ -2640,7 +2685,7 @@ hook 'keydown', 0, (event, state) ->
     else head = @cursor
 
     until (not head?) or head.type is 'socketStart' and
-        (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
+        head.container.editable()
       head = head.next
     if head?
       # Avoid problems with reparses by getting text offset location

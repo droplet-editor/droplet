@@ -123,6 +123,7 @@ module.exports = (grunt) ->
       testserver:
         options:
           hostname: '0.0.0.0'
+          port: 8000
           middleware: serveNoDottedFiles
       qunitserver:
         options:

@@ -73,7 +73,7 @@ exports.isTreeValid = (tree) ->
 
 exports.List = class List
   constructor: (@start, @end) ->
-    @id = _id++
+    @id = ++_id
 
   # ## spliceIn ##
   # Insert ourselves into a linked
@@ -756,6 +756,8 @@ exports.Socket = class Socket extends Container
     super
 
   hasDropdown: -> @dropdown? and @isDroppable()
+
+  editable: -> (not (@dropdown? and @dropdown.dropdownOnly)) and @isDroppable()
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
