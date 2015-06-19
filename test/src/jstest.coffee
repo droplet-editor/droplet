@@ -456,7 +456,7 @@ asyncTest 'JS Elif', ->
       'Combines if-else')
   start()
 
-asyncTest 'JS Elif', ->
+asyncTest 'JS beginner mode loops', ->
   customJS = new JavaScript({
     categories: {loops: {color: 'green', beginner: true}}
   })
