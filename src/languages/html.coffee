@@ -144,7 +144,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         end = start + att.name.length
         string = string[end...]
         if att.value.length isnt 0
-          diff = string.indexOf(att.value.toLowerCase()) + att.value.length
+          diff = string.indexOf(att.value.toLowerCase())
+          if string[diff-1] in ['"', '\''] and string[diff-1] is string[diff + att.value.length]
+            diff++
+          diff += att.value.length
           string = string[diff...]
           end += diff
         node.attributes.push {start: offset + start, end: offset + end}
@@ -223,14 +226,14 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     #console.log node
 
-    node.__indentLocation = {start: node.__startTagLocation.end}
+    node.__indentLocation = {start: node.__location.startTag.end}
 
     if node.childNodes?.length > 0
       node.__indentLocation.end = node.childNodes[node.childNodes.length - 1].__location.end
     else
-      node.__indentLocation.end = node.__startTagLocation.end
+      node.__indentLocation.end = node.__location.startTag.end
 
-    if not node.__endTagLocation
+    if not node.__location.endTag
       node.__location.end = node.__indentLocation.end
 
     @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
@@ -253,15 +256,15 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       end: @positions[node.__indentLocation.end]
     }
 
-    if node.__endTagLocation?
-      lastLine = @positions[node.__endTagLocation.start].line - 1
+    if node.__location.endTag?
+      lastLine = @positions[node.__location.endTag.start].line - 1
       if lastLine > bounds.end.line or (lastLine is bounds.end.line and @lines[lastLine].length > bounds.end.column)
         bounds.end = {
           line: lastLine
           column: @lines[lastLine].length
         }
-      else if node.__indentLocation.start is node.__indentLocation.end and node.__endTagLocation
-        bounds.end = @positions[node.__endTagLocation.start]
+      else if node.__indentLocation.start is node.__indentLocation.end and node.__location.endTag
+        bounds.end = @positions[node.__location.endTag.start]
 
     return bounds
 

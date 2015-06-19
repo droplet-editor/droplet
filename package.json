@@ -56,6 +56,6 @@
     "acorn": "^1.2.2",
     "sax": "^1.1.1",
     "antlr4": "latest",
-    "parse5": "https://github.com/sakagg/parse5/archive/v1.4.2.1.tar.gz"
+    "parse5": "latest"
   }
 }
