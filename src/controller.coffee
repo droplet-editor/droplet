@@ -1304,7 +1304,7 @@ hook 'mouseup', 1, (point, event, state) ->
         # If what we've dropped has a socket in it,
         # focus it.
         head = @draggingBlock.start
-        until head.type is 'socketStart' and head.container.isDroppable() or head is @draggingBlock.end
+        until head.type is 'socketStart' and head.container.editable() or head is @draggingBlock.end
           head = head.next
 
         if head.type is 'socketStart'
@@ -2105,7 +2105,7 @@ Editor::populateSocket = (socket, string) ->
 Editor::hitTestTextInput = (point, block) ->
   head = block.start
   while head?
-    if head.type is 'socketStart' and head.next.type in ['text', 'socketEnd'] and
+    if head.type is 'socketStart' and head.container.isDroppable() and
         @view.getViewNodeFor(head.container).path.contains point
       return head.container
     head = head.next
@@ -2171,12 +2171,13 @@ hook 'mousedown', 2, (point, event, state) ->
 
   if hitTestResult?
     unless hitTestResult is @textFocus
-      @setTextInputFocus hitTestResult
-      @redrawMain()
+      if hitTestResult.editable()
+        @setTextInputFocus hitTestResult
+        @redrawMain()
 
-      if hitTestResult.hasDropdown() and
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
-        @showDropdown()
+      if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
+          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
+        @showDropdown hitTestResult
 
       @textInputSelecting = false
 
@@ -2208,73 +2209,72 @@ hook 'populate', 0, ->
   @dropdownElement.className = 'droplet-dropdown'
   @wrapperElement.appendChild @dropdownElement
 
+  @dropdownElement.innerHTML = ''
+  @dropdownElement.style.display = 'inline-block'
   @dropdownVisible = false
 
 # Update the dropdown to match
 # the current text focus font and size.
-Editor::formatDropdown = ->
+Editor::formatDropdown = (socket = @textFocus) ->
   @dropdownElement.style.fontFamily = @fontFamily
   @dropdownElement.style.fontSize = @fontSize
-  @dropdownElement.style.minWidth = @view.getViewNodeFor(@textFocus).bounds[0].width
+  @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
 
-Editor::showDropdown = ->
-  if @textFocus.hasDropdown()
-    @dropdownVisible = true
+Editor::showDropdown = (socket = @textFocus) ->
+  @dropdownVisible = true
 
-    dropdownItems = []
+  dropdownItems = []
 
-    @dropdownElement.innerHTML = ''
-    @dropdownElement.style.display = 'inline-block'
+  @dropdownElement.innerHTML = ''
+  @dropdownElement.style.display = 'inline-block'
 
-    @formatDropdown()
+  @formatDropdown socket
 
-    # Closure the text focus; dropdown should work
-    # even after unfocused
-    textFocus = @textFocus
-    for el, i in @textFocus.dropdown() then do (el) =>
-      div = document.createElement 'div'
-      div.innerHTML = el.display
-      div.className = 'droplet-dropdown-item'
+  for el, i in socket.dropdown.generate() then do (el) =>
+    div = document.createElement 'div'
+    div.innerHTML = el.display
+    div.className = 'droplet-dropdown-item'
 
-      dropdownItems.push div
+    dropdownItems.push div
 
-      div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
+    div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
-      setText = (text) =>
-        # Attempting to populate the socket after the dropdown has closed should no-op
-        return if @dropdownElement.style.display == 'none'
+    setText = (text) =>
+      # Attempting to populate the socket after the dropdown has closed should no-op
+      return if @dropdownElement.style.display == 'none'
 
-        @populateSocket @textFocus, text
-        @hiddenInput.value = text
+      @populateSocket socket, text
+      @hiddenInput.value = text
 
-        @redrawMain()
-        @hideDropdown()
+      @redrawMain()
+      @hideDropdown()
 
-      div.addEventListener 'mouseup', ->
-        if el.click
-          el.click(setText)
-        else
-          setText(el.text)
-      @dropdownElement.appendChild div
+    div.addEventListener 'mouseup', ->
+      if el.click
+        el.click(setText)
+      else
+        setText(el.text)
 
-      @dropdownElement.style.top = '-9999px'
-      @dropdownElement.style.left = '-9999px'
+    @dropdownElement.appendChild div
 
-    # Wait for a render. Then,
-    # if the div is scrolled vertically, add
-    # some padding on the right. After checking for this,
-    # move the dropdown element into position
-    setTimeout (=>
-      if @dropdownElement.offsetHeight < @dropdownElement.scrollHeight
-        for el in dropdownItems
-          el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
+  @dropdownElement.style.top = '-9999px'
+  @dropdownElement.style.left = '-9999px'
 
-      location = @view.getViewNodeFor(@textFocus).bounds[0]
+  # Wait for a render. Then,
+  # if the div is scrolled vertically, add
+  # some padding on the right. After checking for this,
+  # move the dropdown element into position
+  setTimeout (=>
+    if @dropdownElement.offsetHeight < @dropdownElement.scrollHeight
+      for el in dropdownItems
+        el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
 
-      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
-      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
-      @dropdownElement.style.minWidth = location.width + 'px'
-    ), 0
+    location = @view.getViewNodeFor(socket).bounds[0]
+
+    @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
+    @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+    @dropdownElement.style.minWidth = location.width + 'px'
+  ), 0
 
 Editor::hideDropdown= ->
   @dropdownVisible = false
@@ -2292,11 +2292,12 @@ hook 'dblclick', 0, (point, event, state) ->
   # If they have clicked a socket,
   # focus it, and
   unless hitTestResult is @textFocus
-    @setTextInputFocus null
-    @redrawMain()
-    hitTestResult = @hitTestTextInput mainPoint, @tree
+    if hitTestResult.editable()
+      @setTextInputFocus null
+      @redrawMain()
+      hitTestResult = @hitTestTextInput mainPoint, @tree
 
-  if hitTestResult?
+  if hitTestResult? and hitTestResult.editable()
     @setTextInputFocus hitTestResult
     @redrawMain()
 
@@ -2744,7 +2745,7 @@ Editor::moveCursorHorizontally = (direction) ->
         break
 
     if head.type is 'socketStart' and
-        (head.next.type is 'text' or head.next is head.container.end)
+       head.container.editable()
       # Avoid problems with reparses by getting text offset location
       # of the given socket before reparsing and recovering it afterward.
       if @textFocus?
@@ -2836,7 +2837,7 @@ Editor::getSocketAtChar = (chars) ->
   charsCounted = 0
 
   until charsCounted >= chars and head.type is 'socketStart' and
-      (head.next.type is 'text' or head.next is head.container.end)
+      head.container.isDroppable()
     if head.type is 'text' then charsCounted += head.value.length
 
     head = head.next
@@ -2850,7 +2851,7 @@ hook 'keydown', 0, (event, state) ->
     else head = @cursor
 
     until (not head?) or head.type is 'socketEnd' and
-        (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
+        head.container.editble()
       head = head.prev
 
     if head?
@@ -2872,7 +2873,7 @@ hook 'keydown', 0, (event, state) ->
     else head = @cursor
 
     until (not head?) or head.type is 'socketStart' and
-        (head.container.start.next.type is 'text' or head.container.start.next is head.container.end)
+        head.container.editable()
       head = head.next
     if head?
       # Avoid problems with reparses by getting text offset location

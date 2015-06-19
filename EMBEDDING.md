@@ -166,6 +166,16 @@ functions: {
         1: function() {
           return ['red', 'blue'];
         }
+
+        // With either of these, you can specify
+        // that the socket should be only editable by dropdown
+        // (no typing) with "dropdownOnly":
+        2: {
+          dropdownOnly: true,
+          options: function() {
+            return ['red', 'blue']
+          }
+        }
       }
     }
 },
