@@ -224,6 +224,7 @@ exports.Editor = class Editor
 
     # Instantiate an ICE editor view
     @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
+    @paletteView = new view.View extend_ @standardViewSettings, {showDropdowns: false, respectEphemeral: true}
     @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
 
     boundListeners = []
@@ -571,7 +572,7 @@ Editor::redrawPalette = ->
 
   for entry in @currentPaletteBlocks
     # Layout this block
-    paletteBlockView = @view.getViewNodeFor entry.block
+    paletteBlockView = @paletteView.getViewNodeFor entry.block
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
     # Render the block
@@ -652,14 +653,14 @@ Editor::trackerPointIsInAce = (point) ->
 # ### hitTest
 # Simple function for going through a linked-list block
 # and seeing what the innermost child is that we hit.
-Editor::hitTest = (point, block) ->
+Editor::hitTest = (point, block, view = @view) ->
   if @readOnly
     return null
 
   head = block.start; seek = block.end
 
   until head is seek
-    if head.type is 'blockStart' and @view.getViewNodeFor(head.container).path.contains point
+    if head.type is 'blockStart' and view.getViewNodeFor(head.container).path.contains point
       seek = head.container.end
     head = head.next
 
@@ -670,7 +671,7 @@ Editor::hitTest = (point, block) ->
   # If we didn't have a child hit, it's possible
   # that _we_ are the innermost child that hit. See if that's
   # the case.
-  else if block.type is 'block' and @view.getViewNodeFor(block).path.contains point
+  else if block.type is 'block' and view.getViewNodeFor(block).path.contains point
     return block
 
   # Nope, it's not. Answer is null.
@@ -1010,7 +1011,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # NOTE: this really falls under "PALETTE SUPPORT", but must
     # go here. Try to organise this better.
     if @clickedBlockPaletteEntry
-      @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
+      @draggingOffset = @paletteView.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
         @trackerPointToPalette(@clickedPoint))
 
       # Substitute in expansion for this palette entry, if supplied.
@@ -1646,7 +1647,7 @@ hook 'mousedown', 6, (point, event, state) ->
      @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
 
     for entry in @currentPaletteBlocks
-      hitTestResult = @hitTest palettePoint, entry.block
+      hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
       if hitTestResult?
         @setTextInputFocus null
@@ -1696,7 +1697,7 @@ hook 'rebuild_palette', 1, ->
 
     hoverDiv.title = data.title ? block.stringify(@mode)
 
-    bounds = @view.getViewNodeFor(block).totalBounds
+    bounds = @paletteView.getViewNodeFor(block).totalBounds
 
     hoverDiv.style.top = "#{bounds.y}px"
     hoverDiv.style.left = "#{bounds.x}px"
@@ -1709,10 +1710,10 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mousemove', (event) =>
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
-        if @mainViewOrChildrenContains block, palettePoint
-          unless block is @currentHighlightedPaletteBlock
+        if @viewOrChildrenContains block, palettePoint, @paletteView
+            console.log 'highlighting'
             @clearPaletteHighlightCanvas()
-            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}
+            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
             @currentHighlightedPaletteBlock = block
         else if block is @currentHighlightedPaletteBlock
@@ -3664,7 +3665,7 @@ hook 'redraw_main', 1, ->
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
   for entry in @currentPaletteBlocks
-    bounds.unite @view.getViewNodeFor(entry.block).getBounds()
+    bounds.unite @paletteView.getViewNodeFor(entry.block).getBounds()
 
   # For now, we will comment out this line
   # due to bugs
@@ -3732,8 +3733,8 @@ hook 'populate', 0, ->
   @markedBlocks = {}; @nextMarkedBlockId = 0
   @extraMarks = {}
 
-Editor::getHighlightPath = (model, style) ->
-  path = @view.getViewNodeFor(model).path.clone()
+Editor::getHighlightPath = (model, style, view = @view) ->
+  path = view.getViewNodeFor(model).path.clone()
 
   path.style.fillColor = null
   path.style.strokeColor = style.color
@@ -4252,14 +4253,14 @@ hook 'populate', 0, ->
 # its grayed-out spot, cancel the drag.
 
 # TODO possibly move this next utility function to view?
-Editor::mainViewOrChildrenContains = (model, point) ->
-  modelView = @view.getViewNodeFor model
+Editor::viewOrChildrenContains = (model, point, view = @view) ->
+  modelView = view.getViewNodeFor model
 
   if modelView.path.contains point
     return true
 
   for childObj in modelView.children
-    if @mainViewOrChildrenContains childObj.child, point
+    if @viewOrChildrenContains childObj.child, point, view
       return true
 
   return false
@@ -4272,7 +4273,7 @@ hook 'mouseup', 0.5, (point, event) ->
     )
     renderPoint = @trackerPointToMain trackPoint
 
-    if @inTree(@draggingBlock) and @mainViewOrChildrenContains @draggingBlock, renderPoint
+    if @inTree(@draggingBlock) and @viewOrChildrenContains @draggingBlock, renderPoint
       @draggingBlock.ephemeral = false
       @endDrag()
 
