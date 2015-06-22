@@ -1714,7 +1714,6 @@ hook 'rebuild_palette', 1, ->
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
         if @viewOrChildrenContains block, palettePoint, @paletteView
-            console.log 'highlighting'
             @clearPaletteHighlightCanvas()
             @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
