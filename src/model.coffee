@@ -158,7 +158,6 @@ exports.List = class List
 
     @start.prev = @end.next = null
 
-    console.log 'just removed.'
     @notifyChange()
 
     @setParent null
@@ -233,6 +232,25 @@ exports.List = class List
     head = @start
     until head is @end
       str += head.stringify()
+      head = head.next
+
+    return str
+
+  stringifyInPlace: ->
+    str = ''
+
+    indent = []
+
+    head = @start
+    until head is @end
+      if head instanceof IndentStartToken
+        indent.push head.container.prefix
+      else if head instanceof IndentEndToken
+        indent.pop()
+      else if head instanceof NewlineToken
+        str += '\n' + (head.specialIndent ? indent.join(''))
+      else
+        str += head.stringify()
       head = head.next
 
     return str

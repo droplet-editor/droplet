@@ -657,25 +657,18 @@ Editor::hitTest = (point, block) ->
   if @readOnly
     return null
 
-  head = block.start; seek = block.end
+  head = block.start
+  seek = block.end
+  result = null
 
   until head is seek
     if head.type is 'blockStart' and @view.getViewNodeFor(head.container).path.contains point
+      result = head.container
       seek = head.container.end
     head = head.next
 
   # If we had a child hit, return it.
-  if head isnt block.end
-    return head.container
-
-  # If we didn't have a child hit, it's possible
-  # that _we_ are the innermost child that hit. See if that's
-  # the case.
-  else if block.type is 'block' and @view.getViewNodeFor(block).path.contains point
-    return block
-
-  # Nope, it's not. Answer is null.
-  else return null
+  return result
 
 hook 'mousedown', 10, ->
   x = document.body.scrollLeft
@@ -2374,23 +2367,7 @@ Editor::resizeLassoCanvas = ->
 
 Editor::clearLassoSelection = ->
   @lassoSegment = null
-
-  head = @tree.start
-  needToRedraw = false
-  until head is @tree.end
-    if head.type is 'segmentStart' and head.container.isLassoSegment
-      next = head.next
-
-      @addMicroUndoOperation new DestroySegmentOperation head.container
-      head.container.unwrap() #MUTATION
-      needToRedraw = true
-
-      head = next
-
-    else
-      head = head.next
-
-  if needToRedraw then @redrawMain()
+  @redrawMain()
 
 # On mousedown, if nobody has taken
 # a hit test yet, start a lasso select.
@@ -2555,7 +2532,10 @@ Editor::moveCursorAfter = (destination) ->
     return
 
   unless @inTree destination
-    throw new Error 'Attempted to move cursor to a bad location'
+    #throw new Error 'Attempted to move cursor to a bad location'
+    console.log 'Attempted to move cursor to a bad location'
+    @moveCursorAfter @tree.start
+    return
 
   @cursor = destination
   until @cursorInValidPosition()
@@ -2750,10 +2730,14 @@ Editor::deleteLassoSegment = ->
       throw new Error 'Cannot delete nonexistent lasso segment'
     return null
 
+  cursorTarget = @lassoSegment.start.prev
+
   @addMicroUndoOperation new PickUpOperation @lassoSegment
 
   @spliceOut @lassoSegment
   @lassoSegment = null
+
+  @moveCursorAfter cursorTarget
 
   @redrawMain()
 
@@ -4299,6 +4283,7 @@ hook 'populate', 1, ->
         str = str.replace /^\n*|\n*$/g, ''
 
         blocks = @mode.parse str
+        blocks = new model.List blocks.start.next, blocks.end.prev
 
         @addMicroUndoOperation 'CAPTURE_POINT'
         if @lassoSegment? and @inTree(@lassoSegment)
@@ -4311,12 +4296,6 @@ hook 'populate', 1, ->
         @addMicroUndoOperation new DropOperation blocks, @cursor
 
         @spliceIn blocks, @cursor
-        unless blocks.end.next.type in ['newline', 'indentEnd']
-          blocks.end.insert new model.NewlineToken()
-
-        @addMicroUndoOperation new DestroySegmentOperation blocks
-
-        blocks.unwrap()
 
         @redrawMain()
       catch e
@@ -4338,7 +4317,7 @@ hook 'keydown', 0, (event, state) ->
       window.scrollTo(x, y)
 
       if @lassoSegment?
-        @copyPasteInput.value = @lassoSegment.stringify(@mode)
+        @copyPasteInput.value = @lassoSegment.stringifyInPlace()
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
 hook 'keyup', 0, (point, event, state) ->
