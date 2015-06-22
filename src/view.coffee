@@ -75,7 +75,6 @@ DEFAULT_OPTIONS =
 YES = -> yes
 NO = -> no
 
-defaultStyleObject = -> {selected: 0, grayscale: 0}
 arrayEq = (a, b) ->
   return false if a.length isnt b.length
   return false if k isnt b[i] for k, i in a
@@ -702,37 +701,21 @@ exports.View = class View
     # Draw our own polygon on a canvas context.
     # May require special effects, like graying-out
     # or blueing for lasso select.
-    drawSelf: (ctx, style) ->
+    drawSelf: (ctx, style = {}) ->
 
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
-    draw: (ctx, boundingRect, style) ->
+    draw: (ctx, boundingRect, style = {}) ->
       # First, test to see whether our AABB overlaps
       # with the viewport
       if @totalBounds.overlap boundingRect
-        # If it does, we want to render. If we are the root
-        # (and have not been passed a style object), create
-        # a style object. This includes things like graying-out
-        # and blueing.
-        style ?= defaultStyleObject()
-
-        # The ephemeral flag is set when a block is being dragged
-        # somewhere else at the moment. If we are a model
-        # that wants to gray something out in this situation,
-        # do so.
-        if @model.ephemeral and @view.opts.respectEphemeral
-          style.grayscale++
-
+        # If it does, we want to render.
         # Call `@drawSelf`
         @drawSelf ctx, style
 
         # Draw our children.
         for childObj in @children
           @view.getViewNodeFor(childObj.child).draw ctx, boundingRect, style
-
-        # Decrement our grayscale if necessary
-        if @model.ephemeral and @view.opts.respectEphemeral
-          style.grayscale--
 
       return null
 
@@ -1649,18 +1632,18 @@ exports.View = class View
     # ## drawSelf
     # Draw our path, with applied
     # styles if necessary.
-    drawSelf: (ctx, style) ->
-      # We might want to apply some
+    drawSelf: (ctx, style = {}) ->
+      # We migh want to apply some
       # temporary color changes,
       # so store the old colors
       oldFill = @path.style.fillColor
       oldStroke = @path.style.strokeColor
 
-      if style.grayscale > 0
+      if style.grayscale
         @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
-      if style.selected > 0
+      if style.selected
         @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
@@ -2077,7 +2060,7 @@ exports.View = class View
     # ## drawSelf
     #
     # Draw the text element itself.
-    drawSelf: (ctx, style) ->
+    drawSelf: (ctx, style = {}) ->
       unless style.noText
         @textElement.draw ctx
       return null

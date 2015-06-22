@@ -223,8 +223,8 @@ exports.Editor = class Editor
     @bindings = {}
 
     # Instantiate an ICE editor view
-    @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
-    @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
+    @view = new view.View @standardViewSettings
+    @dragView = new view.View extend_ @standardViewSettings
 
     boundListeners = []
 
@@ -475,8 +475,8 @@ Editor::redrawMain = (opts = {}) ->
       @mainCanvas.width,
       @mainCanvas.height
     ), {
-      grayscale: 0
-      selected: 0
+      grayscale: false
+      selected: false
       noText: (opts.noText ? false)
     }
 
@@ -528,6 +528,16 @@ Editor::redrawHighlights = ->
       path.draw @highlightCtx
     else
       delete @extraMarks[id]
+
+  # If there is an block that is being dragged,
+  # draw it in gray
+  if @draggingBlock? and @inTree @draggingBlock
+    @view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
+      @scrollOffsets.main.x,
+      @scrollOffsets.main.y,
+      @mainCanvas.width,
+      @mainCanvas.height
+    ), {grayscale: true}
 
   @redrawCursors()
   @redrawLassoHighlight()
@@ -1034,8 +1044,6 @@ hook 'mousemove', 1, (point, event, state) ->
         @draggingOffset = viewNode.bounds[0].upperLeftCorner().from mainPoint
 
     # TODO figure out what to do with lists here
-    #@draggingBlock.ephemeral = true
-    #@draggingBlock.clearLineMarks()
 
     # Draw the new dragging block on the drag canvas.
     #
@@ -1180,7 +1188,9 @@ hook 'mousemove', 0, (point, event, state) ->
 
       # Update highlight if necessary.
       if best isnt @lastHighlight
-        @clearHighlightCanvas()
+        # TODO if this becomes a performance issue,
+        # pull the drop highlights out into a new canvas.
+        @redrawHighlights()
 
         if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
 
@@ -2436,7 +2446,7 @@ Editor::redrawLassoHighlight = ->
     )
     lassoView = @view.getViewNodeFor(@lassoSegment)
     lassoView.absorbCache()
-    lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
+    lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -4048,7 +4058,6 @@ hook 'mouseup', 0.5, (point, event) ->
     renderPoint = @trackerPointToMain trackPoint
 
     if @inTree(@draggingBlock) and @mainViewOrChildrenContains @draggingBlock, renderPoint
-      @draggingBlock.ephemeral = false
       @endDrag()
 
 # LINE NUMBER GUTTER CODE
