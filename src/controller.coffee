@@ -3275,7 +3275,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.style.width = "#{@gutter.offsetWidth}px"
       translatingElements.push div
 
-      div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+      div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
       # Add annotation
       if @annotations[line]?
         div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
