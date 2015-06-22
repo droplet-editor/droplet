@@ -1114,14 +1114,34 @@ Editor::getAcceptLevel = (drag, drop) ->
     if drag.type is 'segment'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.getReader(), null
+      return @mode.drop drag.getReader(), drop.getReader(), null, null
   else if drop.type is 'block'
     if drop.visParent().type is 'socket'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
+      #Find next sibling which is a compound block(Not Text/NewLine/Cursor)
+      next = drop.end.next
+      while not next.container
+        next = next.next
+      #If sibling is Parent, we don't have a sibling
+      if next.container is drop.visParent()
+        next = null
+      #Else get reader of the sibling
+      else
+        next = next.container.getReader()
+      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop.getReader(), next
   else
-    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
+    #If drop is indent/segment, `next` is the first child of the context
+    next = drop.start.next
+    while not next.container
+      next = next.next
+    #If we reached the context itself, the context doesnt have any children
+    if next.container is drop
+        next = null
+    #Else get reader of the first child
+    else
+      next = next.container.getReader()
+    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader(), next
 
 # On mousemove, if there is a dragged block, we want to
 # translate the drag canvas into place,
