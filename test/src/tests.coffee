@@ -84,7 +84,7 @@ asyncTest 'Containers and parents', ->
   helper.connect g, h
 
   list = new model.List g, h
-  list.spliceIn d
+  cont1.insert d, list
 
   strictEqual a.parent, null, 'splice in parents still work'
   strictEqual b.parent, cont1, 'splice in parents still work'
@@ -96,7 +96,7 @@ asyncTest 'Containers and parents', ->
   strictEqual f.parent, null, 'splice in parents still work'
 
   cont3 = new model.Container()
-  cont3.spliceIn g
+  cont1.insert g, cont3
 
   strictEqual h.parent, cont2, 'splice in parents still work'
   start()
@@ -113,10 +113,10 @@ asyncTest 'Get block on line', ->
     console.log j
   '''
 
-  strictEqual document.getBlockOnLine(1).stringify(coffee), 'console.log i', 'line 1'
-  strictEqual document.getBlockOnLine(3).stringify(coffee), 'console.log k', 'line 3'
-  strictEqual document.getBlockOnLine(5).stringify(coffee), 'console.log q', 'line 5'
-  strictEqual document.getBlockOnLine(7).stringify(coffee), 'console.log j', 'line 7'
+  strictEqual document.getBlockOnLine(1).stringify(), 'console.log i', 'line 1'
+  strictEqual document.getBlockOnLine(3).stringify(), 'console.log k', 'line 3'
+  strictEqual document.getBlockOnLine(5).stringify(), 'console.log q', 'line 5'
+  strictEqual document.getBlockOnLine(7).stringify(), 'console.log j', 'line 7'
   start()
 
 asyncTest 'Location serialization unity', ->
@@ -140,34 +140,44 @@ asyncTest 'Block move', ->
     console.log world
   '''
 
-  document.getBlockOnLine(2).moveTo document.start, coffee
+  block = document.getBlockOnLine(2)
+  document.remove block
+  document.insert document.start, block
 
-  strictEqual document.stringify(coffee), '''
+  strictEqual document.stringify(), '''
   console.log world
   for i in [1..10]
     console.log hello
   ''', 'Move console.log world out'
 
-  document.getBlockOnLine(2).moveTo document.start, coffee
+  block = document.getBlockOnLine(2)
+  document.remove block
+  document.insert document.start, block
 
-  strictEqual document.stringify(coffee), '''
+  strictEqual document.stringify(), '''
   console.log hello
   console.log world
   for i in [1..10]
     ``
   ''', 'Move both out'
 
-  document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
+  block = document.getBlockOnLine(0)
+  destination = document.getBlockOnLine(2).end.prev.container.start
+  document.remove block
+  document.insert destination, block
 
-  strictEqual document.stringify(coffee), '''
+  strictEqual document.stringify(), '''
   console.log world
   for i in [1..10]
     console.log hello
   ''', 'Move hello back in'
 
-  document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start, coffee
+  block = document.getBlockOnLine(1)
+  destination = document.getBlockOnLine(0).end.prev.container.start
+  document.remove block
+  document.insert destination
 
-  strictEqual document.stringify(coffee), '''
+  strictEqual document.stringify(), '''
   console.log (for i in [1..10]
     console.log hello)
   ''', 'Move for into socket (req. paren wrap)'
@@ -181,32 +191,16 @@ asyncTest 'specialIndent bug', ->
     alert 10
   '''
 
-  document.getBlockOnLine(2).moveTo document.getBlockOnLine(1).end.prev.container.start, coffee
+  block = document.getBlockOnLine(2)
+  destination = document.getBlockOnLine(1).end.prev.container.start
+  document.remove block
+  document.insert destination, block
 
-  strictEqual document.stringify(coffee), '''
+  strictEqual document.stringify(), '''
   for i in [1..10]
     for i in [1..10]
       alert 10
   '''
-  start()
-
-asyncTest 'Paren wrap', ->
-  document = coffee.parse '''
-  Math.sqrt 2
-  console.log 1 + 1
-  '''
-
-  (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  console.log 1 + (Math.sqrt 2)
-  ''', 'Wrap'
-
-  block.moveTo document.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  Math.sqrt 2
-  console.log 1 + ``''', 'Unwrap'
   start()
 
 asyncTest 'View: compute children', ->
@@ -257,7 +251,7 @@ asyncTest 'View: compute children', ->
   documentView.layout()
 
   indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-  strictEqual indentView.lineChildren[1][0].child.stringify(coffee), 'alert 10', 'Relative line numbers'
+  strictEqual indentView.lineChildren[1][0].child.stringify(), 'alert 10', 'Relative line numbers'
 
   document = coffee.parse '''
   console.log (for [1..10]
@@ -370,14 +364,14 @@ asyncTest 'View: sockets caching', ->
 
   socketView = view_.getViewNodeFor getNthToken(document, 8).container
 
-  strictEqual socketView.model.stringify(coffee), '[[[]]]', 'Correct block selected'
+  strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
 
   strictEqual socketView.dimensions[0].height,
     view_.opts.textHeight + 6 * view_.opts.padding,
     'Original height is O.K.'
 
   (block = getNthToken(document, 9).container).spliceOut()
-  block.spliceIn(document.getBlockOnLine(1).start.prev.prev)
+  document.insert document.getBlockOnLine(1).start.prev.prev, block
   documentView.layout()
 
   strictEqual socketView.dimensions[0].height,
@@ -409,7 +403,8 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   block = document.getBlockOnLine 1
   dest = document.getBlockOnLine(2).end
 
-  block.moveTo dest, coffee
+  document.remove block
+  document.insert dest, block
 
   documentView.layout()
 
@@ -418,7 +413,8 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
     1 * view_.opts.textHeight +
     2 * view_.opts.padding, 'Final height O.K.'
 
-  block.moveTo testedBlock.start.prev.prev, coffee
+  document.remove block
+  document.insert testedBlock.start.prev.prev, block
 
   documentView.layout()
 
@@ -441,7 +437,7 @@ asyncTest 'View: triple-quote sockets caching issue', ->
 
   socketView = view_.getViewNodeFor getNthToken(document, 4).container
 
-  strictEqual socketView.model.stringify(coffee), '\'hi\'', 'Correct block selected'
+  strictEqual socketView.model.stringify(), '\'hi\'', 'Correct block selected'
   strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
   strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 

@@ -443,7 +443,7 @@ stripFlaggedBlocks = (segment) ->
       container = head.container
       head = container.end.next
 
-      container.spliceOut()
+      segment.remove container
     else if (head instanceof model.StartToken and
         head.container.flagToStrip)
       head.container.parent?.color = 'error'

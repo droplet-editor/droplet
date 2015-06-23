@@ -224,6 +224,9 @@ exports.Editor = class Editor
 
     # Instantiate an ICE editor view
     @view = new view.View @standardViewSettings
+    @paletteView = new view.View extend_ @standardViewSettings, {
+      showDropdowns: @options.showDropdownInPalette ? false
+    }
     @dragView = new view.View extend_ @standardViewSettings
 
     boundListeners = []
@@ -582,7 +585,7 @@ Editor::redrawPalette = ->
 
   for entry in @currentPaletteBlocks
     # Layout this block
-    paletteBlockView = @view.getViewNodeFor entry.block
+    paletteBlockView = @paletteView.getViewNodeFor entry.block
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
     # Render the block
@@ -663,7 +666,7 @@ Editor::trackerPointIsInAce = (point) ->
 # ### hitTest
 # Simple function for going through a linked-list block
 # and seeing what the innermost child is that we hit.
-Editor::hitTest = (point, block) ->
+Editor::hitTest = (point, block, view = @view) ->
   if @readOnly
     return null
 
@@ -672,7 +675,7 @@ Editor::hitTest = (point, block) ->
   result = null
 
   until head is seek
-    if head.type is 'blockStart' and @view.getViewNodeFor(head.container).path.contains point
+    if head.type is 'blockStart' and view.getViewNodeFor(head.container).path.contains point
       result = head.container
       seek = head.container.end
     head = head.next
@@ -695,16 +698,6 @@ hook 'populate', 0, ->
   @undoStack = []
   @changeEventVersion = 0
 
-# The UndoOperation class is the base
-# class for all undo operations.
-class UndoOperation
-  constructor: ->
-
-  # Undo and redo should return
-  # the desired new cursor position.
-  undo: (editor) -> editor.tree.start
-  redo: (editor) -> editor.tree.start
-
 Editor::removeBlankLines = ->
   # If we have blank lines at the end,
   # get rid of them
@@ -714,42 +707,6 @@ Editor::removeBlankLines = ->
     head.remove()
     head = next
 
-# addMicroUndoOperation pushes
-# the given operation to the undo stack,
-# and might possibly do some bureaucracy in the future.
-Editor::addMicroUndoOperation = (operation) ->
-  @undoStack.push operation
-  @removeBlankLines()
-
-# The undo function pops and undoes
-# operations from the undo stack until
-# we reach a capture point.
-Editor::undo = ->
-  # If the undo stack is empty, give up
-  if @undoStack.length is 0 then return
-
-  # Otherwise, try to undo the operation
-  operation = @undoStack.pop()
-
-  # If the operation is a capture point, stop.
-  #
-  # NOTE: Right now capture points are signified by the
-  # string 'CAPTURE_POINT'; this may need to be changed
-  # in the future.
-  if operation is 'CAPTURE_POINT' then return
-  else
-    # Otherwise, apply the undo operation and
-    # recurse.
-    @moveCursorAfter operation.undo this
-    @undo()
-
-  @redrawMain()
-
-# We'll also allow users to clear
-# the undo stack.
-Editor::clearUndoStack = ->
-  @undoStack.length = 0
-
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
   if event.which is Z_KEY and command_pressed(event)
@@ -758,107 +715,30 @@ hook 'keydown', 0, (event, state) ->
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
-# Set up the undo operation for
-# block moving.
-class PickUpOperation extends UndoOperation
-  constructor: (block) ->
-    @block = block.clone()
-    beforeToken = block.start.prev
-
-    # For the "before" location, we don't actually want
-    # the thing before; we want the place at which we can
-    # place the block to get it back to what it used to be.
-    while beforeToken?.prev? and beforeToken.type in ['newline', 'segmentStart', 'cursor']
-      beforeToken = beforeToken.prev
-
-    @before = beforeToken?.getLocation() ? null
-
-  undo: (editor) ->
-    # If the block used to be at null, we don't need to do anything.
-    unless @before? then return
-
-    # Move a clone into position.
-    editor.spliceIn (clone = @block.clone()), editor.tree.getFromLocation @before
-
-    # If the block was the lasso select, register it
-    # as such.
-    if @block.type is 'segment' and @block.isLassoSegment
-      editor.lassoSegment = @block
-
-    # Move the cursor to the end of it.
-    return clone.end
-
-  redo: (editor) ->
-    # If the operation was a no-op, redo is a no-op.
-    unless @before? then return
-
-    # Find the block we want to remove
-    blockStart = editor.tree.getFromLocation @before
-    until blockStart.type is @block.start.type then blockStart = blockStart.next
-
-    # Move it to null.
-    if @block.start.type is 'segment'
-      editor.spliceOut blockStart.container
-
-    else
-      editor.spliceOut blockStart.container
-
-    # Move the cursor somewhere close to what we
-    # just deleted.
-    return editor.tree.getFromLocation @before
-
-class DropOperation extends UndoOperation
-  constructor: (block, dest) ->
-    @block = block.clone()
-    @dest = dest?.getLocation() ? null
-
-    if dest?.type is 'socketStart'
-      @displacedSocketText = dest.container.contents()
-    else @displacedSocketText = null
-
-  undo: (editor) ->
-    # If the operation was a no-op, undo is a no-op.
-    unless @dest? then return
-
-    # Find the block we want to remove
-    blockStart = editor.tree.getFromLocation @dest
-    until blockStart.type is @block.start.type then blockStart = blockStart.next
-
-    # Move it to null.
-    editor.spliceOut blockStart.container
-
-    # We may need to replace some of displaced
-    # socket text from dropping a block
-    # into a socket. If so, do so.
-    if @displacedSocketText?
-      editor.tree.getFromLocation(@dest).insert @displacedSocketText.clone()
-
-    # Move the cursor somewhere close to what we
-    # just deleted.
-    return editor.tree.getFromLocation @dest
-
-  redo: (editor) ->
-    # If the operation was a no-op, redo is a no-op.
-    unless @dest? then return
-
-    # Move a clone into position.
-    editor.spliceIn (clone = @block.clone()), editor.tree.getFromLocation @dest
-
-    # Move the cursor to the end of it.
-    return clone.end
-
 Editor::spliceOut = (node) ->
+  # Make an empty list if we haven't been
+  # passed one
+  unless node instanceof model.List
+    node = new model.List node, node
+
   @prepareNode node, null
-  node.spliceOut()
+  if @inTree node
+    operation = @tree.remove node
+    @undoStack.push operation
+    return operation
 
 Editor::spliceIn = (node, location) ->
   container = location.container ? location.parent
   if container.type is 'block'
     container = container.parent
+  else if container.type is 'socket' and
+      container.start.next isnt container.end
+    @spliceOut new model.List container.start.next, container.end.prev
 
   @prepareNode node, container
-  node.spliceIn location
-
+  operation = @tree.insert location, node
+  @undoStack.push operation
+  return operation
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
@@ -872,6 +752,11 @@ Editor::prepareNode = (node, context) ->
       context?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
+
+Editor::undo = ->
+  reverseOperation = @tree.perform @undoStack.pop(), 'backward'
+  @redrawMain()
+  return reverseOperation
 
 # At population-time, we will
 # want to set up a few fields.
@@ -1013,7 +898,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # NOTE: this really falls under "PALETTE SUPPORT", but must
     # go here. Try to organise this better.
     if @clickedBlockPaletteEntry
-      @draggingOffset = @view.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
+      @draggingOffset = @paletteView.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
         @trackerPointToPalette(@clickedPoint))
 
       # Substitute in expansion for this palette entry, if supplied.
@@ -1258,15 +1143,6 @@ hook 'mouseup', 1, (point, event, state) ->
 
         @aceEditor.onTextInput text
     else if  @lastHighlight?
-
-      if @inTree @draggingBlock
-        # Since we removed this from the tree,
-        # we will need to log an undo operation
-        # to put it back in.
-        @addMicroUndoOperation 'CAPTURE_POINT'
-
-        @addMicroUndoOperation new PickUpOperation @draggingBlock
-
       # Remove the block from the tree.
       @spliceOut @draggingBlock
 
@@ -1282,14 +1158,11 @@ hook 'mouseup', 1, (point, event, state) ->
       # We will need to log undo operations here too.
       switch @lastHighlight.type
         when 'indent', 'socket'
-          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
           @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
         when 'block'
-          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
           @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
         else
           if @lastHighlight is @tree
-            @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
             @spliceIn @draggingBlock, @tree.start #MUTATION
 
       # Move the cursor to the position we just
@@ -1335,8 +1208,6 @@ Editor::reparseRawReplace = (oldBlock, originalTrigger = oldBlock) ->
     newBlock = newParse.start.next.container
     if newParse.start.next.container.end is newParse.end.prev and
         newBlock?.type is 'block'
-      @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
-
       # Recover the cursor position before and after.
       # TODO upon refactoring, the cursor should no longer
       # need to be recovered; it should be a row/col pointer
@@ -1376,43 +1247,6 @@ hook 'populate', 0, ->
 class FloatingBlockRecord
   constructor: (@block, @position) ->
 
-# ## Undo operations
-# We have two: FromFloating and ToFloating.
-# They mimick block move pick/drop operations
-# except that they also interact with the @floatingBlocks array.
-class ToFloatingOperation extends DropOperation
-  constructor: (block, position, editor) ->
-    # Copy the position we got
-    @position = new editor.draw.Point position.x, position.y
-
-    # Do all the normal blockMove stuff.
-    super block, null
-
-  undo: (editor) ->
-    editor.floatingBlocks.pop()
-
-    super
-
-  redo: (editor) ->
-    editor.floatingBlocks.push new FloatingBlockRecord @block.clone(), @position
-
-    super
-
-class FromFloatingOperation
-  constructor: (record, editor) ->
-    @position = new editor.draw.Point record.position.x, record.position.y
-    @block = record.block.clone()
-
-  undo: (editor) ->
-    editor.floatingBlocks.push new FloatingBlockRecord @block.clone(), @position
-
-    return null
-
-  redo: (editor) ->
-    editor.floatingBlocks.pop()
-
-    return null
-
 Editor::inTree = (block) ->
   if block.container? then block = block.container
 
@@ -1438,10 +1272,6 @@ hook 'mouseup', 0, (point, event, state) ->
     # Move the cursor out of the block first
     if @inTree @draggingBlock
       @moveCursorAfter @draggingBlock.end
-
-      @addMicroUndoOperation 'CAPTURE_POINT'
-
-      @addMicroUndoOperation new PickUpOperation @draggingBlock
 
     # Remove the block from the tree.
     @spliceOut @draggingBlock
@@ -1505,11 +1335,6 @@ hook 'mousemove', 7, (point, event, state) ->
   if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
     for record, i in @floatingBlocks
       if record.block is @clickedBlock
-        # Add the undo operation associated
-        # with picking up this floating block
-        unless state.addedCapturePoint
-          @addMicroUndoOperation 'CAPTURE_POINT'
-          state.addedCapturePoint = true
         @addMicroUndoOperation new FromFloatingOperation record, this
 
         @floatingBlocks.splice i, 1
@@ -1551,8 +1376,8 @@ hook 'populate', 0, ->
 
 parseBlock = (mode, code) =>
   block = mode.parse(code).start.next.container
-  block.spliceOut()
-  block.parent = null
+  block.start.prev = block.end.next = null
+  block.setParent null
   return block
 
 Editor::setPalette = (paletteGroups) ->
@@ -1650,7 +1475,7 @@ hook 'mousedown', 6, (point, event, state) ->
      @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
 
     for entry in @currentPaletteBlocks
-      hitTestResult = @hitTest palettePoint, entry.block
+      hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
       if hitTestResult?
         @setTextInputFocus null
@@ -1700,7 +1525,7 @@ hook 'rebuild_palette', 1, ->
 
     hoverDiv.title = data.title ? block.stringify(@mode)
 
-    bounds = @view.getViewNodeFor(block).totalBounds
+    bounds = @paletteView.getViewNodeFor(block).totalBounds
 
     hoverDiv.style.top = "#{bounds.y}px"
     hoverDiv.style.left = "#{bounds.x}px"
@@ -1713,10 +1538,10 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mousemove', (event) =>
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
-        if @mainViewOrChildrenContains block, palettePoint
-          unless block is @currentHighlightedPaletteBlock
+        if @viewOrChildrenContains block, palettePoint, @paletteView
+            console.log 'highlighting'
             @clearPaletteHighlightCanvas()
-            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}
+            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
             @currentHighlightedPaletteBlock = block
         else if block is @currentHighlightedPaletteBlock
@@ -1733,36 +1558,6 @@ hook 'rebuild_palette', 1, ->
 
 # TEXT INPUT SUPPORT
 # ================================
-
-# Text input has two undo events: text change
-# and text reparse.
-class TextChangeOperation extends UndoOperation
-  constructor: (socket, @before, editor) ->
-    @after = socket.stringify(editor.mode.empty)
-    @socket = socket.start.getLocation()
-
-  undo: (editor) ->
-    socket = editor.tree.getFromLocation(@socket).container
-    editor.populateSocket socket, @before
-
-  redo: (editor) ->
-    socket = editor.tree.getFromLocation(@socket).container
-    editor.populateSocket @socket, @after
-
-class TextReparseOperation extends UndoOperation
-  constructor: (socket, @before) ->
-    @after = socket.start.next.container
-    @socket = socket.start.getLocation()
-
-  undo: (editor) ->
-    socket = editor.tree.getFromLocation(@socket).container
-    editor.spliceOut socket.start.next.container
-    socket.start.insert new model.TextToken @before
-
-  redo: (editor) ->
-    socket = editor.tree.getFromLocation(@socket).container
-    helper.connect socket.start, socket.end; socket.notifyChange()
-    editor.spliceIn @after.clone(), socket
 
 # At populate-time, we need
 # to create and append the hidden input
@@ -1966,11 +1761,6 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
   # If there is already a focus, we
   # need to wrap some things up with it.
   if @textFocus? and @textFocus isnt focus
-
-    # The first of these is an undo operation;
-    # we need to add this text change to the undo stack.
-    @addMicroUndoOperation 'CAPTURE_POINT'
-    @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue, @
     @oldFocusValue = null
 
     originalText = @textFocus.stringify(@mode)
@@ -2029,7 +1819,6 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
         # Splice the other in
         @spliceIn newParse.start.next.container, @textFocus.start
 
-        @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
         shouldPop = true
 
     # See if the parent is still parseable
@@ -2653,7 +2442,7 @@ hook 'keydown', 0, (event, state) ->
     else head = @cursor
 
     until (not head?) or head.type is 'socketEnd' and
-        head.container.editble()
+        head.container.editable()
       head = head.prev
 
     if head?
@@ -2703,7 +2492,6 @@ Editor::deleteAtCursor = ->
     return
 
   @moveCursorBefore block.start
-  @addMicroUndoOperation new PickUpOperation block
   @spliceOut block
   @redrawMain()
 
@@ -2719,14 +2507,12 @@ hook 'keydown', 0, (event, state) ->
   # sessions. We will, however, delete a handwritten
   # block if it is currently empty.
   if @lassoSegment?
-    @addMicroUndoOperation 'CAPTURE_POINT'
     @deleteLassoSegment()
     event.preventDefault()
     return false
 
   else if not @textFocus? or
       (@hiddenInput.value.length is 0 and @textFocus.handwritten)
-    @addMicroUndoOperation 'CAPTURE_POINT'
     @deleteAtCursor()
     state.capturedBackspace = true
     event.preventDefault()
@@ -2741,8 +2527,6 @@ Editor::deleteLassoSegment = ->
     return null
 
   cursorTarget = @lassoSegment.start.prev
-
-  @addMicroUndoOperation new PickUpOperation @lassoSegment
 
   @spliceOut @lassoSegment
   @lassoSegment = null
@@ -2778,10 +2562,6 @@ hook 'keydown', 0, (event, state) ->
       while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
         head = head.prev
 
-      # Log the undo operation for this
-      @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new DropOperation newBlock, head
-
       @spliceIn newBlock, head #MUTATION
 
       @redrawMain()
@@ -2808,25 +2588,6 @@ containsCursor = (block) ->
     head = head.next
 
   return false
-
-# The Reparse undo operation.
-class ReparseOperation extends UndoOperation
-  constructor: (block, parse) ->
-    @before = block.clone()
-    @location = block.start.getLocation()
-    @after = parse.clone()
-
-  undo: (editor) ->
-    block = editor.tree.getFromLocation(@location).container
-    newBlock = @before.clone()
-    newBlock.rawReplace block
-
-  redo: (editor) ->
-    block = editor.tree.getFromLocation(@location).container
-    newBlock = @after.clone()
-    newBlock.rawReplace block
-
-    newBlock.notifyChange()
 
 # ANIMATION AND ACE EDITOR SUPPORT
 # ================================
@@ -3449,7 +3210,7 @@ hook 'redraw_main', 1, ->
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
   for entry in @currentPaletteBlocks
-    bounds.unite @view.getViewNodeFor(entry.block).getBounds()
+    bounds.unite @paletteView.getViewNodeFor(entry.block).getBounds()
 
   # For now, we will comment out this line
   # due to bugs
@@ -3517,8 +3278,8 @@ hook 'populate', 0, ->
   @markedBlocks = {}; @nextMarkedBlockId = 0
   @extraMarks = {}
 
-Editor::getHighlightPath = (model, style) ->
-  path = @view.getViewNodeFor(model).path.clone()
+Editor::getHighlightPath = (model, style, view = @view) ->
+  path = view.getViewNodeFor(model).path.clone()
 
   path.style.fillColor = null
   path.style.strokeColor = style.color
@@ -3632,21 +3393,6 @@ hook 'mousemove', 0, (point, event, state) ->
 # GET/SET VALUE SUPPORT
 # ================================
 
-class SetValueOperation extends UndoOperation
-  constructor: (@oldValue, @newValue) ->
-    @oldValue = @oldValue.clone()
-    @newValue = @newValue.clone()
-
-  undo: (editor) ->
-    editor.tree = @oldValue.clone()
-
-    return editor.tree.start
-
-  redo: (editor) ->
-    editor.tree = @newValue.clone()
-
-    return editor.tree.start
-
 # Whitespace trimming hack enable/disable
 # setter
 hook 'populate', 0, ->
@@ -3661,12 +3407,13 @@ Editor::setValue_raw = (value) ->
 
     newParse = @mode.parse value, wrapAtRoot: true
 
-    if value isnt @tree.stringify(@mode)
-      @addMicroUndoOperation 'CAPTURE_POINT'
-    @addMicroUndoOperation new SetValueOperation @tree, newParse
+    unless @tree.start.next is @tree.end
+      removal = new model.List @tree.start.next, @tree.end.prev
+      @spliceOut removal
 
-    @tree = newParse; @gutterVersion = -1
-    @cursor = @tree.start
+    @spliceIn new model.List(newParse.start.next, newParse.end.prev), @tree.start
+    @moveCursorAfter @tree.start
+
     @removeBlankLines()
     @redrawMain()
 
@@ -4037,14 +3784,14 @@ hook 'populate', 0, ->
 # its grayed-out spot, cancel the drag.
 
 # TODO possibly move this next utility function to view?
-Editor::mainViewOrChildrenContains = (model, point) ->
-  modelView = @view.getViewNodeFor model
+Editor::viewOrChildrenContains = (model, point, view = @view) ->
+  modelView = view.getViewNodeFor model
 
   if modelView.path.contains point
     return true
 
   for childObj in modelView.children
-    if @mainViewOrChildrenContains childObj.child, point
+    if @viewOrChildrenContains childObj.child, point, view
       return true
 
   return false
@@ -4057,7 +3804,7 @@ hook 'mouseup', 0.5, (point, event) ->
     )
     renderPoint = @trackerPointToMain trackPoint
 
-    if @inTree(@draggingBlock) and @mainViewOrChildrenContains @draggingBlock, renderPoint
+    if @inTree(@draggingBlock) and @viewOrChildrenContains @draggingBlock, renderPoint
       @endDrag()
 
 # LINE NUMBER GUTTER CODE
@@ -4294,15 +4041,11 @@ hook 'populate', 1, ->
         blocks = @mode.parse str
         blocks = new model.List blocks.start.next, blocks.end.prev
 
-        @addMicroUndoOperation 'CAPTURE_POINT'
         if @lassoSegment? and @inTree(@lassoSegment)
           # Make sure the cursor is outside the lasso segment
           # (although it should be already)
           @moveCursorAfter @lassoSegment.end.next, true
-          @addMicroUndoOperation new PickUpOperation @lassoSegment
           @spliceOut @lassoSegment; @lassoSegment = null
-
-        @addMicroUndoOperation new DropOperation blocks, @cursor
 
         @spliceIn blocks, @cursor
 
@@ -4312,8 +4055,6 @@ hook 'populate', 1, ->
 
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
     else if pressedXKey and @lassoSegment?
-      @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new PickUpOperation @lassoSegment
       @spliceOut @lassoSegment; @lassoSegment = null
       @redrawMain()
 

@@ -29,6 +29,7 @@ DROPDOWN_ARROW_HEIGHT = 8
 DROP_TRIANGLE_COLOR = '#555'
 
 DEFAULT_OPTIONS =
+  showDropdowns: true
   padding: 5
   indentWidth: 10
   indentTongueHeight: 10
@@ -1773,14 +1774,18 @@ exports.View = class View
         dimension.width =
             Math.max(dimension.width, @view.opts.minSocketWidth)
 
-        if @model.hasDropdown()
+        if @model.hasDropdown() and @view.opts.showDropdowns
           dimension.width += helper.DROPDOWN_ARROW_WIDTH
 
       return null
 
     # ## computeBoundingBoxX (SocketViewNode)
     computeBoundingBoxX: (left, line) ->
-      super left, line, if @model.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0
+      super left, line, (
+        if @model.hasDropdown() and @view.opts.showDropdowns
+          helper.DROPDOWN_ARROW_WIDTH
+        else 0
+      )
 
     # ## computeGlue
     # Sockets have one exception to normal glue spacing computation:
@@ -1837,7 +1842,7 @@ exports.View = class View
     # ## drawSelf (SocketViewNode)
     drawSelf: (ctx) ->
       super
-      if @model.hasDropdown()
+      if @model.hasDropdown() and @view.opts.showDropdowns
         ctx.beginPath()
         ctx.fillStyle = DROP_TRIANGLE_COLOR
         ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2

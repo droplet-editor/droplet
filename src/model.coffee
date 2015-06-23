@@ -19,7 +19,7 @@ Function::trigger = (prop, get, set) ->
     set: set
 
 # TODO add parenting checks
-exports.isTreeValid = (tree) ->
+exports.isTreeValid = isTreeValid = (tree) ->
   tortise = hare = tree.start.next
 
   stack =  []
@@ -71,14 +71,33 @@ exports.isTreeValid = (tree) ->
 
   return true
 
+class Operation
+  constructor: (@type, list) ->
+    @location = list.start.prev.getLocation()
+
+    @list = list.clone()
+
+    @start = list.start.getLocation()
+    @end = list.end.getLocation()
+
+  toString: -> JSON.stringify({
+    location: @location.toString()
+    list: @list.stringify()
+    start: @start.toString()
+    end: @end.toString()
+  })
+
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
 
-  # ## spliceIn ##
-  # Insert ourselves into a linked
-  # list somewhere else.
-  spliceIn: (token) ->
+  # ## insert ##
+  # Insert another list into us
+  # and return an (undoable) record
+  # of this operation
+  insert: (token, list) ->
+    [first, last] = [list.start, list.end]
+
     # Append newlines, etc. to the parent
     # if necessary.
     switch token.type
@@ -89,44 +108,47 @@ exports.List = class List
         if head.type is 'newline'
           token = token.next
         else
-          token = token.insert new NewlineToken()
+          first = new NewlineToken()
+          helper.connect first, list.start
 
       when 'blockEnd'
-        token = token.insert new NewlineToken()
+        first = new NewlineToken()
+        helper.connect first, list.start
 
       when 'segmentStart'
         unless token.next is token.container.end
-          token.insert new NewlineToken()
+          last = new NewlineToken()
+          helper.connect list.end, last
 
-      # Remove socket content when necessary
-      when 'socketStart'
-        helper.connect token, token.container.end
+    # New list with added newlines
+    list = new List first, last
 
     # Literally splice in
-    last = token.next
-
-    helper.connect token, @start
+    after = token.next
+    helper.connect token, list.start
 
     if token instanceof StartToken
-      @setParent token.container
+      list.setParent token.container
     else
-      @setParent token.parent
+      list.setParent token.parent
 
-    helper.connect @end, last
+    helper.connect list.end, after
+    list.notifyChange()
 
-    @notifyChange()
+    # Make and return an undo operation
+    return new Operation 'insert', list
 
-  # ## spliceOut ##
+  # ## remove ##
   # Remove ourselves from the linked
   # list that we are in.
-  spliceOut: ->
+  remove: (list) ->
     # Do not leave empty lines behind.
 
     # First,
     # let's determine what the previous and next
     # visible tokens are, to see if they are
     # two consecutive newlines, or similar.
-    first = @start.prev; last = @end.next
+    first = list.start.prev; last = list.end.next
 
     # If the previous visible token is a newline,
     # and the next visible token is a newline, indentEnd,
@@ -140,7 +162,8 @@ exports.List = class List
        not (first.prev?.type is 'indentStart' and
        first.prev.container.end is last)
       first = first.prev
-      first.next.remove()
+
+    first = first.next
 
     # If the next visible token is a newline,
     # and the previous visible token is the beginning
@@ -149,18 +172,46 @@ exports.List = class List
         (last?.next?.type is 'newline' or
         first?.type in [undefined, 'segmentStart'])
       last = last.next
-      last.prev.remove()
 
-    @notifyChange()
+    last = last.prev
 
-    # Literally unsplice
-    helper.connect @start.prev, @end.next
+    # Expand the list based on this analysis
+    list = new List first, last
+    list.notifyChange()
 
-    @start.prev = @end.next = null
+    # Make an undo operation
+    record = new Operation 'remove', list
 
-    @notifyChange()
+    helper.connect list.start.prev, list.end.next
+    list.start.prev = list.end.next = null
+    list.setParent null
 
-    @setParent null
+    # Return the undo operation
+    return record
+
+  perform: (operation, direction) ->
+    if (operation.type is 'insert') isnt (direction is 'forward')
+      list = new List @getFromLocation(operation.start), @getFromLocation(operation.end)
+      list.notifyChange()
+      helper.connect list.start.prev, list.end.next
+      return new Operation 'remove', list
+    else
+      list = operation.list.clone()
+
+      before = @getFromLocation(operation.location)
+      after = before.next
+
+      helper.connect before, list.start
+      helper.connect list.end, after
+
+      if before instanceof StartToken
+        list.setParent before.container
+      else
+        list.setParent before.parent
+
+      list.notifyChange()
+
+      return new Operation 'insert', list
 
   notifyChange: ->
     @traverseOneLevel (head) ->
@@ -437,32 +488,6 @@ exports.Container = class Container extends List
 
       return clone.start.next
 
-  # ## moveTo ##
-  # Convenience function for testing;
-  # splice out then splice in.
-  #
-  # USED FOR TESTING ONLY
-  moveTo: (token, mode) ->
-    if @start.prev? or @end.next?
-      leading = @getLeadingText()
-      trailing = @getTrailingText()
-
-      [leading, trailing] = mode.parens leading, trailing, @, null
-
-      @setLeadingText leading; @setTrailingText trailing
-
-      @spliceOut()
-
-    if token?
-      leading = @getLeadingText()
-      trailing = @getTrailingText()
-
-      [leading, trailing] = mode.parens leading, trailing, @, (token.container ? token.parent)
-
-      @setLeadingText leading; @setTrailingText trailing
-
-      @spliceIn token
-
   # ## notifyChange ##
   # Increase version number (for caching purposes)
   notifyChange: ->
@@ -586,7 +611,6 @@ exports.Token = class Token
 
     return head?
 
-  # ## insert ##
   insert: (token) ->
     if token instanceof StartToken or
        token instanceof EndToken
@@ -606,9 +630,6 @@ exports.Token = class Token
       token.next = this
       token.parent = @parent
 
-  # ## remove ##
-  # Splice this token out of the
-  # linked list.
   remove: ->
     if @prev? then helper.connect @prev, @next
     else if @next? then @next.prev = null
@@ -630,6 +651,8 @@ exports.Token = class Token
   isLastOnLine: ->
     return @next is @parent?.end or
       @next?.type in ['newline', 'indentEnd']
+
+  clone: -> new Token()
 
   getSerializedLocation: ->
     head = this; count = 0
@@ -680,6 +703,8 @@ class DropletLocation
     @type = null,
     @length = null
   ) ->
+
+  toString: -> "(#{@row}, #{@col}, #{@type}, #{@length})"
 
 exports.StartToken = class StartToken extends Token
   constructor: (@container) ->
