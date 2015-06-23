@@ -1041,11 +1041,11 @@ CoffeeScriptParser.drop = (block, context, pred) ->
     else if 'mostly-block' in block.classes
       return helper.DISCOURAGE
 
-  else if context.type in ['indent', 'segment']
+  else if context.type in ['indent', 'document']
     if 'block-only' in block.classes or
         'mostly-block' in block.classes or
         'any-drop' in block.classes or
-        block.type is 'segment'
+        block.type is 'document'
       return helper.ENCOURAGE
 
     else if 'mostly-value' in block.classes

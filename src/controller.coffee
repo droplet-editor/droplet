@@ -289,7 +289,7 @@ exports.Editor = class Editor
 
     # ## Document initialization
     # We start of with an empty document
-    @tree = new model.Segment()
+    @tree = new model.Document()
     @tree.isRoot = true
     @cursor = @tree.start
 
@@ -554,7 +554,7 @@ Editor::redrawCursors = ->
   if @textFocus?
     @redrawTextHighlights()
 
-  else unless @lassoSegment?
+  else unless @lassoSelection?
     @drawCursor()
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
@@ -994,7 +994,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
-    if drag.type is 'segment'
+    if drag.type is 'list'
       return helper.FORBID
     else
       return @mode.drop drag.getReader(), drop.getReader(), null
@@ -1286,8 +1286,8 @@ hook 'mouseup', 0, (point, event, state) ->
        0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
        (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
        0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
-      if @draggingBlock is @lassoSegment
-        @lassoSegment = null
+      if @draggingBlock is @lassoSelection
+        @lassoSelection = null
 
       @endDrag()
       return
@@ -1887,15 +1887,16 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 
 Editor::populateSocket = (socket, string) ->
   lines = string.split '\n'
-  helper.connect socket.start, socket.end
-  head = socket.start
 
-  for line, i in lines
-    head = head.insert new model.TextToken line
-    unless i + 1 is lines.length
-      head = head.insert new model.NewlineToken()
+  unless socket.start.next is socket.end
+    @spliceOut new model.List socket.start.next, socket.end.prev
 
-  socket.notifyChange()
+  first = last = new model.TextToken lines[0]
+  for line, i in lines when line > 0
+    last = helper.connect new model.NewlineToken(), last
+    last = helper.connect last, new model.TextToken line
+
+  @spliceIn (new model.List(first, last)), socket.start
 
 # Convenience hit-testing function
 Editor::hitTestTextInput = (point, block) ->
@@ -2147,7 +2148,7 @@ hook 'populate', 0, ->
   @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
 
   @lassoSelectAnchor = null
-  @lassoSegment = null
+  @lassoSelection = null
 
   @dropletElement.appendChild @lassoSelectCanvas
 
@@ -2168,7 +2169,7 @@ Editor::resizeLassoCanvas = ->
   @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
 Editor::clearLassoSelection = ->
-  @lassoSegment = null
+  @lassoSelection = null
   @redrawMain()
 
 # On mousedown, if nobody has taken
@@ -2177,7 +2178,7 @@ hook 'mousedown', 0, (point, event, state) ->
   # Even if someone has taken it, we
   # should remove the lasso segment that is
   # already there.
-  unless state.clickedLassoSegment then @clearLassoSelection()
+  unless state.clickedLassoSelection then @clearLassoSelection()
 
   if state.consumedHitTest or state.suppressLassoSelect then return
 
@@ -2225,18 +2226,18 @@ hook 'mousemove', 0, (point, event, state) ->
 
     if first and last?
       [first, last] = validateLassoSelection @tree, first, last
-      @lassoSegment = new model.List first, last
+      @lassoSelection = new model.List first, last
       @redrawLassoHighlight()
 
 Editor::redrawLassoHighlight = ->
-  if @lassoSegment?
+  if @lassoSelection?
     mainCanvasRectangle = new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
     )
-    lassoView = @view.getViewNodeFor(@lassoSegment)
+    lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
 
@@ -2300,10 +2301,10 @@ hook 'mouseup', 0, (point, event, state) ->
 
     [first, last] = validateLassoSelection @tree, first, last
 
-    @lassoSegment = new model.List first, last
+    @lassoSelection = new model.List first, last
 
     # Move the cursor to the segment we just created
-    @moveCursorAfter @lassoSegment.end.next, true
+    @moveCursorAfter @lassoSelection.end, true
 
     @redrawMain()
 
@@ -2312,21 +2313,21 @@ hook 'mouseup', 0, (point, event, state) ->
 hook 'mousedown', 3, (point, event, state) ->
   if state.consumedHitTest then return
 
-  if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
+  if @lassoSelection? and @hitTest(@trackerPointToMain(point), @lassoSelection)?
     @setTextInputFocus null
-    @clickedBlock = @lassoSegment
+    @clickedBlock = @lassoSelection
     @clickedBlockPaletteEntry = null
     @clickedPoint = point
 
     state.consumedHitTest = true
-    state.clickedLassoSegment = true
+    state.clickedLassoSelection = true
 
 # CURSOR OPERATION SUPPORT
 # ================================
 
 Editor::cursorInValidPosition = ->
-  return @cursor.type in ['segmentStart', 'indentStart'] or
-         @cursor.type is 'blockEnd' and @cursor.parent.type in ['segment', 'indent']
+  return @cursor.type in ['documentStart', 'indentStart'] or
+         @cursor.type is 'blockEnd' and @cursor.parent.type in ['document', 'indent']
 
 # A cursor is only allowed to be on a line.
 Editor::moveCursorAfter = (destination) ->
@@ -2363,10 +2364,14 @@ Editor::moveCursorBefore = (destination) ->
   @redrawHighlights()
 
 Editor::determineCursorPosition = ->
+  # TODO for emergencies
+  unless @inTree @cursor
+    @moveCursorAfter @tree.start
+
   # Do enough of the redraw to get the bounds
   @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
 
-  if @cursor.type in ['segmentStart', 'indentStart']
+  if @cursor.type in ['documentStart', 'indentStart']
     parent = @cursor.container
   else
     parent = @cursor.parent
@@ -2376,7 +2381,7 @@ Editor::determineCursorPosition = ->
     head = head.prev
     line++ if head.type is 'newline'
 
-  if @cursor.type is 'segmentStart'
+  if @cursor.type is 'documentStart'
     bound = @view.getViewNodeFor(parent).bounds[0]
     return new @draw.Point bound.x, bound.y
   else if @cursor.type is 'indentStart'
@@ -2509,8 +2514,8 @@ hook 'keydown', 0, (event, state) ->
   # We don't want to interrupt any text input editing
   # sessions. We will, however, delete a handwritten
   # block if it is currently empty.
-  if @lassoSegment?
-    @deleteLassoSegment()
+  if @lassoSelection?
+    @deleteLassoSelection()
     event.preventDefault()
     return false
 
@@ -2523,16 +2528,16 @@ hook 'keydown', 0, (event, state) ->
 
   return true
 
-Editor::deleteLassoSegment = ->
-  unless @lassoSegment?
+Editor::deleteLassoSelection = ->
+  unless @lassoSelection?
     if DEBUG_FLAG
       throw new Error 'Cannot delete nonexistent lasso segment'
     return null
 
-  cursorTarget = @lassoSegment.start.prev
+  cursorTarget = @lassoSelection.start.prev
 
-  @spliceOut @lassoSegment
-  @lassoSegment = null
+  @spliceOut @lassoSelection
+  @lassoSelection = null
 
   @moveCursorAfter cursorTarget
 
@@ -2562,7 +2567,7 @@ hook 'keydown', 0, (event, state) ->
       # Seek a place near the cursor we can actually
       # put a block.
       head = @cursor
-      while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
+      while head.type is 'newline'
         head = head.prev
 
       @spliceIn newBlock, head #MUTATION
@@ -3752,7 +3757,7 @@ Editor::editorHasFocus = ->
   document.hasFocus()
 
 Editor::flash = ->
-  if @lassoSegment? or @draggingBlock? or
+  if @lassoSelection? or @draggingBlock? or
       (@textFocus? and @textInputHighlighted) or
       not @highlightsCurrentlyShown or
       not @editorHasFocus()
@@ -4047,21 +4052,22 @@ hook 'populate', 1, ->
         blocks = @mode.parse str
         blocks = new model.List blocks.start.next, blocks.end.prev
 
-        if @lassoSegment? and @inTree(@lassoSegment)
+        if @lassoSelection? and @inTree(@lassoSelection)
           # Make sure the cursor is outside the lasso segment
           # (although it should be already)
-          @moveCursorAfter @lassoSegment.end.next, true
-          @spliceOut @lassoSegment; @lassoSegment = null
+          @moveCursorAfter @lassoSelection.end, true
+          @spliceOut @lassoSelection; @lassoSelection = null
 
         @spliceIn blocks, @cursor
+        @moveCursorAfter blocks.end
 
         @redrawMain()
       catch e
         console.log e.stack
 
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
-    else if pressedXKey and @lassoSegment?
-      @spliceOut @lassoSegment; @lassoSegment = null
+    else if pressedXKey and @lassoSelection?
+      @spliceOut @lassoSelection; @lassoSelection = null
       @redrawMain()
 
 hook 'keydown', 0, (event, state) ->
@@ -4072,8 +4078,8 @@ hook 'keydown', 0, (event, state) ->
       @copyPasteInput.focus()
       window.scrollTo(x, y)
 
-      if @lassoSegment?
-        @copyPasteInput.value = @lassoSegment.stringifyInPlace()
+      if @lassoSelection?
+        @copyPasteInput.value = @lassoSelection.stringifyInPlace()
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
 hook 'keyup', 0, (point, event, state) ->

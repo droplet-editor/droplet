@@ -67,19 +67,19 @@ exports.Parser = class Parser
     # Sort by position and depth
     do @sortMarkup
 
-    # Generate a segment from the markup
-    segment = @applyMarkup opts
+    # Generate a document from the markup
+    document = @applyMarkup opts
 
-    @detectParenWrap segment
+    @detectParenWrap document
 
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
-    stripFlaggedBlocks segment
+    stripFlaggedBlocks document
 
     # Correct parent tree and return.
-    segment.correctParentTree()
-    segment.isRoot = true
-    return segment
+    document.correctParentTree()
+    document.isRoot = true
+    return document
 
   markRoot: ->
 
@@ -89,14 +89,14 @@ exports.Parser = class Parser
       block.end.prev.type is 'text' and
       block.end.prev.value[block.end.prev.value.length - 1] is ')')
 
-  detectParenWrap: (segment) ->
-    head = segment.start
-    until head is segment.end
+  detectParenWrap: (document) ->
+    head = document.start
+    until head is document.end
       head = head.next
       if head.type is 'blockStart' and
           @isParenWrapped head.container
         head.container.currentlyParenWrapped = true
-    return segment
+    return document
 
   # ## addBlock ##
   # addBlock takes {
@@ -249,7 +249,7 @@ exports.Parser = class Parser
 
     indentDepth = 0
     stack = []
-    document = new model.Segment(); head = document.start
+    document = new model.Document(); head = document.start
 
     for line, i in lines
       # If there is no markup on this line,
@@ -277,7 +277,7 @@ exports.Parser = class Parser
           else
             head = helper.connect head, new model.TextToken line
 
-        else if stack[stack.length - 1]?.type in ['indent', 'segment', undefined] and
+        else if stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
 
@@ -365,7 +365,7 @@ exports.Parser = class Parser
     return document
 
 exports.parseXML = (xml) ->
-  root = new model.Segment(); head = root.start
+  root = new model.Document(); head = root.start
   stack = []
   parser = sax.parser true
 
@@ -391,10 +391,10 @@ exports.parseXML = (xml) ->
           attributes.classes?.split?(' ')
       when 'indent'
         container = new model.Indent '', attributes.prefix, attributes.classes?.split?(' ')
-      when 'segment'
-        # Root segment is optional
+      when 'document'
+        # Root is optional
         unless stack.length is 0
-          container = new model.Segment()
+          container = new model.Document()
       when 'br'
         head = helper.connect head, new model.NewlineToken()
         return null
@@ -434,16 +434,16 @@ hasSomeTextAfter = (lines, i) ->
 # with the markup inserted into the text.
 #
 # Automatically insert sockets around blocks along the way.
-stripFlaggedBlocks = (segment) ->
-  head = segment.start
-  until head is segment.end
+stripFlaggedBlocks = (document) ->
+  head = document.start
+  until head is document.end
     if (head instanceof model.StartToken and
         head.container.flagToRemove)
 
       container = head.container
       head = container.end.next
 
-      segment.remove container
+      document.remove container
     else if (head instanceof model.StartToken and
         head.container.flagToStrip)
       head.container.parent?.color = 'error'
@@ -470,7 +470,7 @@ Parser.parens = (leading, trailing, node, context) ->
     trailing trailing() + ')'
 
 Parser.drop = (block, context, pred) ->
-  if block.type is 'segment' and context.type is 'socket'
+  if block.type is 'document' and context.type is 'socket'
     return helper.FORBID
   else
     return helper.ENCOURAGE

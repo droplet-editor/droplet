@@ -558,7 +558,7 @@ JavaScriptParser.parens = (leading, trailing, node, context) ->
   if context?.type is 'socket' or
      (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
      'ends-with-brace' in node.classes or
-     node.type is 'segment'
+     node.type is 'document'
     trailing trailing().replace(/;?\s*$/, '')
   else
     trailing trailing().replace(/;?\s*$/, ';')
@@ -603,11 +603,11 @@ JavaScriptParser.drop = (block, context, pred) ->
     else if 'mostly-block' in block.classes
       return helper.DISCOURAGE
 
-  else if context.type in ['indent', 'segment']
+  else if context.type in ['indent', 'document']
     if 'block-only' in block.classes or
         'mostly-block' in block.classes or
         'any-drop' in block.classes or
-        block.type is 'segment'
+        block.type is 'document'
       return helper.ENCOURAGE
 
     else if 'mostly-value' in block.classes

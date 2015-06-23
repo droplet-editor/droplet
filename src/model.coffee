@@ -114,7 +114,7 @@ exports.List = class List
         first = new NewlineToken()
         helper.connect first, list.start
 
-      when 'segmentStart'
+      when 'documentStart'
         unless token.next is token.container.end
           last = new NewlineToken()
           helper.connect list.end, last
@@ -157,7 +157,7 @@ exports.List = class List
     # Exception: do not do this if it would collapse
     # and indent to 0 length.
     while first?.type is 'newline' and
-       last?.type in [undefined, 'newline', 'indentEnd', 'segmentEnd'] and
+       last?.type in [undefined, 'newline', 'indentEnd', 'documentEnd'] and
        not (first.prev?.type is 'indentStart' and
        first.prev.container.end is last)
       first = first.prev
@@ -167,7 +167,7 @@ exports.List = class List
     # of the document, remove it.
     while last?.type is 'newline' and
         (last?.next?.type is 'newline' or
-        first?.type in [undefined, 'segmentStart'])
+        first?.type in [undefined, 'documentStart'])
       last = last.next
 
     first = first.next
@@ -232,7 +232,7 @@ exports.List = class List
     return @end.next in [@parent?.end, @parent?.parent?.end, null] or
       @end.next?.type in ['newline', 'indentStart', 'indentEnd']
 
-  getReader: -> {type: 'segment', classes: []}
+  getReader: -> {type: 'document', classes: []}
 
   setParent: (parent) ->
     traverseOneLevel @start, ((head)->
@@ -355,26 +355,12 @@ exports.Container = class Container extends List
 
     return head is parent
 
-  getCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head
-
   getLinesToParent: ->
     head = @start; lines = 0
     until head is @parent.start
       lines++ if head.type is 'newline'
       head = head.prev
     return lines
-
-  hasCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head?
 
   clone: ->
     selfClone = @_cloneEmpty()
@@ -463,7 +449,7 @@ exports.Container = class Container extends List
         else
           @end.prev.value = value
       else unless value.length is 0
-        @end.insertBefore new TextToken value
+        @end.prev.insert new TextToken value
 
   # ## serialize ##
   # Simple debugging output representation
@@ -596,44 +582,16 @@ exports.Token = class Token
 
     return head is parent
 
-  visParent: ->
-    head = @parent
-    while head?.type is 'segment' and head.isLassoSegment
-      head = head.parent
-    return head
-
-  getCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head
-
-  hasCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head?
-
   insert: (token) ->
-    if token instanceof StartToken or
-       token instanceof EndToken
-      console.warn '"insert"-ing a container can cause problems'
-
     token.next = @next; token.prev = this
     @next.prev = token; @next = token
 
-    token.parent = @parent
+    if @ instanceof StartToken
+      token.parent = @container
+    else
+      token.parent = parent
 
     return token
-
-  insertBefore: (token) ->
-    if @prev? then @prev.insert token
-    else
-      @prev = token
-      token.next = this
-      token.parent = @parent
 
   remove: ->
     if @prev? then helper.connect @prev, @next
@@ -859,32 +817,31 @@ exports.Indent = class Indent extends Container
   _serialize_footer: -> "</indent>"
 
 
-# Segment
+# Document
 # ==================
 
-exports.SegmentStartToken = class SegmentStartToken extends StartToken
-  constructor: (@container) -> super; @type = 'segmentStart'
-  serialize: -> "<segment>"
+exports.DocumentStartToken = class DocumentStartToken extends StartToken
+  constructor: (@container) -> super; @type = 'documentStart'
+  serialize: -> "<document>"
 
-exports.SegmentEndToken = class SegmentEndToken extends EndToken
-  constructor: (@container) -> super; @type = 'segmentEnd'
-  serialize: -> "</segment>"
+exports.DocumentEndToken = class DocumentEndToken extends EndToken
+  constructor: (@container) -> super; @type = 'documentEnd'
+  serialize: -> "</document>"
 
-exports.Segment = class Segment extends Container
-  constructor: (@isLassoSegment = false) ->
-    @start = new SegmentStartToken this
-    @end = new SegmentEndToken this
-    @isRoot = false
-    @classes = ['__segment']
+exports.Document = class Document extends Container
+  constructor: ->
+    @start = new DocumentStartToken this
+    @end = new DocumentEndToken this
+    @classes = ['__document__']
 
-    @type = 'segment'
+    @type = 'document'
 
     super
 
-  _cloneEmpty: -> new Segment @isLassoSegment
+  _cloneEmpty: -> new Document()
 
-  _serialize_header: -> "<segment isLassoSegment=\"#{@isLassoSegment}\">"
-  _serialize_footer: -> "</segment>"
+  _serialize_header: -> "<document>"
+  _serialize_footer: -> "</document>"
 
 
 # Text

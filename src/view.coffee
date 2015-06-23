@@ -137,7 +137,7 @@ exports.View = class View
       when 'block' then new BlockViewNode entity, this
       when 'indent' then new IndentViewNode entity, this
       when 'socket' then new SocketViewNode entity, this
-      when 'segment' then new SegmentViewNode entity, this
+      when 'document' then new DocumentViewNode entity, this
 
   # Looks up a color name, or passes through a #hex color.
   getColor: (color) ->
@@ -1202,7 +1202,7 @@ exports.View = class View
       return null
 
   # # ContainerViewNode
-  # Class from which `socketView`, `indentView`, `blockView`, and `segmentView` extend.
+  # Class from which `socketView`, `indentView`, `blockView`, and `documentView` extend.
   # Contains function for dealing with multiple children, making polygons to wrap
   # multiple lines, etc.
   class ContainerViewNode extends ListViewNode
@@ -1277,12 +1277,12 @@ exports.View = class View
         top: true
         bottom: true
 
-      if (@model.parent?.type in ['indent', 'segment']) and
+      if (@model.parent?.type in ['indent', 'document']) and
          @model.start.prev?.type is 'newline' and
          @model.start.prev?.prev isnt @model.parent.start
         @bevels.top = false
 
-      if (@model.parent?.type in ['indent', 'segment']) and
+      if (@model.parent?.type in ['indent', 'document']) and
          @model.end.next?.type is 'newline'
         @bevels.bottom = false
 
@@ -1965,10 +1965,10 @@ exports.View = class View
       @highlightArea.style.strokeColor = '#ff0'
       @highlightArea.style.fillColor = '#ff0'
 
-  # # SegmentViewNode
-  # Represents a Segment. Draws little, but
+  # # DocumentViewNode
+  # Represents a Document. Draws little, but
   # recurses.
-  class SegmentViewNode extends ContainerViewNode
+  class DocumentViewNode extends ContainerViewNode
     constructor: -> super
 
     # ## computeOwnPath
@@ -1977,44 +1977,40 @@ exports.View = class View
 
     # ## computeOwnDropArea
     #
-    # Lasso segments are not droppable;
-    # root segments of documents
+    # Root documents
     # can be dropped at their beginning.
     computeOwnDropArea: ->
-      if @model.isLassoSegment
-        return @dropArea = null
-      else
-        @dropPoint = @bounds[0].upperLeftCorner()
+      @dropPoint = @bounds[0].upperLeftCorner()
 
-        @highlightArea = new @view.draw.Path()
-        highlightAreaPoints = []
+      @highlightArea = new @view.draw.Path()
+      highlightAreaPoints = []
 
-        lastBounds = new @view.draw.NoRectangle()
-        lastBounds.copy @bounds[0]
-        lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
+      lastBounds = new @view.draw.NoRectangle()
+      lastBounds.copy @bounds[0]
+      lastBounds.width = Math.max lastBounds.width, @view.opts.indentDropAreaMinWidth
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+      highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+      highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-        @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
+      @addTabReverse highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y - @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
+      highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y - @view.opts.highlightAreaHeight / 2
+      highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
-        highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+      highlightAreaPoints.push new @view.draw.Point lastBounds.right(), lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+      highlightAreaPoints.push new @view.draw.Point lastBounds.right() - @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-        @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
+      @addTab highlightAreaPoints, new @view.draw.Point lastBounds.x + @view.opts.tabOffset, lastBounds.y + @view.opts.highlightAreaHeight / 2
 
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
-        highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
+      highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
+      highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-        @highlightArea.push point for point in highlightAreaPoints
+      @highlightArea.push point for point in highlightAreaPoints
 
-        @highlightArea.style.fillColor = '#ff0'
-        @highlightArea.style.strokeColor = '#ff0'
+      @highlightArea.style.fillColor = '#ff0'
+      @highlightArea.style.strokeColor = '#ff0'
 
-        return null
+      return null
 
   # # TextViewNode
   #

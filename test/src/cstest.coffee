@@ -27,8 +27,7 @@ asyncTest 'Parser configurability', ->
     alert random 100
     cosette 20
     ''').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"
+  expectedSerialization = '''<document
     ><block
       precedence="0"
       color="red"
@@ -78,7 +77,7 @@ asyncTest 'Parser configurability', ->
       classes="Call works-as-method-call any-drop">cosette <socket
       precedence="-1"
       handwritten="false"
-      classes="Value">20</socket></block></segment>'''
+      classes="Value">20</socket></block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -110,8 +109,7 @@ asyncTest 'Dotted methods', ->
   })
   customSerialization = customCoffee.parse(
       'console.log Math.log log x.toString log.fd()\nfd()').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"
+  expectedSerialization = '''<document
     ><block
       precedence="0"
       color="blue"
@@ -170,7 +168,7 @@ asyncTest 'Dotted methods', ->
       color="blue"
       socketLevel="0"
       classes="Call works-as-method-call mostly-block"
-    >fd()</block></segment>'''
+    >fd()</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -186,8 +184,7 @@ asyncTest 'Merged code blocks', ->
       console.log \'ouch\'
     '''
   ).serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"
+  expectedSerialization = '''<document
     ><block
       precedence="0"
       color="purple"
@@ -244,7 +241,7 @@ asyncTest 'Merged code blocks', ->
       precedence="-1"
       handwritten="false"
       classes="Value"
-    >\'ouch\'</socket></block></indent></block></segment>'''
+    >\'ouch\'</socket></block></indent></block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -268,8 +265,7 @@ asyncTest 'Custom Colors', ->
   })
   customSerialization = customCoffee.parse(
       'return b != (a += [c + d][0]);').serialize()
-  expectedSerialization = '''<segment
-     isLassoSegment="false"
+  expectedSerialization = '''<document
     ><block
      precedence="0"
      color="#222"
@@ -355,7 +351,7 @@ asyncTest 'Custom Colors', ->
     ></block
     ></socket
     ></block
-    >;</segment>'''
+    >;</document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
