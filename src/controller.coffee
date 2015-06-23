@@ -689,15 +689,6 @@ hook 'mousedown', 10, ->
   @dropletElement.focus()
   window.scrollTo(x, y)
 
-# UNDO STACK SUPPORT
-# ================================
-
-# We must declare a few
-# fields a populate time
-hook 'populate', 0, ->
-  @undoStack = []
-  @changeEventVersion = 0
-
 Editor::removeBlankLines = ->
   # If we have blank lines at the end,
   # get rid of them
@@ -706,6 +697,15 @@ Editor::removeBlankLines = ->
     next = head.prev
     head.remove()
     head = next
+
+# UNDO STACK SUPPORT
+# ================================
+
+# We must declare a few
+# fields a populate time
+hook 'populate', 0, ->
+  @undoStack = []
+  @changeEventVersion = 0
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
@@ -1886,17 +1886,18 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
   @redrawMain(); @redrawTextInput()
 
 Editor::populateSocket = (socket, string) ->
-  lines = string.split '\n'
+  unless socket.stringify() is string
+    lines = string.split '\n'
 
-  unless socket.start.next is socket.end
-    @spliceOut new model.List socket.start.next, socket.end.prev
+    unless socket.start.next is socket.end
+      @spliceOut new model.List socket.start.next, socket.end.prev
 
-  first = last = new model.TextToken lines[0]
-  for line, i in lines when line > 0
-    last = helper.connect new model.NewlineToken(), last
-    last = helper.connect last, new model.TextToken line
+    first = last = new model.TextToken lines[0]
+    for line, i in lines when i > 0
+      last = helper.connect new model.NewlineToken(), last
+      last = helper.connect last, new model.TextToken line
 
-  @spliceIn (new model.List(first, last)), socket.start
+    @spliceIn (new model.List(first, last)), socket.start
 
 # Convenience hit-testing function
 Editor::hitTestTextInput = (point, block) ->
