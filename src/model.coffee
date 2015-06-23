@@ -103,7 +103,6 @@ exports.List = class List
     switch token.type
       when 'indentStart'
         head = token.container.end.prev
-        while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
 
         if head.type is 'newline'
           token = token.next
@@ -163,8 +162,6 @@ exports.List = class List
        first.prev.container.end is last)
       first = first.prev
 
-    first = first.next
-
     # If the next visible token is a newline,
     # and the previous visible token is the beginning
     # of the document, remove it.
@@ -173,10 +170,12 @@ exports.List = class List
         first?.type in [undefined, 'segmentStart'])
       last = last.next
 
+    first = first.next
     last = last.prev
 
     # Expand the list based on this analysis
     list = new List first, last
+
     list.notifyChange()
 
     # Make an undo operation
@@ -252,7 +251,7 @@ exports.List = class List
 
       # Otherwise, helper.connect just, a cloned
       # version of this token.
-      else unless head.type is 'cursor'
+      else
         assembler = helper.connect assembler, head.clone()
 
     head = head.next; head.prev = null
@@ -387,7 +386,7 @@ exports.Container = class Container extends List
 
       # Otherwise, helper.connect just, a cloned
       # version of this token.
-      else unless head.type is 'cursor'
+      else
         assembler = helper.connect assembler, head.clone()
 
     helper.connect assembler, selfClone.end
@@ -510,7 +509,8 @@ exports.Container = class Container extends List
         when 'blockEnd' then stack.pop()
       head = head.next
 
-    while head?.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] then head = head.next
+    while head?.type is 'newline' or (head instanceof StartToken and head.type isnt 'blockStart')
+      head = head.next
     if head?.type is 'blockStart' then stack.push head.container
 
     return stack[stack.length - 1]
@@ -657,7 +657,7 @@ exports.Token = class Token
   getSerializedLocation: ->
     head = this; count = 0
     until head is null
-      count++ unless head.type is 'cursor'
+      count++
       head = head.prev
     return count
 

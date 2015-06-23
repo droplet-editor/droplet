@@ -172,15 +172,6 @@ asyncTest 'Block move', ->
     console.log hello
   ''', 'Move hello back in'
 
-  block = document.getBlockOnLine(1)
-  destination = document.getBlockOnLine(0).end.prev.container.start
-  document.remove block
-  document.insert destination
-
-  strictEqual document.stringify(), '''
-  console.log (for i in [1..10]
-    console.log hello)
-  ''', 'Move for into socket (req. paren wrap)'
   start()
 
 asyncTest 'specialIndent bug', ->
@@ -343,7 +334,7 @@ asyncTest 'View: bounding box flag stuff', ->
     view_.opts.textHeight * 4 + view_.opts.padding * 8 + view_.opts.textPadding * 8,
     'Original path points are O.K.'
 
-  document.getBlockOnLine(2).spliceOut()
+  document.remove document.getBlockOnLine(2)
   documentView.layout()
 
   strictEqual blockView.path._points[0].y,
@@ -370,7 +361,7 @@ asyncTest 'View: sockets caching', ->
     view_.opts.textHeight + 6 * view_.opts.padding,
     'Original height is O.K.'
 
-  (block = getNthToken(document, 9).container).spliceOut()
+  document.remove (block = getNthToken(document, 9).container)
   document.insert document.getBlockOnLine(1).start.prev.prev, block
   documentView.layout()
 
@@ -497,8 +488,6 @@ asyncTest 'View: indent carriage arrow', ->
   <block>is elder <socket>price</socket></block></indent></block>
   '''
 
-  console.log document.stringify()
-
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
@@ -528,8 +517,6 @@ asyncTest 'View: sidealong carriage arrow', ->
   <block>hello <indent prefix="  ">
   <block>my <socket>name</socket></block><block>is elder <socket>price</socket></block></indent></block>
   '''
-
-  console.log document.stringify()
 
   documentView = view_.getViewNodeFor document
   documentView.layout()

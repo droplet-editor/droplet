@@ -1248,7 +1248,11 @@ class FloatingBlockRecord
   constructor: (@block, @position) ->
 
 Editor::inTree = (block) ->
-  if block.container? then block = block.container
+  if (block instanceof model.List) and not
+      (block instanceof model.Container)
+    block = block.start
+
+  block = block.container ? block
 
   until block is @tree or not block?
     block = block.parent
@@ -2909,6 +2913,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         @fireEvent 'parseerror', [setValueResult.error]
       return setValueResult
 
+
     if @aceEditor.getFirstVisibleRow() is 0
       @mainScroller.scrollTop = 0
     else
@@ -3410,7 +3415,9 @@ Editor::setValue_raw = (value) ->
       removal = new model.List @tree.start.next, @tree.end.prev
       @spliceOut removal
 
-    @spliceIn new model.List(newParse.start.next, newParse.end.prev), @tree.start
+    unless newParse.start.next is newParse.end
+      @spliceIn new model.List(newParse.start.next, newParse.end.prev), @tree.start
+
     @moveCursorAfter @tree.start
 
     @removeBlankLines()
