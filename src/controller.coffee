@@ -1539,7 +1539,6 @@ hook 'rebuild_palette', 1, ->
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
         if @viewOrChildrenContains block, palettePoint, @paletteView
-            console.log 'highlighting'
             @clearPaletteHighlightCanvas()
             @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
@@ -2817,7 +2816,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.style.width = "#{@gutter.offsetWidth}px"
       translatingElements.push div
 
-      div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+      div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
       # Add annotation
       if @annotations[line]?
         div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
@@ -3001,7 +3000,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
             lineHeight - aceScrollTop}px"
 
-        div.className = 'droplet-transitioning-element droplet-transitioning-gutter'
+        div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
         # Add annotation
         if @annotations[line]?
           div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
@@ -3925,8 +3924,8 @@ Editor::addLineNumberForLine = (line) ->
         @tooltipElement.textContent = title
       @tooltipElement.style.display = 'block'
     lineDiv.addEventListener 'mousemove', (event) =>
-      @tooltipElement.style.left = event.pageX
-      @tooltipElement.style.top = event.pageY
+      @tooltipElement.style.left = event.pageX + 'px'
+      @tooltipElement.style.top = event.pageY + 'px'
     lineDiv.addEventListener 'mouseout', =>
       @tooltipElement.style.display = 'none'
 
