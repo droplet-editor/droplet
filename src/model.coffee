@@ -180,10 +180,15 @@ exports.List = class List
 
     # Make an undo operation
     record = new Operation 'remove', list
+    location = list.start.prev
 
     helper.connect list.start.prev, list.end.next
     list.start.prev = list.end.next = null
     list.setParent null
+
+    # Correct the location in case
+    # lengths or coordinates changed
+    record.location = location.getLocation()
 
     # Return the undo operation
     return record
@@ -277,12 +282,12 @@ exports.List = class List
   # using the `stringify()` method on all of
   # the tokens that we contain.
   stringify: ->
-    str = ''
-
     head = @start
+    str = head.stringify()
+
     until head is @end
-      str += head.stringify()
       head = head.next
+      str += head.stringify()
 
     return str
 
