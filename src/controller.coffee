@@ -551,7 +551,7 @@ Editor::clearCursorCanvas = ->
 Editor::redrawCursors = ->
   @clearCursorCanvas()
 
-  if @textFocus?
+  if @cursorAtSocket()
     @redrawTextHighlights()
 
   else unless @lassoSelection?
@@ -1570,13 +1570,13 @@ hook 'populate', 1, ->
   @hiddenInput.className = 'droplet-hidden-input'
 
   @hiddenInput.addEventListener 'focus', =>
-    if @textFocus?
+    if @cursorAtSocket()
       # Must ensure that @hiddenInput is within the client area
       # or else the other divs under @dropletElement will scroll out of
       # position when @hiddenInput receives keystrokes with focus
       # (left and top should not be closer than 10 pixels from the edge)
 
-      bounds = @view.getViewNodeFor(@textFocus).bounds[0]
+      bounds = @view.getViewNodeFor(@cursor.container).bounds[0]
       inputLeft = bounds.x + @mainCanvas.offsetLeft - @scrollOffsets.main.x
       inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
       inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
@@ -1590,7 +1590,6 @@ hook 'populate', 1, ->
 
   # We also need to initialise some fields
   # for knowing what is focused
-  @textFocus = null
   @textInputAnchor = null
 
   @textInputSelecting = false
@@ -1609,8 +1608,8 @@ hook 'populate', 1, ->
   for event in ['input', 'keyup', 'keydown', 'select']
     @hiddenInput.addEventListener event, =>
       @highlightFlashShow()
-      if @textFocus?
-        @populateSocket @textFocus, @hiddenInput.value
+      if @cursorAtSocket()
+        @populateSocket @cursor.container, @hiddenInput.value
 
         @redrawTextInput()
 
@@ -1631,25 +1630,25 @@ last_ = (array) -> array[array.length - 1]
 
 # Redraw function for text input
 Editor::redrawTextInput = ->
-  sameLength = @textFocus.stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
+  sameLength = @cursor.container.stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
 
   # Set the value in the model to fit
   # the hidden input value.
-  @populateSocket @textFocus, @hiddenInput.value
+  @populateSocket @cursor.container, @hiddenInput.value
 
-  textFocusView = @view.getViewNodeFor @textFocus
+  textFocusView = @view.getViewNodeFor @cursor.container
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @cursor.container.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @cursor.container.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
   # Redraw the main canvas, on top of
   # which we will draw the cursor and
   # highlights.
   if sameLength and startRow is endRow
     line = endRow
-    head = @textFocus.start
+    head = @cursor.container.start
 
     until head is @tree.start
       head = head.prev
@@ -1693,22 +1692,22 @@ Editor::redrawTextInput = ->
     @redrawMain()
 
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
-  textFocusView = @view.getViewNodeFor @textFocus
+  textFocusView = @view.getViewNodeFor @cursor.container
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @cursor.container.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @cursor.container.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-  lines = @textFocus.stringify(@mode).split '\n'
+  lines = @cursor.container.stringify(@mode).split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
-    (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
+    @mainCtx.measureText(last_(@cursor.container.stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
+    (if @cursor.container.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
-    (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
+    @mainCtx.measureText(last_(@cursor.container.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
+    (if @cursor.container.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
   #
@@ -1763,15 +1762,15 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 
   # If there is already a focus, we
   # need to wrap some things up with it.
-  if @textFocus? and @textFocus isnt focus
+  if @cursorAtSocket() and @cursor.container isnt focus
     @oldFocusValue = null
 
-    originalText = @textFocus.stringify(@mode)
+    originalText = @cursor.container.stringify(@mode)
     shouldPop = false
     shouldRecoverCursor = false
     cursorPosition = cursorParent = null
 
-    if @cursor.hasParent @textFocus.parent
+    if @cursor.hasParent @cursor.container.parent
       shouldRecoverCursor = true
       cursorPosition = @cursor.getLocation()
 
@@ -1802,9 +1801,9 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
     #   -> Fall back to raw reparsing the parent with unparenthesized text
     #   -> Reparses function(a, b) {} with two paremeters.
     #   -> Finsihed.
-    unless @textFocus.handwritten
+    unless @cursor.container.handwritten
       newParse = null
-      string = @textFocus.stringify(@mode).trim()
+      string = @cursor.container.stringify(@mode).trim()
       try
         newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
       catch
@@ -1812,27 +1811,27 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
           try
             string = escapeString string
             newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-            @populateSocket @textFocus, string
+            @populateSocket @cursor.container, string
 
       if newParse? and newParse.start.next.type is 'blockStart' and
           newParse.start.next.container.end.next is newParse.end
         # Empty the socket
-        helper.connect @textFocus.start, @textFocus.end
+        helper.connect @cursor.container.start, @cursor.container.end
 
         # Splice the other in
-        @spliceIn newParse.start.next.container, @textFocus.start
+        @spliceIn newParse.start.next.container, @cursor.container.start
 
         shouldPop = true
 
     # See if the parent is still parseable
-    unless @reparseRawReplace @textFocus.parent
+    unless @reparseRawReplace @cursor.container.parent
       # If it is not, revert to the original text
-      @populateSocket @textFocus, originalText
+      @populateSocket @cursor.container, originalText
       if shouldPop then @undoStack.pop()
 
       # Attempt to reparse the parent again with
       # the original text; otherwise fail.
-      @reparseRawReplace @textFocus.parent
+      @reparseRawReplace @cursor.container.parent
 
       @redrawMain()
 
@@ -1843,7 +1842,6 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
   # we can start over.
   # If we're _unfocusing_, just do so.
   if not focus?
-    @textFocus = null
     @redrawMain()
     @hiddenInput.blur()
     @dropletElement.focus()
@@ -1854,24 +1852,24 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 
   # Now create a text token
   # with the appropriate text to put in it.
-  @textFocus = focus
+  @cursor.container = focus
 
   # Immediately rerender.
   @populateSocket focus, focus.stringify(@mode)
 
-  @textFocus.notifyChange()
+  @cursor.container.notifyChange()
 
   # Move the cursor near this
   @moveCursorAfter focus.end
 
   # Set the hidden input up to mirror the text.
-  @hiddenInput.value = @textFocus.stringify(@mode)
+  @hiddenInput.value = @cursor.container.stringify(@mode)
 
   if selectionStart? and not selectionEnd?
     selectionEnd = selectionStart
 
   # Focus the hidden input.
-  if @textFocus?
+  if @cursorAtSocket()
     @hiddenInput.focus()
     if selectionStart? and selectionEnd?
       @hiddenInput.setSelectionRange selectionStart, selectionEnd
@@ -1914,16 +1912,16 @@ Editor::hitTestTextInput = (point, block) ->
 # the text input selection, given
 # points on the main canvas.
 Editor::getTextPosition = (point) ->
-  textFocusView = @view.getViewNodeFor @textFocus
+  textFocusView = @view.getViewNodeFor @cursor.container
 
   row = Math.floor((point.y - textFocusView.bounds[0].y) / (@fontSize + 2 * @view.opts.padding))
 
   row = Math.max row, 0
   row = Math.min row, textFocusView.lineLength - 1
 
-  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
+  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @cursor.container.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
-  lines = @textFocus.stringify(@mode).split('\n')[..row]
+  lines = @cursor.container.stringify(@mode).split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
 
   return lines.join('\n').length
@@ -1935,8 +1933,8 @@ Editor::setTextInputAnchor = (point) ->
 Editor::selectDoubleClick = (point) ->
   position = @getTextPosition point
 
-  before = @textFocus.stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
-  after = @textFocus.stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
+  before = @cursor.container.stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
+  after = @cursor.container.stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
 
   @textInputAnchor = position - before
   @textInputHead = position + after
@@ -1962,13 +1960,13 @@ hook 'mousedown', 2, (point, event, state) ->
 
   # If they have clicked a socket,
   # focus it.
-  unless hitTestResult is @textFocus
+  unless hitTestResult is @cursor.container
     @setTextInputFocus null
     @redrawMain()
     hitTestResult = @hitTestTextInput mainPoint, @tree
 
   if hitTestResult?
-    unless hitTestResult is @textFocus
+    unless hitTestResult is @cursor.container
       if hitTestResult.editable()
         @setTextInputFocus hitTestResult
         @redrawMain()
@@ -1980,7 +1978,7 @@ hook 'mousedown', 2, (point, event, state) ->
       @textInputSelecting = false
 
     else
-      if @textFocus.hasDropdown() and
+      if @cursor.container.hasDropdown() and
           mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
         @showDropdown()
 
@@ -2013,12 +2011,12 @@ hook 'populate', 0, ->
 
 # Update the dropdown to match
 # the current text focus font and size.
-Editor::formatDropdown = (socket = @textFocus) ->
+Editor::formatDropdown = (socket = @cursor.container) ->
   @dropdownElement.style.fontFamily = @fontFamily
   @dropdownElement.style.fontSize = @fontSize
   @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
 
-Editor::showDropdown = (socket = @textFocus) ->
+Editor::showDropdown = (socket = @cursor.container) ->
   @dropdownVisible = true
 
   dropdownItems = []
@@ -2089,7 +2087,7 @@ hook 'dblclick', 0, (point, event, state) ->
 
   # If they have clicked a socket,
   # focus it, and
-  unless hitTestResult is @textFocus
+  unless hitTestResult is @cursor.container
     if hitTestResult.editable()
       @setTextInputFocus null
       @redrawMain()
@@ -2114,7 +2112,7 @@ hook 'dblclick', 0, (point, event, state) ->
 # to match the mouse.
 hook 'mousemove', 0, (point, event, state) ->
   if @textInputSelecting
-    unless @textFocus?
+    unless @cursorAtSocket()
       @textInputSelecting = false; return
 
     mainPoint = @trackerPointToMain point
@@ -2447,7 +2445,7 @@ Editor::getSocketAtChar = (chars) ->
 hook 'keydown', 0, (event, state) ->
   if event.which isnt TAB_KEY then return
   if event.shiftKey
-    if @textFocus? then head = @textFocus.start
+    if @cursorAtSocket() then head = @cursor.container.start
     else head = @cursor
 
     until (not head?) or head.type is 'socketEnd' and
@@ -2457,7 +2455,7 @@ hook 'keydown', 0, (event, state) ->
     if head?
       # Avoid problems with reparses by getting text offset location
       # of the given socket before reparsing and recovering it afterward.
-      if @textFocus?
+      if @cursorAtSocket()
         chars = @getCharactersTo head.container.start
         @setTextInputFocus null
         socket = @getSocketAtChar chars
@@ -2469,7 +2467,7 @@ hook 'keydown', 0, (event, state) ->
     event.preventDefault()
 
   else
-    if @textFocus? then head = @textFocus.end
+    if @cursorAtSocket() then head = @cursor.container.end
     else head = @cursor
 
     until (not head?) or head.type is 'socketStart' and
@@ -2478,7 +2476,7 @@ hook 'keydown', 0, (event, state) ->
     if head?
       # Avoid problems with reparses by getting text offset location
       # of the given socket before reparsing and recovering it afterward.
-      if @textFocus?
+      if @cursorAtSocket()
         chars = @getCharactersTo head.container.start
         @setTextInputFocus null
         socket = @getSocketAtChar chars
@@ -2520,8 +2518,8 @@ hook 'keydown', 0, (event, state) ->
     event.preventDefault()
     return false
 
-  else if not @textFocus? or
-      (@hiddenInput.value.length is 0 and @textFocus.handwritten)
+  else if not @cursorAtSocket() or
+      (@hiddenInput.value.length is 0 and @cursor.container.handwritten)
     @deleteAtCursor()
     state.capturedBackspace = true
     event.preventDefault()
@@ -2554,7 +2552,7 @@ hook 'keydown', 0, (event, state) ->
   if @readOnly
     return
   if event.which is ENTER_KEY
-    if not @textFocus? and not event.shiftKey
+    if not @cursorAtSocket() and not event.shiftKey
       @setTextInputFocus null
 
       # Construct the block; flag the socket as handwritten
@@ -2577,7 +2575,7 @@ hook 'keydown', 0, (event, state) ->
 
       @newHandwrittenSocket = newSocket
 
-    else if @textFocus? and not event.shiftKey
+    else if @cursorAtSocket() and not event.shiftKey
       @setTextInputFocus null; @redrawMain()
 
 hook 'keyup', 0, (event, state) ->
@@ -2757,7 +2755,6 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     @aceEditor.resize true
 
     @redrawMain noText: true
-    @textFocus = @lassoAnchor = null
 
     # Hide scrollbars and increase width
     if @mainScroller.scrollWidth > @mainScroller.offsetWidth
@@ -3759,7 +3756,7 @@ Editor::editorHasFocus = ->
 
 Editor::flash = ->
   if @lassoSelection? or @draggingBlock? or
-      (@textFocus? and @textInputHighlighted) or
+      (@cursorAtSocket() and @textInputHighlighted) or
       not @highlightsCurrentlyShown or
       not @editorHasFocus()
     @highlightFlashShow()
@@ -4073,7 +4070,7 @@ hook 'populate', 1, ->
 
 hook 'keydown', 0, (event, state) ->
   if event.which in command_modifiers
-    unless @textFocus?
+    unless @cursorAtSocket()
       x = document.body.scrollLeft
       y = document.body.scrollTop
       @copyPasteInput.focus()
@@ -4085,7 +4082,7 @@ hook 'keydown', 0, (event, state) ->
 
 hook 'keyup', 0, (point, event, state) ->
   if event.which in command_modifiers
-    if @textFocus?
+    if @cursorAtSocket()
       @hiddenInput.focus()
     else
       @dropletElement.focus()
