@@ -208,6 +208,7 @@ exports.List = class List
     afterStart = after.start.getLocation()
     afterEnd = after.end.getLocation()
 
+    before.setParent null
     after.setParent parent
     after.notifyChange()
 
@@ -255,6 +256,7 @@ exports.List = class List
       helper.connect after.end, before.end.next
 
       after.setParent parent
+      before.setParent null
       after.notifyChange()
 
       return null # TODO new ReplaceOperation here
@@ -344,7 +346,7 @@ exports.List = class List
         indent.push head.container.prefix
       else if head instanceof IndentEndToken
         indent.pop()
-      else if head instanceof NewlineToken
+      if head instanceof NewlineToken
         str += '\n' + (head.specialIndent ? indent.join(''))
       else
         str += head.stringify()
@@ -599,7 +601,7 @@ exports.Container = class Container extends List
     else
       col = head.stringify().length
 
-    unless col is 0
+    unless location.col is 0
       head = head.next
     until (not head? or head instanceof NewlineToken) or col >= location.col
       col += head.stringify().length
@@ -847,7 +849,7 @@ exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
   stringify: ->
-    if @prev is @container.end or
+    if @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
     else ''

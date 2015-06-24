@@ -229,7 +229,7 @@ asyncTest 'JS empty indents', ->
   code = 'if (__) {\n\n}'
   customSerialization = customJS.parse('if (__) {\n\n}')
   stringifiedJS = customSerialization.stringify(customJS)
-  strictEqual(code, stringifiedJS)
+  strictEqual(stringifiedJS, code)
   start()
 
 asyncTest 'JS LogicalExpressions', ->

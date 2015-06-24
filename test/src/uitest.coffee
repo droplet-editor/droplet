@@ -2,7 +2,6 @@ helper = require '../../src/helper.coffee'
 model = require '../../src/model.coffee'
 view = require '../../src/view.coffee'
 droplet = require '../../dist/droplet-full.js'
-
 `
 // Mouse event simluation function
 function simulate(type, target, options) {
@@ -127,6 +126,7 @@ asyncTest 'Controller: palette block expansion', ->
   start()
 
 asyncTest 'Controller: reparse fallback', ->
+  console.log 'hello, changes are getting through at all'
   states = []
   document.getElementById('test-main').innerHTML = ''
   varcount = 0
@@ -136,32 +136,33 @@ asyncTest 'Controller: reparse fallback', ->
   })
 
   editor.setEditorState(true)
-  editor.setValue('var hello = function (a) {}')
+  editor.setValue('var hello = function (a) {};')
 
   simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
   simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
 
-  ok(editor.textFocus, 'Has text focus')
-  equal(editor.textFocus.stringify({empty: ''}), 'a')
+  ok(editor.cursorAtSocket(), 'Has text focus')
+  equal(editor.getCursor().stringify(), 'a')
 
   $('.droplet-hidden-input').sendkeys('a, b')
 
   setTimeout((->
-    ok(editor.textFocus, 'Editor still has textFocus')
-    equal(editor.textFocus.stringify({empty: ''}), 'a, b')
+    ok(editor.cursorAtSocket(), 'Editor still has text focus')
+    equal(editor.getCursor().stringify(), 'a, b')
 
     simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
 
     # Did not insert parentheses
-    equal(editor.getValue().trim(), 'var hello = function (a, b) {}')
+    equal(editor.getValue().trim(), 'var hello = function (a, b) {};')
 
     # Sockets are separate
     simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
     simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
 
-    ok(editor.textFocus != null, 'Has text focus')
+    ok(editor.cursorAtSocket(), 'Has text focus')
 
-    equal(editor.textFocus.stringify({empty: ''}), 'a')
+    equal(editor.getCursor().stringify(), 'a')
 
     start()
   ), 10)
@@ -176,27 +177,28 @@ asyncTest 'Controller: does not throw on reparse error', ->
   })
 
   editor.setEditorState(true)
-  editor.setValue('var hello = function (a) {}')
+  editor.setValue('var hello = function (a) {};')
 
   simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
   simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
 
-  ok(editor.textFocus, 'Has text focus')
-  equal(editor.textFocus.stringify({empty: ''}), 'a')
+  ok(editor.getCursor(), 'Has text focus')
+  equal(editor.getCursor().stringify(), 'a')
 
   $('.droplet-hidden-input').sendkeys('18n')
 
   setTimeout((->
-    ok(editor.textFocus, 'Editor still has textFocus')
-    equal(editor.textFocus.stringify({empty: ''}), '18n')
+    ok(editor.getCursor(), 'Editor still has getCursor()')
+    equal(editor.getCursor().stringify(), '18n')
 
     simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
 
     ok(true, 'Does not throw on reparse')
 
     foundErrorMark = false
     for key, val of editor.markedBlocks
-      if val.model.stringify({empty: ''}) is 'function (18n) {}' and
+      if val.model.stringify() is '18n' and
           val.style.color is '#F00'
         foundErrorMark = true
         break

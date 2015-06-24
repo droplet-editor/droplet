@@ -1698,7 +1698,7 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 #   -> Fall back to raw reparsing the parent with unparenthesized text
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
-Editor::reparse = (list, recovery) ->
+Editor::reparse = (list, recovery, originalTrigger = list) ->
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -1706,13 +1706,13 @@ Editor::reparse = (list, recovery) ->
     return if list.start.next is list.end
 
     originalText = list.stringify()
-    @reparse new model.List(list.start.next, list.end.prev), recovery
+    @reparse new model.List(list.start.next, list.end.prev), recovery, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
     # repopulate with the original text and try again.
-    unless @reparse list.parent
+    unless @reparse list.parent, recovery, originalTrigger
       @populateSocket list, originalText
-      @reparse list.parent
+      @reparse list.parent, recovery, originalTrigger
     return
 
   parent = list.start.parent
@@ -1737,8 +1737,9 @@ Editor::reparse = (list, recovery) ->
 
       # Attempt to bubble up to the parent
       if parent?
-        return @reparse parent
+        return @reparse parent, recovery, originalTrigger
       else
+        @markBlock originalTrigger, {color: '#F00'}
         return false
 
   # Exclude the document start and end tags
@@ -1851,10 +1852,6 @@ hook 'mousedown', 2, (point, event, state) ->
 
   # If they have clicked a socket,
   # focus it.
-  unless hitTestResult is @getCursor()
-    @redrawMain()
-    hitTestResult = @hitTestTextInput mainPoint, @tree
-
   if hitTestResult?
     unless hitTestResult is @getCursor()
       if hitTestResult.editable()
@@ -1888,6 +1885,11 @@ hook 'mousedown', 2, (point, event, state) ->
     @hiddenInput.focus()
 
     state.consumedHitTest = true
+
+  # If they have not clicked a socket,
+  # unfocus the current socket.
+  else if @cursorAtSocket()
+    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
 # Create the dropdown DOM element at populate time.
 hook 'populate', 0, ->
@@ -2247,6 +2249,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   if @cursorAtSocket()
     @hiddenInput.value = destination.container.stringify()
     @hiddenInput.focus()
+    @setTextSelectionRange 0, @hiddenInput.value.length
 
   @redrawMain()
   @highlightFlashShow()
