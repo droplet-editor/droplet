@@ -2315,14 +2315,16 @@ Editor::scrollCursorIntoPosition = ->
 hook 'keydown', 0, (event, state) ->
   if event.which isnt UP_ARROW_KEY then return
   @clearLassoSelection()
-  @setCursor @getCursor().prev, ((token) -> token.type isnt 'socketStart'), 'before'
+  prev = @getCursor().prev ? @getCursor().start.prev
+  @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
   @scrollCursorIntoPosition()
 
 # Pressing the down-arrow moves the cursor down.
 hook 'keydown', 0, (event, state) ->
   if event.which isnt DOWN_ARROW_KEY then return
   @clearLassoSelection()
-  @setCursor @getCursor().next, ((token) -> token.type isnt 'socketStart'), 'after'
+  next = @getCursor().next ? @getCursor().end.next
+  @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
   @scrollCursorIntoPosition()
 
 hook 'keydown', 0, (event, state) ->
