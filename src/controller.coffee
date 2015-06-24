@@ -2253,6 +2253,10 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
       @hiddenInput.blur()
       @dropletElement.focus()
 
+  # Abort if there is no destination (usually means
+  # someone wants to travel outside the document)
+  return unless destination?
+
   # Now set the new cursor
   if destination instanceof model.Location
     destination = @tree.getFromLocation destination
@@ -2261,6 +2265,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   until @validCursorPosition(destination) and validate(destination)
     destination = (if direction is 'after' then destination.next else destination.prev)
+    return unless destination?
 
   @cursor = destination.getLocation()
 
@@ -2313,27 +2318,36 @@ Editor::scrollCursorIntoPosition = ->
 
 # Pressing the up-arrow moves the cursor up.
 hook 'keydown', 0, (event, state) ->
-  if event.which isnt UP_ARROW_KEY then return
-  @clearLassoSelection()
-  prev = @getCursor().prev ? @getCursor().start.prev
-  @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
-  @scrollCursorIntoPosition()
-
-# Pressing the down-arrow moves the cursor down.
-hook 'keydown', 0, (event, state) ->
-  if event.which isnt DOWN_ARROW_KEY then return
-  @clearLassoSelection()
-  next = @getCursor().next ? @getCursor().end.next
-  @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
-  @scrollCursorIntoPosition()
+  if event.which is UP_ARROW_KEY
+    @clearLassoSelection()
+    prev = @getCursor().prev ? @getCursor().start.prev
+    @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
+    @scrollCursorIntoPosition()
+  else if event.which is DOWN_ARROW_KEY
+    @clearLassoSelection()
+    next = @getCursor().next ? @getCursor().end.next
+    @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
+    @scrollCursorIntoPosition()
+  else if event.which is RIGHT_ARROW_KEY
+    @clearLassoSelection()
+    next = @getCursor().next ? @getCursor().end.next
+    @setCursor next, null, 'after'
+    @scrollCursorIntoPosition()
+  else if event.which is LEFT_ARROW_KEY
+    @clearLassoSelection()
+    prev = @getCursor().prev ? @getCursor().start.prev
+    @setCursor prev, null, 'before'
+    @scrollCursorIntoPosition()
 
 hook 'keydown', 0, (event, state) ->
   if event.which isnt TAB_KEY then return
 
   if event.shiftKey
-    @setCursor @cursor.next, ((token) -> token.type is 'socketStart'), 'before'
+    prev = @getCursor().prev ? @getCursor().start.prev
+    @setCursor prev, ((token) -> token.type is 'socketStart'), 'before'
   else
-    @setCursor @cursor.next, ((token) -> token.type is 'socketStart'), 'after'
+    next = @getCursor().next ? @getCursor().end.next
+    @setCursor next, ((token) -> token.type is 'socketStart'), 'after'
   event.preventDefault()
 
 Editor::deleteAtCursor = ->
