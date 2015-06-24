@@ -87,6 +87,9 @@ class Operation
     end: @end.toString()
   })
 
+class ReplaceOperation
+  constructor: (@beforeStart, @beforeEnd, @afterStart, @afterEnd) ->
+
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
@@ -193,13 +196,34 @@ exports.List = class List
     # Return the undo operation
     return record
 
+  replace: (before, after) ->
+    beforeStart = before.start.getLocation()
+    beforeEnd = before.end.getLocation()
+
+    parent = before.start.parent
+
+    helper.connect before.start.prev, after.start
+    helper.connect after.end, before.end.next
+
+    afterStart = after.start.getLocation()
+    afterEnd = after.end.getLocation()
+
+    after.setParent parent
+    after.notifyChange()
+
+    return new ReplaceOperation(
+      beforeStart, before.clone(), beforeEnd,
+      afterStart, after.clone(), afterEnd
+    )
+
   perform: (operation, direction) ->
     if (operation.type is 'insert') isnt (direction is 'forward')
       list = new List @getFromLocation(operation.start), @getFromLocation(operation.end)
       list.notifyChange()
       helper.connect list.start.prev, list.end.next
       return new Operation 'remove', list
-    else
+
+    else if (operation.type is 'remove') isnt (direction is 'forward')
       list = operation.list.clone()
 
       before = @getFromLocation(operation.location)
@@ -216,6 +240,24 @@ exports.List = class List
       list.notifyChange()
 
       return new Operation 'insert', list
+
+    else if operation.type is 'replace'
+      if direction is 'forward'
+        before = new List @getFromLocation(operation.beforeStart), @getFromLocation(operation.beforeEnd)
+        after = operation.after.clone()
+      else
+        before = new List @getFromLocation(operation.afterStart), @getFromLocation(operation.afterEnd)
+        after = operation.before.clone()
+
+      parent = before.start.parent
+
+      helper.connect before.start.prev, after.start
+      helper.connect after.end, before.end.next
+
+      after.setParent parent
+      after.notifyChange()
+
+      return null # TODO new ReplaceOperation here
 
   notifyChange: ->
     @traverseOneLevel (head) ->
@@ -331,6 +373,13 @@ exports.Container = class Container extends List
 
     # Line mark colours
     @lineMarkStyles = []
+
+  # A `Container`'s location is its start's location
+  # with the container's type
+  getLocation: ->
+    location = @start.getLocation()
+    location.type = @type
+    return location
 
   # _cloneEmpty should simply instantiate
   # a new instance of this Container
@@ -528,37 +577,73 @@ exports.Container = class Container extends List
   # Given a DropletLocation, find the token at that row, column, and length.
   getFromLocation: (location) ->
     head = @start
+    best = head
 
     row = 0
 
-    until row is location.row
+    until not head? or row is location.row
       head = head.next
       if head instanceof NewlineToken
         row += 1
+
+    # If the coordinate is invalid,
+    # just return as close as we can get
+    # (our last token)
+    if not head?
+      return @end
+    else
+      best = head
 
     if head instanceof NewlineToken
       col = head.stringify().length - 1
     else
       col = head.stringify().length
 
-    until col >= location.col
+    unless col is 0
       head = head.next
+    until (not head? or head instanceof NewlineToken) or col >= location.col
       col += head.stringify().length
+      head = head.next
+
+    # Again, if the coordinate was invalid,
+    # return as close as we can get
+    if col < location.col
+      return head ? @end
+    else
+      best = head
 
     # If _we_ were the one who made the length equal,
     # move over; locations always refer to the _start_ of the token.
     if col is location.col and head.stringify().length > 0
       head = head.next
 
+    # Go forward until we are the proper length
+    # or the column changed
     if location.length?
-      until (head.container ? head).stringify().length is location.length
+      until (not head? or head.stringify().length > 0) or
+            ((head.container ? head).stringify().length is location.length)
         head = head.next
 
+      if (head.container ? head).stringify().length is location.length
+        best = head
+      else
+        head = best
+
+    # Go forward until we are the proper token type
+    # or the column changed
     if location.type?
-      until head.type is location.type
+      until (not head? or head.stringify().length > 0) or
+          head.type is location.type or
+          head.container.type is location.type
         head = head.next
 
-    return head
+      if head?.container?.type is location.type
+        head = head.container
+
+      if head?.type is location.type
+        best = head
+
+    return best
 
 # Token
 # ==================
@@ -634,7 +719,7 @@ exports.Token = class Token
       head = head.parent
     return prefix
 
-  getLocation: () ->
+  getLocation: ->
     location = new DropletLocation(); head = @prev
 
     location.type = @type
@@ -659,7 +744,7 @@ exports.Token = class Token
   stringify: -> ''
   serialize: -> ''
 
-class DropletLocation
+exports.Location = class DropletLocation
   constructor: (
     @row = 0,
     @col = 0,
@@ -668,6 +753,20 @@ class DropletLocation
   ) ->
 
   toString: -> "(#{@row}, #{@col}, #{@type}, #{@length})"
+
+  is: (other) ->
+    unless other instanceof DropletLocation
+      other = other.getLocation()
+
+    answer = other.row is @row and other.col is @col and
+
+    if @type? and other.rtype?
+      answer = answer and @type is other.type
+
+    if @length? and other.length?
+      answer = answer and @length is other.length
+
+    return answer
 
 exports.StartToken = class StartToken extends Token
   constructor: (@container) ->
