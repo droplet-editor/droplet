@@ -51,43 +51,6 @@ isOSX = /OS X/.test(userAgent)
 command_modifiers = if isOSX then META_KEYS else CONTROL_KEYS
 command_pressed = (e) -> if isOSX then e.metaKey else e.ctrlKey
 
-extend_ = (a, b) ->
-  obj = {}
-
-  for key, value of a
-    obj[key] = value
-
-  for key, value of b
-    obj[key] = value
-
-  return obj
-
-deepCopy = (a) ->
-  if a instanceof Object
-    newObject = {}
-
-    for key, val of a
-      newObject[key] = deepCopy val
-
-    return newObject
-
-  else
-    return a
-
-deepEquals = (a, b) ->
-  if a instanceof Object
-    for own key, val of a
-      unless deepEquals b[key], val
-        return false
-
-    for own key, val of b when not key of a
-      unless deepEquals a[key], val
-        return false
-
-    return true
-  else
-    return a is b
-
 # FOUNDATION
 # ================================
 
@@ -224,10 +187,10 @@ exports.Editor = class Editor
 
     # Instantiate an ICE editor view
     @view = new view.View @standardViewSettings
-    @paletteView = new view.View extend_ @standardViewSettings, {
+    @paletteView = new view.View helper.extend {}, @standardViewSettings, {
       showDropdowns: @options.showDropdownInPalette ? false
     }
-    @dragView = new view.View extend_ @standardViewSettings
+    @dragView = new view.View @standardViewSettings
 
     boundListeners = []
 
@@ -1613,7 +1576,7 @@ Editor::redrawTextInput = ->
 
     treeView = @view.getViewNodeFor @tree
 
-    oldp = deepCopy [
+    oldp = helper.deepCopy [
       treeView.glue[line - 1],
       treeView.glue[line],
       treeView.bounds[line].height
@@ -1621,7 +1584,7 @@ Editor::redrawTextInput = ->
 
     treeView.layout 0, @nubbyHeight
 
-    newp = deepCopy [
+    newp = helper.deepCopy [
       treeView.glue[line - 1],
       treeView.glue[line],
       treeView.bounds[line].height
@@ -1629,7 +1592,7 @@ Editor::redrawTextInput = ->
 
     # If the layout has not changed enough to affect
     # anything non-local, only redraw locally.
-    if deepEquals newp, oldp
+    if helper.deepEquals newp, oldp
       rect = new @draw.NoRectangle()
 
       rect.unite treeView.bounds[line - 1] if line > 0
@@ -1649,6 +1612,8 @@ Editor::redrawTextInput = ->
     @redrawMain()
 
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
+  return unless @cursorAtSocket()
+
   textFocusView = @view.getViewNodeFor @getCursor()
 
   # Determine the coordinate positions
@@ -1714,8 +1679,6 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 
   @hideDropdown()
 
-# The second of these is a reparse attempt.
-#
 # If we can, try to reparse the focus
 # value.
 #
@@ -1742,9 +1705,21 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
 Editor::reparse = (list, recovery) ->
-  # Don't reparse sockets
-  if list.start.type is 'socketStart' and list.start.next isnt list.end
+  # Don't reparse sockets. When we reparse sockets,
+  # reparse them first, then try reparsing their parent and
+  # make sure everything checks out.
+  if list.start.type is 'socketStart'
+    return if list.start.next is list.end
+
+    originalText = list.stringify()
     @reparse new model.List(list.start.next, list.end.prev), recovery
+
+    # Try reparsing the parent again after the reparse. If it fails,
+    # repopulate with the original text and try again.
+    unless @reparse list.parent
+      @populateSocket list, originalText
+      @reparse list.parent
+    return
 
   parent = list.start.parent
   context = (list.start.container ? list.start.parent).parseContext
@@ -1761,11 +1736,15 @@ Editor::reparse = (list, recovery) ->
         context: context
       }
     catch e
+      # Seek a parent that is not a socket
+      # (since we should never reparse just a socket)
+      while parent? and parent.type is 'socket'
+        parent = parent.parent
+
+      # Attempt to bubble up to the parent
       if parent?
-        @reparse parent
-        return
+        return @reparse parent
       else
-        console.log '(had an error.)'
         return false
 
   # Exclude the document start and end tags
@@ -1776,6 +1755,9 @@ Editor::reparse = (list, recovery) ->
     @prepareNode head, parent
 
   @replace list, newList
+
+  @redrawMain()
+  return true
 
 Editor::setTextSelectionRange = (selectionStart, selectionEnd) ->
   if selectionStart? and not selectionEnd?
@@ -1796,7 +1778,7 @@ Editor::setTextSelectionRange = (selectionStart, selectionEnd) ->
   # Redraw.
   @redrawMain(); @redrawTextInput()
 
-Editor::cursorAtSocket = -> @cursor.type is 'socketStart'
+Editor::cursorAtSocket = -> @getCursor().type is 'socket'
 
 Editor::populateSocket = (socket, string) ->
   unless socket.stringify() is string
@@ -2247,11 +2229,9 @@ Editor::validCursorPosition = (destination) ->
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    cursor = @getCursor()
-    unless cursor.start.next is cursor.end
-      @reparse new model.List cursor.start.next, cursor.end.prev
-      @hiddenInput.blur()
-      @dropletElement.focus()
+    @reparse @getCursor()
+    @hiddenInput.blur()
+    @dropletElement.focus()
 
   # Abort if there is no destination (usually means
   # someone wants to travel outside the document)
@@ -2328,12 +2308,16 @@ hook 'keydown', 0, (event, state) ->
     next = @getCursor().next ? @getCursor().end.next
     @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
     @scrollCursorIntoPosition()
-  else if event.which is RIGHT_ARROW_KEY
+  else if event.which is RIGHT_ARROW_KEY and
+      (not @cursorAtSocket() or
+      @hiddenInput.selectionStart is @hiddenInput.value.length)
     @clearLassoSelection()
     next = @getCursor().next ? @getCursor().end.next
     @setCursor next, null, 'after'
     @scrollCursorIntoPosition()
-  else if event.which is LEFT_ARROW_KEY
+  else if event.which is LEFT_ARROW_KEY and
+      (not @cursorAtSocket() or
+      @hiddenInput.selectionStart is 0)
     @clearLassoSelection()
     prev = @getCursor().prev ? @getCursor().start.prev
     @setCursor prev, null, 'before'
@@ -2352,13 +2336,13 @@ hook 'keydown', 0, (event, state) ->
 
 Editor::deleteAtCursor = ->
   if @cursor.type is 'blockEnd'
-    block = @getCursor()
+    block = @getCursor().container
   else if @cursor.type is 'indentStart'
     block = @getCursor().parent
   else
     return
 
-  @moveCursorBefore block.start
+  @setCursor block.start, null, 'before'
   @spliceOut block
   @redrawMain()
 
@@ -2415,11 +2399,9 @@ hook 'keydown', 0, (event, state) ->
     if not @cursorAtSocket() and not event.shiftKey
       # Construct the block; flag the socket as handwritten
       newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, -Infinity
-      newSocket.spliceIn newBlock.start
-      newSocket.handwritten = true
-
-      # Add it io our list of handwritten blocks
-      @handwrittenBlocks.push newBlock
+      newSocket.handwritten = true; newSocket.setParent newBlock
+      helper.connect newBlock.start, newSocket.start
+      helper.connect newSocket.end, newBlock.end
 
       # Seek a place near the cursor we can actually
       # put a block.
@@ -2578,26 +2560,6 @@ Editor::computePlaintextTranslationVectors = ->
     textElements: textElements
     translationVectors: translationVectors
   }
-
-class AnimatedColor
-  constructor: (@start, @end, @time) ->
-    @currentRGB = [
-      parseInt(@start[1...3], 16)
-      parseInt(@start[3...5], 16)
-      parseInt(@start[5...7], 16)
-    ]
-
-    @step = [
-      (parseInt(@end[1...3], 16) - @currentRGB[0]) / @time
-      (parseInt(@end[3...5], 16) - @currentRGB[1]) / @time
-      (parseInt(@end[5...7], 16) - @currentRGB[2]) / @time
-    ]
-
-  advance: ->
-    for item, i in @currentRGB
-      @currentRGB[i] += @step[i]
-
-    return "rgb(#{Math.round(@currentRGB[0])},#{Math.round(@currentRGB[1])},#{Math.round(@currentRGB[2])})"
 
 Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
   if @currentlyUsingBlocks and not @currentlyAnimating

@@ -842,14 +842,15 @@ exports.Block = class Block extends Container
 
 exports.SocketStartToken = class SocketStartToken extends StartToken
   constructor: (@container) -> super; @type = 'socketStart'
-  stringify: ->
-    if @next is @container.end or
-        @next.type is 'text' and @next.value is ''
-      return @container.emptyString
-    else ''
 
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
+
+  stringify: ->
+    if @prev is @container.end or
+        @prev.type is 'text' and @prev.value is ''
+      return @container.emptyString
+    else ''
 
 exports.Socket = class Socket extends Container
   constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
