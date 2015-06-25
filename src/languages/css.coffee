@@ -13,6 +13,8 @@ MOSTLY_VALUE = []
 DEFAULT_INDENT_DEPTH = '  '
 
 Stack = []
+Stack.setDirty = -> Stack._dirty = true
+Stack.getDirty = -> return (Stack._dirty is true)
 Stack.clear = -> Stack.length = 0
 Stack.top = -> return Stack[Stack.length - 1]
 Stack.add = (element, type) ->
@@ -172,7 +174,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'property'
         @cssBlock node, depth
         @cssSocket node.property, depth + 1
-        @cssSocket node.value, depth + 1
+        @markValue node.value, depth + 1
       when 'fontface'
         @cssBlock node, depth
         @handleCompoundNode indentDepth, node, depth + 1
@@ -205,6 +207,12 @@ exports.CSSParser = class CSSParser extends parser.Parser
           @cssSocket media, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
 
+  markValue: (node, depth) ->
+    @cssSocket node, depth
+    @cssBlock node, depth + 1
+    for part in node.parts
+      @cssSocket part, depth + 2
+
   handleCompoundNode: (indentDepth, node, depth) ->
     indentBounds = @getIndentBounds node
     prefix = @getIndentPrefix indentBounds, indentDepth
@@ -220,6 +228,8 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   isComment: (text) ->
     text.match(/^\s*\/\*.\*\/*$/)
+
+CSSParser.empty = '\'\''
 
 CSSParser.parens = (leading, trainling, node, context) ->
   return [leading, trainling]

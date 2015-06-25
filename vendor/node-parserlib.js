@@ -3006,9 +3006,8 @@ Parser.prototype = function(){
 
                 }
 
-                return value !== null ?
-                        new PropertyValuePart(unary !== null ? unary + value : value, line, col, lastToken.endLine, lastToken.endCol) :
-                        null;
+                return value!==null ? new PropertyValuePart(unary !== null ? unary + value : value, line, col, lastToken.endLine, lastToken.endCol) :
+                    null
 
             },
 
