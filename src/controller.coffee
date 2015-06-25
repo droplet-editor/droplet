@@ -355,12 +355,11 @@ exports.Editor = class Editor
 
     @rebuildPalette()
 
-
-Editor::resize = ->
-  if @currentlyUsingBlocks
-    @resizeBlockMode()
-  else
-    @resizeTextMode()
+  resize: ->
+    if @currentlyUsingBlocks
+      @resizeBlockMode()
+    else
+      @resizeTextMode()
 
 
 # RENDERING CAPABILITIES
@@ -1705,7 +1704,7 @@ Editor::reparse = (list, recovery, originalTrigger = list) ->
   if list.start.type is 'socketStart'
     return if list.start.next is list.end
 
-    originalText = list.stringify()
+    originalText = list.textContent()
     @reparse new model.List(list.start.next, list.end.prev), recovery, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
@@ -1741,6 +1740,8 @@ Editor::reparse = (list, recovery, originalTrigger = list) ->
       else
         @markBlock originalTrigger, {color: '#F00'}
         return false
+
+  return if newList.start.next is newList.end
 
   # Exclude the document start and end tags
   newList = new model.List newList.start.next, newList.end.prev
@@ -2223,6 +2224,9 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
+  if destination? and not (destination instanceof model.Location)
+    destination = destination.getLocation()
+
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
     @reparse @getCursor()
@@ -2234,8 +2238,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   return unless destination?
 
   # Now set the new cursor
-  if destination instanceof model.Location
-    destination = @tree.getFromLocation destination
+  destination = @tree.getFromLocation destination
   if destination instanceof model.Container
     destination = destination.start
 
@@ -2247,7 +2250,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
-    @hiddenInput.value = destination.container.stringify()
+    @hiddenInput.value = destination.container.textContent()
     @hiddenInput.focus()
     @setTextSelectionRange 0, @hiddenInput.value.length
 
@@ -2297,26 +2300,26 @@ Editor::scrollCursorIntoPosition = ->
 hook 'keydown', 0, (event, state) ->
   if event.which is UP_ARROW_KEY
     @clearLassoSelection()
-    prev = @getCursor().prev ? @getCursor().start.prev
+    prev = @getCursor().prev ? @getCursor().start?.prev
     @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
     @scrollCursorIntoPosition()
   else if event.which is DOWN_ARROW_KEY
     @clearLassoSelection()
-    next = @getCursor().next ? @getCursor().end.next
+    next = @getCursor().next ? @getCursor().end?.next
     @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
     @scrollCursorIntoPosition()
   else if event.which is RIGHT_ARROW_KEY and
       (not @cursorAtSocket() or
       @hiddenInput.selectionStart is @hiddenInput.value.length)
     @clearLassoSelection()
-    next = @getCursor().next ? @getCursor().end.next
+    next = @getCursor().next ? @getCursor().end?.next
     @setCursor next, null, 'after'
     @scrollCursorIntoPosition()
   else if event.which is LEFT_ARROW_KEY and
       (not @cursorAtSocket() or
       @hiddenInput.selectionStart is 0)
     @clearLassoSelection()
-    prev = @getCursor().prev ? @getCursor().start.prev
+    prev = @getCursor().prev ? @getCursor().start?.prev
     @setCursor prev, null, 'before'
     @scrollCursorIntoPosition()
 
@@ -2324,10 +2327,10 @@ hook 'keydown', 0, (event, state) ->
   if event.which isnt TAB_KEY then return
 
   if event.shiftKey
-    prev = @getCursor().prev ? @getCursor().start.prev
+    prev = @getCursor().prev ? @getCursor().start?.prev
     @setCursor prev, ((token) -> token.type is 'socketStart'), 'before'
   else
-    next = @getCursor().next ? @getCursor().end.next
+    next = @getCursor().next ? @getCursor().end?.next
     @setCursor next, ((token) -> token.type is 'socketStart'), 'after'
   event.preventDefault()
 
@@ -2395,7 +2398,7 @@ hook 'keydown', 0, (event, state) ->
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, -Infinity
+      newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
       newSocket.handwritten = true; newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
@@ -2413,6 +2416,9 @@ hook 'keydown', 0, (event, state) ->
       @newHandwrittenSocket = newSocket
 
     else if @cursorAtSocket() and not event.shiftKey
+      @hiddenInput.blur()
+      @dropletElement.focus()
+      @setCursor @cursor, (token) -> token.type isnt 'socketStart'
       @redrawMain()
 
 hook 'keyup', 0, (event, state) ->
@@ -3850,25 +3856,16 @@ hook 'populate', 1, ->
       return
     if pressedVKey
       try
-        str = @copyPasteInput.value; minIndent = Infinity
+        str = @copyPasteInput.value; lines = str.split '\n'
 
-        for line in str.split '\n'
-          minIndent = Math.min minIndent, line.length - line.trimLeft().length
-
-        str = (for line in str.split '\n'
-          line[minIndent...]
-        ).join '\n'
-
+        # Strip any common leading indent
+        # from all the lines of the pasted tet
+        minIndent = lines.map((x) -> line.length - line.trimLeft().length).reduce((a, b) -> Math.min(a, b))
+        str = lines.map((line) -> line[minIndent...]).join('\n')
         str = str.replace /^\n*|\n*$/g, ''
 
         blocks = @mode.parse str
         blocks = new model.List blocks.start.next, blocks.end.prev
-
-        if @lassoSelection? and @inTree(@lassoSelection)
-          # Make sure the cursor is outside the lasso segment
-          # (although it should be already)
-          @setCursor @lassoSelection.end
-          @spliceOut @lassoSelection; @lassoSelection = null
 
         @spliceIn blocks, @cursor
         @setCursor blocks.end

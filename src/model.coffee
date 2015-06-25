@@ -614,11 +614,6 @@ exports.Container = class Container extends List
     else
       best = head
 
-    # If _we_ were the one who made the length equal,
-    # move over; locations always refer to the _start_ of the token.
-    if col is location.col and head.stringify().length > 0
-      head = head.next
-
     # Go forward until we are the proper length
     # or the column changed
     if location.length?
@@ -862,6 +857,13 @@ exports.Socket = class Socket extends Container
     @type = 'socket'
 
     super
+
+  textContent: ->
+    head = @start.next; str = ''
+    until head is @end
+      str += head.stringify()
+      head = head.next
+    return str
 
   hasDropdown: -> @dropdown? and @isDroppable()
 
