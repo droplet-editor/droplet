@@ -678,7 +678,10 @@ Editor::undo = ->
       (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
       @getValue() isnt currentValue)
     operation = @popUndo()
-    @tree.perform(operation, 'backward') unless operation is 'CAPTURE'
+    if operation instanceof FloatingOperation
+      @performFloatingOperation(operation, 'backward')
+    else
+      @tree.perform(operation, 'backward') unless operation is 'CAPTURE'
 
   @popUndo()
   @redrawMain()
@@ -705,7 +708,10 @@ Editor::redo = ->
       (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
       @getValue() isnt currentValue)
     operation = @popRedo()
-    @tree.perform(operation, 'forward') unless operation is 'CAPTURE'
+    if operation instanceof FloatingOperation
+      @performFloatingOperation(operation, 'forward')
+    else
+      @tree.perform(operation, 'forward') unless operation is 'CAPTURE'
 
   @popRedo()
   @redrawMain()
@@ -1250,7 +1256,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint, this
+    @pushUndo new FloatingOperation @draggingBlock, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
     @floatingBlocks.push new FloatingBlockRecord(
@@ -1266,6 +1272,21 @@ hook 'mouseup', 0, (point, event, state) ->
     @clearDrag()
     @redrawMain()
     @redrawHighlights()
+
+Editor::performFloatingOperation = (op, direction) ->
+  console.log 'performing floating operation'
+  if (op.type is 'create') is (direction is 'forward')
+    @floatingBlocks.push new FloatingBlockRecord(
+      op.block.clone()
+      op.position
+    )
+  else
+    @floatingBlocks = @floatingBlocks.filter (record) ->
+      not (record.block.stringify() is op.block.stringify() and
+           record.position.equals(op.position))
+
+class FloatingOperation
+  constructor: (@block, @position, @type) ->
 
 # On mousedown, we can hit test for floating blocks.
 hook 'mousedown', 5, (point, event, state) ->
@@ -1291,7 +1312,9 @@ hook 'mousemove', 7, (point, event, state) ->
   if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
     for record, i in @floatingBlocks
       if record.block is @clickedBlock
-        @addMicroUndoOperation new FromFloatingOperation record, this
+        @undoCapture()
+
+        @pushUndo new FloatingOperation record.block, record.position, 'delete'
 
         @floatingBlocks.splice i, 1
 
