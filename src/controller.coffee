@@ -651,7 +651,6 @@ Editor::removeBlankLines = ->
     head = head.prev
 
   if head.type is 'newline'
-    console.log 'splicing out extra lines'
     @spliceOut new model.List head, tail
 
 # UNDO STACK SUPPORT
@@ -683,7 +682,6 @@ Editor::spliceOut = (node) ->
     @undoStack.push operation
     return operation
   else
-    console.log 'wasn\'t in tree', node
 
 Editor::spliceIn = (node, location) ->
   container = location.container ? location.parent
@@ -860,7 +858,6 @@ hook 'mousemove', 1, (point, event, state) ->
 
     # Signify that we are now dragging a block.
     @draggingBlock = @clickedBlock
-    console.log 'set to', @draggingBlock, @inTree(@draggingBlock), @clickedBlock, @inTree(@clickedBlock)
 
     # Our dragging offset must be computed using the canvas on which this block
     # is rendered.
@@ -876,7 +873,6 @@ hook 'mousemove', 1, (point, event, state) ->
       if 'function' is typeof expansion then expansion = expansion()
       if (expansion) then expansion = parseBlock(@mode, expansion)
       @draggingBlock = (expansion or @draggingBlock).clone()
-      console.log 'set to reparsed', @draggingBLock
 
     else
       # Find the line on the block that we have
@@ -1709,7 +1705,6 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
 Editor::reparse = (list, recovery, originalTrigger = list) ->
-  debugger
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
