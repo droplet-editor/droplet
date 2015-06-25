@@ -1,7 +1,9 @@
 helper = require '../../src/helper.coffee'
 model = require '../../src/model.coffee'
 view = require '../../src/view.coffee'
+draw = require '../../src/draw.coffee'
 droplet = require '../../dist/droplet-full.js'
+seedrandom = require 'seedrandom'
 `
 // Mouse event simluation function
 function simulate(type, target, options) {
@@ -126,7 +128,6 @@ asyncTest 'Controller: palette block expansion', ->
   start()
 
 asyncTest 'Controller: reparse fallback', ->
-  console.log 'hello, changes are getting through at all'
   states = []
   document.getElementById('test-main').innerHTML = ''
   varcount = 0
@@ -236,4 +237,162 @@ asyncTest 'Controller: Can replace a block where we found it', ->
   equal(editor.getValue() , 'for (var i = 0; i < i++; __) {\n' +
                             '  fd(10);\n' +
                             '}\n')
+  start()
+
+getRandomDragOp = (editor, rng) ->
+  # Find the locations of all the blocks
+  head = editor.tree.start
+  dragPossibilities = []
+  until head is editor.tree.end
+    if head.type is 'blockStart'
+      bound = editor.view.getViewNodeFor(head.container).bounds[0]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+      dragPossibilities.push {
+        block: head.container
+        handle: handle
+      }
+    head = head.next
+
+  drag = dragPossibilities[Math.floor rng() * dragPossibilities.length]
+
+  # Find all the drop areas
+  head = editor.tree.start
+  dropPossibilities = []
+  until head is editor.tree.end
+    if head is drag.block.start
+      head = drag.block.end
+    if head.type.match(/Start$/)?
+      dropPoint = editor.view.getViewNodeFor(head.container).dropPoint
+      if dropPoint?
+        if head.container.type is 'block'
+          parent = head.container.parent
+        else
+          parent = head.container
+
+        canDrop = editor.getAcceptLevel(drag.block, head.container)
+
+        if canDrop is 1
+          dropPossibilities.push {
+            block: head.container
+            point: {x: dropPoint.x, y: dropPoint.y}
+          }
+    head = head.next
+
+  drop = dropPossibilities[Math.floor rng() * dropPossibilities.length]
+
+  return {drag, drop}
+
+performDragOperation = (editor, drag) ->
+  simulate('mousedown', editor.mainScrollerStuffing, {
+    dx: drag.drag.handle.x + editor.gutter.offsetWidth,
+    dy: drag.drag.handle.y
+  })
+  simulate('mousemove', editor.dragCover, {
+    location: editor.mainScrollerStuffing
+    dx: drag.drag.handle.x + editor.gutter.offsetWidth + 5,
+    dy: drag.drag.handle.y + 5
+  })
+  simulate('mousemove', editor.dragCover, {
+    location: editor.mainScrollerStuffing
+    dx: drag.drop.point.x + 5
+    dy: drag.drop.point.y + 5
+  })
+  simulate('mouseup', editor.mainScrollerStuffing, {
+    dx: drag.drop.point.x + 5
+    dy: drag.drop.point.y + 5
+  })
+
+asyncTest 'Controller: Random drag integration test', ->
+  expect 0
+
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks'
+        blocks: [
+          {block: 'a is b'}
+          {block: 'fd 10'}
+          {block: 'bk 10'}
+          {block: '''
+          for i in [0..10]
+            ``
+          '''}
+          {block: '''
+          if a is b
+            ``
+          '''}
+        ]
+      }
+    ]
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('''
+  for i in [0..10]
+    if i % 2 is 0
+      fd 10
+    else
+      bk 10
+  ''')
+  rng = seedrandom('droplet')
+  for [1..100]
+    performDragOperation editor, getRandomDragOp(editor, rng)
+  start()
+
+asyncTest 'Controller: Random drag undo test', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks'
+        blocks: [
+          {block: 'a is b'}
+          {block: 'fd 10'}
+          {block: 'bk 10'}
+          {block: '''
+          for i in [0..10]
+            ``
+          '''}
+          {block: '''
+          if a is b
+            ``
+          '''}
+        ]
+      }
+    ]
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('''
+  for i in [0..10]
+    if i % 2 is 0
+      fd 10
+    else
+      bk 10
+  ''')
+  rng = seedrandom('droplet')
+  stateStack = []
+
+  for [0..100]
+    stateStack.push editor.getValue()
+    performDragOperation editor, getRandomDragOp(editor, rng)
+
+  while stateStack.length > 0
+    text = stateStack.pop()
+    while stateStack[stateStack.length - 1] is text
+      text = stateStack.pop()
+    editor.undo()
+    equal editor.getValue(), text
+
   start()

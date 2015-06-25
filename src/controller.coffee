@@ -1,6 +1,6 @@
 # Droplet controller.
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License.
 
 helper = require './helper.coffee'
@@ -672,9 +672,13 @@ hook 'keydown', 0, (event, state) ->
     @redo()
 
 Editor::undo = ->
+  currentValue = @getValue()
+
   until @undoStack.length is 0 or
-      @undoStack[@undoStack.length - 1] is 'CAPTURE'
-    @tree.perform @popUndo(), 'backward'
+      (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
+      @getValue() isnt currentValue)
+    operation = @popUndo()
+    @tree.perform(operation, 'backward') unless operation is 'CAPTURE'
 
   @popUndo()
   @redrawMain()
@@ -695,13 +699,13 @@ Editor::popRedo = ->
   return operation
 
 Editor::redo = ->
-  # Make sure that the redo is not a no-op
-  if @redoStack[@redoStack.length - 1] is 'CAPTURE'
-    @popRedo()
+  currentValue = @getValue()
 
   until @redoStack.length is 0 or
-      @redoStack[@redoStack.length - 1] is 'CAPTURE'
-    @tree.perform @popRedo(), 'forward'
+      (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
+      @getValue() isnt currentValue)
+    operation = @popRedo()
+    @tree.perform(operation, 'forward') unless operation is 'CAPTURE'
 
   @popRedo()
   @redrawMain()
@@ -719,12 +723,15 @@ Editor::spliceOut = (node) ->
   unless node instanceof model.List
     node = new model.List node, node
 
-  @prepareNode node, null
+  operation = null
+
   if @inTree node
     operation = @tree.remove node
     @pushUndo operation
     return operation
-  else
+
+  @prepareNode node, null
+  return operation
 
 Editor::spliceIn = (node, location) ->
   container = location.container ? location.parent
@@ -1759,13 +1766,13 @@ Editor::reparse = (list, recovery, originalTrigger = list) ->
   context = (list.start.container ? list.start.parent).parseContext
 
   try
-    newList = @mode.parse list.stringify(),{
+    newList = @mode.parse list.stringifyInPlace(),{
       wrapAtRoot: parent.type isnt 'socket'
       context: context
     }
   catch e
     try
-      newList = @mode.parse recovery(list.stringify()), {
+      newList = @mode.parse recovery(list.stringifyInPlace()), {
         wrapAtRoot: parent.type isnt 'socket'
         context: context
       }
@@ -1818,7 +1825,7 @@ Editor::setTextSelectionRange = (selectionStart, selectionEnd) ->
 Editor::cursorAtSocket = -> @getCursor().type is 'socket'
 
 Editor::populateSocket = (socket, string) ->
-  unless socket.stringify() is string
+  unless socket.textContent() is string
     lines = string.split '\n'
 
     unless socket.start.next is socket.end
@@ -1971,6 +1978,8 @@ Editor::showDropdown = (socket = @getCursor()) ->
     div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
     setText = (text) =>
+      @undoCapture()
+
       # Attempting to populate the socket after the dropdown has closed should no-op
       return if @dropdownElement.style.display == 'none'
 
@@ -2007,9 +2016,10 @@ Editor::showDropdown = (socket = @getCursor()) ->
     @dropdownElement.style.minWidth = location.width + 'px'
   ), 0
 
-Editor::hideDropdown= ->
+Editor::hideDropdown = ->
   @dropdownVisible = false
   @dropdownElement.style.display = 'none'
+  @dropletElement.focus()
 
 hook 'dblclick', 0, (point, event, state) ->
   # If someone else already took this click, return.
@@ -2271,6 +2281,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
+    @undoCapture()
     @reparse @getCursor()
     @hiddenInput.blur()
     @dropletElement.focus()

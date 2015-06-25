@@ -1,7 +1,7 @@
 # Droplet parser wrapper.
-# Utility functions for defining ICE editor parsers.
+# Utility functions for defining Droplet parsers.
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2015 Anthony Bau (dab1998@gmail.com)
 # MIT License
 
 helper = require './helper.coffee'

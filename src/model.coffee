@@ -1,6 +1,6 @@
 # Droplet model.
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License
 helper = require './helper.coffee'
 
@@ -209,17 +209,19 @@ exports.List = class List
     beforeStart = before.start.getLocation()
     beforeEnd = before.end.getLocation()
 
+    beforeLength = before.stringify().length
+
     parent = before.start.parent
 
     helper.connect before.start.prev, after.start
     helper.connect after.end, before.end.next
 
-    afterStart = after.start.getLocation()
-    afterEnd = after.end.getLocation()
-
     before.setParent null
     after.setParent parent
     after.notifyChange()
+
+    afterStart = after.start.getLocation()
+    afterEnd = after.end.getLocation()
 
     return new ReplaceOperation(
       beforeStart, before.clone(), beforeEnd,
@@ -630,7 +632,8 @@ exports.Container = class Container extends List
             ((head.container ? head).stringify().length is location.length)
         head = head.next
 
-      if (head.container ? head).stringify().length is location.length
+      if head? and
+          (head.container ? head).stringify().length is location.length
         best = head
       else
         head = best

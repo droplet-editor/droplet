@@ -1,6 +1,6 @@
 # Droplet helper functions.
 #
-# Copyright (c) 2015 Anthony Bau.
+# Copyright (c) 2015 Anthony Bau (dab1998@gmail.com).
 # MIT License.
 sax = require 'sax'
 
@@ -166,7 +166,7 @@ exports.deepCopy = deepCopy = (a) ->
     return a
 
 exports.deepEquals = deepEquals = (a, b) ->
-  if a instanceof Object
+  if a instanceof Object and b instanceof Object
     for own key, val of a
       unless deepEquals b[key], val
         return false
