@@ -1166,16 +1166,14 @@ hook 'mouseup', 1, (point, event, state) ->
       # We will need to log undo operations here too.
       switch @lastHighlight.type
         when 'indent', 'socket'
-          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.start
         when 'block'
-          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.end
         else
           if @lastHighlight is @tree
-            @spliceIn @draggingBlock, @tree.start #MUTATION
+            @spliceIn @draggingBlock, @tree.start
 
-      # Move the cursor to the position we just
-      # dropped the block
-      @setCursor @draggingBlock.end
+      futureCursorLocation = @draggingBlock.start.getLocation()
 
       # Reparse the parent if we are
       # in a socket
@@ -1185,15 +1183,7 @@ hook 'mouseup', 1, (point, event, state) ->
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
 
-      else
-        # If what we've dropped has a socket in it,
-        # focus it.
-        head = @draggingBlock.start
-        until head.type is 'socketStart' and head.container.editable() or head is @draggingBlock.end
-          head = head.next
-
-        if head.type is 'socketStart'
-          @setCursor head
+      @setCursor futureCursorLocation
 
       # Fire the event for sound
       @fireEvent 'block-click'
