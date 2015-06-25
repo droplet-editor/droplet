@@ -1199,6 +1199,8 @@ hook 'mouseup', 0, (point, event, state) ->
     renderPoint = @trackerPointToMain trackPoint
     palettePoint = @trackerPointToPalette trackPoint
 
+    @undoCapture()
+
     # Remove the block from the tree.
     @spliceOut @draggingBlock
 

@@ -602,11 +602,10 @@ exports.Container = class Container extends List
 
     if head instanceof NewlineToken
       col = head.stringify().length - 1
+      head = head.next
     else
       col = head.stringify().length
 
-    unless location.col is 0
-      head = head.next
     until (not head? or head instanceof NewlineToken) or col >= location.col
       col += head.stringify().length
       head = head.next
