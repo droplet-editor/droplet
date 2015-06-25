@@ -88,7 +88,11 @@ class Operation
   })
 
 class ReplaceOperation
-  constructor: (@beforeStart, @beforeEnd, @afterStart, @afterEnd) ->
+  constructor: (
+        @beforeStart, @before, @beforeEnd,
+        @afterStart, @after, @afterEnd
+      ) ->
+    @type = 'replace'
 
 exports.List = class List
   constructor: (@start, @end) ->

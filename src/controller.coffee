@@ -646,11 +646,13 @@ hook 'mousedown', 10, ->
 Editor::removeBlankLines = ->
   # If we have blank lines at the end,
   # get rid of them
-  head = @tree.end.prev
+  head = tail = @tree.end.prev
   while head?.type is 'newline'
-    next = head.prev
-    head.remove()
-    head = next
+    head = head.prev
+
+  if head.type is 'newline'
+    console.log 'splicing out extra lines'
+    @spliceOut new model.List head, tail
 
 # UNDO STACK SUPPORT
 # ================================
@@ -680,6 +682,8 @@ Editor::spliceOut = (node) ->
     operation = @tree.remove node
     @undoStack.push operation
     return operation
+  else
+    console.log 'wasn\'t in tree', node
 
 Editor::spliceIn = (node, location) ->
   container = location.container ? location.parent
@@ -713,9 +717,16 @@ Editor::prepareNode = (node, context) ->
     node.setLeadingText leading; node.setTrailingText trailing
 
 Editor::undo = ->
-  reverseOperation = @tree.perform @undoStack.pop(), 'backward'
+  until @undoStack.length is 0 or
+      @undoStack[@undoStack.length - 1] is 'CAPTURE'
+    @tree.perform @undoStack.pop(), 'backward'
+
+  @undoStack.pop()
   @redrawMain()
-  return reverseOperation
+  return
+
+Editor::undoCapture = ->
+  @undoStack.push 'CAPTURE'
 
 # At population-time, we will
 # want to set up a few fields.
@@ -849,6 +860,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
     # Signify that we are now dragging a block.
     @draggingBlock = @clickedBlock
+    console.log 'set to', @draggingBlock, @inTree(@draggingBlock), @clickedBlock, @inTree(@clickedBlock)
 
     # Our dragging offset must be computed using the canvas on which this block
     # is rendered.
@@ -864,6 +876,7 @@ hook 'mousemove', 1, (point, event, state) ->
       if 'function' is typeof expansion then expansion = expansion()
       if (expansion) then expansion = parseBlock(@mode, expansion)
       @draggingBlock = (expansion or @draggingBlock).clone()
+      console.log 'set to reparsed', @draggingBLock
 
     else
       # Find the line on the block that we have
@@ -1100,7 +1113,9 @@ hook 'mouseup', 1, (point, event, state) ->
         text = prefix + text + suffix
 
         @aceEditor.onTextInput text
-    else if  @lastHighlight?
+    else if @lastHighlight?
+      @undoCapture()
+
       # Remove the block from the tree.
       @spliceOut @draggingBlock
 
@@ -1187,10 +1202,6 @@ hook 'mouseup', 0, (point, event, state) ->
     )
     renderPoint = @trackerPointToMain trackPoint
     palettePoint = @trackerPointToPalette trackPoint
-
-    # Move the cursor out of the block first
-    if @inTree @draggingBlock
-      @setCursor @draggingBlock.end
 
     # Remove the block from the tree.
     @spliceOut @draggingBlock
@@ -1698,6 +1709,7 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
 Editor::reparse = (list, recovery, originalTrigger = list) ->
+  debugger
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -1856,6 +1868,7 @@ hook 'mousedown', 2, (point, event, state) ->
   if hitTestResult?
     unless hitTestResult is @getCursor()
       if hitTestResult.editable()
+        @undoCapture()
         @setCursor hitTestResult
         @redrawMain()
 
@@ -2275,12 +2288,21 @@ Editor::determineCursorPosition = ->
     return new @draw.Point bound.x, bound.y
 
   else
-    line = @cursor.row - cursor.parent.getLocation().row
+    line = @getCursor().getLocation().row - cursor.parent.getLocation().row
     bound = @view.getViewNodeFor(cursor.parent).bounds[line]
     return new @draw.Point bound.x, bound.bottom()
 
 Editor::getCursor = ->
   cursor = @tree.getFromLocation(@cursor)
+
+  # If the cursor is incorrect (usually because something moved), find recover it
+  until (not cursor?) or @validCursorPosition(cursor)
+    cursor = cursor.next
+  if not cursor?
+    cursor = @tree.getFromLocation(@cursor)
+    until @validCursorPosition(cursor)
+      cursor = cursor.prev
+
   if cursor.type is 'socketStart'
     return cursor.container
   else
@@ -2315,13 +2337,15 @@ hook 'keydown', 0, (event, state) ->
     next = @getCursor().next ? @getCursor().end?.next
     @setCursor next, null, 'after'
     @scrollCursorIntoPosition()
+    event.preventDefault()
   else if event.which is LEFT_ARROW_KEY and
       (not @cursorAtSocket() or
-      @hiddenInput.selectionStart is 0)
+      @hiddenInput.selectionEnd is 0)
     @clearLassoSelection()
     prev = @getCursor().prev ? @getCursor().start?.prev
     @setCursor prev, null, 'before'
     @scrollCursorIntoPosition()
+    event.preventDefault()
 
 hook 'keydown', 0, (event, state) ->
   if event.which isnt TAB_KEY then return
@@ -2335,9 +2359,9 @@ hook 'keydown', 0, (event, state) ->
   event.preventDefault()
 
 Editor::deleteAtCursor = ->
-  if @cursor.type is 'blockEnd'
+  if @getCursor().type is 'blockEnd'
     block = @getCursor().container
-  else if @cursor.type is 'indentStart'
+  else if @getCursor().type is 'indentStart'
     block = @getCursor().parent
   else
     return
