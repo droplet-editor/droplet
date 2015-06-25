@@ -73,7 +73,7 @@ exports.isTreeValid = isTreeValid = (tree) ->
 
 class Operation
   constructor: (@type, list) ->
-    @location = list.start.prev.getLocation()
+    @location = null # Needs to be set by someone else
 
     @list = list.clone()
 
@@ -126,6 +126,9 @@ exports.List = class List
           last = new NewlineToken()
           helper.connect list.end, last
 
+    # Get the location
+    location = token.getLocation()
+
     # New list with added newlines
     list = new List first, last
 
@@ -142,7 +145,9 @@ exports.List = class List
     list.notifyChange()
 
     # Make and return an undo operation
-    return new Operation 'insert', list
+    operation = new Operation 'insert', list
+    operation.location = location
+    return operation
 
   # ## remove ##
   # Remove ourselves from the linked
@@ -222,29 +227,30 @@ exports.List = class List
     )
 
   perform: (operation, direction) ->
-    if (operation.type is 'insert') isnt (direction is 'forward')
-      list = new List @getFromLocation(operation.start), @getFromLocation(operation.end)
-      list.notifyChange()
-      helper.connect list.start.prev, list.end.next
-      return new Operation 'remove', list
+    if operation instanceof Operation
+      if (operation.type is 'insert') isnt (direction is 'forward')
+        list = new List @getFromLocation(operation.start), @getFromLocation(operation.end)
+        list.notifyChange()
+        helper.connect list.start.prev, list.end.next
+        return operation
 
-    else if (operation.type is 'remove') isnt (direction is 'forward')
-      list = operation.list.clone()
+      else if (operation.type is 'remove') isnt (direction is 'forward')
+        list = operation.list.clone()
 
-      before = @getFromLocation(operation.location)
-      after = before.next
+        before = @getFromLocation(operation.location)
+        after = before.next
 
-      helper.connect before, list.start
-      helper.connect list.end, after
+        helper.connect before, list.start
+        helper.connect list.end, after
 
-      if before instanceof StartToken
-        list.setParent before.container
-      else
-        list.setParent before.parent
+        if before instanceof StartToken
+          list.setParent before.container
+        else
+          list.setParent before.parent
 
-      list.notifyChange()
+        list.notifyChange()
 
-      return new Operation 'insert', list
+        return operation
 
     else if operation.type is 'replace'
       if direction is 'forward'

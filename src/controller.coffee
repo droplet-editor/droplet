@@ -34,6 +34,7 @@ UP_ARROW_KEY = 38
 RIGHT_ARROW_KEY = 39
 DOWN_ARROW_KEY = 40
 Z_KEY = 90
+Y_KEY = 89
 
 META_KEYS = [91, 92, 93, 223, 224]
 CONTROL_KEYS = [17, 162, 163]
@@ -660,12 +661,54 @@ Editor::removeBlankLines = ->
 # fields a populate time
 hook 'populate', 0, ->
   @undoStack = []
+  @redoStack = []
   @changeEventVersion = 0
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
   if event.which is Z_KEY and command_pressed(event)
-     @undo()
+    @undo()
+  else if event.which is Y_KEY and command_pressed(event)
+    @redo()
+
+Editor::undo = ->
+  until @undoStack.length is 0 or
+      @undoStack[@undoStack.length - 1] is 'CAPTURE'
+    @tree.perform @popUndo(), 'backward'
+
+  @popUndo()
+  @redrawMain()
+  return
+
+Editor::pushUndo = (operation) ->
+  @redoStack.length = 0
+  @undoStack.push operation
+
+Editor::popUndo = ->
+  operation = @undoStack.pop()
+  @redoStack.push(operation) if operation?
+  return operation
+
+Editor::popRedo = ->
+  operation = @redoStack.pop()
+  @undoStack.push(operation) if operation?
+  return operation
+
+Editor::redo = ->
+  # Make sure that the redo is not a no-op
+  if @redoStack[@redoStack.length - 1] is 'CAPTURE'
+    @popRedo()
+
+  until @redoStack.length is 0 or
+      @redoStack[@redoStack.length - 1] is 'CAPTURE'
+    @tree.perform @popRedo(), 'forward'
+
+  @popRedo()
+  @redrawMain()
+  return
+
+Editor::undoCapture = ->
+  @pushUndo 'CAPTURE'
 
 # BASIC BLOCK MOVE SUPPORT
 # ================================
@@ -679,7 +722,7 @@ Editor::spliceOut = (node) ->
   @prepareNode node, null
   if @inTree node
     operation = @tree.remove node
-    @undoStack.push operation
+    @pushUndo operation
     return operation
   else
 
@@ -693,12 +736,12 @@ Editor::spliceIn = (node, location) ->
 
   @prepareNode node, container
   operation = @tree.insert location, node
-  @undoStack.push operation
+  @pushUndo operation
   return operation
 
 Editor::replace = (before, after) ->
   operation = @tree.replace before, after
-  @undoStack.push operation
+  @pushUndo operation
   return operation
 
 Editor::prepareNode = (node, context) ->
@@ -714,17 +757,6 @@ Editor::prepareNode = (node, context) ->
 
     node.setLeadingText leading; node.setTrailingText trailing
 
-Editor::undo = ->
-  until @undoStack.length is 0 or
-      @undoStack[@undoStack.length - 1] is 'CAPTURE'
-    @tree.perform @undoStack.pop(), 'backward'
-
-  @undoStack.pop()
-  @redrawMain()
-  return
-
-Editor::undoCapture = ->
-  @undoStack.push 'CAPTURE'
 
 # At population-time, we will
 # want to set up a few fields.
