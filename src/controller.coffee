@@ -677,11 +677,14 @@ class EditorState
   equals: (other) ->
     return false unless @root is other.root and @floats.length is other.floats.length
     for el, i in @floats
-      return false unless el is other.floats[i]
+      return false unless el.position.equals(other.floats[i].position) and el.string is other.floats[i].string
     return true
 
 Editor::getSerializedEditorState = ->
-  return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> x.stringify()
+  return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> {
+    position: x.position
+    string: x.block.stringify()
+  }
 
 Editor::undo = ->
   currentValue = @getSerializedEditorState()
@@ -1248,10 +1251,10 @@ hook 'mouseup', 0, (point, event, state) ->
     renderPoint = @trackerPointToMain trackPoint
     palettePoint = @trackerPointToPalette trackPoint
 
-    @undoCapture()
-
     # Remove the block from the tree.
-    @spliceOut @draggingBlock
+    if @inTree @draggingBlock
+      @undoCapture()
+      @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
