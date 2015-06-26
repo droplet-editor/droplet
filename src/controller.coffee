@@ -1114,14 +1114,16 @@ Editor::getAcceptLevel = (drag, drop) ->
     if drag.type is 'segment'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.getReader(), null
+      return @mode.drop drag.getReader(), drop.getReader(), null, null
   else if drop.type is 'block'
     if drop.visParent().type is 'socket'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop
+      next = drop.nextSibling()
+      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop.getReader(), if next then next.getReader() else null
   else
-    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
+    next = drop.firstChild()
+    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader(), if next then next.getReader() else null
 
 # On mousemove, if there is a dragged block, we want to
 # translate the drag canvas into place,
