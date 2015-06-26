@@ -671,12 +671,24 @@ hook 'keydown', 0, (event, state) ->
   else if event.which is Y_KEY and command_pressed(event)
     @redo()
 
+class EditorState
+  constructor: (@root, @floats) ->
+
+  equals: (other) ->
+    return false unless @root is other.root and @floats.length is other.floats.length
+    for el, i in @floats
+      return false unless el is other.floats[i]
+    return true
+
+Editor::getSerializedEditorState = ->
+  return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> x.stringify()
+
 Editor::undo = ->
-  currentValue = @getValue()
+  currentValue = @getSerializedEditorState()
 
   until @undoStack.length is 0 or
       (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
-      @getValue() isnt currentValue)
+      not @getSerializedEditorState().equals(currentValue))
     operation = @popUndo()
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
@@ -702,11 +714,11 @@ Editor::popRedo = ->
   return operation
 
 Editor::redo = ->
-  currentValue = @getValue()
+  currentValue = @getSerializedEditorState()
 
   until @redoStack.length is 0 or
       (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
-      @getValue() isnt currentValue)
+      not @getSerializedEditorState().equals(currentValue))
     operation = @popRedo()
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
@@ -731,21 +743,34 @@ Editor::spliceOut = (node) ->
 
   operation = null
 
+  # Track changes in the cursor by
+  # temporarily using a pointer to it
+  if node.contains @cursor
+    @setCursor node.end.next, null, 'after'
+  cursor = @getCursor()
+
   if @inTree node
     operation = @tree.remove node
     @pushUndo operation
-    return operation
+
+  @setCursor cursor
 
   @prepareNode node, null
   return operation
 
 Editor::spliceIn = (node, location) ->
+  # Track changes in the cursor by temporarily
+  # using a pointer to it
+  cursor = @getCursor()
+
   container = location.container ? location.parent
   if container.type is 'block'
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
     @spliceOut new model.List container.start.next, container.end.prev
+
+  @setCursor cursor
 
   @prepareNode node, container
   operation = @tree.insert location, node
@@ -1256,7 +1281,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    @pushUndo new FloatingOperation @draggingBlock, renderPoint, 'create'
+    @pushUndo new FloatingOperation @floatingBlocks.length, @draggingBlock, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
     @floatingBlocks.push new FloatingBlockRecord(
@@ -1274,19 +1299,16 @@ hook 'mouseup', 0, (point, event, state) ->
     @redrawHighlights()
 
 Editor::performFloatingOperation = (op, direction) ->
-  console.log 'performing floating operation'
   if (op.type is 'create') is (direction is 'forward')
-    @floatingBlocks.push new FloatingBlockRecord(
+    @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
       op.block.clone()
       op.position
     )
   else
-    @floatingBlocks = @floatingBlocks.filter (record) ->
-      not (record.block.stringify() is op.block.stringify() and
-           record.position.equals(op.position))
+    @floatingBlocks.splice op.index, 1
 
 class FloatingOperation
-  constructor: (@block, @position, @type) ->
+  constructor: (@index, @block, @position, @type) ->
 
 # On mousedown, we can hit test for floating blocks.
 hook 'mousedown', 5, (point, event, state) ->
@@ -1314,7 +1336,7 @@ hook 'mousemove', 7, (point, event, state) ->
       if record.block is @clickedBlock
         @undoCapture()
 
-        @pushUndo new FloatingOperation record.block, record.position, 'delete'
+        @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
 
         @floatingBlocks.splice i, 1
 
@@ -2348,14 +2370,6 @@ Editor::determineCursorPosition = ->
 Editor::getCursor = ->
   cursor = @tree.getFromLocation(@cursor)
 
-  # If the cursor is incorrect (usually because something moved), find recover it
-  until (not cursor?) or @validCursorPosition(cursor)
-    cursor = cursor.next
-  if not cursor?
-    cursor = @tree.getFromLocation(@cursor)
-    until @validCursorPosition(cursor)
-      cursor = cursor.prev
-
   if cursor.type is 'socketStart'
     return cursor.container
   else
@@ -3218,34 +3232,16 @@ Editor::markBlock = (block, style) ->
 # ## Mark
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
 # with the given style.
-Editor::mark = (line, col, style) ->
-  # Get the start of the given line.
-  lineStart = @tree.getNewlineBefore line
-
-  # Find the necessary indent for this line, so
-  # that we can properly adjust the column number
-  chars = 0
-  parent = lineStart.parent
-  until parent is @tree
-    if parent.type is 'indent'
-      chars += parent.prefix.length
-    parent = parent.parent
-
-  # Find the first block after the given column number
-  head = lineStart.next
-  until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
-    chars += head.stringify().length
-    head = head.next
-
-  if head.type is 'newline'
-    return false
+Editor::mark = (location, style) ->
+  block = @tree.getFromLocation location
+  block = block.container ? block
 
   # `key` is a unique identifier for this
   # mark, to be used later for removal
   key = @nextMarkedBlockId++
 
   @markedBlocks[key] = {
-    model: head.container
+    model: block
     style: style
   }
 
