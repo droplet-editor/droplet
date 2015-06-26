@@ -98,12 +98,26 @@ exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
 
+  contains: (token) ->
+    head = @start
+    until head is @end
+      if head is token
+        return true
+      head = head.next
+
+    if token is @end
+      return true
+    else
+      return false
+
   # ## insert ##
   # Insert another list into us
   # and return an (undoable) record
   # of this operation
-  insert: (token, list) ->
+  insert: (token, list, updates = []) ->
     [first, last] = [list.start, list.end]
+
+    updateTokens = updates.map((x) => @getFromLocation(x))
 
     # Append newlines, etc. to the parent
     # if necessary.
@@ -147,12 +161,17 @@ exports.List = class List
     # Make and return an undo operation
     operation = new Operation 'insert', list
     operation.location = location
+
+    # Preserve updates
+    updates.forEach (x, i) ->
+      x.set(updateTokens[i].getLocation())
+
     return operation
 
   # ## remove ##
   # Remove ourselves from the linked
   # list that we are in.
-  remove: (list) ->
+  remove: (list, updates = []) ->
     # Do not leave empty lines behind.
 
     # First,
@@ -190,6 +209,13 @@ exports.List = class List
 
     list.notifyChange()
 
+    updateTokens = updates.map((x) => @getFromLocation(x)).map((x) =>
+      if list.contains(x)
+        return list.start.prev
+      else
+        return x
+    )
+
     # Make an undo operation
     record = new Operation 'remove', list
     location = list.start.prev
@@ -202,10 +228,14 @@ exports.List = class List
     # lengths or coordinates changed
     record.location = location.getLocation()
 
+    updates.forEach((x, i) =>
+      x.set(updateTokens[i].getLocation())
+    )
+
     # Return the undo operation
     return record
 
-  replace: (before, after) ->
+  replace: (before, after, updates = []) ->
     beforeStart = before.start.getLocation()
     beforeEnd = before.end.getLocation()
 
@@ -228,15 +258,31 @@ exports.List = class List
       afterStart, after.clone(), afterEnd
     )
 
-  perform: (operation, direction) ->
+  perform: (operation, direction, updates = []) ->
     if operation instanceof Operation
       if (operation.type is 'insert') isnt (direction is 'forward')
         list = new List @getFromLocation(operation.start), @getFromLocation(operation.end)
         list.notifyChange()
+
+        # Preserve update tokens
+        updateTokens = updates.map((x) => @getFromLocation(x)).map((x) =>
+          if list.contains(x)
+            return list.start.prev
+          else
+            return x
+        )
+
         helper.connect list.start.prev, list.end.next
+
+        updates.forEach (x, i) ->
+          x.set(updateTokens[i].getLocation())
+
         return operation
 
       else if (operation.type is 'remove') isnt (direction is 'forward')
+        # Preserve update tokens
+        updateTokens = updates.map((x) => @getFromLocation(x))
+
         list = operation.list.clone()
 
         before = @getFromLocation(operation.location)
@@ -251,6 +297,9 @@ exports.List = class List
           list.setParent before.parent
 
         list.notifyChange()
+
+        updates.forEach (x, i) ->
+          x.set(updateTokens[i].getLocation())
 
         return operation
 
@@ -762,6 +811,12 @@ exports.Location = class DropletLocation
   ) ->
 
   toString: -> "(#{@row}, #{@col}, #{@type}, #{@length})"
+
+  set: (other) ->
+    @row = other.row
+    @col = other.col
+    @type = other.type
+    @length = other.length
 
   is: (other) ->
     unless other instanceof DropletLocation

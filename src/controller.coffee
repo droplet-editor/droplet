@@ -693,7 +693,7 @@ Editor::undo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
-      @tree.perform(operation, 'backward') unless operation is 'CAPTURE'
+      @tree.perform(operation, 'backward', [@cursor]) unless operation is 'CAPTURE'
 
   @popUndo()
   @redrawMain()
@@ -723,7 +723,7 @@ Editor::redo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
-      @tree.perform(operation, 'forward') unless operation is 'CAPTURE'
+      @tree.perform(operation, 'forward', [@cursor]) unless operation is 'CAPTURE'
 
   @popRedo()
   @redrawMain()
@@ -743,17 +743,9 @@ Editor::spliceOut = (node) ->
 
   operation = null
 
-  # Track changes in the cursor by
-  # temporarily using a pointer to it
-  if node.contains @cursor
-    @setCursor node.end.next, null, 'after'
-  cursor = @getCursor()
-
   if @inTree node
-    operation = @tree.remove node
+    operation = @tree.remove node, [@cursor]
     @pushUndo operation
-
-  @setCursor cursor
 
   @prepareNode node, null
   return operation
@@ -761,8 +753,6 @@ Editor::spliceOut = (node) ->
 Editor::spliceIn = (node, location) ->
   # Track changes in the cursor by temporarily
   # using a pointer to it
-  cursor = @getCursor()
-
   container = location.container ? location.parent
   if container.type is 'block'
     container = container.parent
@@ -770,10 +760,9 @@ Editor::spliceIn = (node, location) ->
       container.start.next isnt container.end
     @spliceOut new model.List container.start.next, container.end.prev
 
-  @setCursor cursor
-
   @prepareNode node, container
-  operation = @tree.insert location, node
+  operation = null
+  operation = @tree.insert location, node, [@cursor]
   @pushUndo operation
   return operation
 
