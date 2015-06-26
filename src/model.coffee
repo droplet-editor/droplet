@@ -449,6 +449,16 @@ exports.Container = class Container extends List
   # with the same metadata.
   _cloneEmpty: -> new Container()
 
+  # Utility function to first block
+  # child if an indent/segment
+  _firstChild: ->
+    head = @start.next
+    while head isnt @end
+      if head instanceof StartToken
+        return head.container
+      head = head.next
+    return null
+
   getReader: ->
     {
       id: @id
@@ -887,6 +897,15 @@ exports.Block = class Block extends Container
 
     super
 
+  nextSibling: ->
+    head = @end.next
+    parent = head.parent
+    while head and head.container isnt parent
+      if head instanceof StartToken
+        return head.container
+      head = head.next
+    return null
+
   _cloneEmpty: ->
     clone = new Block @precedence, @color, @socketLevel, @classes
     clone.currentlyParenWrapped = @currentlyParenWrapped
@@ -980,6 +999,8 @@ exports.Indent = class Indent extends Container
     super
 
   _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
+  firstChild: -> return @_firstChild()
+
   _serialize_header: -> "<indent prefix=\"#{
     @prefix
   }\" classes=\"#{
@@ -1010,6 +1031,7 @@ exports.Document = class Document extends Container
     super
 
   _cloneEmpty: -> new Document()
+  firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<document>"
   _serialize_footer: -> "</document>"

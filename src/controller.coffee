@@ -1026,14 +1026,16 @@ Editor::getAcceptLevel = (drag, drop) ->
     if drag.type is 'list'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.getReader(), null
+      return @mode.drop drag.getReader(), drop.getReader(), null, null
   else if drop.type is 'block'
     if drop.parent.type is 'socket'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.parent.getReader(), drop
+      next = drop.nextSibling()
+      return @mode.drop drag.getReader(), drop.parent.getReader(), drop.getReader(), next?.getReader?()
   else
-    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader()
+    next = drop.firstChild()
+    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader(), next?.getReader?()
 
 # On mousemove, if there is a dragged block, we want to
 # translate the drag canvas into place,
