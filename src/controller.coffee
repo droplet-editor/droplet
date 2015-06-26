@@ -2314,15 +2314,15 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   @cursor = destination.getLocation()
 
+  @redrawMain()
+  @highlightFlashShow()
+  @redrawHighlights()
+
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
     @hiddenInput.value = destination.container.textContent()
     @hiddenInput.focus()
     @setTextSelectionRange 0, @hiddenInput.value.length
-
-  @redrawMain()
-  @highlightFlashShow()
-  @redrawHighlights()
 
 Editor::determineCursorPosition = ->
   # Do enough of the redraw to get the bounds

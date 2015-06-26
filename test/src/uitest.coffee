@@ -302,49 +302,6 @@ performDragOperation = (editor, drag) ->
     dy: drag.drop.point.y + 5
   })
 
-asyncTest 'Controller: Random drag integration test', ->
-  expect 0
-
-  document.getElementById('test-main').innerHTML = ''
-  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
-    mode: 'coffeescript',
-    modeOptions:
-      functions:
-        fd: {command: true, value: false}
-        bk: {command: true, value: false}
-    palette: [
-      {
-        name: 'Blocks'
-        blocks: [
-          {block: 'a is b'}
-          {block: 'fd 10'}
-          {block: 'bk 10'}
-          {block: '''
-          for i in [0..10]
-            ``
-          '''}
-          {block: '''
-          if a is b
-            ``
-          '''}
-        ]
-      }
-    ]
-  })
-
-  editor.setEditorState(true)
-  editor.setValue('''
-  for i in [0..10]
-    if i % 2 is 0
-      fd 10
-    else
-      bk 10
-  ''')
-  rng = seedrandom('droplet')
-  for [1..100]
-    performDragOperation editor, getRandomDragOp(editor, rng)
-  start()
-
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
@@ -384,7 +341,7 @@ asyncTest 'Controller: Random drag undo test', ->
   rng = seedrandom('droplet')
   stateStack = []
 
-  for [0..100]
+  for i in [0..100]
     stateStack.push editor.getValue()
     performDragOperation editor, getRandomDragOp(editor, rng)
 
