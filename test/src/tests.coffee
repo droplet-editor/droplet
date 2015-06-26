@@ -792,7 +792,7 @@ asyncTest 'Controller: arbitrary row/column marking', ->
     prompt 10 / 10
   '''
 
-  key = editor.mark 2, 4, {color: '#F00'}
+  key = editor.mark {row: 2, col: 4}, {color: '#F00'}
 
   strictEqual editor.markedBlocks[key].model.stringify({}), '10 - 10'
   strictEqual editor.markedBlocks[key].style.color, '#F00'
