@@ -563,15 +563,15 @@ JavaScriptParser.parens = (leading, trailing, node, context) ->
   else
     trailing trailing().replace(/;?\s*$/, ';')
 
-  if context is null or context.type isnt 'socket' or
+  while true
+    if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+      leading leading().replace(/^\s*\(\s*/, '')
+      trailing trailing().replace(/\s*\)\s*$/, '')
+    else
+      break
+
+  unless context is null or context.type isnt 'socket' or
       context.precedence > node.precedence
-    while true
-      if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-        leading leading().replace(/^\s*\(\s*/, '')
-        trailing trailing().replace(/\s*\)\s*$/, '')
-      else
-        break
-  else
     leading '(' + leading()
     trailing trailing() + ')'
 

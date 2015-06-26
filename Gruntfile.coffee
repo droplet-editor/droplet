@@ -47,12 +47,12 @@ module.exports = (grunt) ->
           'sax.js': 'sax/lib/sax.js'
 
     qunit:
+      options:
+        timeout: 30000
       all:
-        options:
-          timeout: 30000
-          urls:
-            (for x in grunt.file.expand('test/*.html')
-              'http://localhost:8942/' + x)
+        urls:
+          (for x in grunt.file.expand('test/*.html')
+            'http://localhost:8942/' + x)
 
     mochaTest:
       test:

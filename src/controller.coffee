@@ -2310,7 +2310,6 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @undoCapture()
     @reparse @getCursor()
     @hiddenInput.blur()
     @dropletElement.focus()
@@ -2336,6 +2335,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
+    @undoCapture()
     @hiddenInput.value = destination.container.textContent()
     @hiddenInput.focus()
     @setTextSelectionRange 0, @hiddenInput.value.length

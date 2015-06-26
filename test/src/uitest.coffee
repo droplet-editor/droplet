@@ -282,7 +282,59 @@ getRandomDragOp = (editor, rng) ->
 
   return {drag, drop}
 
-performDragOperation = (editor, drag) ->
+generateRandomAlphabetic = (rng) ->
+  alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  str = ''
+  str += alphabet[Math.floor rng() * alphabet.length]
+  until rng() < 0.1
+    str += alphabet[Math.floor rng() * alphabet.length]
+  return str
+
+getRandomTextOp = (editor, rng) ->
+  head = editor.tree.start
+  socketPossibilities = []
+  until head is editor.tree.end
+    if head.type is 'socketStart' and head.container.editable()
+      bound = editor.view.getViewNodeFor(head.container).bounds[0]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+      socketPossibilities.push {
+        block: head.container
+        handle: handle
+      }
+    head = head.next
+
+  socket = socketPossibilities[Math.floor rng() * socketPossibilities.length]
+
+  text = generateRandomAlphabetic rng
+
+  return {socket, text}
+
+performTextOperation = (editor, text, cb) ->
+  simulate('mousedown', editor.mainScrollerStuffing, {
+    dx: text.socket.handle.x + editor.gutter.offsetWidth,
+    dy: text.socket.handle.y
+  })
+  simulate('mouseup', editor.mainScrollerStuffing, {
+    dx: text.socket.handle.x + editor.gutter.offsetWidth,
+    dy: text.socket.handle.y
+  })
+  setTimeout (->
+    $(editor.hiddenInput).sendkeys(text.text)
+    setTimeout (->
+      # Unfocus
+      simulate('mousedown', editor.mainScrollerStuffing, {
+        dx: 1000
+        dy: 1000
+      })
+      simulate('mouseup', editor.mainScrollerStuffing, {
+        dx: 1000
+        dy: 1000
+      })
+      cb()
+    ), 0
+  ), 0
+
+performDragOperation = (editor, drag, cb) ->
   simulate('mousedown', editor.mainScrollerStuffing, {
     dx: drag.drag.handle.x + editor.gutter.offsetWidth,
     dy: drag.drag.handle.y
@@ -301,6 +353,7 @@ performDragOperation = (editor, drag) ->
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
+  cb()
 
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
@@ -340,16 +393,32 @@ asyncTest 'Controller: Random drag undo test', ->
   ''')
   rng = seedrandom('droplet')
   stateStack = []
+  opStack = []
 
-  for i in [0..100]
+  #for i in [0..100]
+  tick = (count) ->
+    cb = ->
+      if count is 0
+        while stateStack.length > 0
+          text = stateStack.pop()
+          while stateStack[stateStack.length - 1] is text
+            text = stateStack.pop()
+          editor.undo()
+          equal editor.getValue(), text
+
+        start()
+      else
+        setTimeout (-> tick count - 1), 0
+
     stateStack.push editor.getValue()
-    performDragOperation editor, getRandomDragOp(editor, rng)
 
-  while stateStack.length > 0
-    text = stateStack.pop()
-    while stateStack[stateStack.length - 1] is text
-      text = stateStack.pop()
-    editor.undo()
-    equal editor.getValue(), text
+    if rng() > 0.5
+      op = getRandomDragOp(editor, rng)
+      opStack.push op
+      performDragOperation editor, op, cb
+    else
+      op = getRandomTextOp(editor, rng)
+      opStack.push op
+      performTextOperation editor, op, cb
 
-  start()
+  tick 100
