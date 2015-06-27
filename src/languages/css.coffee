@@ -153,25 +153,22 @@ exports.CSSParser = class CSSParser extends parser.Parser
   markRoot: ->
     #console.log 'Parsing: ', @text
     ast = null
-    try
-      for parse in ParseOrder
-        try
-          Stack.setValid true
-          #console.log parse
-          ast = cssParser[parse] @text
-        catch e
-          Stack.setValid false
-        if Stack.getValid()
-          break
+    for parse in ParseOrder
+      try
+        Stack.setValid true
+        #console.log parse
+        ast = cssParser[parse] @text
+      catch e
+        Stack.setValid false
       if Stack.getValid()
-        root = ast ? Stack.top()
-        window.root = root
-        window.Stack = Stack
-        @mark 0, root, 0
-      else
-        throw "Invalid Data"
-    catch e
-      console.log e.stack
+        break
+    if Stack.getValid()
+      root = ast ? Stack.top()
+      window.root = root
+      window.Stack = Stack
+      @mark 0, root, 0
+    else
+      throw "Invalid Data"
 
   mark: (indentDepth, node, depth) ->
     switch node.nodeType

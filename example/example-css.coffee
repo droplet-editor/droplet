@@ -11,7 +11,10 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
         "name": "Examples",
         "color": "blue",
         "blocks": [
-          {"block": ".spl {\\n  background: #eee;\\n  color: #888;\\n}"},
+          {"block": ".spl {\\n  \\n}"},
+          {"block": "@media print {\\n  \\n}"},
+          {"block": "@page {\\n  \\n}"},
+          {"block": "background: 'red';"},
           {"block": "@charset \\"UTF-8\\";"},
           {
             "block": "@import url(\\"\\");",
