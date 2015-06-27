@@ -13,8 +13,8 @@ MOSTLY_VALUE = []
 DEFAULT_INDENT_DEPTH = '  '
 
 Stack = []
-Stack.setDirty = -> Stack._dirty = true
-Stack.getDirty = -> return (Stack._dirty is true)
+Stack.setValid = (state) -> Stack._valid = state
+Stack.getValid = -> return (Stack._valid is true)
 Stack.clear = -> Stack.length = 0
 Stack.top = -> return Stack[Stack.length - 1]
 Stack.add = (element, type) ->
@@ -56,7 +56,14 @@ cssParser.addListener("endrule", (event) -> Stack.end event)
 cssParser.addListener("property", (event) -> Stack.add event, 'property')
 cssParser.addListener("startmedia", (event) -> Stack.start event, 'media')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
-cssParser.addListener("error", (event) -> console.log event)
+cssParser.addListener("error", (event) -> Stack.setValid false)
+
+ObjectReturning = ["parseSelector", "parsePropertyValue"]
+
+# Though we are not parsnig style Attribute
+# it is the same as parsing a set of declarations
+# and we use it to parse a single declaration
+ParseOrder = ["parse", "parseStyleAttribute"].concat ObjectReturning
 
 exports.CSSParser = class CSSParser extends parser.Parser
 
@@ -145,12 +152,24 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   markRoot: ->
     #console.log 'Parsing: ', @text
+    ast = null
     try
-      cssParser.parse @text
-      root = Stack.top()
-      window.root = root
-      window.Stack = Stack
-      @mark 0, root, 0
+      for parse in ParseOrder
+        try
+          Stack.setValid true
+          console.log parse
+          ast = cssParser[parse] @text
+        catch e
+          Stack.setValid false
+        if Stack.getValid()
+          break
+      if Stack.getValid()
+        root = ast ? Stack.top()
+        window.root = root
+        window.Stack = Stack
+        @mark 0, root, 0
+      else
+        throw "Invalid Data"
     catch e
       console.log e.stack
 
@@ -174,7 +193,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'property'
         @cssBlock node, depth
         @cssSocket node.property, depth + 1
-        @markValue node.value, depth + 1
+        @mark indentDepth, node.value, depth + 1, null
       when 'fontface'
         @cssBlock node, depth
         @handleCompoundNode indentDepth, node, depth + 1
@@ -207,11 +226,12 @@ exports.CSSParser = class CSSParser extends parser.Parser
           @cssSocket media, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
 
-  markValue: (node, depth) ->
-    @cssSocket node, depth
-    @cssBlock node, depth + 1
-    for part in node.parts
-      @cssSocket part, depth + 2
+    if node instanceof parserlib.css.PropertyValue
+      @cssSocket node, depth
+      if node.parts.length > 1
+        @cssBlock node, depth + 1
+        for part in node.parts
+          @cssSocket part, depth + 2
 
   handleCompoundNode: (indentDepth, node, depth) ->
     indentBounds = @getIndentBounds node

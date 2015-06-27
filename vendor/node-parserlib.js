@@ -3582,6 +3582,7 @@ Parser.prototype = function(){
              * @method parseStyleAttribute
              */
             parseStyleAttribute: function(input){
+                input += '}';
                 this._tokenStream = new TokenStream(input, Tokens);
                 this._readDeclarations();
                 this._readWhitespace();
