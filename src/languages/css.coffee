@@ -58,7 +58,7 @@ cssParser.addListener("startmedia", (event) -> Stack.start event, 'media')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
 cssParser.addListener("error", (event) -> Stack.setValid false)
 
-ObjectReturning = ["parseSelector", "parsePropertyValue"]
+ObjectReturning = ["parseSelector", "parsePropertyValue", "parseMediaQuery"]
 
 # Though we are not parsnig style Attribute
 # it is the same as parsing a set of declarations
@@ -157,7 +157,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
       for parse in ParseOrder
         try
           Stack.setValid true
-          console.log parse
+          #console.log parse
           ast = cssParser[parse] @text
         catch e
           Stack.setValid false
@@ -254,32 +254,33 @@ CSSParser.empty = '\'\''
 CSSParser.parens = (leading, trainling, node, context) ->
   return [leading, trainling]
 
-CSSParser.drop = (block, context, pred) ->
+CSSParser.drop = (block, context, pred, next) ->
   #console.log block, context, pred
   blockType = block.classes[0]
   contextType = context.classes[0]
   predType = pred?.classes[0]
+  nextType = next?.classes[0]
 
   if contextType is 'unknown'
     return helper.FORBID
 
   if blockType is 'charset'
-    if context.type is 'segment' and pred.type is 'segment'
+    if context.type is 'segment' and pred.type is 'segment' and nextType isnt 'charset'
       return helper.ENCOURAGE
     return helper.FORBID
 
   if blockType is 'import'
-    if context.type is 'segment' and (pred.type is 'segment' or predType in ['charset', 'import'])
+    if context.type is 'segment' and (pred.type is 'segment' or predType in ['charset', 'import']) and nextType isnt 'charset'
       return helper.ENCOURAGE
     return helper.FORBID
 
   if blockType is 'namespace'
-    if context.type is 'segment' and (pred.type is 'segment' or predType in ['charset', 'import', 'namespace'])
+    if context.type is 'segment' and (pred.type is 'segment' or predType in ['charset', 'import', 'namespace']) and nextType not in ['charset', 'import']
       return helper.ENCOURAGE
     return helper.FORBID
 
   if context.type is 'segment'
-    if blockType in ['rule', 'media', 'page', 'fontface', 'keyframes']
+    if blockType in ['rule', 'media', 'page', 'fontface', 'keyframes'] and nextType not in ['charset', 'import', 'namespace']
       return helper.ENCOURAGE
     return helper.FORBID
 
