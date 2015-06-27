@@ -97,6 +97,16 @@ exports.Container = class Container
   # with the same metadata.
   _cloneEmpty: -> new Container()
 
+  # Utility function to first block
+  # child if an indent/segment
+  _firstChild: ->
+    head = @start.next
+    while head isnt @end
+      if head instanceof StartToken
+        return head.container
+      head = head.next
+    return null
+
   getReader: ->
     {
       id: @id
@@ -725,6 +735,15 @@ exports.Block = class Block extends Container
 
     super
 
+  nextSibling: ->
+    head = @end.next
+    parent = head.visParent()
+    while head and head.container isnt parent
+      if head instanceof StartToken
+        return head.container
+      head = head.next
+    return null
+
   _cloneEmpty: ->
     clone = new Block @precedence, @color, @socketLevel, @classes
     clone.currentlyParenWrapped = @currentlyParenWrapped
@@ -809,6 +828,8 @@ exports.Indent = class Indent extends Container
 
     super
 
+  firstChild: -> return @_firstChild()
+
   _cloneEmpty: -> new Indent @prefix, @classes
   _serialize_header: -> "<indent prefix=\"#{
     @prefix
@@ -841,6 +862,8 @@ exports.Segment = class Segment extends Container
     @type = 'segment'
 
     super
+
+  firstChild: -> return @_firstChild()
 
   _cloneEmpty: -> new Segment @isLassoSegment
 

@@ -465,7 +465,7 @@ Parser.parens = (leading, trailing, node, context) ->
     leading '(' + leading()
     trailing trailing() + ')'
 
-Parser.drop = (block, context, pred) ->
+Parser.drop = (block, context, pred, next) ->
   if block.type is 'segment' and context.type is 'socket'
     return helper.FORBID
   else
@@ -508,4 +508,4 @@ exports.wrapParser = (CustomParser) ->
 
       return [leading, trailing]
 
-    drop: (block, context, pred) -> CustomParser.drop block, context, pred
+    drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next

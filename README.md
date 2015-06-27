@@ -197,12 +197,13 @@ MyParser.parens = (leading, trailing, node, context) ->
 # Text to fill in an empty socket when switching modes:
 MyParser.empty = "blarg"
 
-MyParser.drop = (block, context, preceding) ->
+MyParser.drop = (block, context, preceding, succeeding) ->
   # block: the block that user is dragging
   # context: the place the user is dropping that block into
   # preceding: if in sequence, the block immediately before
+  # succeeding: if in sequence, the block immediately after
 
-  # block, context, and preceding will have
+  # block, context, preceding and succeeding will have
   # properties `classes` (from when you created the block),
   # `precedence`, and `type` ('block', 'socket', 'indent', or 'segment')
   if allowedIn(block, context)
