@@ -126,6 +126,80 @@ describe 'Model',->
       console.log hello
     ''', 'Move hello back in'
 
+  it 'should be able to exactly undo and redo removes and inserts', ->
+    document = coffee.parse '''
+    for i in [1..10]
+      console.log hello
+      console.log world
+    '''
+
+    testRemove = (block, expected, message) ->
+      old = document.stringify()
+
+      operation = document.remove block
+      if expected?
+        assert.strictEqual document.stringify(), expected, message
+      else
+        expected = document.stringify()
+
+      document.perform operation, 'backward'
+      assert.strictEqual document.stringify(), old, message + ' (undo test)'
+
+      document.perform operation, 'forward'
+      assert.strictEqual document.stringify(), expected, message + ' (redo test)'
+
+    testInsert = (location, block, expected, message) ->
+      old = document.stringify()
+
+      operation = document.insert location, block
+      if expected?
+        assert.strictEqual document.stringify(), expected, message
+      else
+        expected = document.stringify()
+
+      document.perform operation, 'backward'
+      assert.strictEqual document.stringify(), old, message + ' (undo test)'
+
+      document.perform operation, 'forward'
+      assert.strictEqual document.stringify(), expected, message + ' (redo test)'
+
+    block = document.getBlockOnLine(2)
+    testRemove block, '''
+    for i in [1..10]
+      console.log hello
+    ''', 'Remove console.log world'
+    testInsert document.start, block, '''
+    console.log world
+    for i in [1..10]
+      console.log hello
+    ''', 'Move console.log world out'
+
+    block = document.getBlockOnLine(2)
+    testRemove block, '''
+    console.log world
+    for i in [1..10]
+      ``
+    ''', 'Remove console.log hello'
+    testInsert document.start, block, '''
+    console.log hello
+    console.log world
+    for i in [1..10]
+      ``
+    ''', 'Move both out'
+
+    block = document.getBlockOnLine(0)
+    destination = document.getBlockOnLine(2).end.prev.container.start
+    testRemove block, '''
+    console.log world
+    for i in [1..10]
+      ``
+    ''', 'Remove console.log hello'
+    testInsert destination, block, '''
+    console.log world
+    for i in [1..10]
+      console.log hello
+    ''', 'Move hello back in'
+
   it 'should assign indentation properly', ->
     document = coffee.parse '''
     for i in [1..10]
