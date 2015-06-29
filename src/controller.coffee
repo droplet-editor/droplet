@@ -697,7 +697,7 @@ Editor::undo = ->
       @performFloatingOperation(operation, 'backward')
     else
       @getDocuments()[operation.document].perform(
-        operation.operation, 'backward', [@cursor]
+        operation.operation, 'backward', (if operation.document is 0 then [@cursor] else [])
       ) unless operation is 'CAPTURE'
 
   @popUndo()
@@ -729,7 +729,7 @@ Editor::redo = ->
       @performFloatingOperation(operation, 'forward')
     else
       @getDocuments()[operation.document].perform(
-        operation.operation, 'forward', [@cursor]
+        operation.operation, 'forward', (if operation.document is 0 then [@cursor] else [])
       ) unless operation is 'CAPTURE'
 
   @popRedo()
@@ -753,7 +753,7 @@ Editor::spliceOut = (node) ->
   dropletDocument = node.getDocument()
 
   if dropletDocument?
-    operation = node.getDocument().remove node, [@cursor]
+    operation = node.getDocument().remove node, (if dropletDocument is @tree then [@cursor] else [])
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
 
     # Remove the floating dropletDocument if it is now
@@ -784,7 +784,7 @@ Editor::spliceIn = (node, location) ->
 
   if dropletDocument?
     @prepareNode node, container
-    operation = dropletDocument.insert location, node, [@cursor]
+    operation = dropletDocument.insert location, node, (if dropletDocument is @tree then [@cursor] else [])
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     return operation
   else
