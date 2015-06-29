@@ -230,6 +230,7 @@ exports.Parser = class Parser
 
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
+      block.classes = ['__comment__', 'block-only']
 
     return block
 
