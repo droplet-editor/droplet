@@ -4290,6 +4290,7 @@ hook 'populate', 0, ->
   @gutter.appendChild @lineNumberWrapper
 
   @gutterVersion = -1
+  @lastGutterWidth = null
 
   @lineNumberTags = {}
 
@@ -4368,7 +4369,10 @@ Editor::setAnnotations = (annotations) ->
   @redrawGutter false
 
 Editor::resizeGutter = ->
-  @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+  unless @lastGutterWidth is @aceEditor.renderer.$gutterLayer.gutterWidth
+    @lastGutterWidth = @aceEditor.renderer.$gutterLayer.gutterWidth
+    @gutter.style.width = @lastGutterWidth + 'px'
+    return @resize()
   @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
     (@view.getViewNodeFor(@tree).totalBounds?.bottom?() ? 0) +
     (@options.extraBottomHeight ? @fontSize))}px"
