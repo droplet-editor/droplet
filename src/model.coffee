@@ -110,6 +110,8 @@ exports.List = class List
     else
       return false
 
+  getDocument: -> @start.getDocument()
+
   # ## insert ##
   # Insert another list into us
   # and return an (undoable) record
@@ -831,16 +833,16 @@ exports.Token = class Token
 
   getDocument: ->
     head = @container ? @
-    until head instanceof Document
+    until not head? or head instanceof Document
       head = head.parent
     return head
 
   getLocation: ->
     count = 0
     head = @
-    document = @getDocument()
+    dropletDocument = @getDocument()
 
-    until head is document.start
+    until head is dropletDocument.start
       head = head.prev
       count += 1
 
