@@ -769,8 +769,8 @@ Editor::spliceIn = (node, location) ->
   @pushUndo operation
   return operation
 
-Editor::replace = (before, after) ->
-  operation = @tree.replace before, after
+Editor::replace = (before, after, updates) ->
+  operation = @tree.replace before, after, updates
   @pushUndo operation
   return operation
 
@@ -1774,7 +1774,7 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
 #   -> Fall back to raw reparsing the parent with unparenthesized text
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
-Editor::reparse = (list, recovery, originalTrigger = list) ->
+Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -1782,13 +1782,13 @@ Editor::reparse = (list, recovery, originalTrigger = list) ->
     return if list.start.next is list.end
 
     originalText = list.textContent()
-    @reparse new model.List(list.start.next, list.end.prev), recovery, originalTrigger
+    @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
     # repopulate with the original text and try again.
-    unless @reparse list.parent, recovery, originalTrigger
+    unless @reparse list.parent, recovery, updates, originalTrigger
       @populateSocket list, originalText
-      @reparse list.parent, recovery, originalTrigger
+      @reparse list.parent, recovery, updates, originalTrigger
     return
 
   parent = list.start.parent
@@ -1813,7 +1813,7 @@ Editor::reparse = (list, recovery, originalTrigger = list) ->
 
       # Attempt to bubble up to the parent
       if parent?
-        return @reparse parent, recovery, originalTrigger
+        return @reparse parent, recovery, updates, originalTrigger
       else
         @markBlock originalTrigger, {color: '#F00'}
         return false
@@ -1827,7 +1827,7 @@ Editor::reparse = (list, recovery, originalTrigger = list) ->
   newList.traverseOneLevel (head) =>
     @prepareNode head, parent
 
-  @replace list, newList
+  @replace list, newList, updates
 
   @redrawMain()
   return true
@@ -2296,7 +2296,7 @@ hook 'mousedown', 3, (point, event, state) ->
 # CURSOR OPERATION SUPPORT
 # ================================
 hook 'populate', 0, ->
-  @cursor = new model.Location 0, 0, 'documentStart', 0
+  @cursor = new model.Location 0, 'documentStart'
 
 Editor::validCursorPosition = (destination) ->
   return destination.type in ['documentStart', 'indentStart'] or
@@ -2307,12 +2307,6 @@ Editor::validCursorPosition = (destination) ->
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   if destination? and not (destination instanceof model.Location)
     destination = destination.getLocation()
-
-  # If the cursor was at a text input, reparse the old one
-  if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor()
-    @hiddenInput.blur()
-    @dropletElement.focus()
 
   # Abort if there is no destination (usually means
   # someone wants to travel outside the document)
@@ -2327,7 +2321,15 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     destination = (if direction is 'after' then destination.next else destination.prev)
     return unless destination?
 
-  @cursor = destination.getLocation()
+  destination = destination.getLocation()
+
+  # If the cursor was at a text input, reparse the old one
+  if @cursorAtSocket() and not @cursor.is(destination)
+    @reparse @getCursor(), null, [destination]
+    @hiddenInput.blur()
+    @dropletElement.focus()
+
+  @cursor = destination
 
   @redrawMain()
   @highlightFlashShow()
@@ -2336,7 +2338,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
     @undoCapture()
-    @hiddenInput.value = destination.container.textContent()
+    @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
     @setTextSelectionRange 0, @hiddenInput.value.length
 
@@ -2357,7 +2359,7 @@ Editor::determineCursorPosition = ->
     return new @draw.Point bound.x, bound.y
 
   else
-    line = @getCursor().getLocation().row - cursor.parent.getLocation().row
+    line = @getCursor().getTextLocation().row - cursor.parent.getTextLocation().row
     bound = @view.getViewNodeFor(cursor.parent).bounds[line]
     return new @draw.Point bound.x, bound.bottom()
 
@@ -3227,7 +3229,7 @@ Editor::markBlock = (block, style) ->
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
 # with the given style.
 Editor::mark = (location, style) ->
-  block = @tree.getFromLocation location
+  block = @tree.getFromTextLocation location
   block = block.container ? block
 
   # `key` is a unique identifier for this

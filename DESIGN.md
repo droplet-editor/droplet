@@ -1,4 +1,4 @@
-ICE Editor Architecture
+Droplet Editor Architecture
 =======================
 
 ![architecture](arch.png)
@@ -7,13 +7,13 @@ Ice Editor has five files: `model.coffee`, `view.coffee`, `controller.coffee`, `
 
 model.coffee
 ------------
-`model.coffee` contains the class definitions for ICE editor data. ICE editor data is a linked list of tokens, some of which are XML-style markup (blockStart, blockEnd, etc.). When text is parsed into this linked list, every character (with the exception of leading whitespace) must go into some text token, so reserialization into text simply involves throwing markup away and concatenating the text tokens (except for leading whitespace, which is reinserted).
+`model.coffee` contains the class definitions for Droplet editor data. Droplet editor data is a linked list of tokens, some of which are XML-style markup (blockStart, blockEnd, etc.). When text is parsed into this linked list, every character (with the exception of leading whitespace) must go into some text token, so reserialization into text simply involves throwing markup away and concatenating the text tokens (except for leading whitespace, which is reinserted).
 
 Every data class will have an associated rendering class in view.coffee, and each data object will contain a pointer to an instance of the corresponding view class. This is so that data generated during rendering can be persistent, as the controller needs to know some things for hit testing.
 
 view.coffee
 -----------
-`view.coffee` contains the class definitions for the ICE editor renderers. As mentioned before, each data class in `model.coffee` retains a poiner to a corresponding renderer object.
+`view.coffee` contains the class definitions for the Droplet editor renderers. As mentioned before, each data class in `model.coffee` retains a poiner to a corresponding renderer object.
 
 Rendering is done line-by-line. Each block computes its desired bounding box *on each line*, then draws a path that connects all the bounding boxes.
 
@@ -35,7 +35,7 @@ All undo operations are object whose classes descend from `UndoOperation`. They 
 
 parser.coffee
 -------------
-`parser.coffee` is a utility wrapper for ICE editor parsers. It defines a `Parser` class, which can be instantiated on a parsing function. The parsing function is expected to return an array of markup with locations (e.g. "blockStart at location 5"), and the utility wrapper will generated the linked list from this markup, automatically splicing the original text into `TextToken`s between the returned markup.
+`parser.coffee` is a utility wrapper for Droplet editor parsers. It defines a `Parser` class, which can be instantiated on a parsing function. The parsing function is expected to return an array of markup with locations (e.g. "blockStart at location 5"), and the utility wrapper will generated the linked list from this markup, automatically splicing the original text into `TextToken`s between the returned markup.
 
 coffee.coffee
 -------------

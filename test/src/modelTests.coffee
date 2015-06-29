@@ -28,7 +28,7 @@ describe 'Model',->
     assert.strictEqual c.prev, a, 'remove removes token'
 
   it 'should be able to do proper parenting', ->
-    cont1 = new model.Container()
+    cont1 = new model.Document()
     cont2 = new model.Container()
 
     a = cont1.start

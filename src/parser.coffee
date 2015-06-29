@@ -72,13 +72,14 @@ exports.Parser = class Parser
 
     @detectParenWrap document
 
+
+    # Correct parent tree
+    document.correctParentTree()
+
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
     stripFlaggedBlocks document
 
-    # Correct parent tree and return.
-    document.correctParentTree()
-    document.isRoot = true
     return document
 
   markRoot: ->

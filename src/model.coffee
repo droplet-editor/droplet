@@ -228,14 +228,15 @@ exports.List = class List
     # lengths or coordinates changed
     record.location = location.getLocation()
 
-    updates.forEach((x, i) =>
+    updates.forEach (x, i) =>
       x.set(updateTokens[i].getLocation())
-    )
 
     # Return the undo operation
     return record
 
   replace: (before, after, updates = []) ->
+    updateTextLocations = updates.map((x) => @getFromLocation(x).getTextLocation())
+
     beforeStart = before.start.getLocation()
     beforeEnd = before.end.getLocation()
 
@@ -252,6 +253,9 @@ exports.List = class List
 
     afterStart = after.start.getLocation()
     afterEnd = after.end.getLocation()
+
+    updates.forEach (x, i) =>
+      x.set(@getFromTextLocation(updateTextLocations[i]).getLocation())
 
     return new ReplaceOperation(
       beforeStart, before.clone(), beforeEnd,
@@ -441,6 +445,10 @@ exports.Container = class Container extends List
   # with the container's type
   getLocation: ->
     location = @start.getLocation()
+    location.type = @type
+    return location
+  getTextLocation: ->
+    location = @start.getTextLocation()
     location.type = @type
     return location
 
@@ -646,9 +654,21 @@ exports.Container = class Container extends List
   clearLineMarks: ->
     @lineMarkStyles = []
 
-  # ## getFromLocation ##
-  # Given a DropletLocation, find the token at that row, column, and length.
   getFromLocation: (location) ->
+    head = @start
+    for [0...location.count]
+      head = head.next
+
+    if location.type is head.type
+      return head
+    else if location.type is head.container.type
+      return head.container
+    else
+      throw new Error "Could not retrieve location #{location}"
+
+  # ## getFromTextLocation ##
+  # Given a TextLocation, find the token at that row, column, and length.
+  getFromTextLocation: (location) ->
     head = @start
     best = head
 
@@ -787,8 +807,8 @@ exports.Token = class Token
       head = head.parent
     return prefix
 
-  getLocation: ->
-    location = new DropletLocation(); head = @prev
+  getTextLocation: ->
+    location = new TextLocation(); head = @prev
 
     location.type = @type
     if @ instanceof StartToken or @ instanceof EndToken
@@ -809,10 +829,39 @@ exports.Token = class Token
 
     return location
 
+  getDocument: ->
+    head = @container ? @
+    until head instanceof Document
+      head = head.parent
+    return head
+
+  getLocation: ->
+    count = 0
+    head = @
+    document = @getDocument()
+
+    until head is document.start
+      head = head.prev
+      count += 1
+
+    return new Location count, @type
+
   stringify: -> ''
   serialize: -> ''
 
-exports.Location = class DropletLocation
+exports.Location = class Location
+  constructor: (@count, @type) ->
+
+  toString: -> "#{@count}, #{@type}"
+
+  set: (other) -> @count = other.count; @type = other.type
+
+  is: (other) ->
+    unless other instanceof Location
+      other = other.getLocation()
+    return other.count is @count and other.type is @type
+
+exports.TextLocation = class TextLocation
   constructor: (
     @row = 0,
     @col = 0,
@@ -829,12 +878,12 @@ exports.Location = class DropletLocation
     @length = other.length
 
   is: (other) ->
-    unless other instanceof DropletLocation
+    unless other instanceof TextLocation
       other = other.getLocation()
 
     answer = other.row is @row and other.col is @col and
 
-    if @type? and other.rtype?
+    if @type? and other.type?
       answer = answer and @type is other.type
 
     if @length? and other.length?
