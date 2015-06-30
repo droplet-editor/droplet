@@ -159,8 +159,6 @@ To have your parser actually put blocks in, you will need to do some things in t
 
   # Configure the block you're about to add (all optional)
   precedence: Number
-  accepts: {'string': Number} # Maps class names (from block 'classes' array) to an acceptance level
-                              # (see "acceptance levels")
   classes: [] # Array of strings
 })
 
