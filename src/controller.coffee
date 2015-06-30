@@ -38,6 +38,7 @@ Y_KEY = 89
 
 META_KEYS = [91, 92, 93, 223, 224]
 CONTROL_KEYS = [17, 162, 163]
+FLOATING_BLOCK_ALPHA = 0.75
 
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
@@ -443,6 +444,9 @@ Editor::redrawMain = (opts = {}) ->
     if opts.boundingRectangle?
       @mainCtx.restore()
 
+    # Draw the cursor (if exists, and is inserted)
+    @redrawCursors(); @redrawHighlights()
+
     for binding in editorBindings.redraw_main
       binding.call this, layoutResult
 
@@ -782,7 +786,11 @@ Editor::replace = (before, after, updates) ->
 Editor::correctCursor = ->
   cursor = @tree.getFromLocation(@cursor)
   unless @validCursorPosition cursor
-    @setCursor cursor
+    until @validCursorPosition(cursor) and cursor.type isnt 'socketStart'
+      cursor = cursor.next
+    until @validCursorPosition(cursor) and cursor.type isnt 'socketStart'
+      cursor = cursor.prev
+    @cursor = cursor.getLocation()
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
