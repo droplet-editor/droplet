@@ -1,6 +1,6 @@
 # Droplet controller.
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License.
 
 helper = require './helper.coffee'
@@ -26,12 +26,6 @@ CURSOR_UNFOCUSED_OPACITY = 0.5
 DEBUG_FLAG = false
 DROPDOWN_SCROLLBAR_PADDING = 17
 
-ANY_DROP = helper.ANY_DROP
-BLOCK_ONLY = helper.BLOCK_ONLY
-MOSTLY_BLOCK = helper.MOSTLY_BLOCK
-MOSTLY_VALUE = helper.MOSTLY_VALUE
-VALUE_ONLY = helper.VALUE_ONLY
-
 BACKSPACE_KEY = 8
 TAB_KEY = 9
 ENTER_KEY = 13
@@ -40,6 +34,7 @@ UP_ARROW_KEY = 38
 RIGHT_ARROW_KEY = 39
 DOWN_ARROW_KEY = 40
 Z_KEY = 90
+Y_KEY = 89
 
 META_KEYS = [91, 92, 93, 223, 224]
 CONTROL_KEYS = [17, 162, 163]
@@ -50,43 +45,6 @@ if typeof(window) isnt 'undefined' and window.navigator?.userAgent
 isOSX = /OS X/.test(userAgent)
 command_modifiers = if isOSX then META_KEYS else CONTROL_KEYS
 command_pressed = (e) -> if isOSX then e.metaKey else e.ctrlKey
-
-extend_ = (a, b) ->
-  obj = {}
-
-  for key, value of a
-    obj[key] = value
-
-  for key, value of b
-    obj[key] = value
-
-  return obj
-
-deepCopy = (a) ->
-  if a instanceof Object
-    newObject = {}
-
-    for key, val of a
-      newObject[key] = deepCopy val
-
-    return newObject
-
-  else
-    return a
-
-deepEquals = (a, b) ->
-  if a instanceof Object
-    for own key, val of a
-      unless deepEquals b[key], val
-        return false
-
-    for own key, val of b when not key of a
-      unless deepEquals a[key], val
-        return false
-
-    return true
-  else
-    return a is b
 
 # FOUNDATION
 # ================================
@@ -227,12 +185,11 @@ exports.Editor = class Editor
     @bindings = {}
 
     # Instantiate an ICE editor view
-    @view = new view.View extend_ @standardViewSettings, respectEphemeral: true
-    @paletteView = new view.View extend_ @standardViewSettings, {
+    @view = new view.View @standardViewSettings
+    @paletteView = new view.View helper.extend {}, @standardViewSettings, {
       showDropdowns: @options.showDropdownInPalette ? false
-      respectEphemeral: true
     }
-    @dragView = new view.View extend_ @standardViewSettings, respectEphemeral: false
+    @dragView = new view.View @standardViewSettings
 
     boundListeners = []
 
@@ -294,9 +251,7 @@ exports.Editor = class Editor
 
     # ## Document initialization
     # We start of with an empty document
-    @tree = new model.Segment()
-    @tree.isRoot = true
-    @tree.start.insert @cursor
+    @tree = new model.Document()
 
     @resizeBlockMode()
 
@@ -400,12 +355,11 @@ exports.Editor = class Editor
 
     @rebuildPalette()
 
-
-Editor::resize = ->
-  if @currentlyUsingBlocks
-    @resizeBlockMode()
-  else
-    @resizeTextMode()
+  resize: ->
+    if @currentlyUsingBlocks
+      @resizeBlockMode()
+    else
+      @resizeTextMode()
 
 
 # RENDERING CAPABILITIES
@@ -478,8 +432,8 @@ Editor::redrawMain = (opts = {}) ->
       @mainCanvas.width,
       @mainCanvas.height
     ), {
-      grayscale: 0
-      selected: 0
+      grayscale: false
+      selected: false
       noText: (opts.noText ? false)
     }
 
@@ -532,7 +486,18 @@ Editor::redrawHighlights = ->
     else
       delete @extraMarks[id]
 
+  # If there is an block that is being dragged,
+  # draw it in gray
+  if @draggingBlock? and @inTree @draggingBlock
+    @view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
+      @scrollOffsets.main.x,
+      @scrollOffsets.main.y,
+      @mainCanvas.width,
+      @mainCanvas.height
+    ), {grayscale: true}
+
   @redrawCursors()
+  @redrawLassoHighlight()
 
 Editor::clearCursorCanvas = ->
   @cursorCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
@@ -540,10 +505,10 @@ Editor::clearCursorCanvas = ->
 Editor::redrawCursors = ->
   @clearCursorCanvas()
 
-  if @textFocus?
+  if @cursorAtSocket()
     @redrawTextHighlights()
 
-  else unless @lassoSegment?
+  else unless @lassoSelection?
     @drawCursor()
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
@@ -659,31 +624,34 @@ Editor::hitTest = (point, block, view = @view) ->
   if @readOnly
     return null
 
-  head = block.start; seek = block.end
+  head = block.start
+  seek = block.end
+  result = null
 
   until head is seek
     if head.type is 'blockStart' and view.getViewNodeFor(head.container).path.contains point
+      result = head.container
       seek = head.container.end
     head = head.next
 
   # If we had a child hit, return it.
-  if head isnt block.end
-    return head.container
-
-  # If we didn't have a child hit, it's possible
-  # that _we_ are the innermost child that hit. See if that's
-  # the case.
-  else if block.type is 'block' and view.getViewNodeFor(block).path.contains point
-    return block
-
-  # Nope, it's not. Answer is null.
-  else return null
+  return result
 
 hook 'mousedown', 10, ->
   x = document.body.scrollLeft
   y = document.body.scrollTop
   @dropletElement.focus()
   window.scrollTo(x, y)
+
+Editor::removeBlankLines = ->
+  # If we have blank lines at the end,
+  # get rid of them
+  head = tail = @tree.end.prev
+  while head?.type is 'newline'
+    head = head.prev
+
+  if head.type is 'newline'
+    @spliceOut new model.List head, tail
 
 # UNDO STACK SUPPORT
 # ================================
@@ -692,185 +660,131 @@ hook 'mousedown', 10, ->
 # fields a populate time
 hook 'populate', 0, ->
   @undoStack = []
+  @redoStack = []
   @changeEventVersion = 0
-
-# The UndoOperation class is the base
-# class for all undo operations.
-class UndoOperation
-  constructor: ->
-
-  # Undo and redo should return
-  # the desired new cursor position.
-  undo: (editor) -> editor.tree.start
-  redo: (editor) -> editor.tree.start
-
-Editor::removeBlankLines = ->
-  # If we have blank lines at the end,
-  # get rid of them
-  head = @tree.end.previousVisibleToken()
-  while head?.type is 'newline'
-    next = head.previousVisibleToken()
-    head.remove()
-    head = next
-
-# addMicroUndoOperation pushes
-# the given operation to the undo stack,
-# and might possibly do some bureaucracy in the future.
-Editor::addMicroUndoOperation = (operation) ->
-  @undoStack.push operation
-  @removeBlankLines()
-
-# The undo function pops and undoes
-# operations from the undo stack until
-# we reach a capture point.
-Editor::undo = ->
-  # If the undo stack is empty, give up
-  if @undoStack.length is 0 then return
-
-  # Otherwise, try to undo the operation
-  operation = @undoStack.pop()
-
-  # If the operation is a capture point, stop.
-  #
-  # NOTE: Right now capture points are signified by the
-  # string 'CAPTURE_POINT'; this may need to be changed
-  # in the future.
-  if operation is 'CAPTURE_POINT' then return
-  else
-    # Otherwise, apply the undo operation and
-    # recurse.
-    @moveCursorTo operation.undo this
-    @undo()
-
-  @redrawMain()
-
-# We'll also allow users to clear
-# the undo stack.
-Editor::clearUndoStack = ->
-  @undoStack.length = 0
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
   if event.which is Z_KEY and command_pressed(event)
-     @undo()
+    @undo()
+  else if event.which is Y_KEY and command_pressed(event)
+    @redo()
+
+class EditorState
+  constructor: (@root, @floats) ->
+
+  equals: (other) ->
+    return false unless @root is other.root and @floats.length is other.floats.length
+    for el, i in @floats
+      return false unless el.position.equals(other.floats[i].position) and el.string is other.floats[i].string
+    return true
+
+Editor::getSerializedEditorState = ->
+  return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> {
+    position: x.position
+    string: x.block.stringify()
+  }
+
+Editor::undo = ->
+  currentValue = @getSerializedEditorState()
+
+  until @undoStack.length is 0 or
+      (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
+      not @getSerializedEditorState().equals(currentValue))
+    operation = @popUndo()
+    if operation instanceof FloatingOperation
+      @performFloatingOperation(operation, 'backward')
+    else
+      @tree.perform(operation, 'backward', [@cursor]) unless operation is 'CAPTURE'
+
+  @popUndo()
+  @redrawMain()
+  return
+
+Editor::pushUndo = (operation) ->
+  @redoStack.length = 0
+  @undoStack.push operation
+
+Editor::popUndo = ->
+  operation = @undoStack.pop()
+  @redoStack.push(operation) if operation?
+  return operation
+
+Editor::popRedo = ->
+  operation = @redoStack.pop()
+  @undoStack.push(operation) if operation?
+  return operation
+
+Editor::redo = ->
+  currentValue = @getSerializedEditorState()
+
+  until @redoStack.length is 0 or
+      (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
+      not @getSerializedEditorState().equals(currentValue))
+    operation = @popRedo()
+    if operation instanceof FloatingOperation
+      @performFloatingOperation(operation, 'forward')
+    else
+      @tree.perform(operation, 'forward', [@cursor]) unless operation is 'CAPTURE'
+
+  @popRedo()
+  @redrawMain()
+  return
+
+Editor::undoCapture = ->
+  @pushUndo 'CAPTURE'
 
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
-# Set up the undo operation for
-# block moving.
-class PickUpOperation extends UndoOperation
-  constructor: (block) ->
-    @block = block.clone()
-    beforeToken = block.start.prev
-
-    # For the "before" location, we don't actually want
-    # the thing before; we want the place at which we can
-    # place the block to get it back to what it used to be.
-    while beforeToken?.prev? and beforeToken.type in ['newline', 'segmentStart', 'cursor']
-      beforeToken = beforeToken.prev
-
-    @before = beforeToken?.getSerializedLocation() ? null
-
-  undo: (editor) ->
-    # If the block used to be at null, we don't need to do anything.
-    unless @before? then return
-
-    # Move a clone into position.
-    editor.spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @before
-
-    # If the block was the lasso select, register it
-    # as such.
-    if @block.type is 'segment' and @block.isLassoSegment
-      editor.lassoSegment = @block
-
-    # Move the cursor to the end of it.
-    return clone.end
-
-  redo: (editor) ->
-    # If the operation was a no-op, redo is a no-op.
-    unless @before? then return
-
-    # Find the block we want to remove
-    blockStart = editor.tree.getTokenAtLocation @before
-    until blockStart.type is @block.start.type then blockStart = blockStart.next
-
-    # Move it to null.
-    if @block.start.type is 'segment'
-      editor.spliceOut blockStart.container
-
-    else
-      editor.spliceOut blockStart.container
-
-    # Move the cursor somewhere close to what we
-    # just deleted.
-    return editor.tree.getTokenAtLocation @before
-
-class DropOperation extends UndoOperation
-  constructor: (block, dest) ->
-    @block = block.clone()
-    @dest = dest?.getSerializedLocation() ? null
-
-    if dest?.type is 'socketStart'
-      @displacedSocketText = dest.container.contents()
-    else @displacedSocketText = null
-
-  undo: (editor) ->
-    # If the operation was a no-op, undo is a no-op.
-    unless @dest? then return
-
-    # Find the block we want to remove
-    blockStart = editor.tree.getTokenAtLocation @dest
-    until blockStart.type is @block.start.type then blockStart = blockStart.next
-
-    # Move it to null.
-    editor.spliceOut blockStart.container
-
-    # We may need to replace some of displaced
-    # socket text from dropping a block
-    # into a socket. If so, do so.
-    if @displacedSocketText?
-      editor.tree.getTokenAtLocation(@dest).insert @displacedSocketText.clone()
-
-    # Move the cursor somewhere close to what we
-    # just deleted.
-    return editor.tree.getTokenAtLocation @dest
-
-  redo: (editor) ->
-    # If the operation was a no-op, redo is a no-op.
-    unless @dest? then return
-
-    # Move a clone into position.
-    editor.spliceIn (clone = @block.clone()), editor.tree.getTokenAtLocation @dest
-
-    # Move the cursor to the end of it.
-    return clone.end
-
 Editor::spliceOut = (node) ->
+  # Make an empty list if we haven't been
+  # passed one
+  unless node instanceof model.List
+    node = new model.List node, node
+
+  operation = null
+
+  if @inTree node
+    operation = @tree.remove node, [@cursor]
+    @pushUndo operation
+
   @prepareNode node, null
-  node.spliceOut()
+  return operation
 
 Editor::spliceIn = (node, location) ->
-  container = location.container ? location.visParent()
+  # Track changes in the cursor by temporarily
+  # using a pointer to it
+  container = location.container ? location.parent
   if container.type is 'block'
-    container = container.visParent()
+    container = container.parent
+  else if container.type is 'socket' and
+      container.start.next isnt container.end
+    @spliceOut new model.List container.start.next, container.end.prev
 
   @prepareNode node, container
-  node.spliceIn location
+  operation = null
+  operation = @tree.insert location, node, [@cursor]
+  @pushUndo operation
+  return operation
 
+Editor::replace = (before, after, updates) ->
+  operation = @tree.replace before, after, updates
+  @pushUndo operation
+  return operation
 
 Editor::prepareNode = (node, context) ->
-  leading = node.getLeadingText()
-  if node.start.next is node.end.prev
-    trailing = null
-  else
-    trailing = node.getTrailingText()
+  if node instanceof model.Container
+    leading = node.getLeadingText()
+    if node.start.next is node.end.prev
+      trailing = null
+    else
+      trailing = node.getTrailingText()
 
-  [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
-    context?.getReader?() ? null
+    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
+      context?.getReader?() ? null
 
-  node.setLeadingText leading; node.setTrailingText trailing
-
+    node.setLeadingText leading; node.setTrailingText trailing
 
 
 # At population-time, we will
@@ -960,12 +874,11 @@ hook 'mousedown', 1, (point, event, state) ->
   # deal with the click.
   if hitTestResult?
     # Record the hit test result (the block we want to pick up)
-    @setTextInputFocus null
     @clickedBlock = hitTestResult
     @clickedBlockPaletteEntry = null
 
     # Move the cursor somewhere nearby
-    @moveCursorTo @clickedBlock.start.next
+    @setCursor @clickedBlock.start.next
 
     # Record the point at which is was clicked (for clickedBlock->draggingBlock)
     @clickedPoint = point
@@ -1043,8 +956,7 @@ hook 'mousemove', 1, (point, event, state) ->
       unless @draggingOffset?
         @draggingOffset = viewNode.bounds[0].upperLeftCorner().from mainPoint
 
-    @draggingBlock.ephemeral = true
-    @draggingBlock.clearLineMarks()
+    # TODO figure out what to do with lists here
 
     # Draw the new dragging block on the drag canvas.
     #
@@ -1110,19 +1022,19 @@ hook 'mousemove', 1, (point, event, state) ->
 
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
-    if drag.type is 'segment'
+    if drag.type is 'list'
       return helper.FORBID
     else
       return @mode.drop drag.getReader(), drop.getReader(), null, null
   else if drop.type is 'block'
-    if drop.visParent().type is 'socket'
+    if drop.parent.type is 'socket'
       return helper.FORBID
     else
       next = drop.nextSibling()
-      return @mode.drop drag.getReader(), drop.visParent().getReader(), drop.getReader(), if next then next.getReader() else null
+      return @mode.drop drag.getReader(), drop.parent.getReader(), drop.getReader(), next?.getReader?()
   else
     next = drop.firstChild()
-    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader(), if next then next.getReader() else null
+    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader(), next?.getReader?()
 
 # On mousemove, if there is a dragged block, we want to
 # translate the drag canvas into place,
@@ -1191,7 +1103,9 @@ hook 'mousemove', 0, (point, event, state) ->
 
       # Update highlight if necessary.
       if best isnt @lastHighlight
-        @clearHighlightCanvas()
+        # TODO if this becomes a performance issue,
+        # pull the drop highlights out into a new canvas.
+        @redrawHighlights()
 
         if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
 
@@ -1258,18 +1172,11 @@ hook 'mouseup', 1, (point, event, state) ->
         text = prefix + text + suffix
 
         @aceEditor.onTextInput text
-    else if  @lastHighlight?
+    else if @lastHighlight?
+      @undoCapture()
 
-      if @inTree @draggingBlock
-        # Since we removed this from the tree,
-        # we will need to log an undo operation
-        # to put it back in.
-        @addMicroUndoOperation 'CAPTURE_POINT'
-
-        @addMicroUndoOperation new PickUpOperation @draggingBlock
-
-        # Remove the block from the tree.
-        @spliceOut @draggingBlock
+      # Remove the block from the tree.
+      @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
 
@@ -1283,19 +1190,14 @@ hook 'mouseup', 1, (point, event, state) ->
       # We will need to log undo operations here too.
       switch @lastHighlight.type
         when 'indent', 'socket'
-          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.start
-          @spliceIn @draggingBlock, @lastHighlight.start #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.start
         when 'block'
-          @addMicroUndoOperation new DropOperation @draggingBlock, @lastHighlight.end
-          @spliceIn @draggingBlock, @lastHighlight.end #MUTATION
+          @spliceIn @draggingBlock, @lastHighlight.end
         else
           if @lastHighlight is @tree
-            @addMicroUndoOperation new DropOperation @draggingBlock, @tree.start
-            @spliceIn @draggingBlock, @tree.start #MUTATION
+            @spliceIn @draggingBlock, @tree.start
 
-      # Move the cursor to the position we just
-      # dropped the block
-      @moveCursorTo @draggingBlock.end, true
+      futureCursorLocation = @draggingBlock.start.getLocation()
 
       # Reparse the parent if we are
       # in a socket
@@ -1303,68 +1205,15 @@ hook 'mouseup', 1, (point, event, state) ->
       # TODO "reparseable" property, bubble up
       # TODO performance on large programs
       if @lastHighlight.type is 'socket'
-        @reparseRawReplace @draggingBlock.parent.parent
+        @reparse @draggingBlock.parent.parent
 
-      else
-        # If what we've dropped has a socket in it,
-        # focus it.
-        head = @draggingBlock.start
-        until head.type is 'socketStart' and head.container.editable() or head is @draggingBlock.end
-          head = head.next
-
-        if head.type is 'socketStart'
-          @setTextInputFocus null
-          @setTextInputFocus head.container
+      @setCursor futureCursorLocation
 
       # Fire the event for sound
       @fireEvent 'block-click'
 
       # Now that we've done that, we can annul stuff.
       @endDrag()
-
-Editor::reparseRawReplace = (oldBlock, originalTrigger = oldBlock) ->
-  # Get the parent in case we need to bubble
-  # up later
-  parent = oldBlock.visParent()
-
-  # Attempt to parse the block we are given out-of-context
-  try
-    newParse = @mode.parse(oldBlock.stringify(@mode), {
-      wrapAtRoot: true
-      context: oldBlock.parseContext
-    })
-    newBlock = newParse.start.next.container
-    if newParse.start.next.container.end is newParse.end.prev and
-        newBlock?.type is 'block'
-      @addMicroUndoOperation new ReparseOperation oldBlock, newBlock
-
-      # Recover the cursor position before and after.
-      # TODO upon refactoring, the cursor should no longer
-      # need to be recovered; it should be a row/col pointer
-      # all the time.
-      pos = @getRecoverableCursorPosition()
-      newBlock.rawReplace oldBlock
-      @recoverCursorPosition pos
-
-  catch e
-    # Attempt to bubble up the reparse, passing along
-    # the original block that triggered the reparse.
-    if parent?
-      return @reparseRawReplace parent, originalTrigger
-    else
-      # Mark the original triggering block as having caused
-      # an error.
-      @markBlock originalTrigger, {color: '#F00'}
-      return false
-
-Editor::findForReal = (token) ->
-  head = @tree.start; i = 0
-  until head is token or head is @tree.end or not head?
-    head = head.next; i++
-  if head is token
-    return i
-  else
-    return null
 
 # FLOATING BLOCK SUPPORT
 # ================================
@@ -1377,45 +1226,12 @@ hook 'populate', 0, ->
 class FloatingBlockRecord
   constructor: (@block, @position) ->
 
-# ## Undo operations
-# We have two: FromFloating and ToFloating.
-# They mimick block move pick/drop operations
-# except that they also interact with the @floatingBlocks array.
-class ToFloatingOperation extends DropOperation
-  constructor: (block, position, editor) ->
-    # Copy the position we got
-    @position = new editor.draw.Point position.x, position.y
-
-    # Do all the normal blockMove stuff.
-    super block, null
-
-  undo: (editor) ->
-    editor.floatingBlocks.pop()
-
-    super
-
-  redo: (editor) ->
-    editor.floatingBlocks.push new FloatingBlockRecord @block.clone(), @position
-
-    super
-
-class FromFloatingOperation
-  constructor: (record, editor) ->
-    @position = new editor.draw.Point record.position.x, record.position.y
-    @block = record.block.clone()
-
-  undo: (editor) ->
-    editor.floatingBlocks.push new FloatingBlockRecord @block.clone(), @position
-
-    return null
-
-  redo: (editor) ->
-    editor.floatingBlocks.pop()
-
-    return null
-
 Editor::inTree = (block) ->
-  if block.container? then block = block.container
+  if (block instanceof model.List) and not
+      (block instanceof model.Container)
+    block = block.start
+
+  block = block.container ? block
 
   until block is @tree or not block?
     block = block.parent
@@ -1436,15 +1252,9 @@ hook 'mouseup', 0, (point, event, state) ->
     renderPoint = @trackerPointToMain trackPoint
     palettePoint = @trackerPointToPalette trackPoint
 
-    # Move the cursor out of the block first
+    # Remove the block from the tree.
     if @inTree @draggingBlock
-      @moveCursorTo @draggingBlock.end
-
-      @addMicroUndoOperation 'CAPTURE_POINT'
-
-      @addMicroUndoOperation new PickUpOperation @draggingBlock
-
-      # Remove the block from the tree.
+      @undoCapture()
       @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
@@ -1453,8 +1263,8 @@ hook 'mouseup', 0, (point, event, state) ->
        0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
        (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
        0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
-      if @draggingBlock is @lassoSegment
-        @lassoSegment = null
+      if @draggingBlock is @lassoSelection
+        @lassoSelection = null
 
       @endDrag()
       return
@@ -1464,7 +1274,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    @addMicroUndoOperation new ToFloatingOperation @draggingBlock, renderPoint, this
+    @pushUndo new FloatingOperation @floatingBlocks.length, @draggingBlock, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
     @floatingBlocks.push new FloatingBlockRecord(
@@ -1481,6 +1291,18 @@ hook 'mouseup', 0, (point, event, state) ->
     @redrawMain()
     @redrawHighlights()
 
+Editor::performFloatingOperation = (op, direction) ->
+  if (op.type is 'create') is (direction is 'forward')
+    @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
+      op.block.clone()
+      op.position
+    )
+  else
+    @floatingBlocks.splice op.index, 1
+
+class FloatingOperation
+  constructor: (@index, @block, @position, @type) ->
+
 # On mousedown, we can hit test for floating blocks.
 hook 'mousedown', 5, (point, event, state) ->
   # If someone else has already taken this click, pass.
@@ -1494,7 +1316,6 @@ hook 'mousedown', 5, (point, event, state) ->
     hitTestResult = @hitTest @trackerPointToMain(point), record.block
 
     if hitTestResult?
-      @setTextInputFocus null
       @clickedBlock = record.block
       @clickedPoint = point
 
@@ -1506,12 +1327,9 @@ hook 'mousemove', 7, (point, event, state) ->
   if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
     for record, i in @floatingBlocks
       if record.block is @clickedBlock
-        # Add the undo operation associated
-        # with picking up this floating block
-        unless state.addedCapturePoint
-          @addMicroUndoOperation 'CAPTURE_POINT'
-          state.addedCapturePoint = true
-        @addMicroUndoOperation new FromFloatingOperation record, this
+        @undoCapture()
+
+        @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
 
         @floatingBlocks.splice i, 1
 
@@ -1552,8 +1370,8 @@ hook 'populate', 0, ->
 
 parseBlock = (mode, code) =>
   block = mode.parse(code).start.next.container
-  block.spliceOut()
-  block.parent = null
+  block.start.prev = block.end.next = null
+  block.setParent null
   return block
 
 Editor::setPalette = (paletteGroups) ->
@@ -1654,7 +1472,6 @@ hook 'mousedown', 6, (point, event, state) ->
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
       if hitTestResult?
-        @setTextInputFocus null
         @clickedBlock = entry.block
         @clickedPoint = point
         @clickedBlockPaletteEntry = entry
@@ -1734,36 +1551,6 @@ hook 'rebuild_palette', 1, ->
 # TEXT INPUT SUPPORT
 # ================================
 
-# Text input has two undo events: text change
-# and text reparse.
-class TextChangeOperation extends UndoOperation
-  constructor: (socket, @before, editor) ->
-    @after = socket.stringify(editor.mode.empty)
-    @socket = socket.start.getSerializedLocation()
-
-  undo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
-    editor.populateSocket socket, @before
-
-  redo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
-    editor.populateSocket @socket, @after
-
-class TextReparseOperation extends UndoOperation
-  constructor: (socket, @before) ->
-    @after = socket.start.next.container
-    @socket = socket.start.getSerializedLocation()
-
-  undo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
-    editor.spliceOut socket.start.next.container
-    socket.start.insert new model.TextToken @before
-
-  redo: (editor) ->
-    socket = editor.tree.getTokenAtLocation(@socket).container
-    socket.start.append socket.end; socket.notifyChange()
-    editor.spliceIn @after.clone(), socket
-
 # At populate-time, we need
 # to create and append the hidden input
 # we will use for text input.
@@ -1772,13 +1559,13 @@ hook 'populate', 1, ->
   @hiddenInput.className = 'droplet-hidden-input'
 
   @hiddenInput.addEventListener 'focus', =>
-    if @textFocus?
+    if @cursorAtSocket()
       # Must ensure that @hiddenInput is within the client area
       # or else the other divs under @dropletElement will scroll out of
       # position when @hiddenInput receives keystrokes with focus
       # (left and top should not be closer than 10 pixels from the edge)
 
-      bounds = @view.getViewNodeFor(@textFocus).bounds[0]
+      bounds = @view.getViewNodeFor(@getCursor()).bounds[0]
       inputLeft = bounds.x + @mainCanvas.offsetLeft - @scrollOffsets.main.x
       inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
       inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
@@ -1792,7 +1579,6 @@ hook 'populate', 1, ->
 
   # We also need to initialise some fields
   # for knowing what is focused
-  @textFocus = null
   @textInputAnchor = null
 
   @textInputSelecting = false
@@ -1811,8 +1597,8 @@ hook 'populate', 1, ->
   for event in ['input', 'keyup', 'keydown', 'select']
     @hiddenInput.addEventListener event, =>
       @highlightFlashShow()
-      if @textFocus?
-        @populateSocket @textFocus, @hiddenInput.value
+      if @cursorAtSocket()
+        @populateSocket @getCursor(), @hiddenInput.value
 
         @redrawTextInput()
 
@@ -1833,25 +1619,25 @@ last_ = (array) -> array[array.length - 1]
 
 # Redraw function for text input
 Editor::redrawTextInput = ->
-  sameLength = @textFocus.stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
+  sameLength = @getCursor().stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
 
   # Set the value in the model to fit
   # the hidden input value.
-  @populateSocket @textFocus, @hiddenInput.value
+  @populateSocket @getCursor(), @hiddenInput.value
 
-  textFocusView = @view.getViewNodeFor @textFocus
+  textFocusView = @view.getViewNodeFor @getCursor()
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
   # Redraw the main canvas, on top of
   # which we will draw the cursor and
   # highlights.
   if sameLength and startRow is endRow
     line = endRow
-    head = @textFocus.start
+    head = @getCursor().start
 
     until head is @tree.start
       head = head.prev
@@ -1859,7 +1645,7 @@ Editor::redrawTextInput = ->
 
     treeView = @view.getViewNodeFor @tree
 
-    oldp = deepCopy [
+    oldp = helper.deepCopy [
       treeView.glue[line - 1],
       treeView.glue[line],
       treeView.bounds[line].height
@@ -1867,7 +1653,7 @@ Editor::redrawTextInput = ->
 
     treeView.layout 0, @nubbyHeight
 
-    newp = deepCopy [
+    newp = helper.deepCopy [
       treeView.glue[line - 1],
       treeView.glue[line],
       treeView.bounds[line].height
@@ -1875,7 +1661,7 @@ Editor::redrawTextInput = ->
 
     # If the layout has not changed enough to affect
     # anything non-local, only redraw locally.
-    if deepEquals newp, oldp
+    if helper.deepEquals newp, oldp
       rect = new @draw.NoRectangle()
 
       rect.unite treeView.bounds[line - 1] if line > 0
@@ -1895,22 +1681,24 @@ Editor::redrawTextInput = ->
     @redrawMain()
 
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
-  textFocusView = @view.getViewNodeFor @textFocus
+  return unless @cursorAtSocket()
+
+  textFocusView = @view.getViewNodeFor @getCursor()
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-  lines = @textFocus.stringify(@mode).split '\n'
+  lines = @getCursor().stringify(@mode).split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@textFocus.stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
-    (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
+    @mainCtx.measureText(last_(@getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
+    (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@textFocus.stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
-    (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
+    @mainCtx.measureText(last_(@getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
+    (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
   #
@@ -1955,131 +1743,100 @@ escapeString = (str) ->
 
 # Convenience function for setting the text input
 Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) ->
-  if @readOnly
-    return
-
   if focus?.id of @extraMarks
     delete @extraMarks[focus?.id]
 
   @hideDropdown()
 
-  # If there is already a focus, we
-  # need to wrap some things up with it.
-  if @textFocus? and @textFocus isnt focus
+# If we can, try to reparse the focus
+# value.
+#
+# When reparsing occurs, we first try to treat the socket
+# as a separate block (inserting parentheses, etc), then fall
+# back on reparsing it with original text before giving up.
+#
+# For instance:
+#
+# (a * b)
+#   -> edits [b] to [b + c]
+#   -> reparse to b + c
+#   -> inserts with parens to (a * (b + c))
+#   -> finished.
+#
+# OR
+#
+# function (a) {}
+#   -> edits [a] to [a, b]
+#   -> reparse to a, b
+#   -> inserts with parens to function((a, b)) {}
+#   -> FAILS.
+#   -> Fall back to raw reparsing the parent with unparenthesized text
+#   -> Reparses function(a, b) {} with two paremeters.
+#   -> Finsihed.
+Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
+  # Don't reparse sockets. When we reparse sockets,
+  # reparse them first, then try reparsing their parent and
+  # make sure everything checks out.
+  if list.start.type is 'socketStart'
+    return if list.start.next is list.end
 
-    # The first of these is an undo operation;
-    # we need to add this text change to the undo stack.
-    @addMicroUndoOperation 'CAPTURE_POINT'
-    @addMicroUndoOperation new TextChangeOperation @textFocus, @oldFocusValue, @
-    @oldFocusValue = null
+    originalText = list.textContent()
+    @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
 
-    originalText = @textFocus.stringify(@mode)
-    shouldPop = false
-    shouldRecoverCursor = false
-    cursorPosition = cursorParent = null
-
-    if @cursor.hasParent @textFocus.parent
-      shouldRecoverCursor = true
-      cursorPosition = @getRecoverableCursorPosition()
-
-    # The second of these is a reparse attempt.
-    #
-    # If we can, try to reparse the focus
-    # value.
-    #
-    # When reparsing occurs, we first try to treat the socket
-    # as a separate block (inserting parentheses, etc), then fall
-    # back on reparsing it with original text before giving up.
-    #
-    # For instance:
-    #
-    # (a * b)
-    #   -> edits [b] to [b + c]
-    #   -> reparse to b + c
-    #   -> inserts with parens to (a * (b + c))
-    #   -> finished.
-    #
-    # OR
-    #
-    # function (a) {}
-    #   -> edits [a] to [a, b]
-    #   -> reparse to a, b
-    #   -> inserts with parens to function((a, b)) {}
-    #   -> FAILS.
-    #   -> Fall back to raw reparsing the parent with unparenthesized text
-    #   -> Reparses function(a, b) {} with two paremeters.
-    #   -> Finsihed.
-    unless @textFocus.handwritten
-      newParse = null
-      string = @textFocus.stringify(@mode).trim()
-      try
-        newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-      catch
-        if string[0] is string[string.length - 1] and string[0] in ['"', '\'']
-          try
-            string = escapeString string
-            newParse = @mode.parse(unparsedValue = string, wrapAtRoot: false)
-            @populateSocket @textFocus, string
-
-      if newParse? and newParse.start.next.type is 'blockStart' and
-          newParse.start.next.container.end.next is newParse.end
-        # Empty the socket
-        @textFocus.start.append @textFocus.end
-
-        # Splice the other in
-        @spliceIn newParse.start.next.container, @textFocus.start
-
-        @addMicroUndoOperation new TextReparseOperation @textFocus, unparsedValue
-        shouldPop = true
-
-    # See if the parent is still parseable
-    unless @reparseRawReplace @textFocus.parent
-      # If it is not, revert to the original text
-      @populateSocket @textFocus, originalText
-      if shouldPop then @undoStack.pop()
-
-      # Attempt to reparse the parent again with
-      # the original text; otherwise fail.
-      @reparseRawReplace @textFocus.parent
-
-      @redrawMain()
-
-  if shouldRecoverCursor
-    @recoverCursorPosition cursorPosition
-
-  # Now we're done with the old focus,
-  # we can start over.
-  # If we're _unfocusing_, just do so.
-  if not focus?
-    @textFocus = null
-    @redrawMain()
-    @hiddenInput.blur()
-    @dropletElement.focus()
+    # Try reparsing the parent again after the reparse. If it fails,
+    # repopulate with the original text and try again.
+    unless @reparse list.parent, recovery, updates, originalTrigger
+      @populateSocket list, originalText
+      @reparse list.parent, recovery, updates, originalTrigger
     return
 
-  # Record old focus value
-  @oldFocusValue = focus.stringify(@mode)
+  parent = list.start.parent
+  context = (list.start.container ? list.start.parent).parseContext
 
-  # Now create a text token
-  # with the appropriate text to put in it.
-  @textFocus = focus
+  try
+    newList = @mode.parse list.stringifyInPlace(),{
+      wrapAtRoot: parent.type isnt 'socket'
+      context: context
+    }
+  catch e
+    try
+      newList = @mode.parse recovery(list.stringifyInPlace()), {
+        wrapAtRoot: parent.type isnt 'socket'
+        context: context
+      }
+    catch e
+      # Seek a parent that is not a socket
+      # (since we should never reparse just a socket)
+      while parent? and parent.type is 'socket'
+        parent = parent.parent
 
-  # Immediately rerender.
-  @populateSocket focus, focus.stringify(@mode)
+      # Attempt to bubble up to the parent
+      if parent?
+        return @reparse parent, recovery, updates, originalTrigger
+      else
+        @markBlock originalTrigger, {color: '#F00'}
+        return false
 
-  @textFocus.notifyChange()
+  return if newList.start.next is newList.end
 
-  # Move the cursor near this
-  @moveCursorTo focus.end
+  # Exclude the document start and end tags
+  newList = new model.List newList.start.next, newList.end.prev
 
-  # Set the hidden input up to mirror the text.
-  @hiddenInput.value = @textFocus.stringify(@mode)
+  # Prepare the new node for insertion
+  newList.traverseOneLevel (head) =>
+    @prepareNode head, parent
 
+  @replace list, newList, updates
+
+  @redrawMain()
+  return true
+
+Editor::setTextSelectionRange = (selectionStart, selectionEnd) ->
   if selectionStart? and not selectionEnd?
     selectionEnd = selectionStart
 
   # Focus the hidden input.
-  if @textFocus?
+  if @cursorAtSocket()
     @hiddenInput.focus()
     if selectionStart? and selectionEnd?
       @hiddenInput.setSelectionRange selectionStart, selectionEnd
@@ -2093,17 +1850,21 @@ Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) 
   # Redraw.
   @redrawMain(); @redrawTextInput()
 
+Editor::cursorAtSocket = -> @getCursor().type is 'socket'
+
 Editor::populateSocket = (socket, string) ->
-  lines = string.split '\n'
-  socket.start.append socket.end
-  head = socket.start
+  unless socket.textContent() is string
+    lines = string.split '\n'
 
-  for line, i in lines
-    head = head.insert new model.TextToken line
-    unless i + 1 is lines.length
-      head = head.insert new model.NewlineToken()
+    unless socket.start.next is socket.end
+      @spliceOut new model.List socket.start.next, socket.end.prev
 
-  socket.notifyChange()
+    first = last = new model.TextToken lines[0]
+    for line, i in lines when i > 0
+      last = helper.connect new model.NewlineToken(), last
+      last = helper.connect last, new model.TextToken line
+
+    @spliceIn (new model.List(first, last)), socket.start
 
 # Convenience hit-testing function
 Editor::hitTestTextInput = (point, block) ->
@@ -2120,16 +1881,16 @@ Editor::hitTestTextInput = (point, block) ->
 # the text input selection, given
 # points on the main canvas.
 Editor::getTextPosition = (point) ->
-  textFocusView = @view.getViewNodeFor @textFocus
+  textFocusView = @view.getViewNodeFor @getCursor()
 
   row = Math.floor((point.y - textFocusView.bounds[0].y) / (@fontSize + 2 * @view.opts.padding))
 
   row = Math.max row, 0
   row = Math.min row, textFocusView.lineLength - 1
 
-  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @textFocus.hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
+  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
-  lines = @textFocus.stringify(@mode).split('\n')[..row]
+  lines = @getCursor().stringify(@mode).split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
 
   return lines.join('\n').length
@@ -2141,8 +1902,8 @@ Editor::setTextInputAnchor = (point) ->
 Editor::selectDoubleClick = (point) ->
   position = @getTextPosition point
 
-  before = @textFocus.stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
-  after = @textFocus.stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
+  before = @getCursor().stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
+  after = @getCursor().stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
 
   @textInputAnchor = position - before
   @textInputHead = position + after
@@ -2168,15 +1929,11 @@ hook 'mousedown', 2, (point, event, state) ->
 
   # If they have clicked a socket,
   # focus it.
-  unless hitTestResult is @textFocus
-    @setTextInputFocus null
-    @redrawMain()
-    hitTestResult = @hitTestTextInput mainPoint, @tree
-
   if hitTestResult?
-    unless hitTestResult is @textFocus
+    unless hitTestResult is @getCursor()
       if hitTestResult.editable()
-        @setTextInputFocus hitTestResult
+        @undoCapture()
+        @setCursor hitTestResult
         @redrawMain()
 
       if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
@@ -2186,7 +1943,7 @@ hook 'mousedown', 2, (point, event, state) ->
       @textInputSelecting = false
 
     else
-      if @textFocus.hasDropdown() and
+      if @getCursor().hasDropdown() and
           mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
         @showDropdown()
 
@@ -2207,6 +1964,11 @@ hook 'mousedown', 2, (point, event, state) ->
 
     state.consumedHitTest = true
 
+  # If they have not clicked a socket,
+  # unfocus the current socket.
+  else if @cursorAtSocket()
+    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
+
 # Create the dropdown DOM element at populate time.
 hook 'populate', 0, ->
   @dropdownElement = document.createElement 'div'
@@ -2219,12 +1981,12 @@ hook 'populate', 0, ->
 
 # Update the dropdown to match
 # the current text focus font and size.
-Editor::formatDropdown = (socket = @textFocus) ->
+Editor::formatDropdown = (socket = @getCursor()) ->
   @dropdownElement.style.fontFamily = @fontFamily
   @dropdownElement.style.fontSize = @fontSize
   @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
 
-Editor::showDropdown = (socket = @textFocus) ->
+Editor::showDropdown = (socket = @getCursor()) ->
   @dropdownVisible = true
 
   dropdownItems = []
@@ -2244,6 +2006,8 @@ Editor::showDropdown = (socket = @textFocus) ->
     div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
 
     setText = (text) =>
+      @undoCapture()
+
       # Attempting to populate the socket after the dropdown has closed should no-op
       return if @dropdownElement.style.display == 'none'
 
@@ -2280,9 +2044,10 @@ Editor::showDropdown = (socket = @textFocus) ->
     @dropdownElement.style.minWidth = location.width + 'px'
   ), 0
 
-Editor::hideDropdown= ->
+Editor::hideDropdown = ->
   @dropdownVisible = false
   @dropdownElement.style.display = 'none'
+  @dropletElement.focus()
 
 hook 'dblclick', 0, (point, event, state) ->
   # If someone else already took this click, return.
@@ -2295,14 +2060,13 @@ hook 'dblclick', 0, (point, event, state) ->
 
   # If they have clicked a socket,
   # focus it, and
-  unless hitTestResult is @textFocus
+  unless hitTestResult is @getCursor()
     if hitTestResult.editable()
-      @setTextInputFocus null
       @redrawMain()
       hitTestResult = @hitTestTextInput mainPoint, @tree
 
   if hitTestResult? and hitTestResult.editable()
-    @setTextInputFocus hitTestResult
+    @setCursor hitTestResult
     @redrawMain()
 
     setTimeout (=>
@@ -2320,7 +2084,7 @@ hook 'dblclick', 0, (point, event, state) ->
 # to match the mouse.
 hook 'mousemove', 0, (point, event, state) ->
   if @textInputSelecting
-    unless @textFocus?
+    unless @cursorAtSocket()
       @textInputSelecting = false; return
 
     mainPoint = @trackerPointToMain point
@@ -2343,52 +2107,6 @@ hook 'mouseup', 0, (point, event, state) ->
 # LASSO SELECT SUPPORT
 # ===============================
 
-# We need undo operations for create/destroy segment
-# so that other undo operations work properly in
-# the tree -- for instance, DropOperation needs
-# to have the segment in the tree that is being
-# dropped in order to work.
-class CreateSegmentOperation extends UndoOperation
-  constructor: (segment) ->
-    @first = segment.start.getSerializedLocation()
-    @last = segment.end.getSerializedLocation() - 2
-    @lassoSelect = segment.isLassoSegment
-
-  undo: (editor) ->
-    editor.tree.getTokenAtLocation(@first).container.unwrap()
-
-    return editor.tree.getTokenAtLocation @first
-
-  redo: (editor) ->
-    segment = new model.Segment()
-    segment.isLassoSegment = @lassoSelect
-    segment.wrap editor.tree.getTokenAtLocation(@first),
-      editor.tree.getTokenAtLocation(@last)
-
-    return segment.end
-
-class DestroySegmentOperation extends UndoOperation
-  constructor: (segment) ->
-    @first = segment.start.getSerializedLocation()
-    @last = segment.end.getSerializedLocation() - 2
-    @lassoSelect = segment.isLassoSegment
-
-  undo: (editor) ->
-    segment = new model.Segment()
-    segment.isLassoSegment = @lassoSelect
-    segment.wrap editor.tree.getTokenAtLocation(@first),
-      editor.tree.getTokenAtLocation(@last)
-
-    if @lassoSelect
-      editor.lassoSegment = segment
-
-    return segment.end
-
-  redo: (editor) ->
-    editor.tree.getTokenAtLocation(@first).container.unwrap()
-
-    return editor.tree.getTokenAtLocation @first
-
 # The lasso select
 # will have its own canvas
 # for drawing the lasso. This needs
@@ -2401,7 +2119,7 @@ hook 'populate', 0, ->
   @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
 
   @lassoSelectAnchor = null
-  @lassoSegment = null
+  @lassoSelection = null
 
   @dropletElement.appendChild @lassoSelectCanvas
 
@@ -2422,24 +2140,8 @@ Editor::resizeLassoCanvas = ->
   @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
 Editor::clearLassoSelection = ->
-  @lassoSegment = null
-
-  head = @tree.start
-  needToRedraw = false
-  until head is @tree.end
-    if head.type is 'segmentStart' and head.container.isLassoSegment
-      next = head.next
-
-      @addMicroUndoOperation new DestroySegmentOperation head.container
-      head.container.unwrap() #MUTATION
-      needToRedraw = true
-
-      head = next
-
-    else
-      head = head.next
-
-  if needToRedraw then @redrawMain()
+  @lassoSelection = null
+  @redrawMain()
 
 # On mousedown, if nobody has taken
 # a hit test yet, start a lasso select.
@@ -2447,7 +2149,7 @@ hook 'mousedown', 0, (point, event, state) ->
   # Even if someone has taken it, we
   # should remove the lasso segment that is
   # already there.
-  unless state.clickedLassoSegment then @clearLassoSelection()
+  unless state.clickedLassoSelection then @clearLassoSelection()
 
   if state.consumedHitTest or state.suppressLassoSelect then return
 
@@ -2495,23 +2197,20 @@ hook 'mousemove', 0, (point, event, state) ->
 
     if first and last?
       [first, last] = validateLassoSelection @tree, first, last
-      @drawTemporaryLasso first, last
+      @lassoSelection = new model.List first, last
+      @redrawLassoHighlight()
 
-
-Editor::drawTemporaryLasso = (first, last) ->
-  mainCanvasRectangle = new @draw.Rectangle(
-    @scrollOffsets.main.x,
-    @scrollOffsets.main.y,
-    @mainCanvas.width,
-    @mainCanvas.height
-  )
-  head = first
-  until head is last
-    if head instanceof model.StartToken
-      @view.getViewNodeFor(head.container).draw @highlightCtx, mainCanvasRectangle, {selected: Infinity}
-      head = head.container.end
-    else
-      head = head.next
+Editor::redrawLassoHighlight = ->
+  if @lassoSelection?
+    mainCanvasRectangle = new @draw.Rectangle(
+      @scrollOffsets.main.x,
+      @scrollOffsets.main.y,
+      @mainCanvas.width,
+      @mainCanvas.height
+    )
+    lassoView = @view.getViewNodeFor(@lassoSelection)
+    lassoView.absorbCache()
+    lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -2573,15 +2272,10 @@ hook 'mouseup', 0, (point, event, state) ->
 
     [first, last] = validateLassoSelection @tree, first, last
 
-    @lassoSegment = new model.Segment()
-    @lassoSegment.isLassoSegment = true
+    @lassoSelection = new model.List first, last
 
-    @lassoSegment.wrap first, last
-
-    @addMicroUndoOperation new CreateSegmentOperation @lassoSegment
-
-    # Move the cursor to the segment we just created
-    @moveCursorTo @lassoSegment.end.nextVisibleToken(), true
+    # Move the cursor to the selection
+    @setCursor @lassoSelection.end
 
     @redrawMain()
 
@@ -2590,215 +2284,91 @@ hook 'mouseup', 0, (point, event, state) ->
 hook 'mousedown', 3, (point, event, state) ->
   if state.consumedHitTest then return
 
-  if @lassoSegment? and @hitTest(@trackerPointToMain(point), @lassoSegment)?
-    @setTextInputFocus null
-    @clickedBlock = @lassoSegment
+  if @lassoSelection? and @hitTest(@trackerPointToMain(point), @lassoSelection)?
+    @clickedBlock = @lassoSelection
     @clickedBlockPaletteEntry = null
     @clickedPoint = point
 
     state.consumedHitTest = true
-    state.clickedLassoSegment = true
+    state.clickedLassoSelection = true
 
 # CURSOR OPERATION SUPPORT
 # ================================
-
 hook 'populate', 0, ->
-  @cursor = new model.CursorToken()
+  @cursor = new model.Location 0, 'documentStart'
 
-# A cursor cannot be inside only a block.
-# Convenience function for this validation:
-isValidCursorPosition = (pos) ->
-  return pos.parent.type in ['indent', 'segment']
+Editor::validCursorPosition = (destination) ->
+  return destination.type in ['documentStart', 'indentStart'] or
+         destination.type is 'blockEnd' and destination.parent.type in ['document', 'indent'] or
+         destination.type is 'socketStart' and destination.container.editable()
 
 # A cursor is only allowed to be on a line.
-Editor::moveCursorTo = (destination, attemptReparse = false) ->
-  @redrawMain()
+Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
+  if destination? and not (destination instanceof model.Location)
+    destination = destination.getLocation()
 
-  # If the destination is not inside the tree,
-  # abort.
-  unless destination?
-    if DEBUG_FLAG
-      throw new Error 'Cannot move cursor to null'
-    return null
-  unless @inTree(destination)
-    if DEBUG_FLAG
-      throw new Error 'Cannot move cursor to a place not in the main tree'
-    return null
+  # Abort if there is no destination (usually means
+  # someone wants to travel outside the document)
+  return unless destination?
 
-  @highlightFlashShow()
+  # Now set the new cursor
+  destination = @tree.getFromLocation destination
+  if destination instanceof model.Container
+    destination = destination.start
 
-  # Otherwise, splice the cursor out.
-  @cursor.remove()
+  until @validCursorPosition(destination) and validate(destination)
+    destination = (if direction is 'after' then destination.next else destination.prev)
+    return unless destination?
 
-  # If the destination is in the tree,
-  # figure out where we want to place the cursor.
+  destination = destination.getLocation()
 
-  # We can place the cursor
-  # at the start of the tree
-  if destination is @tree.start
-    destination.insert @cursor
+  # If the cursor was at a text input, reparse the old one
+  if @cursorAtSocket() and not @cursor.is(destination)
+    @reparse @getCursor(), null, [@cursor, destination]
+    @hiddenInput.blur()
+    @dropletElement.focus()
 
-  # If we got some other token,
-  # scan forward until we find
-  # a viable spot for the cursor.
-  else
-    head = destination
-    until head.type in ['newline', 'indentEnd'] or head is @tree.end
-      head = head.next
-
-    if head.type is 'newline' then head.insert @cursor
-    else head.insertBefore @cursor
-
-  # Keep scanning forward if this is an improper location.
-  unless isValidCursorPosition @cursor then @moveCursorTo @cursor.next
-
-  @redrawHighlights()
-
-Editor::moveCursorUp = ->
-  unless @cursor.prev? then return
-  head = @cursor.prev?.prev
-
-  @highlightFlashShow()
-
-  # If we're at the beginning, abort.
-  unless head? then return
-
-  until head.type in ['newline', 'indentEnd'] or head is @tree.start
-    head = head.prev
-
-  # Splice out
-  @cursor.remove()
-
-  # Splice in
-  if head.type is 'newline' or head is @tree.start then head.insert @cursor
-  else head.insertBefore @cursor
-
-  # Keep sacnning backwards if this is an improper location.
-  unless isValidCursorPosition @cursor then @moveCursorUp()
-
-  @redrawHighlights()
-  @scrollCursorIntoPosition()
-
-Editor::getRecoverableCursorPosition = ->
-  pos = {
-    lines: 0
-    indents: 0
-  }
-  head = @cursor
-  until head.type is 'newline' or head is @tree.start
-    if head.type is 'indentEnd' then pos.indents++
-    head = head.prev
-  until head is @tree.start
-    if head.type is 'newline' then pos.lines++
-    head = head.prev
-
-  return pos
-
-getAtChar = (parent, chars) ->
-  head = parent.start
-  charsCounted = 0
-
-  until charsCounted >= chars
-    if head.type is 'text' then charsCounted += head.value.length
-
-    head = head.next
-
-  return head
-
-Editor::recoverCursorPosition = (pos) ->
-  head = @tree.start
-  testPos = {
-    lines: 0
-    indents: 0
-  }
-  until head is @tree.end or testPos.lines is pos.lines
-    head = head.next
-    if head.type is 'newline' then testPos.lines++
-
-  until head is @tree.end or testPos.indents is pos.indents
-    head = head.next
-    if head.type is 'indentEnd' then testPos.indents++
-
-  @cursor.remove()
-  if head.type is 'newline' then head.insert @cursor
-  else head.insertBefore @cursor
-
-Editor::moveCursorHorizontally = (direction) ->
-  if @textFocus?
-    if direction is 'right'
-      head = @textFocus.end.next
-    else
-      head = @textFocus.start.prev
-  else unless (@cursor.prev is @tree.start and direction is 'left' or
-      @cursor.next is @tree.end and direction is 'right')
-    if direction is 'right'
-      head = @cursor.next.next
-    else
-      head = @cursor.prev.prev
-  else
-    return
-
-  while true
-    if head.type in ['newline', 'indentEnd'] or head.container is @tree
-      @cursor.remove()
-      if head is @tree.start or head.type is 'newline' then head.insert @cursor
-      else head.insertBefore @cursor
-      @setTextInputFocus null
-      unless @inTree(@cursor) then debugger
-      if isValidCursorPosition @cursor
-        break
-
-    if head.type is 'socketStart' and
-       head.container.editable()
-      # Avoid problems with reparses by getting text offset location
-      # of the given socket before reparsing and recovering it afterward.
-      if @textFocus?
-        chars = @getCharactersTo head.container.start
-        @setTextInputFocus null
-        socket = @getSocketAtChar chars
-      else
-        socket = head.container
-        @setTextInputFocus null
-
-      position = (if direction is 'right' then 0 else -1)
-      @setTextInputFocus socket, position, position
-      break
-
-    if direction is 'right' then head = head.next
-    else head = head.prev
+  @cursor = destination
 
   @redrawMain()
+  @highlightFlashShow()
+  @redrawHighlights()
 
-hook 'keydown', 0, (event, state) ->
-  if event.which isnt RIGHT_ARROW_KEY then return
-  if not @textFocus? or
-      @hiddenInput.selectionStart is @hiddenInput.value.length
-    @moveCursorHorizontally 'right'
-    event.preventDefault()
-
-hook 'keydown', 0, (event, state) ->
-  if event.which isnt LEFT_ARROW_KEY then return
-  if not @textFocus? or
-      @hiddenInput.selectionEnd is 0
-    @moveCursorHorizontally 'left'
-    event.preventDefault()
+  # If we are now at a text input, populate the hidden input
+  if @cursorAtSocket()
+    @undoCapture()
+    @hiddenInput.value = @getCursor().textContent()
+    @hiddenInput.focus()
+    @setTextSelectionRange 0, @hiddenInput.value.length
 
 Editor::determineCursorPosition = ->
-  if @cursor? and @cursor.parent?
-    @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
+  # Do enough of the redraw to get the bounds
+  @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
 
-    head = @cursor; line = 0
-    until head is @cursor.parent.start
-      head = head.prev
-      line++ if head.type is 'newline'
+  # Get a cursor that is in the model
+  cursor = @getCursor()
 
-    bound = @view.getViewNodeFor(@cursor.parent).bounds[line]
-    if @cursor.nextVisibleToken()?.type is 'indentEnd' and
-       @cursor.prev?.prev.type isnt 'indentStart' or
-       (@cursor.next is @tree.end and @cursor.prev isnt @tree.start)
-      return new @draw.Point bound.x, bound.bottom()
-    else
-      return new @draw.Point bound.x, bound.y
+  if cursor.type is 'documentStart'
+    bound = @view.getViewNodeFor(cursor.container).bounds[0]
+    return new @draw.Point bound.x, bound.y
+
+  else if cursor.type is 'indentStart'
+    line = if cursor.next.type is 'newline' then 1 else 0
+    bound = @view.getViewNodeFor(cursor.container).bounds[line]
+    return new @draw.Point bound.x, bound.y
+
+  else
+    line = @getCursor().getTextLocation().row - cursor.parent.getTextLocation().row
+    bound = @view.getViewNodeFor(cursor.parent).bounds[line]
+    return new @draw.Point bound.x, bound.bottom()
+
+Editor::getCursor = ->
+  cursor = @tree.getFromLocation(@cursor)
+
+  if cursor.type is 'socketStart'
+    return cursor.container
+  else
+    return cursor
 
 Editor::scrollCursorIntoPosition = ->
   axis = @determineCursorPosition().y
@@ -2812,123 +2382,55 @@ Editor::scrollCursorIntoPosition = ->
 
 # Pressing the up-arrow moves the cursor up.
 hook 'keydown', 0, (event, state) ->
-  if event.which isnt UP_ARROW_KEY then return
-  @clearLassoSelection()
-  @setTextInputFocus null
-  @moveCursorUp()
-
-# Pressing the down-arrow moves the cursor down.
-hook 'keydown', 0, (event, state) ->
-  if event.which isnt DOWN_ARROW_KEY then return
-  unless @textFocus?
-    @moveCursorTo @cursor.next.next
-  @clearLassoSelection()
-  @setTextInputFocus null
-  @scrollCursorIntoPosition()
-
-Editor::getCharactersTo = (token) ->
-  head = token
-  chars = 0
-
-  until head is @tree.start
-    if head.type is 'text' then chars += head.value.length
-    head = head.prev
-
-  return chars
-
-Editor::getSocketAtChar = (chars) ->
-  head = @tree.start
-  charsCounted = 0
-
-  until charsCounted >= chars and head.type is 'socketStart' and
-      head.container.isDroppable()
-    if head.type is 'text' then charsCounted += head.value.length
-
-    head = head.next
-
-  return head.container
+  if event.which is UP_ARROW_KEY
+    @clearLassoSelection()
+    prev = @getCursor().prev ? @getCursor().start?.prev
+    @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
+    @scrollCursorIntoPosition()
+  else if event.which is DOWN_ARROW_KEY
+    @clearLassoSelection()
+    next = @getCursor().next ? @getCursor().end?.next
+    @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
+    @scrollCursorIntoPosition()
+  else if event.which is RIGHT_ARROW_KEY and
+      (not @cursorAtSocket() or
+      @hiddenInput.selectionStart is @hiddenInput.value.length)
+    @clearLassoSelection()
+    next = @getCursor().next ? @getCursor().end?.next
+    @setCursor next, null, 'after'
+    @scrollCursorIntoPosition()
+    event.preventDefault()
+  else if event.which is LEFT_ARROW_KEY and
+      (not @cursorAtSocket() or
+      @hiddenInput.selectionEnd is 0)
+    @clearLassoSelection()
+    prev = @getCursor().prev ? @getCursor().start?.prev
+    @setCursor prev, null, 'before'
+    @scrollCursorIntoPosition()
+    event.preventDefault()
 
 hook 'keydown', 0, (event, state) ->
   if event.which isnt TAB_KEY then return
+
   if event.shiftKey
-    if @textFocus? then head = @textFocus.start
-    else head = @cursor
-
-    until (not head?) or head.type is 'socketEnd' and
-        head.container.editable()
-      head = head.prev
-
-    if head?
-      # Avoid problems with reparses by getting text offset location
-      # of the given socket before reparsing and recovering it afterward.
-      if @textFocus?
-        chars = @getCharactersTo head.container.start
-        @setTextInputFocus null
-        socket = @getSocketAtChar chars
-      else
-        socket = head.container
-        @setTextInputFocus null
-
-      @setTextInputFocus socket
-    event.preventDefault()
-
+    prev = @getCursor().prev ? @getCursor().start?.prev
+    @setCursor prev, ((token) -> token.type is 'socketStart'), 'before'
   else
-    if @textFocus? then head = @textFocus.end
-    else head = @cursor
-
-    until (not head?) or head.type is 'socketStart' and
-        head.container.editable()
-      head = head.next
-    if head?
-      # Avoid problems with reparses by getting text offset location
-      # of the given socket before reparsing and recovering it afterward.
-      if @textFocus?
-        chars = @getCharactersTo head.container.start
-        @setTextInputFocus null
-        socket = @getSocketAtChar chars
-      else
-        socket = head.container
-        @setTextInputFocus null
-
-      @setTextInputFocus socket
-    event.preventDefault()
+    next = @getCursor().next ? @getCursor().end?.next
+    @setCursor next, ((token) -> token.type is 'socketStart'), 'after'
+  event.preventDefault()
 
 Editor::deleteAtCursor = ->
-  # Unfocus any inputs, which could get in the way.
-  @setTextInputFocus null
+  if @getCursor().type is 'blockEnd'
+    block = @getCursor().container
+  else if @getCursor().type is 'indentStart'
+    block = @getCursor().parent
+  else
+    return
 
-  blockEnd = @cursor.prev
-
-  until blockEnd?.type in ['blockEnd', 'indentStart', undefined]
-    blockEnd = blockEnd.prev
-
-  unless blockEnd? then return
-
-  if blockEnd.type is 'blockEnd'
-    @addMicroUndoOperation new PickUpOperation blockEnd.container
-
-    @spliceOut blockEnd.container
-
-    @redrawMain()
-
-  else if blockEnd.type is 'indentStart'
-    start = blockEnd.container.start.nextVisibleToken()
-    start = start.nextVisibleToken() while start.type is 'newline'
-
-    return unless start is start.container.end
-
-    before = blockEnd.container.parent.start
-
-    until before.type in ['blockEnd', 'indentStart', 'segmentStart']
-      before = before.previousVisibleToken()
-
-    @addMicroUndoOperation new PickUpOperation blockEnd.container.parent
-
-    @spliceOut blockEnd.container.parent
-
-    @moveCursorTo before
-
-    @redrawMain()
+  @setCursor block.start, null, 'before'
+  @spliceOut block
+  @redrawMain()
 
 hook 'keydown', 0, (event, state) ->
   if @readOnly
@@ -2941,15 +2443,13 @@ hook 'keydown', 0, (event, state) ->
   # We don't want to interrupt any text input editing
   # sessions. We will, however, delete a handwritten
   # block if it is currently empty.
-  if @lassoSegment?
-    @addMicroUndoOperation 'CAPTURE_POINT'
-    @deleteLassoSegment()
+  if @lassoSelection?
+    @deleteLassoSelection()
     event.preventDefault()
     return false
 
-  else if not @textFocus? or
-      (@hiddenInput.value.length is 0 and @textFocus.handwritten)
-    @addMicroUndoOperation 'CAPTURE_POINT'
+  else if not @cursorAtSocket() or
+      (@hiddenInput.value.length is 0 and @getCursor().handwritten)
     @deleteAtCursor()
     state.capturedBackspace = true
     event.preventDefault()
@@ -2957,16 +2457,18 @@ hook 'keydown', 0, (event, state) ->
 
   return true
 
-Editor::deleteLassoSegment = ->
-  unless @lassoSegment?
+Editor::deleteLassoSelection = ->
+  unless @lassoSelection?
     if DEBUG_FLAG
       throw new Error 'Cannot delete nonexistent lasso segment'
     return null
 
-  @addMicroUndoOperation new PickUpOperation @lassoSegment
+  cursorTarget = @lassoSelection.start.prev
 
-  @spliceOut @lassoSegment
-  @lassoSegment = null
+  @spliceOut @lassoSelection
+  @lassoSelection = null
+
+  @setCursor cursorTarget
 
   @redrawMain()
 
@@ -2980,26 +2482,18 @@ hook 'keydown', 0, (event, state) ->
   if @readOnly
     return
   if event.which is ENTER_KEY
-    if not @textFocus? and not event.shiftKey
-      @setTextInputFocus null
-
+    if not @cursorAtSocket() and not event.shiftKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket -Infinity
-      newSocket.spliceIn newBlock.start
-      newSocket.handwritten = true
-
-      # Add it io our list of handwritten blocks
-      @handwrittenBlocks.push newBlock
+      newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
+      newSocket.handwritten = true; newSocket.setParent newBlock
+      helper.connect newBlock.start, newSocket.start
+      helper.connect newSocket.end, newBlock.end
 
       # Seek a place near the cursor we can actually
       # put a block.
-      head = @cursor.prev
-      while head.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] and head isnt @tree.start
+      head = @getCursor()
+      while head.type is 'newline'
         head = head.prev
-
-      # Log the undo operation for this
-      @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new DropOperation newBlock, head
 
       @spliceIn newBlock, head #MUTATION
 
@@ -3007,8 +2501,11 @@ hook 'keydown', 0, (event, state) ->
 
       @newHandwrittenSocket = newSocket
 
-    else if @textFocus? and not event.shiftKey
-      @setTextInputFocus null; @redrawMain()
+    else if @cursorAtSocket() and not event.shiftKey
+      @hiddenInput.blur()
+      @dropletElement.focus()
+      @setCursor @cursor, (token) -> token.type isnt 'socketStart'
+      @redrawMain()
 
 hook 'keyup', 0, (event, state) ->
   if @readOnly
@@ -3017,7 +2514,7 @@ hook 'keyup', 0, (event, state) ->
   # block by focusing the block only after the enter key is released.
   if event.which is ENTER_KEY
     if @newHandwrittenSocket?
-      @setTextInputFocus @newHandwrittenSocket
+      @setCursor @newHandwrittenSocket
       @newHandwrittenSocket = null
 
 containsCursor = (block) ->
@@ -3027,25 +2524,6 @@ containsCursor = (block) ->
     head = head.next
 
   return false
-
-# The Reparse undo operation.
-class ReparseOperation extends UndoOperation
-  constructor: (block, parse) ->
-    @before = block.clone()
-    @location = block.start.getSerializedLocation()
-    @after = parse.clone()
-
-  undo: (editor) ->
-    block = editor.tree.getTokenAtLocation(@location).container
-    newBlock = @before.clone()
-    newBlock.rawReplace block
-
-  redo: (editor) ->
-    block = editor.tree.getTokenAtLocation(@location).container
-    newBlock = @after.clone()
-    newBlock.rawReplace block
-
-    newBlock.notifyChange()
 
 # ANIMATION AND ACE EDITOR SUPPORT
 # ================================
@@ -3172,26 +2650,6 @@ Editor::computePlaintextTranslationVectors = ->
     translationVectors: translationVectors
   }
 
-class AnimatedColor
-  constructor: (@start, @end, @time) ->
-    @currentRGB = [
-      parseInt(@start[1...3], 16)
-      parseInt(@start[3...5], 16)
-      parseInt(@start[5...7], 16)
-    ]
-
-    @step = [
-      (parseInt(@end[1...3], 16) - @currentRGB[0]) / @time
-      (parseInt(@end[3...5], 16) - @currentRGB[1]) / @time
-      (parseInt(@end[5...7], 16) - @currentRGB[2]) / @time
-    ]
-
-  advance: ->
-    for item, i in @currentRGB
-      @currentRGB[i] += @step[i]
-
-    return "rgb(#{Math.round(@currentRGB[0])},#{Math.round(@currentRGB[1])},#{Math.round(@currentRGB[2])})"
-
 Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
   if @currentlyUsingBlocks and not @currentlyAnimating
     @hideDropdown()
@@ -3206,7 +2664,6 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     @aceEditor.resize true
 
     @redrawMain noText: true
-    @textFocus = @lassoAnchor = null
 
     # Hide scrollbars and increase width
     if @mainScroller.scrollWidth > @mainScroller.offsetWidth
@@ -3367,6 +2824,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       if setValueResult.error
         @fireEvent 'parseerror', [setValueResult.error]
       return setValueResult
+
 
     if @aceEditor.getFirstVisibleRow() is 0
       @mainScroller.scrollTop = 0
@@ -3769,34 +3227,16 @@ Editor::markBlock = (block, style) ->
 # ## Mark
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
 # with the given style.
-Editor::mark = (line, col, style) ->
-  # Get the start of the given line.
-  lineStart = @tree.getNewlineBefore line
-
-  # Find the necessary indent for this line, so
-  # that we can properly adjust the column number
-  chars = 0
-  parent = lineStart.parent
-  until parent is @tree
-    if parent.type is 'indent'
-      chars += parent.prefix.length
-    parent = parent.parent
-
-  # Find the first block after the given column number
-  head = lineStart.next
-  until (chars >= col and head.type is 'blockStart') or head.type is 'newline'
-    chars += head.stringify().length
-    head = head.next
-
-  if head.type is 'newline'
-    return false
+Editor::mark = (location, style) ->
+  block = @tree.getFromTextLocation location
+  block = block.container ? block
 
   # `key` is a unique identifier for this
   # mark, to be used later for removal
   key = @nextMarkedBlockId++
 
   @markedBlocks[key] = {
-    model: head.container
+    model: block
     style: style
   }
 
@@ -3851,21 +3291,6 @@ hook 'mousemove', 0, (point, event, state) ->
 # GET/SET VALUE SUPPORT
 # ================================
 
-class SetValueOperation extends UndoOperation
-  constructor: (@oldValue, @newValue) ->
-    @oldValue = @oldValue.clone()
-    @newValue = @newValue.clone()
-
-  undo: (editor) ->
-    editor.tree = @oldValue.clone()
-
-    return editor.tree.start
-
-  redo: (editor) ->
-    editor.tree = @newValue.clone()
-
-    return editor.tree.start
-
 # Whitespace trimming hack enable/disable
 # setter
 hook 'populate', 0, ->
@@ -3880,12 +3305,13 @@ Editor::setValue_raw = (value) ->
 
     newParse = @mode.parse value, wrapAtRoot: true
 
-    if value isnt @tree.stringify(@mode)
-      @addMicroUndoOperation 'CAPTURE_POINT'
-    @addMicroUndoOperation new SetValueOperation @tree, newParse
+    unless @tree.start.next is @tree.end
+      removal = new model.List @tree.start.next, @tree.end.prev
+      @spliceOut removal
 
-    @tree = newParse; @gutterVersion = -1
-    @tree.start.insert @cursor
+    unless newParse.start.next is newParse.end
+      @spliceIn new model.List(newParse.start.next, newParse.end.prev), @tree.start
+
     @removeBlankLines()
     @redrawMain()
 
@@ -3904,7 +3330,6 @@ Editor::setValue = (value) ->
   @aceEditor.session.setScrollTop oldScrollTop
 
   if @currentlyUsingBlocks
-    @setTextInputFocus null
     result = @setValue_raw value
     if result.success is false
       @setEditorState false
@@ -4218,8 +3643,8 @@ Editor::editorHasFocus = ->
   document.hasFocus()
 
 Editor::flash = ->
-  if @lassoSegment? or @draggingBlock? or
-      (@textFocus? and @textInputHighlighted) or
+  if @lassoSelection? or @draggingBlock? or
+      (@cursorAtSocket() and @textInputHighlighted) or
       not @highlightsCurrentlyShown or
       not @editorHasFocus()
     @highlightFlashShow()
@@ -4277,7 +3702,6 @@ hook 'mouseup', 0.5, (point, event) ->
     renderPoint = @trackerPointToMain trackPoint
 
     if @inTree(@draggingBlock) and @viewOrChildrenContains @draggingBlock, renderPoint
-      @draggingBlock.ephemeral = false
       @endDrag()
 
 # LINE NUMBER GUTTER CODE
@@ -4504,71 +3928,47 @@ hook 'populate', 1, ->
       return
     if pressedVKey
       try
-        str = @copyPasteInput.value; minIndent = Infinity
+        str = @copyPasteInput.value; lines = str.split '\n'
 
-        for line in str.split '\n'
-          minIndent = Math.min minIndent, line.length - line.trimLeft().length
-
-        str = (for line in str.split '\n'
-          line[minIndent...]
-        ).join '\n'
-
+        # Strip any common leading indent
+        # from all the lines of the pasted tet
+        minIndent = lines.map((x) -> line.length - line.trimLeft().length).reduce((a, b) -> Math.min(a, b))
+        str = lines.map((line) -> line[minIndent...]).join('\n')
         str = str.replace /^\n*|\n*$/g, ''
 
         blocks = @mode.parse str
-
-        @addMicroUndoOperation 'CAPTURE_POINT'
-        if @lassoSegment? and @inTree(@lassoSegment)
-          # Make sure the cursor is outside the lasso segment
-          # (although it should be already)
-          @moveCursorTo @lassoSegment.end.nextVisibleToken(), true
-          @addMicroUndoOperation new PickUpOperation @lassoSegment
-          @spliceOut @lassoSegment; @lassoSegment = null
-
-        @addMicroUndoOperation new DropOperation blocks, @cursor.previousVisibleToken()
+        blocks = new model.List blocks.start.next, blocks.end.prev
 
         @spliceIn blocks, @cursor
-        unless blocks.end.nextVisibleToken().type in ['newline', 'indentEnd']
-          blocks.end.insert new model.NewlineToken()
-
-        @addMicroUndoOperation new DestroySegmentOperation blocks
-
-        blocks.unwrap()
+        @setCursor blocks.end
 
         @redrawMain()
       catch e
         console.log e.stack
 
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
-    else if pressedXKey and @lassoSegment?
-      @addMicroUndoOperation 'CAPTURE_POINT'
-      @addMicroUndoOperation new PickUpOperation @lassoSegment
-      @spliceOut @lassoSegment; @lassoSegment = null
+    else if pressedXKey and @lassoSelection?
+      @spliceOut @lassoSelection; @lassoSelection = null
       @redrawMain()
 
 hook 'keydown', 0, (event, state) ->
   if event.which in command_modifiers
-    unless @textFocus?
+    unless @cursorAtSocket()
       x = document.body.scrollLeft
       y = document.body.scrollTop
       @copyPasteInput.focus()
       window.scrollTo(x, y)
 
-      if @lassoSegment?
-        @copyPasteInput.value = @lassoSegment.stringify(@mode)
+      if @lassoSelection?
+        @copyPasteInput.value = @lassoSelection.stringifyInPlace()
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
 hook 'keyup', 0, (point, event, state) ->
   if event.which in command_modifiers
-    if @textFocus?
+    if @cursorAtSocket()
       @hiddenInput.focus()
     else
       @dropletElement.focus()
-
-hook 'populate', 0, ->
-  setTimeout (=>
-    @cursor.parent = @tree
-  ), 0
 
 # OVRFLOW BIT
 # ================================

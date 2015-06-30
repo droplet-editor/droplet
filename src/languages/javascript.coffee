@@ -1,6 +1,6 @@
 # Droplet JavaScript mode
 #
-# Copyright (c) 2015 Anthony Bau
+# Copyright (c) 2015 Anthony Bau (dab1998@gmail.com)
 # MIT License.
 
 helper = require '../helper.coffee'
@@ -561,20 +561,20 @@ JavaScriptParser.parens = (leading, trailing, node, context) ->
   if context?.type is 'socket' or
      (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
      'ends-with-brace' in node.classes or
-     node.type is 'segment'
+     node.type is 'document'
     trailing trailing().replace(/;?\s*$/, '')
   else
     trailing trailing().replace(/;?\s*$/, ';')
 
-  if context is null or context.type isnt 'socket' or
+  while true
+    if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+      leading leading().replace(/^\s*\(\s*/, '')
+      trailing trailing().replace(/\s*\)\s*$/, '')
+    else
+      break
+
+  unless context is null or context.type isnt 'socket' or
       context.precedence > node.precedence
-    while true
-      if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-        leading leading().replace(/^\s*\(\s*/, '')
-        trailing trailing().replace(/\s*\)\s*$/, '')
-      else
-        break
-  else
     leading '(' + leading()
     trailing trailing() + ')'
 
@@ -606,11 +606,11 @@ JavaScriptParser.drop = (block, context, pred) ->
     else if 'mostly-block' in block.classes
       return helper.DISCOURAGE
 
-  else if context.type in ['indent', 'segment']
+  else if context.type in ['indent', 'document']
     if 'block-only' in block.classes or
         'mostly-block' in block.classes or
         'any-drop' in block.classes or
-        block.type is 'segment'
+        block.type is 'document'
       return helper.ENCOURAGE
 
     else if 'mostly-value' in block.classes

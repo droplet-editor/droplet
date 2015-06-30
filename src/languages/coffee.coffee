@@ -1,6 +1,6 @@
 # Droplet CoffeeScript mode
 #
-# Copyright (c) Anthony Bau
+# Copyright (c) Anthony Bau (dab1998@gmail.com)
 # MIT License
 
 helper = require '../helper.coffee'
@@ -1041,11 +1041,11 @@ CoffeeScriptParser.drop = (block, context, pred) ->
     else if 'mostly-block' in block.classes
       return helper.DISCOURAGE
 
-  else if context.type in ['indent', 'segment']
+  else if context.type in ['indent', 'document']
     if 'block-only' in block.classes or
         'mostly-block' in block.classes or
         'any-drop' in block.classes or
-        block.type is 'segment'
+        block.type is 'document'
       return helper.ENCOURAGE
 
     else if 'mostly-value' in block.classes
@@ -1058,14 +1058,15 @@ CoffeeScriptParser.parens = (leading, trailing, node, context) ->
   return if '__comment__' in node.classes
 
   trailing trailing().replace /\s*,\s*$/, ''
+  # Remove existing parentheses
+  while true
+    if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+      leading leading().replace(/^\s*\(\s*/, '')
+      trailing trailing().replace(/\s*\)\s*$/, '')
+    else
+      break
   if context is null or context.type isnt 'socket' or
       context.precedence < node.precedence
-    while true
-      if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-        leading leading().replace(/^\s*\(\s*/, '')
-        trailing trailing().replace(/\s*\)\s*$/, '')
-      else
-        break
   else
     leading '(' + leading()
     trailing trailing() + ')'

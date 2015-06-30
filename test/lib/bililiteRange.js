@@ -26,6 +26,8 @@
 
 (function(){
 
+var simplechar;
+
 // a bit of weirdness with IE11: using 'focus' is flaky, even if I'm not bubbling, as far as I can tell.
 var focusEvent = 'onfocusin' in document.createElement('input') ? 'focusin' : 'focus';
 
@@ -195,7 +197,7 @@ Range.prototype = {
 		var self = this;
 		this.data().sendkeysOriginalText = this.text();
 		this.data().sendkeysBounds = undefined;
-		function simplechar (rng, c){
+		simplechar = function simplechar (rng, c){
 			if (/^{[^}]*}$/.test(c)) c = c.slice(1,-1);	// deal with unknown {key}s
 			for (var i =0; i < c.length; ++i){
 				var x = c.charCodeAt(i);

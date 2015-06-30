@@ -47,16 +47,19 @@ module.exports = (grunt) ->
           'sax.js': 'sax/lib/sax.js'
 
     qunit:
+      options:
+        timeout: 30000
       all:
-        options:
-          timeout: 30000
-          urls:
-            (for x in grunt.file.expand('test/*.html')
-              'http://localhost:8942/' + x)
+        urls:
+          (for x in grunt.file.expand('test/*.html')
+            'http://localhost:8942/' + x)
 
     mochaTest:
       test:
-        src: ['test/src/parserTests.coffee']
+        src: [
+          'test/src/parserTests.coffee'
+          'test/src/modelTests.coffee'
+        ]
         options:
           reporter: 'list'
           compilers:
@@ -120,7 +123,7 @@ module.exports = (grunt) ->
       testserver:
         options:
           hostname: '0.0.0.0'
-          port: 8001
+          port: 8000
           middleware: serveNoDottedFiles
       qunitserver:
         options:
@@ -191,7 +194,7 @@ module.exports = (grunt) ->
 
       lrserver = livereload()
 
-      lrserver.listen 35730, ->
+      lrserver.listen 35729, ->
         console.log 'Livereload server listening on 35729'
 
       w.on 'update', ->
