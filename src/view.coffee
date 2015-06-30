@@ -155,6 +155,8 @@ exports.View = class View
       # from model to renderer
       @view.map[@model.id] = this
 
+      @lastCoordinate = new @view.draw.Point 0, 0
+
       @invalidate = false
 
       # *Zeroth pass variables*
@@ -1085,7 +1087,9 @@ exports.View = class View
     #
     # Takes two arguments, which can be changed
     # to translate the entire document from the upper-left corner.
-    layout: (left = 0, top = 0) ->
+    layout: (left = @lastCoordinate.x, top = @lastCoordinate.y) ->
+      @lastCoordinate = new @view.draw.Point left, top
+
       @computeChildren()
       @computeCarriageArrow true
       @computeMargins()

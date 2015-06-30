@@ -424,18 +424,28 @@ Editor::redrawMain = (opts = {}) ->
       @mainCtx.save()
       opts.boundingRectangle.clip @mainCtx
 
-    # Draw the new tree on the main context
-    layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
-    @view.getViewNodeFor(@tree).draw @mainCtx, opts.boundingRectangle ? new @draw.Rectangle(
+    rect = opts.boundRectangle ? new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
-    ), {
+    )
+    options = {
       grayscale: false
       selected: false
       noText: (opts.noText ? false)
     }
+
+    console.log rect
+
+    # Draw the new tree on the main context
+    layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
+    @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
+
+    for record in @floatingBlocks
+      blockView = @view.getViewNodeFor record.block
+      blockView.layout record.position.x, record.position.y
+      blockView.draw @mainCtx, rect, opts
 
     # Draw the cursor (if exists, and is inserted)
     @redrawCursors(); @redrawHighlights()
@@ -695,8 +705,8 @@ Editor::undo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
-      @getDocuments()[operation.document].perform(
-        operation.operation, 'backward', (if operation.document is 0 then [@cursor] else [])
+      @getDocuments(operation.document).perform(
+        operation.operation, 'backward', (if operation.document is @cursor.document then [@cursor.location] else [])
       ) unless operation is 'CAPTURE'
 
   @popUndo()
@@ -727,8 +737,8 @@ Editor::redo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
-      @getDocuments()[operation.document].perform(
-        operation.operation, 'forward', (if operation.document is 0 then [@cursor] else [])
+      @getDocuments(operation.document).perform(
+        operation.operation, 'forward', (if operation.document is @cursor.document then [@cursor.location] else [])
       ) unless operation is 'CAPTURE'
 
   @popRedo()
@@ -752,16 +762,15 @@ Editor::spliceOut = (node) ->
   dropletDocument = node.getDocument()
 
   if dropletDocument?
-    operation = node.getDocument().remove node, (if dropletDocument is @tree then [@cursor] else [])
+    operation = node.getDocument().remove node,
+      (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
 
     # Remove the floating dropletDocument if it is now
     # empty
     if dropletDocument.start.next is dropletDocument.end
-      console.log 'removing it'
       for record, i in @floatingBlocks
         if record.block is dropletDocument
-          console.log 'found the one to remove'
           @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
           @floatingBlocks.splice i, 1
           break
@@ -783,7 +792,8 @@ Editor::spliceIn = (node, location) ->
 
   if dropletDocument?
     @prepareNode node, container
-    operation = dropletDocument.insert location, node, (if dropletDocument is @tree then [@cursor] else [])
+    operation = dropletDocument.insert location, node,
+      (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     return operation
   else
@@ -874,6 +884,19 @@ Editor::getDocuments = ->
   for el, i in @floatingBlocks
     documents.push el.block
   return documents
+
+Editor::getDocument = (n) ->
+  if n is 0 then @tree
+  else @floatingBlocks[n - 1].block
+
+Editor::documentIndex = (block) ->
+  @getDocuments().indexOf block.getDocument()
+
+Editor::fromCrossDocumentLocation = (location) ->
+  @getDocument(location.document).getFromLocation location.location
+
+Editor::toCrossDocumentLocation = (block) ->
+  new CrossDocumentLocation @documentIndex(block), block.getLocation()
 
 # On mousedown, we will want to
 # hit test blocks in the root tree to
@@ -1239,8 +1262,7 @@ hook 'mouseup', 1, (point, event, state) ->
           if @lastHighlight.type is 'document'
             @spliceIn @draggingBlock, @lastHighlight.start
 
-      if @inTree @draggingBlock
-        futureCursorLocation = @draggingBlock.start.getLocation()
+      futureCursorLocation = @toCrossDocumentLocation @draggingBlock
 
       # Reparse the parent if we are
       # in a socket
@@ -1322,9 +1344,15 @@ hook 'mouseup', 0, (point, event, state) ->
     @draggingOffset = null
     @lastHighlight = null
 
+    debugger
+
     @clearDrag()
+    debugger
     @redrawMain()
+    debugger
     @redrawHighlights()
+
+    debugger
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
@@ -1338,20 +1366,6 @@ Editor::performFloatingOperation = (op, direction) ->
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
     @block = @block.clone()
-
-# On redraw, we draw all the floating blocks
-# in their proper positions.
-hook 'redraw_main', 7, ->
-  boundingRect = new @draw.Rectangle(
-    @scrollOffsets.main.x,
-    @scrollOffsets.main.y,
-    @mainCanvas.width,
-    @mainCanvas.height
-  )
-  for record in @floatingBlocks
-    blockView = @view.getViewNodeFor record.block
-    blockView.layout record.position.x, record.position.y
-    blockView.draw @mainCtx, boundingRect
 
 # PALETTE SUPPORT
 # ================================
@@ -1518,7 +1532,7 @@ hook 'rebuild_palette', 1, ->
     hoverDiv = document.createElement 'div'
     hoverDiv.className = 'droplet-hover-div'
 
-    hoverDiv.title = data.title ? block.stringify(@mode)
+    hoverDiv.title = data.title ? block.stringify()
 
     bounds = @paletteView.getViewNodeFor(block).totalBounds
 
@@ -1621,7 +1635,8 @@ last_ = (array) -> array[array.length - 1]
 
 # Redraw function for text input
 Editor::redrawTextInput = ->
-  sameLength = @getCursor().stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
+  sameLength = @getCursor().stringify().split('\n').length is @hiddenInput.value.split('\n').length
+  dropletDocument = @getCursor().getDocument()
 
   # Set the value in the model to fit
   # the hidden input value.
@@ -1631,8 +1646,8 @@ Editor::redrawTextInput = ->
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @getCursor().stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
 
   # Redraw the main canvas, on top of
   # which we will draw the cursor and
@@ -1641,11 +1656,11 @@ Editor::redrawTextInput = ->
     line = endRow
     head = @getCursor().start
 
-    until head is @tree.start
+    until head is dropletDocument.start
       head = head.prev
       if head.type is 'newline' then line++
 
-    treeView = @view.getViewNodeFor @tree
+    treeView = @view.getViewNodeFor dropletDocument
 
     oldp = helper.deepCopy [
       treeView.glue[line - 1],
@@ -1653,7 +1668,7 @@ Editor::redrawTextInput = ->
       treeView.bounds[line].height
     ]
 
-    treeView.layout 0, @nubbyHeight
+    treeView.layout()
 
     newp = helper.deepCopy [
       treeView.glue[line - 1],
@@ -1689,17 +1704,17 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @getCursor().stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-  lines = @getCursor().stringify(@mode).split '\n'
+  lines = @getCursor().stringify().split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
+    @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
+    @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
@@ -1892,7 +1907,7 @@ Editor::getTextPosition = (point) ->
 
   column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
-  lines = @getCursor().stringify(@mode).split('\n')[..row]
+  lines = @getCursor().stringify().split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
 
   return lines.join('\n').length
@@ -1904,8 +1919,8 @@ Editor::setTextInputAnchor = (point) ->
 Editor::selectDoubleClick = (point) ->
   position = @getTextPosition point
 
-  before = @getCursor().stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
-  after = @getCursor().stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
+  before = @getCursor().stringify()[...position].match(/\w*$/)[0]?.length ? 0
+  after = @getCursor().stringify()[position..].match(/^\w*/)[0]?.length ? 0
 
   @textInputAnchor = position - before
   @textInputHead = position + after
@@ -2291,7 +2306,12 @@ hook 'mousedown', 3, (point, event, state) ->
 # CURSOR OPERATION SUPPORT
 # ================================
 hook 'populate', 0, ->
-  @cursor = new model.Location 0, 'documentStart'
+  @cursor = new CrossDocumentLocation(0, new model.Location(0, 'documentStart'))
+
+class CrossDocumentLocation
+  constructor: (@document, @location) ->
+
+  is: (other) -> @location.is(other.location) and @document is other.document
 
 Editor::validCursorPosition = (destination) ->
   return destination.type in ['documentStart', 'indentStart'] or
@@ -2300,12 +2320,12 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
-  if destination? and destination instanceof model.Location
-    destination = @tree.getFromLocation destination
+  if destination? and destination instanceof CrossDocumentLocation
+    destination = @fromCrossDocumentLocation(destination)
 
   # Abort if there is no destination (usually means
   # someone wants to travel outside the document)
-  return unless destination? and @inTree destination
+  return unless destination? and @inDisplay destination
 
   # Now set the new cursor
   if destination instanceof model.Container
@@ -2315,11 +2335,11 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     destination = (if direction is 'after' then destination.next else destination.prev)
     return unless destination?
 
-  destination = destination.getLocation()
+  destination = @toCrossDocumentLocation destination
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, [@cursor, destination]
+    @reparse @getCursor(), null, (if destination.document is @cursor.document then [@cursor.location, destination.location] else [@cursor.location])
     @hiddenInput.blur()
     @dropletElement.focus()
 
@@ -2358,7 +2378,7 @@ Editor::determineCursorPosition = ->
     return new @draw.Point bound.x, bound.bottom()
 
 Editor::getCursor = ->
-  cursor = @tree.getFromLocation(@cursor)
+  cursor = @fromCrossDocumentLocation @cursor
 
   if cursor.type is 'socketStart'
     return cursor.container
@@ -3340,7 +3360,7 @@ Editor::addEmptyLine = (str) ->
 
 Editor::getValue = ->
   if @currentlyUsingBlocks
-    return @addEmptyLine @tree.stringify(@mode)
+    return @addEmptyLine @tree.stringify()
   else
     @getAceValue()
 
