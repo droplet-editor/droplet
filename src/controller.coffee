@@ -2325,7 +2325,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, [destination]
+    @reparse @getCursor(), null, [@cursor, destination]
     @hiddenInput.blur()
     @dropletElement.focus()
 
