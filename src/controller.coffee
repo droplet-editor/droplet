@@ -1929,12 +1929,14 @@ hook 'mousedown', 2, (point, event, state) ->
   # Otherwise, look for a socket that
   # the user has clicked
   mainPoint = @trackerPointToMain point
+  hitAnything = false
   for dropletDocument in @getDocuments()
     hitTestResult = @hitTestTextInput mainPoint, dropletDocument
 
     # If they have clicked a socket,
     # focus it.
     if hitTestResult?
+      hitAnything = true
       unless hitTestResult is @getCursor()
         if hitTestResult.editable()
           @undoCapture()
@@ -1971,8 +1973,8 @@ hook 'mousedown', 2, (point, event, state) ->
 
     # If they have not clicked a socket,
     # unfocus the current socket.
-    else if @cursorAtSocket()
-      @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
+  if @cursorAtSocket() and not hitAnything
+    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
 # Create the dropdown DOM element at populate time.
 hook 'populate', 0, ->
@@ -2309,15 +2311,14 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
-  if destination? and not (destination instanceof model.Location)
-    destination = destination.getLocation()
+  if destination? and destination instanceof model.Location
+    destination = @tree.getFromLocation destination
 
   # Abort if there is no destination (usually means
   # someone wants to travel outside the document)
   return unless destination? and @inTree destination
 
   # Now set the new cursor
-  destination = @tree.getFromLocation destination
   if destination instanceof model.Container
     destination = destination.start
 
