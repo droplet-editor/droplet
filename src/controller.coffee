@@ -1023,8 +1023,14 @@ hook 'mousemove', 1, (point, event, state) ->
 
     for dropletDocument in @getDocuments()
       head = dropletDocument.start
-      until head is dropletDocument.end
 
+      # Don't allow dropping at the start of the document
+      # if we are already dragging a block that is at
+      # the start of the document.
+      if @draggingBlock.start.prev is head
+        head = head.next
+
+      until head is dropletDocument.end
         if head is @draggingBlock.start
           head = @draggingBlock.end
 
@@ -1233,7 +1239,8 @@ hook 'mouseup', 1, (point, event, state) ->
           if @lastHighlight.type is 'document'
             @spliceIn @draggingBlock, @lastHighlight.start
 
-      futureCursorLocation = @draggingBlock.start.getLocation()
+      if @inTree @draggingBlock
+        futureCursorLocation = @draggingBlock.start.getLocation()
 
       # Reparse the parent if we are
       # in a socket
@@ -1243,7 +1250,7 @@ hook 'mouseup', 1, (point, event, state) ->
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
 
-      @setCursor futureCursorLocation
+      @setCursor(futureCursorLocation) if futureCursorLocation?
 
       # Fire the event for sound
       @fireEvent 'block-click'
@@ -1339,6 +1346,7 @@ Editor::performFloatingOperation = (op, direction) ->
 
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
+    @block = @block.clone()
 
 # On redraw, we draw all the floating blocks
 # in their proper positions.
@@ -2185,26 +2193,37 @@ hook 'mousemove', 0, (point, event, state) ->
       Math.abs(@lassoSelectAnchor.y - mainPoint.y)
     )
 
-    first = @tree.start
-    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
-      first = first.next
+    findLassoSelect = (dropletDocument) =>
+      first = dropletDocument.start
+      until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
+        first = first.next
 
-    last = @tree.end
-    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
-      last = last.prev
+      last = dropletDocument.end
+      until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
+        last = last.prev
 
-    @clearLassoSelectCanvas(); @clearHighlightCanvas()
+      @clearLassoSelectCanvas(); @clearHighlightCanvas()
 
-    @lassoSelectCtx.strokeStyle = '#00f'
-    @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
-      lassoRectangle.y - @scrollOffsets.main.y,
-      lassoRectangle.width,
-      lassoRectangle.height
+      @lassoSelectCtx.strokeStyle = '#00f'
+      @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
+        lassoRectangle.y - @scrollOffsets.main.y,
+        lassoRectangle.width,
+        lassoRectangle.height
 
-    if first and last?
-      [first, last] = validateLassoSelection @tree, first, last
-      @lassoSelection = new model.List first, last
-      @redrawLassoHighlight()
+      if first and last?
+        [first, last] = validateLassoSelection dropletDocument, first, last
+        @lassoSelection = new model.List first, last
+        @redrawLassoHighlight()
+        return true
+      else
+        @lassoSelection = null
+        return false
+
+    unless @lassoSelectionDocument? and findLassoSelect @lassoSelectionDocument
+      for dropletDocument in @getDocuments()
+        if findLassoSelect dropletDocument
+          @lassoSelectionDocument = dropletDocument
+          break
 
 Editor::redrawLassoHighlight = ->
   if @lassoSelection?
@@ -2255,35 +2274,15 @@ validateLassoSelection = (tree, first, last) ->
 # select segment.
 hook 'mouseup', 0, (point, event, state) ->
   if @lassoSelectAnchor?
-    mainPoint = @trackerPointToMain point
-    lassoRectangle = new @draw.Rectangle(
-        Math.min(@lassoSelectAnchor.x, mainPoint.x),
-        Math.min(@lassoSelectAnchor.y, mainPoint.y),
-        Math.abs(@lassoSelectAnchor.x - mainPoint.x),
-        Math.abs(@lassoSelectAnchor.y - mainPoint.y)
-    )
+    if @lassoSelection?
+      # Move the cursor to the selection
+      @setCursor @lassoSelection.end
 
     @lassoSelectAnchor = null
     @clearLassoSelectCanvas()
 
-    first = @tree.start
-    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
-      first = first.next
-
-    last = @tree.end
-    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
-      last = last.prev
-
-    unless first? and last? then return
-
-    [first, last] = validateLassoSelection @tree, first, last
-
-    @lassoSelection = new model.List first, last
-
-    # Move the cursor to the selection
-    @setCursor @lassoSelection.end
-
     @redrawMain()
+  @lassoSelectionDocument = null
 
 # On mousedown, we might want to
 # pick a selected segment up; check.
