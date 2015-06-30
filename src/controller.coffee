@@ -673,7 +673,9 @@ hook 'populate', 0, ->
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
-  if event.which is Z_KEY and command_pressed(event)
+  if event.which is Z_KEY and event.shiftKey and command_pressed(event)
+    @redo()
+  else if event.which is Z_KEY and command_pressed(event)
     @undo()
   else if event.which is Y_KEY and command_pressed(event)
     @redo()
@@ -708,6 +710,7 @@ Editor::undo = ->
       ) unless operation is 'CAPTURE'
 
   @popUndo()
+  @correctCursor()
   @redrawMain()
   return
 
@@ -770,10 +773,17 @@ Editor::spliceOut = (node) ->
       for record, i in @floatingBlocks
         if record.block is dropletDocument
           @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
+
+          # If the cursor's document is about to vanish,
+          # put it back in the main tree.
+          if @cursor.document is i + 1
+            @setCursor @tree.start
+
           @floatingBlocks.splice i, 1
           break
 
   @prepareNode node, null
+  @correctCursor()
   return operation
 
 Editor::spliceIn = (node, location) ->
@@ -793,6 +803,7 @@ Editor::spliceIn = (node, location) ->
     operation = dropletDocument.insert location, node,
       (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    @correctCursor()
     return operation
   else
     return null
@@ -802,9 +813,15 @@ Editor::replace = (before, after, updates) ->
   if dropletDocument?
     operation = dropletDocument.replace before, after, updates
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    @correctCursor()
     return operation
   else
     return null
+
+Editor::correctCursor = ->
+  cursor = @fromCrossDocumentLocation @cursor
+  unless @validCursorPosition cursor
+    @setCursor cursor
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
@@ -1353,6 +1370,11 @@ Editor::performFloatingOperation = (op, direction) ->
       op.position
     )
   else
+    # If the cursor's document is about to vanish,
+    # put it back in the main tree.
+    if @cursor.document is op.index + 1
+      @setCursor @tree.start
+
     @floatingBlocks.splice op.index, 1
 
 class FloatingOperation
@@ -2436,6 +2458,7 @@ Editor::deleteAtCursor = ->
     return
 
   @setCursor block.start, null, 'before'
+  @undoCapture()
   @spliceOut block
   @redrawMain()
 
