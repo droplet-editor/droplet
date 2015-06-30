@@ -436,8 +436,6 @@ Editor::redrawMain = (opts = {}) ->
       noText: (opts.noText ? false)
     }
 
-    console.log rect
-
     # Draw the new tree on the main context
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
     @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
@@ -705,7 +703,7 @@ Editor::undo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
-      @getDocuments(operation.document).perform(
+      @getDocument(operation.document).perform(
         operation.operation, 'backward', (if operation.document is @cursor.document then [@cursor.location] else [])
       ) unless operation is 'CAPTURE'
 
@@ -737,7 +735,7 @@ Editor::redo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
-      @getDocuments(operation.document).perform(
+      @getDocument(operation.document).perform(
         operation.operation, 'forward', (if operation.document is @cursor.document then [@cursor.location] else [])
       ) unless operation is 'CAPTURE'
 
