@@ -737,6 +737,8 @@ Editor::undoCapture = ->
 
 # BASIC BLOCK MOVE SUPPORT
 # ================================
+hook 'populate', 0, ->
+  @rememberedSocketDict = {}
 
 Editor::spliceOut = (node) ->
   # Make an empty list if we haven't been
@@ -747,8 +749,14 @@ Editor::spliceOut = (node) ->
   operation = null
 
   if @inTree node
+    parent = node.start.parent
     operation = @tree.remove node, [@cursor]
     @pushUndo operation
+
+    if (parent?.type is 'socket') and
+        node.start.type is 'blockStart' and
+        node.stringify() of @rememberedSocketDict
+      @populateSocket parent, @rememberedSocketDict[node.stringify()]
 
   @prepareNode node, null
   return operation
@@ -759,11 +767,15 @@ Editor::spliceIn = (node, location) ->
   container = location.container ? location.parent
   if container.type is 'block'
     container = container.parent
-  else if container.type is 'socket' and
-      container.start.next isnt container.end
-    @spliceOut new model.List container.start.next, container.end.prev
 
   @prepareNode node, container
+
+  if container.type is 'socket' and
+      container.start.next isnt container.end and
+      node.start.type is 'blockStart'
+    @rememberedSocketDict[node.stringify()] = container.stringify()
+    @spliceOut new model.List container.start.next, container.end.prev
+
   operation = null
   operation = @tree.insert location, node, [@cursor]
   @pushUndo operation
@@ -1198,7 +1210,7 @@ hook 'mouseup', 1, (point, event, state) ->
           if @lastHighlight is @tree
             @spliceIn @draggingBlock, @tree.start
 
-      futureCursorLocation = @draggingBlock.start.getLocation()
+      futureCursorLocation = @draggingBlock.start.getTextLocation()
 
       # Reparse the parent if we are
       # in a socket
@@ -1208,7 +1220,7 @@ hook 'mouseup', 1, (point, event, state) ->
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
 
-      @setCursor futureCursorLocation
+      @setCursor @tree.getFromTextLocation futureCursorLocation
 
       # Fire the event for sound
       @fireEvent 'block-click'
