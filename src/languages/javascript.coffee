@@ -555,6 +555,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     @mark indentDepth, node, depth + 1, bounds
 
 JavaScriptParser.parens = (leading, trailing, node, context) ->
+  # Don't attempt to paren wrap comments
+  return if '__comment__' in node.classes
+
   if context?.type is 'socket' or
      (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
      'ends-with-brace' in node.classes or

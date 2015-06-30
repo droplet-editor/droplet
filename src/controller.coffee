@@ -135,8 +135,12 @@ exports.Editor = class Editor
 
     @dropletElement.appendChild @mainCanvas
 
-    @paletteWrapper = @paletteElement = document.createElement 'div'
+    @paletteWrapper = document.createElement 'div'
     @paletteWrapper.className = 'droplet-palette-wrapper'
+
+    @paletteElement = document.createElement 'div'
+    @paletteElement.className = 'droplet-palette-element'
+    @paletteWrapper.appendChild @paletteElement
 
     # Then palette canvas
     @paletteCanvas = document.createElement 'canvas'
@@ -145,17 +149,17 @@ exports.Editor = class Editor
 
     @paletteCtx = @paletteCanvas.getContext '2d'
 
-    @paletteWrapper.appendChild @paletteCanvas
+    @paletteElement.appendChild @paletteCanvas
 
-    @paletteElement.style.position = 'absolute'
-    @paletteElement.style.left = '0px'
-    @paletteElement.style.top = '0px'
-    @paletteElement.style.bottom = '0px'
-    @paletteElement.style.width = '270px'
+    @paletteWrapper.style.position = 'absolute'
+    @paletteWrapper.style.left = '0px'
+    @paletteWrapper.style.top = '0px'
+    @paletteWrapper.style.bottom = '0px'
+    @paletteWrapper.style.width = '270px'
 
-    @dropletElement.style.left = @paletteElement.offsetWidth + 'px'
+    @dropletElement.style.left = @paletteWrapper.offsetWidth + 'px'
 
-    @wrapperElement.appendChild @paletteElement
+    @wrapperElement.appendChild @paletteWrapper
 
     do @draw.refreshFontCapital
 
@@ -297,7 +301,7 @@ exports.Editor = class Editor
 
     @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
     if @paletteEnabled
-      @dropletElement.style.left = "#{@paletteElement.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
       @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.offsetWidth}px"
     else
       @dropletElement.style.left = "0px"
@@ -336,11 +340,6 @@ exports.Editor = class Editor
     @redrawMain()
 
   resizePalette: ->
-    ###
-    @paletteWrapper.style.height = "#{@paletteElement.offsetHeight}px"
-    @paletteWrapper.style.width = "#{@paletteElement.offsetWidth}px"
-    ###
-
     @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
     @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeader.offsetHeight
     @paletteCanvas.width = @paletteWrapper.offsetWidth
@@ -1368,7 +1367,7 @@ hook 'populate', 0, ->
   @paletteHeader.className = 'droplet-palette-header'
 
   # Append the element.
-  @paletteWrapper.appendChild @paletteHeader
+  @paletteElement.appendChild @paletteHeader
 
   @setPalette @paletteGroups
 
@@ -1495,7 +1494,7 @@ hook 'populate', 1, ->
   @paletteHighlightPath = null
   @currentHighlightedPaletteBlock = null
 
-  @paletteWrapper.appendChild @paletteHighlightCanvas
+  @paletteElement.appendChild @paletteHighlightCanvas
 
 Editor::resizePaletteHighlight = ->
   @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
@@ -1614,7 +1613,7 @@ hook 'populate', 1, ->
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
   if @showPaletteInTextMode and @paletteEnabled
-    width -= @paletteElement.offsetWidth
+    width -= @paletteWrapper.offsetWidth
 
   @aceElement.style.width = "#{width}px"
   @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
@@ -2330,7 +2329,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, [destination]
+    @reparse @getCursor(), null, [@cursor, destination]
     @hiddenInput.blur()
     @dropletElement.focus()
 
@@ -3090,7 +3089,7 @@ hook 'populate', 2, ->
   @paletteScrollerStuffing.className = 'droplet-palette-scroller-stuffing'
 
   @paletteScroller.appendChild @paletteScrollerStuffing
-  @paletteWrapper.appendChild @paletteScroller
+  @paletteElement.appendChild @paletteScroller
 
   @paletteScroller.addEventListener 'scroll', =>
     @scrollOffsets.palette.y = @paletteScroller.scrollTop
@@ -3720,6 +3719,7 @@ hook 'populate', 0, ->
   @gutter.appendChild @lineNumberWrapper
 
   @gutterVersion = -1
+  @lastGutterWidth = null
 
   @lineNumberTags = {}
 
@@ -3798,7 +3798,10 @@ Editor::setAnnotations = (annotations) ->
   @redrawGutter false
 
 Editor::resizeGutter = ->
-  @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+  unless @lastGutterWidth is @aceEditor.renderer.$gutterLayer.gutterWidth
+    @lastGutterWidth = @aceEditor.renderer.$gutterLayer.gutterWidth
+    @gutter.style.width = @lastGutterWidth + 'px'
+    return @resize()
   @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
     (@view.getViewNodeFor(@tree).totalBounds?.bottom?() ? 0) +
     (@options.extraBottomHeight ? @fontSize))}px"

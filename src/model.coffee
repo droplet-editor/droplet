@@ -310,6 +310,8 @@ exports.List = class List
         return operation
 
     else if operation.type is 'replace'
+      updateTextLocations = updates.map((x) => @getFromLocation(x).getTextLocation())
+
       if direction is 'forward'
         before = new List @getFromLocation(operation.beforeStart), @getFromLocation(operation.beforeEnd)
         after = operation.after.clone()
@@ -325,6 +327,9 @@ exports.List = class List
       after.setParent parent
       before.setParent null
       after.notifyChange()
+
+      updates.forEach (x, i) =>
+        x.set(@getFromTextLocation(updateTextLocations[i]).getLocation())
 
       return null # TODO new ReplaceOperation here
 

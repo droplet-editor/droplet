@@ -1054,6 +1054,9 @@ CoffeeScriptParser.drop = (block, context, pred) ->
   return helper.DISCOURAGE
 
 CoffeeScriptParser.parens = (leading, trailing, node, context) ->
+  # Don't attempt to paren wrap comments
+  return if '__comment__' in node.classes
+
   trailing trailing().replace /\s*,\s*$/, ''
   # Remove existing parentheses
   while true
