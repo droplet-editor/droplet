@@ -1344,15 +1344,9 @@ hook 'mouseup', 0, (point, event, state) ->
     @draggingOffset = null
     @lastHighlight = null
 
-    debugger
-
     @clearDrag()
-    debugger
     @redrawMain()
-    debugger
     @redrawHighlights()
-
-    debugger
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
