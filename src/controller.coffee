@@ -696,7 +696,9 @@ Editor::undo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
-      @tree.perform(operation, 'backward', [@cursor]) unless operation is 'CAPTURE'
+      @getDocuments()[operation.document].perform(
+        operation.operation, 'backward', (if operation.document is 0 then [@cursor] else [])
+      ) unless operation is 'CAPTURE'
 
   @popUndo()
   @redrawMain()
@@ -726,7 +728,9 @@ Editor::redo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
-      @tree.perform(operation, 'forward', [@cursor]) unless operation is 'CAPTURE'
+      @getDocuments()[operation.document].perform(
+        operation.operation, 'forward', (if operation.document is 0 then [@cursor] else [])
+      ) unless operation is 'CAPTURE'
 
   @popRedo()
   @redrawMain()
@@ -746,9 +750,22 @@ Editor::spliceOut = (node) ->
 
   operation = null
 
-  if @inTree node
-    operation = @tree.remove node, [@cursor]
-    @pushUndo operation
+  dropletDocument = node.getDocument()
+
+  if dropletDocument?
+    operation = node.getDocument().remove node, (if dropletDocument is @tree then [@cursor] else [])
+    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+
+    # Remove the floating dropletDocument if it is now
+    # empty
+    if dropletDocument.start.next is dropletDocument.end
+      console.log 'removing it'
+      for record, i in @floatingBlocks
+        if record.block is dropletDocument
+          console.log 'found the one to remove'
+          @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
+          @floatingBlocks.splice i, 1
+          break
 
   @prepareNode node, null
   return operation
@@ -763,16 +780,24 @@ Editor::spliceIn = (node, location) ->
       container.start.next isnt container.end
     @spliceOut new model.List container.start.next, container.end.prev
 
-  @prepareNode node, container
-  operation = null
-  operation = @tree.insert location, node, [@cursor]
-  @pushUndo operation
-  return operation
+  dropletDocument = location.getDocument()
+
+  if dropletDocument?
+    @prepareNode node, container
+    operation = dropletDocument.insert location, node, (if dropletDocument is @tree then [@cursor] else [])
+    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    return operation
+  else
+    return null
 
 Editor::replace = (before, after, updates) ->
-  operation = @tree.replace before, after, updates
-  @pushUndo operation
-  return operation
+  dropletDocument = before.start.getDocument()
+  if dropletDocument?
+    operation = dropletDocument.replace before, after, updates
+    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    return operation
+  else
+    return null
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
@@ -844,6 +869,13 @@ Editor::resizeDragCanvas = ->
 
   @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
+
+Editor::getDocuments = ->
+  documents = [@tree]
+  for el, i in @floatingBlocks
+    documents.push el.block
+  return documents
+
 # On mousedown, we will want to
 # hit test blocks in the root tree to
 # see if we want to move them.
@@ -859,35 +891,37 @@ hook 'mousedown', 1, (point, event, state) ->
 
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
-  hitTestResult = @hitTest mainPoint, @tree
 
-  # Produce debugging output
-  if @debugging and event.shiftKey
-    line = null
-    node = @view.getViewNodeFor(hitTestResult)
-    for box, i in node.bounds
-      if box.contains(mainPoint)
-        line = i
-        break
-    @dumpNodeForDebug(hitTestResult, line)
+  for dropletDocument in @getDocuments()
+    hitTestResult = @hitTest mainPoint, dropletDocument
 
-  # If it came back positive,
-  # deal with the click.
-  if hitTestResult?
-    # Record the hit test result (the block we want to pick up)
-    @clickedBlock = hitTestResult
-    @clickedBlockPaletteEntry = null
+    # Produce debugging output
+    if @debugging and event.shiftKey
+      line = null
+      node = @view.getViewNodeFor(hitTestResult)
+      for box, i in node.bounds
+        if box.contains(mainPoint)
+          line = i
+          break
+      @dumpNodeForDebug(hitTestResult, line)
 
-    # Move the cursor somewhere nearby
-    @setCursor @clickedBlock.start.next
+    # If it came back positive,
+    # deal with the click.
+    if hitTestResult?
+      # Record the hit test result (the block we want to pick up)
+      @clickedBlock = hitTestResult
+      @clickedBlockPaletteEntry = null
 
-    # Record the point at which is was clicked (for clickedBlock->draggingBlock)
-    @clickedPoint = point
+      # Move the cursor somewhere nearby
+      @setCursor @clickedBlock.start.next
 
-    # Signify to any other hit testing
-    # handlers that we have already consumed
-    # the hit test opportunity for this event.
-    state.consumedHitTest = true
+      # Record the point at which is was clicked (for clickedBlock->draggingBlock)
+      @clickedPoint = point
+
+      # Signify to any other hit testing
+      # handlers that we have already consumed
+      # the hit test opportunity for this event.
+      state.consumedHitTest = true
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -964,6 +998,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # When we are dragging things, we draw the shadow.
     # Also, we translate the block 1x1 to the right,
     # so that we can see its borders.
+    @dragView.clearCache()
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
 
@@ -987,27 +1022,28 @@ hook 'mousemove', 1, (point, event, state) ->
       w: @mainCanvas.width
       h: @mainCanvas.height
 
-    head = @tree.start
-    until head is @tree.end
+    for dropletDocument in @getDocuments()
+      head = dropletDocument.start
+      until head is dropletDocument.end
 
-      if head is @draggingBlock.start
-        head = @draggingBlock.end
+        if head is @draggingBlock.start
+          head = @draggingBlock.end
 
-      if head instanceof model.StartToken
-        acceptLevel = @getAcceptLevel @draggingBlock, head.container
-        unless acceptLevel is helper.FORBID
-          dropPoint = @view.getViewNodeFor(head.container).dropPoint
+        if head instanceof model.StartToken
+          acceptLevel = @getAcceptLevel @draggingBlock, head.container
+          unless acceptLevel is helper.FORBID
+            dropPoint = @view.getViewNodeFor(head.container).dropPoint
 
-          if dropPoint?
-            @dropPointQuadTree.insert
-              x: dropPoint.x
-              y: dropPoint.y
-              w: 0
-              h: 0
-              acceptLevel: acceptLevel
-              _droplet_node: head.container
+            if dropPoint?
+              @dropPointQuadTree.insert
+                x: dropPoint.x
+                y: dropPoint.y
+                w: 0
+                h: 0
+                acceptLevel: acceptLevel
+                _droplet_node: head.container
 
-      head = head.next
+        head = head.next
 
     @dragCanvas.style.top = "#{position.y + getOffsetTop(@dropletElement)}px"
     @dragCanvas.style.left = "#{position.x + getOffsetLeft(@dropletElement)}px"
@@ -1195,8 +1231,8 @@ hook 'mouseup', 1, (point, event, state) ->
         when 'block'
           @spliceIn @draggingBlock, @lastHighlight.end
         else
-          if @lastHighlight is @tree
-            @spliceIn @draggingBlock, @tree.start
+          if @lastHighlight.type is 'document'
+            @spliceIn @draggingBlock, @lastHighlight.start
 
       futureCursorLocation = @draggingBlock.start.getLocation()
 
@@ -1254,9 +1290,8 @@ hook 'mouseup', 0, (point, event, state) ->
     palettePoint = @trackerPointToPalette trackPoint
 
     # Remove the block from the tree.
-    if @inTree @draggingBlock
-      @undoCapture()
-      @spliceOut @draggingBlock
+    @undoCapture()
+    @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
@@ -1275,11 +1310,13 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    @pushUndo new FloatingOperation @floatingBlocks.length, @draggingBlock, renderPoint, 'create'
+    newDocument = new model.Document()
+    newDocument.insert newDocument.start, @draggingBlock
+    @pushUndo new FloatingOperation @floatingBlocks.length, newDocument, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
     @floatingBlocks.push new FloatingBlockRecord(
-      @draggingBlock,
+      newDocument
       renderPoint
     )
 
@@ -1303,40 +1340,6 @@ Editor::performFloatingOperation = (op, direction) ->
 
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
-
-# On mousedown, we can hit test for floating blocks.
-hook 'mousedown', 5, (point, event, state) ->
-  # If someone else has already taken this click, pass.
-  if state.consumedHitTest then return
-
-  # If it's not in the main pane, pass.
-  if not @trackerPointIsInMain(point) then return
-
-  # Hit test against floating blocks
-  for record, i in @floatingBlocks
-    hitTestResult = @hitTest @trackerPointToMain(point), record.block
-
-    if hitTestResult?
-      @clickedBlock = record.block
-      @clickedPoint = point
-
-      state.consumedHitTest = true
-
-      @redrawMain()
-
-hook 'mousemove', 7, (point, event, state) ->
-  if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
-    for record, i in @floatingBlocks
-      if record.block is @clickedBlock
-        @undoCapture()
-
-        @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
-
-        @floatingBlocks.splice i, 1
-
-        @redrawMain()
-
-        return
 
 # On redraw, we draw all the floating blocks
 # in their proper positions.
@@ -1926,48 +1929,51 @@ hook 'mousedown', 2, (point, event, state) ->
   # Otherwise, look for a socket that
   # the user has clicked
   mainPoint = @trackerPointToMain point
-  hitTestResult = @hitTestTextInput mainPoint, @tree
+  hitAnything = false
+  for dropletDocument in @getDocuments()
+    hitTestResult = @hitTestTextInput mainPoint, dropletDocument
 
-  # If they have clicked a socket,
-  # focus it.
-  if hitTestResult?
-    unless hitTestResult is @getCursor()
-      if hitTestResult.editable()
-        @undoCapture()
-        @setCursor hitTestResult
-        @redrawMain()
+    # If they have clicked a socket,
+    # focus it.
+    if hitTestResult?
+      hitAnything = true
+      unless hitTestResult is @getCursor()
+        if hitTestResult.editable()
+          @undoCapture()
+          @setCursor hitTestResult
+          @redrawMain()
 
-      if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
-        @showDropdown hitTestResult
+        if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
+            mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
+          @showDropdown hitTestResult
 
-      @textInputSelecting = false
+        @textInputSelecting = false
 
-    else
-      if @getCursor().hasDropdown() and
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
-        @showDropdown()
+      else
+        if @getCursor().hasDropdown() and
+            mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
+          @showDropdown()
 
-      @setTextInputAnchor mainPoint
-      @redrawTextInput()
+        @setTextInputAnchor mainPoint
+        @redrawTextInput()
 
-      @textInputSelecting = true
+        @textInputSelecting = true
 
-    # Now that we have focused the text element
-    # in the Droplet model, focus the hidden input.
-    #
-    # It is important that this be done after the Droplet model
-    # has focused its text element, because
-    # the hidden input moves on the focus() event to
-    # the currently-focused Droplet element to make
-    # mobile screen scroll properly.
-    @hiddenInput.focus()
+      # Now that we have focused the text element
+      # in the Droplet model, focus the hidden input.
+      #
+      # It is important that this be done after the Droplet model
+      # has focused its text element, because
+      # the hidden input moves on the focus() event to
+      # the currently-focused Droplet element to make
+      # mobile screen scroll properly.
+      @hiddenInput.focus()
 
-    state.consumedHitTest = true
+      state.consumedHitTest = true
 
-  # If they have not clicked a socket,
-  # unfocus the current socket.
-  else if @cursorAtSocket()
+    # If they have not clicked a socket,
+    # unfocus the current socket.
+  if @cursorAtSocket() and not hitAnything
     @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
 # Create the dropdown DOM element at populate time.
@@ -2305,15 +2311,14 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
-  if destination? and not (destination instanceof model.Location)
-    destination = destination.getLocation()
+  if destination? and destination instanceof model.Location
+    destination = @tree.getFromLocation destination
 
   # Abort if there is no destination (usually means
   # someone wants to travel outside the document)
-  return unless destination?
+  return unless destination? and @inTree destination
 
   # Now set the new cursor
-  destination = @tree.getFromLocation destination
   if destination instanceof model.Container
     destination = destination.start
 
