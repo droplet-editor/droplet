@@ -80,8 +80,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     super
     @lines = @text.split '\n'
 
-  getAcceptsRule: (node) -> default: helper.NORMAL
-
   getPrecedence: (node) -> 1
 
   getClasses: (node) ->
@@ -153,26 +151,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         node.attributes.push {start: offset + start, end: offset + end}
         offset += end
 
-    ###
-    offset = node.__location.start
-    node.attributes = []
-    start = 1
-    end = 0
-    squotes = dquotes = false #Inside single or Double quotes respectively
-    for ch, i in string
-      if ch is '"' and not squotes
-        dquotes = not dquotes
-      else if ch is '\'' and not dquotes
-        squotes = not squotes
-      if not squotes and not dquotes and (ch is '>' or /\s/.test ch)
-        end = i
-        if start < end
-          node.attributes.push {start: start+offset, end: end+offset}
-        start = i+1
-    node.attributes.shift()
-    #console.log node.attributes
-    ###
-
   cleanTree: (node) ->
     if not node
       return
@@ -224,8 +202,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     node.type = 'blockTag'
 
-    #console.log node
-
     node.__indentLocation = {start: node.__location.startTag.end}
 
     if node.childNodes?.length > 0
@@ -239,18 +215,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
 
   makeIndentBounds: (node) ->
-    ###
-    loc = node.__indentLocation
-    lines = @text[loc.start...loc.end].split('\n')
-    for i in [lines.length-1..0] by -1
-      if lines[i].trim().length is 0
-        loc.end -= lines[i].length + 1
-      else
-        break
-
-    if loc.start > loc.end
-      loc.end = loc.start
-    ###
     bounds = {
       start: @positions[node.__indentLocation.start]
       end: @positions[node.__indentLocation.end]
@@ -286,19 +250,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       location.start += text.length - leftTrimText.length
       text = leftTrimText
     node.value = text
-    ###
-    rigthtTrimText = text.trimRight()
-    leftTrimText = rigthtTrimText.trimLeft()
-    node.value = leftTrimText
-    location.start += rigthtTrimText.length - leftTrimText.length
-    location.end = location.start + leftTrimText.length
-    console.log node.value, JSON.stringify location
-    ###
 
   getSocketLevel: (node) -> helper.ANY_DROP
 
   htmlBlock: (node, depth, bounds) ->
-    #console.log "Adding Block: ", JSON.stringify(bounds ? @getBounds node)
     @addBlock
       bounds: bounds ? @getBounds node
       depth: depth
@@ -308,16 +263,13 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       socketLevel: @getSocketLevel node
 
   htmlSocket: (node, depth, precedence, bounds, classes) ->
-    #console.log "Adding Socket: ", JSON.stringify(bounds ? @getBounds node)
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
       precedence: precedence
       classes: classes ? @getClasses node
-      acccepts: @getAcceptsRule node
 
   getIndentPrefix: (bounds, indentDepth, depth) ->
-    #console.log JSON.stringify(bounds), indentDepth, depth
     if bounds.end.line - bounds.start.line < 1
       return DEFAULT_INDENT_DEPTH
     else
@@ -331,14 +283,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       else
         return DEFAULT_INDENT_DEPTH
 
-  handleText: (node, depth) ->
-    text = node.value.split '\n'
-    loc = {start: node.__location.start}
-    for line in text
-      loc.end = loc.start + line.length
-      @htmlSocket node, depth, null, @genBounds loc
-      loc.start = loc.end + 1
-
   markRoot: ->
     @positions = []
     line = 0
@@ -350,26 +294,20 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         line++
         column = 0
     @positions[@text.length] = {'line': line, 'column': column}
-    window.positions = @positions
-    window.text = @text
 
-    try
-      if @opts.parseOptions?.wrapAtRoot is false
+    if @opts.parseOptions?.wrapAtRoot is false
+      root = htmlParser.parseFragment @text
+      @cleanTree root
+      @fixBounds root
+    else
+      root = htmlParser.parse @text
+      @cleanTree root
+      @fixBounds root
+      if root.childNodes.length is 0
         root = htmlParser.parseFragment @text
         @cleanTree root
         @fixBounds root
-      else
-        root = htmlParser.parse @text
-        @cleanTree root
-        @fixBounds root
-        if root.childNodes.length is 0
-          root = htmlParser.parseFragment @text
-          @cleanTree root
-          @fixBounds root
-      window.root = root
-      @mark 0, root, 0, null
-    catch e
-      console.log e.stack
+    @mark 0, root, 0, null
 
   mark: (indentDepth, node, depth, bounds) ->
 
@@ -391,7 +329,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         indentBounds = @makeIndentBounds node
         if indentBounds.start.line isnt indentBounds.end.line or indentBounds.start.column isnt indentBounds.end.column
           depth++
-          #console.log "Adding Indent: ", JSON.stringify @makeIndentBounds node
           prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
           indentDepth += prefix.length
           @addIndent
@@ -409,92 +346,18 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       when 'text'
         @htmlBlock node, depth, bounds
         @htmlSocket node, depth + 1, null
-        #@handleText node, depth + 1
 
       when 'comment'
         @htmlBlock node, depth, bounds
         node.__location.start += 4
         node.__location.end -= 3
         @htmlSocket node, depth + 1, null
-        #node.value = node.data
-        #node.__location.start += 4
-        #@handleText node, depth + 1
 
   isComment: (text) ->
     text.match(/<!--.*-->/)
 
-HTMLParser.parens = (leading, trainling, node, context) ->
-  return [leading, trainling]
-
-###
-HTMLParser.handleButton = (text, button, classes) ->
-  fragment = htmlParser.parseFragment text
-  @prototype.cleanTree fragment
-  block = fragment.childNodes[0]
-  prev = null
-  if block.nodeName is 'tr'
-    prev = 'td'
-  else if block.nodeName in ['table', 'thead', 'tbody']
-    prev = 'tr'
-  else if block.nodeName is 'div'
-    prev = 'div'
-  if prev
-    last = block.childNodes.length - 1
-    while last >= 0
-      if block.childNodes[last].nodeName is prev
-        break
-      last--
-    last++
-    if button is 'add-button'
-      if block.childNodes?.length is 1 and block.childNodes[0].nodeName is '#text' and block.childNodes[0].value.trim().length is 0
-        block.childNodes[0].value = '\n'
-      switch block.nodeName
-        when 'tr'
-          extra = htmlParser.parseFragment '\n  <td></td>'
-        when 'table'
-          extra = htmlParser.parseFragment '\n  <tr>\n  \n  </tr>'
-        when 'tbody'
-          extra = htmlParser.parseFragment '\n  <tr>\n  \n  </tr>'
-        when 'thead'
-          extra = htmlParser.parseFragment '\n  <tr>\n  \n  </tr>'
-        when 'div'
-          extra = htmlParser.parseFragment '\n  <div>\n  \n  </div>'
-      block.childNodes = block.childNodes[...last].concat(extra.childNodes).concat block.childNodes[last...]
-    else if button is 'subtract-button'
-        mid = last - 2
-        while mid >= 0
-          if block.childNodes[mid].nodeName is prev
-            break
-          mid--
-        block.childNodes = (if mid >=0 then block.childNodes[..mid] else []).concat block.childNodes[last...]
-        if block.childNodes.length is 1 and block.childNodes[0].nodeName is '#text' and block.childNodes[0].value.trim().length is 0
-          block.childNodes[0].value = '\n  \n'
-
-  return htmlSerializer.serialize fragment
-###
-
-###
-console.log text, button, classes
-blockType = classes[0]
-if button is 'add-button'
-  if blockType is 'tr'
-    endTagStart = text.length - 5
-    text = text[...endTagStart] + '<td></td>\n' + text[endTagStart...]
-  else
-    endTagStart = null
-    switch blockType
-      when 'table'
-        endTagStart = text.length - 8
-      when 'tbody'
-        endTagStart = text.length - 8
-      when 'thead'
-        endTagStart = text.length - 8
-    if endTagStart isnt null
-      text = text[...endTagStart] + '<tr>\n  \n</tr>\n' + text[endTagStart...]
-
-console.log text
-return text
-###
+HTMLParser.parens = (leading, trailing, node, context) ->
+  return [leading, trailing]
 
 HTMLParser.drop = (block, context, pred) ->
 
