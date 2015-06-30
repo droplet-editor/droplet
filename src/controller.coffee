@@ -696,7 +696,7 @@ Editor::undo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
-      @tree.perform(operation, 'backward', [@cursor]) unless operation is 'CAPTURE'
+      @tree.perform(operation, 'backward', [@cursor].concat(@rememberedSockets)) unless operation is 'CAPTURE'
 
   @popUndo()
   @redrawMain()
@@ -726,7 +726,7 @@ Editor::redo = ->
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
-      @tree.perform(operation, 'forward', [@cursor]) unless operation is 'CAPTURE'
+      @tree.perform(operation, 'forward', [@cursor].concat(@rememberedSockets)) unless operation is 'CAPTURE'
 
   @popRedo()
   @redrawMain()
@@ -747,7 +747,18 @@ Editor::spliceOut = (node) ->
   operation = null
 
   if @inTree node
-    operation = @tree.remove node, [@cursor]
+    socketParent = null
+    index = @rememberedSockets.map((x) => @tree.getFromLocation(x)).indexOf(node.parent)
+    if index >= 0
+      socketParent = node.parent
+
+    operation = @tree.remove node, [@cursor].concat(@rememberedSockets)
+
+    if socketParent?
+      @populateSocket socketParent, @rememberedSocketContents[index]
+      @rememberedSockets.splice index, 1
+      @rememberedSocketContents.splice index, 1
+
     @pushUndo operation
 
   @prepareNode node, null
@@ -761,11 +772,17 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
-    @spliceOut new model.List container.start.next, container.end.prev
+
+    # Remember the old value of this socket
+    @rememberedSockets.push container.getLocation()
+    @rememberedSocketContents.push container.textContent()
+
+    # Manually `Model.remove`
+    @pushUndo @tree.remove new model.List(container.start.next, container.end.prev), [@cursor].concat(@rememberedSockets)
 
   @prepareNode node, container
   operation = null
-  operation = @tree.insert location, node, [@cursor]
+  operation = @tree.insert location, node, [@cursor].concat(@rememberedSockets)
   @pushUndo operation
   return operation
 
@@ -1577,6 +1594,9 @@ hook 'populate', 1, ->
       @hiddenInput.style.top = inputTop + 'px'
 
   @dropletElement.appendChild @hiddenInput
+
+  @rememberedSockets = []
+  @rememberedSocketContents = []
 
   # We also need to initialise some fields
   # for knowing what is focused
