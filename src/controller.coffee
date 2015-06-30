@@ -665,7 +665,9 @@ hook 'populate', 0, ->
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
-  if event.which is Z_KEY and command_pressed(event)
+  if event.which is Z_KEY and event.shiftKey and command_pressed(event)
+    @redo()
+  else if event.which is Z_KEY and command_pressed(event)
     @undo()
   else if event.which is Y_KEY and command_pressed(event)
     @redo()
@@ -698,6 +700,7 @@ Editor::undo = ->
       @tree.perform(operation, 'backward', [@cursor]) unless operation is 'CAPTURE'
 
   @popUndo()
+  @correctCursor()
   @redrawMain()
   return
 
@@ -750,6 +753,7 @@ Editor::spliceOut = (node) ->
     @pushUndo operation
 
   @prepareNode node, null
+  @correctCursor()
   return operation
 
 Editor::spliceIn = (node, location) ->
@@ -766,12 +770,19 @@ Editor::spliceIn = (node, location) ->
   operation = null
   operation = @tree.insert location, node, [@cursor]
   @pushUndo operation
+  @correctCursor()
   return operation
 
 Editor::replace = (before, after, updates) ->
   operation = @tree.replace before, after, updates
   @pushUndo operation
+  @correctCursor()
   return operation
+
+Editor::correctCursor = ->
+  cursor = @tree.getFromLocation(@cursor)
+  unless @validCursorPosition cursor
+    @setCursor cursor
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
@@ -2429,6 +2440,7 @@ Editor::deleteAtCursor = ->
     return
 
   @setCursor block.start, null, 'before'
+  @undoCapture()
   @spliceOut block
   @redrawMain()
 
