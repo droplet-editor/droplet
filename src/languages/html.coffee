@@ -359,11 +359,12 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 HTMLParser.parens = (leading, trailing, node, context) ->
   return [leading, trailing]
 
-HTMLParser.drop = (block, context, pred) ->
+HTMLParser.drop = (block, context, pred, next) ->
 
   blockType = block.classes[0]
   contextType = context.classes[0]
   predType = pred?.classes[0]
+  nextType = next?.classes[0]
 
   check = (blockType, allowList, forbidList = []) ->
     if blockType in allowList and blockType not in forbidList
@@ -372,7 +373,14 @@ HTMLParser.drop = (block, context, pred) ->
 
   switch contextType
     when 'html'
-      return check blockType, ['head', 'body']
+      if blockType is 'head'
+        if predType is 'html' and (not next or nextType is 'body')
+          return helper.ENCOURAGE
+      if blockType is 'body'
+        if predType in ['html', 'head'] and not next
+          return helper.ENCOURAGE
+        return helper.FORBID
+      return helper.FORBID
     when 'head'
       return check blockType, METADATA_CONTENT
     when 'title'
@@ -533,8 +541,14 @@ HTMLParser.drop = (block, context, pred) ->
       return check blockType, FLOW_CONTENT
     when '__segment'
       if blockType is '#documentType'
-        return check predType, [undefined, '__segment']
-      return check blockType, ['html']
+        if pred.type is 'segment' and (not next or nextType is 'html')
+          return helper.ENCOURAGE
+        return helper.FORBID
+      if blockType is 'html'
+        if (pred.type is 'segment' or predType is '#documentType') and not next
+          return helper.ENCOURAGE
+        return helper.FORBID
+      return helper.FORBID
 
   if contextType in HEADING_CONTENT
     return check blockType, PHRASING_CONTENT
