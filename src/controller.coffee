@@ -466,21 +466,21 @@ Editor::redrawHighlights = ->
   @clearHighlightCanvas()
 
   for line, info of @markedLines
-    if @inTree info.model
+    if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
       delete @markedLines[line]
 
   for id, info of @markedBlocks
-    if @inTree info.model
+    if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
       delete @markedLines[id]
 
   for id, info of @extraMarks
-    if @inTree info.model
+    if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
@@ -488,7 +488,7 @@ Editor::redrawHighlights = ->
 
   # If there is an block that is being dragged,
   # draw it in gray
-  if @draggingBlock? and @inTree @draggingBlock
+  if @draggingBlock? and @inDisplay @draggingBlock
     @view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
@@ -1269,17 +1269,8 @@ hook 'populate', 0, ->
 class FloatingBlockRecord
   constructor: (@block, @position) ->
 
-Editor::inTree = (block) ->
-  if (block instanceof model.List) and not
-      (block instanceof model.Container)
-    block = block.start
-
-  block = block.container ? block
-
-  until block is @tree or not block?
-    block = block.parent
-
-  return block is @tree
+Editor::inTree = (block) -> (block.container ? block).getDocument() is @tree
+Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDocuments()
 
 # We can create floating blocks by dropping
 # blocks without a highlight.
