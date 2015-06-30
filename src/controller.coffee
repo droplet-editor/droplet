@@ -2087,31 +2087,32 @@ hook 'dblclick', 0, (point, event, state) ->
   # If someone else already took this click, return.
   if state.consumedHitTest then return
 
-  # Otherwise, look for a socket that
-  # the user has clicked
-  mainPoint = @trackerPointToMain point
-  hitTestResult = @hitTestTextInput mainPoint, @tree
+  for dropletDocument in @getDocuments()
+    # Otherwise, look for a socket that
+    # the user has clicked
+    mainPoint = @trackerPointToMain point
+    hitTestResult = @hitTestTextInput mainPoint, @tree
 
-  # If they have clicked a socket,
-  # focus it, and
-  unless hitTestResult is @getCursor()
-    if hitTestResult.editable()
+    # If they have clicked a socket,
+    # focus it, and
+    unless hitTestResult is @getCursor()
+      if hitTestResult? and hitTestResult.editable()
+        @redrawMain()
+        hitTestResult = @hitTestTextInput mainPoint, @tree
+
+    if hitTestResult? and hitTestResult.editable()
+      @setCursor hitTestResult
       @redrawMain()
-      hitTestResult = @hitTestTextInput mainPoint, @tree
 
-  if hitTestResult? and hitTestResult.editable()
-    @setCursor hitTestResult
-    @redrawMain()
+      setTimeout (=>
+        @selectDoubleClick mainPoint
+        @redrawTextInput()
 
-    setTimeout (=>
-      @selectDoubleClick mainPoint
-      @redrawTextInput()
+        @textInputSelecting = false
+      ), 0
 
-      @textInputSelecting = false
-    ), 0
-
-    state.consumedHitTest = true
-
+      state.consumedHitTest = true
+      return
 
 # On mousemove, if we are selecting,
 # we want to update the selection
