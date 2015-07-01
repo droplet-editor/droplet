@@ -539,13 +539,13 @@ HTMLParser.drop = (block, context, pred, next) ->
       return check blockType, METADATA_CONTENT.concat(FLOW_CONTENT).concat(['ol', 'ul', 'dl', 'figure', 'ruby', 'object', 'video', 'audio', 'table', 'colgroup', 'thead', 'tbody', 'tfoot', 'tr', 'fieldset', 'select'])
     when 'canvas'
       return check blockType, FLOW_CONTENT
-    when '__segment'
+    when '__document__'
       if blockType is '#documentType'
-        if pred.type is 'segment' and (not next or nextType is 'html')
+        if pred.type is 'document' and (not next or nextType is 'html')
           return helper.ENCOURAGE
         return helper.FORBID
       if blockType is 'html'
-        if (pred.type is 'segment' or predType is '#documentType') and not next
+        if (pred.type is 'document' or predType is '#documentType') and not next
           return helper.ENCOURAGE
         return helper.FORBID
       return helper.FORBID

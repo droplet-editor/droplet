@@ -15,8 +15,7 @@ asyncTest 'Basic Document parsing', ->
       </body>
     </html>
     ''').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"><block
+  expectedSerialization = '''<document><block
       precedence="1"
       color="cyan"
       socketLevel="0"
@@ -66,7 +65,7 @@ asyncTest 'Basic Document parsing', ->
       handwritten="false"
       classes="#text">Welcome to my page!</socket></block></indent>
     &amp;lt;/body&amp;gt;</block></indent>
-    &amp;lt;/html&amp;gt;</block></segment>'''
+    &amp;lt;/html&amp;gt;</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -83,8 +82,7 @@ asyncTest 'Removal of Empty nodes', ->
       </p>
     </html>
     ''').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"><block
+  expectedSerialization = '''<document><block
       precedence="1"
       color="amber"
       socketLevel="0"
@@ -107,7 +105,7 @@ asyncTest 'Removal of Empty nodes', ->
       handwritten="false"
       classes="#text">Welcome to my world</socket></block></indent>
     &amp;lt;/p&amp;gt;</block></indent>
-    &amp;lt;/html&amp;gt;</block></segment>'''
+    &amp;lt;/html&amp;gt;</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -123,8 +121,7 @@ asyncTest 'Optional Closing tags', ->
       <li>Item2
     </ul>
     ''').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"><block
+  expectedSerialization = '''<document><block
       precedence="1"
       color="blue"
       socketLevel="0"
@@ -159,7 +156,7 @@ asyncTest 'Optional Closing tags', ->
       precedence="0"
       handwritten="false"
       classes="#text">Item2</socket></block></indent></block></indent>
-    &amp;lt;/ul&amp;gt;</block></segment>'''
+    &amp;lt;/ul&amp;gt;</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -174,8 +171,7 @@ asyncTest 'Attribute Sockets', ->
 
     </body>
     ''').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"><block
+  expectedSerialization = '''<document><block
       precedence="1"
       color="return"
       socketLevel="0"
@@ -186,7 +182,7 @@ asyncTest 'Attribute Sockets', ->
       prefix="  "
       classes="body">
     </indent>
-    &amp;lt;/body&amp;gt;</block></segment>'''
+    &amp;lt;/body&amp;gt;</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
