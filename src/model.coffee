@@ -99,6 +99,9 @@ exports.List = class List
     @id = ++_id
 
   contains: (token) ->
+    if token instanceof Container
+      token = token.start
+
     head = @start
     until head is @end
       if head is token

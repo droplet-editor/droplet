@@ -127,7 +127,7 @@ asyncTest 'Controller: palette block expansion', ->
   equal(editor.getValue().trim(), 'pen red\na1 = b\na2 = b')
   start()
 
-asyncTest 'Controller: reparse fallback', ->
+asyncTest 'Controller: reparse and undo reparse', ->
   states = []
   document.getElementById('test-main').innerHTML = ''
   varcount = 0

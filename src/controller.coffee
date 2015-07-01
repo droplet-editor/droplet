@@ -852,7 +852,7 @@ Editor::replace = (before, after, updates) ->
   dropletDocument = before.start.getDocument()
   if dropletDocument?
     operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
-    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    @pushUndo {operation, document: @documentIndex(dropletDocument)}
     @correctCursor()
     return operation
   else
@@ -2408,7 +2408,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), (if destination.document is @cursor.document then [destination.location] else [])
+    @reparse @getCursor(), null, (if destination.document is @cursor.document then [destination.location] else [])
     @hiddenInput.blur()
     @dropletElement.focus()
 
