@@ -1003,6 +1003,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
     # Signify that we are now dragging a block.
     @draggingBlock = @clickedBlock
+    @dragReplacing = false
 
     # Our dragging offset must be computed using the canvas on which this block
     # is rendered.
@@ -1173,8 +1174,11 @@ hook 'mousemove', 0, (point, event, state) ->
       # assume they want to replace the block where they found it.
       if @hitTest mainPoint, @draggingBlock
         best = null
+        @dragReplacing = true
+
       # Otherwise, find the closest droppable block
       else
+        @dragReplacing = false
         testPoints = @dropPointQuadTree.retrieve {
           x: mainPoint.x - MAX_DROP_DISTANCE
           y: mainPoint.y - MAX_DROP_DISTANCE
@@ -1218,6 +1222,9 @@ hook 'mouseup', 0, ->
   clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
 
 hook 'mouseup', 1, (point, event, state) ->
+  if @dragReplacing
+    @endDrag()
+
   # We will consume this event iff we dropped it successfully
   # in the root tree.
   if @draggingBlock?
@@ -1324,7 +1331,7 @@ Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDo
 # We can create floating blocks by dropping
 # blocks without a highlight.
 hook 'mouseup', 0, (point, event, state) ->
-  if @draggingBlock? and not @lastHighlight?
+  if @draggingBlock? and not @lastHighlight? and not @dragReplacing
     # Before we put this block into our list of floating blocks,
     # we need to figure out where on the main canvas
     # we are going to render it.
@@ -1365,6 +1372,8 @@ hook 'mouseup', 0, (point, event, state) ->
       newDocument
       renderPoint
     )
+
+    @setCursor @draggingBlock.start
 
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
@@ -3518,6 +3527,10 @@ hook 'mousedown', 10, ->
     @endDrag()
 
 Editor::endDrag = ->
+  # Ensure that the cursor is not in a socket.
+  if @cursorAtSocket()
+    @setCursor @cursor, (x) -> x.type isnt 'socketStart'
+
   @draggingBlock = null
   @draggingOffset = null
   @lastHighlight = null
@@ -3725,9 +3738,6 @@ hook 'populate', 0, ->
 # ONE MORE DROP CASE
 # ================================
 
-# If we drop a block right back onto
-# its grayed-out spot, cancel the drag.
-
 # TODO possibly move this next utility function to view?
 Editor::viewOrChildrenContains = (model, point, view = @view) ->
   modelView = view.getViewNodeFor model
@@ -3740,17 +3750,6 @@ Editor::viewOrChildrenContains = (model, point, view = @view) ->
       return true
 
   return false
-
-hook 'mouseup', 0.5, (point, event) ->
-  if @draggingBlock?
-    trackPoint = new @draw.Point(
-      point.x + @draggingOffset.x,
-      point.y + @draggingOffset.y
-    )
-    renderPoint = @trackerPointToMain trackPoint
-
-    if @inTree(@draggingBlock) and @viewOrChildrenContains @draggingBlock, renderPoint
-      @endDrag()
 
 # LINE NUMBER GUTTER CODE
 # ================================

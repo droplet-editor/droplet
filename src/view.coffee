@@ -1679,10 +1679,10 @@ exports.View = class View
       return null
 
     shouldAddTab: ->
-      if @model.parent?
-        parent = @model.parent
-        parent?.type isnt 'socket'
-      else not ('mostly-value' in @model.classes or
+      if @model.parent? and @view.hasViewNodeFor(@model.parent)
+        return @model.parent?.type isnt 'socket'
+      else
+        return not ('mostly-value' in @model.classes or
           'value-only' in @model.classes)
 
     computeOwnPath: ->
