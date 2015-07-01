@@ -374,9 +374,9 @@ HTMLParser.drop = (block, context, pred, next) ->
   switch contextType
     when 'html'
       if blockType is 'head'
-        if predType is 'html' and (not next or nextType is 'body')
+        if predType is 'html' and (not next or nextType in ['body', 'frameset'])
           return helper.ENCOURAGE
-      if blockType is 'body'
+      if blockType in ['body', 'frameset']
         if predType in ['html', 'head'] and not next
           return helper.ENCOURAGE
         return helper.FORBID
