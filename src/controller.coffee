@@ -4012,6 +4012,11 @@ Editor::viewportDimensions = ->
     height: @mainCanvas.height
   }
 
+# LINE LOCATION API
+# =================
+Editor::getLineBoundingBox = (row) ->
+  return new @view.draw.Rectangle().copy(@view.getViewNodeFor(@tree).bounds[row])
+
 # DEBUG CODE
 # ================================
 Editor::dumpNodeForDebug = (hitTestResult, line) ->
