@@ -699,6 +699,10 @@ Editor::getSerializedEditorState = ->
   }
 
 Editor::undo = ->
+  # Don't allow a socket to be highlighted during
+  # an undo operation
+  @setCursor @cursor, ((x) -> x.type isnt 'socketStart')
+
   currentValue = @getSerializedEditorState()
 
   until @undoStack.length is 0 or
@@ -824,9 +828,10 @@ Editor::replace = (before, after, updates) ->
 Editor::correctCursor = ->
   cursor = @fromCrossDocumentLocation @cursor
   unless @validCursorPosition cursor
-    until @validCursorPosition(cursor) and cursor.type isnt 'socketStart'
+    until not cursor? or (@validCursorPosition(cursor) and cursor.type isnt 'socketStart')
       cursor = cursor.next
-    until @validCursorPosition(cursor) and cursor.type isnt 'socketStart'
+    unless cursor? then cursor = @fromCrossDocumentLocation @cursor
+    until not cursor? or (@validCursorPosition(cursor) and cursor.type isnt 'socketStart')
       cursor = cursor.prev
     @cursor = @toCrossDocumentLocation cursor
 
@@ -2366,6 +2371,11 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     @dropletElement.focus()
 
   @cursor = destination
+
+  # If we have messed up (usually because
+  # of a reparse), scramble to find a nearby
+  # okay place for the cursor
+  @correctCursor()
 
   @redrawMain()
   @highlightFlashShow()

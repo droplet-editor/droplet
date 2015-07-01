@@ -137,6 +137,52 @@ asyncTest 'Controller: reparse fallback', ->
   })
 
   editor.setEditorState(true)
+  editor.setValue('var hello = 1;')
+
+  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+  simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+
+  ok(editor.cursorAtSocket(), 'Has text focus')
+  equal(editor.getCursor().stringify(), '1')
+
+  $('.droplet-hidden-input').sendkeys('2 + 3')
+
+  setTimeout((->
+    ok(editor.cursorAtSocket(), 'Editor still has text focus')
+    equal(editor.getCursor().stringify(), '2 + 3')
+
+    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+
+    # Sockets are separate
+    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 30})
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 30})
+
+    ok(editor.cursorAtSocket(), 'Has text focus')
+
+    equal(editor.getCursor().stringify(), '2', 'Successfully reparsed')
+
+    editor.undo()
+
+    setTimeout (->
+      simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+      simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+      equal(editor.getCursor().stringify(), '1', 'Successfully undid reparse')
+    ), 0
+
+    start()
+  ), 0)
+
+asyncTest 'Controller: reparse fallback', ->
+  states = []
+  document.getElementById('test-main').innerHTML = ''
+  varcount = 0
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'javascript',
+    palette: []
+  })
+
+  editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
   simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
