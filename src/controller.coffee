@@ -38,7 +38,11 @@ Y_KEY = 89
 
 META_KEYS = [91, 92, 93, 223, 224]
 CONTROL_KEYS = [17, 162, 163]
-FLOATING_BLOCK_ALPHA = 0.75
+FLOATING_BLOCK_ALPHA = 1
+GRAY_BLOCK_MARGIN = 5
+GRAY_BLOCK_HANDLE_WIDTH = 15
+GRAY_BLOCK_HANDLE_HEIGHT = 30
+GRAY_BLOCK_COLOR = '#CCC'
 
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
@@ -444,7 +448,37 @@ Editor::redrawMain = (opts = {}) ->
     @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
-      blockView.layout record.position.x, record.position.y
+      changed = blockView.layout record.position.x, record.position.y
+
+      width = @mainCtx.measureText('/*').width
+
+      # TODO this is very view-ish stuff, don't you think?
+      if changed
+        rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
+        rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
+        rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
+
+        # Make the path surroudning the gray box
+        record.cachedGrayBoxPath = path = new @view.draw.Path()
+        path.push new @view.draw.Point rectangle.right(), rectangle.y
+        path.push new @view.draw.Point rectangle.right(), rectangle.bottom()
+        path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+        path.push new @view.draw.Point rectangle.x, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
+        path.push new @view.draw.Point rectangle.x - width, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
+        path.push new @view.draw.Point rectangle.x - width, rectangle.y
+        path.push new @view.draw.Point rectangle.x, rectangle.y
+
+        path.bevel = true
+        path.style = {
+          fillColor: GRAY_BLOCK_COLOR
+        }
+
+      # TODO this will need to become configurable by the @mode
+      record.cachedGrayBoxPath.draw @mainCtx
+      @mainCtx.fillStyle = '#000'
+      @mainCtx.fillText '/*', blockView.totalBounds.x - width, blockView.totalBounds.y
+      @mainCtx.fillText '*/', blockView.totalBounds.right() - width, blockView.totalBounds.bottom() - @fontSize
+
       blockView.draw @mainCtx, rect, {
         grayscale: false
         selected: false
@@ -790,6 +824,9 @@ Editor::spliceOut = (node) ->
           # put it back in the main tree.
           if @cursor.document is i + 1
             @setCursor @tree.start
+
+          if @cursor.document > i + 1
+            @cursor.document -= 1
 
           @floatingBlocks.splice i, 1
           break
@@ -1388,6 +1425,25 @@ hook 'mouseup', 0, (point, event, state) ->
     @clearDrag()
     @redrawMain()
     @redrawHighlights()
+
+hook 'mousedown', 0.5, (point, event, state) ->
+  # If someone else has already taken this click, pass.
+  if state.consumedHitTest then return
+
+  # If it's not in the main pane, pass.
+  if not @trackerPointIsInMain(point) then return
+
+  # Hit test against floating blocks
+  for record, i in @floatingBlocks
+    if record.cachedGrayBoxPath? and record.cachedGrayBoxPath.contains @trackerPointToMain point
+      @clickedBlock = new model.List record.block.start.next, record.block.end.prev
+      @clickedPoint = point
+
+      @view.getViewNodeFor(@clickedBlock).absorbCache()
+
+      state.consumedHitTest = true
+
+      @redrawMain()
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
