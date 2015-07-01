@@ -1289,7 +1289,7 @@ hook 'mouseup', 1, (point, event, state) ->
           if @lastHighlight.type is 'document'
             @spliceIn @draggingBlock, @lastHighlight.start
 
-      futureCursorLocation = @toCrossDocumentLocation @draggingBlock
+      futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
 
       # Reparse the parent if we are
       # in a socket
