@@ -1679,7 +1679,9 @@ exports.View = class View
       return null
 
     shouldAddTab: ->
-      if @model.parent? and @view.hasViewNodeFor(@model.parent)
+      if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
+         (@model.parent.type is 'document' and @model.parent.opts.roundedSingletons and
+          @model.start.prev is @model.parent.start and @model.end.next is @model.parent.end)
         return @model.parent?.type isnt 'socket'
       else
         return not ('mostly-value' in @model.classes or

@@ -445,7 +445,11 @@ Editor::redrawMain = (opts = {}) ->
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
       blockView.layout record.position.x, record.position.y
-      blockView.draw @mainCtx, rect, opts
+      blockView.draw @mainCtx, rect, {
+        grayscale: false
+        selected: false
+        noText: false
+      }
     @mainCtx.globalAlpha /= FLOATING_BLOCK_ALPHA
 
     if opts.boundingRectangle?
@@ -453,6 +457,7 @@ Editor::redrawMain = (opts = {}) ->
 
     # Draw the cursor (if exists, and is inserted)
     @redrawCursors(); @redrawHighlights()
+    @resizeGutter()
 
     for binding in editorBindings.redraw_main
       binding.call this, layoutResult
@@ -1306,13 +1311,13 @@ hook 'mouseup', 1, (point, event, state) ->
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
 
+      # Now that we've done that, we can annul stuff.
+      @endDrag()
+
       @setCursor(futureCursorLocation) if futureCursorLocation?
 
       # Fire the event for sound
       @fireEvent 'block-click'
-
-      # Now that we've done that, we can annul stuff.
-      @endDrag()
 
 # FLOATING BLOCK SUPPORT
 # ================================
@@ -1363,7 +1368,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    newDocument = new model.Document()
+    newDocument = new model.Document({roundedSingletons: true})
     newDocument.insert newDocument.start, @draggingBlock
     @pushUndo new FloatingOperation @floatingBlocks.length, newDocument, renderPoint, 'create'
 
@@ -3845,8 +3850,7 @@ Editor::resizeGutter = ->
     @gutter.style.width = @lastGutterWidth + 'px'
     return @resize()
   @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
-    (@view.getViewNodeFor(@tree).totalBounds?.bottom?() ? 0) +
-    (@options.extraBottomHeight ? @fontSize))}px"
+    @mainScrollerStuffing.offsetHeight)}px"
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree
@@ -3973,25 +3977,28 @@ hook 'populate', 1, ->
   @copyPasteInput.addEventListener 'input', =>
     if @readOnly
       return
-    if pressedVKey
+    if pressedVKey and not @cursorAtSocket()
+      str = @copyPasteInput.value; lines = str.split '\n'
+
+      # Strip any common leading indent
+      # from all the lines of the pasted tet
+      minIndent = lines.map((line) -> line.length - line.trimLeft().length).reduce((a, b) -> Math.min(a, b))
+      str = lines.map((line) -> line[minIndent...]).join('\n')
+      str = str.replace /^\n*|\n*$/g, ''
+
       try
-        str = @copyPasteInput.value; lines = str.split '\n'
-
-        # Strip any common leading indent
-        # from all the lines of the pasted tet
-        minIndent = lines.map((x) -> line.length - line.trimLeft().length).reduce((a, b) -> Math.min(a, b))
-        str = lines.map((line) -> line[minIndent...]).join('\n')
-        str = str.replace /^\n*|\n*$/g, ''
-
         blocks = @mode.parse str
         blocks = new model.List blocks.start.next, blocks.end.prev
-
-        @spliceIn blocks, @cursor
-        @setCursor blocks.end
-
-        @redrawMain()
       catch e
-        console.log e.stack
+        blocks = null
+
+      return unless blocks?
+
+      @undoCapture()
+      @spliceIn blocks, @getCursor()
+      @setCursor blocks.end
+
+      @redrawMain()
 
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
     else if pressedXKey and @lassoSelection?

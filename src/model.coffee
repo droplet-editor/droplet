@@ -1077,7 +1077,7 @@ exports.DocumentEndToken = class DocumentEndToken extends EndToken
   serialize: -> "</document>"
 
 exports.Document = class Document extends Container
-  constructor: ->
+  constructor: (@opts = {}) ->
     @start = new DocumentStartToken this
     @end = new DocumentEndToken this
     @classes = ['__document__']
@@ -1086,7 +1086,7 @@ exports.Document = class Document extends Container
 
     super
 
-  _cloneEmpty: -> new Document()
+  _cloneEmpty: -> new Document(@opts)
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<document>"
