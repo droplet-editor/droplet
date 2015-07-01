@@ -718,7 +718,7 @@ Editor::undo = ->
       @performFloatingOperation(operation, 'backward')
     else
       @getDocument(operation.document).perform(
-        operation.operation, 'backward', (if operation.document is @cursor.document then [@cursor.location] else [])
+        operation.operation, 'backward', @getPreserves(operation.document)
       ) unless operation is 'CAPTURE'
 
   @popUndo()
@@ -751,7 +751,7 @@ Editor::redo = ->
       @performFloatingOperation(operation, 'forward')
     else
       @getDocument(operation.document).perform(
-        operation.operation, 'forward', (if operation.document is @cursor.document then [@cursor.location] else [])
+        operation.operation, 'forward', @getPreserves(operation.document)
       ) unless operation is 'CAPTURE'
 
   @popRedo()
@@ -764,6 +764,23 @@ Editor::undoCapture = ->
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
+hook 'populate', 7, ->
+  @rememberedSockets = []
+
+Editor::getPreserves = (dropletDocument) ->
+  if dropletDocument instanceof model.Document
+    dropletDocument = @documentIndex dropletDocument
+
+  array = [@cursor]
+
+  array = array.concat @rememberedSockets.map(
+    (x) -> x.socket
+  )
+
+  return array.filter((location) ->
+    location.document is dropletDocument
+  ).map((location) -> location.location)
+
 Editor::spliceOut = (node) ->
   # Make an empty list if we haven't been
   # passed one
@@ -775,9 +792,17 @@ Editor::spliceOut = (node) ->
   dropletDocument = node.getDocument()
 
   if dropletDocument?
-    operation = node.getDocument().remove node,
-      (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
+    parent = node.parent
+
+    operation = node.getDocument().remove node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+
+    if parent?.type is 'socket' and node.start.type is 'blockStart'
+      for socket, i in @rememberedSockets
+        if @fromCrossDocumentLocation(socket.socket) is parent
+          @rememberedSockets.splice i, 0
+          @populateSocket parent, socket.text
+          break
 
     # Remove the floating dropletDocument if it is now
     # empty
@@ -806,14 +831,17 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
+    @rememberedSockets.push {
+      socket: @toCrossDocumentLocation(container)
+      text: container.textContent()
+    }
     @spliceOut new model.List container.start.next, container.end.prev
 
   dropletDocument = location.getDocument()
 
   if dropletDocument?
     @prepareNode node, container
-    operation = dropletDocument.insert location, node,
-      (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
+    operation = dropletDocument.insert location, node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     @correctCursor()
     return operation
@@ -823,7 +851,7 @@ Editor::spliceIn = (node, location) ->
 Editor::replace = (before, after, updates) ->
   dropletDocument = before.start.getDocument()
   if dropletDocument?
-    operation = dropletDocument.replace before, after, updates
+    operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     @correctCursor()
     return operation
@@ -2380,7 +2408,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, (if destination.document is @cursor.document then [@cursor.location, destination.location] else [@cursor.location])
+    @reparse @getCursor(), (if destination.document is @cursor.document then [destination.location] else [])
     @hiddenInput.blur()
     @dropletElement.focus()
 
