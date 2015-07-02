@@ -38,7 +38,11 @@ Y_KEY = 89
 
 META_KEYS = [91, 92, 93, 223, 224]
 CONTROL_KEYS = [17, 162, 163]
-FLOATING_BLOCK_ALPHA = 0.75
+FLOATING_BLOCK_ALPHA = 1
+GRAY_BLOCK_MARGIN = 5
+GRAY_BLOCK_HANDLE_WIDTH = 15
+GRAY_BLOCK_HANDLE_HEIGHT = 30
+GRAY_BLOCK_COLOR = '#CCC'
 
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
@@ -442,9 +446,47 @@ Editor::redrawMain = (opts = {}) ->
     @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
 
     @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
+
+    # Draw floating blocks
+    startWidth = @mainCtx.measureText(@mode.startComment).width
+    endWidth = @mainCtx.measureText(@mode.endComment).width
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
-      blockView.layout record.position.x, record.position.y
+      changed = blockView.layout record.position.x, record.position.y
+
+      # TODO this is very view-ish stuff, don't you think?
+      if changed
+        rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
+        rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
+        rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
+
+        if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < @mainCtx.measureText('/*').width
+          rectangle.height += @fontSize
+
+        # Make the path surroudning the gray box
+        record.grayBoxPath = path = new @view.draw.Path()
+        record.grayBox = rectangle
+        path.push new @view.draw.Point rectangle.right(), rectangle.y
+        path.push new @view.draw.Point rectangle.right(), rectangle.bottom()
+        path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+        path.push new @view.draw.Point rectangle.x, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y
+        path.push new @view.draw.Point rectangle.x, rectangle.y
+
+        path.bevel = true
+        path.style = {
+          fillColor: GRAY_BLOCK_COLOR
+        }
+
+      # TODO this will need to become configurable by the @mode
+      @mainCtx.globalAlpha *= 0.8
+      record.grayBoxPath.draw @mainCtx
+      @mainCtx.fillStyle = '#000'
+      @mainCtx.fillText @mode.startComment, blockView.totalBounds.x - startWidth, blockView.totalBounds.y
+      @mainCtx.fillText @mode.endComment, blockView.totalBounds.right() - endWidth, record.grayBox.bottom() - @fontSize - GRAY_BLOCK_MARGIN
+      @mainCtx.globalAlpha /= 0.8
+
       blockView.draw @mainCtx, rect, {
         grayscale: false
         selected: false
@@ -511,6 +553,7 @@ Editor::redrawHighlights = ->
       @mainCanvas.width,
       @mainCanvas.height
     ), {grayscale: true}
+    @maskFloatingPaths(@draggingBlock.getDocument())
 
   @redrawCursors()
   @redrawLassoHighlight()
@@ -816,6 +859,9 @@ Editor::spliceOut = (node) ->
           if @cursor.document is i + 1
             @setCursor @tree.start
 
+          if @cursor.document > i + 1
+            @cursor.document -= 1
+
           @floatingBlocks.splice i, 1
           break
 
@@ -974,7 +1020,7 @@ hook 'mousedown', 1, (point, event, state) ->
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
 
-  for dropletDocument in @getDocuments()
+  for dropletDocument, i in @getDocuments() by -1
     hitTestResult = @hitTest mainPoint, dropletDocument
 
     # Produce debugging output
@@ -1004,6 +1050,20 @@ hook 'mousedown', 1, (point, event, state) ->
       # handlers that we have already consumed
       # the hit test opportunity for this event.
       state.consumedHitTest = true
+      return
+
+    else if i > 0
+      record = @floatingBlocks[i - 1]
+      if record.grayBoxPath? and record.grayBoxPath.contains @trackerPointToMain point
+        @clickedBlock = new model.List record.block.start.next, record.block.end.prev
+        @clickedPoint = point
+
+        @view.getViewNodeFor(@clickedBlock).absorbCache()
+
+        state.consumedHitTest = true
+
+        @redrawMain()
+        return
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -1124,13 +1184,21 @@ hook 'mousemove', 1, (point, event, state) ->
             dropPoint = @view.getViewNodeFor(head.container).dropPoint
 
             if dropPoint?
-              @dropPointQuadTree.insert
-                x: dropPoint.x
-                y: dropPoint.y
-                w: 0
-                h: 0
-                acceptLevel: acceptLevel
-                _droplet_node: head.container
+              allowed = true
+              for record, i in @floatingBlocks by -1
+                if record.block is dropletDocument
+                  break
+                else if record.grayBoxPath.contains dropPoint
+                  allowed = false
+                  break
+              if allowed
+                @dropPointQuadTree.insert
+                  x: dropPoint.x
+                  y: dropPoint.y
+                  w: 0
+                  h: 0
+                  acceptLevel: acceptLevel
+                  _droplet_node: head.container
 
         head = head.next
 
@@ -1196,7 +1264,7 @@ hook 'mousemove', 0, (point, event, state) ->
     while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
       head = head.next
 
-    if head is @tree.end and
+    if head is @tree.end and @floatingBlocks.length is 0 and
         @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
         @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
       @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
@@ -1236,7 +1304,9 @@ hook 'mousemove', 0, (point, event, state) ->
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
 
-        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+        if best?
+          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
 
@@ -1419,6 +1489,9 @@ hook 'mouseup', 0, (point, event, state) ->
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
+    if @cursor.document > op.index
+      @cursor.document += 1
+
     @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
       op.block.clone()
       op.position
@@ -2311,6 +2384,17 @@ Editor::redrawLassoHighlight = ->
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
+    @maskFloatingPaths(@lassoSelection.start.getDocument())
+
+Editor::maskFloatingPaths = (dropletDocument) ->
+  for record, i in @floatingBlocks by -1
+    if record.block is dropletDocument
+      break
+    else
+      @highlightCtx.save()
+      record.grayBoxPath.clip(@highlightCtx)
+      record.grayBoxPath.bounds().clearRect(@highlightCtx)
+      @highlightCtx.restore()
 
 # Convnience function for validating
 # a lasso selection. A lasso selection

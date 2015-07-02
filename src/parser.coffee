@@ -485,6 +485,8 @@ exports.wrapParser = (CustomParser) ->
     constructor: (@opts = {}) ->
       @empty = CustomParser.empty
       @emptyIndent = CustomParser.emptyIndent
+      @startComment = CustomParser.startComment ? '/*'
+      @endComment = CustomParser.endComment ? '*/'
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?

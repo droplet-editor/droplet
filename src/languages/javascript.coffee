@@ -653,5 +653,7 @@ isStandardForLoop = (node) ->
 
 JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
+JavaScriptParser.startComment = '/*'
+JavaScriptParser.endComment = '*/'
 
 module.exports = parser.wrapParser JavaScriptParser

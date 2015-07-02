@@ -126,6 +126,9 @@ exports.Draw = class Draw
         ctx.rect @x, @y, @width, @height
         ctx.clip()
 
+      clearRect: (ctx) ->
+        ctx.clearRect @x, @y, @width, @height
+
       clone: ->
         rect = new Rectangle(0, 0, 0, 0)
         rect.copy this
@@ -202,20 +205,24 @@ exports.Draw = class Draw
         }
 
       _clearCache: ->
+        @_cacheFlag = true
         if @_cacheFlag
-          minX = minY = Infinity
-          maxX = maxY = 0
-          for point in @_points
-            minX = min minX, point.x
-            maxX = max maxX, point.x
+          if @_points.length is 0
+            @_bounds = new NoRectangle()
+          else
+            minX = minY = Infinity
+            maxX = maxY = 0
+            for point in @_points
+              minX = min minX, point.x
+              maxX = max maxX, point.x
 
-            minY = min minY, point.y
-            maxY = max maxY, point.y
+              minY = min minY, point.y
+              maxY = max maxY, point.y
 
-          @_bounds.x = minX; @_bounds.y = minY
-          @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
+            @_bounds.x = minX; @_bounds.y = minY
+            @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
 
-          @_cacheFlag = false
+            @_cacheFlag = false
 
       push: (point) ->
         @_points.push point
@@ -287,6 +294,24 @@ exports.Draw = class Draw
       translate: (vector) ->
         @_cachedTranslation.translate vector
         @_cacheFlag = true
+
+      clip: (ctx) ->
+        @_clearCache()
+
+        if @_points.length is 0 then return
+
+        ctx.beginPath()
+        ctx.moveTo @_points[0].x, @_points[0].y
+        for point in @_points
+          ctx.lineTo point.x, point.y
+        ctx.lineTo @_points[0].x, @_points[0].y
+
+        # Wrap around again so that the origin
+        # has a normal corner
+        if @_points.length > 1
+          ctx.lineTo @_points[1].x, @_points[1].y
+
+        ctx.clip()
 
       draw: (ctx) ->
         @_clearCache()
