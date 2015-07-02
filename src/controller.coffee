@@ -2364,7 +2364,6 @@ Editor::maskFloatingPaths = (dropletDocument) ->
       record.grayBoxPath.clip(@highlightCtx)
       record.grayBoxPath.bounds().clearRect(@highlightCtx)
       @highlightCtx.restore()
-      break
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
