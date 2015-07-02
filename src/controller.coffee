@@ -1461,6 +1461,9 @@ hook 'mouseup', 0, (point, event, state) ->
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
+    if @cursor.document > op.index
+      @cursor.document += 1
+
     @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
       op.block.clone()
       op.position

@@ -128,7 +128,6 @@ exports.Draw = class Draw
 
       clearRect: (ctx) ->
         ctx.clearRect @x, @y, @width, @height
-        console.log 'clearing'
 
       clone: ->
         rect = new Rectangle(0, 0, 0, 0)
