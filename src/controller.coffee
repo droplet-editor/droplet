@@ -429,7 +429,7 @@ Editor::redrawMain = (opts = {}) ->
       @mainCtx.save()
       opts.boundingRectangle.clip @mainCtx
 
-    rect = opts.boundRectangle ? new @draw.Rectangle(
+    rect = opts.boundingRectangle ? new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
       @mainCanvas.width,
@@ -452,20 +452,22 @@ Editor::redrawMain = (opts = {}) ->
     endWidth = @mainCtx.measureText(@mode.endComment).width
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
-      changed = blockView.layout record.position.x, record.position.y
+      blockView.layout record.position.x, record.position.y
 
-      # TODO this is very view-ish stuff, don't you think?
-      if changed
-        rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
-        rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
-        rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
+      rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
+      rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
+      rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
 
-        if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < @mainCtx.measureText('/*').width
-          rectangle.height += @fontSize
+      if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < @mainCtx.measureText('/*').width
+        rectangle.height += @fontSize
+
+      unless rectangle.equals(record.grayBox)
+        record.grayBox = rectangle
+
+        oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
 
         # Make the path surrounding the gray box (with rounded corners)
         record.grayBoxPath = path = new @view.draw.Path()
-        record.grayBox = rectangle
         path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
         path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
         path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
@@ -483,6 +485,12 @@ Editor::redrawMain = (opts = {}) ->
         path.style = {
           fillColor: GRAY_BLOCK_COLOR
         }
+
+        if opts.boundingRectangle?
+          opts.boundingRectangle.unite path.bounds()
+          opts.boundingRectangle.unite(oldBounds)
+          @mainCtx.restore()
+          return @redrawMain opts
 
       # TODO this will need to become configurable by the @mode
       @mainCtx.globalAlpha *= 0.8
@@ -998,6 +1006,11 @@ hook 'mousedown', 1, (point, event, state) ->
   mainPoint = @trackerPointToMain(point)
 
   for dropletDocument, i in @getDocuments() by -1
+    # First attempt handling text input
+    if @handleTextInputClick mainPoint, dropletDocument
+      state.consumedHitTest = true
+      return
+
     hitTestResult = @hitTest mainPoint, dropletDocument
 
     # Produce debugging output
@@ -1041,6 +1054,9 @@ hook 'mousedown', 1, (point, event, state) ->
 
         @redrawMain()
         return
+
+  if @cursorAtSocket()
+    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -1876,12 +1892,9 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 escapeString = (str) ->
   str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
 
-# Convenience function for setting the text input
-Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) ->
-  if focus?.id of @extraMarks
-    delete @extraMarks[focus?.id]
-
+hook 'mousedown', 7, ->
   @hideDropdown()
+
 
 # If we can, try to reparse the focus
 # value.
@@ -2053,59 +2066,47 @@ Editor::setTextInputHead = (point) ->
 # selections and focus text inputs
 # if we apply.
 
-hook 'mousedown', 2, (point, event, state) ->
-  # If someone else already took this click, return.
-  if state.consumedHitTest then return
+Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
+  hitTestResult = @hitTestTextInput mainPoint, dropletDocument
 
-  # Otherwise, look for a socket that
-  # the user has clicked
-  mainPoint = @trackerPointToMain point
-  hitAnything = false
-  for dropletDocument in @getDocuments()
-    hitTestResult = @hitTestTextInput mainPoint, dropletDocument
+  # If they have clicked a socket,
+  # focus it.
+  if hitTestResult?
+    unless hitTestResult is @getCursor()
+      if hitTestResult.editable()
+        @undoCapture()
+        @setCursor hitTestResult
+        @redrawMain()
 
-    # If they have clicked a socket,
-    # focus it.
-    if hitTestResult?
-      hitAnything = true
-      unless hitTestResult is @getCursor()
-        if hitTestResult.editable()
-          @undoCapture()
-          @setCursor hitTestResult
-          @redrawMain()
+      if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
+          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
+        @showDropdown hitTestResult
 
-        if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
-            mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
-          @showDropdown hitTestResult
+      @textInputSelecting = false
 
-        @textInputSelecting = false
+    else
+      if @getCursor().hasDropdown() and
+          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
+        @showDropdown()
 
-      else
-        if @getCursor().hasDropdown() and
-            mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
-          @showDropdown()
+      @setTextInputAnchor mainPoint
+      @redrawTextInput()
 
-        @setTextInputAnchor mainPoint
-        @redrawTextInput()
+      @textInputSelecting = true
 
-        @textInputSelecting = true
+    # Now that we have focused the text element
+    # in the Droplet model, focus the hidden input.
+    #
+    # It is important that this be done after the Droplet model
+    # has focused its text element, because
+    # the hidden input moves on the focus() event to
+    # the currently-focused Droplet element to make
+    # mobile screen scroll properly.
+    @hiddenInput.focus()
 
-      # Now that we have focused the text element
-      # in the Droplet model, focus the hidden input.
-      #
-      # It is important that this be done after the Droplet model
-      # has focused its text element, because
-      # the hidden input moves on the focus() event to
-      # the currently-focused Droplet element to make
-      # mobile screen scroll properly.
-      @hiddenInput.focus()
-
-      state.consumedHitTest = true
-
-    # If they have not clicked a socket,
-    # unfocus the current socket.
-  if @cursorAtSocket() and not hitAnything
-    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
+    return true
+  else
+    return false
 
 # Create the dropdown DOM element at populate time.
 hook 'populate', 0, ->
@@ -2486,6 +2487,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
+    if @getCursor()?.id of @extraMarks
+      delete @extraMarks[focus?.id]
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
