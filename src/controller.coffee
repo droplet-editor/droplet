@@ -446,11 +446,13 @@ Editor::redrawMain = (opts = {}) ->
     @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
 
     @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
+
+    # Draw floating blocks
+    startWidth = @mainCtx.measureText(@mode.startComment).width
+    endWidth = @mainCtx.measureText(@mode.endComment).width
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
       changed = blockView.layout record.position.x, record.position.y
-
-      width = @mainCtx.measureText('/*').width
 
       # TODO this is very view-ish stuff, don't you think?
       if changed
@@ -458,14 +460,18 @@ Editor::redrawMain = (opts = {}) ->
         rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
         rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
 
+        if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < @mainCtx.measureText('/*').width
+          rectangle.height += @fontSize
+
         # Make the path surroudning the gray box
         record.cachedGrayBoxPath = path = new @view.draw.Path()
+        record.cachedGrayBox = rectangle
         path.push new @view.draw.Point rectangle.right(), rectangle.y
         path.push new @view.draw.Point rectangle.right(), rectangle.bottom()
         path.push new @view.draw.Point rectangle.x, rectangle.bottom()
         path.push new @view.draw.Point rectangle.x, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
-        path.push new @view.draw.Point rectangle.x - width, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
-        path.push new @view.draw.Point rectangle.x - width, rectangle.y
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y
         path.push new @view.draw.Point rectangle.x, rectangle.y
 
         path.bevel = true
@@ -474,10 +480,12 @@ Editor::redrawMain = (opts = {}) ->
         }
 
       # TODO this will need to become configurable by the @mode
+      @mainCtx.globalAlpha *= 0.8
       record.cachedGrayBoxPath.draw @mainCtx
       @mainCtx.fillStyle = '#000'
-      @mainCtx.fillText '/*', blockView.totalBounds.x - width, blockView.totalBounds.y
-      @mainCtx.fillText '*/', blockView.totalBounds.right() - width, blockView.totalBounds.bottom() - @fontSize
+      @mainCtx.fillText @mode.startComment, blockView.totalBounds.x - startWidth, blockView.totalBounds.y
+      @mainCtx.fillText @mode.endComment, blockView.totalBounds.right() - endWidth, record.cachedGrayBox.bottom() - @fontSize - GRAY_BLOCK_MARGIN
+      @mainCtx.globalAlpha /= 0.8
 
       blockView.draw @mainCtx, rect, {
         grayscale: false
@@ -1133,13 +1141,21 @@ hook 'mousemove', 1, (point, event, state) ->
             dropPoint = @view.getViewNodeFor(head.container).dropPoint
 
             if dropPoint?
-              @dropPointQuadTree.insert
-                x: dropPoint.x
-                y: dropPoint.y
-                w: 0
-                h: 0
-                acceptLevel: acceptLevel
-                _droplet_node: head.container
+              allowed = true
+              for record, i in @floatingBlocks by -1
+                if record.block is dropletDocument
+                  break
+                else if record.cachedGrayBoxPath.contains dropPoint
+                  allowed = false
+                  break
+              if allowed
+                @dropPointQuadTree.insert
+                  x: dropPoint.x
+                  y: dropPoint.y
+                  w: 0
+                  h: 0
+                  acceptLevel: acceptLevel
+                  _droplet_node: head.container
 
         head = head.next
 
@@ -1205,7 +1221,7 @@ hook 'mousemove', 0, (point, event, state) ->
     while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
       head = head.next
 
-    if head is @tree.end and
+    if head is @tree.end and @floatingBlocks.length is 0 and
         @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
         @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
       @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
@@ -1245,7 +1261,9 @@ hook 'mousemove', 0, (point, event, state) ->
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
 
-        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+        if best?
+          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
 
@@ -2339,6 +2357,18 @@ Editor::redrawLassoHighlight = ->
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
+    @maskFloatingPaths(@lassoSelection.start.getDocument())
+
+Editor::maskFloatingPaths = (dropletDocument) ->
+  for record, i in @floatingBlocks by -1
+    if record.block is dropletDocument
+      break
+    else
+      @highlightCtx.save()
+      record.cachedGrayBoxPath.clip(@highlightCtx)
+      record.cachedGrayBoxPath.bounds().clearRect(@highlightCtx)
+      @highlightCtx.restore()
+      break
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
