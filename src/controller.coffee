@@ -1399,6 +1399,7 @@ hook 'mouseup', 1, (point, event, state) ->
       @undoCapture()
 
       # Remove the block from the tree.
+      rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
       @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
@@ -1435,8 +1436,38 @@ hook 'mouseup', 1, (point, event, state) ->
 
       @setCursor(futureCursorLocation) if futureCursorLocation?
 
+      newBeginning = futureCursorLocation.location.count
+      newIndex = futureCursorLocation.document
+
+      for el, i in rememberedSocketOffsets
+        @rememberedSockets.push {
+          socket: new CrossDocumentLocation(
+            newIndex
+            new model.Location(el.offset + newBeginning, 'socket')
+          ),
+          text: el.text
+        }
+
       # Fire the event for sound
       @fireEvent 'block-click'
+
+Editor::spliceRememberedSocketOffsets = (block) ->
+  if block.getDocument()?
+    blockBegin = block.getLocation().count
+    offsets = []
+    newRememberedSockets = []
+    for el, i in @rememberedSockets
+      if block.contains @fromCrossDocumentLocation(el.socket)
+        offsets.push {
+          offset: el.socket.location.count - blockBegin
+          text: el.text
+        }
+      else
+        newRememberedSockets.push el
+    @rememberedSockets = newRememberedSockets
+    return offsets
+  else
+    []
 
 # FLOATING BLOCK SUPPORT
 # ================================
@@ -1468,6 +1499,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Remove the block from the tree.
     @undoCapture()
+    rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
     @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
@@ -1498,6 +1530,15 @@ hook 'mouseup', 0, (point, event, state) ->
     )
 
     @setCursor @draggingBlock.start
+
+    for el, i in rememberedSocketOffsets
+      @rememberedSockets.push {
+        socket: new CrossDocumentLocation(
+          @floatingBlocks.length - 1,
+          new model.Location(el.offset, 'socket')
+        )
+        text: el.text
+      }
 
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
