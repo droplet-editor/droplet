@@ -463,15 +463,20 @@ Editor::redrawMain = (opts = {}) ->
         if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < @mainCtx.measureText('/*').width
           rectangle.height += @fontSize
 
-        # Make the path surroudning the gray box
+        # Make the path surrounding the gray box (with rounded corners)
         record.grayBoxPath = path = new @view.draw.Path()
         record.grayBox = rectangle
-        path.push new @view.draw.Point rectangle.right(), rectangle.y
-        path.push new @view.draw.Point rectangle.right(), rectangle.bottom()
-        path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+        path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
+        path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
+        path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
+        path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
+        path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
+        path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
         path.push new @view.draw.Point rectangle.x, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y
+        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT - 5
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
+        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
         path.push new @view.draw.Point rectangle.x, rectangle.y
 
         path.bevel = true
