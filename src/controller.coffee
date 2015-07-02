@@ -464,8 +464,8 @@ Editor::redrawMain = (opts = {}) ->
           rectangle.height += @fontSize
 
         # Make the path surroudning the gray box
-        record.cachedGrayBoxPath = path = new @view.draw.Path()
-        record.cachedGrayBox = rectangle
+        record.grayBoxPath = path = new @view.draw.Path()
+        record.grayBox = rectangle
         path.push new @view.draw.Point rectangle.right(), rectangle.y
         path.push new @view.draw.Point rectangle.right(), rectangle.bottom()
         path.push new @view.draw.Point rectangle.x, rectangle.bottom()
@@ -481,10 +481,10 @@ Editor::redrawMain = (opts = {}) ->
 
       # TODO this will need to become configurable by the @mode
       @mainCtx.globalAlpha *= 0.8
-      record.cachedGrayBoxPath.draw @mainCtx
+      record.grayBoxPath.draw @mainCtx
       @mainCtx.fillStyle = '#000'
       @mainCtx.fillText @mode.startComment, blockView.totalBounds.x - startWidth, blockView.totalBounds.y
-      @mainCtx.fillText @mode.endComment, blockView.totalBounds.right() - endWidth, record.cachedGrayBox.bottom() - @fontSize - GRAY_BLOCK_MARGIN
+      @mainCtx.fillText @mode.endComment, blockView.totalBounds.right() - endWidth, record.grayBox.bottom() - @fontSize - GRAY_BLOCK_MARGIN
       @mainCtx.globalAlpha /= 0.8
 
       blockView.draw @mainCtx, rect, {
@@ -991,7 +991,7 @@ hook 'mousedown', 1, (point, event, state) ->
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
 
-  for dropletDocument in @getDocuments()
+  for dropletDocument, i in @getDocuments() by -1
     hitTestResult = @hitTest mainPoint, dropletDocument
 
     # Produce debugging output
@@ -1021,6 +1021,20 @@ hook 'mousedown', 1, (point, event, state) ->
       # handlers that we have already consumed
       # the hit test opportunity for this event.
       state.consumedHitTest = true
+      return
+
+    else if i > 0
+      record = @floatingBlocks[i - 1]
+      if record.grayBoxPath? and record.grayBoxPath.contains @trackerPointToMain point
+        @clickedBlock = new model.List record.block.start.next, record.block.end.prev
+        @clickedPoint = point
+
+        @view.getViewNodeFor(@clickedBlock).absorbCache()
+
+        state.consumedHitTest = true
+
+        @redrawMain()
+        return
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -1145,7 +1159,7 @@ hook 'mousemove', 1, (point, event, state) ->
               for record, i in @floatingBlocks by -1
                 if record.block is dropletDocument
                   break
-                else if record.cachedGrayBoxPath.contains dropPoint
+                else if record.grayBoxPath.contains dropPoint
                   allowed = false
                   break
               if allowed
@@ -1443,25 +1457,6 @@ hook 'mouseup', 0, (point, event, state) ->
     @clearDrag()
     @redrawMain()
     @redrawHighlights()
-
-hook 'mousedown', 0.5, (point, event, state) ->
-  # If someone else has already taken this click, pass.
-  if state.consumedHitTest then return
-
-  # If it's not in the main pane, pass.
-  if not @trackerPointIsInMain(point) then return
-
-  # Hit test against floating blocks
-  for record, i in @floatingBlocks
-    if record.cachedGrayBoxPath? and record.cachedGrayBoxPath.contains @trackerPointToMain point
-      @clickedBlock = new model.List record.block.start.next, record.block.end.prev
-      @clickedPoint = point
-
-      @view.getViewNodeFor(@clickedBlock).absorbCache()
-
-      state.consumedHitTest = true
-
-      @redrawMain()
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
@@ -2365,8 +2360,8 @@ Editor::maskFloatingPaths = (dropletDocument) ->
       break
     else
       @highlightCtx.save()
-      record.cachedGrayBoxPath.clip(@highlightCtx)
-      record.cachedGrayBoxPath.bounds().clearRect(@highlightCtx)
+      record.grayBoxPath.clip(@highlightCtx)
+      record.grayBoxPath.bounds().clearRect(@highlightCtx)
       @highlightCtx.restore()
       break
 
