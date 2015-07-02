@@ -553,6 +553,7 @@ Editor::redrawHighlights = ->
       @mainCanvas.width,
       @mainCanvas.height
     ), {grayscale: true}
+    @maskFloatingPaths(@draggingBlock.getDocument())
 
   @redrawCursors()
   @redrawLassoHighlight()
