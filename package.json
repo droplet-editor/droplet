@@ -55,6 +55,7 @@
   "dependencies": {
     "acorn": "^1.2.2",
     "sax": "^1.1.1",
-    "antlr4": "latest"
+    "antlr4": "latest",
+    "parse5": "latest"
   }
 }
