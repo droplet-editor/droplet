@@ -1416,6 +1416,11 @@ hook 'mouseup', 1, (point, event, state) ->
 
       # Remove the block from the tree.
       rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
+
+      # TODO this is a hacky way of preserving locations
+      # across parenthesis insertion
+      hadTextToken = @draggingBlock.start.next.type is 'text'
+
       @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
@@ -1437,12 +1442,21 @@ hook 'mouseup', 1, (point, event, state) ->
           if @lastHighlight.type is 'document'
             @spliceIn @draggingBlock, @lastHighlight.start
 
+      # TODO as above
+      hasTextToken = @draggingBlock.start.next.type is 'text'
+      if hadTextToken and not hasTextToken
+        rememberedSocketOffsets.forEach (x) ->
+          x.offset -= 1
+      else if hasTextToken and not hadTextToken
+        rememberedSocketOffsets.forEach (x) ->
+          x.offset += 1
+
       futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
 
       # Reparse the parent if we are
       # in a socket
       #
-      # TODO "reparseable" property, bubble up
+      # TODO "reparseable" property (or absent contexts), bubble up
       # TODO performance on large programs
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
