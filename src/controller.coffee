@@ -1027,6 +1027,8 @@ hook 'mousedown', 1, (point, event, state) ->
     if @handleTextInputClick mainPoint, dropletDocument
       state.consumedHitTest = true
       return
+    else if @cursor.document is i and @cursorAtSocket()
+      @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
     hitTestResult = @hitTest mainPoint, dropletDocument
 
@@ -1071,9 +1073,6 @@ hook 'mousedown', 1, (point, event, state) ->
 
         @redrawMain()
         return
-
-  if @cursorAtSocket()
-    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
