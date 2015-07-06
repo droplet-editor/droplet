@@ -225,6 +225,10 @@ exports.Draw = class Draw
         @_points.unshift point
         @_cacheFlag = true
 
+      reverse: ->
+        @_points.reverse()
+        return this
+
       # ### Point containment ###
       # Accomplished with ray-casting
       contains: (point) ->

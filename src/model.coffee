@@ -866,6 +866,8 @@ exports.Location = class Location
       other = other.getLocation()
     return other.count is @count and other.type is @type
 
+  clone: -> new Location @count, @type
+
 exports.TextLocation = class TextLocation
   constructor: (
     @row = 0,
@@ -943,7 +945,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
+  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @buttons = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -961,7 +963,7 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes
+    clone = new Block @precedence, @color, @socketLevel, @classes, @buttons
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
