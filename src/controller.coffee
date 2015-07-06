@@ -458,13 +458,21 @@ Editor::redrawMain = (opts = {}) ->
       rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
       rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
 
-      if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < @mainCtx.measureText('/*').width
-        rectangle.height += @fontSize
+      bottomTextPosition = blockView.totalBounds.bottom() - blockView.distanceToBase[blockView.lineLength - 1].below - @fontSize
+
+      if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < endWidth
+        if blockView.lineLength > 1
+          rectangle.height += @fontSize
+          bottomTextPosition = rectangle.bottom() - @fontSize - 5
+        else
+          rectangle.width += endWidth
 
       unless rectangle.equals(record.grayBox)
         record.grayBox = rectangle
 
         oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
+
+        startHeight = blockView.bounds[0].height + 10
 
         # Make the path surrounding the gray box (with rounded corners)
         record.grayBoxPath = path = new @view.draw.Path()
@@ -472,14 +480,22 @@ Editor::redrawMain = (opts = {}) ->
         path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
         path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
         path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
-        path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
-        path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
-        path.push new @view.draw.Point rectangle.x, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
-        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + GRAY_BLOCK_HANDLE_HEIGHT - 5
+
+        if blockView.lineLength > 1
+          path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
+          path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
+        else
+          path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+
+        # Handle
+        path.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
+        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
+        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
         path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
         path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
+
         path.push new @view.draw.Point rectangle.x, rectangle.y
+
 
         path.bevel = true
         path.style = {
@@ -496,8 +512,9 @@ Editor::redrawMain = (opts = {}) ->
       @mainCtx.globalAlpha *= 0.8
       record.grayBoxPath.draw @mainCtx
       @mainCtx.fillStyle = '#000'
-      @mainCtx.fillText @mode.startComment, blockView.totalBounds.x - startWidth, blockView.totalBounds.y
-      @mainCtx.fillText @mode.endComment, blockView.totalBounds.right() - endWidth, record.grayBox.bottom() - @fontSize - GRAY_BLOCK_MARGIN
+      @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
+        blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
+      @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
       @mainCtx.globalAlpha /= 0.8
 
       blockView.draw @mainCtx, rect, {
