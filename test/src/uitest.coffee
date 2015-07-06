@@ -288,6 +288,9 @@ asyncTest 'Controller: Can replace a block where we found it', ->
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
   head = editor.tree.start
+  # Skip the first block if it is the entire document
+  if head.next.container?.end is editor.tree.end.prev
+    head = head.next.next
   dragPossibilities = []
   until head is editor.tree.end
     if head.type is 'blockStart'
@@ -303,6 +306,10 @@ getRandomDragOp = (editor, rng) ->
 
   # Find all the drop areas
   head = editor.tree.start
+
+  # Disclude the main tree if we're dragging the first block
+  if drag is dragPossibilities[0]
+    head = head.next
   dropPossibilities = []
   until head is editor.tree.end
     if head is drag.block.start
@@ -368,15 +375,17 @@ performTextOperation = (editor, text, cb) ->
     $(editor.hiddenInput).sendkeys(text.text)
     setTimeout (->
       # Unfocus
-      simulate('mousedown', editor.mainScrollerStuffing, {
-        dx: 1000
-        dy: 1000
+      simulate('mousedown', editor.mainScroller, {
+        location: editor.mainCanvas
+        dx: editor.mainCanvas.offsetWidth - 1
+        dy: editor.mainCanvas.offsetHeight - 1
       })
-      simulate('mouseup', editor.mainScrollerStuffing, {
-        dx: 1000
-        dy: 1000
+      simulate('mouseup', editor.mainScroller, {
+        location: editor.mainCanvas
+        dx: editor.mainCanvas.offsetWidth - 1
+        dy: editor.mainCanvas.offsetHeight - 1
       })
-      cb()
+      setTimeout cb, 0
     ), 0
   ), 0
 
@@ -395,11 +404,25 @@ performDragOperation = (editor, drag, cb) ->
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  simulate('mouseup', editor.mainScrollerStuffing, {
+  simulate('mouseup', editor.mainScroller, {
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  cb()
+  # Unfocus the text input that may have been focused
+  # when we dragged
+  setTimeout (->
+    simulate('mousedown', editor.mainScroller, {
+      location: editor.mainCanvas
+      dx: editor.mainCanvas.offsetWidth - 1
+      dy: editor.mainCanvas.offsetHeight - 1
+    })
+    simulate('mouseup', editor.mainScroller, {
+      location: editor.mainCanvas
+      dx: editor.mainCanvas.offsetWidth - 1
+      dy: editor.mainCanvas.offsetHeight - 1
+    })
+    setTimeout cb, 0
+  ), 0
 
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
@@ -439,9 +462,7 @@ asyncTest 'Controller: Random drag undo test', ->
   ''')
   rng = seedrandom('droplet')
   stateStack = []
-  opStack = []
 
-  #for i in [0..100]
   tick = (count) ->
     cb = ->
       if count is 0
@@ -450,21 +471,20 @@ asyncTest 'Controller: Random drag undo test', ->
           while stateStack[stateStack.length - 1] is text
             text = stateStack.pop()
           editor.undo()
-          equal editor.getValue(), text
+          equal editor.getValue(), text, 'Undo was correct'
 
         start()
       else
+        ok (not editor.cursorAtSocket()), 'Properly unfocused'
         setTimeout (-> tick count - 1), 0
 
     stateStack.push editor.getValue()
 
     if rng() > 0.5
       op = getRandomDragOp(editor, rng)
-      opStack.push op
       performDragOperation editor, op, cb
     else
       op = getRandomTextOp(editor, rng)
-      opStack.push op
       performTextOperation editor, op, cb
 
   tick 100
