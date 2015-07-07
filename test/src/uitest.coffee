@@ -4,6 +4,8 @@ view = require '../../src/view.coffee'
 draw = require '../../src/draw.coffee'
 droplet = require '../../dist/droplet-full.js'
 seedrandom = require 'seedrandom'
+
+console.log window.innerWidth, window.innerHeight
 `
 // Mouse event simluation function
 function simulate(type, target, options) {
@@ -395,12 +397,12 @@ performDragOperation = (editor, drag, cb) ->
     dy: drag.drag.handle.y
   })
   simulate('mousemove', editor.dragCover, {
-    location: editor.mainScrollerStuffing
+    location: editor.mainCanvas
     dx: drag.drag.handle.x + editor.gutter.offsetWidth + 5,
     dy: drag.drag.handle.y + 5
   })
   simulate('mousemove', editor.dragCover, {
-    location: editor.mainScrollerStuffing
+    location: editor.mainCanvas
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
@@ -466,6 +468,11 @@ asyncTest 'Controller: Random drag undo test', ->
   tick = (count) ->
     cb = ->
       if count is 0
+        stateStack.push editor.getValue()
+        text = stateStack.pop()
+        while stateStack[stateStack.length - 1] is text
+          text = stateStack.pop()
+
         while stateStack.length > 0
           text = stateStack.pop()
           while stateStack[stateStack.length - 1] is text
