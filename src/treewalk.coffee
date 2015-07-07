@@ -1,6 +1,6 @@
 # Droplet Treewalker framework.
 #
-# Copyright (c) Anthony Bau
+# Copyright (c) Anthony Bau (dab1998@gmail.com)
 # MIT License
 helper = require './helper.coffee'
 model = require './model.coffee'

@@ -1,6 +1,6 @@
 # Droplet helper functions.
 #
-# Copyright (c) 2015 Anthony Bau.
+# Copyright (c) 2015 Anthony Bau (dab1998@gmail.com).
 # MIT License.
 sax = require 'sax'
 
@@ -139,3 +139,43 @@ exports.deserializeShallowDict = (str) ->
     [key, val] = prop.split ':'
     dict[key] = val
   return dict
+
+exports.connect = (a, b) ->
+  if a?
+    a.next = b
+  if b?
+    b.prev = a
+  return b
+
+exports.string = (arr) ->
+  last = arr[0]
+  for el, i in arr when i > 0
+    last = exports.connect last, el
+  return last
+
+exports.deepCopy = deepCopy = (a) ->
+  if a instanceof Object
+    newObject = {}
+
+    for key, val of a
+      newObject[key] = deepCopy val
+
+    return newObject
+
+  else
+    return a
+
+exports.deepEquals = deepEquals = (a, b) ->
+  if a instanceof Object and b instanceof Object
+    for own key, val of a
+      unless deepEquals b[key], val
+        return false
+
+    for own key, val of b when not key of a
+      unless deepEquals a[key], val
+        return false
+
+    return true
+  else
+    return a is b
+

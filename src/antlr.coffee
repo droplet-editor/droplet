@@ -1,6 +1,6 @@
 # Droplet ANTLR adapter
 #
-# Copyright (c) 2015 Anthony Bau
+# Copyright (c) 2015 Anthony Bau (dab1998@gmail.com)
 # MIT License
 
 helper = require './helper.coffee'

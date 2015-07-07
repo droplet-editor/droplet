@@ -1,7 +1,7 @@
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License
 #
-# Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in ICE editor.
+# Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in Droplet.
 
 ## Private (convenience) functions
 

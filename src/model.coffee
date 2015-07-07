@@ -1,6 +1,6 @@
 # Droplet model.
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License
 helper = require './helper.coffee'
 
@@ -18,7 +18,8 @@ Function::trigger = (prop, get, set) ->
     get: get
     set: set
 
-exports.isTreeValid = (tree) ->
+# TODO add parenting checks
+exports.isTreeValid = isTreeValid = (tree) ->
   tortise = hare = tree.start.next
 
   stack =  []
@@ -29,7 +30,7 @@ exports.isTreeValid = (tree) ->
     lastHare = hare
     hare = hare.next
     unless hare?
-      window._ice_debug_lastHare = lastHare
+      window._droplet_debug_lastHare = lastHare
       throw new Error 'Ran off the end of the document before EOF'
     if lastHare isnt hare.prev
       throw new Error 'Linked list is not properly bidirectional'
@@ -49,7 +50,7 @@ exports.isTreeValid = (tree) ->
     lastHare = hare
     hare = hare.next
     unless hare?
-      window._ice_debug_lastHare = lastHare
+      window._droplet_debug_lastHare = lastHare
       throw new Error 'Ran off the end of the document before EOF'
     if lastHare isnt hare.prev
       throw new Error 'Linked list is not properly bidirectional'
@@ -70,11 +71,364 @@ exports.isTreeValid = (tree) ->
 
   return true
 
+class Operation
+  constructor: (@type, list) ->
+    @location = null # Needs to be set by someone else
+
+    @list = list.clone()
+
+    @start = list.start.getLocation()
+    @end = list.end.getLocation()
+
+  toString: -> JSON.stringify({
+    location: @location.toString()
+    list: @list.stringify()
+    start: @start.toString()
+    end: @end.toString()
+  })
+
+class ReplaceOperation
+  constructor: (
+        @beforeStart, @before, @beforeEnd,
+        @afterStart, @after, @afterEnd
+      ) ->
+    @type = 'replace'
+
+exports.List = class List
+  constructor: (@start, @end) ->
+    @id = ++_id
+
+  contains: (token) ->
+    head = @start
+    until head is @end
+      if head is token
+        return true
+      head = head.next
+
+    if token is @end
+      return true
+    else
+      return false
+
+  # ## insert ##
+  # Insert another list into us
+  # and return an (undoable) record
+  # of this operation
+  insert: (token, list, updates = []) ->
+    [first, last] = [list.start, list.end]
+
+    updateTokens = updates.map((x) => @getFromLocation(x))
+
+    # Append newlines, etc. to the parent
+    # if necessary.
+    switch token.type
+      when 'indentStart'
+        head = token.container.end.prev
+
+        if head.type is 'newline'
+          token = token.next
+        else
+          first = new NewlineToken()
+          helper.connect first, list.start
+
+      when 'blockEnd'
+        first = new NewlineToken()
+        helper.connect first, list.start
+
+      when 'documentStart'
+        unless token.next is token.container.end
+          last = new NewlineToken()
+          helper.connect list.end, last
+
+    # Get the location
+    location = token.getLocation()
+
+    # New list with added newlines
+    list = new List first, last
+
+    # Literally splice in
+    after = token.next
+    helper.connect token, list.start
+
+    if token instanceof StartToken
+      list.setParent token.container
+    else
+      list.setParent token.parent
+
+    helper.connect list.end, after
+    list.notifyChange()
+
+    # Make and return an undo operation
+    operation = new Operation 'insert', list
+    operation.location = location
+
+    # Preserve updates
+    updates.forEach (x, i) ->
+      x.set(updateTokens[i].getLocation())
+
+    return operation
+
+  # ## remove ##
+  # Remove ourselves from the linked
+  # list that we are in.
+  remove: (list, updates = []) ->
+    # Do not leave empty lines behind.
+
+    # First,
+    # let's determine what the previous and next
+    # visible tokens are, to see if they are
+    # two consecutive newlines, or similar.
+    first = list.start.prev; last = list.end.next
+
+    # If the previous visible token is a newline,
+    # and the next visible token is a newline, indentEnd,
+    # or end of document, remove the first one, as it will
+    # cause an empty line.
+    #
+    # Exception: do not do this if it would collapse
+    # and indent to 0 length.
+    while first?.type is 'newline' and
+       last?.type in [undefined, 'newline', 'indentEnd', 'documentEnd'] and
+       not (first.prev?.type is 'indentStart' and
+       first.prev.container.end is last)
+      first = first.prev
+
+    # If the next visible token is a newline,
+    # and the previous visible token is the beginning
+    # of the document, remove it.
+    while last?.type is 'newline' and
+        (last?.next?.type is 'newline' or
+        first?.type in [undefined, 'documentStart'])
+      last = last.next
+
+    first = first.next
+    last = last.prev
+
+    # Expand the list based on this analysis
+    list = new List first, last
+
+    list.notifyChange()
+
+    updateTokens = updates.map((x) => @getFromLocation(x)).map((x) =>
+      if list.contains(x)
+        return list.start.prev
+      else
+        return x
+    )
+
+    # Make an undo operation
+    record = new Operation 'remove', list
+    location = list.start.prev
+
+    helper.connect list.start.prev, list.end.next
+    list.start.prev = list.end.next = null
+    list.setParent null
+
+    # Correct the location in case
+    # lengths or coordinates changed
+    record.location = location.getLocation()
+
+    updates.forEach (x, i) =>
+      x.set(updateTokens[i].getLocation())
+
+    # Return the undo operation
+    return record
+
+  replace: (before, after, updates = []) ->
+    updateTextLocations = updates.map((x) => @getFromLocation(x).getTextLocation())
+
+    beforeStart = before.start.getLocation()
+    beforeEnd = before.end.getLocation()
+
+    beforeLength = before.stringify().length
+
+    parent = before.start.parent
+
+    helper.connect before.start.prev, after.start
+    helper.connect after.end, before.end.next
+
+    before.setParent null
+    after.setParent parent
+    after.notifyChange()
+
+    afterStart = after.start.getLocation()
+    afterEnd = after.end.getLocation()
+
+    updates.forEach (x, i) =>
+      x.set(@getFromTextLocation(updateTextLocations[i]).getLocation())
+
+    return new ReplaceOperation(
+      beforeStart, before.clone(), beforeEnd,
+      afterStart, after.clone(), afterEnd
+    )
+
+  perform: (operation, direction, updates = []) ->
+    if operation instanceof Operation
+      if (operation.type is 'insert') isnt (direction is 'forward')
+        list = new List @getFromLocation(operation.start), @getFromLocation(operation.end)
+        list.notifyChange()
+
+        # Preserve update tokens
+        updateTokens = updates.map((x) => @getFromLocation(x)).map((x) =>
+          if list.contains(x)
+            return list.start.prev
+          else
+            return x
+        )
+
+        helper.connect list.start.prev, list.end.next
+
+        updates.forEach (x, i) ->
+          x.set(updateTokens[i].getLocation())
+
+        return operation
+
+      else if (operation.type is 'remove') isnt (direction is 'forward')
+        # Preserve update tokens
+        updateTokens = updates.map((x) => @getFromLocation(x))
+
+        list = operation.list.clone()
+
+        before = @getFromLocation(operation.location)
+        after = before.next
+
+        helper.connect before, list.start
+        helper.connect list.end, after
+
+        if before instanceof StartToken
+          list.setParent before.container
+        else
+          list.setParent before.parent
+
+        list.notifyChange()
+
+        updates.forEach (x, i) ->
+          x.set(updateTokens[i].getLocation())
+
+        return operation
+
+    else if operation.type is 'replace'
+      updateTextLocations = updates.map((x) => @getFromLocation(x).getTextLocation())
+
+      if direction is 'forward'
+        before = new List @getFromLocation(operation.beforeStart), @getFromLocation(operation.beforeEnd)
+        after = operation.after.clone()
+      else
+        before = new List @getFromLocation(operation.afterStart), @getFromLocation(operation.afterEnd)
+        after = operation.before.clone()
+
+      parent = before.start.parent
+
+      helper.connect before.start.prev, after.start
+      helper.connect after.end, before.end.next
+
+      after.setParent parent
+      before.setParent null
+      after.notifyChange()
+
+      updates.forEach (x, i) =>
+        x.set(@getFromTextLocation(updateTextLocations[i]).getLocation())
+
+      return null # TODO new ReplaceOperation here
+
+  notifyChange: ->
+    @traverseOneLevel (head) ->
+      head.notifyChange()
+
+  traverseOneLevel: (fn) ->
+    traverseOneLevel @start, fn, @end
+
+  isFirstOnLine: ->
+    return @start.prev in [@parent?.start, @parent?.parent?.start, null] or
+      @start.prev?.type is 'newline'
+
+  isLastOnLine: ->
+    return @end.next in [@parent?.end, @parent?.parent?.end, null] or
+      @end.next?.type in ['newline', 'indentStart', 'indentEnd']
+
+  getReader: -> {type: 'document', classes: []}
+
+  setParent: (parent) ->
+    traverseOneLevel @start, ((head)->
+      head.setParent parent
+    ), @end
+
+  # ## clone ##
+  # Clone this container, with all the token inside,
+  # but with no linked-list pointers in common.
+  clone: ->
+    assembler = head = {}
+
+    @traverseOneLevel (head) =>
+      # If we have hit a container,
+      # ask it to clone, so that
+      # we copy over appropriate metadata.
+      if head instanceof Container
+        clone = head.clone()
+        helper.connect assembler, clone.start
+        assembler = clone.end
+
+      # Otherwise, helper.connect just, a cloned
+      # version of this token.
+      else
+        assembler = helper.connect assembler, head.clone()
+
+    head = head.next; head.prev = null
+
+    clone = new List head, assembler
+    clone.correctParentTree()
+
+    return clone
+
+  # ## correctParentTree ##
+  # Generally called immediately after assembling
+  # a token stream by hand; corrects the entire
+  # parent tree for the linked list.
+  correctParentTree: ->
+    @traverseOneLevel (head) =>
+      head.parent = this
+      if head instanceof Container
+        head.start.parent = head.end.parent = this
+        head.correctParentTree()
+
+  # ## stringify ##
+  # Get a string representation of us,
+  # using the `stringify()` method on all of
+  # the tokens that we contain.
+  stringify: ->
+    head = @start
+    str = head.stringify()
+
+    until head is @end
+      head = head.next
+      str += head.stringify()
+
+    return str
+
+  stringifyInPlace: ->
+    str = ''
+
+    indent = []
+
+    head = @start
+    until head is @end
+      if head instanceof IndentStartToken
+        indent.push head.container.prefix
+      else if head instanceof IndentEndToken
+        indent.pop()
+      if head instanceof NewlineToken
+        str += '\n' + (head.specialIndent ? indent.join(''))
+      else
+        str += head.stringify()
+      head = head.next
+
+    return str
+
 # Container
 # ==================
 # A generic XML-style container from which
 # all other containers (Block, Indent, Socket) will extend.
-exports.Container = class Container
+exports.Container = class Container extends List
   constructor: ->
     unless @start? or @end?
       @start = new StartToken this
@@ -85,12 +439,23 @@ exports.Container = class Container
     @id = ++_id
     @parent = null
     @version = 0
-    @start.append @end
+    helper.connect @start, @end
 
     @ephemeral = false
 
     # Line mark colours
     @lineMarkStyles = []
+
+  # A `Container`'s location is its start's location
+  # with the container's type
+  getLocation: ->
+    location = @start.getLocation()
+    location.type = @type
+    return location
+  getTextLocation: ->
+    location = @start.getTextLocation()
+    location.type = @type
+    return location
 
   # _cloneEmpty should simply instantiate
   # a new instance of this Container
@@ -115,19 +480,15 @@ exports.Container = class Container
       classes: @classes
     }
 
+  setParent: (parent) ->
+    @parent = @start.parent = @end.parent = parent
+
   hasParent: (parent) ->
     head = @
     until head in [parent, null]
       head = head.parent
 
     return head is parent
-
-  getCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head
 
   getLinesToParent: ->
     head = @start; lines = 0
@@ -136,19 +497,35 @@ exports.Container = class Container
       head = head.prev
     return lines
 
-  hasCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
+  clone: ->
+    selfClone = @_cloneEmpty()
+    assembler = selfClone.start
 
-    return head?
+    @traverseOneLevel (head) =>
+      # If we have hit a container,
+      # ask it to clone, so that
+      # we copy over appropriate metadata.
+      if head instanceof Container
+        clone = head.clone()
+        helper.connect assembler, clone.start
+        assembler = clone.end
+
+      # Otherwise, helper.connect just, a cloned
+      # version of this token.
+      else
+        assembler = helper.connect assembler, head.clone()
+
+    helper.connect assembler, selfClone.end
+    selfClone.correctParentTree()
+
+    return selfClone
 
   rawReplace: (other) ->
     if other.start.prev?
-      other.start.prev.append @start
+      helper.connect other.start.prev, @start
 
     if other.end.next?
-      @end.append other.end.next
+      helper.connect @end, other.end.next
 
     @start.parent = @end.parent = @parent = other.parent
 
@@ -207,59 +584,7 @@ exports.Container = class Container
         else
           @end.prev.value = value
       else unless value.length is 0
-        @end.insertBefore new TextToken value
-
-  # ## clone ##
-  # Clone this container, with all the token inside,
-  # but with no linked-list pointers in common.
-  clone: ->
-    # Clone ourselves empty first;
-    # we will fill with appropriate
-    # tokens.
-    selfClone = @_cloneEmpty()
-
-    assembler = selfClone.start
-
-    @traverseOneLevel (head, isContainer) =>
-      # If we have hit a container,
-      # ask it to clone, so that
-      # we copy over appropriate metadata.
-      if isContainer
-        clone = head.clone()
-        assembler.append clone.start
-        assembler = clone.end
-
-      # Otherwise, just append a cloned
-      # version of this token.
-      else unless head.type is 'cursor'
-        assembler = assembler.append head.clone()
-
-    assembler.append selfClone.end
-
-    selfClone.correctParentTree()
-
-    return selfClone
-
-  # ## stringify ##
-  # Get a string representation of us,
-  # using the `stringify()` method on all of
-  # the tokens that we contain.
-  stringify: (config) ->
-    emptySocket = config.empty or ''
-    emptyIndent = config.emptyIndent or ''
-    str = ''
-
-    head = @start.next
-    state =
-      indent: ''
-      emptySocket: emptySocket
-      emptyIndent: emptyIndent
-
-    until head is @end
-      str += head.stringify state
-      head = head.next
-
-    return str
+        @end.prev.insert new TextToken value
 
   # ## serialize ##
   # Simple debugging output representation
@@ -288,119 +613,6 @@ exports.Container = class Container
 
       return clone.start.next
 
-  # ## spliceOut ##
-  # Remove ourselves from the linked
-  # list that we are in.
-  spliceOut: ->
-    # Do not leave empty lines behind.
-
-    # First,
-    # let's determine what the previous and next
-    # visible tokens are, to see if they are
-    # two consecutive newlines, or similar.
-    first = @start.previousVisibleToken(); last = @end.nextVisibleToken()
-
-    # If the previous visible token is a newline,
-    # and the next visible token is a newline, indentEnd,
-    # or end of document, remove the first one, as it will
-    # cause an empty line.
-    #
-    # Exception: do not do this if it would collapse
-    # and indent to 0 length.
-    while first?.type is 'newline' and
-       last?.type in [undefined, 'newline', 'indentEnd', 'segmentEnd'] and
-       not (first.previousVisibleToken()?.type is 'indentStart' and
-       first.previousVisibleToken().container.end is last)
-      first = first.previousVisibleToken()
-      first.nextVisibleToken().remove()
-
-    # If the next visible token is a newline,
-    # and the previous visible token is the beginning
-    # of the document, remove it.
-    while last?.type is 'newline' and
-        (last?.nextVisibleToken()?.type is 'newline' or
-        first?.type in [undefined, 'segmentStart'])
-      last = last.nextVisibleToken()
-      last.previousVisibleToken().remove()
-
-    @notifyChange()
-
-    # Literally unsplice
-    if @start.prev? then @start.prev.append @end.next
-    else if @end.next? then @end.next.prev = null
-
-    @start.prev = @end.next = null
-
-    @start.parent = @end.parent = @parent = null
-
-  # ## spliceIn ##
-  # Insert ourselves into a linked
-  # list somewhere else.
-  spliceIn: (token) ->
-    # Find the previous bit of significant markup
-    token = token.prev while token.type is 'cursor'
-
-    # As soon as we move around, reset our "ephemeral" flag.
-    @ephemeral = false
-
-    # Append newlines, etc. to the parent
-    # if necessary.
-    switch token.type
-      when 'indentStart'
-        head = token.container.end.prev
-        while head.type in ['cursor', 'segmentEnd', 'segmentStart'] then head = head.prev
-
-        if head.type is 'newline'
-          token = token.next
-        else
-          token = token.insert new NewlineToken()
-
-      when 'blockEnd'
-        token = token.insert new NewlineToken()
-
-      when 'segmentStart'
-        unless token.nextVisibleToken() is token.container.end
-          token.insert new NewlineToken()
-
-      # Remove socket content when necessary
-      when 'socketStart'
-        token.append token.container.end
-
-    # Literally splice in
-    last = token.next
-
-    token.append @start
-    @start.parent = @end.parent = @parent
-    @end.append last
-
-    @notifyChange()
-
-  # ## moveTo ##
-  # Convenience function for testing;
-  # splice out then splice in.
-  #
-  # USED FOR TESTING ONLY
-  moveTo: (token, mode) ->
-    if @start.prev? or @end.next?
-      leading = @getLeadingText()
-      trailing = @getTrailingText()
-
-      [leading, trailing] = mode.parens leading, trailing, @, null
-
-      @setLeadingText leading; @setTrailingText trailing
-
-      @spliceOut()
-
-    if token?
-      leading = @getLeadingText()
-      trailing = @getTrailingText()
-
-      [leading, trailing] = mode.parens leading, trailing, @, (token.container ? token.parent)
-
-      @setLeadingText leading; @setTrailingText trailing
-
-      @spliceIn token
-
   # ## notifyChange ##
   # Increase version number (for caching purposes)
   notifyChange: ->
@@ -408,71 +620,6 @@ exports.Container = class Container
     while head?
       head.version++
       head = head.parent
-
-  # ## wrap ##
-  # Insert ourselves _around_ some other
-  # tokens.
-  wrap: (first, last) ->
-    @parent = @start.parent = @end.parent = first.parent
-    first.prev.append @start
-    @start.append first
-
-    @end.append last.next
-    last.append @end
-
-    traverseOneLevel first, (head, isContainer) =>
-      head.parent = this
-
-    @notifyChange()
-
-  # ## correctParentTree ##
-  # Generally called immediately after assembling
-  # a token stream by hand; corrects the entire
-  # parent tree for the linked list.
-  correctParentTree: ->
-    @traverseOneLevel (head, isContainer) =>
-      head.parent = this
-      if isContainer
-        head.start.parent = head.end.parent = this
-        head.correctParentTree()
-
-  # ## find ##
-  # A utility function for finding the innermost
-  # token fitting (fn), assuming there is only
-  # one such token.
-  find: (fn, excludes = []) ->
-    head = @start
-
-    until head is @end
-      examined = if head instanceof StartToken then head.container else head
-
-      # Skip over things in the excludes array
-      if examined in excludes
-        head = examined.end
-
-      unless head instanceof EndToken or head.type in ['newline', 'cursor']
-        if fn(examined) then return examined
-
-      head = head.next
-
-    if fn(this) then return this
-
-  # ## getTokenAtLocation ##
-  # Get the `loc`th token from the start.
-  getTokenAtLocation: (loc) ->
-    # A location of "null" means token "null"
-    if not loc? then null
-    else if loc is 0 then @start
-    else
-      head = @start; count = 1
-
-      until count is loc or head is @end
-        unless head?.type is 'cursor' then count++
-        head = head.next
-
-      head = head.next while head?.type is 'cursor'
-
-      return head
 
   # ## getBlockOnLine ##
   # Get the innermost block that contains
@@ -488,7 +635,8 @@ exports.Container = class Container
         when 'blockEnd' then stack.pop()
       head = head.next
 
-    while head?.type in ['newline', 'cursor', 'segmentStart', 'segmentEnd'] then head = head.next
+    while head?.type is 'newline' or (head instanceof StartToken and head.type isnt 'blockStart')
+      head = head.next
     if head?.type is 'blockStart' then stack.push head.container
 
     return stack[stack.length - 1]
@@ -498,21 +646,8 @@ exports.Container = class Container
   # traverse one tree level between our
   # start and end tokens.
   traverseOneLevel: (fn) ->
-    traverseOneLevel @start.next, fn
-
-  isFirstOnLine: ->
-    return @start.previousVisibleToken() in [@parent?.start, @parent?.parent?.start, null] or
-      @start.previousVisibleToken()?.type is 'newline'
-
-  isLastOnLine: ->
-    return @end.nextVisibleToken() in [@parent?.end, @parent?.parent?.end, null] or
-      @end.nextVisibleToken()?.type in ['newline', 'indentStart', 'indentEnd']
-
-  visParent: ->
-    head = @parent
-    while head?.type is 'segment' and head.isLassoSegment
-      head = head.parent
-    return head
+    unless @start.next is @end
+      traverseOneLevel @start.next, fn, @end.prev
 
   # Line mark mutators
   addLineMark: (mark) ->
@@ -523,6 +658,85 @@ exports.Container = class Container
 
   clearLineMarks: ->
     @lineMarkStyles = []
+
+  getFromLocation: (location) ->
+    head = @start
+    for [0...location.count]
+      head = head.next
+
+    if location.type is head.type
+      return head
+    else if location.type is head.container.type
+      return head.container
+    else
+      throw new Error "Could not retrieve location #{location}"
+
+  # ## getFromTextLocation ##
+  # Given a TextLocation, find the token at that row, column, and length.
+  getFromTextLocation: (location) ->
+    head = @start
+    best = head
+
+    row = 0
+
+    until not head? or row is location.row
+      head = head.next
+      if head instanceof NewlineToken
+        row += 1
+
+    # If the coordinate is invalid,
+    # just return as close as we can get
+    # (our last token)
+    if not head?
+      return @end
+    else
+      best = head
+
+    if head instanceof NewlineToken
+      col = head.stringify().length - 1
+      head = head.next
+    else
+      col = head.stringify().length
+
+    until (not head? or head instanceof NewlineToken) or col >= location.col
+      col += head.stringify().length
+      head = head.next
+
+    # Again, if the coordinate was invalid,
+    # return as close as we can get
+    if col < location.col
+      return head ? @end
+    else
+      best = head
+
+    # Go forward until we are the proper length
+    # or the column changed
+    if location.length?
+      until (not head? or head.stringify().length > 0) or
+            ((head.container ? head).stringify().length is location.length)
+        head = head.next
+
+      if head? and
+          (head.container ? head).stringify().length is location.length
+        best = head
+      else
+        head = best
+
+    # Go forward until we are the proper token type
+    # or the column changed
+    if location.type?
+      until (not head? or head.stringify().length > 0) or
+          head.type is location.type or
+          head.container.type is location.type
+        head = head.next
+
+      if head?.container?.type is location.type
+        head = head.container
+
+      if head?.type is location.type
+        best = head
+
+    return best
 
 # Token
 # ==================
@@ -537,6 +751,8 @@ exports.Token = class Token
 
     @version = 0
 
+  setParent: (@parent) ->
+
   hasParent: (parent) ->
     head = @
     until head in [parent, null]
@@ -544,97 +760,22 @@ exports.Token = class Token
 
     return head is parent
 
-  visParent: ->
-    head = @parent
-    while head?.type is 'segment' and head.isLassoSegment
-      head = head.parent
-    return head
-
-  getCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head
-
-  hasCommonParent: (other) ->
-    head = @
-    until other.hasParent head
-      head = head.parent
-
-    return head?
-
-  # ## append ##
-  # Link this token to another
-  # in the linked list.
-  append: (token) ->
-    @next = token; unless token then return
-    token.prev = this
-
-    # Correct parents if necessary,
-    # which it usually ought not to be.
-    unless token.parent is @parent
-      traverseOneLevel token, (head) =>
-        head.parent = @parent
-
-    return token
-
-  # ## insert ##
   insert: (token) ->
-    if token instanceof StartToken or
-       token instanceof EndToken
-      console.warn '"insert"-ing a container can cause problems'
-
     token.next = @next; token.prev = this
     @next.prev = token; @next = token
 
-    token.parent = @parent
+    if @ instanceof StartToken
+      token.parent = @container
+    else
+      token.parent = parent
 
     return token
 
-  insertBefore: (token) ->
-    if @prev? then @prev.insert token
-    else
-      @prev = token
-      token.next = this
-      token.parent = @parent
-
-  # ## remove ##
-  # Splice this token out of the
-  # linked list.
   remove: ->
-    if @prev? then @prev.append @next
+    if @prev? then helper.connect @prev, @next
     else if @next? then @next.prev = null
 
     @prev = @next = @parent = null
-
-  # ## isVisible ##
-  isVisible: YES
-  isAffect: YES
-
-  previousVisibleToken: ->
-    head = @prev
-    until not head? or head.isVisible()
-      head = head.prev
-    return head
-
-  nextVisibleToken: ->
-    head = @next
-    until not head? or head.isVisible()
-      head = head.next
-    return head
-
-  previousAffectToken: ->
-    head = @prev
-    until not head? or head.isAffect()
-      head = head.prev
-    return head
-
-  nextAffectToken: ->
-    head = @next
-    until not head? or head.isAffect()
-      head = head.next
-    return head
 
   notifyChange: ->
     head = this
@@ -645,35 +786,119 @@ exports.Token = class Token
     return null
 
   isFirstOnLine: ->
-    return @previousVisibleToken() is @parent?.start or
-      @previousVisibleToken()?.type is 'newline'
+    return @prev is @parent?.start or
+      @prev?.type is 'newline'
 
   isLastOnLine: ->
-    return @nextVisibleToken() is @parent?.end or
-      @nextVisibleToken()?.type in ['newline', 'indentEnd']
+    return @next is @parent?.end or
+      @next?.type in ['newline', 'indentEnd']
+
+  clone: -> new Token()
 
   getSerializedLocation: ->
     head = this; count = 0
     until head is null
-      count++ unless head.type is 'cursor'
+      count++
       head = head.prev
     return count
+
+  # Get the indent level here
+  getIndent: ->
+    head = @
+    prefix = ''
+    while head?
+      if head.type is 'indent'
+        prefix = head.prefix + prefix
+      head = head.parent
+    return prefix
+
+  getTextLocation: ->
+    location = new TextLocation(); head = @prev
+
+    location.type = @type
+    if @ instanceof StartToken or @ instanceof EndToken
+      location.length = @container.stringify().length
+    else
+      location.length = @stringify().length
+
+    until (not head?) or head instanceof NewlineToken
+      location.col += head.stringify().length
+      head = head.prev
+    if head?
+      location.col += head.stringify().length - 1
+
+    while head?
+      if head instanceof NewlineToken
+        location.row += 1
+      head = head.prev
+
+    return location
+
+  getDocument: ->
+    head = @container ? @
+    until head instanceof Document
+      head = head.parent
+    return head
+
+  getLocation: ->
+    count = 0
+    head = @
+    document = @getDocument()
+
+    until head is document.start
+      head = head.prev
+      count += 1
+
+    return new Location count, @type
 
   stringify: -> ''
   serialize: -> ''
 
+exports.Location = class Location
+  constructor: (@count, @type) ->
+
+  toString: -> "#{@count}, #{@type}"
+
+  set: (other) -> @count = other.count; @type = other.type
+
+  is: (other) ->
+    unless other instanceof Location
+      other = other.getLocation()
+    return other.count is @count and other.type is @type
+
+exports.TextLocation = class TextLocation
+  constructor: (
+    @row = 0,
+    @col = 0,
+    @type = null,
+    @length = null
+  ) ->
+
+  toString: -> "(#{@row}, #{@col}, #{@type}, #{@length})"
+
+  set: (other) ->
+    @row = other.row
+    @col = other.col
+    @type = other.type
+    @length = other.length
+
+  is: (other) ->
+    unless other instanceof TextLocation
+      other = other.getLocation()
+
+    answer = other.row is @row and other.col is @col and
+
+    if @type? and other.type?
+      answer = answer and @type is other.type
+
+    if @length? and other.length?
+      answer = answer and @length is other.length
+
+    return answer
+
 exports.StartToken = class StartToken extends Token
   constructor: (@container) ->
     super; @markup = 'begin'
-
-  append: (token) ->
-    @next = token; unless token? then return
-    token.prev = this
-
-    traverseOneLevel token, (head) =>
-      head.parent = @container
-
-    return token
 
   insert: (token) ->
     if token instanceof StartToken or
@@ -692,15 +917,6 @@ exports.StartToken = class StartToken extends Token
 exports.EndToken = class EndToken extends Token
   constructor: (@container) ->
     super; @markup = 'end'
-
-  append: (token) ->
-    @next = token; unless token? then return
-    token.prev = this
-
-    traverseOneLevel token, (head) =>
-      head.parent = @container.parent
-
-    return token
 
   insert: (token) ->
     if token instanceof StartToken or
@@ -737,7 +953,7 @@ exports.Block = class Block extends Container
 
   nextSibling: ->
     head = @end.next
-    parent = head.visParent()
+    parent = head.parent
     while head and head.container isnt parent
       if head instanceof StartToken
         return head.container
@@ -763,15 +979,18 @@ exports.Block = class Block extends Container
 
 exports.SocketStartToken = class SocketStartToken extends StartToken
   constructor: (@container) -> super; @type = 'socketStart'
-  stringify: (state) ->
-    if @next is @container.end or
-      @next.type is 'text' and @next.value is '' then state.emptySocket else ''
 
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
+  stringify: ->
+    if @prev is @container.start or
+        @prev.type is 'text' and @prev.value is ''
+      return @container.emptyString
+    else ''
+
 exports.Socket = class Socket extends Container
-  constructor: (@precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -779,13 +998,20 @@ exports.Socket = class Socket extends Container
 
     super
 
+  textContent: ->
+    head = @start.next; str = ''
+    until head is @end
+      str += head.stringify()
+      head = head.next
+    return str
+
   hasDropdown: -> @dropdown? and @isDroppable()
 
   editable: -> (not (@dropdown? and @dropdown.dropdownOnly)) and @isDroppable()
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
@@ -806,19 +1032,17 @@ exports.Socket = class Socket extends Container
 
 exports.IndentStartToken = class IndentStartToken extends StartToken
   constructor: (@container) -> super; @type = 'indentStart'
-  stringify: (state) ->
-    state.indent += @container.prefix; ''
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: (state) ->
-    unless @container.prefix.length is 0
-      state.indent = state.indent[...-@container.prefix.length]
-    if @previousVisibleToken().previousVisibleToken() is @container.start then state.emptyIndent else ''
+  stringify: ->
+    if @prev.prev is @container.start
+      return @container.emptyString
+    else ''
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@prefix = '', @classes = []) ->
+  constructor: (@emptyString, @prefix = '', @classes = []) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -828,9 +1052,9 @@ exports.Indent = class Indent extends Container
 
     super
 
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
   firstChild: -> return @_firstChild()
 
-  _cloneEmpty: -> new Indent @prefix, @classes
   _serialize_header: -> "<indent prefix=\"#{
     @prefix
   }\" classes=\"#{
@@ -839,44 +1063,32 @@ exports.Indent = class Indent extends Container
   _serialize_footer: -> "</indent>"
 
 
-# Segment
+# Document
 # ==================
 
-exports.SegmentStartToken = class SegmentStartToken extends StartToken
-  constructor: (@container) -> super; @type = 'segmentStart'
-  isVisible: -> @container.isRoot
-  serialize: -> "<segment>"
+exports.DocumentStartToken = class DocumentStartToken extends StartToken
+  constructor: (@container) -> super; @type = 'documentStart'
+  serialize: -> "<document>"
 
-exports.SegmentEndToken = class SegmentEndToken extends EndToken
-  constructor: (@container) -> super; @type = 'segmentEnd'
-  isVisible: -> @container.isRoot
-  serialize: -> "</segment>"
+exports.DocumentEndToken = class DocumentEndToken extends EndToken
+  constructor: (@container) -> super; @type = 'documentEnd'
+  serialize: -> "</document>"
 
-exports.Segment = class Segment extends Container
-  constructor: (@isLassoSegment = false) ->
-    @start = new SegmentStartToken this
-    @end = new SegmentEndToken this
-    @isRoot = false
-    @classes = ['__segment']
+exports.Document = class Document extends Container
+  constructor: ->
+    @start = new DocumentStartToken this
+    @end = new DocumentEndToken this
+    @classes = ['__document__']
 
-    @type = 'segment'
+    @type = 'document'
 
     super
 
+  _cloneEmpty: -> new Document()
   firstChild: -> return @_firstChild()
 
-  _cloneEmpty: -> new Segment @isLassoSegment
-
-  unwrap: ->
-    @notifyChange()
-
-    @traverseOneLevel (head, isContainer) =>
-      head.parent = @parent
-
-    @start.remove(); @end.remove()
-
-  _serialize_header: -> "<segment isLassoSegment=\"#{@isLassoSegment}\">"
-  _serialize_footer: -> "</segment>"
+  _serialize_header: -> "<document>"
+  _serialize_footer: -> "</document>"
 
 
 # Text
@@ -892,33 +1104,29 @@ exports.TextToken = class TextToken extends Token
     @_value = value
     @notifyChange()
 
-  stringify: (state) -> @_value
+  stringify: -> @_value
   serialize: -> helper.escapeXMLText @_value
 
   clone: -> new TextToken @_value
 
 exports.NewlineToken = class NewlineToken extends Token
   constructor: (@specialIndent) -> super; @type = 'newline'
-  stringify: (state) -> '\n' + (@specialIndent ? state.indent)
+  stringify: -> '\n' + (@specialIndent ? @getIndent())
   serialize: -> '\n'
   clone: -> new NewlineToken @specialIndent
-
-exports.CursorToken = class CursorToken extends Token
-  constructor: -> super; @type = 'cursor'
-  isVisible: NO
-  isAffect: NO
-  serialize: -> '<cursor/>'
-  clone: -> new CursorToken()
 
 # Utility function for traversing all
 # the blocks at the same nesting depth
 # as the head token.
-traverseOneLevel = (head, fn) ->
+traverseOneLevel = (head, fn, tail) ->
   while true
-    if head instanceof EndToken or not head?
-      break
-    else if head instanceof StartToken
-      fn head.container, true; head = head.container.end
-    else fn head, false
+    if head instanceof StartToken
+      fn head.container
+      head = head.container.end
+    else
+      fn head
+
+    if head is tail
+      return
 
     head = head.next

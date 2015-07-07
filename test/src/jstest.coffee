@@ -30,8 +30,7 @@ asyncTest 'JS dotted methods', ->
     '''
   ).serialize()
 
-  expectedSerialization = '''<segment
-      isLassoSegment="false"><block
+  expectedSerialization = '''<document><block
       precedence="2"
       color="red"
       socketLevel="0"
@@ -115,7 +114,7 @@ asyncTest 'JS dotted methods', ->
     >)</block></socket
     >)</block></socket
     >)</block></socket
-    >;</block></segment>'''
+    >;</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -139,8 +138,7 @@ asyncTest 'JS Custom Colors', ->
   })
   customSerialization = customJS.parse(
       'return b != (a += [c + d][0]);').serialize()
-  expectedSerialization = '''<segment
-      isLassoSegment="false"
+  expectedSerialization = '''<document
     ><block
       precedence="0"
       color="#222"
@@ -219,7 +217,7 @@ asyncTest 'JS Custom Colors', ->
     >0</socket
     >]</block></socket
     >)</block></socket></block></socket
-    >;</block></segment>'''
+    >;</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -231,15 +229,14 @@ asyncTest 'JS empty indents', ->
   code = 'if (__) {\n\n}'
   customSerialization = customJS.parse('if (__) {\n\n}')
   stringifiedJS = customSerialization.stringify(customJS)
-  strictEqual(code, stringifiedJS)
+  strictEqual(stringifiedJS, code)
   start()
 
 asyncTest 'JS LogicalExpressions', ->
   customJS = new JavaScript()
   customSerialization = customJS.parse(
       'a && b').serialize()
-  expectedSerialization = '''<segment
-        isLassoSegment="false"
+  expectedSerialization = '''<document
       ><block
         precedence="13"
         color="cyan"
@@ -253,7 +250,7 @@ asyncTest 'JS LogicalExpressions', ->
         precedence="13"
         handwritten="false"
         classes=""
-      >b</socket></block></segment>'''
+      >b</socket></block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -265,8 +262,7 @@ asyncTest 'JS omits unary +/- for literals', ->
   customSerialization = customJS.parse(
       'foo(+1, -1, +a());').serialize()
   expectedSerialization =
-      '<segment' +
-      '  isLassoSegment="false"' +
+      '<document' +
       '><block' +
       '  precedence="2"' +
       '  color="blue"' +
@@ -310,7 +306,7 @@ asyncTest 'JS omits unary +/- for literals', ->
       '  handwritten="false"' +
       '  classes=""' +
       '>a</socket>()</block></socket></block>' +
-      '</socket>);</block></segment>'
+      '</socket>);</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -330,8 +326,7 @@ asyncTest 'JS Elif', ->
       '}'
   ).serialize()
   expectedSerialization =
-    '<segment' +
-    '  isLassoSegment="false"' +
+    '<document' +
     '><block' +
     '  precedence="0"' +
     '  color="orange"' +
@@ -449,7 +444,7 @@ asyncTest 'JS Elif', ->
     '  handwritten="false"' +
     '  classes=""' +
     '>200</socket>);</block></indent>\n' +
-    '}</block></segment>'
+    '}</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
@@ -468,8 +463,7 @@ asyncTest 'JS beginner mode loops', ->
     '''
   ).serialize()
   expectedSerialization =
-    '<segment' +
-    '  isLassoSegment="false"' +
+    '<document' +
     '><block' +
     '  precedence="0"' +
     '  color="green"' +
@@ -491,7 +485,7 @@ asyncTest 'JS beginner mode loops', ->
     '  precedence="100"' +
     '  handwritten="false"' +
     '  classes=""' +
-    '>go</socket>();</block></indent>\n}</block></segment>'
+    '>go</socket>();</block></indent>\n}</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),

@@ -69,13 +69,18 @@
   position: absolute;
   top: 0; bottom: 0; width: 300px;
   max-width: 40%;
-  overflow: hidden;
   z-index: 257;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+.droplet-palette-element {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 .droplet-palette-header {
   z-index: 257;

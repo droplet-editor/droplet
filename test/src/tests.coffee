@@ -37,178 +37,6 @@ asyncTest 'XML parser unity', ->
     )
   start()
 
-asyncTest 'Basic token operations', ->
-  a = new model.Token()
-  b = new model.Token()
-  c = new model.Token()
-  d = new model.Token()
-
-  strictEqual a.append(b), b, 'append() return argument'
-
-  strictEqual a.prev, null, 'append assembles correct linked list'
-  strictEqual a.next, b, 'append assembles correct linked list'
-  strictEqual b.prev, a, 'append assembles correct linked list'
-  strictEqual b.next, null, 'append assembles correct linked list'
-
-  b.append c
-  b.remove()
-
-  strictEqual a.next, c, 'remove removes token'
-  strictEqual c.prev, a, 'remove removes token'
-  start()
-
-asyncTest 'Containers and parents', ->
-  cont1 = new model.Container()
-  cont2 = new model.Container()
-
-  a = cont1.start
-  b = new model.Token()
-  c = cont2.start
-  d = new model.Token()
-  e = cont2.end
-  f = cont1.end
-
-  a.append(b).append(c).append(d)
-   .append(e).append(f)
-
-  cont1.correctParentTree()
-
-  strictEqual a.parent, null, 'correctParentTree() output is correct (a)'
-  strictEqual b.parent, cont1, 'correctParentTree() output is correct (b)'
-  strictEqual c.parent, cont1, 'correctParentTree() output is correct (c)'
-  strictEqual d.parent, cont2, 'correctParentTree() output is correct (d)'
-  strictEqual e.parent, cont1, 'correctParentTree() output is correct (e)'
-  strictEqual f.parent, null, 'correctParentTree() output is correct (f)'
-
-  g = new model.Token()
-  h = new model.Token
-  g.append h
-  d.append g
-  h.append e
-
-  strictEqual a.parent, null, 'splice in parents still work'
-  strictEqual b.parent, cont1, 'splice in parents still work'
-  strictEqual c.parent, cont1, 'splice in parents still work'
-  strictEqual d.parent, cont2, 'splice in parents still work'
-  strictEqual g.parent, cont2, 'splice in parents still work'
-  strictEqual h.parent, cont2, 'splice in parents still work'
-  strictEqual e.parent, cont1, 'splice in parents still work'
-  strictEqual f.parent, null, 'splice in parents still work'
-
-  cont3 = new model.Container()
-  cont3.spliceIn g
-
-  strictEqual h.parent, cont2, 'splice in parents still work'
-  start()
-
-asyncTest 'Get block on line', ->
-  document = coffee.parse '''
-  for i in [1..10]
-    console.log i
-  if a is b
-    console.log k
-    if b is c
-      console.log q
-  else
-    console.log j
-  '''
-
-  strictEqual document.getBlockOnLine(1).stringify(coffee), 'console.log i', 'line 1'
-  strictEqual document.getBlockOnLine(3).stringify(coffee), 'console.log k', 'line 3'
-  strictEqual document.getBlockOnLine(5).stringify(coffee), 'console.log q', 'line 5'
-  strictEqual document.getBlockOnLine(7).stringify(coffee), 'console.log j', 'line 7'
-  start()
-
-asyncTest 'Location serialization unity', ->
-  document = coffee.parse '''
-  for i in [1..10]
-    console.log hello
-    if a is b
-      console.log world
-  '''
-
-  head = document.start.next
-  until head is document.end
-    strictEqual document.getTokenAtLocation(head.getSerializedLocation()), head, 'Equality for ' + head.type
-    head = head.next
-  start()
-
-asyncTest 'Block move', ->
-  document = coffee.parse '''
-  for i in [1..10]
-    console.log hello
-    console.log world
-  '''
-
-  document.getBlockOnLine(2).moveTo document.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  console.log world
-  for i in [1..10]
-    console.log hello
-  ''', 'Move console.log world out'
-
-  document.getBlockOnLine(2).moveTo document.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  console.log hello
-  console.log world
-  for i in [1..10]
-    ``
-  ''', 'Move both out'
-
-  document.getBlockOnLine(0).moveTo document.getBlockOnLine(2).end.prev.container.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  console.log world
-  for i in [1..10]
-    console.log hello
-  ''', 'Move hello back in'
-
-  document.getBlockOnLine(1).moveTo document.getBlockOnLine(0).end.prev.container.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  console.log (for i in [1..10]
-    console.log hello)
-  ''', 'Move for into socket (req. paren wrap)'
-  start()
-
-asyncTest 'specialIndent bug', ->
-  document = coffee.parse '''
-  for i in [1..10]
-    ``
-  for i in [1..10]
-    alert 10
-  '''
-
-  document.getBlockOnLine(2).moveTo document.getBlockOnLine(1).end.prev.container.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  for i in [1..10]
-    for i in [1..10]
-      alert 10
-  '''
-  start()
-
-asyncTest 'Paren wrap', ->
-  document = coffee.parse '''
-  Math.sqrt 2
-  console.log 1 + 1
-  '''
-
-  (block = document.getBlockOnLine(0)).moveTo document.getBlockOnLine(1).end.prev.prev.prev.container.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  console.log 1 + (Math.sqrt 2)
-  ''', 'Wrap'
-
-  block.moveTo document.start, coffee
-
-  strictEqual document.stringify(coffee), '''
-  Math.sqrt 2
-  console.log 1 + ``''', 'Unwrap'
-  start()
-
 asyncTest 'View: compute children', ->
   view_ = new view.View()
 
@@ -257,7 +85,7 @@ asyncTest 'View: compute children', ->
   documentView.layout()
 
   indentView = view_.getViewNodeFor document.getBlockOnLine(1).end.prev.container
-  strictEqual indentView.lineChildren[1][0].child.stringify(coffee), 'alert 10', 'Relative line numbers'
+  strictEqual indentView.lineChildren[1][0].child.stringify(), 'alert 10', 'Relative line numbers'
 
   document = coffee.parse '''
   console.log (for [1..10]
@@ -349,7 +177,7 @@ asyncTest 'View: bounding box flag stuff', ->
     view_.opts.textHeight * 4 + view_.opts.padding * 8 + view_.opts.textPadding * 8,
     'Original path points are O.K.'
 
-  document.getBlockOnLine(2).spliceOut()
+  document.remove document.getBlockOnLine(2)
   documentView.layout()
 
   strictEqual blockView.path._points[0].y,
@@ -368,16 +196,16 @@ asyncTest 'View: sockets caching', ->
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
-  socketView = view_.getViewNodeFor document.getTokenAtLocation(8).container
+  socketView = view_.getViewNodeFor getNthToken(document, 8).container
 
-  strictEqual socketView.model.stringify(coffee), '[[[]]]', 'Correct block selected'
+  strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
 
   strictEqual socketView.dimensions[0].height,
     view_.opts.textHeight + 6 * view_.opts.padding,
     'Original height is O.K.'
 
-  (block = document.getTokenAtLocation(9).container).spliceOut()
-  block.spliceIn(document.getBlockOnLine(1).start.prev.prev)
+  document.remove (block = getNthToken(document, 9).container)
+  document.insert document.getBlockOnLine(1).start.prev.prev, block
   documentView.layout()
 
   strictEqual socketView.dimensions[0].height,
@@ -409,7 +237,8 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   block = document.getBlockOnLine 1
   dest = document.getBlockOnLine(2).end
 
-  block.moveTo dest, coffee
+  document.remove block
+  document.insert dest, block
 
   documentView.layout()
 
@@ -418,7 +247,8 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
     1 * view_.opts.textHeight +
     2 * view_.opts.padding, 'Final height O.K.'
 
-  block.moveTo testedBlock.start.prev.prev, coffee
+  document.remove block
+  document.insert testedBlock.start.prev.prev, block
 
   documentView.layout()
 
@@ -439,19 +269,21 @@ asyncTest 'View: triple-quote sockets caching issue', ->
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
-  socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+  socketView = view_.getViewNodeFor getNthToken(document, 4).container
 
-  strictEqual socketView.model.stringify(coffee), '\'hi\'', 'Correct block selected'
+  strictEqual socketView.model.stringify(), '\'hi\'', 'Correct block selected'
   strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Original height O.K.'
   strictEqual socketView.topLineSticksToBottom, false, 'Original topstick O.K.'
 
-  socketView.model.start.append socketView.model.end
-  socketView.model.start.append(new model.TextToken('"""'))
-    .append(new model.NewlineToken())
-    .append(new model.TextToken('hello'))
-    .append(new model.NewlineToken())
-    .append(new model.TextToken('world"""'))
-    .append(socketView.model.end)
+  helper.string [
+    socketView.model.start
+    new model.TextToken('"""')
+    new model.NewlineToken()
+    new model.TextToken('hello')
+    new model.NewlineToken()
+    new model.TextToken('world"""')
+    socketView.model.end
+  ]
 
   socketView.model.notifyChange()
 
@@ -459,13 +291,16 @@ asyncTest 'View: triple-quote sockets caching issue', ->
 
   strictEqual socketView.topLineSticksToBottom, true, 'Intermediate topstick O.K.'
 
-  socketView.model.start.append new model.TextToken('\'hi\'')
-    .append socketView.model.end
+  helper.string [
+    socketView.model.start
+    new model.TextToken('\'hi\'')
+    socketView.model.end
+  ]
 
   socketView.model.notifyChange()
   documentView.layout()
 
-  socketView = view_.getViewNodeFor document.getTokenAtLocation(4).container
+  socketView = view_.getViewNodeFor getNthToken(document, 4).container
 
   strictEqual socketView.dimensions[0].height, view_.opts.textHeight + 2 * view_.opts.textPadding, 'Final height O.K.'
   strictEqual socketView.topLineSticksToBottom, false, 'Final topstick O.K.'
@@ -482,8 +317,8 @@ asyncTest 'View: empty socket heights', ->
   documentView = view_.getViewNodeFor document
   documentView.layout()
 
-  emptySocketView = view_.getViewNodeFor document.getTokenAtLocation(6).container
-  fullSocketView = view_.getViewNodeFor document.getTokenAtLocation(9).container
+  emptySocketView = view_.getViewNodeFor getNthToken(document, 6).container
+  fullSocketView = view_.getViewNodeFor getNthToken(document, 9).container
 
   strictEqual emptySocketView.dimensions[0].height, fullSocketView.dimensions[0].height, 'Full and empty sockets same height'
   start()
@@ -492,7 +327,7 @@ asyncTest 'View: indent carriage arrow', ->
   view_ = new view.View()
 
   document = parser.parseXML '''
-  <block>hello <indent><block>my <socket>name</socket></block>
+  <block>hello <indent prefix="  "><block>my <socket>name</socket></block>
   <block>is elder <socket>price</socket></block></indent></block>
   '''
 
@@ -513,14 +348,16 @@ asyncTest 'View: indent carriage arrow', ->
   indent = block.start.prev.container
   indentView = view_.getViewNodeFor indent
 
-  strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue'
+
+  ok indentView.glue[0]?, 'Carriage arrow causes glue (exists)'
+  strictEqual indentView.glue[0].height, view_.opts.padding, 'Carriage arrow causes glue (correct height)'
   start()
 
 asyncTest 'View: sidealong carriage arrow', ->
   view_ = new view.View()
 
   document = parser.parseXML '''
-  <block>hello <indent>
+  <block>hello <indent prefix="  ">
   <block>my <socket>name</socket></block><block>is elder <socket>price</socket></block></indent></block>
   '''
 
@@ -639,10 +476,24 @@ asyncTest 'Controller: cursor motion and rendering', ->
     alert 40
   '''
 
+  moveCursorUp = ->
+    editor.setCursor(
+      (editor.getCursor().prev ? editor.getCursor().start.prev),
+      ((token) -> token.type isnt 'socketStart')
+      'before'
+    )
+
+  moveCursorDown = ->
+    editor.setCursor(
+      (editor.getCursor().next ? editor.getCursor().end.next),
+      ((token) -> token.type isnt 'socketStart')
+      'after'
+    )
+
   strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct (x - down)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  moveCursorDown()
 
   strictEqual editor.determineCursorPosition().x, 0,
     'Cursor position correct after \'alert 10\' (x - down)'
@@ -651,7 +502,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     2 * editor.view.opts.padding +
     2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  moveCursorDown()
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'if a is b\' (x - down)'
@@ -660,7 +511,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     6 * editor.view.opts.padding +
     4 * editor.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  moveCursorDown()
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'alert 20\' (x - down)'
@@ -669,7 +520,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     8 * editor.view.opts.padding +
     6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  moveCursorDown()
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct at end of indent (x - down)'
@@ -678,11 +529,11 @@ asyncTest 'Controller: cursor motion and rendering', ->
     10 * editor.view.opts.padding +
     8 * editor.view.opts.textPadding, 'Cursor position at end of indent (y - down)'
 
-  editor.moveCursorTo editor.cursor.next.next
+  moveCursorDown()
 
-  strictEqual editor.cursor.parent.type, 'indent', 'Cursor skipped middle of block'
+  strictEqual editor.cursor.type, 'indentStart', 'Cursor skipped middle of block'
 
-  editor.moveCursorUp()
+  moveCursorUp()
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct at end of indent (x - up)'
@@ -691,7 +542,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     10 * editor.view.opts.padding +
     8 * editor.view.opts.textPadding, 'Cursor position at end of indent (y - up)'
 
-  editor.moveCursorUp()
+  moveCursorUp()
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'alert 20\' (x - up)'
@@ -700,7 +551,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     8 * editor.view.opts.padding +
     6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - up)'
 
-  editor.moveCursorUp()
+  moveCursorUp()
 
   strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
     'Cursor position correct after \'if a is b\' (y - up)'
@@ -709,7 +560,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     6 * editor.view.opts.padding +
     4 * editor.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - up)'
 
-  editor.moveCursorUp()
+  moveCursorUp()
 
   strictEqual editor.determineCursorPosition().x, 0,
     'Cursor position correct after \'alert 10\' (x - up)'
@@ -718,7 +569,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
     2 * editor.view.opts.padding +
     2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - up)'
 
-  editor.moveCursorUp()
+  moveCursorUp()
 
   strictEqual editor.determineCursorPosition().x, 0, 'Cursor position correct at origin (x - up)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight, 'Cursor position correct at origin (y - up)'
@@ -784,7 +635,7 @@ asyncTest 'Controller: arbitrary row/column marking', ->
     prompt 10 / 10
   '''
 
-  key = editor.mark 2, 4, {color: '#F00'}
+  key = editor.mark {row: 2, col: 4}, {color: '#F00'}
 
   strictEqual editor.markedBlocks[key].model.stringify({}), '10 - 10'
   strictEqual editor.markedBlocks[key].style.color, '#F00'
@@ -822,7 +673,7 @@ asyncTest 'Controller: dropdown menus', ->
   strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
 
   # no-throw
-  editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
+  editor.setCursor editor.tree.getBlockOnLine(0).end.prev.container.start
   editor.showDropdown()
   start()
 
@@ -855,7 +706,7 @@ asyncTest 'Controller: dropdown menus with functions', ->
   strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
 
   # no-throw
-  editor.setTextInputFocus editor.tree.getBlockOnLine(0).end.prev.container
+  editor.setCursor editor.tree.getBlockOnLine(0).end.prev.container.start
   editor.showDropdown()
   start()
 
@@ -933,3 +784,8 @@ asyncTest 'Controller: enablePalette false', ->
 
   setTimeout verifyPaletteHidden, 500
 
+getNthToken = (document, n) ->
+  head = document.start
+  for [1...n]
+    head = head.next
+  return head

@@ -1,7 +1,7 @@
 # Droplet parser wrapper.
-# Utility functions for defining ICE editor parsers.
+# Utility functions for defining Droplet parsers.
 #
-# Copyright (c) 2014 Anthony Bau
+# Copyright (c) 2015 Anthony Bau (dab1998@gmail.com)
 # MIT License
 
 helper = require './helper.coffee'
@@ -67,19 +67,20 @@ exports.Parser = class Parser
     # Sort by position and depth
     do @sortMarkup
 
-    # Generate a segment from the markup
-    segment = @applyMarkup opts
+    # Generate a document from the markup
+    document = @applyMarkup opts
 
-    @detectParenWrap segment
+    @detectParenWrap document
+
+
+    # Correct parent tree
+    document.correctParentTree()
 
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
-    stripFlaggedBlocks segment
+    stripFlaggedBlocks document
 
-    # Correct parent tree and return.
-    segment.correctParentTree()
-    segment.isRoot = true
-    return segment
+    return document
 
   markRoot: ->
 
@@ -89,14 +90,14 @@ exports.Parser = class Parser
       block.end.prev.type is 'text' and
       block.end.prev.value[block.end.prev.value.length - 1] is ')')
 
-  detectParenWrap: (segment) ->
-    head = segment.start
-    until head is segment.end
+  detectParenWrap: (document) ->
+    head = document.start
+    until head is document.end
       head = head.next
       if head.type is 'blockStart' and
           @isParenWrapped head.container
         head.container.currentlyParenWrapped = true
-    return segment
+    return document
 
   # ## addBlock ##
   # addBlock takes {
@@ -133,7 +134,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket opts.precedence,
+    socket = new model.Socket @empty, opts.precedence,
       false,
       opts.classes,
       opts.dropdown
@@ -150,7 +151,7 @@ exports.Parser = class Parser
   #   prefix: String
   # }
   addIndent: (opts) ->
-    indent = new model.Indent opts.prefix, opts.classes
+    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes
 
     @addMarkup indent, opts.bounds, opts.depth
 
@@ -220,16 +221,17 @@ exports.Parser = class Parser
   # text inside
   constructHandwrittenBlock: (text) ->
     block = new model.Block 0, 'blank', helper.ANY_DROP, false
-    socket = new model.Socket 0, true
+    socket = new model.Socket @empty, 0, true
     textToken = new model.TextToken text
 
-    block.start.append socket.start
-    socket.start.append textToken
-    textToken.append socket.end
-    socket.end.append block.end
+    helper.connect block.start, socket.start
+    helper.connect socket.start, textToken
+    helper.connect textToken, socket.end
+    helper.connect socket.end, block.end
 
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
+      block.classes = ['__comment__', 'block-only']
 
     return block
 
@@ -249,11 +251,11 @@ exports.Parser = class Parser
 
     indentDepth = 0
     stack = []
-    document = new model.Segment(); head = document.start
+    document = new model.Document(); head = document.start
 
     for line, i in lines
       # If there is no markup on this line,
-      # simply append the text of this line to the document
+      # helper.connect simply, the text of this line to the document
       # (stripping things as needed for indent)
       if not (i of markupOnLines)
         # If this line is not properly indented,
@@ -271,20 +273,20 @@ exports.Parser = class Parser
           if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
             block = @constructHandwrittenBlock line
 
-            head.append block.start
+            helper.connect head, block.start
             head = block.end
 
           else
-            head = head.append new model.TextToken line
+            head = helper.connect head, new model.TextToken line
 
-        else if stack[stack.length - 1]?.type in ['indent', 'segment', undefined] and
+        else if stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
 
-          head = head.append block.start
-          head = head.append block.end
+          head = helper.connect head, block.start
+          head = helper.connect head, block.end
 
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
 
       # If there is markup on this line, insert it.
       else
@@ -302,11 +304,11 @@ exports.Parser = class Parser
             if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
               block = @constructHandwrittenBlock line[lastIndex...mark.location.column]
 
-              head.append block.start
+              helper.connect head, block.start
               head = block.end
 
             else
-              head = head.append new model.TextToken(line[lastIndex...mark.location.column])
+              head = helper.connect head, new model.TextToken(line[lastIndex...mark.location.column])
 
           # Note, if we have inserted something,
           # the new indent depth and the new stack.
@@ -341,31 +343,31 @@ exports.Parser = class Parser
             stack.pop()
 
           # Append the token
-          head = head.append mark.token
+          head = helper.connect head, mark.token
 
           lastIndex = mark.location.column
 
         # Append the rest of the string
         # (after the last piece of markup)
         unless lastIndex >= line.length
-          head = head.append new model.TextToken(line[lastIndex...line.length])
+          head = helper.connect head, new model.TextToken(line[lastIndex...line.length])
 
         # Append the needed newline token
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
 
     # Pop off the last newline token, which is not necessary
     head = head.prev
     head.next.remove()
 
     # Reinsert the end token of the document,
-    # which we previously threw away by using "append"
-    head = head.append document.end
+    # which we previously threw away by using "connect"
+    head = helper.connect head, document.end
 
     # Return the document
     return document
 
 exports.parseXML = (xml) ->
-  root = new model.Segment(); head = root.start
+  root = new model.Document(); head = root.start
   stack = []
   parser = sax.parser true
 
@@ -373,10 +375,13 @@ exports.parseXML = (xml) ->
     tokens = text.split '\n'
     for token, i in tokens
       unless token.length is 0
-        head = head.append new model.TextToken token
+        head = helper.connect head, new model.TextToken token
       unless i is tokens.length - 1
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
 
+  # TODO Improve serialization format
+  # for test updates. Currently no longer unity
+  # because @empty is not preserved.
   parser.onopentag = (node) ->
     attributes = node.attributes
     switch node.name
@@ -384,16 +389,16 @@ exports.parseXML = (xml) ->
         container = new model.Block attributes.precedence, attributes.color,
           attributes.socketLevel, attributes.classes?.split?(' ')
       when 'socket'
-        container = new model.Socket attributes.precedence, attributes.handritten,
+        container = new model.Socket '', attributes.precedence, attributes.handritten,
           attributes.classes?.split?(' ')
       when 'indent'
-        container = new model.Indent attributes.prefix, attributes.classe?.split?(' ')
-      when 'segment'
-        # Root segment is optional
+        container = new model.Indent '', attributes.prefix, attributes.classes?.split?(' ')
+      when 'document'
+        # Root is optional
         unless stack.length is 0
-          container = new model.Segment()
+          container = new model.Document()
       when 'br'
-        head = head.append new model.NewlineToken()
+        head = helper.connect head, new model.NewlineToken()
         return null
 
     if container?
@@ -402,11 +407,11 @@ exports.parseXML = (xml) ->
         container: container
       }
 
-      head = head.append container.start
+      head = helper.connect head, container.start
 
   parser.onclosetag = (nodeName) ->
     if stack.length > 0 and nodeName is stack[stack.length - 1].node.name
-      head = head.append stack[stack.length - 1].container.end
+      head = helper.connect head, stack[stack.length - 1].container.end
       stack.pop()
 
   parser.onerror = (e) ->
@@ -414,7 +419,8 @@ exports.parseXML = (xml) ->
 
   parser.write(xml).close()
 
-  head = head.append root.end
+  head = helper.connect head, root.end
+  root.correctParentTree()
 
   return root
 
@@ -430,16 +436,16 @@ hasSomeTextAfter = (lines, i) ->
 # with the markup inserted into the text.
 #
 # Automatically insert sockets around blocks along the way.
-stripFlaggedBlocks = (segment) ->
-  head = segment.start
-  until head is segment.end
+stripFlaggedBlocks = (document) ->
+  head = document.start
+  until head is document.end
     if (head instanceof model.StartToken and
         head.container.flagToRemove)
 
       container = head.container
       head = container.end.next
 
-      container.spliceOut()
+      document.remove container
     else if (head instanceof model.StartToken and
         head.container.flagToStrip)
       head.container.parent?.color = 'error'
@@ -466,7 +472,7 @@ Parser.parens = (leading, trailing, node, context) ->
     trailing trailing() + ')'
 
 Parser.drop = (block, context, pred, next) ->
-  if block.type is 'segment' and context.type is 'socket'
+  if block.type is 'document' and context.type is 'socket'
     return helper.FORBID
   else
     return helper.ENCOURAGE
@@ -480,9 +486,16 @@ exports.wrapParser = (CustomParser) ->
       @empty = CustomParser.empty
       @emptyIndent = CustomParser.emptyIndent
 
-    createParser: (text) -> new CustomParser text, @opts
+    # TODO kind of hacky assignation of @empty,
+    # maybe change the api?
+    createParser: (text) ->
+      parser = new CustomParser text, @opts
+      parser.empty = @empty
+      parser.emptyIndent = @emptyIndent
+      return parser
 
     parse: (text, opts) ->
+      @opts.parseOptions = opts
       opts ?= wrapAtRoot: true
       return @createParser(text)._parse opts
 

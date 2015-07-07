@@ -21,6 +21,7 @@
     "grunt-mocha-spawn": "latest",
     "grunt-mocha-test": "^0.12.7",
     "mocha": "^2.2.5",
+    "seedrandom": "^2.4.0",
     "tiny-lr": "^0.1.5",
     "watchify": "^3.2.2"
   },
@@ -54,6 +55,7 @@
   "dependencies": {
     "acorn": "^1.2.2",
     "sax": "^1.1.1",
-    "antlr4": "latest"
+    "antlr4": "latest",
+    "parse5": "latest"
   }
 }
