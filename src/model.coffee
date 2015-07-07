@@ -85,6 +85,7 @@ class Operation
     list: @list.stringify()
     start: @start.toString()
     end: @end.toString()
+    type: @type
   })
 
 class ReplaceOperation
@@ -93,6 +94,16 @@ class ReplaceOperation
         @afterStart, @after, @afterEnd
       ) ->
     @type = 'replace'
+
+  toString: -> JSON.stringify({
+    beforeStart: @beforeStart.toString()
+    before: @before.stringify()
+    beforeEnd: @beforeEnd.toString()
+    afterStart: @afterStart.toString()
+    after: @after.stringify()
+    afterEnd: @afterEnd.toString()
+    type: @type
+  })
 
 exports.List = class List
   constructor: (@start, @end) ->
@@ -870,6 +881,8 @@ exports.Location = class Location
     unless other instanceof Location
       other = other.getLocation()
     return other.count is @count and other.type is @type
+
+  clone: -> new Location @count, @type
 
 exports.TextLocation = class TextLocation
   constructor: (

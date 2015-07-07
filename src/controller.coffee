@@ -784,7 +784,7 @@ Editor::undo = ->
   currentValue = @getSerializedEditorState()
 
   until @undoStack.length is 0 or
-      (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
+      (@undoStack[@undoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popUndo()
     if operation instanceof FloatingOperation
@@ -792,7 +792,10 @@ Editor::undo = ->
     else
       @getDocument(operation.document).perform(
         operation.operation, 'backward', @getPreserves(operation.document)
-      ) unless operation is 'CAPTURE'
+      ) unless operation instanceof CapturePoint
+
+  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
+    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popUndo()
   @correctCursor()
@@ -817,7 +820,7 @@ Editor::redo = ->
   currentValue = @getSerializedEditorState()
 
   until @redoStack.length is 0 or
-      (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
+      (@redoStack[@redoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popRedo()
     if operation instanceof FloatingOperation
@@ -825,14 +828,21 @@ Editor::redo = ->
     else
       @getDocument(operation.document).perform(
         operation.operation, 'forward', @getPreserves(operation.document)
-      ) unless operation is 'CAPTURE'
+      ) unless operation instanceof CapturePoint
+
+  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
+    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popRedo()
   @redrawMain()
   return
 
 Editor::undoCapture = ->
-  @pushUndo 'CAPTURE'
+  @pushUndo new CapturePoint(@rememberedSockets)
+
+class CapturePoint
+  constructor: (rememberedSockets) ->
+    @rememberedSockets = rememberedSockets.map (x) -> x.clone()
 
 # BASIC BLOCK MOVE SUPPORT
 # ================================
@@ -907,10 +917,10 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
-    @rememberedSockets.push {
-      socket: @toCrossDocumentLocation(container)
-      text: container.textContent()
-    }
+    @rememberedSockets.push new RememberedSocketRecord(
+      @toCrossDocumentLocation(container),
+      container.textContent()
+    )
     @spliceOut new model.List container.start.next, container.end.prev
 
   dropletDocument = location.getDocument()
@@ -923,6 +933,15 @@ Editor::spliceIn = (node, location) ->
     return operation
   else
     return null
+
+class RememberedSocketRecord
+  constructor: (@socket, @text) ->
+
+  clone: ->
+    new RememberedSocketRecord(
+      @socket.clone(),
+      @text
+    )
 
 Editor::replace = (before, after, updates) ->
   dropletDocument = before.start.getDocument()
@@ -1470,13 +1489,13 @@ hook 'mouseup', 1, (point, event, state) ->
       newIndex = futureCursorLocation.document
 
       for el, i in rememberedSocketOffsets
-        @rememberedSockets.push {
-          socket: new CrossDocumentLocation(
+        @rememberedSockets.push new RememberedSocketRecord(
+          new CrossDocumentLocation(
             newIndex
             new model.Location(el.offset + newBeginning, 'socket')
           ),
-          text: el.text
-        }
+          el.text
+        )
 
       # Fire the event for sound
       @fireEvent 'block-click'
@@ -1562,13 +1581,13 @@ hook 'mouseup', 0, (point, event, state) ->
     @setCursor @draggingBlock.start
 
     for el, i in rememberedSocketOffsets
-      @rememberedSockets.push {
-        socket: new CrossDocumentLocation(
+      @rememberedSockets.push new RememberedSocketRecord(
+        new CrossDocumentLocation(
           @floatingBlocks.length - 1,
           new model.Location(el.offset, 'socket')
-        )
-        text: el.text
-      }
+        ),
+        el.text
+      )
 
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
@@ -1599,6 +1618,13 @@ Editor::performFloatingOperation = (op, direction) ->
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
     @block = @block.clone()
+
+  toString: -> JSON.stringify({
+    index: @index
+    block: @block.stringify()
+    position: @position.toString()
+    type: @type
+  })
 
 # PALETTE SUPPORT
 # ================================
@@ -2542,6 +2568,12 @@ class CrossDocumentLocation
   constructor: (@document, @location) ->
 
   is: (other) -> @location.is(other.location) and @document is other.document
+
+  clone: ->
+    new CrossDocumentLocation(
+      @document,
+      @location.clone()
+    )
 
 Editor::validCursorPosition = (destination) ->
   return destination.type in ['documentStart', 'indentStart'] or
