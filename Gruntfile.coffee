@@ -48,7 +48,11 @@ module.exports = (grunt) ->
 
     qunit:
       options:
-        timeout: 30000
+        timeout: 60000
+        page:
+          viewportSize:
+            width: 1000
+            height: 1000
       all:
         urls:
           (for x in grunt.file.expand('test/*.html')
