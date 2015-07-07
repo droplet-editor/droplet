@@ -1483,7 +1483,7 @@ hook 'mouseup', 1, (point, event, state) ->
 
 Editor::spliceRememberedSocketOffsets = (block) ->
   if block.getDocument()?
-    blockBegin = block.getLocation().count
+    blockBegin = block.start.getLocation().count
     offsets = []
     newRememberedSockets = []
     for el, i in @rememberedSockets
