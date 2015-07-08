@@ -43,8 +43,6 @@ createEditor = (options) ->
   # Initialize to starting text
   editor.setValue localStorage.getItem('text') ? ''
 
-  editor.clearUndoStack()
-
   editor.on 'change', ->
     localStorage.setItem 'text', editor.getValue()
 

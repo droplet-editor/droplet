@@ -58,6 +58,8 @@ cssParser.addListener("startmedia", (event) -> Stack.start event, 'media')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
 cssParser.addListener("error", (event) -> Stack.setValid false)
 
+console.log parserlib.css
+
 ObjectReturning = ["parseSelector", "parsePropertyValue", "parseMediaQuery"]
 
 # Though we are not parsnig style Attribute
@@ -77,9 +79,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   getClasses: (node) ->
     classes = [node.nodeType || "unknown"]
-    if node.nodeType is 'rule'
-      classes = classes.concat 'add-button', 'subtract-button'
-    #console.log node, classes
     return classes
 
   getColor: (node) -> COLORS[node.nodeType] ? COLORS['Default']
@@ -215,7 +214,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'rule'
         @cssBlock node, depth
         for selector in node.selectors
-          @cssSocket selector, depth + 1
+          @markSelector selector, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
       when 'media'
         @cssBlock node, depth
@@ -242,6 +241,14 @@ exports.CSSParser = class CSSParser extends parser.Parser
       classes: @getClasses node
     for child in node.children
       @mark indentDepth, child, depth + 1
+
+  markSelector: (selector, depth) ->
+    @cssSocket selector, depth
+    if selector.parts.length > 1
+      @cssBlock selector, depth + 1
+    for part in selector.parts
+      if part instanceof parserlib.css.SelectorPart
+        @cssSocket part, depth + 1
 
   isComment: (text) ->
     text.match(/^\s*\/\*.\*\/*$/)
