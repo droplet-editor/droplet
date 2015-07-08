@@ -91,6 +91,7 @@ exports.Editor = class Editor
     @paletteGroups = @options.palette
     @showPaletteInTextMode = @options.showPaletteInTextMode ? false
     @paletteEnabled = @options.enablePaletteAtStart ? true
+    @animationPace = @options.animationPace ? 1
 
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -277,6 +278,12 @@ exports.Editor = class Editor
       @options.mode = null
       @mode = null
     @setValue @getValue()
+
+  setAnimationPace: (pace) ->
+    @animationPace = pace
+
+  getAnimationPace: ->
+    @animationPace
 
   getMode: ->
     @options.mode
@@ -2672,6 +2679,10 @@ Editor::computePlaintextTranslationVectors = ->
 
 Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
   if @currentlyUsingBlocks and not @currentlyAnimating
+
+    fadeTime *= @animationPace
+    translateTime *= @animationPace
+
     @hideDropdown()
 
     @fireEvent 'statechange', [false]
@@ -2838,6 +2849,10 @@ Editor::aceFontSize = ->
 
 Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
   if not @currentlyUsingBlocks and not @currentlyAnimating
+
+    fadeTime *= @animationPace
+    translateTime *= @animationPace
+
     setValueResult = @copyAceEditor()
 
     unless setValueResult.success
@@ -3014,7 +3029,7 @@ Editor::enablePalette = (enabled) ->
 
     if not @paletteEnabled
       activeElement.style.transition =
-        @paletteWrapper.style.transition = "left 500ms"
+        @paletteWrapper.style.transition = "left #{@animationPace*500}ms"
 
       activeElement.style.left = '0px'
       @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
@@ -3031,7 +3046,7 @@ Editor::enablePalette = (enabled) ->
         @paletteWrapper.style.left = '-9999px'
 
         @currentlyAnimating = false
-      ), 500
+      ), @animationPace*500
 
     else
       @paletteWrapper.style.top = '0px'
@@ -3040,7 +3055,7 @@ Editor::enablePalette = (enabled) ->
 
       setTimeout (=>
         activeElement.style.transition =
-          @paletteWrapper.style.transition = "left 500ms"
+          @paletteWrapper.style.transition = "left #{@animationPace*500}ms"
 
         activeElement.style.left = "#{@paletteWrapper.offsetWidth}px"
         @paletteWrapper.style.left = '0px'
@@ -3052,7 +3067,7 @@ Editor::enablePalette = (enabled) ->
           @resize()
 
           @currentlyAnimating = false
-        ), 500
+        ), @animationPace*500
       ), 0
 
 
