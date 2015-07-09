@@ -188,3 +188,29 @@ asyncTest 'Attribute Sockets', ->
       helper.xmlPrettyPrint(expectedSerialization),
       'Attributes are socketed')
   return start()
+
+asyncTest 'Scoket empty attribute values', ->
+  htmlParser = new HTML()
+  window.customSerialization = customSerialization = htmlParser.parse(
+    '''
+    <body background = "">
+
+    </body>
+    ''').serialize()
+  expectedSerialization = '''<document><block
+      precedence="1"
+      color="return"
+      socketLevel="0"
+      classes="body">&amp;lt;body <socket
+      precedence="0"
+      handwritten="false"
+      classes="#attribute">background = ""</socket>&amp;gt;<indent
+      prefix="  "
+      classes="body">
+    </indent>
+    &amp;lt;/body&amp;gt;</block></document>'''
+  strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Empty Attribute values are part of sockets')
+  return start()
