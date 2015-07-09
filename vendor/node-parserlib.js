@@ -492,6 +492,16 @@ SyntaxUnit.prototype = {
      */
     toString: function(){
         return this.text;
+    },
+
+    /**
+     * Concatenates 2 SyntaxUnits
+     * @method concat
+     */
+    concat: function(other){
+        this.text += other.text;
+        this.endLine = other.endLine;
+        this.endCol = other.endCol;
     }
 
 };
@@ -2423,7 +2433,7 @@ Parser.prototype = function(){
                      */
                     if (ns){
                         tokenStream.unget();
-                        if (ns.length > 1){
+                        if (ns.toString().length > 1){
                             tokenStream.unget();
                         }
                     }
@@ -2487,21 +2497,26 @@ Parser.prototype = function(){
                  *   ;
                  */
                 var tokenStream = this._tokenStream,
-                    value       = "";
+                    value       = null;
 
                 //verify that this is a namespace prefix
                 if (tokenStream.LA(1) === Tokens.PIPE || tokenStream.LA(2) === Tokens.PIPE){
 
                     if(tokenStream.match([Tokens.IDENT, Tokens.STAR])){
-                        value += tokenStream.token().value;
+                        value = SyntaxUnit.fromToken(tokenStream.token());
                     }
 
                     tokenStream.mustMatch(Tokens.PIPE);
-                    value += "|";
+                    if (!value) {
+                        value = SyntaxUnit.fromToken(tokenStream.token());
+                    }
+                    else {
+                        value.concat(SyntaxUnit.fromToken(tokenStream.token()));
+                    }
 
                 }
 
-                return value.length ? value : null;
+                return value;
             },
 
             //CSS3 Selectors
@@ -2512,19 +2527,19 @@ Parser.prototype = function(){
                  *   ;
                  */
                 var tokenStream = this._tokenStream,
-                    value       = "",
+                    value       = null,
                     ns;
 
                 ns = this._namespace_prefix();
                 if(ns){
-                    value += ns;
+                    value = ns;
                 }
 
                 if(tokenStream.match(Tokens.STAR)){
-                    value += "*";
+                    value = SyntaxUnit.fromToken(tokenStream.token());
                 }
 
-                return value.length ? value : null;
+                return value;
 
            },
 
@@ -2545,6 +2560,8 @@ Parser.prototype = function(){
 
                 var tokenStream = this._tokenStream,
                     value       = null,
+                    attrib      = null,
+                    val         = null,
                     ns,
                     token;
 
@@ -2561,6 +2578,7 @@ Parser.prototype = function(){
 
                     tokenStream.mustMatch(Tokens.IDENT);
                     value += tokenStream.token().value;
+                    attrib = SyntaxUnit.fromToken(tokenStream.token());
                     value += this._readWhitespace();
 
                     if(tokenStream.match([Tokens.PREFIXMATCH, Tokens.SUFFIXMATCH, Tokens.SUBSTRINGMATCH,
@@ -2571,12 +2589,16 @@ Parser.prototype = function(){
 
                         tokenStream.mustMatch([Tokens.IDENT, Tokens.STRING]);
                         value += tokenStream.token().value;
+                        val = SyntaxUnit.fromToken(tokenStream.token());
                         value += this._readWhitespace();
                     }
 
                     tokenStream.mustMatch(Tokens.RBRACKET);
 
-                    return new SelectorSubPart(value + "]", "attribute", token.startLine, token.startCol, tokenStream.token().endLine, tokenStream.token().endCol);
+                    var ssb = new SelectorSubPart(value + "]", "attribute", token.startLine, token.startCol, tokenStream.token().endLine, tokenStream.token().endCol);
+                    ssb.attrib = attrib;
+                    ssb.val = val;
+                    return ssb;
                 } else {
                     return null;
                 }
@@ -2613,7 +2635,7 @@ Parser.prototype = function(){
                         line = tokenStream.LT(1).startLine;
                         col = tokenStream.LT(1).startCol - colons.length;
                         pseudo = this._functional_pseudo();
-                        lastToken = tokenStream.LT(-1);
+                        lastToken = tokenStream.token();
                     }
 
                     if (pseudo){
@@ -2747,6 +2769,8 @@ Parser.prototype = function(){
                 if (arg === null){
                     this._unexpectedToken(tokenStream.LT(1));
                 }
+
+                lastToken = tokenStream.token();
 
                 //it's an element name
                 if (arg.type == "elementName"){

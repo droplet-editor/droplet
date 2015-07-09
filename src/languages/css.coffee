@@ -242,13 +242,39 @@ exports.CSSParser = class CSSParser extends parser.Parser
     for child in node.children
       @mark indentDepth, child, depth + 1
 
+  markSelectorPart: (part, depth) ->
+    if part instanceof parserlib.css.SelectorPart
+      cnt = 0
+      if part.modifiers?.length > 0
+        for mod in part.modifiers
+          @cssSocket mod, depth + 2
+          @cssBlock mod, depth + 3
+          if mod.type in ['class', 'id', 'pseudo']
+            mod.startCol++
+            if mod.type is 'pseudo' and mod.text[1] is ':'
+              mod.startCol++
+            @cssSocket mod, depth + 4
+          else if mod.type is 'attribute'
+            @cssSocket mod.attrib, depth + 4
+            @cssSocket mod.val, depth + 4
+          else if mod.type is 'not'
+            for notPart in mod.args
+              @markSelectorPart notPart, depth + 4
+          cnt++
+      if part.elementName
+        @cssSocket part.elementName, depth + 2
+        cnt++
+      if cnt > 1
+        @cssSocket part, depth
+        @cssBlock part, depth + 1
+
   markSelector: (selector, depth) ->
-    @cssSocket selector, depth
     if selector.parts.length > 1
+      @cssSocket selector, depth
       @cssBlock selector, depth + 1
+      depth += 2
     for part in selector.parts
-      if part instanceof parserlib.css.SelectorPart
-        @cssSocket part, depth + 1
+      @markSelectorPart part, depth
 
   isComment: (text) ->
     text.match(/^\s*\/\*.\*\/*$/)
