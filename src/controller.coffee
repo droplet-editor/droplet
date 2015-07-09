@@ -497,9 +497,13 @@ Editor::redrawMain = (opts = {}) ->
         path.push new @view.draw.Point rectangle.x, rectangle.y
 
 
-        path.bevel = true
+        path.bevel = false# true
+        path.dotted = true# false
+        path.noclip = true#false
         path.style = {
-          fillColor: GRAY_BLOCK_COLOR
+          fillColor: '#FFF' #GRAY_BLOCK_COLOR
+          strokeColor: '#AAA'
+          lineWidth: 4
         }
 
         if opts.boundingRectangle?
@@ -508,20 +512,25 @@ Editor::redrawMain = (opts = {}) ->
           @mainCtx.restore()
           return @redrawMain opts
 
-      # TODO this will need to become configurable by the @mode
-      @mainCtx.globalAlpha *= 0.8
+
       record.grayBoxPath.draw @mainCtx
       @mainCtx.fillStyle = '#000'
       @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
         blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
       @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
-      @mainCtx.globalAlpha /= 0.8
 
+      @mainCtx.globalAlpha *= 0.7
       blockView.draw @mainCtx, rect, {
         grayscale: false
         selected: false
         noText: false
+        backgroundTint: {
+          color: '#FFF'
+          factor: 0.5
+        }
       }
+      @mainCtx.globalAlpha /= 0.7
+
     @mainCtx.globalAlpha /= FLOATING_BLOCK_ALPHA
 
     if opts.boundingRectangle?

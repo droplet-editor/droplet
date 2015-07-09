@@ -387,6 +387,8 @@ exports.Draw = class Draw
           ctx.stroke()
 
         else
+          if @dotted
+            ctx.setLineDash [8, 5]
           ctx.stroke()
 
         ctx.restore()
