@@ -270,6 +270,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       color: @getColor node
       classes: @getClasses node
       socketLevel: @getSocketLevel node
+      parseContext: node.nodeName
 
   htmlSocket: (node, depth, precedence, bounds, classes) ->
     @addSocket
@@ -304,11 +305,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         column = 0
     @positions[@text.length] = {'line': line, 'column': column}
 
-    parseContext = @opts.parseOptions?.parent?.classes?[0]
+    parseContext = @opts.parseOptions?.context
 
-    if parseContext and parseContext not in ['__document__', 'html', 'head', 'body']
-      context = htmlParser.parseFragment '<' + parseContext + '></' + parseContext + '>'
-      root = htmlParser.parseFragment @text, context.childNodes[0]
+    if parseContext and parseContext not in ['html', 'head', 'body']
+      root = htmlParser.parseFragment @text
       @cleanTree root
       @fixBounds root
     else

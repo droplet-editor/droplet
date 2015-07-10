@@ -1815,14 +1815,12 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   try
     newList = @mode.parse list.stringifyInPlace(),{
       wrapAtRoot: parent.type isnt 'socket'
-      parent: parent.getReader()
       context: context
     }
   catch e
     try
       newList = @mode.parse recovery(list.stringifyInPlace()), {
         wrapAtRoot: parent.type isnt 'socket'
-        parent: parent.getReader()
         context: context
       }
     catch e

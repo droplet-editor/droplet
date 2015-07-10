@@ -117,9 +117,7 @@ exports.Parser = class Parser
       opts.color,
       opts.socketLevel,
       opts.classes,
-      false
-
-    block.parseContext = opts.parseContext # TODO unhack
+      opts.parseContext
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -220,7 +218,7 @@ exports.Parser = class Parser
   # Construct a handwritten block with the given
   # text inside
   constructHandwrittenBlock: (text) ->
-    block = new model.Block 0, 'blank', helper.ANY_DROP, false
+    block = new model.Block 0, 'blank', helper.ANY_DROP
     socket = new model.Socket @empty, 0, true
     textToken = new model.TextToken text
 
