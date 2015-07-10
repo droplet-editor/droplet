@@ -87,6 +87,7 @@ exports.Draw = class Draw
 
       copy: (point) ->
         @x = point.x; @y = point.y
+        return @
 
       from: (point) -> new Point @x - point.x, @y - point.y
 
@@ -121,6 +122,7 @@ exports.Draw = class Draw
       copy: (rect) ->
         @x = rect.x; @y = rect.y
         @width = rect.width; @height = rect.height
+        return @
 
       clip: (ctx) ->
         ctx.rect @x, @y, @width, @height

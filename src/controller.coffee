@@ -4012,6 +4012,20 @@ Editor::viewportDimensions = ->
     height: @mainCanvas.height
   }
 
+# LINE LOCATION API
+# =================
+Editor::getLineMetrics = (row) ->
+  viewNode = @view.getViewNodeFor @tree
+  bounds = (new @view.draw.Rectangle()).copy(viewNode.bounds[row])
+  bounds.x += @mainCanvas.offsetLeft + @mainCanvas.offsetParent.offsetLeft
+  return {
+    bounds: bounds
+    distanceToBase: {
+      above: viewNode.distanceToBase[row].above
+      below: viewNode.distanceToBase[row].below
+    }
+  }
+
 # DEBUG CODE
 # ================================
 Editor::dumpNodeForDebug = (hitTestResult, line) ->
