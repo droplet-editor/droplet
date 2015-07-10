@@ -42,7 +42,8 @@ FLOATING_BLOCK_ALPHA = 1
 GRAY_BLOCK_MARGIN = 5
 GRAY_BLOCK_HANDLE_WIDTH = 15
 GRAY_BLOCK_HANDLE_HEIGHT = 30
-GRAY_BLOCK_COLOR = '#CCC'
+GRAY_BLOCK_COLOR = '#FFF'
+GRAY_BLOCK_BORDER = '#AAA'
 
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
@@ -497,9 +498,13 @@ Editor::redrawMain = (opts = {}) ->
         path.push new @view.draw.Point rectangle.x, rectangle.y
 
 
-        path.bevel = true
+        path.bevel = false
+        path.noclip = true
+        path.dotted = true
         path.style = {
           fillColor: GRAY_BLOCK_COLOR
+          strokeColor: GRAY_BLOCK_BORDER
+          lineWidth: 4
         }
 
         if opts.boundingRectangle?

@@ -200,6 +200,8 @@ exports.Draw = class Draw
         @_cacheFlag = false
         @_bounds = new NoRectangle()
 
+        @bevel = @noclip = @dotted = false
+
         @style = {
           'strokeColor': '#000'
           'lineWidth': 1
@@ -387,6 +389,9 @@ exports.Draw = class Draw
           ctx.stroke()
 
         else
+          if @dotted
+            console.log 'setting line dash'
+            ctx.setLineDash [8, 5]
           ctx.stroke()
 
         ctx.restore()
