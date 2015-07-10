@@ -5,7 +5,6 @@ draw = require '../../src/draw.coffee'
 droplet = require '../../dist/droplet-full.js'
 seedrandom = require 'seedrandom'
 
-console.log window.innerWidth, window.innerHeight
 `
 // Mouse event simluation function
 function simulate(type, target, options) {
