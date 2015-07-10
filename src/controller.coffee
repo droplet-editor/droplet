@@ -4014,8 +4014,15 @@ Editor::viewportDimensions = ->
 
 # LINE LOCATION API
 # =================
-Editor::getLineBoundingBox = (row) ->
-  return new @view.draw.Rectangle().copy(@view.getViewNodeFor(@tree).bounds[row])
+Editor::getLineMetrics = (row) ->
+  viewNode = @view.getViewNodeFor @tree
+  return {
+    bounds: (new @view.draw.Rectangle()).copy(viewNode.bounds[row])
+    distanceToBase: {
+      above: viewNode.distanceToBase[row].above
+      below: viewNode.distanceToBase[row].below
+    }
+  }
 
 # DEBUG CODE
 # ================================
