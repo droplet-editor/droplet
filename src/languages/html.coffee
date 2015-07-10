@@ -304,8 +304,11 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         column = 0
     @positions[@text.length] = {'line': line, 'column': column}
 
-    if @opts.parseOptions?.wrapAtRoot is false
-      root = htmlParser.parseFragment @text
+    parseContext = @opts.parseOptions?.parent?.classes?[0]
+
+    if parseContext and parseContext not in ['__document__', 'html', 'head', 'body']
+      context = htmlParser.parseFragment '<' + parseContext + '></' + parseContext + '>'
+      root = htmlParser.parseFragment @text, context.childNodes[0]
       @cleanTree root
       @fixBounds root
     else
