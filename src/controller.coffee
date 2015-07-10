@@ -794,6 +794,8 @@ Editor::undo = ->
         operation.operation, 'backward', @getPreserves(operation.document)
       ) unless operation instanceof CapturePoint
 
+  # Set the the remembered socket contents to the state it was in
+  # at this point in the undo stack.
   if @undoStack[@undoStack.length - 1] instanceof CapturePoint
     @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
@@ -830,6 +832,8 @@ Editor::redo = ->
         operation.operation, 'forward', @getPreserves(operation.document)
       ) unless operation instanceof CapturePoint
 
+  # Set the the remembered socket contents to the state it was in
+  # at this point in the undo stack.
   if @undoStack[@undoStack.length - 1] instanceof CapturePoint
     @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
@@ -837,6 +841,11 @@ Editor::redo = ->
   @redrawMain()
   return
 
+# ## undoCapture and CapturePoint ##
+# A CapturePoint is a flag indicating that the undo stack
+# should stop when the user presses Ctrl+Z or Ctrl+Y. Each CapturePoint
+# also remembers the @rememberedSocket state at the time it was placed,
+# to preserved remembered socket contents across undo and redo.
 Editor::undoCapture = ->
   @pushUndo new CapturePoint(@rememberedSockets)
 
@@ -880,6 +889,9 @@ Editor::spliceOut = (node) ->
     operation = node.getDocument().remove node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
 
+    # If we are removing a block from a socket, and the socket is in our
+    # dictionary of remembered socket contents, repopulate the socket with
+    # its old contents.
     if parent?.type is 'socket' and node.start.type is 'blockStart'
       for socket, i in @rememberedSockets
         if @fromCrossDocumentLocation(socket.socket) is parent
@@ -917,6 +929,10 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
+    # If we're splicing into a socket and it already has
+    # something in it, remove it. Additionally, remember the old
+    # contents in @rememberedSockets for later repopulation if they take
+    # the block back out.
     @rememberedSockets.push new RememberedSocketRecord(
       @toCrossDocumentLocation(container),
       container.textContent()
