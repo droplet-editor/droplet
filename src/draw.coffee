@@ -211,8 +211,13 @@ exports.Draw = class Draw
       _clearCache: ->
         @_cacheFlag = true
         if @_cacheFlag
+          # If we have no points, return the empty rectangle
+          # as our bounding box
           if @_points.length is 0
             @_bounds = new NoRectangle()
+
+          # Otherwise, find our bounding box based
+          # on our points.
           else
             minX = minY = Infinity
             maxX = maxY = 0
