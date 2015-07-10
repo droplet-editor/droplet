@@ -4016,8 +4016,10 @@ Editor::viewportDimensions = ->
 # =================
 Editor::getLineMetrics = (row) ->
   viewNode = @view.getViewNodeFor @tree
+  bounds = (new @view.draw.Rectangle()).copy(viewNode.bounds[row])
+  bounds.x += @mainCanvas.offsetLeft + @mainCanvas.offsetParent.offsetLeft
   return {
-    bounds: (new @view.draw.Rectangle()).copy(viewNode.bounds[row])
+    bounds: bounds
     distanceToBase: {
       above: viewNode.distanceToBase[row].above
       below: viewNode.distanceToBase[row].below
