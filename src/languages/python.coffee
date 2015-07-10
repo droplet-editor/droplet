@@ -84,4 +84,4 @@ config = {
   INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD,
 }
 
-model.exports = parser.wrapParser treewalk.createTreewalkParser parse, config
+module.exports = parser.wrapParser treewalk.createTreewalkParser parse, config

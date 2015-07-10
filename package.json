@@ -1,6 +1,6 @@
 {
   "name": "droplet-editor",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "devDependencies": {
     "browserify": "^10.2.4",
     "browserify-shim": "^3.8.8",
@@ -55,6 +55,7 @@
   "dependencies": {
     "acorn": "^1.2.2",
     "sax": "^1.1.1",
-    "antlr4": "latest"
+    "antlr4": "latest",
+    "parse5": "latest"
   }
 }

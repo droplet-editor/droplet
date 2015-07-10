@@ -497,6 +497,7 @@ exports.wrapParser = (CustomParser) ->
       return parser
 
     parse: (text, opts) ->
+      @opts.parseOptions = opts
       opts ?= wrapAtRoot: true
       return @createParser(text)._parse opts
 
