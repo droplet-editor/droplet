@@ -42,7 +42,8 @@ FLOATING_BLOCK_ALPHA = 1
 GRAY_BLOCK_MARGIN = 5
 GRAY_BLOCK_HANDLE_WIDTH = 15
 GRAY_BLOCK_HANDLE_HEIGHT = 30
-GRAY_BLOCK_COLOR = '#CCC'
+GRAY_BLOCK_COLOR = '#FFF'
+GRAY_BLOCK_BORDER = '#AAA'
 
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
@@ -410,6 +411,83 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
+Editor::drawFloatingBlock = (record, startWidth, endWidth) ->
+  blockView = @view.getViewNodeFor record.block
+  blockView.layout record.position.x, record.position.y
+
+  rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
+  rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
+  rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
+
+  bottomTextPosition = blockView.totalBounds.bottom() - blockView.distanceToBase[blockView.lineLength - 1].below - @fontSize
+
+  if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < endWidth
+    if blockView.lineLength > 1
+      rectangle.height += @fontSize
+      bottomTextPosition = rectangle.bottom() - @fontSize - 5
+    else
+      rectangle.width += endWidth
+
+  unless rectangle.equals(record.grayBox)
+    record.grayBox = rectangle
+
+    oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
+
+    startHeight = blockView.bounds[0].height + 10
+
+    # Make the path surrounding the gray box (with rounded corners)
+    record.grayBoxPath = path = new @view.draw.Path()
+    path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
+    path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
+    path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
+    path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
+
+    if blockView.lineLength > 1
+      path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
+      path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
+    else
+      path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+
+    # Handle
+    path.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
+    path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
+    path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
+    path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
+    path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
+
+    path.push new @view.draw.Point rectangle.x, rectangle.y
+
+
+    path.bevel = false
+    path.noclip = true
+    path.dotted = true
+    path.style = {
+      fillColor: GRAY_BLOCK_COLOR
+      strokeColor: GRAY_BLOCK_BORDER
+      lineWidth: 4
+    }
+
+    if opts.boundingRectangle?
+      opts.boundingRectangle.unite path.bounds()
+      opts.boundingRectangle.unite(oldBounds)
+      @mainCtx.restore()
+      return @redrawMain opts
+
+  # TODO this will need to become configurable by the @mode
+  @mainCtx.globalAlpha *= 0.8
+  record.grayBoxPath.draw @mainCtx
+  @mainCtx.fillStyle = '#000'
+  @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
+    blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
+  @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
+  @mainCtx.globalAlpha /= 0.8
+
+  blockView.draw @mainCtx, rect, {
+    grayscale: false
+    selected: false
+    noText: false
+  }
+
 Editor::redrawMain = (opts = {}) ->
   unless @currentlyAnimating_suprressRedraw
 
@@ -445,84 +523,10 @@ Editor::redrawMain = (opts = {}) ->
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
     @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
 
-    @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
-
     # Draw floating blocks
     startWidth = @mainCtx.measureText(@mode.startComment).width
     endWidth = @mainCtx.measureText(@mode.endComment).width
-    for record in @floatingBlocks
-      blockView = @view.getViewNodeFor record.block
-      blockView.layout record.position.x, record.position.y
-
-      rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
-      rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
-      rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
-
-      bottomTextPosition = blockView.totalBounds.bottom() - blockView.distanceToBase[blockView.lineLength - 1].below - @fontSize
-
-      if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < endWidth
-        if blockView.lineLength > 1
-          rectangle.height += @fontSize
-          bottomTextPosition = rectangle.bottom() - @fontSize - 5
-        else
-          rectangle.width += endWidth
-
-      unless rectangle.equals(record.grayBox)
-        record.grayBox = rectangle
-
-        oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
-
-        startHeight = blockView.bounds[0].height + 10
-
-        # Make the path surrounding the gray box (with rounded corners)
-        record.grayBoxPath = path = new @view.draw.Path()
-        path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
-        path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
-        path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
-        path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
-
-        if blockView.lineLength > 1
-          path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
-          path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
-        else
-          path.push new @view.draw.Point rectangle.x, rectangle.bottom()
-
-        # Handle
-        path.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
-        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
-        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
-
-        path.push new @view.draw.Point rectangle.x, rectangle.y
-
-
-        path.bevel = true
-        path.style = {
-          fillColor: GRAY_BLOCK_COLOR
-        }
-
-        if opts.boundingRectangle?
-          opts.boundingRectangle.unite path.bounds()
-          opts.boundingRectangle.unite(oldBounds)
-          @mainCtx.restore()
-          return @redrawMain opts
-
-      # TODO this will need to become configurable by the @mode
-      @mainCtx.globalAlpha *= 0.8
-      record.grayBoxPath.draw @mainCtx
-      @mainCtx.fillStyle = '#000'
-      @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
-        blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
-      @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
-      @mainCtx.globalAlpha /= 0.8
-
-      blockView.draw @mainCtx, rect, {
-        grayscale: false
-        selected: false
-        noText: false
-      }
-    @mainCtx.globalAlpha /= FLOATING_BLOCK_ALPHA
+    @drawFloatingBlock(record, startWidth, endWidth) for record in @floatingBlocks
 
     if opts.boundingRectangle?
       @mainCtx.restore()

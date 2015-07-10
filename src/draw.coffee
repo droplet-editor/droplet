@@ -200,6 +200,8 @@ exports.Draw = class Draw
         @_cacheFlag = false
         @_bounds = new NoRectangle()
 
+        @bevel = @noclip = @dotted = false
+
         @style = {
           'strokeColor': '#000'
           'lineWidth': 1
@@ -209,8 +211,13 @@ exports.Draw = class Draw
       _clearCache: ->
         @_cacheFlag = true
         if @_cacheFlag
+          # If we have no points, return the empty rectangle
+          # as our bounding box
           if @_points.length is 0
             @_bounds = new NoRectangle()
+
+          # Otherwise, find our bounding box based
+          # on our points.
           else
             minX = minY = Infinity
             maxX = maxY = 0
@@ -387,6 +394,9 @@ exports.Draw = class Draw
           ctx.stroke()
 
         else
+          if @dotted
+            console.log 'setting line dash'
+            ctx.setLineDash [8, 5]
           ctx.stroke()
 
         ctx.restore()
