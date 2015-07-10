@@ -1644,6 +1644,9 @@ exports.View = class View
       oldFill = @path.style.fillColor
       oldStroke = @path.style.strokeColor
 
+      if style.backgroundTint? and @path.style.fillColor?
+        @path.style.fillColor = avgColor @path.style.fillColor, (1 - style.backgroundTint.factor), style.backgroundTint.color
+
       if style.grayscale
         @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
