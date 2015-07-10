@@ -578,6 +578,7 @@ asyncTest 'Controller: remembered sockets', ->
           fd 10
           bk 10\n
       ''')
+      start()
     )
   ]
 

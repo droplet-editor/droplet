@@ -842,7 +842,7 @@ Editor::redo = ->
   return
 
 # ## undoCapture and CapturePoint ##
-# A CapturePoint is a flag indicating that the undo stack
+# A CapturePoint is a sentinel indicating that the undo stack
 # should stop when the user presses Ctrl+Z or Ctrl+Y. Each CapturePoint
 # also remembers the @rememberedSocket state at the time it was placed,
 # to preserved remembered socket contents across undo and redo.
@@ -857,6 +857,16 @@ class CapturePoint
 # ================================
 
 hook 'populate', 7, ->
+  # ## rememberedSockets ##
+  # This is an array with pair elements mapping locations of sockets
+  # to old text values, for when users drop a block into a socket and then pull
+  # it back out again. All the mutation operations (spliceIn, spliceOut, replace)
+  # update these locations to attempt to make sure the locations point to the same sockets,
+  # and the Controller will also attempt to bring the locations with a dragged block
+  # if they are inside it.
+  #
+  # A snapshot of this array is taken every CapturePoint in the undo stack and restored
+  # when the undo stack reaches this point, to persist this effect across undo and redo.
   @rememberedSockets = []
 
 Editor::getPreserves = (dropletDocument) ->
