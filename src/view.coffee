@@ -31,8 +31,8 @@ DROP_TRIANGLE_COLOR = '#555'
 DEFAULT_OPTIONS =
   showDropdowns: true
   padding: 5
-  indentWidth: 10
-  indentTongueHeight: 10
+  indentWidth: 20
+  indentTongueHeight: 20
   tabOffset: 10
   tabWidth: 15
   tabHeight: 5

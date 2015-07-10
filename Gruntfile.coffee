@@ -69,7 +69,7 @@ module.exports = (grunt) ->
     browserify:
       build:
         files:
-          'dist/droplet-full.js': ['./src/main.coffee']
+          'example/example-svg.js': ['./src/example-svg.coffee']
         options:
           transform: ['coffeeify']
           browserifyOptions:
@@ -83,6 +83,8 @@ module.exports = (grunt) ->
            * Date: <%=grunt.template.today('yyyy-mm-dd')%>
            */
           '''
+          watch: true
+          keepAlive: true
       test:
         files:
           'test/js/tests.js': ['test/src/tests.coffee']
@@ -168,49 +170,5 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mochaTest'
 
-  grunt.task.registerTask 'watchify', ->
-    # Prevent the task from terminating
-    @async()
 
-    b = browserify {
-      cache: {}
-      packageCache: {}
-      noParse: NO_PARSE
-      delay: 100
-      standalone: 'droplet'
-    }
-
-    b.require './src/main.coffee'
-    b.transform coffeeify
-
-    w = watchify(b)
-
-    # Compile once through first
-    stream = fs.createWriteStream 'dist/droplet-full.js'
-    w.bundle().pipe stream
-
-    stream.once 'close', ->
-      console.log 'Initial bundle complete.'
-
-      lrserver = livereload()
-
-      lrserver.listen 35729, ->
-        console.log 'Livereload server listening on 35729'
-
-      w.on 'update', ->
-        console.log 'File changed...'
-        stream = fs.createWriteStream 'dist/droplet-full.js'
-        try
-          w.bundle().pipe stream
-          stream.once 'close', ->
-            console.log 'Rebuilt.'
-            lrserver.changed {
-              body: {
-                files: ['dist/droplet-full.js']
-              }
-            }
-        catch e
-          console.log 'BUILD FAILED.'
-          console.log e.stack
-
-  grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
+  grunt.registerTask 'testserver', ['connect:testserver', 'browserify:build']

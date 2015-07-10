@@ -4,6 +4,7 @@
 # Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in Droplet.
 
 ## Private (convenience) functions
+SVG_STANDARD = 'http://www.w3.org/2000/svg'
 
 helper = require './helper.coffee'
 
@@ -55,10 +56,12 @@ avgColor = (a, factor, b) ->
 
   return memoizedAvgColor[c] = toHex newRGB
 
+getGuid = -> 'draw-guid-' + Math.random().toString() # For
+
 exports.Draw = class Draw
   ## Public functions
   constructor: ->
-    @ctx = null #Hacky, hacky, hacky
+    @ctx = document.createElement('canvas')
     @fontSize = 15
     @fontFamily = 'Courier New, monospace'
     @fontAscent = 2
@@ -297,105 +300,42 @@ exports.Draw = class Draw
         @_cachedTranslation.translate vector
         @_cacheFlag = true
 
-      clip: (ctx) ->
-        @_clearCache()
-
-        if @_points.length is 0 then return
-
-        ctx.beginPath()
-        ctx.moveTo @_points[0].x, @_points[0].y
-        for point in @_points
-          ctx.lineTo point.x, point.y
-        ctx.lineTo @_points[0].x, @_points[0].y
-
-        # Wrap around again so that the origin
-        # has a normal corner
-        if @_points.length > 1
-          ctx.lineTo @_points[1].x, @_points[1].y
-
-        ctx.clip()
-
       draw: (ctx) ->
         @_clearCache()
 
         if @_points.length is 0 then return
 
-        ctx.strokeStyle = @style.strokeColor
-        ctx.lineWidth = @style.lineWidth
+        pathElement = document.createElementNS SVG_STANDARD, 'path'
 
-        if @style.fillColor? then ctx.fillStyle = @style.fillColor
+        if @style.fillColor?
+          pathElement.setAttribute 'fill', @style.fillColor
 
-        ctx.beginPath()
-        ctx.moveTo @_points[0].x, @_points[0].y
+        pathCommands = []
+
+        pathCommands.push "M#{@_points[0].x} #{@_points[0].y}"
         for point in @_points
-          ctx.lineTo point.x, point.y
-        ctx.lineTo @_points[0].x, @_points[0].y
+          pathCommands.push "L#{point.x} #{point.y}"
+        pathCommands.push "M#{@_points[0].x} #{@_points[0].y}"
+        pathCommands.push "Z"
 
-        # Wrap around again so that the origin
-        # has a normal corner
-        if @_points.length > 1
-          ctx.lineTo @_points[1].x, @_points[1].y
+        pathElement.setAttribute 'd', pathCommands.join ' '
 
-        # Fill and stroke
-        if @style.fillColor? then ctx.fill()
+        ctx.appendChild pathElement
 
-        ctx.save()
-        unless @noclip
-          ctx.clip()
         if @bevel
-          # Dark bevels
-          ctx.beginPath()
-          ctx.moveTo @_points[0].x, @_points[0].y
-          for point, i in @_points[1..]
-            if (point.x < @_points[i].x and point.y >= @_points[i].y) or
-               (point.y > @_points[i].y and point.x <= @_points[i].x)
-              ctx.lineTo point.x, point.y
-            else unless point.equals(@_points[i])
-              ctx.moveTo point.x, point.y
-
-          unless @_points[0].x > @_points[@_points.length - 1].x or
-              @_points[0].y < @_points[@_points.length - 1].y
-            ctx.lineTo @_points[0].x, @_points[0].y
-
-          ctx.lineWidth = 4
-          ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#000'
-          ctx.stroke()
-
-          ctx.lineWidth = 2
-          ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#000'
-          ctx.stroke()
-
-          # Light bevels
-          ctx.beginPath()
-          ctx.moveTo @_points[0].x, @_points[0].y
-          for point, i in @_points[1..]
-            if (point.x > @_points[i].x and point.y <= @_points[i].y) or
-               (point.y < @_points[i].y and point.x >= @_points[i].x)
-              ctx.lineTo point.x, point.y
-            else unless point.equals(@_points[i])
-              ctx.moveTo point.x, point.y
-          if @_points[0].x > @_points[@_points.length - 1].x or
-              @_points[0].y < @_points[@_points.length - 1].y
-            ctx.lineTo @_points[0].x, @_points[0].y
-
-          ctx.lineWidth = 4
-          ctx.strokeStyle = avgColor @style.fillColor, 0.85, '#FFF'
-          ctx.stroke()
-
-          ctx.lineWidth = 2
-          ctx.strokeStyle = avgColor @style.fillColor, 0.7, '#FFF'
-          ctx.stroke()
+          pathElement.setAttribute 'filter', 'url(#droplet-path-bevel)'
 
         else
-          ctx.stroke()
-
-        ctx.restore()
+          pathElement.setAttribute 'stroke', @style.strokeColor
+          pathElement.setAttribute 'stroke-width', @style.lineWidth
 
       clone: ->
         clone = new Path()
         clone.push el for el in @_points
         return clone
 
+      ###
+      # TODO
       drawShadow: (ctx, offsetX, offsetY, blur) ->
         @_clearCache()
 
@@ -426,6 +366,7 @@ exports.Draw = class Draw
 
         for own key, value of oldValues
           ctx[key] = value
+    ###
 
     # ## Text ##
     # A Text element. Mainly this exists for computing bounding boxes, which is
@@ -449,10 +390,18 @@ exports.Draw = class Draw
       setPosition: (point) -> @translate point.from @point
 
       draw: (ctx) ->
-        ctx.textBaseline = 'top'
-        ctx.font = self.fontSize + 'px ' + self.fontFamily
-        ctx.fillStyle = '#000'
-        ctx.fillText @value, @point.x, @point.y - self.fontAscent
+        element = document.createElementNS SVG_STANDARD, 'text'
+        element.setAttribute 'x', @point.x
+        element.setAttribute 'y', @point.y
+        element.setAttribute 'fill', '#000'
+        element.setAttribute 'dominant-baseline', 'text-before-edge'
+        element.setAttribute 'font-family', self.fontFamily
+        element.setAttribute 'font-size', self.fontSize
+
+        text = document.createTextNode @value.replace(/ /g, '\u00A0') # Preserve whitespace
+        element.appendChild text
+
+        ctx.appendChild element
 
   refreshFontCapital:  ->
     @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop

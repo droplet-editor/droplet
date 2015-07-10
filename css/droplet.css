@@ -308,3 +308,6 @@
   letter-spacing: normal;
   pointer-events: none;
 }
+text {
+  white-space: pre;
+}
