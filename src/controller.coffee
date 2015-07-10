@@ -410,7 +410,7 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
-Editor::drawFloatingBlock = (record, startWidth, endWidth) ->
+Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   blockView = @view.getViewNodeFor record.block
   blockView.layout record.position.x, record.position.y
 
@@ -525,7 +525,8 @@ Editor::redrawMain = (opts = {}) ->
     # Draw floating blocks
     startWidth = @mainCtx.measureText(@mode.startComment).width
     endWidth = @mainCtx.measureText(@mode.endComment).width
-    @drawFloatingBlock(record, startWidth, endWidth) for record in @floatingBlocks
+    for record in @floatingBlocks
+      @drawFloatingBlock(record, startWidth, endWidth, rect, opts)
 
     if opts.boundingRectangle?
       @mainCtx.restore()
