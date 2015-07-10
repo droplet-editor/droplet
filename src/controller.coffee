@@ -513,23 +513,19 @@ Editor::redrawMain = (opts = {}) ->
           return @redrawMain opts
 
 
+      @mainCtx.globalAlpha *= 0.7
       record.grayBoxPath.draw @mainCtx
       @mainCtx.fillStyle = '#000'
       @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
         blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
       @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
+      @mainCtx.globalAlpha /= 0.7
 
-      @mainCtx.globalAlpha *= 0.7
       blockView.draw @mainCtx, rect, {
         grayscale: false
         selected: false
         noText: false
-        backgroundTint: {
-          color: '#FFF'
-          factor: 0.5
-        }
       }
-      @mainCtx.globalAlpha /= 0.7
 
     @mainCtx.globalAlpha /= FLOATING_BLOCK_ALPHA
 
