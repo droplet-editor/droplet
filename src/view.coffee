@@ -155,6 +155,8 @@ exports.View = class View
       # from model to renderer
       @view.map[@model.id] = this
 
+      @lastCoordinate = new @view.draw.Point 0, 0
+
       @invalidate = false
 
       # *Zeroth pass variables*
@@ -1085,7 +1087,9 @@ exports.View = class View
     #
     # Takes two arguments, which can be changed
     # to translate the entire document from the upper-left corner.
-    layout: (left = 0, top = 0) ->
+    layout: (left = @lastCoordinate.x, top = @lastCoordinate.y) ->
+      @lastCoordinate = new @view.draw.Point left, top
+
       @computeChildren()
       @computeCarriageArrow true
       @computeMargins()
@@ -1675,10 +1679,12 @@ exports.View = class View
       return null
 
     shouldAddTab: ->
-      if @model.parent?
-        parent = @model.parent
-        parent?.type isnt 'socket'
-      else not ('mostly-value' in @model.classes or
+      if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
+         (@model.parent.type is 'document' and @model.parent.opts.roundedSingletons and
+          @model.start.prev is @model.parent.start and @model.end.next is @model.parent.end)
+        return @model.parent?.type isnt 'socket'
+      else
+        return not ('mostly-value' in @model.classes or
           'value-only' in @model.classes)
 
     computeOwnPath: ->

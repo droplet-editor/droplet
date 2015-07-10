@@ -85,6 +85,7 @@ class Operation
     list: @list.stringify()
     start: @start.toString()
     end: @end.toString()
+    type: @type
   })
 
 class ReplaceOperation
@@ -94,11 +95,24 @@ class ReplaceOperation
       ) ->
     @type = 'replace'
 
+  toString: -> JSON.stringify({
+    beforeStart: @beforeStart.toString()
+    before: @before.stringify()
+    beforeEnd: @beforeEnd.toString()
+    afterStart: @afterStart.toString()
+    after: @after.stringify()
+    afterEnd: @afterEnd.toString()
+    type: @type
+  })
+
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
 
   contains: (token) ->
+    if token instanceof Container
+      token = token.start
+
     head = @start
     until head is @end
       if head is token
@@ -109,6 +123,8 @@ exports.List = class List
       return true
     else
       return false
+
+  getDocument: -> @start.getDocument()
 
   # ## insert ##
   # Insert another list into us
@@ -836,16 +852,16 @@ exports.Token = class Token
 
   getDocument: ->
     head = @container ? @
-    until head instanceof Document
+    until not head? or head instanceof Document
       head = head.parent
     return head
 
   getLocation: ->
     count = 0
     head = @
-    document = @getDocument()
+    dropletDocument = @getDocument()
 
-    until head is document.start
+    until head is dropletDocument.start
       head = head.prev
       count += 1
 
@@ -865,6 +881,8 @@ exports.Location = class Location
     unless other instanceof Location
       other = other.getLocation()
     return other.count is @count and other.type is @type
+
+  clone: -> new Location @count, @type
 
 exports.TextLocation = class TextLocation
   constructor: (
@@ -1075,7 +1093,7 @@ exports.DocumentEndToken = class DocumentEndToken extends EndToken
   serialize: -> "</document>"
 
 exports.Document = class Document extends Container
-  constructor: ->
+  constructor: (@opts = {}) ->
     @start = new DocumentStartToken this
     @end = new DocumentEndToken this
     @classes = ['__document__']
@@ -1084,7 +1102,7 @@ exports.Document = class Document extends Container
 
     super
 
-  _cloneEmpty: -> new Document()
+  _cloneEmpty: -> new Document(@opts)
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<document>"

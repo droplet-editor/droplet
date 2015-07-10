@@ -477,7 +477,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       when 'VariableDeclarator'
         @jsSocketAndMark indentDepth, node.id, depth
         if node.init?
-          @jsSocketAndMark indentDepth, node.init, depth
+          @jsSocketAndMark indentDepth, node.init, depth, NEVER_PAREN
       when 'LogicalExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.left, depth + 1, @getPrecedence node
@@ -653,5 +653,7 @@ isStandardForLoop = (node) ->
 
 JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
+JavaScriptParser.startComment = '/*'
+JavaScriptParser.endComment = '*/'
 
 module.exports = parser.wrapParser JavaScriptParser

@@ -4,6 +4,7 @@ view = require '../../src/view.coffee'
 draw = require '../../src/draw.coffee'
 droplet = require '../../dist/droplet-full.js'
 seedrandom = require 'seedrandom'
+
 `
 // Mouse event simluation function
 function simulate(type, target, options) {
@@ -127,6 +128,52 @@ asyncTest 'Controller: palette block expansion', ->
   equal(editor.getValue().trim(), 'pen red\na1 = b\na2 = b')
   start()
 
+asyncTest 'Controller: reparse and undo reparse', ->
+  states = []
+  document.getElementById('test-main').innerHTML = ''
+  varcount = 0
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'javascript',
+    palette: []
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('var hello = 1;')
+
+  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+  simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+
+  ok(editor.cursorAtSocket(), 'Has text focus')
+  equal(editor.getCursor().stringify(), '1')
+
+  $('.droplet-hidden-input').sendkeys('2 + 3')
+
+  setTimeout((->
+    ok(editor.cursorAtSocket(), 'Editor still has text focus')
+    equal(editor.getCursor().stringify(), '2 + 3')
+
+    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+
+    # Sockets are separate
+    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 30})
+    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 30})
+
+    ok(editor.cursorAtSocket(), 'Has text focus')
+
+    equal(editor.getCursor().stringify(), '2', 'Successfully reparsed')
+
+    editor.undo()
+
+    setTimeout (->
+      simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+      simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+      equal(editor.getCursor().stringify(), '1', 'Successfully undid reparse')
+    ), 0
+
+    start()
+  ), 0)
+
 asyncTest 'Controller: reparse fallback', ->
   states = []
   document.getElementById('test-main').innerHTML = ''
@@ -242,6 +289,9 @@ asyncTest 'Controller: Can replace a block where we found it', ->
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
   head = editor.tree.start
+  # Skip the first block if it is the entire document
+  if head.next.container?.end is editor.tree.end.prev
+    head = head.next.next
   dragPossibilities = []
   until head is editor.tree.end
     if head.type is 'blockStart'
@@ -257,6 +307,10 @@ getRandomDragOp = (editor, rng) ->
 
   # Find all the drop areas
   head = editor.tree.start
+
+  # Disclude the main tree if we're dragging the first block
+  if drag is dragPossibilities[0]
+    head = head.next
   dropPossibilities = []
   until head is editor.tree.end
     if head is drag.block.start
@@ -322,15 +376,17 @@ performTextOperation = (editor, text, cb) ->
     $(editor.hiddenInput).sendkeys(text.text)
     setTimeout (->
       # Unfocus
-      simulate('mousedown', editor.mainScrollerStuffing, {
-        dx: 1000
-        dy: 1000
+      simulate('mousedown', editor.mainScroller, {
+        location: editor.mainCanvas
+        dx: editor.mainCanvas.offsetWidth - 1
+        dy: editor.mainCanvas.offsetHeight - 1
       })
-      simulate('mouseup', editor.mainScrollerStuffing, {
-        dx: 1000
-        dy: 1000
+      simulate('mouseup', editor.mainScroller, {
+        location: editor.mainCanvas
+        dx: editor.mainCanvas.offsetWidth - 1
+        dy: editor.mainCanvas.offsetHeight - 1
       })
-      cb()
+      setTimeout cb, 0
     ), 0
   ), 0
 
@@ -340,20 +396,190 @@ performDragOperation = (editor, drag, cb) ->
     dy: drag.drag.handle.y
   })
   simulate('mousemove', editor.dragCover, {
-    location: editor.mainScrollerStuffing
+    location: editor.mainCanvas
     dx: drag.drag.handle.x + editor.gutter.offsetWidth + 5,
     dy: drag.drag.handle.y + 5
   })
   simulate('mousemove', editor.dragCover, {
-    location: editor.mainScrollerStuffing
+    location: editor.mainCanvas
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  simulate('mouseup', editor.mainScrollerStuffing, {
+  simulate('mouseup', editor.mainScroller, {
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  cb()
+  # Unfocus the text input that may have been focused
+  # when we dragged
+  setTimeout (->
+    simulate('mousedown', editor.mainScroller, {
+      location: editor.mainCanvas
+      dx: editor.mainCanvas.offsetWidth - 1
+      dy: editor.mainCanvas.offsetHeight - 1
+    })
+    simulate('mouseup', editor.mainScroller, {
+      location: editor.mainCanvas
+      dx: editor.mainCanvas.offsetWidth - 1
+      dy: editor.mainCanvas.offsetHeight - 1
+    })
+    setTimeout cb, 0
+  ), 0
+
+pickUpLocation = (editor, document, location) ->
+  block = editor.getDocument(document).getFromTextLocation(location)
+  bound = editor.view.getViewNodeFor(block).bounds[0]
+  simulate('mousedown', editor.mainScrollerStuffing, {
+    dx: bound.x + editor.gutter.offsetWidth + 5,
+    dy: bound.y + 5
+  })
+  simulate('mousemove', editor.dragCover, {
+    location: editor.mainCanvas
+    dx: bound.x + editor.gutter.offsetWidth + 10,
+    dy: bound.y + 10
+  })
+
+dropLocation = (editor, document, location) ->
+  block = editor.getDocument(document).getFromTextLocation(location)
+  blockView = editor.view.getViewNodeFor block
+  simulate('mousemove', editor.dragCover, {
+    location: editor.mainCanvas
+    dx: blockView.dropPoint.x + 5,
+    dy: blockView.dropPoint.y + 5
+  })
+  simulate('mouseup', editor.mainScroller, {
+    dx: blockView.dropPoint.x + 5
+    dy: blockView.dropPoint.y + 5
+  })
+
+executeAsyncSequence = (sequence, i = 0) ->
+  if i < sequence.length
+    sequence[i]()
+    setTimeout (->
+      executeAsyncSequence sequence, i + 1
+    ), 0
+
+asyncTest 'Controller: remembered sockets', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks'
+        blocks: [
+          {block: 'a is b'}
+          {block: 'fd 10'}
+          {block: 'bk 10'}
+          {block: '''
+          for i in [0..10]
+            ``
+          '''}
+          {block: '''
+          if a is b
+            ``
+          '''}
+        ]
+      }
+    ]
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('''
+  for i in [0..10]
+    if i % 2 is 0
+      fd 10
+    else
+      bk 10
+  ''')
+
+  executeAsyncSequence [
+    (->
+      pickUpLocation editor, 0, {
+        row: 0
+        col: 9
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 2
+        col: 7
+        type: 'socket'
+      }
+    ), (->
+      equal(editor.getValue(), '''
+      for i in ``
+        if i % 2 is 0
+          fd [0..10]
+        else
+          bk 10\n
+      ''')
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 2
+        col: 4
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 3
+        col: 6
+        type: 'indent'
+      }
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 4
+        col: 7
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 0
+        col: 9
+        type: 'socket'
+      }
+    ), (->
+      equal(editor.getValue(), '''
+      for i in [0..10]
+        if i % 2 is 0
+          ``
+        else
+          fd 10
+          bk 10\n
+      ''')
+    ), (->
+      editor.undo()
+    ), (->
+      equal(editor.getValue(), '''
+      for i in ``
+        if i % 2 is 0
+          ``
+        else
+          fd [0..10]
+          bk 10\n
+      ''')
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 4
+        col: 7
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 0
+        col: 9
+        type: 'socket'
+      }
+    ), (->
+      equal(editor.getValue(), '''
+      for i in [0..10]
+        if i % 2 is 0
+          ``
+        else
+          fd 10
+          bk 10\n
+      ''')
+      start()
+    )
+  ]
 
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
@@ -393,32 +619,34 @@ asyncTest 'Controller: Random drag undo test', ->
   ''')
   rng = seedrandom('droplet')
   stateStack = []
-  opStack = []
 
-  #for i in [0..100]
   tick = (count) ->
     cb = ->
       if count is 0
+        stateStack.push editor.getSerializedEditorState().toString()
+        text = stateStack.pop()
+        while stateStack[stateStack.length - 1] is text
+          text = stateStack.pop()
+
         while stateStack.length > 0
           text = stateStack.pop()
           while stateStack[stateStack.length - 1] is text
             text = stateStack.pop()
           editor.undo()
-          equal editor.getValue(), text
+          equal editor.getSerializedEditorState().toString(), text, 'Undo was correct'
 
         start()
       else
+        ok (not editor.cursorAtSocket()), 'Properly unfocused'
         setTimeout (-> tick count - 1), 0
 
-    stateStack.push editor.getValue()
+    stateStack.push editor.getSerializedEditorState().toString()
 
     if rng() > 0.5
       op = getRandomDragOp(editor, rng)
-      opStack.push op
       performDragOperation editor, op, cb
     else
       op = getRandomTextOp(editor, rng)
-      opStack.push op
       performTextOperation editor, op, cb
 
   tick 100

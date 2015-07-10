@@ -1051,6 +1051,8 @@ addEmptyBackTickLineAfter = (lines, n) ->
 
 CoffeeScriptParser.empty = "``"
 CoffeeScriptParser.emptyIndent = "``"
+CoffeeScriptParser.startComment = '###'
+CoffeeScriptParser.endComment = '###'
 
 CoffeeScriptParser.drop = (block, context, pred) ->
   if context.type is 'socket'

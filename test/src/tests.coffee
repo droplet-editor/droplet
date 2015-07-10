@@ -531,7 +531,7 @@ asyncTest 'Controller: cursor motion and rendering', ->
 
   moveCursorDown()
 
-  strictEqual editor.cursor.type, 'indentStart', 'Cursor skipped middle of block'
+  strictEqual editor.cursor.location.type, 'indentStart', 'Cursor skipped middle of block'
 
   moveCursorUp()
 

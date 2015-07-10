@@ -38,7 +38,11 @@ Y_KEY = 89
 
 META_KEYS = [91, 92, 93, 223, 224]
 CONTROL_KEYS = [17, 162, 163]
-FLOATING_BLOCK_ALPHA = 0.75
+GRAY_BLOCK_MARGIN = 5
+GRAY_BLOCK_HANDLE_WIDTH = 15
+GRAY_BLOCK_HANDLE_HEIGHT = 30
+GRAY_BLOCK_COLOR = '#FFF'
+GRAY_BLOCK_BORDER = '#AAA'
 
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
@@ -406,6 +410,83 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
+Editor::drawFloatingBlock = (record, startWidth, endWidth) ->
+  blockView = @view.getViewNodeFor record.block
+  blockView.layout record.position.x, record.position.y
+
+  rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
+  rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
+  rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
+
+  bottomTextPosition = blockView.totalBounds.bottom() - blockView.distanceToBase[blockView.lineLength - 1].below - @fontSize
+
+  if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < endWidth
+    if blockView.lineLength > 1
+      rectangle.height += @fontSize
+      bottomTextPosition = rectangle.bottom() - @fontSize - 5
+    else
+      rectangle.width += endWidth
+
+  unless rectangle.equals(record.grayBox)
+    record.grayBox = rectangle
+
+    oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
+
+    startHeight = blockView.bounds[0].height + 10
+
+    # Make the path surrounding the gray box (with rounded corners)
+    record.grayBoxPath = path = new @view.draw.Path()
+    path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
+    path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
+    path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
+    path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
+
+    if blockView.lineLength > 1
+      path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
+      path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
+    else
+      path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+
+    # Handle
+    path.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
+    path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
+    path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
+    path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
+    path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
+
+    path.push new @view.draw.Point rectangle.x, rectangle.y
+
+
+    path.bevel = false
+    path.noclip = true
+    path.dotted = true
+    path.style = {
+      fillColor: GRAY_BLOCK_COLOR
+      strokeColor: GRAY_BLOCK_BORDER
+      lineWidth: 4
+    }
+
+    if opts.boundingRectangle?
+      opts.boundingRectangle.unite path.bounds()
+      opts.boundingRectangle.unite(oldBounds)
+      @mainCtx.restore()
+      return @redrawMain opts
+
+  # TODO this will need to become configurable by the @mode
+  @mainCtx.globalAlpha *= 0.8
+  record.grayBoxPath.draw @mainCtx
+  @mainCtx.fillStyle = '#000'
+  @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
+    blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
+  @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
+  @mainCtx.globalAlpha /= 0.8
+
+  blockView.draw @mainCtx, rect, {
+    grayscale: false
+    selected: false
+    noText: false
+  }
+
 Editor::redrawMain = (opts = {}) ->
   unless @currentlyAnimating_suprressRedraw
 
@@ -425,27 +506,33 @@ Editor::redrawMain = (opts = {}) ->
       @mainCtx.save()
       opts.boundingRectangle.clip @mainCtx
 
-    # Draw the new tree on the main context
-    layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
-    @view.getViewNodeFor(@tree).draw @mainCtx, opts.boundingRectangle ? new @draw.Rectangle(
+    rect = opts.boundingRectangle ? new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
-    ), {
+    )
+    options = {
       grayscale: false
       selected: false
       noText: (opts.noText ? false)
     }
 
-    # Draw the cursor (if exists, and is inserted)
-    @redrawCursors(); @redrawHighlights()
+    # Draw the new tree on the main context
+    layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
+    @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
+
+    # Draw floating blocks
+    startWidth = @mainCtx.measureText(@mode.startComment).width
+    endWidth = @mainCtx.measureText(@mode.endComment).width
+    @drawFloatingBlock(record, startWidth, endWidth) for record in @floatingBlocks
 
     if opts.boundingRectangle?
       @mainCtx.restore()
 
     # Draw the cursor (if exists, and is inserted)
     @redrawCursors(); @redrawHighlights()
+    @resizeGutter()
 
     for binding in editorBindings.redraw_main
       binding.call this, layoutResult
@@ -470,21 +557,21 @@ Editor::redrawHighlights = ->
   @clearHighlightCanvas()
 
   for line, info of @markedLines
-    if @inTree info.model
+    if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
       delete @markedLines[line]
 
   for id, info of @markedBlocks
-    if @inTree info.model
+    if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
       delete @markedLines[id]
 
   for id, info of @extraMarks
-    if @inTree info.model
+    if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
@@ -492,13 +579,14 @@ Editor::redrawHighlights = ->
 
   # If there is an block that is being dragged,
   # draw it in gray
-  if @draggingBlock? and @inTree @draggingBlock
+  if @draggingBlock? and @inDisplay @draggingBlock
     @view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
     ), {grayscale: true}
+    @maskFloatingPaths(@draggingBlock.getDocument())
 
   @redrawCursors()
   @redrawLassoHighlight()
@@ -685,6 +773,10 @@ class EditorState
       return false unless el.position.equals(other.floats[i].position) and el.string is other.floats[i].string
     return true
 
+  toString: -> JSON.stringify {
+    @root, @floats
+  }
+
 Editor::getSerializedEditorState = ->
   return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> {
     position: x.position
@@ -692,16 +784,27 @@ Editor::getSerializedEditorState = ->
   }
 
 Editor::undo = ->
+  # Don't allow a socket to be highlighted during
+  # an undo operation
+  @setCursor @cursor, ((x) -> x.type isnt 'socketStart')
+
   currentValue = @getSerializedEditorState()
 
   until @undoStack.length is 0 or
-      (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
+      (@undoStack[@undoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popUndo()
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
-      @tree.perform(operation, 'backward', [@cursor]) unless operation is 'CAPTURE'
+      @getDocument(operation.document).perform(
+        operation.operation, 'backward', @getPreserves(operation.document)
+      ) unless operation instanceof CapturePoint
+
+  # Set the the remembered socket contents to the state it was in
+  # at this point in the undo stack.
+  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
+    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popUndo()
   @correctCursor()
@@ -726,23 +829,66 @@ Editor::redo = ->
   currentValue = @getSerializedEditorState()
 
   until @redoStack.length is 0 or
-      (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
+      (@redoStack[@redoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popRedo()
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
-      @tree.perform(operation, 'forward', [@cursor]) unless operation is 'CAPTURE'
+      @getDocument(operation.document).perform(
+        operation.operation, 'forward', @getPreserves(operation.document)
+      ) unless operation instanceof CapturePoint
+
+  # Set the the remembered socket contents to the state it was in
+  # at this point in the undo stack.
+  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
+    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popRedo()
   @redrawMain()
   return
 
+# ## undoCapture and CapturePoint ##
+# A CapturePoint is a sentinel indicating that the undo stack
+# should stop when the user presses Ctrl+Z or Ctrl+Y. Each CapturePoint
+# also remembers the @rememberedSocket state at the time it was placed,
+# to preserved remembered socket contents across undo and redo.
 Editor::undoCapture = ->
-  @pushUndo 'CAPTURE'
+  @pushUndo new CapturePoint(@rememberedSockets)
+
+class CapturePoint
+  constructor: (rememberedSockets) ->
+    @rememberedSockets = rememberedSockets.map (x) -> x.clone()
 
 # BASIC BLOCK MOVE SUPPORT
 # ================================
+
+hook 'populate', 7, ->
+  # ## rememberedSockets ##
+  # This is an array with pair elements mapping locations of sockets
+  # to old text values, for when users drop a block into a socket and then pull
+  # it back out again. All the mutation operations (spliceIn, spliceOut, replace)
+  # update these locations to attempt to make sure the locations point to the same sockets,
+  # and the Controller will also attempt to bring the locations with a dragged block
+  # if they are inside it.
+  #
+  # A snapshot of this array is taken every CapturePoint in the undo stack and restored
+  # when the undo stack reaches this point, to persist this effect across undo and redo.
+  @rememberedSockets = []
+
+Editor::getPreserves = (dropletDocument) ->
+  if dropletDocument instanceof model.Document
+    dropletDocument = @documentIndex dropletDocument
+
+  array = [@cursor]
+
+  array = array.concat @rememberedSockets.map(
+    (x) -> x.socket
+  )
+
+  return array.filter((location) ->
+    location.document is dropletDocument
+  ).map((location) -> location.location)
 
 Editor::spliceOut = (node) ->
   # Make an empty list if we haven't been
@@ -752,9 +898,41 @@ Editor::spliceOut = (node) ->
 
   operation = null
 
-  if @inTree node
-    operation = @tree.remove node, [@cursor]
-    @pushUndo operation
+  dropletDocument = node.getDocument()
+
+  if dropletDocument?
+    parent = node.parent
+
+    operation = node.getDocument().remove node, @getPreserves(dropletDocument)
+    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+
+    # If we are removing a block from a socket, and the socket is in our
+    # dictionary of remembered socket contents, repopulate the socket with
+    # its old contents.
+    if parent?.type is 'socket' and node.start.type is 'blockStart'
+      for socket, i in @rememberedSockets
+        if @fromCrossDocumentLocation(socket.socket) is parent
+          @rememberedSockets.splice i, 0
+          @populateSocket parent, socket.text
+          break
+
+    # Remove the floating dropletDocument if it is now
+    # empty
+    if dropletDocument.start.next is dropletDocument.end
+      for record, i in @floatingBlocks
+        if record.block is dropletDocument
+          @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
+
+          # If the cursor's document is about to vanish,
+          # put it back in the main tree.
+          if @cursor.document is i + 1
+            @setCursor @tree.start
+
+          if @cursor.document > i + 1
+            @cursor.document -= 1
+
+          @floatingBlocks.splice i, 1
+          break
 
   @prepareNode node, null
   @correctCursor()
@@ -768,29 +946,55 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
+    # If we're splicing into a socket and it already has
+    # something in it, remove it. Additionally, remember the old
+    # contents in @rememberedSockets for later repopulation if they take
+    # the block back out.
+    @rememberedSockets.push new RememberedSocketRecord(
+      @toCrossDocumentLocation(container),
+      container.textContent()
+    )
     @spliceOut new model.List container.start.next, container.end.prev
 
-  @prepareNode node, container
-  operation = null
-  operation = @tree.insert location, node, [@cursor]
-  @pushUndo operation
-  @correctCursor()
-  return operation
+  dropletDocument = location.getDocument()
+
+  if dropletDocument?
+    @prepareNode node, container
+    operation = dropletDocument.insert location, node, @getPreserves(dropletDocument)
+    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    @correctCursor()
+    return operation
+  else
+    return null
+
+class RememberedSocketRecord
+  constructor: (@socket, @text) ->
+
+  clone: ->
+    new RememberedSocketRecord(
+      @socket.clone(),
+      @text
+    )
 
 Editor::replace = (before, after, updates) ->
-  operation = @tree.replace before, after, updates
-  @pushUndo operation
-  @correctCursor()
-  return operation
+  dropletDocument = before.start.getDocument()
+  if dropletDocument?
+    operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
+    @pushUndo {operation, document: @documentIndex(dropletDocument)}
+    @correctCursor()
+    return operation
+  else
+    return null
 
 Editor::correctCursor = ->
-  cursor = @tree.getFromLocation(@cursor)
+  cursor = @fromCrossDocumentLocation @cursor
   unless @validCursorPosition cursor
-    until @validCursorPosition(cursor) and cursor.type isnt 'socketStart'
+    until not cursor? or (@validCursorPosition(cursor) and cursor.type isnt 'socketStart')
       cursor = cursor.next
-    until @validCursorPosition(cursor) and cursor.type isnt 'socketStart'
+    unless cursor? then cursor = @fromCrossDocumentLocation @cursor
+    until not cursor? or (@validCursorPosition(cursor) and cursor.type isnt 'socketStart')
       cursor = cursor.prev
-    @cursor = cursor.getLocation()
+    @cursor = @toCrossDocumentLocation cursor
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
@@ -862,6 +1066,26 @@ Editor::resizeDragCanvas = ->
 
   @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
+
+Editor::getDocuments = ->
+  documents = [@tree]
+  for el, i in @floatingBlocks
+    documents.push el.block
+  return documents
+
+Editor::getDocument = (n) ->
+  if n is 0 then @tree
+  else @floatingBlocks[n - 1].block
+
+Editor::documentIndex = (block) ->
+  @getDocuments().indexOf block.getDocument()
+
+Editor::fromCrossDocumentLocation = (location) ->
+  @getDocument(location.document).getFromLocation location.location
+
+Editor::toCrossDocumentLocation = (block) ->
+  new CrossDocumentLocation @documentIndex(block), block.getLocation()
+
 # On mousedown, we will want to
 # hit test blocks in the root tree to
 # see if we want to move them.
@@ -877,35 +1101,58 @@ hook 'mousedown', 1, (point, event, state) ->
 
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
-  hitTestResult = @hitTest mainPoint, @tree
 
-  # Produce debugging output
-  if @debugging and event.shiftKey
-    line = null
-    node = @view.getViewNodeFor(hitTestResult)
-    for box, i in node.bounds
-      if box.contains(mainPoint)
-        line = i
-        break
-    @dumpNodeForDebug(hitTestResult, line)
+  for dropletDocument, i in @getDocuments() by -1
+    # First attempt handling text input
+    if @handleTextInputClick mainPoint, dropletDocument
+      state.consumedHitTest = true
+      return
+    else if @cursor.document is i and @cursorAtSocket()
+      @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
 
-  # If it came back positive,
-  # deal with the click.
-  if hitTestResult?
-    # Record the hit test result (the block we want to pick up)
-    @clickedBlock = hitTestResult
-    @clickedBlockPaletteEntry = null
+    hitTestResult = @hitTest mainPoint, dropletDocument
 
-    # Move the cursor somewhere nearby
-    @setCursor @clickedBlock.start.next
+    # Produce debugging output
+    if @debugging and event.shiftKey
+      line = null
+      node = @view.getViewNodeFor(hitTestResult)
+      for box, i in node.bounds
+        if box.contains(mainPoint)
+          line = i
+          break
+      @dumpNodeForDebug(hitTestResult, line)
 
-    # Record the point at which is was clicked (for clickedBlock->draggingBlock)
-    @clickedPoint = point
+    # If it came back positive,
+    # deal with the click.
+    if hitTestResult?
+      # Record the hit test result (the block we want to pick up)
+      @clickedBlock = hitTestResult
+      @clickedBlockPaletteEntry = null
 
-    # Signify to any other hit testing
-    # handlers that we have already consumed
-    # the hit test opportunity for this event.
-    state.consumedHitTest = true
+      # Move the cursor somewhere nearby
+      @setCursor @clickedBlock.start.next
+
+      # Record the point at which is was clicked (for clickedBlock->draggingBlock)
+      @clickedPoint = point
+
+      # Signify to any other hit testing
+      # handlers that we have already consumed
+      # the hit test opportunity for this event.
+      state.consumedHitTest = true
+      return
+
+    else if i > 0
+      record = @floatingBlocks[i - 1]
+      if record.grayBoxPath? and record.grayBoxPath.contains @trackerPointToMain point
+        @clickedBlock = new model.List record.block.start.next, record.block.end.prev
+        @clickedPoint = point
+
+        @view.getViewNodeFor(@clickedBlock).absorbCache()
+
+        state.consumedHitTest = true
+
+        @redrawMain()
+        return
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -938,6 +1185,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
     # Signify that we are now dragging a block.
     @draggingBlock = @clickedBlock
+    @dragReplacing = false
 
     # Our dragging offset must be computed using the canvas on which this block
     # is rendered.
@@ -982,6 +1230,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # When we are dragging things, we draw the shadow.
     # Also, we translate the block 1x1 to the right,
     # so that we can see its borders.
+    @dragView.clearCache()
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
 
@@ -1005,27 +1254,42 @@ hook 'mousemove', 1, (point, event, state) ->
       w: @mainCanvas.width
       h: @mainCanvas.height
 
-    head = @tree.start
-    until head is @tree.end
+    for dropletDocument in @getDocuments()
+      head = dropletDocument.start
 
-      if head is @draggingBlock.start
-        head = @draggingBlock.end
+      # Don't allow dropping at the start of the document
+      # if we are already dragging a block that is at
+      # the start of the document.
+      if @draggingBlock.start.prev is head
+        head = head.next
 
-      if head instanceof model.StartToken
-        acceptLevel = @getAcceptLevel @draggingBlock, head.container
-        unless acceptLevel is helper.FORBID
-          dropPoint = @view.getViewNodeFor(head.container).dropPoint
+      until head is dropletDocument.end
+        if head is @draggingBlock.start
+          head = @draggingBlock.end
 
-          if dropPoint?
-            @dropPointQuadTree.insert
-              x: dropPoint.x
-              y: dropPoint.y
-              w: 0
-              h: 0
-              acceptLevel: acceptLevel
-              _droplet_node: head.container
+        if head instanceof model.StartToken
+          acceptLevel = @getAcceptLevel @draggingBlock, head.container
+          unless acceptLevel is helper.FORBID
+            dropPoint = @view.getViewNodeFor(head.container).dropPoint
 
-      head = head.next
+            if dropPoint?
+              allowed = true
+              for record, i in @floatingBlocks by -1
+                if record.block is dropletDocument
+                  break
+                else if record.grayBoxPath.contains dropPoint
+                  allowed = false
+                  break
+              if allowed
+                @dropPointQuadTree.insert
+                  x: dropPoint.x
+                  y: dropPoint.y
+                  w: 0
+                  h: 0
+                  acceptLevel: acceptLevel
+                  _droplet_node: head.container
+
+        head = head.next
 
     @dragCanvas.style.top = "#{position.y + getOffsetTop(@dropletElement)}px"
     @dragCanvas.style.left = "#{position.x + getOffsetLeft(@dropletElement)}px"
@@ -1089,7 +1353,7 @@ hook 'mousemove', 0, (point, event, state) ->
     while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
       head = head.next
 
-    if head is @tree.end and
+    if head is @tree.end and @floatingBlocks.length is 0 and
         @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
         @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
       @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
@@ -1100,8 +1364,11 @@ hook 'mousemove', 0, (point, event, state) ->
       # assume they want to replace the block where they found it.
       if @hitTest mainPoint, @draggingBlock
         best = null
+        @dragReplacing = true
+
       # Otherwise, find the closest droppable block
       else
+        @dragReplacing = false
         testPoints = @dropPointQuadTree.retrieve {
           x: mainPoint.x - MAX_DROP_DISTANCE
           y: mainPoint.y - MAX_DROP_DISTANCE
@@ -1126,7 +1393,9 @@ hook 'mousemove', 0, (point, event, state) ->
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
 
-        if best? then @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+        if best?
+          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
 
@@ -1145,6 +1414,9 @@ hook 'mouseup', 0, ->
   clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
 
 hook 'mouseup', 1, (point, event, state) ->
+  if @dragReplacing
+    @endDrag()
+
   # We will consume this event iff we dropped it successfully
   # in the root tree.
   if @draggingBlock?
@@ -1195,6 +1467,12 @@ hook 'mouseup', 1, (point, event, state) ->
       @undoCapture()
 
       # Remove the block from the tree.
+      rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
+
+      # TODO this is a hacky way of preserving locations
+      # across parenthesis insertion
+      hadTextToken = @draggingBlock.start.next.type is 'text'
+
       @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
@@ -1213,26 +1491,65 @@ hook 'mouseup', 1, (point, event, state) ->
         when 'block'
           @spliceIn @draggingBlock, @lastHighlight.end
         else
-          if @lastHighlight is @tree
-            @spliceIn @draggingBlock, @tree.start
+          if @lastHighlight.type is 'document'
+            @spliceIn @draggingBlock, @lastHighlight.start
 
-      futureCursorLocation = @draggingBlock.start.getLocation()
+      # TODO as above
+      hasTextToken = @draggingBlock.start.next.type is 'text'
+      if hadTextToken and not hasTextToken
+        rememberedSocketOffsets.forEach (x) ->
+          x.offset -= 1
+      else if hasTextToken and not hadTextToken
+        rememberedSocketOffsets.forEach (x) ->
+          x.offset += 1
+
+      futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
 
       # Reparse the parent if we are
       # in a socket
       #
-      # TODO "reparseable" property, bubble up
+      # TODO "reparseable" property (or absent contexts), bubble up
       # TODO performance on large programs
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
 
-      @setCursor futureCursorLocation
+      # Now that we've done that, we can annul stuff.
+      @endDrag()
+
+      @setCursor(futureCursorLocation) if futureCursorLocation?
+
+      newBeginning = futureCursorLocation.location.count
+      newIndex = futureCursorLocation.document
+
+      for el, i in rememberedSocketOffsets
+        @rememberedSockets.push new RememberedSocketRecord(
+          new CrossDocumentLocation(
+            newIndex
+            new model.Location(el.offset + newBeginning, 'socket')
+          ),
+          el.text
+        )
 
       # Fire the event for sound
       @fireEvent 'block-click'
 
-      # Now that we've done that, we can annul stuff.
-      @endDrag()
+Editor::spliceRememberedSocketOffsets = (block) ->
+  if block.getDocument()?
+    blockBegin = block.start.getLocation().count
+    offsets = []
+    newRememberedSockets = []
+    for el, i in @rememberedSockets
+      if block.contains @fromCrossDocumentLocation(el.socket)
+        offsets.push {
+          offset: el.socket.location.count - blockBegin
+          text: el.text
+        }
+      else
+        newRememberedSockets.push el
+    @rememberedSockets = newRememberedSockets
+    return offsets
+  else
+    []
 
 # FLOATING BLOCK SUPPORT
 # ================================
@@ -1245,22 +1562,13 @@ hook 'populate', 0, ->
 class FloatingBlockRecord
   constructor: (@block, @position) ->
 
-Editor::inTree = (block) ->
-  if (block instanceof model.List) and not
-      (block instanceof model.Container)
-    block = block.start
-
-  block = block.container ? block
-
-  until block is @tree or not block?
-    block = block.parent
-
-  return block is @tree
+Editor::inTree = (block) -> (block.container ? block).getDocument() is @tree
+Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDocuments()
 
 # We can create floating blocks by dropping
 # blocks without a highlight.
 hook 'mouseup', 0, (point, event, state) ->
-  if @draggingBlock? and not @lastHighlight?
+  if @draggingBlock? and not @lastHighlight? and not @dragReplacing
     # Before we put this block into our list of floating blocks,
     # we need to figure out where on the main canvas
     # we are going to render it.
@@ -1272,9 +1580,9 @@ hook 'mouseup', 0, (point, event, state) ->
     palettePoint = @trackerPointToPalette trackPoint
 
     # Remove the block from the tree.
-    if @inTree @draggingBlock
-      @undoCapture()
-      @spliceOut @draggingBlock
+    @undoCapture()
+    rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
+    @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
@@ -1293,13 +1601,26 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    @pushUndo new FloatingOperation @floatingBlocks.length, @draggingBlock, renderPoint, 'create'
+    newDocument = new model.Document({roundedSingletons: true})
+    newDocument.insert newDocument.start, @draggingBlock
+    @pushUndo new FloatingOperation @floatingBlocks.length, newDocument, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
     @floatingBlocks.push new FloatingBlockRecord(
-      @draggingBlock,
+      newDocument
       renderPoint
     )
+
+    @setCursor @draggingBlock.start
+
+    for el, i in rememberedSocketOffsets
+      @rememberedSockets.push new RememberedSocketRecord(
+        new CrossDocumentLocation(
+          @floatingBlocks.length - 1,
+          new model.Location(el.offset, 'socket')
+        ),
+        el.text
+      )
 
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
@@ -1312,63 +1633,31 @@ hook 'mouseup', 0, (point, event, state) ->
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
+    if @cursor.document > op.index
+      @cursor.document += 1
+
     @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
       op.block.clone()
       op.position
     )
   else
+    # If the cursor's document is about to vanish,
+    # put it back in the main tree.
+    if @cursor.document is op.index + 1
+      @setCursor @tree.start
+
     @floatingBlocks.splice op.index, 1
 
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
+    @block = @block.clone()
 
-# On mousedown, we can hit test for floating blocks.
-hook 'mousedown', 5, (point, event, state) ->
-  # If someone else has already taken this click, pass.
-  if state.consumedHitTest then return
-
-  # If it's not in the main pane, pass.
-  if not @trackerPointIsInMain(point) then return
-
-  # Hit test against floating blocks
-  for record, i in @floatingBlocks
-    hitTestResult = @hitTest @trackerPointToMain(point), record.block
-
-    if hitTestResult?
-      @clickedBlock = record.block
-      @clickedPoint = point
-
-      state.consumedHitTest = true
-
-      @redrawMain()
-
-hook 'mousemove', 7, (point, event, state) ->
-  if @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
-    for record, i in @floatingBlocks
-      if record.block is @clickedBlock
-        @undoCapture()
-
-        @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
-
-        @floatingBlocks.splice i, 1
-
-        @redrawMain()
-
-        return
-
-# On redraw, we draw all the floating blocks
-# in their proper positions.
-hook 'redraw_main', 7, ->
-  boundingRect = new @draw.Rectangle(
-    @scrollOffsets.main.x,
-    @scrollOffsets.main.y,
-    @mainCanvas.width,
-    @mainCanvas.height
-  )
-  for record in @floatingBlocks
-    blockView = @view.getViewNodeFor record.block
-    blockView.layout record.position.x, record.position.y
-    blockView.draw @mainCtx, boundingRect
+  toString: -> JSON.stringify({
+    index: @index
+    block: @block.stringify()
+    position: @position.toString()
+    type: @type
+  })
 
 # PALETTE SUPPORT
 # ================================
@@ -1535,7 +1824,7 @@ hook 'rebuild_palette', 1, ->
     hoverDiv = document.createElement 'div'
     hoverDiv.className = 'droplet-hover-div'
 
-    hoverDiv.title = data.title ? block.stringify(@mode)
+    hoverDiv.title = data.title ? block.stringify()
 
     bounds = @paletteView.getViewNodeFor(block).totalBounds
 
@@ -1638,7 +1927,8 @@ last_ = (array) -> array[array.length - 1]
 
 # Redraw function for text input
 Editor::redrawTextInput = ->
-  sameLength = @getCursor().stringify(@mode).split('\n').length is @hiddenInput.value.split('\n').length
+  sameLength = @getCursor().stringify().split('\n').length is @hiddenInput.value.split('\n').length
+  dropletDocument = @getCursor().getDocument()
 
   # Set the value in the model to fit
   # the hidden input value.
@@ -1648,8 +1938,8 @@ Editor::redrawTextInput = ->
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @getCursor().stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
 
   # Redraw the main canvas, on top of
   # which we will draw the cursor and
@@ -1658,11 +1948,11 @@ Editor::redrawTextInput = ->
     line = endRow
     head = @getCursor().start
 
-    until head is @tree.start
+    until head is dropletDocument.start
       head = head.prev
       if head.type is 'newline' then line++
 
-    treeView = @view.getViewNodeFor @tree
+    treeView = @view.getViewNodeFor dropletDocument
 
     oldp = helper.deepCopy [
       treeView.glue[line - 1],
@@ -1670,7 +1960,7 @@ Editor::redrawTextInput = ->
       treeView.bounds[line].height
     ]
 
-    treeView.layout 0, @nubbyHeight
+    treeView.layout()
 
     newp = helper.deepCopy [
       treeView.glue[line - 1],
@@ -1706,17 +1996,17 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 
   # Determine the coordinate positions
   # of the typing cursor
-  startRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n').length - 1
-  endRow = @getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n').length - 1
+  startRow = @getCursor().stringify()[...@hiddenInput.selectionStart].split('\n').length - 1
+  endRow = @getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n').length - 1
 
-  lines = @getCursor().stringify(@mode).split '\n'
+  lines = @getCursor().stringify().split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@getCursor().stringify(@mode)[...@hiddenInput.selectionStart].split('\n'))).width +
+    @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@getCursor().stringify(@mode)[...@hiddenInput.selectionEnd].split('\n'))).width +
+    @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
@@ -1760,12 +2050,9 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 escapeString = (str) ->
   str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
 
-# Convenience function for setting the text input
-Editor::setTextInputFocus = (focus, selectionStart = null, selectionEnd = null) ->
-  if focus?.id of @extraMarks
-    delete @extraMarks[focus?.id]
-
+hook 'mousedown', 7, ->
   @hideDropdown()
+
 
 # If we can, try to reparse the focus
 # value.
@@ -1909,7 +2196,7 @@ Editor::getTextPosition = (point) ->
 
   column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
-  lines = @getCursor().stringify(@mode).split('\n')[..row]
+  lines = @getCursor().stringify().split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
 
   return lines.join('\n').length
@@ -1921,8 +2208,8 @@ Editor::setTextInputAnchor = (point) ->
 Editor::selectDoubleClick = (point) ->
   position = @getTextPosition point
 
-  before = @getCursor().stringify(@mode)[...position].match(/\w*$/)[0]?.length ? 0
-  after = @getCursor().stringify(@mode)[position..].match(/^\w*/)[0]?.length ? 0
+  before = @getCursor().stringify()[...position].match(/\w*$/)[0]?.length ? 0
+  after = @getCursor().stringify()[position..].match(/^\w*/)[0]?.length ? 0
 
   @textInputAnchor = position - before
   @textInputHead = position + after
@@ -1937,14 +2224,8 @@ Editor::setTextInputHead = (point) ->
 # selections and focus text inputs
 # if we apply.
 
-hook 'mousedown', 2, (point, event, state) ->
-  # If someone else already took this click, return.
-  if state.consumedHitTest then return
-
-  # Otherwise, look for a socket that
-  # the user has clicked
-  mainPoint = @trackerPointToMain point
-  hitTestResult = @hitTestTextInput mainPoint, @tree
+Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
+  hitTestResult = @hitTestTextInput mainPoint, dropletDocument
 
   # If they have clicked a socket,
   # focus it.
@@ -1981,12 +2262,9 @@ hook 'mousedown', 2, (point, event, state) ->
     # mobile screen scroll properly.
     @hiddenInput.focus()
 
-    state.consumedHitTest = true
-
-  # If they have not clicked a socket,
-  # unfocus the current socket.
-  else if @cursorAtSocket()
-    @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
+    return true
+  else
+    return false
 
 # Create the dropdown DOM element at populate time.
 hook 'populate', 0, ->
@@ -2072,31 +2350,32 @@ hook 'dblclick', 0, (point, event, state) ->
   # If someone else already took this click, return.
   if state.consumedHitTest then return
 
-  # Otherwise, look for a socket that
-  # the user has clicked
-  mainPoint = @trackerPointToMain point
-  hitTestResult = @hitTestTextInput mainPoint, @tree
+  for dropletDocument in @getDocuments()
+    # Otherwise, look for a socket that
+    # the user has clicked
+    mainPoint = @trackerPointToMain point
+    hitTestResult = @hitTestTextInput mainPoint, @tree
 
-  # If they have clicked a socket,
-  # focus it, and
-  unless hitTestResult is @getCursor()
-    if hitTestResult.editable()
+    # If they have clicked a socket,
+    # focus it, and
+    unless hitTestResult is @getCursor()
+      if hitTestResult? and hitTestResult.editable()
+        @redrawMain()
+        hitTestResult = @hitTestTextInput mainPoint, @tree
+
+    if hitTestResult? and hitTestResult.editable()
+      @setCursor hitTestResult
       @redrawMain()
-      hitTestResult = @hitTestTextInput mainPoint, @tree
 
-  if hitTestResult? and hitTestResult.editable()
-    @setCursor hitTestResult
-    @redrawMain()
+      setTimeout (=>
+        @selectDoubleClick mainPoint
+        @redrawTextInput()
 
-    setTimeout (=>
-      @selectDoubleClick mainPoint
-      @redrawTextInput()
+        @textInputSelecting = false
+      ), 0
 
-      @textInputSelecting = false
-    ), 0
-
-    state.consumedHitTest = true
-
+      state.consumedHitTest = true
+      return
 
 # On mousemove, if we are selecting,
 # we want to update the selection
@@ -2198,26 +2477,37 @@ hook 'mousemove', 0, (point, event, state) ->
       Math.abs(@lassoSelectAnchor.y - mainPoint.y)
     )
 
-    first = @tree.start
-    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
-      first = first.next
+    findLassoSelect = (dropletDocument) =>
+      first = dropletDocument.start
+      until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
+        first = first.next
 
-    last = @tree.end
-    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
-      last = last.prev
+      last = dropletDocument.end
+      until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
+        last = last.prev
 
-    @clearLassoSelectCanvas(); @clearHighlightCanvas()
+      @clearLassoSelectCanvas(); @clearHighlightCanvas()
 
-    @lassoSelectCtx.strokeStyle = '#00f'
-    @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
-      lassoRectangle.y - @scrollOffsets.main.y,
-      lassoRectangle.width,
-      lassoRectangle.height
+      @lassoSelectCtx.strokeStyle = '#00f'
+      @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
+        lassoRectangle.y - @scrollOffsets.main.y,
+        lassoRectangle.width,
+        lassoRectangle.height
 
-    if first and last?
-      [first, last] = validateLassoSelection @tree, first, last
-      @lassoSelection = new model.List first, last
-      @redrawLassoHighlight()
+      if first and last?
+        [first, last] = validateLassoSelection dropletDocument, first, last
+        @lassoSelection = new model.List first, last
+        @redrawLassoHighlight()
+        return true
+      else
+        @lassoSelection = null
+        return false
+
+    unless @lassoSelectionDocument? and findLassoSelect @lassoSelectionDocument
+      for dropletDocument in @getDocuments()
+        if findLassoSelect dropletDocument
+          @lassoSelectionDocument = dropletDocument
+          break
 
 Editor::redrawLassoHighlight = ->
   if @lassoSelection?
@@ -2230,6 +2520,17 @@ Editor::redrawLassoHighlight = ->
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
+    @maskFloatingPaths(@lassoSelection.start.getDocument())
+
+Editor::maskFloatingPaths = (dropletDocument) ->
+  for record, i in @floatingBlocks by -1
+    if record.block is dropletDocument
+      break
+    else
+      @highlightCtx.save()
+      record.grayBoxPath.clip(@highlightCtx)
+      record.grayBoxPath.bounds().clearRect(@highlightCtx)
+      @highlightCtx.restore()
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -2268,35 +2569,15 @@ validateLassoSelection = (tree, first, last) ->
 # select segment.
 hook 'mouseup', 0, (point, event, state) ->
   if @lassoSelectAnchor?
-    mainPoint = @trackerPointToMain point
-    lassoRectangle = new @draw.Rectangle(
-        Math.min(@lassoSelectAnchor.x, mainPoint.x),
-        Math.min(@lassoSelectAnchor.y, mainPoint.y),
-        Math.abs(@lassoSelectAnchor.x - mainPoint.x),
-        Math.abs(@lassoSelectAnchor.y - mainPoint.y)
-    )
+    if @lassoSelection?
+      # Move the cursor to the selection
+      @setCursor @lassoSelection.end
 
     @lassoSelectAnchor = null
     @clearLassoSelectCanvas()
 
-    first = @tree.start
-    until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
-      first = first.next
-
-    last = @tree.end
-    until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
-      last = last.prev
-
-    unless first? and last? then return
-
-    [first, last] = validateLassoSelection @tree, first, last
-
-    @lassoSelection = new model.List first, last
-
-    # Move the cursor to the selection
-    @setCursor @lassoSelection.end
-
     @redrawMain()
+  @lassoSelectionDocument = null
 
 # On mousedown, we might want to
 # pick a selected segment up; check.
@@ -2314,7 +2595,18 @@ hook 'mousedown', 3, (point, event, state) ->
 # CURSOR OPERATION SUPPORT
 # ================================
 hook 'populate', 0, ->
-  @cursor = new model.Location 0, 'documentStart'
+  @cursor = new CrossDocumentLocation(0, new model.Location(0, 'documentStart'))
+
+class CrossDocumentLocation
+  constructor: (@document, @location) ->
+
+  is: (other) -> @location.is(other.location) and @document is other.document
+
+  clone: ->
+    new CrossDocumentLocation(
+      @document,
+      @location.clone()
+    )
 
 Editor::validCursorPosition = (destination) ->
   return destination.type in ['documentStart', 'indentStart'] or
@@ -2323,15 +2615,14 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
-  if destination? and not (destination instanceof model.Location)
-    destination = destination.getLocation()
+  if destination? and destination instanceof CrossDocumentLocation
+    destination = @fromCrossDocumentLocation(destination)
 
   # Abort if there is no destination (usually means
   # someone wants to travel outside the document)
-  return unless destination?
+  return unless destination? and @inDisplay destination
 
   # Now set the new cursor
-  destination = @tree.getFromLocation destination
   if destination instanceof model.Container
     destination = destination.start
 
@@ -2339,15 +2630,20 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     destination = (if direction is 'after' then destination.next else destination.prev)
     return unless destination?
 
-  destination = destination.getLocation()
+  destination = @toCrossDocumentLocation destination
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, [@cursor, destination]
+    @reparse @getCursor(), null, (if destination.document is @cursor.document then [destination.location] else [])
     @hiddenInput.blur()
     @dropletElement.focus()
 
   @cursor = destination
+
+  # If we have messed up (usually because
+  # of a reparse), scramble to find a nearby
+  # okay place for the cursor
+  @correctCursor()
 
   @redrawMain()
   @highlightFlashShow()
@@ -2355,6 +2651,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
+    if @getCursor()?.id of @extraMarks
+      delete @extraMarks[focus?.id]
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
@@ -2382,7 +2680,7 @@ Editor::determineCursorPosition = ->
     return new @draw.Point bound.x, bound.bottom()
 
 Editor::getCursor = ->
-  cursor = @tree.getFromLocation(@cursor)
+  cursor = @fromCrossDocumentLocation @cursor
 
   if cursor.type is 'socketStart'
     return cursor.container
@@ -3365,7 +3663,7 @@ Editor::addEmptyLine = (str) ->
 
 Editor::getValue = ->
   if @currentlyUsingBlocks
-    return @addEmptyLine @tree.stringify(@mode)
+    return @addEmptyLine @tree.stringify()
   else
     @getAceValue()
 
@@ -3490,6 +3788,10 @@ hook 'mousedown', 10, ->
     @endDrag()
 
 Editor::endDrag = ->
+  # Ensure that the cursor is not in a socket.
+  if @cursorAtSocket()
+    @setCursor @cursor, (x) -> x.type isnt 'socketStart'
+
   @draggingBlock = null
   @draggingOffset = null
   @lastHighlight = null
@@ -3697,9 +3999,6 @@ hook 'populate', 0, ->
 # ONE MORE DROP CASE
 # ================================
 
-# If we drop a block right back onto
-# its grayed-out spot, cancel the drag.
-
 # TODO possibly move this next utility function to view?
 Editor::viewOrChildrenContains = (model, point, view = @view) ->
   modelView = view.getViewNodeFor model
@@ -3712,17 +4011,6 @@ Editor::viewOrChildrenContains = (model, point, view = @view) ->
       return true
 
   return false
-
-hook 'mouseup', 0.5, (point, event) ->
-  if @draggingBlock?
-    trackPoint = new @draw.Point(
-      point.x + @draggingOffset.x,
-      point.y + @draggingOffset.y
-    )
-    renderPoint = @trackerPointToMain trackPoint
-
-    if @inTree(@draggingBlock) and @viewOrChildrenContains @draggingBlock, renderPoint
-      @endDrag()
 
 # LINE NUMBER GUTTER CODE
 # ================================
@@ -3818,8 +4106,7 @@ Editor::resizeGutter = ->
     @gutter.style.width = @lastGutterWidth + 'px'
     return @resize()
   @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
-    (@view.getViewNodeFor(@tree).totalBounds?.bottom?() ? 0) +
-    (@options.extraBottomHeight ? @fontSize))}px"
+    @mainScrollerStuffing.offsetHeight)}px"
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree
@@ -3946,25 +4233,28 @@ hook 'populate', 1, ->
   @copyPasteInput.addEventListener 'input', =>
     if @readOnly
       return
-    if pressedVKey
+    if pressedVKey and not @cursorAtSocket()
+      str = @copyPasteInput.value; lines = str.split '\n'
+
+      # Strip any common leading indent
+      # from all the lines of the pasted tet
+      minIndent = lines.map((line) -> line.length - line.trimLeft().length).reduce((a, b) -> Math.min(a, b))
+      str = lines.map((line) -> line[minIndent...]).join('\n')
+      str = str.replace /^\n*|\n*$/g, ''
+
       try
-        str = @copyPasteInput.value; lines = str.split '\n'
-
-        # Strip any common leading indent
-        # from all the lines of the pasted tet
-        minIndent = lines.map((x) -> line.length - line.trimLeft().length).reduce((a, b) -> Math.min(a, b))
-        str = lines.map((line) -> line[minIndent...]).join('\n')
-        str = str.replace /^\n*|\n*$/g, ''
-
         blocks = @mode.parse str
         blocks = new model.List blocks.start.next, blocks.end.prev
-
-        @spliceIn blocks, @cursor
-        @setCursor blocks.end
-
-        @redrawMain()
       catch e
-        console.log e.stack
+        blocks = null
+
+      return unless blocks?
+
+      @undoCapture()
+      @spliceIn blocks, @getCursor()
+      @setCursor blocks.end
+
+      @redrawMain()
 
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
     else if pressedXKey and @lassoSelection?
