@@ -788,15 +788,20 @@ Editor::undo = ->
   currentValue = @getSerializedEditorState()
 
   until @undoStack.length is 0 or
-      (@undoStack[@undoStack.length - 1] is 'CAPTURE' and
+      (@undoStack[@undoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popUndo()
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'backward')
     else
       @getDocument(operation.document).perform(
-        operation.operation, 'backward', (if operation.document is @cursor.document then [@cursor.location] else [])
-      ) unless operation is 'CAPTURE'
+        operation.operation, 'backward', @getPreserves(operation.document)
+      ) unless operation instanceof CapturePoint
+
+  # Set the the remembered socket contents to the state it was in
+  # at this point in the undo stack.
+  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
+    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popUndo()
   @correctCursor()
@@ -821,25 +826,66 @@ Editor::redo = ->
   currentValue = @getSerializedEditorState()
 
   until @redoStack.length is 0 or
-      (@redoStack[@redoStack.length - 1] is 'CAPTURE' and
+      (@redoStack[@redoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popRedo()
     if operation instanceof FloatingOperation
       @performFloatingOperation(operation, 'forward')
     else
       @getDocument(operation.document).perform(
-        operation.operation, 'forward', (if operation.document is @cursor.document then [@cursor.location] else [])
-      ) unless operation is 'CAPTURE'
+        operation.operation, 'forward', @getPreserves(operation.document)
+      ) unless operation instanceof CapturePoint
+
+  # Set the the remembered socket contents to the state it was in
+  # at this point in the undo stack.
+  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
+    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popRedo()
   @redrawMain()
   return
 
+# ## undoCapture and CapturePoint ##
+# A CapturePoint is a sentinel indicating that the undo stack
+# should stop when the user presses Ctrl+Z or Ctrl+Y. Each CapturePoint
+# also remembers the @rememberedSocket state at the time it was placed,
+# to preserved remembered socket contents across undo and redo.
 Editor::undoCapture = ->
-  @pushUndo 'CAPTURE'
+  @pushUndo new CapturePoint(@rememberedSockets)
+
+class CapturePoint
+  constructor: (rememberedSockets) ->
+    @rememberedSockets = rememberedSockets.map (x) -> x.clone()
 
 # BASIC BLOCK MOVE SUPPORT
 # ================================
+
+hook 'populate', 7, ->
+  # ## rememberedSockets ##
+  # This is an array with pair elements mapping locations of sockets
+  # to old text values, for when users drop a block into a socket and then pull
+  # it back out again. All the mutation operations (spliceIn, spliceOut, replace)
+  # update these locations to attempt to make sure the locations point to the same sockets,
+  # and the Controller will also attempt to bring the locations with a dragged block
+  # if they are inside it.
+  #
+  # A snapshot of this array is taken every CapturePoint in the undo stack and restored
+  # when the undo stack reaches this point, to persist this effect across undo and redo.
+  @rememberedSockets = []
+
+Editor::getPreserves = (dropletDocument) ->
+  if dropletDocument instanceof model.Document
+    dropletDocument = @documentIndex dropletDocument
+
+  array = [@cursor]
+
+  array = array.concat @rememberedSockets.map(
+    (x) -> x.socket
+  )
+
+  return array.filter((location) ->
+    location.document is dropletDocument
+  ).map((location) -> location.location)
 
 Editor::spliceOut = (node) ->
   # Make an empty list if we haven't been
@@ -852,9 +898,20 @@ Editor::spliceOut = (node) ->
   dropletDocument = node.getDocument()
 
   if dropletDocument?
-    operation = node.getDocument().remove node,
-      (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
+    parent = node.parent
+
+    operation = node.getDocument().remove node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+
+    # If we are removing a block from a socket, and the socket is in our
+    # dictionary of remembered socket contents, repopulate the socket with
+    # its old contents.
+    if parent?.type is 'socket' and node.start.type is 'blockStart'
+      for socket, i in @rememberedSockets
+        if @fromCrossDocumentLocation(socket.socket) is parent
+          @rememberedSockets.splice i, 0
+          @populateSocket parent, socket.text
+          break
 
     # Remove the floating dropletDocument if it is now
     # empty
@@ -886,25 +943,41 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
+    # If we're splicing into a socket and it already has
+    # something in it, remove it. Additionally, remember the old
+    # contents in @rememberedSockets for later repopulation if they take
+    # the block back out.
+    @rememberedSockets.push new RememberedSocketRecord(
+      @toCrossDocumentLocation(container),
+      container.textContent()
+    )
     @spliceOut new model.List container.start.next, container.end.prev
 
   dropletDocument = location.getDocument()
 
   if dropletDocument?
     @prepareNode node, container
-    operation = dropletDocument.insert location, node,
-      (if dropletDocument is @getDocument(@cursor.document) then [@cursor.location] else [])
+    operation = dropletDocument.insert location, node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     @correctCursor()
     return operation
   else
     return null
 
+class RememberedSocketRecord
+  constructor: (@socket, @text) ->
+
+  clone: ->
+    new RememberedSocketRecord(
+      @socket.clone(),
+      @text
+    )
+
 Editor::replace = (before, after, updates) ->
   dropletDocument = before.start.getDocument()
   if dropletDocument?
-    operation = dropletDocument.replace before, after, updates
-    @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
+    operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
+    @pushUndo {operation, document: @documentIndex(dropletDocument)}
     @correctCursor()
     return operation
   else
@@ -1391,6 +1464,12 @@ hook 'mouseup', 1, (point, event, state) ->
       @undoCapture()
 
       # Remove the block from the tree.
+      rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
+
+      # TODO this is a hacky way of preserving locations
+      # across parenthesis insertion
+      hadTextToken = @draggingBlock.start.next.type is 'text'
+
       @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
@@ -1412,12 +1491,21 @@ hook 'mouseup', 1, (point, event, state) ->
           if @lastHighlight.type is 'document'
             @spliceIn @draggingBlock, @lastHighlight.start
 
+      # TODO as above
+      hasTextToken = @draggingBlock.start.next.type is 'text'
+      if hadTextToken and not hasTextToken
+        rememberedSocketOffsets.forEach (x) ->
+          x.offset -= 1
+      else if hasTextToken and not hadTextToken
+        rememberedSocketOffsets.forEach (x) ->
+          x.offset += 1
+
       futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
 
       # Reparse the parent if we are
       # in a socket
       #
-      # TODO "reparseable" property, bubble up
+      # TODO "reparseable" property (or absent contexts), bubble up
       # TODO performance on large programs
       if @lastHighlight.type is 'socket'
         @reparse @draggingBlock.parent.parent
@@ -1427,8 +1515,38 @@ hook 'mouseup', 1, (point, event, state) ->
 
       @setCursor(futureCursorLocation) if futureCursorLocation?
 
+      newBeginning = futureCursorLocation.location.count
+      newIndex = futureCursorLocation.document
+
+      for el, i in rememberedSocketOffsets
+        @rememberedSockets.push new RememberedSocketRecord(
+          new CrossDocumentLocation(
+            newIndex
+            new model.Location(el.offset + newBeginning, 'socket')
+          ),
+          el.text
+        )
+
       # Fire the event for sound
       @fireEvent 'block-click'
+
+Editor::spliceRememberedSocketOffsets = (block) ->
+  if block.getDocument()?
+    blockBegin = block.start.getLocation().count
+    offsets = []
+    newRememberedSockets = []
+    for el, i in @rememberedSockets
+      if block.contains @fromCrossDocumentLocation(el.socket)
+        offsets.push {
+          offset: el.socket.location.count - blockBegin
+          text: el.text
+        }
+      else
+        newRememberedSockets.push el
+    @rememberedSockets = newRememberedSockets
+    return offsets
+  else
+    []
 
 # FLOATING BLOCK SUPPORT
 # ================================
@@ -1460,6 +1578,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Remove the block from the tree.
     @undoCapture()
+    rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
     @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
@@ -1491,6 +1610,15 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @setCursor @draggingBlock.start
 
+    for el, i in rememberedSocketOffsets
+      @rememberedSockets.push new RememberedSocketRecord(
+        new CrossDocumentLocation(
+          @floatingBlocks.length - 1,
+          new model.Location(el.offset, 'socket')
+        ),
+        el.text
+      )
+
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
     @draggingOffset = null
@@ -1520,6 +1648,13 @@ Editor::performFloatingOperation = (op, direction) ->
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
     @block = @block.clone()
+
+  toString: -> JSON.stringify({
+    index: @index
+    block: @block.stringify()
+    position: @position.toString()
+    type: @type
+  })
 
 # PALETTE SUPPORT
 # ================================
@@ -2464,6 +2599,12 @@ class CrossDocumentLocation
 
   is: (other) -> @location.is(other.location) and @document is other.document
 
+  clone: ->
+    new CrossDocumentLocation(
+      @document,
+      @location.clone()
+    )
+
 Editor::validCursorPosition = (destination) ->
   return destination.type in ['documentStart', 'indentStart'] or
          destination.type is 'blockEnd' and destination.parent.type in ['document', 'indent'] or
@@ -2490,7 +2631,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, (if destination.document is @cursor.document then [@cursor.location, destination.location] else [@cursor.location])
+    @reparse @getCursor(), null, (if destination.document is @cursor.document then [destination.location] else [])
     @hiddenInput.blur()
     @dropletElement.focus()
 
