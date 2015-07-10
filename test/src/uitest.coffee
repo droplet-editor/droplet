@@ -581,7 +581,6 @@ asyncTest 'Controller: remembered sockets', ->
     )
   ]
 
-
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
@@ -624,7 +623,7 @@ asyncTest 'Controller: Random drag undo test', ->
   tick = (count) ->
     cb = ->
       if count is 0
-        stateStack.push editor.getValue()
+        stateStack.push editor.getSerializedEditorState().toString()
         text = stateStack.pop()
         while stateStack[stateStack.length - 1] is text
           text = stateStack.pop()
@@ -634,14 +633,14 @@ asyncTest 'Controller: Random drag undo test', ->
           while stateStack[stateStack.length - 1] is text
             text = stateStack.pop()
           editor.undo()
-          equal editor.getValue(), text, 'Undo was correct'
+          equal editor.getSerializedEditorState().toString(), text, 'Undo was correct'
 
         start()
       else
         ok (not editor.cursorAtSocket()), 'Properly unfocused'
         setTimeout (-> tick count - 1), 0
 
-    stateStack.push editor.getValue()
+    stateStack.push editor.getSerializedEditorState().toString()
 
     if rng() > 0.5
       op = getRandomDragOp(editor, rng)

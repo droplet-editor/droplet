@@ -774,6 +774,10 @@ class EditorState
       return false unless el.position.equals(other.floats[i].position) and el.string is other.floats[i].string
     return true
 
+  toString: -> JSON.stringify {
+    @root, @floats
+  }
+
 Editor::getSerializedEditorState = ->
   return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> {
     position: x.position

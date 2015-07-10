@@ -394,8 +394,7 @@ exports.Draw = class Draw
           ctx.stroke()
 
         else
-          if @dotted
-            console.log 'setting line dash'
+          if @dotted and ctx.setLineDash?
             ctx.setLineDash [8, 5]
           ctx.stroke()
 
