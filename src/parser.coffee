@@ -117,9 +117,7 @@ exports.Parser = class Parser
       opts.color,
       opts.socketLevel,
       opts.classes,
-      false
-
-    block.parseContext = opts.parseContext # TODO unhack
+      opts.parseContext
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -220,7 +218,7 @@ exports.Parser = class Parser
   # Construct a handwritten block with the given
   # text inside
   constructHandwrittenBlock: (text) ->
-    block = new model.Block 0, 'blank', helper.ANY_DROP, false
+    block = new model.Block 0, 'blank', helper.ANY_DROP
     socket = new model.Socket @empty, 0, true
     textToken = new model.TextToken text
 
@@ -232,6 +230,8 @@ exports.Parser = class Parser
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
       block.classes = ['__comment__', 'block-only']
+    else
+      block.classes = ['__handwritten__', 'block-only']
 
     return block
 
@@ -485,6 +485,8 @@ exports.wrapParser = (CustomParser) ->
     constructor: (@opts = {}) ->
       @empty = CustomParser.empty
       @emptyIndent = CustomParser.emptyIndent
+      @startComment = CustomParser.startComment ? '/*'
+      @endComment = CustomParser.endComment ? '*/'
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?

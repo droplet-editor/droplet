@@ -87,6 +87,7 @@ exports.Draw = class Draw
 
       copy: (point) ->
         @x = point.x; @y = point.y
+        return @
 
       from: (point) -> new Point @x - point.x, @y - point.y
 
@@ -112,8 +113,10 @@ exports.Draw = class Draw
 
       contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
 
-      identical: (other) ->
-        @x is other.x and
+      equals: (other) ->
+        unless other instanceof Rectangle
+          return false
+        return @x is other.x and
         @y is other.y and
         @width is other.width and
         @height is other.height
@@ -121,10 +124,14 @@ exports.Draw = class Draw
       copy: (rect) ->
         @x = rect.x; @y = rect.y
         @width = rect.width; @height = rect.height
+        return @
 
       clip: (ctx) ->
         ctx.rect @x, @y, @width, @height
         ctx.clip()
+
+      clearRect: (ctx) ->
+        ctx.clearRect @x, @y, @width, @height
 
       clone: ->
         rect = new Rectangle(0, 0, 0, 0)
@@ -195,6 +202,8 @@ exports.Draw = class Draw
         @_cacheFlag = false
         @_bounds = new NoRectangle()
 
+        @bevel = @noclip = @dotted = false
+
         @style = {
           'strokeColor': '#000'
           'lineWidth': 1
@@ -202,20 +211,29 @@ exports.Draw = class Draw
         }
 
       _clearCache: ->
+        @_cacheFlag = true
         if @_cacheFlag
-          minX = minY = Infinity
-          maxX = maxY = 0
-          for point in @_points
-            minX = min minX, point.x
-            maxX = max maxX, point.x
+          # If we have no points, return the empty rectangle
+          # as our bounding box
+          if @_points.length is 0
+            @_bounds = new NoRectangle()
 
-            minY = min minY, point.y
-            maxY = max maxY, point.y
+          # Otherwise, find our bounding box based
+          # on our points.
+          else
+            minX = minY = Infinity
+            maxX = maxY = 0
+            for point in @_points
+              minX = min minX, point.x
+              maxX = max maxX, point.x
 
-          @_bounds.x = minX; @_bounds.y = minY
-          @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
+              minY = min minY, point.y
+              maxY = max maxY, point.y
 
-          @_cacheFlag = false
+            @_bounds.x = minX; @_bounds.y = minY
+            @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
+
+            @_cacheFlag = false
 
       push: (point) ->
         @_points.push point
@@ -287,6 +305,24 @@ exports.Draw = class Draw
       translate: (vector) ->
         @_cachedTranslation.translate vector
         @_cacheFlag = true
+
+      clip: (ctx) ->
+        @_clearCache()
+
+        if @_points.length is 0 then return
+
+        ctx.beginPath()
+        ctx.moveTo @_points[0].x, @_points[0].y
+        for point in @_points
+          ctx.lineTo point.x, point.y
+        ctx.lineTo @_points[0].x, @_points[0].y
+
+        # Wrap around again so that the origin
+        # has a normal corner
+        if @_points.length > 1
+          ctx.lineTo @_points[1].x, @_points[1].y
+
+        ctx.clip()
 
       draw: (ctx) ->
         @_clearCache()
@@ -360,6 +396,8 @@ exports.Draw = class Draw
           ctx.stroke()
 
         else
+          if @dotted and ctx.setLineDash?
+            ctx.setLineDash [8, 5]
           ctx.stroke()
 
         ctx.restore()

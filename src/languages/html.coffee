@@ -141,6 +141,15 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         start = string.indexOf att.name.toLowerCase()
         end = start + att.name.length
         string = string[end...]
+        if string.trimLeft()[0] is '='
+          add = 0
+          newStr = string.trimLeft()[1...].trimLeft()
+          add = string.length - newStr.length
+          string = string[add...]
+          if string[0] in ['"', '\''] and string[0] is string[1]
+            add += 2
+            string = string[2...]
+          end += add
         if att.value.length isnt 0
           diff = string.indexOf(att.value.toLowerCase())
           if string[diff-1] in ['"', '\''] and string[diff-1] is string[diff + att.value.length]
@@ -261,6 +270,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       color: @getColor node
       classes: @getClasses node
       socketLevel: @getSocketLevel node
+      parseContext: node.nodeName
 
   htmlSocket: (node, depth, precedence, bounds, classes) ->
     @addSocket
@@ -295,7 +305,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         column = 0
     @positions[@text.length] = {'line': line, 'column': column}
 
-    if @opts.parseOptions?.wrapAtRoot is false
+    parseContext = @opts.parseOptions?.context
+
+    if parseContext and parseContext not in ['html', 'head', 'body']
       root = htmlParser.parseFragment @text
       @cleanTree root
       @fixBounds root
