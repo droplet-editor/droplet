@@ -8,9 +8,26 @@ COLORS = {
   'Default': 'cyan',
 }
 
-MOSTLY_VALUE = []
-
 DEFAULT_INDENT_DEPTH = '  '
+
+UNITS = {}
+
+(->
+  UTS = {
+    length: ['em', 'rem', 'ex', 'px', 'cm', 'mm', 'in', 'pt', 'pc', 'ch', 'vh', 'vw', 'vmax', 'vmin']
+    angle: ['deg', 'rad', 'grad']
+    time: ['ms', 's']
+    frequency: ['hz', 'khz']
+    resolution: ['dpi', 'dpcm']
+  }
+
+  for k, v of UTS
+    UNITS[k] = {
+      dropdownOnly: true
+      options: v
+      generate: -> @options.map (x) => {text: x, display: x}
+    }
+)()   #To prevent namespace pollution
 
 Stack = []
 Stack.setValid = (state) -> Stack._valid = state
@@ -57,8 +74,6 @@ cssParser.addListener("property", (event) -> Stack.add event, 'property')
 cssParser.addListener("startmedia", (event) -> Stack.start event, 'media')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
 cssParser.addListener("error", (event) -> Stack.setValid false)
-
-console.log parserlib.css
 
 ObjectReturning = ["parseSelector", "parsePropertyValue", "parseMediaQuery"]
 
@@ -111,16 +126,17 @@ exports.CSSParser = class CSSParser extends parser.Parser
       classes: @getClasses node
       socketLevel: @getSocketLevel node
 
-  cssSocket: (node, depth, precedence) ->
+  cssSocket: (node, depth, precedence, bounds, dropdown) ->
     if not node
       return
     #console.log "Adding Socket: ", JSON.stringify @getBounds node
     @addSocket
-      bounds: @getBounds node
+      bounds: bounds ? @getBounds node
       depth: depth
       precedence: precedence ? @getPrecedence node
       classes: @getClasses node
       acccepts: @getAcceptsRule node
+      dropdown: dropdown
 
   getIndentPrefix: (bounds, indentDepth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -228,6 +244,31 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @cssBlock node, depth + 1
         for part in node.parts
           @cssSocket part, depth + 2
+      for part in node.parts
+        if UNITS[part.type]   #dimension
+          @cssBlock part, depth + 3
+          bounds = @getBounds part
+          @cssSocket part, depth + 4, null, {
+            start: bounds.start
+            end: {line: bounds.end.line, column: bounds.end.column - part.units.length}
+          }
+          @cssSocket part, depth + 4, null, {
+            start: {line: bounds.end.line, column: bounds.end.column - part.units.length}
+            end: bounds.end
+          }, UNITS[part.type]
+        else if part.type is 'percentage'
+          @cssBlock part, depth + 3
+          bounds = @getBounds part
+          @cssSocket part, depth + 4, null, {
+            start: bounds.start
+            end: {line: bounds.end.line, column: bounds.end.column - 1}
+          }
+        else if part.args
+          @cssBlock part, depth + 3
+          @mark indentDepth, part.args, depth + 4
+        else
+          #console.log part
+          null
 
   handleCompoundNode: (indentDepth, node, depth) ->
     indentBounds = @getIndentBounds node

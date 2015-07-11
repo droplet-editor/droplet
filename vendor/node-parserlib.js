@@ -2934,6 +2934,8 @@ Parser.prototype = function(){
                     unary       = null,
                     value       = null,
                     endChar     = null,
+                    args        = null,
+                    pvp,
                     token,
                     lastToken,
                     line,
@@ -2951,9 +2953,9 @@ Parser.prototype = function(){
                 if (tokenStream.peek() == Tokens.IE_FUNCTION && this.options.ieFilters){
 
                     value = this._ie_function();
+                    lastToken = tokenStream.token();
                     this._readWhitespace();
                     if (unary === null){
-                        lastToken = tokenStream.token();
                         line = tokenStream.token().startLine;
                         col = tokenStream.token().startCol;
                     }
@@ -3008,7 +3010,9 @@ Parser.prototype = function(){
                             if (tokenStream.LA(3) == Tokens.EQUALS && this.options.ieFilters){
                                 value = this._ie_function();
                             } else {
-                                value = this._function();
+                                fn = this._function();
+                                value = fn.text;
+                                args = fn.expr;
                             }
                             lastToken = tokenStream.token();
                             this._readWhitespace();
@@ -3030,8 +3034,12 @@ Parser.prototype = function(){
 
                 }
 
-                return value!==null ? new PropertyValuePart(unary !== null ? unary + value : value, line, col, lastToken.endLine, lastToken.endCol) :
-                    null
+                if(!value)
+                    return value;
+                pvp = new PropertyValuePart(unary !== null ? unary + value : value, line, col, lastToken.endLine, lastToken.endCol);
+                if(args)
+                    pvp.args = args
+                return pvp;
 
             },
 
@@ -3089,7 +3097,10 @@ Parser.prototype = function(){
                     functionText += ")";
                 }
 
-                return functionText;
+                return {
+                    text: functionText,
+                    expr: expr
+                }
             },
 
             _ie_function: function(){
