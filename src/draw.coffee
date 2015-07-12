@@ -61,10 +61,12 @@ getGuid = -> 'draw-guid-' + Math.random().toString() # For
 exports.Draw = class Draw
   ## Public functions
   constructor: ->
-    @ctx = document.createElement('canvas')
+    canvas = document.createElement('canvas')
+    @ctx = canvas.getContext '2d'
     @fontSize = 15
     @fontFamily = 'Courier New, monospace'
     @fontAscent = 2
+    @fontBaseline = 10
 
     self = this
 
@@ -205,7 +207,7 @@ exports.Draw = class Draw
 
         @style = {
           'strokeColor': '#000'
-          'lineWidth': 1
+          'lineWidth': 0
           'fillColor': null
         }
 
@@ -334,9 +336,9 @@ exports.Draw = class Draw
         clone.push el for el in @_points
         return clone
 
-      ###
-      # TODO
       drawShadow: (ctx, offsetX, offsetY, blur) ->
+        ###
+        # TODO
         @_clearCache()
 
         ctx.fillStyle = @style.fillColor
@@ -366,7 +368,8 @@ exports.Draw = class Draw
 
         for own key, value of oldValues
           ctx[key] = value
-    ###
+      ###
+      0
 
     # ## Text ##
     # A Text element. Mainly this exists for computing bounding boxes, which is
@@ -391,10 +394,15 @@ exports.Draw = class Draw
 
       draw: (ctx) ->
         element = document.createElementNS SVG_STANDARD, 'text'
-        element.setAttribute 'x', @point.x
-        element.setAttribute 'y', @point.y
         element.setAttribute 'fill', '#000'
-        element.setAttribute 'dominant-baseline', 'text-before-edge'
+
+        # We use the alphabetic baseline and add the distance
+        # to base ourselves to avoid a chrome bug where text zooming
+        # doesn't work for non-alphabetic baselines
+        element.setAttribute 'x', @point.x
+        element.setAttribute 'y', @point.y + self.fontBaseline
+        element.setAttribute 'dominant-baseline', 'alphabetic'
+
         element.setAttribute 'font-family', self.fontFamily
         element.setAttribute 'font-size', self.fontSize
 
@@ -404,9 +412,9 @@ exports.Draw = class Draw
         ctx.appendChild element
 
   refreshFontCapital:  ->
-    @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
-
-  setCtx: (ctx) -> @ctx = ctx
+    metrics = helper.fontMetrics(@fontFamily, @fontSize)
+    @fontAscent = metrics.prettytop
+    @fontBaseline = metrics.baseline
 
   setGlobalFontSize:  (size) ->
     @fontSize = size

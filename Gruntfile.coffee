@@ -69,7 +69,7 @@ module.exports = (grunt) ->
     browserify:
       build:
         files:
-          'example/example-svg.js': ['./src/example-svg.coffee']
+          'dist/droplet-full.js': ['./src/main.coffee']
         options:
           transform: ['coffeeify']
           browserifyOptions:

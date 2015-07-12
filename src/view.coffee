@@ -106,9 +106,6 @@ exports.View = class View
       unless option of @opts
         @opts[option] = DEFAULT_OPTIONS[option]
 
-    # Do our measurement hack
-    @draw.setCtx @opts.ctx
-
   # Simple method for clearing caches
   clearCache: -> @map = {}
 
@@ -711,7 +708,7 @@ exports.View = class View
     draw: (ctx, boundingRect, style = {}) ->
       # First, test to see whether our AABB overlaps
       # with the viewport
-      if @totalBounds.overlap boundingRect
+      if not boundingRect? or @totalBounds.overlap boundingRect
         # If it does, we want to render.
         # Call `@drawSelf`
         @drawSelf ctx, style
@@ -1841,7 +1838,6 @@ exports.View = class View
       # Make ourselves white, with a
       # gray border.
       @path.style.fillColor = '#FFF'
-      @path.style.strokeColor = '#FFF'
 
       return @path
 
@@ -1849,12 +1845,15 @@ exports.View = class View
     drawSelf: (ctx) ->
       super
       if @model.hasDropdown() and @view.opts.showDropdowns
+        ###
         ctx.beginPath()
         ctx.fillStyle = DROP_TRIANGLE_COLOR
         ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
         ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
         ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2
         ctx.fill()
+        ###
+        0
 
     # ## computeOwnDropArea (SocketViewNode)
     # Socket drop areas are actually the same

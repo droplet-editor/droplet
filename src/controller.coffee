@@ -79,6 +79,27 @@ unsortedEditorBindings = {
 
 editorBindings = {}
 
+SVG_STANDARD = 'http://www.w3.org/2000/svg'
+
+EMBOSS_FILTER_SVG =  """
+<svg xmlns="#{SVG_STANDARD}">
+  <filter id="droplet-path-bevel" filterUnits="objectBoundingBox" x="-10%" y="-10%" width="150%" height="150%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="interim"/>
+    <feComponentTransfer in="interim" out="blur">
+      <feFuncA type="linear" slope="1.3" intercept="0">
+    </feComponentTransfer>
+    <feDiffuseLighting in="blur" surfaceScale="5" specularConstant="0.5" specularExponent="10" result="specOut">
+      <feDistantLight azimuth="225" elevation="45"/>
+    </feDiffuseLighting>
+    <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specOut2"/>
+    <feComposite in="SourceGraphic" in2="specOut2" operator="arithmetic" k1="1.4" k2="0" k3="0" k4="0" result="litPaint" />
+  </filter>
+</svg>
+"""
+
+clearCanvas = (canvas) ->
+  canvas.innerHTML = ''
+
 # This hook function is for convenience,
 # for features to add events that will occur at
 # various times in the editor lifecycle.
@@ -119,6 +140,8 @@ exports.Editor = class Editor
     @dropletElement = document.createElement 'div'
     @dropletElement.className = 'droplet-wrapper-div'
 
+    @dropletElement.innerHTML = EMBOSS_FILTER_SVG
+
     # We give our element a tabIndex so that it can be focused and capture keypresses.
     @dropletElement.tabIndex = 0
 
@@ -130,13 +153,14 @@ exports.Editor = class Editor
     # ### Canvases
     # Create the palette and main canvases
 
+    # A measuring canvas for measuring text
+    @measureCanvas = document.createElement 'canvas'
+    @measureCtx = @measureCanvas.getContext '2d'
+
     # Main canvas first
-    @mainCanvas = document.createElement 'canvas'
-    @mainCanvas.className = 'droplet-main-canvas'
-
-    @mainCanvas.width = @mainCanvas.height = 0
-
-    @mainCtx = @mainCanvas.getContext '2d'
+    @mainCanvas = @mainCtx = document.createElementNS SVG_STANDARD, 'svg'
+    @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
+    @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
     @dropletElement.appendChild @mainCanvas
 
@@ -148,11 +172,8 @@ exports.Editor = class Editor
     @paletteWrapper.appendChild @paletteElement
 
     # Then palette canvas
-    @paletteCanvas = document.createElement 'canvas'
-    @paletteCanvas.className = 'droplet-palette-canvas'
-    @paletteCanvas.height = @paletteCanvas.width = 0
-
-    @paletteCtx = @paletteCanvas.getContext '2d'
+    @paletteCanvas = @paletteCtx = document.createElementNS SVG_STANDARD, 'svg'
+    @paletteCanvas.setAttribute 'class',  'droplet-palette-canvas'
 
     @paletteElement.appendChild @paletteCanvas
 
@@ -183,7 +204,7 @@ exports.Editor = class Editor
       emptyLineHeight: 25
       highlightAreaHeight: 10
       shadowBlur: 5
-      ctx: @mainCtx
+      ctx: @measureCtx
       draw: @draw
 
     # Set up event bindings before creating a view
@@ -314,11 +335,9 @@ exports.Editor = class Editor
 
     @resizeGutter()
 
-    @mainCanvas.height = @dropletElement.offsetHeight
-    @mainCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
+    @mainCanvas.style.height = "#{@dropletElement.offsetHeight}px"
+    @mainCanvas.style.width = "#{@dropletElement.offsetWidth - @gutter.offsetWidth}px"
 
-    @mainCanvas.style.height = "#{@mainCanvas.height}px"
-    @mainCanvas.style.width = "#{@mainCanvas.width}px"
     @mainCanvas.style.left = "#{@gutter.offsetWidth}px"
     @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
 
@@ -335,28 +354,28 @@ exports.Editor = class Editor
     @scrollOffsets.main.y = @mainScroller.scrollTop
     @scrollOffsets.main.x = @mainScroller.scrollLeft
 
-    @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    # TODO migrate from "transform" to "viewBox"
+    @setScrollOffset @mainCtx, @scrollOffsets.main
 
     # Also update scroll for the highlight ctx, so that
     # they can match the blocks' positions
-    @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
-    @cursorCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    @setScrollOffset @highlightCtx, @scrollOffsets.main
+    @setScrollOffset @cursorCtx, @scrollOffsets.main
 
-    @redrawMain()
+  setScrollOffset: (canvas, offset) ->
+    canvas.setAttribute 'viewBox', "#{offset.x}, #{offset.y}, #{canvas.offsetWidth}, #{canvas.offsetHeight}"
 
   resizePalette: ->
     @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
-    @paletteCanvas.height = @paletteWrapper.offsetHeight - @paletteHeader.offsetHeight
-    @paletteCanvas.width = @paletteWrapper.offsetWidth
+    @paletteCanvas.style.height = "#{@paletteWrapper.offsetHeight - @paletteHeader.offsetHeight}px"
+    @paletteCanvas.style.width = "#{@paletteWrapper.offsetWidth}px"
 
-    @paletteCanvas.style.height = "#{@paletteCanvas.height}px"
-    @paletteCanvas.style.width = "#{@paletteCanvas.width}px"
 
     for binding in editorBindings.resize_palette
       binding.call this
 
-    @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
-    @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
+    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
 
     @rebuildPalette()
 
@@ -376,12 +395,7 @@ exports.Editor = class Editor
 #
 # Redrawing simply involves issuing a call to the View.
 
-Editor::clearMain = (opts) ->
-  if opts.boundingRectangle?
-    @mainCtx.clearRect opts.boundingRectangle.x, opts.boundingRectangle.y,
-      opts.boundingRectangle.width, opts.boundingRectangle.height
-  else
-    @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
+Editor::clearMain = (opts) -> clearCanvas @mainCtx
 
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
@@ -390,8 +404,8 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   if height >= 0
     @topNubbyPath.bevel = true
 
-    @topNubbyPath.push new @draw.Point @mainCanvas.width, -5
-    @topNubbyPath.push new @draw.Point @mainCanvas.width, height
+    @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, -5
+    @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, height
 
     @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
     @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
@@ -417,24 +431,12 @@ Editor::redrawMain = (opts = {}) ->
     # to the font size we want
     @draw.setGlobalFontSize @fontSize
 
-    # Supply our main canvas for measuring
-    @draw.setCtx @mainCtx
-
     # Clear the main canvas
     @clearMain(opts)
 
     @topNubbyPath.draw @mainCtx
 
-    if opts.boundingRectangle?
-      @mainCtx.save()
-      opts.boundingRectangle.clip @mainCtx
-
-    rect = opts.boundingRectangle ? new @draw.Rectangle(
-      @scrollOffsets.main.x,
-      @scrollOffsets.main.y,
-      @mainCanvas.width,
-      @mainCanvas.height
-    )
+    rect = null
     options = {
       grayscale: false
       selected: false
@@ -448,8 +450,8 @@ Editor::redrawMain = (opts = {}) ->
     @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
 
     # Draw floating blocks
-    startWidth = @mainCtx.measureText(@mode.startComment).width
-    endWidth = @mainCtx.measureText(@mode.endComment).width
+    startWidth = @measureCtx.measureText(@mode.startComment).width
+    endWidth = @measureCtx.measureText(@mode.endComment).width
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
       blockView.layout record.position.x, record.position.y
@@ -505,27 +507,22 @@ Editor::redrawMain = (opts = {}) ->
         if opts.boundingRectangle?
           opts.boundingRectangle.unite path.bounds()
           opts.boundingRectangle.unite(oldBounds)
-          @mainCtx.restore()
           return @redrawMain opts
 
       # TODO this will need to become configurable by the @mode
-      @mainCtx.globalAlpha *= 0.8
       record.grayBoxPath.draw @mainCtx
+      ###TODO
       @mainCtx.fillStyle = '#000'
       @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
         blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
       @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
-      @mainCtx.globalAlpha /= 0.8
+      ###
 
       blockView.draw @mainCtx, rect, {
         grayscale: false
         selected: false
         noText: false
       }
-    @mainCtx.globalAlpha /= FLOATING_BLOCK_ALPHA
-
-    if opts.boundingRectangle?
-      @mainCtx.restore()
 
     # Draw the cursor (if exists, and is inserted)
     @redrawCursors(); @redrawHighlights()
@@ -588,8 +585,7 @@ Editor::redrawHighlights = ->
   @redrawCursors()
   @redrawLassoHighlight()
 
-Editor::clearCursorCanvas = ->
-  @cursorCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
+Editor::clearCursorCanvas = -> clearCanvas @cursorCtx
 
 Editor::redrawCursors = ->
   @clearCursorCanvas()
@@ -602,13 +598,9 @@ Editor::redrawCursors = ->
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
-Editor::clearPalette = ->
-  @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-    @paletteCanvas.width, @paletteCanvas.height
+Editor::clearPalette = -> clearCanvas @paletteCtx
 
-Editor::clearPaletteHighlightCanvas = ->
-  @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-    @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
+Editor::clearPaletteHighlightCanvas = -> clearCanvas @paletteHighlightCtx
 
 Editor::redrawPalette = ->
   @clearPalette()
@@ -944,19 +936,15 @@ hook 'populate', 0, ->
 
   # We will also have to initialize the
   # drag canvas.
-  @dragCanvas = document.createElement 'canvas'
-  @dragCanvas.className = 'droplet-drag-canvas'
+  @dragCanvas = @dragCtx = document.createElementNS SVG_STANDARD, 'svg'
+  @dragCanvas.setAttribute 'class',  'droplet-drag-canvas'
 
   @dragCanvas.style.left = '-9999px'
   @dragCanvas.style.top = '-9999px'
 
-  @dragCtx = @dragCanvas.getContext '2d'
-
   # And the canvas for drawing highlights
-  @highlightCanvas = document.createElement 'canvas'
-  @highlightCanvas.className = 'droplet-highlight-canvas'
-
-  @highlightCtx = @highlightCanvas.getContext '2d'
+  @highlightCanvas = @highlightCtx = document.createElementNS SVG_STANDARD, 'svg'
+  @highlightCanvas.setAttribute 'class',  'droplet-highlight-canvas'
 
   # We append it to the tracker element,
   # so that it can appear in front of the scrollers.
@@ -965,24 +953,20 @@ hook 'populate', 0, ->
   @wrapperElement.appendChild @dragCanvas
   @dropletElement.appendChild @highlightCanvas
 
-Editor::clearHighlightCanvas = ->
-  @highlightCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
+Editor::clearHighlightCanvas = -> clearCanvas @highlightCtx
 
 # Utility function for clearing the drag canvas,
 # an operation we will be doing a lot.
-Editor::clearDrag = ->
-  @dragCtx.clearRect 0, 0, @dragCanvas.width, @dragCanvas.height
+Editor::clearDrag = -> clearCanvas @dragCtx
 
 # On resize, we will want to size the drag canvas correctly.
 Editor::resizeDragCanvas = ->
-  @dragCanvas.width = 0
-  @dragCanvas.height = 0
+  @dragCanvas.style.width = "#{0}px"
+  @dragCanvas.style.height = "#{0}px"
 
-  @highlightCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
-  @highlightCanvas.style.width = "#{@highlightCanvas.width}px"
+  @highlightCanvas.style.width = "#{@dropletElement.offsetWidth - @gutter.offsetWidth}px"
 
-  @highlightCanvas.height = @dropletElement.offsetHeight
-  @highlightCanvas.style.height = "#{@highlightCanvas.height}px"
+  @highlightCanvas.style.height = "#{@dropletElement.offsetHeight}px"
 
   @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
@@ -1154,8 +1138,8 @@ hook 'mousemove', 1, (point, event, state) ->
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
 
-    @dragCanvas.width = Math.min draggingBlockView.totalBounds.width + 10, window.screen.width
-    @dragCanvas.height = Math.min draggingBlockView.totalBounds.height + 10, window.screen.height
+    @dragCanvas.style.width = "#{Math.min draggingBlockView.totalBounds.width + 10, window.screen.width}px"
+    @dragCanvas.style.height = "#{Math.min draggingBlockView.totalBounds.height + 10, window.screen.height}px"
 
     draggingBlockView.drawShadow @dragCtx, 5, 5
     draggingBlockView.draw @dragCtx, new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
@@ -1627,17 +1611,21 @@ hook 'mousedown', 6, (point, event, state) ->
   # If someone else has already taken this click, pass.
   if state.consumedHitTest then return
 
+  console.log 'got this'
+
   # If it's not in the palette pane, pass.
   if not @trackerPointIsInPalette(point) then return
 
   palettePoint = @trackerPointToPalette point
-  if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
-     @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
+  if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.offsetHeight and
+     @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.offsetWidth
+    console.log 'ok to test'
 
     for entry in @currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
       if hitTestResult?
+        console.log 'got it'
         @clickedBlock = entry.block
         @clickedPoint = point
         @clickedBlockPaletteEntry = entry
@@ -1650,9 +1638,8 @@ hook 'mousedown', 6, (point, event, state) ->
 # PALETTE HIGHLIGHT CODE
 # ================================
 hook 'populate', 1, ->
-  @paletteHighlightCanvas = document.createElement 'canvas'
-  @paletteHighlightCanvas.className = 'droplet-palette-highlight-canvas'
-  @paletteHighlightCtx = @paletteHighlightCanvas.getContext '2d'
+  @paletteHighlightCanvas = @paletteHighlightCtx = document.createElementNS SVG_STANDARD, 'svg'
+  @paletteHighlightCanvas.setAttribute 'class',  'droplet-palette-highlight-canvas'
 
   @paletteHighlightPath = null
   @currentHighlightedPaletteBlock = null
@@ -1661,8 +1648,8 @@ hook 'populate', 1, ->
 
 Editor::resizePaletteHighlight = ->
   @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
-  @paletteHighlightCanvas.width = @paletteCanvas.width
-  @paletteHighlightCanvas.height = @paletteCanvas.height
+  @paletteHighlightCanvas.style.width = "#{@paletteCanvas.width}px"
+  @paletteHighlightCanvas.style.height = "#{@paletteCanvas.height}px"
 
 hook 'redraw_palette', 0, ->
   @clearPaletteHighlightCanvas()
@@ -1691,7 +1678,6 @@ hook 'rebuild_palette', 1, ->
 
     # Clip boxes to the width of the palette to prevent x-scrolling. TODO: fix x-scrolling behaviour.
     hoverDiv.style.width = "#{Math.min(bounds.width, Infinity)}px"
-    hoverDiv.style.height = "#{bounds.height}px"
 
     do (block) =>
       hoverDiv.addEventListener 'mousemove', (event) =>
@@ -1860,26 +1846,30 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   lines = @getCursor().stringify().split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n'))).width +
+    @measureCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-    @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n'))).width +
+    @measureCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
   #
   # Draw a line if it is just a cursor
   if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
+    ### TODO
     @cursorCtx.lineWidth = 1
     @cursorCtx.strokeStyle = '#000'
     @cursorCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
       0, @view.opts.textHeight
     @textInputHighlighted = false
+    ###
+    0
 
   # Draw a translucent rectangle if there is a selection.
   else
     @textInputHighlighted = true
+    ###TODO
     @cursorCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
 
     if startRow is endRow
@@ -1901,6 +1891,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
         textFocusView.bounds[endRow].y + @view.opts.textPadding,
         endPosition - textFocusView.bounds[endRow].x,
         @view.opts.textHeight
+    ###
 
   if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
     @mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
@@ -2052,7 +2043,7 @@ Editor::getTextPosition = (point) ->
   row = Math.max row, 0
   row = Math.min row, textFocusView.lineLength - 1
 
-  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
+  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @measureCtx.measureText(' ').width)
 
   lines = @getCursor().stringify().split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
@@ -2270,9 +2261,8 @@ hook 'mouseup', 0, (point, event, state) ->
 # with some fields.
 hook 'populate', 0, ->
   @lassoSelectCanvas = document.createElement 'canvas'
-  @lassoSelectCanvas.className = 'droplet-lasso-select-canvas'
-
   @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
+  @lassoSelectCanvas.setAttribute 'class',  'droplet-lasso-select-canvas'
 
   @lassoSelectAnchor = null
   @lassoSelection = null
@@ -2345,7 +2335,6 @@ hook 'mousemove', 0, (point, event, state) ->
         last = last.prev
 
       @clearLassoSelectCanvas(); @clearHighlightCanvas()
-
       @lassoSelectCtx.strokeStyle = '#00f'
       @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
         lassoRectangle.y - @scrollOffsets.main.y,
@@ -2791,7 +2780,7 @@ Editor::computePlaintextTranslationVectors = ->
         translationVectors.push (new @draw.Point(state.x, state.y)).from(corner)
         textElements.push @view.getViewNodeFor head
 
-        state.x += @mainCtx.measureText(head.value).width
+        state.x += @measureCtx.measureText(head.value).width
 
       # Newline moves the cursor to the next line,
       # plus some indent.
@@ -2803,9 +2792,9 @@ Editor::computePlaintextTranslationVectors = ->
         rownum += 1
         state.y += state.lineHeight * wrappedlines
         if head.specialIndent?
-          state.x = state.leftEdge + @mainCtx.measureText(head.specialIndent).width
+          state.x = state.leftEdge + @measureCtx.measureText(head.specialIndent).width
         else
-          state.x = state.leftEdge + state.indent * @mainCtx.measureText(' ').width
+          state.x = state.leftEdge + state.indent * @measureCtx.measureText(' ').width
 
       when 'indentStart'
         state.indent += head.container.depth
@@ -3238,14 +3227,12 @@ hook 'populate', 2, ->
     @scrollOffsets.main.y = @mainScroller.scrollTop
     @scrollOffsets.main.x = @mainScroller.scrollLeft
 
-    @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    @setScrollOffset @mainCtx, @scrollOffsets.main
 
     # Also update scroll for the highlight ctx, so that
     # they can match the blocks' positions
-    @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
-    @cursorCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
-
-    @redrawMain()
+    @setScrollOffset @highlightCtx, @scrollOffsets.main
+    @setScrollOffset @cursorCtx, @scrollOffsets.main
 
   @paletteScroller = document.createElement 'div'
   @paletteScroller.className = 'droplet-palette-scroller'
@@ -3263,8 +3250,8 @@ hook 'populate', 2, ->
     # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
     # @scrollOffsets.palette.x = @paletteScroller.scrollLeft
 
-    @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
-    @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
+    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
 
     # redraw the bits of the palette
     @redrawPalette()
@@ -3290,7 +3277,7 @@ hook 'redraw_main', 1, ->
   # jammed up against the edge of the screen.
   #
   # Default this extra space to fontSize (approx. 1 line).
-  @mainScrollerStuffing.style.height = "#{bounds.bottom() +
+  @mainCanvas.style.height = "#{bounds.bottom() +
     (@options.extraBottomHeight ? @fontSize)}px"
 
 hook 'redraw_palette', 0, ->
@@ -3760,24 +3747,21 @@ hook 'populate', 0, ->
 # CURSOR DRAW SUPPORRT
 # ================================
 hook 'populate', 0, ->
-  @cursorCanvas = document.createElement 'canvas'
-  @cursorCanvas.className = 'droplet-highlight-canvas droplet-cursor-canvas'
-
-  @cursorCtx = @cursorCanvas.getContext '2d'
+  @cursorCanvas = @cursorCtx = document.createElementNS SVG_STANDARD, 'svg'
+  @cursorCanvas.setAttribute 'class',  'droplet-highlight-canvas droplet-cursor-canvas'
 
   @dropletElement.appendChild @cursorCanvas
 
 Editor::resizeCursorCanvas = ->
-  @cursorCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
-  @cursorCanvas.style.width = "#{@cursorCanvas.width}px"
+  @cursorCanvas.style.width = "#{@dropletElement.offsetWidth - @gutter.offsetWidth}px"
 
-  @cursorCanvas.height = @dropletElement.offsetHeight
-  @cursorCanvas.style.height = "#{@cursorCanvas.height}px"
+  @cursorCanvas.style.height = "#{@dropletElement.offsetHeight}px"
 
   @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
 Editor::strokeCursor = (point) ->
   return unless point?
+  ###
   @cursorCtx.beginPath()
 
   @cursorCtx.fillStyle =
@@ -3799,16 +3783,17 @@ Editor::strokeCursor = (point) ->
   @cursorCtx.arc arcCenter.x, arcCenter.y, (w*w + h*h) / (2 * h), startAngle, endAngle
 
   @cursorCtx.stroke()
+  ###
 
 Editor::highlightFlashShow = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  @cursorCanvas.style.display = 'block'
+  #@cursorCanvas.style.display = 'block'
   @highlightsCurrentlyShown = true
   @flashTimeout = setTimeout (=> @flash()), 500
 
 Editor::highlightFlashHide = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  @cursorCanvas.style.display = 'none'
+  #@cursorCanvas.style.display = 'none'
   @highlightsCurrentlyShown = false
   @flashTimeout = setTimeout (=> @flash()), 500
 
