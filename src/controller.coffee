@@ -162,8 +162,6 @@ exports.Editor = class Editor
     @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
     @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
-    @dropletElement.appendChild @mainCanvas
-
     @paletteWrapper = document.createElement 'div'
     @paletteWrapper.className = 'droplet-palette-wrapper'
 
@@ -335,12 +333,10 @@ exports.Editor = class Editor
 
     @resizeGutter()
 
-    @mainCanvas.style.height = "#{@dropletElement.offsetHeight}px"
-    @mainCanvas.style.width = "#{@dropletElement.offsetWidth - @gutter.offsetWidth}px"
+    @mainCanvas.setAttribute 'width', @dropletElement.offsetWidth - @gutter.offsetWidth
 
     @mainCanvas.style.left = "#{@gutter.offsetWidth}px"
     @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
-
 
     @resizePalette()
     @resizePaletteHighlight()
@@ -363,7 +359,8 @@ exports.Editor = class Editor
     @setScrollOffset @cursorCtx, @scrollOffsets.main
 
   setScrollOffset: (canvas, offset) ->
-    canvas.setAttribute 'viewBox', "#{offset.x}, #{offset.y}, #{canvas.offsetWidth}, #{canvas.offsetHeight}"
+    #canvas.setAttribute 'viewBox', "#{offset.x}, #{offset.y}, #{canvas.offsetWidth}, #{canvas.offsetHeight}"
+    0
 
   resizePalette: ->
     @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
@@ -932,7 +929,7 @@ hook 'populate', 0, ->
   @draggingBlock = null
   @draggingOffset = null
 
-  @lastHighlight = null
+  @lastHighlight = @lastHighlightPath = null
 
   # We will also have to initialize the
   # drag canvas.
@@ -1296,9 +1293,12 @@ hook 'mousemove', 0, (point, event, state) ->
         # TODO if this becomes a performance issue,
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
+        if @lastHighlightPath?
+          @mainCtx.removeChild @lastHighlightPath
+          @lastHighlightPath = null
 
         if best?
-          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          @lastHighlightPath = @view.getViewNodeFor(best).highlightArea.draw @mainCtx
           @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
@@ -1474,7 +1474,7 @@ hook 'mouseup', 0, (point, event, state) ->
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
     @draggingOffset = null
-    @lastHighlight = null
+    @lastHighlight = @lastHighlightPath = null
 
     @clearDrag()
     @redrawMain()
@@ -3216,7 +3216,7 @@ hook 'populate', 2, ->
   @mainScrollerStuffing = document.createElement 'div'
   @mainScrollerStuffing.className = 'droplet-main-scroller-stuffing'
 
-  @mainScroller.appendChild @mainScrollerStuffing
+  @mainScroller.appendChild @mainCanvas
   @dropletElement.appendChild @mainScroller
 
   # Prevent scrolling on wrapper element
@@ -3270,15 +3270,16 @@ hook 'redraw_main', 1, ->
   for record in @floatingBlocks
     bounds.unite @view.getViewNodeFor(record.block).getBounds()
 
-  @mainScrollerStuffing.style.width = "#{bounds.right()}px"
-
   # We add some extra height to the bottom
   # of the document so that the last block isn't
   # jammed up against the edge of the screen.
   #
   # Default this extra space to fontSize (approx. 1 line).
-  @mainCanvas.style.height = "#{bounds.bottom() +
-    (@options.extraBottomHeight ? @fontSize)}px"
+  height = bounds.bottom() +
+    (@options.extraBottomHeight ? @fontSize)
+
+  @mainCanvas.setAttribute 'height', height
+  @mainCanvas.style.height = "#{height}px"
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
@@ -3633,7 +3634,7 @@ Editor::endDrag = ->
 
   @draggingBlock = null
   @draggingOffset = null
-  @lastHighlight = null
+  @lastHighlight = @lastHighlightPath = null
 
   @clearDrag()
   @redrawMain()
@@ -3943,7 +3944,7 @@ Editor::resizeGutter = ->
     @gutter.style.width = @lastGutterWidth + 'px'
     return @resize()
   @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
-    @mainScrollerStuffing.offsetHeight)}px"
+    @mainCanvas.offsetHeight)}px"
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree

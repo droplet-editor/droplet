@@ -711,13 +711,13 @@ exports.View = class View
       if not boundingRect? or @totalBounds.overlap boundingRect
         # If it does, we want to render.
         # Call `@drawSelf`
-        @drawSelf ctx, style
+        drawSelfResult = @drawSelf ctx, style
 
         # Draw our children.
         for childObj in @children
           @view.getViewNodeFor(childObj.child).draw ctx, boundingRect, style
 
-      return null
+      return drawSelfResult
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
@@ -1649,13 +1649,13 @@ exports.View = class View
         @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
-      @path.draw ctx
+      drawResult = @path.draw ctx
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
 
-      return null
+      return drawResult
 
   # # BlockViewNode
   class BlockViewNode extends ContainerViewNode
@@ -2068,8 +2068,8 @@ exports.View = class View
     # Draw the text element itself.
     drawSelf: (ctx, style = {}) ->
       unless style.noText
-        @textElement.draw ctx
-      return null
+        drawResult = @textElement.draw ctx
+      return drawResult
 
     # ## Debug output
 

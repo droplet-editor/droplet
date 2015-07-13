@@ -5,6 +5,7 @@
 
 ## Private (convenience) functions
 SVG_STANDARD = 'http://www.w3.org/2000/svg'
+BEVEL_SIZE = 1.5
 
 helper = require './helper.coffee'
 
@@ -322,14 +323,65 @@ exports.Draw = class Draw
 
         pathElement.setAttribute 'd', pathCommands.join ' '
 
-        ctx.appendChild pathElement
-
         if @bevel
-          pathElement.setAttribute 'filter', 'url(#droplet-path-bevel)'
+          backgroundPathElement = pathElement
+          foregroundPathElement = document.createElementNS SVG_STANDARD, 'path'
+          foregroundPathElement.setAttribute 'd', pathCommands.join ' '
+          foregroundPathElement.setAttribute 'fill', @style.fillColor
+          container = document.createElementNS SVG_STANDARD, 'g'
+          pathElement = document.createElementNS SVG_STANDARD, 'g'
+
+          bigClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
+          bigClipPathElement = document.createElementNS SVG_STANDARD, 'path'
+          bigClipPathElement.setAttribute 'd', pathCommands.join ' '
+          bigClipPath.appendChild bigClipPathElement
+          bigClipPath.setAttribute 'id', clipId = 'droplet-clip-path-' + Math.random()
+          container.appendChild bigClipPath
+
+          littleClipPathA = document.createElementNS SVG_STANDARD, 'clipPath'
+          littleClipPathAElement = document.createElementNS SVG_STANDARD, 'path'
+          littleClipPathAElement.setAttribute 'd', pathCommands.join ' '
+          littleClipPathAElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
+          littleClipPathA.appendChild littleClipPathAElement
+          littleClipPathA.setAttribute 'id', littleClipAId = 'droplet-clip-path-' + Math.random()
+          container.appendChild littleClipPathA
+
+          littleClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
+          littleClipPath.setAttribute 'clip-path', "url(##{littleClipAId})"
+          littleClipPathElement = document.createElementNS SVG_STANDARD, 'path'
+          littleClipPathElement.setAttribute 'd', pathCommands.join ' '
+          littleClipPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
+          littleClipPath.appendChild littleClipPathElement
+          littleClipPath.setAttribute 'id', littleClipId = 'droplet-clip-path-' + Math.random()
+          container.appendChild littleClipPath
+
+          pathElement.setAttribute 'clip-path', "url(##{clipId})"
+          foregroundPathElement.setAttribute 'clip-path', "url(##{littleClipId})"
+
+          darkPathElement = document.createElementNS SVG_STANDARD, 'path'
+          darkPathElement.setAttribute 'd', pathCommands.join ' '
+          darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.5, '#888'
+          darkPathElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
+
+          lightPathElement = document.createElementNS SVG_STANDARD, 'path'
+          lightPathElement.setAttribute 'd', pathCommands.join ' '
+          lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.5, '#FFF'
+          lightPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
+
+          pathElement.appendChild backgroundPathElement
+          pathElement.appendChild darkPathElement
+          pathElement.appendChild lightPathElement
+          pathElement.appendChild foregroundPathElement
+          container.appendChild pathElement
+
+          pathElement = container
 
         else
           pathElement.setAttribute 'stroke', @style.strokeColor
           pathElement.setAttribute 'stroke-width', @style.lineWidth
+
+        ctx.appendChild pathElement
+        return pathElement
 
       clone: ->
         clone = new Path()
