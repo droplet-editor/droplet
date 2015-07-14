@@ -388,6 +388,19 @@ exports.Draw = class Draw
         clone.push el for el in @_points
         return clone
 
+      getTranslation: (other) ->
+        if @_points.length is 0 and other._points.length is 0
+          return new Point 0, 0
+        else if @_points.length isnt other._points.length
+          return null
+
+        firstVector = @_points[0].from other._points[0]
+
+        for el, i in other._points
+          unless @_points[i].from(el).equals(firstVector)
+            return null
+        return firstVector
+
       drawShadow: (ctx, offsetX, offsetY, blur) ->
         ###
         # TODO

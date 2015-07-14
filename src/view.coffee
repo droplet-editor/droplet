@@ -98,6 +98,7 @@ exports.View = class View
     # so that rerendering the same model
     # can be fast
     @map = {}
+    @svgGroupMap = {}
 
     @draw = @opts.draw ? new draw.Draw()
 
@@ -706,18 +707,36 @@ exports.View = class View
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
     draw: (ctx, boundingRect, style = {}) ->
+      baseSVGGroup = @getBaseSVGGroup ctx
       # First, test to see whether our AABB overlaps
       # with the viewport
       if not boundingRect? or @totalBounds.overlap boundingRect
-        # If it does, we want to render.
-        # Call `@drawSelf`
-        drawSelfResult = @drawSelf ctx, style
+        if baseSVGGroup? and (translation = @path.getTranslation @basePath)?
+          baseSVGGroup.setAttribute 'transform', "translate(#{translation.x}, #{translation.y})"
+          ctx.appendChild baseSVGGroup
+        else
+          # If it does, we want to render.
+          # Call `@drawSelf`
+          if baseSVGGroup?
+            ctx.removeChild baseSVGGroup
+          baseSVGGroup = @view.svgGroupMap[@model.id] = @drawSelf ctx, style
+          @basePath = @path.clone()
 
         # Draw our children.
         for childObj in @children
           @view.getViewNodeFor(childObj.child).draw ctx, boundingRect, style
 
-      return drawSelfResult
+        if @oldChildren
+          childIds = @children.map (x) -> childObj.child.id
+
+          for el, i in @oldChildren
+            if el not in childIds and @view.svgGroupMap[el]?
+              ctx.removeChild @view.svgGroupMap[el]
+              delete @view.svgGroupMap[el]
+
+          @oldChildren = childIds
+
+      return baseSVGGroup
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path

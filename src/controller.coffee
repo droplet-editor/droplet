@@ -396,9 +396,6 @@ exports.Editor = class Editor
 # Redrawing simply involves issuing a call to the View.
 
 Editor::clearMain = (opts) ->
-  @mainCtxWrapper.removeChild @mainCtx
-  @mainCtx = document.createElementNS SVG_STANDARD, 'g'
-  @mainCtxWrapper.appendChild @mainCtx
 
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
@@ -449,8 +446,6 @@ Editor::redrawMain = (opts = {}) ->
     # Draw the new tree on the main context
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
     @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
-
-    @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
 
     # Draw floating blocks
     startWidth = @mode.startComment.length * @fontWidth
@@ -3733,34 +3728,23 @@ hook 'populate', 0, ->
   @cursorCtx = document.createElementNS SVG_STANDARD, 'g'
   @cursorRect = document.createElementNS SVG_STANDARD, 'rect'
 
+  w = @view.opts.tabWidth / 2 - CURSOR_WIDTH_DECREASE
+  h = @view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
+  r = (w * 2 + h * h) / (2 * h)
+
+  @cursorElement = document.createElementNS SVG_STANDARD, 'path'
+  @cursorElement.setAttribute 'd', """
+    M#{@view.opts.tabOffset + CURSOR_WIDTH_DECREASE} 0 A#{r} #{r} 0 0 #{@view.opts.tabOffset + CURSOR_WIDTH_DECREASE + w * 2} 0
+  """
+
   @mainCanvas.appendChild @cursorCtx
   @mainCanvas.appendChild @cursorRect
+  @mainCanvas.appendChild @cursorElement
 
 Editor::strokeCursor = (point) ->
   return unless point?
-  ###
-  @cursorCtx.beginPath()
-
-  @cursorCtx.fillStyle =
-    @cursorCtx.strokeStyle = '#000'
-
-  @cursorCtx.lineCap = 'round'
-
-  @cursorCtx.lineWidth = 3
-
-  w = @view.opts.tabWidth / 2 - CURSOR_WIDTH_DECREASE
-  h = @view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
-
-  arcCenter = new @draw.Point point.x + @view.opts.tabOffset + w + CURSOR_WIDTH_DECREASE,
-    point.y - (w*w + h*h) / (2 * h) + h + CURSOR_HEIGHT_DECREASE / 2
-  arcAngle = Math.atan2 w, (w*w + h*h) / (2 * h) - h
-  startAngle = 0.5 * Math.PI - arcAngle
-  endAngle = 0.5 * Math.PI + arcAngle
-
-  @cursorCtx.arc arcCenter.x, arcCenter.y, (w*w + h*h) / (2 * h), startAngle, endAngle
-
-  @cursorCtx.stroke()
-  ###
+  @mainCanvas.appendChild @cursorElement
+  @cursorElement.setAttribute 'transform', "translate(#{point.x}, #{point.y})"
 
 Editor::highlightFlashShow = ->
   if @flashTimeout? then clearTimeout @flashTimeout
