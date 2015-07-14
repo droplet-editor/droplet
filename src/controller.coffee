@@ -98,7 +98,8 @@ EMBOSS_FILTER_SVG =  """
 """
 
 clearCanvas = (canvas) ->
-  canvas.innerHTML = ''
+  while canvas.lastChild?
+    canvas.removeChild canvas.lastChild
 
 # This hook function is for convenience,
 # for features to add events that will occur at
@@ -158,7 +159,11 @@ exports.Editor = class Editor
     @measureCtx = @measureCanvas.getContext '2d'
 
     # Main canvas first
-    @mainCanvas = @mainCtx = document.createElementNS SVG_STANDARD, 'svg'
+    @mainCanvas = document.createElementNS SVG_STANDARD, 'svg'
+    @mainCtxWrapper = document.createElementNS SVG_STANDARD, 'g'
+    @mainCtx = document.createElementNS SVG_STANDARD, 'g'
+    @mainCanvas.appendChild @mainCtxWrapper
+    @mainCtxWrapper.appendChild @mainCtx
     @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
     @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
@@ -342,8 +347,6 @@ exports.Editor = class Editor
     @resizePaletteHighlight()
     @resizeNubby()
     @resizeMainScroller()
-    @resizeLassoCanvas()
-    @resizeCursorCanvas()
     @resizeDragCanvas()
 
     # Re-scroll and redraw main
@@ -392,7 +395,10 @@ exports.Editor = class Editor
 #
 # Redrawing simply involves issuing a call to the View.
 
-Editor::clearMain = (opts) -> clearCanvas @mainCtx
+Editor::clearMain = (opts) ->
+  @mainCtxWrapper.removeChild @mainCtx
+  @mainCtx = document.createElementNS SVG_STANDARD, 'g'
+  @mainCtxWrapper.appendChild @mainCtx
 
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
@@ -447,8 +453,8 @@ Editor::redrawMain = (opts = {}) ->
     @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
 
     # Draw floating blocks
-    startWidth = @measureCtx.measureText(@mode.startComment).width
-    endWidth = @measureCtx.measureText(@mode.endComment).width
+    startWidth = @mode.startComment.length * @fontWidth
+    endWidth = @mode.endComment.length * @fontWidth
     for record in @floatingBlocks
       blockView = @view.getViewNodeFor record.block
       blockView.layout record.position.x, record.position.y
@@ -660,8 +666,8 @@ Editor::trackerPointToMain = (point) ->
   if not @mainCanvas.offsetParent?
     return new @draw.Point(NaN, NaN)
   gbr = @mainCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @scrollOffsets.main.x,
-                  point.y - gbr.top + @scrollOffsets.main.y)
+  new @draw.Point(point.x - gbr.left
+                  point.y - gbr.top)
 
 Editor::trackerPointToPalette = (point) ->
   if not @paletteCanvas.offsetParent?
@@ -940,15 +946,14 @@ hook 'populate', 0, ->
   @dragCanvas.style.top = '-9999px'
 
   # And the canvas for drawing highlights
-  @highlightCanvas = @highlightCtx = document.createElementNS SVG_STANDARD, 'svg'
-  @highlightCanvas.setAttribute 'class',  'droplet-highlight-canvas'
+  @highlightCanvas = @highlightCtx = document.createElementNS SVG_STANDARD, 'g'
 
   # We append it to the tracker element,
   # so that it can appear in front of the scrollers.
   #@dropletElement.appendChild @dragCanvas
   #document.body.appendChild @dragCanvas
   @wrapperElement.appendChild @dragCanvas
-  @dropletElement.appendChild @highlightCanvas
+  @mainCanvas.appendChild @highlightCanvas
 
 Editor::clearHighlightCanvas = -> clearCanvas @highlightCtx
 
@@ -1293,12 +1298,9 @@ hook 'mousemove', 0, (point, event, state) ->
         # TODO if this becomes a performance issue,
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
-        if @lastHighlightPath?
-          @mainCtx.removeChild @lastHighlightPath
-          @lastHighlightPath = null
 
         if best?
-          @lastHighlightPath = @view.getViewNodeFor(best).highlightArea.draw @mainCtx
+          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
           @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
@@ -1846,52 +1848,57 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   lines = @getCursor().stringify().split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
-    @measureCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n'))).width +
+    @fontWidth * last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n')).length +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
-    @measureCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n'))).width +
+    @fontWidth * last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n')).length +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
   #
   # Draw a line if it is just a cursor
   if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
-    ### TODO
-    @cursorCtx.lineWidth = 1
-    @cursorCtx.strokeStyle = '#000'
-    @cursorCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
-      0, @view.opts.textHeight
+    @mainCanvas.appendChild @cursorRect
+    @cursorRect.setAttribute 'stroke', '#000'
+    @cursorRect.setAttribute 'x', startPosition
+    @cursorRect.setAttribute 'y', textFocusView.bounds[startRow].y,
+    @cursorRect.setAttribute 'width', 1
+    @cursorRect.setAttribute 'height', @view.opts.textHeight
+
     @textInputHighlighted = false
-    ###
-    0
 
   # Draw a translucent rectangle if there is a selection.
   else
     @textInputHighlighted = true
-    ###TODO
-    @cursorCtx.fillStyle = 'rgba(0, 0, 256, 0.3)'
 
     if startRow is endRow
-      @cursorCtx.fillRect startPosition,
+      rect = new @view.draw.Rectangle startPosition,
         textFocusView.bounds[startRow].y + @view.opts.textPadding
         endPosition - startPosition, @view.opts.textHeight
 
     else
-      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
+      rect = new @view.draw.Rectangle startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
         textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
       for i in [startRow + 1...endRow]
-        @cursorCtx.fillRect textFocusView.bounds[i].x,
+        rect = new @view.draw.Rectangle textFocusView.bounds[i].x,
           textFocusView.bounds[i].y + @view.opts.textPadding,
           textFocusView.bounds[i].width,
           @view.opts.textHeight
 
-      @cursorCtx.fillRect textFocusView.bounds[endRow].x,
+      rect = new @view.draw.Rectangle textFocusView.bounds[endRow].x,
         textFocusView.bounds[endRow].y + @view.opts.textPadding,
         endPosition - textFocusView.bounds[endRow].x,
         @view.opts.textHeight
-    ###
+
+    @mainCanvas.appendChild @cursorRect
+    @cursorRect.setAttribute 'stroke', 'none'
+    @cursorRect.setAttribute 'fill', 'rgba(0, 0, 256, 0.3)'
+    @cursorRect.setAttribute 'x', rect.x
+    @cursorRect.setAttribute 'y', rect.y
+    @cursorRect.setAttribute 'width', rect.width
+    @cursorRect.setAttribute 'height', rect.height
 
   if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
     @mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
@@ -2043,7 +2050,7 @@ Editor::getTextPosition = (point) ->
   row = Math.max row, 0
   row = Math.min row, textFocusView.lineLength - 1
 
-  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @measureCtx.measureText(' ').width)
+  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @fontWidth)
 
   lines = @getCursor().stringify().split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
@@ -2260,30 +2267,14 @@ hook 'mouseup', 0, (point, event, state) ->
 # to be added at populate-time, along
 # with some fields.
 hook 'populate', 0, ->
-  @lassoSelectCanvas = document.createElement 'canvas'
-  @lassoSelectCtx = @lassoSelectCanvas.getContext '2d'
-  @lassoSelectCanvas.setAttribute 'class',  'droplet-lasso-select-canvas'
+  @lassoSelectRect = document.createElementNS SVG_STANDARD, 'rect'
+  @lassoSelectRect.setAttribute 'stroke', '#00f'
+  @lassoSelectRect.setAttribute 'fill', 'none'
 
   @lassoSelectAnchor = null
   @lassoSelection = null
 
-  @dropletElement.appendChild @lassoSelectCanvas
-
-# Conveneince function for clearing
-# the lasso select canvas
-Editor::clearLassoSelectCanvas = ->
-  @lassoSelectCtx.clearRect 0, 0, @lassoSelectCanvas.width, @lassoSelectCanvas.height
-
-# Deal with resize for the lasso
-# select canvas
-Editor::resizeLassoCanvas = ->
-  @lassoSelectCanvas.width = @dropletElement.offsetWidth - @gutter.offsetWidth
-  @lassoSelectCanvas.style.width = "#{@lassoSelectCanvas.width}px"
-
-  @lassoSelectCanvas.height = @dropletElement.offsetHeight
-  @lassoSelectCanvas.style.height = "#{@lassoSelectCanvas.height}px"
-
-  @lassoSelectCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
+  @mainCanvas.appendChild @lassoSelectRect
 
 Editor::clearLassoSelection = ->
   @lassoSelection = null
@@ -2316,8 +2307,6 @@ hook 'mousemove', 0, (point, event, state) ->
   if @lassoSelectAnchor?
     mainPoint = @trackerPointToMain point
 
-    @clearLassoSelectCanvas()
-
     lassoRectangle = new @draw.Rectangle(
       Math.min(@lassoSelectAnchor.x, mainPoint.x),
       Math.min(@lassoSelectAnchor.y, mainPoint.y),
@@ -2334,12 +2323,13 @@ hook 'mousemove', 0, (point, event, state) ->
       until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
         last = last.prev
 
-      @clearLassoSelectCanvas(); @clearHighlightCanvas()
-      @lassoSelectCtx.strokeStyle = '#00f'
-      @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
-        lassoRectangle.y - @scrollOffsets.main.y,
-        lassoRectangle.width,
-        lassoRectangle.height
+      @clearHighlightCanvas()
+      @mainCanvas.appendChild @lassoSelectRect
+      @lassoSelectRect.style.display = 'block'
+      @lassoSelectRect.setAttribute 'x', lassoRectangle.x
+      @lassoSelectRect.setAttribute 'y', lassoRectangle.y
+      @lassoSelectRect.setAttribute 'width', lassoRectangle.width
+      @lassoSelectRect.setAttribute 'height', lassoRectangle.height
 
       if first and last?
         [first, last] = validateLassoSelection dropletDocument, first, last
@@ -2421,7 +2411,7 @@ hook 'mouseup', 0, (point, event, state) ->
       @setCursor @lassoSelection.end
 
     @lassoSelectAnchor = null
-    @clearLassoSelectCanvas()
+    @lassoSelectRect.style.display = 'none'
 
     @redrawMain()
   @lassoSelectionDocument = null
@@ -2766,7 +2756,7 @@ Editor::computePlaintextTranslationVectors = ->
         @gutter.offsetWidth + 5 # TODO see above
   }
 
-  @mainCtx.font = @aceFontSize() + ' ' + @fontFamily
+  @measureCtx.font = @aceFontSize() + ' ' + @fontFamily
 
   rownum = 0
   until head is @tree.end
@@ -2780,7 +2770,7 @@ Editor::computePlaintextTranslationVectors = ->
         translationVectors.push (new @draw.Point(state.x, state.y)).from(corner)
         textElements.push @view.getViewNodeFor head
 
-        state.x += @measureCtx.measureText(head.value).width
+        state.x += @fontWidth * head.value.length
 
       # Newline moves the cursor to the next line,
       # plus some indent.
@@ -2792,9 +2782,9 @@ Editor::computePlaintextTranslationVectors = ->
         rownum += 1
         state.y += state.lineHeight * wrappedlines
         if head.specialIndent?
-          state.x = state.leftEdge + @measureCtx.measureText(head.specialIndent).width
+          state.x = state.leftEdge + @fontWidth * head.specialIndent.length
         else
-          state.x = state.leftEdge + state.indent * @measureCtx.measureText(' ').width
+          state.x = state.leftEdge + state.indent * @fontWidth
 
       when 'indentStart'
         state.indent += head.container.depth
@@ -2912,13 +2902,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     # Kick off fade-out transition
 
-    @mainCanvas.style.transition =
-      @highlightCanvas.style.transition =
-      @cursorCanvas.style.opacity = "opacity #{fadeTime}ms linear"
+    @mainCanvas.style.transition = "opacity #{fadeTime}ms linear"
 
-    @mainCanvas.style.opacity =
-      @highlightCanvas.style.opacity =
-      @cursorCanvas.style.opacity = 0
+    @mainCanvas.style.opacity = 0
 
     paletteDisappearingWithMelt = @paletteEnabled and not @showPaletteInTextMode
 
@@ -3092,20 +3078,11 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
             div.style.fontSize = @fontSize + 'px'
           ), 0
 
-      for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
-        el.style.opacity = 0
+      @mainCanvas.style.opacity = 0
 
       setTimeout (=>
-        for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
-          el.style.transition = "opacity #{fadeTime}ms linear"
+        @mainCanvas.style.transition = "opacity #{fadeTime}ms linear"
         @mainCanvas.style.opacity = 1
-        @highlightCanvas.style.opacity = 1
-
-        if @editorHasFocus()
-          @cursorCanvas.style.opacity = 1
-        else
-          @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
-
       ), translateTime
 
       @dropletElement.style.transition = "left #{fadeTime}ms"
@@ -3296,6 +3273,8 @@ hook 'redraw_palette', 0, ->
 hook 'populate', 0, ->
   @fontSize = 15
   @fontFamily = 'Courier New'
+  @measureCtx.font = '15px Courier New'
+  @fontWidth = @measureCtx.measureText(' ').width
 
   metrics = helper.fontMetrics(@fontFamily, @fontSize)
   @fontAscent = metrics.prettytop
@@ -3303,6 +3282,8 @@ hook 'populate', 0, ->
 
 Editor::setFontSize_raw = (fontSize) ->
   unless @fontSize is fontSize
+    @measureCtx.font = fontSize + ' px ' + @fontFamily
+    @fontWidth = @measureCtx.measureText(' ').width
     @fontSize = fontSize
 
     @paletteHeader.style.fontSize = "#{fontSize}px"
@@ -3326,6 +3307,7 @@ Editor::setFontSize_raw = (fontSize) ->
     @rebuildPalette()
 
 Editor::setFontFamily = (fontFamily) ->
+  @measureCtx.font = @fontSize + 'px ' + fontFamily
   @draw.setGlobalFontFamily fontFamily
 
   @fontFamily = fontFamily
@@ -3748,17 +3730,11 @@ hook 'populate', 0, ->
 # CURSOR DRAW SUPPORRT
 # ================================
 hook 'populate', 0, ->
-  @cursorCanvas = @cursorCtx = document.createElementNS SVG_STANDARD, 'svg'
-  @cursorCanvas.setAttribute 'class',  'droplet-highlight-canvas droplet-cursor-canvas'
+  @cursorCtx = document.createElementNS SVG_STANDARD, 'g'
+  @cursorRect = document.createElementNS SVG_STANDARD, 'rect'
 
-  @dropletElement.appendChild @cursorCanvas
-
-Editor::resizeCursorCanvas = ->
-  @cursorCanvas.style.width = "#{@dropletElement.offsetWidth - @gutter.offsetWidth}px"
-
-  @cursorCanvas.style.height = "#{@dropletElement.offsetHeight}px"
-
-  @cursorCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
+  @mainCanvas.appendChild @cursorCtx
+  @mainCanvas.appendChild @cursorRect
 
 Editor::strokeCursor = (point) ->
   return unless point?
@@ -3788,13 +3764,13 @@ Editor::strokeCursor = (point) ->
 
 Editor::highlightFlashShow = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  #@cursorCanvas.style.display = 'block'
+  @cursorCtx.style.display = 'block'
   @highlightsCurrentlyShown = true
   @flashTimeout = setTimeout (=> @flash()), 500
 
 Editor::highlightFlashHide = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  #@cursorCanvas.style.display = 'none'
+  @cursorCtx.style.display = 'none'
   @highlightsCurrentlyShown = false
   @flashTimeout = setTimeout (=> @flash()), 500
 
@@ -3816,8 +3792,7 @@ hook 'populate', 0, ->
 
   blurCursors = =>
     @highlightFlashShow()
-    @cursorCanvas.style.transition = ''
-    @cursorCanvas.style.opacity = CURSOR_UNFOCUSED_OPACITY
+    @cursorCtx.style.opacity = CURSOR_UNFOCUSED_OPACITY
 
   @dropletElement.addEventListener 'blur', blurCursors
   @hiddenInput.addEventListener 'blur', blurCursors
@@ -3825,8 +3800,8 @@ hook 'populate', 0, ->
 
   focusCursors = =>
     @highlightFlashShow()
-    @cursorCanvas.style.transition = ''
-    @cursorCanvas.style.opacity = 1
+    @cursorCtx.style.transition = ''
+    @cursorCtx.style.opacity = 1
 
   @dropletElement.addEventListener 'focus', focusCursors
   @hiddenInput.addEventListener 'focus', focusCursors

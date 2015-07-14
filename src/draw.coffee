@@ -67,7 +67,7 @@ exports.Draw = class Draw
     @fontSize = 15
     @fontFamily = 'Courier New, monospace'
     @fontAscent = 2
-    @fontBaseline = 10
+    @fontBaseline = 8
 
     self = this
 
@@ -360,12 +360,12 @@ exports.Draw = class Draw
 
           darkPathElement = document.createElementNS SVG_STANDARD, 'path'
           darkPathElement.setAttribute 'd', pathCommands.join ' '
-          darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.5, '#888'
+          darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
           darkPathElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
 
           lightPathElement = document.createElementNS SVG_STANDARD, 'path'
           lightPathElement.setAttribute 'd', pathCommands.join ' '
-          lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.5, '#FFF'
+          lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
           lightPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
 
           pathElement.appendChild backgroundPathElement
@@ -452,7 +452,7 @@ exports.Draw = class Draw
         # to base ourselves to avoid a chrome bug where text zooming
         # doesn't work for non-alphabetic baselines
         element.setAttribute 'x', @point.x
-        element.setAttribute 'y', @point.y + self.fontBaseline
+        element.setAttribute 'y', @point.y + self.fontBaseline - self.fontAscent
         element.setAttribute 'dominant-baseline', 'alphabetic'
 
         element.setAttribute 'font-family', self.fontFamily
