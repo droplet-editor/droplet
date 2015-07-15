@@ -27,6 +27,7 @@ CARRIAGE_GROW_DOWN = 3
 DROPDOWN_ARROW_HEIGHT = 8
 
 DROP_TRIANGLE_COLOR = '#555'
+SVG_STANDARD = 'http://www.w3.org/2000/svg'
 
 DEFAULT_OPTIONS =
   showDropdowns: true
@@ -81,7 +82,6 @@ arrayEq = (a, b) ->
   return false if k isnt b[i] for k, i in a
   return true
 
-
 # # View
 # The View class contains options and caches
 # for rendering. The controller instantiates a View
@@ -98,6 +98,7 @@ exports.View = class View
     # so that rerendering the same model
     # can be fast
     @map = {}
+    @contextMaps = []
 
     @draw = @opts.draw ? new draw.Draw()
 
@@ -105,6 +106,64 @@ exports.View = class View
     for option of DEFAULT_OPTIONS
       unless option of @opts
         @opts[option] = DEFAULT_OPTIONS[option]
+
+  getMap: (ctx) ->
+    ctxID = ctx.getAttribute('id')
+    unless ctxID?
+      ctxID = 'droplet-render-' + helper.generateGUID()
+      ctx.setAttribute 'id', ctxID
+
+    if ctxID of @contextMaps
+      map = @contextMaps[ctxID]
+    else
+      @contextMaps[ctxID] = map = {
+        context: ctx,
+        groups: {}
+        cachedPaths: {}
+      }
+    return map
+
+  getCachedPath: (ctx, id) ->
+    map = @getMap ctx
+    return map.cachedPaths[id]
+
+  setCachedPath: (ctx, id, path) ->
+    map = @getMap ctx
+    map.cachedPaths[id] = path.clone()
+
+  clearCanvas: (ctx, remove = true) ->
+    ctxID = ctx.getAttribute('id')
+    if ctxID of @contextMaps
+      for key, val of @contextMaps[ctxID].groups
+        @clearCanvas val
+        if remove
+          ctx.removeChild val, false
+        delete @contextMaps[ctxID].groups[key]
+        delete @contextMaps[ctxID].cachedPaths[key]
+        delete @contextMaps[val.getAttribute('id')]
+
+  getSVGGroup: (ctx, id) ->
+    map = @getMap ctx
+
+    if id of map.groups
+      return map.groups[id]
+    else
+      group = document.createElementNS SVG_STANDARD, 'g'
+      group.setAttribute 'id', 'droplet-render-' + helper.generateGUID() + '-' + id
+      ctx.appendChild group
+
+      map.groups[id] = group
+      return group
+
+    return group
+
+  removeSVGGroup: (ctx, id) ->
+    map = @getMap ctx
+
+    if id of map.groups
+      @clearCanvas map.groups[id]
+      ctx.removeChild map.groups[id]
+      delete map.groups[id]
 
   # Simple method for clearing caches
   clearCache: -> @map = {}
@@ -160,6 +219,7 @@ exports.View = class View
       # computeChildren
       @lineLength = 0 # How many lines does this take up?
       @children = [] # All children, flat
+      @oldChildren = [] # Previous children, for removing
       @lineChildren = [] # Children who own each line
       @multilineChildrenData = [] # Where do indents start/end?
 
@@ -701,7 +761,7 @@ exports.View = class View
     # Draw our own polygon on a canvas context.
     # May require special effects, like graying-out
     # or blueing for lasso select.
-    drawSelf: (ctx, style = {}) ->
+    drawSelf: (style = {}) ->
 
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
@@ -709,15 +769,33 @@ exports.View = class View
       # First, test to see whether our AABB overlaps
       # with the viewport
       if not boundingRect? or @totalBounds.overlap boundingRect
+        children = @children.map (x) -> x.child.id
+
+        if @oldGroup?
+          for childObj in @oldChildren
+            unless childObj in children
+              @view.removeSVGGroup(@oldGroup, childObj)
+
+        @oldChildren = children
+
         # If it does, we want to render.
         # Call `@drawSelf`
-        drawSelfResult = @drawSelf ctx, style
+        unless @path.equals(@view.getCachedPath(ctx, @model.id))
+          @view.setCachedPath ctx, @model.id, @path
+          @view.removeSVGGroup ctx, @model.id
+          group = @view.getSVGGroup(ctx, @model.id)
+          ownPath = @drawSelf style
+          group.appendChild(ownPath) if ownPath?
+        else
+          group = @view.getSVGGroup(ctx, @model.id)
+
+        @oldGroup = group ? ctx
 
         # Draw our children.
         for childObj in @children
-          @view.getViewNodeFor(childObj.child).draw ctx, boundingRect, style
+          @view.getViewNodeFor(childObj.child).draw group ? ctx, boundingRect, style
 
-      return drawSelfResult
+      return ownPath
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
@@ -1634,7 +1712,7 @@ exports.View = class View
     # ## drawSelf
     # Draw our path, with applied
     # styles if necessary.
-    drawSelf: (ctx, style = {}) ->
+    drawSelf: (style = {}) ->
       # We migh want to apply some
       # temporary color changes,
       # so store the old colors
@@ -1649,7 +1727,7 @@ exports.View = class View
         @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
-      drawResult = @path.draw ctx
+      drawResult = @path.makeElement()
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
@@ -1842,10 +1920,10 @@ exports.View = class View
       return @path
 
     # ## drawSelf (SocketViewNode)
-    drawSelf: (ctx) ->
-      super
+    drawSelf: (style) ->
+      path = super(style)
       if @model.hasDropdown() and @view.opts.showDropdowns
-        ###
+        ###TODO
         ctx.beginPath()
         ctx.fillStyle = DROP_TRIANGLE_COLOR
         ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
@@ -1854,6 +1932,7 @@ exports.View = class View
         ctx.fill()
         ###
         0
+      return path
 
     # ## computeOwnDropArea (SocketViewNode)
     # Socket drop areas are actually the same
@@ -1868,6 +1947,7 @@ exports.View = class View
         @highlightArea = @path.clone()
         @highlightArea.noclip = true
         @highlightArea.style.strokeColor = '#FF0'
+        @highlightArea.style.fillColor = 'none'
         @highlightArea.style.lineWidth = @view.opts.padding
 
   # # IndentViewNode
@@ -2066,9 +2146,9 @@ exports.View = class View
     # ## drawSelf
     #
     # Draw the text element itself.
-    drawSelf: (ctx, style = {}) ->
+    drawSelf: (style = {}) ->
       unless style.noText
-        drawResult = @textElement.draw ctx
+        drawResult = @textElement.makeElement()
       return drawResult
 
     # ## Debug output

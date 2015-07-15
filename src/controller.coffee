@@ -97,10 +97,6 @@ EMBOSS_FILTER_SVG =  """
 </svg>
 """
 
-clearCanvas = (canvas) ->
-  while canvas.lastChild?
-    canvas.removeChild canvas.lastChild
-
 # This hook function is for convenience,
 # for features to add events that will occur at
 # various times in the editor lifecycle.
@@ -385,6 +381,9 @@ exports.Editor = class Editor
     else
       @resizeTextMode()
 
+Editor::clearCanvas = (canvas) ->
+  @view.clearCanvas canvas
+
 
 # RENDERING CAPABILITIES
 # ================================
@@ -396,9 +395,6 @@ exports.Editor = class Editor
 # Redrawing simply involves issuing a call to the View.
 
 Editor::clearMain = (opts) ->
-  @mainCtxWrapper.removeChild @mainCtx
-  @mainCtx = document.createElementNS SVG_STANDARD, 'g'
-  @mainCtxWrapper.appendChild @mainCtx
 
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
@@ -449,8 +445,6 @@ Editor::redrawMain = (opts = {}) ->
     # Draw the new tree on the main context
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
     @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
-
-    @mainCtx.globalAlpha *= FLOATING_BLOCK_ALPHA
 
     # Draw floating blocks
     startWidth = @mode.startComment.length * @fontWidth
@@ -588,7 +582,7 @@ Editor::redrawHighlights = ->
   @redrawCursors()
   @redrawLassoHighlight()
 
-Editor::clearCursorCanvas = -> clearCanvas @cursorCtx
+Editor::clearCursorCanvas = -> @clearCanvas @cursorCtx
 
 Editor::redrawCursors = ->
   @clearCursorCanvas()
@@ -601,9 +595,9 @@ Editor::redrawCursors = ->
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
-Editor::clearPalette = -> clearCanvas @paletteCtx
+Editor::clearPalette = -> @clearCanvas @paletteCtx
 
-Editor::clearPaletteHighlightCanvas = -> clearCanvas @paletteHighlightCtx
+Editor::clearPaletteHighlightCanvas = -> @clearCanvas @paletteHighlightCtx
 
 Editor::redrawPalette = ->
   @clearPalette()
@@ -955,11 +949,13 @@ hook 'populate', 0, ->
   @wrapperElement.appendChild @dragCanvas
   @mainCanvas.appendChild @highlightCanvas
 
-Editor::clearHighlightCanvas = -> clearCanvas @highlightCtx
+Editor::clearHighlightCanvas = ->
+  @clearCanvas @highlightCtx
+  @cursorRect.style.display = 'none'
 
 # Utility function for clearing the drag canvas,
 # an operation we will be doing a lot.
-Editor::clearDrag = -> clearCanvas @dragCtx
+Editor::clearDrag = -> @dragView.clearCanvas @dragCtx
 
 # On resize, we will want to size the drag canvas correctly.
 Editor::resizeDragCanvas = ->
@@ -1300,7 +1296,8 @@ hook 'mousemove', 0, (point, event, state) ->
         @redrawHighlights()
 
         if best?
-          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          @highlightCtx.removeChild(@lastHighlightPath) if @lastHighlightPath?
+          @lastHighlightPath = @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
           @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
@@ -1476,6 +1473,7 @@ hook 'mouseup', 0, (point, event, state) ->
     # Now that we've done that, we can annul stuff.
     @draggingBlock = null
     @draggingOffset = null
+    @highlightCtx.removeChild(@lastHighlightPath) if @lastHighlightPath?
     @lastHighlight = @lastHighlightPath = null
 
     @clearDrag()
@@ -1613,21 +1611,16 @@ hook 'mousedown', 6, (point, event, state) ->
   # If someone else has already taken this click, pass.
   if state.consumedHitTest then return
 
-  console.log 'got this'
-
   # If it's not in the palette pane, pass.
   if not @trackerPointIsInPalette(point) then return
 
   palettePoint = @trackerPointToPalette point
   if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.offsetHeight and
      @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.offsetWidth
-    console.log 'ok to test'
-
     for entry in @currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
       if hitTestResult?
-        console.log 'got it'
         @clickedBlock = entry.block
         @clickedPoint = point
         @clickedBlockPaletteEntry = entry
@@ -1859,6 +1852,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   #
   # Draw a line if it is just a cursor
   if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
+    @cursorRect.style.display = 'block'
     @mainCanvas.appendChild @cursorRect
     @cursorRect.setAttribute 'stroke', '#000'
     @cursorRect.setAttribute 'x', startPosition
@@ -1892,6 +1886,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
         endPosition - textFocusView.bounds[endRow].x,
         @view.opts.textHeight
 
+    @cursorRect.style.display = 'block'
     @mainCanvas.appendChild @cursorRect
     @cursorRect.setAttribute 'stroke', 'none'
     @cursorRect.setAttribute 'fill', 'rgba(0, 0, 256, 0.3)'
@@ -3616,6 +3611,7 @@ Editor::endDrag = ->
 
   @draggingBlock = null
   @draggingOffset = null
+  @highlightCtx.removeChild(@lastHighlightPath) if @lastHighlightPath?
   @lastHighlight = @lastHighlightPath = null
 
   @clearDrag()

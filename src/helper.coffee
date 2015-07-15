@@ -179,3 +179,6 @@ exports.deepEquals = deepEquals = (a, b) ->
   else
     return a is b
 
+_guid = 0
+exports.generateGUID = -> (_guid++).toString(16)
+

@@ -57,8 +57,6 @@ avgColor = (a, factor, b) ->
 
   return memoizedAvgColor[c] = toHex newRGB
 
-getGuid = -> 'draw-guid-' + Math.random().toString() # For
-
 exports.Draw = class Draw
   ## Public functions
   constructor: ->
@@ -261,6 +259,16 @@ exports.Draw = class Draw
 
         return count % 2 is 1
 
+      equals: (other) ->
+        unless other instanceof Path
+          return false
+        if other._points.length isnt @_points.length
+          return false
+        for el, i in other._points
+          unless @_points[i].equals(el)
+            return false
+        return true
+
       # ### Rectangular intersection ###
       # Succeeds if any edges intersect or either shape is
       # entirely within the other.
@@ -303,7 +311,7 @@ exports.Draw = class Draw
         @_cachedTranslation.translate vector
         @_cacheFlag = true
 
-      draw: (ctx) ->
+      makeElement: ->
         @_clearCache()
 
         if @_points.length is 0 then return
@@ -318,7 +326,7 @@ exports.Draw = class Draw
         pathCommands.push "M#{@_points[0].x} #{@_points[0].y}"
         for point in @_points
           pathCommands.push "L#{point.x} #{point.y}"
-        pathCommands.push "M#{@_points[0].x} #{@_points[0].y}"
+        pathCommands.push "L#{@_points[0].x} #{@_points[0].y}"
         pathCommands.push "Z"
 
         pathElement.setAttribute 'd', pathCommands.join ' '
@@ -335,7 +343,7 @@ exports.Draw = class Draw
           bigClipPathElement = document.createElementNS SVG_STANDARD, 'path'
           bigClipPathElement.setAttribute 'd', pathCommands.join ' '
           bigClipPath.appendChild bigClipPathElement
-          bigClipPath.setAttribute 'id', clipId = 'droplet-clip-path-' + Math.random()
+          bigClipPath.setAttribute 'id', clipId = 'droplet-clip-path-' + helper.generateGUID()
           container.appendChild bigClipPath
 
           littleClipPathA = document.createElementNS SVG_STANDARD, 'clipPath'
@@ -343,7 +351,7 @@ exports.Draw = class Draw
           littleClipPathAElement.setAttribute 'd', pathCommands.join ' '
           littleClipPathAElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
           littleClipPathA.appendChild littleClipPathAElement
-          littleClipPathA.setAttribute 'id', littleClipAId = 'droplet-clip-path-' + Math.random()
+          littleClipPathA.setAttribute 'id', littleClipAId = 'droplet-clip-path-' + helper.generateGUID()
           container.appendChild littleClipPathA
 
           littleClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
@@ -352,7 +360,7 @@ exports.Draw = class Draw
           littleClipPathElement.setAttribute 'd', pathCommands.join ' '
           littleClipPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
           littleClipPath.appendChild littleClipPathElement
-          littleClipPath.setAttribute 'id', littleClipId = 'droplet-clip-path-' + Math.random()
+          littleClipPath.setAttribute 'id', littleClipId = 'droplet-clip-path-' + helper.generateGUID()
           container.appendChild littleClipPath
 
           pathElement.setAttribute 'clip-path', "url(##{clipId})"
@@ -380,8 +388,11 @@ exports.Draw = class Draw
           pathElement.setAttribute 'stroke', @style.strokeColor
           pathElement.setAttribute 'stroke-width', @style.lineWidth
 
-        ctx.appendChild pathElement
         return pathElement
+
+      draw: (ctx) ->
+        pathElement = @makeElement()
+        ctx.appendChild pathElement
 
       clone: ->
         clone = new Path()
@@ -435,6 +446,9 @@ exports.Draw = class Draw
 
         @_bounds = new Rectangle @point.x, @point.y, self.ctx.measureText(@value).width, self.fontSize
 
+      clone: -> new Text @point, @value
+      equals: (other) -> other? and @point.equals(other.point) and @value is other.value
+
       bounds: -> @_bounds
       contains: (point) -> @_bounds.contains point
 
@@ -444,7 +458,7 @@ exports.Draw = class Draw
 
       setPosition: (point) -> @translate point.from @point
 
-      draw: (ctx) ->
+      makeElement: ->
         element = document.createElementNS SVG_STANDARD, 'text'
         element.setAttribute 'fill', '#000'
 
@@ -461,6 +475,10 @@ exports.Draw = class Draw
         text = document.createTextNode @value.replace(/ /g, '\u00A0') # Preserve whitespace
         element.appendChild text
 
+        return element
+
+      draw: (ctx) ->
+        element = @makeElement()
         ctx.appendChild element
 
   refreshFontCapital:  ->
