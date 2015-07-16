@@ -121,8 +121,6 @@ exports.Editor = class Editor
     else
       @mode = new coffee @options.modeOptions
 
-    @draw = new draw.Draw()
-
     # No gutter decorations to start
     @gutterDecorations = {}
 
@@ -182,6 +180,22 @@ exports.Editor = class Editor
     @paletteWrapper.style.bottom = '0px'
     @paletteWrapper.style.width = '270px'
 
+    # We will also have to initialize the
+    # drag canvas.
+    @dragCanvas = @dragCtx = document.createElementNS SVG_STANDARD, 'svg'
+    @dragCanvas.setAttribute 'class',  'droplet-drag-canvas'
+
+    @dragCanvas.style.left = '-9999px'
+    @dragCanvas.style.top = '-9999px'
+
+    # Instantiate the Droplet views
+    @view = new view.View @mainCtx, @standardViewSettings
+    @paletteView = new view.View @paletteCtx, helper.extend {}, @standardViewSettings, {
+      showDropdowns: @options.showDropdownInPalette ? false
+    }
+    @dragView = new view.View @dragCtx, @standardViewSettings
+    @draw = new draw.Draw(@mainCtx)
+
     @dropletElement.style.left = @paletteWrapper.offsetWidth + 'px'
 
     @wrapperElement.appendChild @paletteWrapper
@@ -208,13 +222,6 @@ exports.Editor = class Editor
 
     # Set up event bindings before creating a view
     @bindings = {}
-
-    # Instantiate an ICE editor view
-    @view = new view.View @standardViewSettings
-    @paletteView = new view.View helper.extend {}, @standardViewSettings, {
-      showDropdowns: @options.showDropdownInPalette ? false
-    }
-    @dragView = new view.View @standardViewSettings
 
     boundListeners = []
 
@@ -381,8 +388,7 @@ exports.Editor = class Editor
     else
       @resizeTextMode()
 
-Editor::clearCanvas = (canvas) ->
-  @view.clearCanvas canvas
+Editor::clearCanvas = (canvas) -> #@view.clearCanvas canvas
 
 
 # RENDERING CAPABILITIES
@@ -399,24 +405,22 @@ Editor::clearMain = (opts) ->
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
 
-  @topNubbyPath = new @draw.Path()
-  if height >= 0
-    @topNubbyPath.bevel = true
+  @topNubbyPath = new @draw.Path([], true)
 
-    @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, -5
-    @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, height
+  @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, -5
+  @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, height
 
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
-        @view.opts.tabHeight + height
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
-        @view.opts.tabHeight + height
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset, height
+  @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
+  @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+      @view.opts.tabHeight + height
+  @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
+      @view.opts.tabHeight + height
+  @topNubbyPath.push new @draw.Point @view.opts.tabOffset, height
 
-    @topNubbyPath.push new @draw.Point -5, height
-    @topNubbyPath.push new @draw.Point -5, -5
+  @topNubbyPath.push new @draw.Point -5, height
+  @topNubbyPath.push new @draw.Point -5, -5
 
-    @topNubbyPath.style.fillColor = color
+  @topNubbyPath.style.fillColor = color
 
   @redrawMain()
 
@@ -433,7 +437,7 @@ Editor::redrawMain = (opts = {}) ->
     # Clear the main canvas
     @clearMain(opts)
 
-    @topNubbyPath.draw @mainCtx
+    @topNubbyPath.update()
 
     rect = null
     options = {
@@ -444,7 +448,7 @@ Editor::redrawMain = (opts = {}) ->
 
     # Draw the new tree on the main context
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
-    @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
+    @view.getViewNodeFor(@tree).draw rect, options
 
     # Draw floating blocks
     startWidth = @mode.startComment.length * @fontWidth
@@ -495,7 +499,6 @@ Editor::redrawMain = (opts = {}) ->
 
         path.push new @view.draw.Point rectangle.x, rectangle.y
 
-
         path.bevel = true
         path.style = {
           fillColor: GRAY_BLOCK_COLOR
@@ -507,7 +510,7 @@ Editor::redrawMain = (opts = {}) ->
           return @redrawMain opts
 
       # TODO this will need to become configurable by the @mode
-      record.grayBoxPath.draw @mainCtx
+      record.grayBoxPath.update() #draw @mainCtx
       ###TODO
       @mainCtx.fillStyle = '#000'
       @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
@@ -515,7 +518,7 @@ Editor::redrawMain = (opts = {}) ->
       @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
       ###
 
-      blockView.draw @mainCtx, rect, {
+      blockView.draw rect, {
         grayscale: false
         selected: false
         noText: false
@@ -544,34 +547,10 @@ Editor::redrawMain = (opts = {}) ->
     return null
 
 Editor::redrawHighlights = ->
-  # Draw highlights around marked lines
-  @clearHighlightCanvas()
-
-  for line, info of @markedLines
-    if @inDisplay info.model
-      path = @getHighlightPath info.model, info.style
-      path.draw @highlightCtx
-    else
-      delete @markedLines[line]
-
-  for id, info of @markedBlocks
-    if @inDisplay info.model
-      path = @getHighlightPath info.model, info.style
-      path.draw @highlightCtx
-    else
-      delete @markedLines[id]
-
-  for id, info of @extraMarks
-    if @inDisplay info.model
-      path = @getHighlightPath info.model, info.style
-      path.draw @highlightCtx
-    else
-      delete @extraMarks[id]
-
   # If there is an block that is being dragged,
   # draw it in gray
   if @draggingBlock? and @inDisplay @draggingBlock
-    @view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
+    @view.getViewNodeFor(@draggingBlock).draw new @draw.Rectangle(
       @scrollOffsets.main.x,
       @scrollOffsets.main.y,
       @mainCanvas.width,
@@ -582,7 +561,7 @@ Editor::redrawHighlights = ->
   @redrawCursors()
   @redrawLassoHighlight()
 
-Editor::clearCursorCanvas = -> @clearCanvas @cursorCtx
+Editor::clearCursorCanvas = -> #@clearCanvas @cursorCtx
 
 Editor::redrawCursors = ->
   @clearCursorCanvas()
@@ -595,9 +574,9 @@ Editor::redrawCursors = ->
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
-Editor::clearPalette = -> @clearCanvas @paletteCtx
+Editor::clearPalette = -> #@clearCanvas @paletteCtx
 
-Editor::clearPaletteHighlightCanvas = -> @clearCanvas @paletteHighlightCtx
+Editor::clearPaletteHighlightCanvas = -> #@clearCanvas @paletteHighlightCtx
 
 Editor::redrawPalette = ->
   @clearPalette()
@@ -621,7 +600,7 @@ Editor::redrawPalette = ->
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
     # Render the block
-    paletteBlockView.draw @paletteCtx, boundingRect
+    paletteBlockView.draw boundingRect
 
     # Update lastBottomEdge
     lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
@@ -931,14 +910,6 @@ hook 'populate', 0, ->
 
   @lastHighlight = @lastHighlightPath = null
 
-  # We will also have to initialize the
-  # drag canvas.
-  @dragCanvas = @dragCtx = document.createElementNS SVG_STANDARD, 'svg'
-  @dragCanvas.setAttribute 'class',  'droplet-drag-canvas'
-
-  @dragCanvas.style.left = '-9999px'
-  @dragCanvas.style.top = '-9999px'
-
   # And the canvas for drawing highlights
   @highlightCanvas = @highlightCtx = document.createElementNS SVG_STANDARD, 'g'
 
@@ -950,12 +921,15 @@ hook 'populate', 0, ->
   @mainCanvas.appendChild @highlightCanvas
 
 Editor::clearHighlightCanvas = ->
-  @clearCanvas @highlightCtx
+  #@clearCanvas @highlightCtx
   @cursorRect.style.display = 'none'
 
 # Utility function for clearing the drag canvas,
 # an operation we will be doing a lot.
-Editor::clearDrag = -> @dragView.clearCanvas @dragCtx
+Editor::clearDrag = ->
+  if @draggingBlock?
+    @dragView.getViewNodeFor(@draggingBlock).forceClean()
+  @clearHighlightCanvas()
 
 # On resize, we will want to size the drag canvas correctly.
 Editor::resizeDragCanvas = ->
@@ -1140,7 +1114,7 @@ hook 'mousemove', 1, (point, event, state) ->
     @dragCanvas.style.height = "#{Math.min draggingBlockView.totalBounds.height + 10, window.screen.height}px"
 
     draggingBlockView.drawShadow @dragCtx, 5, 5
-    draggingBlockView.draw @dragCtx, new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
+    draggingBlockView.draw new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
 
     # Translate it immediately into position
     position = new @draw.Point(
@@ -1258,7 +1232,7 @@ hook 'mousemove', 0, (point, event, state) ->
     if head is @tree.end and @floatingBlocks.length is 0 and
         @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
         @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
-      @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
+      @view.getViewNodeFor(@tree).highlightArea.update()
       @lastHighlight = @tree
 
     else
@@ -1296,8 +1270,10 @@ hook 'mousemove', 0, (point, event, state) ->
         @redrawHighlights()
 
         if best?
-          @highlightCtx.removeChild(@lastHighlightPath) if @lastHighlightPath?
-          @lastHighlightPath = @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
+          @lastHighlightPath?.destroy?()
+          @lastHighlightPath = @view.getViewNodeFor(best).highlightArea
+          @lastHighlightPath.update()
+          @lastHighlightPath.activate()
           @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best
@@ -1471,12 +1447,12 @@ hook 'mouseup', 0, (point, event, state) ->
     @setCursor @draggingBlock.start
 
     # Now that we've done that, we can annul stuff.
+    @clearDrag()
     @draggingBlock = null
     @draggingOffset = null
-    @highlightCtx.removeChild(@lastHighlightPath) if @lastHighlightPath?
+    @lastHighlightPath?.destroy?()
     @lastHighlight = @lastHighlightPath = null
 
-    @clearDrag()
     @redrawMain()
     @redrawHighlights()
 
@@ -1649,7 +1625,7 @@ Editor::resizePaletteHighlight = ->
 hook 'redraw_palette', 0, ->
   @clearPaletteHighlightCanvas()
   if @currentHighlightedPaletteBlock?
-    @paletteHighlightPath.draw @paletteHighlightCtx
+    @paletteHighlightPath.update()
 
 hook 'rebuild_palette', 1, ->
   # Remove the existent blocks
@@ -1681,7 +1657,7 @@ hook 'rebuild_palette', 1, ->
         if @viewOrChildrenContains block, palettePoint, @paletteView
             @clearPaletteHighlightCanvas()
             @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
-            @paletteHighlightPath.draw @paletteHighlightCtx
+            @paletteHighlightPath.update()
             @currentHighlightedPaletteBlock = block
         else if block is @currentHighlightedPaletteBlock
           @currentHighlightedPaletteBlock = null
@@ -2351,7 +2327,7 @@ Editor::redrawLassoHighlight = ->
     )
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
-    lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
+    lassoView.draw mainCanvasRectangle, {selected: true}
     @maskFloatingPaths(@lassoSelection.start.getDocument())
 
 Editor::maskFloatingPaths = (dropletDocument) ->
@@ -3609,12 +3585,12 @@ Editor::endDrag = ->
   if @cursorAtSocket()
     @setCursor @cursor, (x) -> x.type isnt 'socketStart'
 
+  @clearDrag()
   @draggingBlock = null
   @draggingOffset = null
-  @highlightCtx.removeChild(@lastHighlightPath) if @lastHighlightPath?
+  @lastHighlightPath?.destroy?()
   @lastHighlight = @lastHighlightPath = null
 
-  @clearDrag()
   @redrawMain()
   return
 
@@ -3914,8 +3890,10 @@ Editor::resizeGutter = ->
     @lastGutterWidth = @aceEditor.renderer.$gutterLayer.gutterWidth
     @gutter.style.width = @lastGutterWidth + 'px'
     return @resize()
-  @gutter.style.height = "#{Math.max(@dropletElement.offsetHeight,
-    @mainCanvas.offsetHeight)}px"
+
+  unless @lastGutterHeight is Math.max(@dropletElement.offsetHeight, @mainCanvas.offsetHeight)
+    @lastGutterHeight = Math.max(@dropletElement.offsetHeight, @mainCanvas.offsetHeight)
+    @gutter.style.height = @lastGutterHeight + 'px'
 
 Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree

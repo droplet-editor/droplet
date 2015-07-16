@@ -18,6 +18,11 @@ _area = (a, b, c) -> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
 _intersects = (a, b, c, d) ->
   ((_area(a, b, c) > 0) != (_area(a, b, d) > 0)) and ((_area(c, d, a) > 0) != (_area(c, d, b) > 0))
 
+_bisector = (a, b, c) ->
+  a.from(b).normalize().add(
+    c.from(b).normalize()
+  ).normalize()
+
 max = (a, b) -> `(a > b ? a : b)`
 min = (a, b) -> `(b > a ? a : b)`
 
@@ -59,13 +64,13 @@ avgColor = (a, factor, b) ->
 
 exports.Draw = class Draw
   ## Public functions
-  constructor: ->
+  constructor: (@ctx) ->
     canvas = document.createElement('canvas')
-    @ctx = canvas.getContext '2d'
+    @measureCtx = canvas.getContext '2d'
     @fontSize = 15
     @fontFamily = 'Courier New, monospace'
     @fontAscent = 2
-    @fontBaseline = 8
+    @fontBaseline = 10
 
     self = this
 
@@ -77,6 +82,10 @@ exports.Draw = class Draw
       clone: -> new Point @x, @y
 
       magnitude: -> Math.sqrt @x * @x + @y * @y
+
+      mult: (scalar) -> new Point @x * scalar, @y * scalar
+
+      normalize: -> @mult 1 / @mag()
 
       translate: (vector) ->
         @x += vector.x; @y += vector.y
@@ -198,17 +207,15 @@ exports.Draw = class Draw
     # This is called Path, but is forced to be closed so is actually a polygon.
     # It can do fast translation and rectangular intersection.
     @Path = class Path
-      constructor: ->
-        @_points = []
+      constructor: (@_points = [], @bevel = false, @style = {'strokeColor': '#000', 'lineWidth': 0, 'fillColor': 'none'}) ->
         @_cachedTranslation = new Point 0, 0
-        @_cacheFlag = false
+        @_cacheFlag = true
         @_bounds = new NoRectangle()
 
-        @style = {
-          'strokeColor': '#000'
-          'lineWidth': 0
-          'fillColor': null
-        }
+        @_clearCache()
+
+        @element = @makeElement()
+        self.ctx.appendChild @element
 
       _clearCache: ->
         @_cacheFlag = true
@@ -230,13 +237,20 @@ exports.Draw = class Draw
 
             @_cacheFlag = false
 
+      setPoints: (points) ->
+        @_points = points
+        @_cacheFlag = true
+        @_updateFlag = true
+
       push: (point) ->
         @_points.push point
         @_cacheFlag = true
+        @_updateFlag = true
 
       unshift: (point) ->
         @_points.unshift point
         @_cacheFlag = true
+        @_updateFlag = true
 
       # ### Point containment ###
       # Accomplished with ray-casting
@@ -311,75 +325,85 @@ exports.Draw = class Draw
         @_cachedTranslation.translate vector
         @_cacheFlag = true
 
+      getCommandString: ->
+        if @_points.length is 0
+          return ''
+
+        pathCommands = []
+
+        pathCommands.push "M#{Math.round(@_points[0].x)} #{Math.round(@_points[0].y)}"
+        for point in @_points
+          pathCommands.push "L#{Math.round(point.x)} #{Math.round(point.y)}"
+        pathCommands.push "L#{Math.round(@_points[0].x)} #{Math.round(@_points[0].y)}"
+        pathCommands.push "Z"
+        return pathCommands.join ' '
+
+      # TODO unhackify
       makeElement: ->
         @_clearCache()
-
-        if @_points.length is 0 then return
 
         pathElement = document.createElementNS SVG_STANDARD, 'path'
 
         if @style.fillColor?
           pathElement.setAttribute 'fill', @style.fillColor
 
-        pathCommands = []
+        @__lastFillColor = @style.fillColor
+        @__lastStrokeColor = @style.strokeColor
+        @__lastLineWidth = @style.lineWidth
 
-        pathCommands.push "M#{@_points[0].x} #{@_points[0].y}"
-        for point in @_points
-          pathCommands.push "L#{point.x} #{point.y}"
-        pathCommands.push "L#{@_points[0].x} #{@_points[0].y}"
-        pathCommands.push "Z"
+        pathString = @getCommandString()
 
-        pathElement.setAttribute 'd', pathCommands.join ' '
+        pathElement.setAttribute 'd', pathString
 
         if @bevel
-          backgroundPathElement = pathElement
-          foregroundPathElement = document.createElementNS SVG_STANDARD, 'path'
-          foregroundPathElement.setAttribute 'd', pathCommands.join ' '
-          foregroundPathElement.setAttribute 'fill', @style.fillColor
+          @backgroundPathElement = pathElement
+          @foregroundPathElement = document.createElementNS SVG_STANDARD, 'path'
+          @foregroundPathElement.setAttribute 'd', pathString
+          @foregroundPathElement.setAttribute 'fill', @style.fillColor
           container = document.createElementNS SVG_STANDARD, 'g'
           pathElement = document.createElementNS SVG_STANDARD, 'g'
 
           bigClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
-          bigClipPathElement = document.createElementNS SVG_STANDARD, 'path'
-          bigClipPathElement.setAttribute 'd', pathCommands.join ' '
-          bigClipPath.appendChild bigClipPathElement
+          @bigClipPathElement = document.createElementNS SVG_STANDARD, 'path'
+          @bigClipPathElement.setAttribute 'd', pathString
+          bigClipPath.appendChild @bigClipPathElement
           bigClipPath.setAttribute 'id', clipId = 'droplet-clip-path-' + helper.generateGUID()
           container.appendChild bigClipPath
 
           littleClipPathA = document.createElementNS SVG_STANDARD, 'clipPath'
-          littleClipPathAElement = document.createElementNS SVG_STANDARD, 'path'
-          littleClipPathAElement.setAttribute 'd', pathCommands.join ' '
-          littleClipPathAElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
-          littleClipPathA.appendChild littleClipPathAElement
+          @littleClipPathAElement = document.createElementNS SVG_STANDARD, 'path'
+          @littleClipPathAElement.setAttribute 'd', pathString
+          @littleClipPathAElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
+          littleClipPathA.appendChild @littleClipPathAElement
           littleClipPathA.setAttribute 'id', littleClipAId = 'droplet-clip-path-' + helper.generateGUID()
           container.appendChild littleClipPathA
 
           littleClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
           littleClipPath.setAttribute 'clip-path', "url(##{littleClipAId})"
-          littleClipPathElement = document.createElementNS SVG_STANDARD, 'path'
-          littleClipPathElement.setAttribute 'd', pathCommands.join ' '
-          littleClipPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
-          littleClipPath.appendChild littleClipPathElement
+          @littleClipPathElement = document.createElementNS SVG_STANDARD, 'path'
+          @littleClipPathElement.setAttribute 'd', pathString
+          @littleClipPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
+          littleClipPath.appendChild @littleClipPathElement
           littleClipPath.setAttribute 'id', littleClipId = 'droplet-clip-path-' + helper.generateGUID()
           container.appendChild littleClipPath
 
           pathElement.setAttribute 'clip-path', "url(##{clipId})"
-          foregroundPathElement.setAttribute 'clip-path', "url(##{littleClipId})"
+          @foregroundPathElement.setAttribute 'clip-path', "url(##{littleClipId})"
 
-          darkPathElement = document.createElementNS SVG_STANDARD, 'path'
-          darkPathElement.setAttribute 'd', pathCommands.join ' '
-          darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
-          darkPathElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
+          @darkPathElement = document.createElementNS SVG_STANDARD, 'path'
+          @darkPathElement.setAttribute 'd', pathString
+          @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
+          @darkPathElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
 
-          lightPathElement = document.createElementNS SVG_STANDARD, 'path'
-          lightPathElement.setAttribute 'd', pathCommands.join ' '
-          lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
-          lightPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
+          @lightPathElement = document.createElementNS SVG_STANDARD, 'path'
+          @lightPathElement.setAttribute 'd', pathString
+          @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
+          @lightPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
 
-          pathElement.appendChild backgroundPathElement
-          pathElement.appendChild darkPathElement
-          pathElement.appendChild lightPathElement
-          pathElement.appendChild foregroundPathElement
+          pathElement.appendChild @backgroundPathElement
+          pathElement.appendChild @darkPathElement
+          pathElement.appendChild @lightPathElement
+          pathElement.appendChild @foregroundPathElement
           container.appendChild pathElement
 
           pathElement = container
@@ -390,49 +414,62 @@ exports.Draw = class Draw
 
         return pathElement
 
-      draw: (ctx) ->
-        pathElement = @makeElement()
-        ctx.appendChild pathElement
+      update: ->
+        if @style.fillColor isnt @__lastFillColor
+          @__lastFillColor = @style.fillColor
+
+          if @bevel
+            @backgroundPathElement.setAttribute 'fill', @style.fillColor
+            @foregroundPathElement.setAttribute 'fill', @style.fillColor
+            @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
+            @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
+          else
+            @element.setAttribute 'fill', @style.fillColor
+
+        if not @bevel and @style.strokeColor isnt @__lastStrokeColor
+          @__lastStrokeColor = @style.strokeColor
+          @element.setAttribute 'stroke', @style.strokeColor
+
+        if not @bevel and @style.lineWidth isnt @__lastLineWidth
+          @__lastLineWidth = @style.lineWidth
+          @element.setAttribute 'stroke-width', @style.lineWidth
+
+        if @_updateFlag
+          @_updateFlag = false
+          pathString = @getCommandString()
+          if @bevel
+            @backgroundPathElement.setAttribute 'd', pathString
+            @foregroundPathElement.setAttribute 'd', pathString
+            @lightPathElement.setAttribute 'd', pathString
+            @darkPathElement.setAttribute 'd', pathString
+            @bigClipPathElement.setAttribute 'd', pathString
+            @littleClipPathAElement.setAttribute 'd', pathString
+            @littleClipPathElement.setAttribute 'd', pathString
+          else
+            @element.setAttribute 'd', pathString
+
+      activate: ->
+        unless @active
+          @element.setAttribute 'visibility', 'visible'
+          @active = true
+
+      destroy: ->
+        if @active
+          #ctx.removeChild @element
+          @element.setAttribute 'visibility', 'hidden'
+          @active = false
 
       clone: ->
-        clone = new Path()
-        clone.push el for el in @_points
+        clone = new Path(@_points.slice(0), @bevel, {
+          lineWidth: @style.lineWidth
+          fillColor: @style.fillColor
+          strokeColor: @style.strokeColor
+        })
+        clone._clearCache()
+        clone.update()
         return clone
 
-      drawShadow: (ctx, offsetX, offsetY, blur) ->
-        ###
-        # TODO
-        @_clearCache()
-
-        ctx.fillStyle = @style.fillColor
-
-        if @_points.length is 0 then return
-
-        oldValues = {
-          shadowColor: ctx.shadowColor
-          shadowBlur: ctx.shadowBlur
-          shadowOffsetY: ctx.shadowOffsetY
-          shadowOffsetX: ctx.shadowOffsetX
-          globalAlpha: ctx.globalAlpha
-        }
-
-        ctx.globalAlpha = 0.5
-        ctx.shadowColor = '#000'; ctx.shadowBlur = blur
-        ctx.shadowOffsetX = offsetX; ctx.shadowOffsetY = offsetY
-
-        ctx.beginPath()
-
-        ctx.moveTo @_points[0].x, @_points[0].y
-        for point in @_points
-          ctx.lineTo point.x, point.y # DEFAULT
-        ctx.lineTo @_points[0].x, @_points[0].y
-
-        ctx.fill()
-
-        for own key, value of oldValues
-          ctx[key] = value
-      ###
-      0
+      drawShadow: (ctx, offsetX, offsetY, blur) -> #TODO
 
     # ## Text ##
     # A Text element. Mainly this exists for computing bounding boxes, which is
@@ -441,20 +478,22 @@ exports.Draw = class Draw
       constructor: (@point, @value) ->
         @wantedFont = self.fontSize + 'px ' + self.fontFamily
 
-        unless self.ctx.font is @wantedFont
-          self.ctx.font = self.fontSize + 'px ' + self.fontFamily
+        unless self.measureCtx.font is @wantedFont
+          self.measureCtx.font = self.fontSize + 'px ' + self.fontFamily
 
-        @_bounds = new Rectangle @point.x, @point.y, self.ctx.measureText(@value).width, self.fontSize
+        @_bounds = new Rectangle @point.x, @point.y, self.measureCtx.measureText(@value).width, self.fontSize
+
+        @element = @makeElement()
+        self.ctx.appendChild @element
+
+        @__lastValue = @value
+        @__lastPoint = @point.clone()
 
       clone: -> new Text @point, @value
       equals: (other) -> other? and @point.equals(other.point) and @value is other.value
 
       bounds: -> @_bounds
       contains: (point) -> @_bounds.contains point
-
-      translate: (vector) ->
-        @point.translate vector
-        @_bounds.translate vector
 
       setPosition: (point) -> @translate point.from @point
 
@@ -466,7 +505,7 @@ exports.Draw = class Draw
         # to base ourselves to avoid a chrome bug where text zooming
         # doesn't work for non-alphabetic baselines
         element.setAttribute 'x', @point.x
-        element.setAttribute 'y', @point.y + self.fontBaseline - self.fontAscent
+        element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent
         element.setAttribute 'dominant-baseline', 'alphabetic'
 
         element.setAttribute 'font-family', self.fontFamily
@@ -477,9 +516,21 @@ exports.Draw = class Draw
 
         return element
 
-      draw: (ctx) ->
-        element = @makeElement()
-        ctx.appendChild element
+      update: ->
+        unless @point.equals(@__lastPoint)
+          @__lastPoint = @point.clone()
+          @element.setAttribute 'x', @point.x
+          @element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent
+
+        unless @value is @__lastValue
+          @__lastValue = @value
+          @element.removeChild(@element.lastChild)
+          text = document.createTextNode @value.replace(/ /g, '\u00A0')
+          element.appendChild text
+
+      destroy: ->
+        #self.ctx.removeChild @element
+        @element.setAttribute 'visibility', 'hidden'
 
   refreshFontCapital:  ->
     metrics = helper.fontMetrics(@fontFamily, @fontSize)

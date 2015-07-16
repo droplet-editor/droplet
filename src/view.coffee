@@ -47,7 +47,6 @@ DEFAULT_OPTIONS =
   highlightAreaHeight: 10
   bevelClip: 3
   shadowBlur: 5
-  ctx: document.createElement('canvas').getContext('2d')
   colors:
     error: '#ff0000'
     return: '#fff59d'   # yellow
@@ -92,7 +91,7 @@ arrayEq = (a, b) ->
 # will have access to their View's caches
 # and options object.
 exports.View = class View
-  constructor: (@opts = {}) ->
+  constructor: (@ctx, @opts = {}) ->
     # @map maps Model objects
     # to corresponding View objects,
     # so that rerendering the same model
@@ -100,70 +99,12 @@ exports.View = class View
     @map = {}
     @contextMaps = []
 
-    @draw = @opts.draw ? new draw.Draw()
+    @draw = new draw.Draw(@ctx)
 
     # Apply default options
     for option of DEFAULT_OPTIONS
       unless option of @opts
         @opts[option] = DEFAULT_OPTIONS[option]
-
-  getMap: (ctx) ->
-    ctxID = ctx.getAttribute('id')
-    unless ctxID?
-      ctxID = 'droplet-render-' + helper.generateGUID()
-      ctx.setAttribute 'id', ctxID
-
-    if ctxID of @contextMaps
-      map = @contextMaps[ctxID]
-    else
-      @contextMaps[ctxID] = map = {
-        context: ctx,
-        groups: {}
-        cachedPaths: {}
-      }
-    return map
-
-  getCachedPath: (ctx, id) ->
-    map = @getMap ctx
-    return map.cachedPaths[id]
-
-  setCachedPath: (ctx, id, path) ->
-    map = @getMap ctx
-    map.cachedPaths[id] = path.clone()
-
-  clearCanvas: (ctx, remove = true) ->
-    ctxID = ctx.getAttribute('id')
-    if ctxID of @contextMaps
-      for key, val of @contextMaps[ctxID].groups
-        @clearCanvas val
-        if remove
-          ctx.removeChild val, false
-        delete @contextMaps[ctxID].groups[key]
-        delete @contextMaps[ctxID].cachedPaths[key]
-        delete @contextMaps[val.getAttribute('id')]
-
-  getSVGGroup: (ctx, id) ->
-    map = @getMap ctx
-
-    if id of map.groups
-      return map.groups[id]
-    else
-      group = document.createElementNS SVG_STANDARD, 'g'
-      group.setAttribute 'id', 'droplet-render-' + helper.generateGUID() + '-' + id
-      ctx.appendChild group
-
-      map.groups[id] = group
-      return group
-
-    return group
-
-  removeSVGGroup: (ctx, id) ->
-    map = @getMap ctx
-
-    if id of map.groups
-      @clearCanvas map.groups[id]
-      ctx.removeChild map.groups[id]
-      delete map.groups[id]
 
   # Simple method for clearing caches
   clearCache: -> @map = {}
@@ -260,12 +201,21 @@ exports.View = class View
 
       # *Sixth pass variables*
       # computePath
-      @path = new @view.draw.Path()
+      if @model.type is 'block'
+        @path = new @view.draw.Path([], true)
+      else
+        @path = new @view.draw.Path()
 
       # *Seventh pass variables*
       # computeDropAreas
       # each one is a @view.draw.Path (or null)
-      @dropArea = @highlightArea = null
+      @dropArea = null
+      @highlightArea = new @view.draw.Path([], false, {
+        fillColor: '#FF0'
+        strokeColor: '#FF0'
+        lineWidth: 1
+      })
+      @highlightArea.destroy()
 
       # Versions. The corresponding
       # Model will keep corresponding version
@@ -652,7 +602,7 @@ exports.View = class View
     #
     # Many nodes do not have paths at all,
     # and so need not override this function.
-    computeOwnPath: -> @path = new @view.draw.Path()
+    computeOwnPath: ->
 
     # ## computePath (GenericViewNode)
     # Call `@computeOwnPath` and recurse. This function
@@ -765,99 +715,44 @@ exports.View = class View
 
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
-    draw: (ctx, boundingRect, style = {}) ->
-      # First, test to see whether our AABB overlaps
-      # with the viewport
-      if not boundingRect? or @totalBounds.overlap boundingRect
-        children = @children.map (x) -> x.child.id
+    draw: (boundingRect, style = {}) ->
+      @drawSelf style
+      @path.activate()
 
-        if @oldGroup?
-          for childObj in @oldChildren
-            unless childObj in children
-              @view.removeSVGGroup(@oldGroup, childObj)
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).draw boundingRect, style
 
-        @oldChildren = children
+      children = @children.map (x) -> x.child
 
-        # If it does, we want to render.
-        # Call `@drawSelf`
-        unless @path.equals(@view.getCachedPath(ctx, @model.id))
-          @view.setCachedPath ctx, @model.id, @path
-          @view.removeSVGGroup ctx, @model.id
-          group = @view.getSVGGroup(ctx, @model.id)
-          ownPath = @drawSelf style
-          group.appendChild(ownPath) if ownPath?
-        else
-          group = @view.getSVGGroup(ctx, @model.id)
+      if @oldChildren?
+        for el, i in @oldChildren
+          unless el.child in children
+            @view.getViewNodeFor(el.child).clean(el.version)
 
-        @oldGroup = group ? ctx
+      @oldChildren = @children.map (x) => {
+        child: x.child
+        version: @view.getViewNodeFor(x.child).computedVersion
+      }
 
-        # Draw our children.
-        for childObj in @children
-          @view.getViewNodeFor(childObj.child).draw group ? ctx, boundingRect, style
+    forceClean: ->
+      @clean @computedVersion
 
-      return ownPath
+    clean: (version) ->
+      if version is @computedVersion and @oldChildren?
+        for child in @oldChildren
+          viewNode = @view.getViewNodeFor child.child
+          viewNode.forceClean()
+        @path.destroy()
+        if @textElement?
+          @textElement.destroy()
+        if @highlightArea?
+          @highlightArea.destroy()
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
     # on a canvas context. Used
     # for drop shadow when dragging.
-    drawShadow: (ctx) ->
-
-    # ## Debug output
-
-    # ### debugDimensions (GenericViewNode)
-    # A super-simplified bounding box algorithm
-    # made just to show dimensions in context.
-    debugDimensions: (x, y, line, ctx) ->
-      # Draw a rectangle with our dimensions
-      ctx.fillStyle = '#00F'
-      ctx.strokeStyle = '#000'
-      ctx.lineWidth = 1
-      ctx.fillRect x, y, @dimensions[line].width, @dimensions[line].height
-      ctx.strokeRect x, y, @dimensions[line].width, @dimensions[line].height
-
-      # Recurse on all our children,
-      # advancing x and y so that there
-      # is no overlap between boxes
-      for childObj in @lineChildren[line]
-        childView = @view.getViewNodeFor childObj.child
-
-        x += childView.getMargins(line).left
-        childView.debugDimensions x, y, line - childObj.startLine, ctx
-        x += childView.dimensions[line - childObj.startLine].width + childView.getMargins(line).right
-
-    # ### debugAllDimensions (GenericViewNode)
-    # Run `debugDimensions` on all lines.
-    debugAllDimensions: (ctx) ->
-      # Make the context transparent
-      # a bit, so that we can see the stack depth
-      # of each block
-      ctx.globalAlpha = 0.1; y = 0
-
-      for size, line in @dimensions
-        @debugDimensions 0, y, line, ctx
-        y += size.height
-
-      ctx.globalAlpha = 1
-
-    # ### debugAllBoundingBoxes (GenericViewNode)
-    # Draw our bounding box on each line, and ask
-    # all our children to do so too.
-    debugAllBoundingBoxes: (ctx) ->
-      # Make the context transparent for easy depth
-      # perception
-      ctx.globalAlpha = 0.1
-
-      # Draw bounding box
-      for bound in @bounds
-        bound.fill ctx, '#00F'
-        bound.stroke ctx, '#000'
-
-      # Recurse
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).debugAllBoundingBoxes ctx
-
-      ctx.globalAlpha = 1
+    drawShadow: ->
 
   class ListViewNode extends GenericViewNode
     constructor: (@model, @view) ->
@@ -1272,11 +1167,11 @@ exports.View = class View
     # ## drawShadow
     # Draw the drop-shadow of the path on the given
     # context.
-    drawShadow: (ctx, x, y) ->
-      @path.drawShadow ctx, x, y, @view.opts.shadowBlur
+    drawShadow: (x, y) ->
+      @path.drawShadow x, y, @view.opts.shadowBlur
 
       for childObj in @children
-        @view.getViewNodeFor(childObj.child).drawShadow ctx, x, y
+        @view.getViewNodeFor(childObj.child).drawShadow x, y
 
       return null
 
@@ -1664,7 +1559,9 @@ exports.View = class View
           newPath.push point
 
       # Make a Path object out of these points
-      @path = new @view.draw.Path(); @path.push el for el in newPath
+      @path.setPoints newPath
+      if @model.type is 'block'
+        @path.style.fillColor = @view.getColor @model.color
 
       # Return it.
       return @path
@@ -1727,13 +1624,13 @@ exports.View = class View
         @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
-      drawResult = @path.makeElement()
+      @path.update()
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
 
-      return drawResult
+      return null
 
   # # BlockViewNode
   class BlockViewNode extends ContainerViewNode
@@ -1762,17 +1659,8 @@ exports.View = class View
         return not ('mostly-value' in @model.classes or
           'value-only' in @model.classes)
 
-    computeOwnPath: ->
-      super
-
-      @path.style.fillColor = @view.getColor @model.color
-      @path.style.strokeColor = '#888'
-
-      @path.bevel = true
-
-      return @path
-
     computeOwnDropArea: ->
+      return unless @model.parent?.type in ['indent', 'document']
       # Our drop area is a rectangle of
       # height dropAreaHeight and a width
       # equal to our last line width,
@@ -1800,7 +1688,6 @@ exports.View = class View
       # Our highlight area is the a rectangle in the same place,
       # with a height that can be given by a different option.
 
-      @highlightArea = new @view.draw.Path()
       highlightAreaPoints = []
 
       highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
@@ -1819,11 +1706,8 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBoundsLeft + @view.opts.bevelClip, @dropPoint.y + @view.opts.highlightAreaHeight / 2
       highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-      @highlightArea.push point for point in highlightAreaPoints
-
-      @highlightArea.style.lineWidth = 1
-      @highlightArea.style.strokeColor = '#ff0'
-      @highlightArea.style.fillColor = '#ff0'
+      @highlightArea.setPoints highlightAreaPoints
+      @highlightArea.destroy()
 
   # # SocketViewNode
   class SocketViewNode extends ContainerViewNode
@@ -1906,8 +1790,7 @@ exports.View = class View
         return @path
 
       if @model.start.next.type is 'blockStart'
-        view = @view.getViewNodeFor @model.start.next.container
-        @path = view.computeOwnPath().clone()
+        @path.style.fillColor = 'none'
 
       # Otherwise, call super.
       else
@@ -1941,14 +1824,19 @@ exports.View = class View
     # things.
     computeOwnDropArea: ->
       if @model.start.next.type is 'blockStart'
-        @dropArea = @highlightArea = null
+        @dropArea = null
+        @highlightArea.destroy()
       else
+        console.log 'updating socket highlight', @model.stringify()
         @dropPoint = @bounds[0].upperLeftCorner()
-        @highlightArea = @path.clone()
-        @highlightArea.noclip = true
+        ###
+        @highlightArea.setPoints @path._points
         @highlightArea.style.strokeColor = '#FF0'
         @highlightArea.style.fillColor = 'none'
         @highlightArea.style.lineWidth = @view.opts.padding
+        @highlightArea.update()
+        @highlightArea.destroy()
+        ###
 
   # # IndentViewNode
   class IndentViewNode extends ContainerViewNode
@@ -1960,7 +1848,7 @@ exports.View = class View
     # ## computeOwnPath
     # An Indent should also have no drawn
     # or hit-tested path.
-    computeOwnPath: -> @path = new @view.draw.Path()
+    computeOwnPath: ->
 
     # ## computeChildren
     computeChildren: ->
@@ -2025,7 +1913,6 @@ exports.View = class View
       # Our highlight area is the a rectangle in the same place,
       # with a height that can be given by a different option.
 
-      @highlightArea = new @view.draw.Path()
       highlightAreaPoints = []
 
       highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y - @view.opts.highlightAreaHeight / 2 + @view.opts.bevelClip
@@ -2044,11 +1931,9 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
       highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-      @highlightArea.push point for point in highlightAreaPoints
+      @highlightArea.setPoints highlightAreaPoints
+      @highlightArea.destroy()
 
-      @highlightArea.style.lineWidth = 1
-      @highlightArea.style.strokeColor = '#ff0'
-      @highlightArea.style.fillColor = '#ff0'
 
   # # DocumentViewNode
   # Represents a Document. Draws little, but
@@ -2058,7 +1943,7 @@ exports.View = class View
 
     # ## computeOwnPath
     #
-    computeOwnPath: -> @path = new @view.draw.Path()
+    computeOwnPath: ->
 
     # ## computeOwnDropArea
     #
@@ -2067,7 +1952,6 @@ exports.View = class View
     computeOwnDropArea: ->
       @dropPoint = @bounds[0].upperLeftCorner()
 
-      @highlightArea = new @view.draw.Path()
       highlightAreaPoints = []
 
       lastBounds = new @view.draw.NoRectangle()
@@ -2090,10 +1974,13 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
       highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-      @highlightArea.push point for point in highlightAreaPoints
-
-      @highlightArea.style.fillColor = '#ff0'
-      @highlightArea.style.strokeColor = '#ff0'
+      @highlightArea.destroy()
+      @highlightArea = new @view.draw.Path(highlightAreaPoints, false, {
+        fillColor: '#FF0'
+        strokeColor: '#FF0'
+        lineWidth: 1
+      })
+      @highlightArea.destroy()
 
       return null
 
@@ -2103,7 +1990,12 @@ exports.View = class View
   # We contain a @view.draw.TextElement to measure
   # bounding boxes and draw text.
   class TextViewNode extends GenericViewNode
-    constructor: (@model, @view) -> super
+    constructor: (@model, @view) ->
+      super
+      @textElement = new @view.draw.Text(
+        new @view.draw.Point(0, 0),
+        @model.value
+      )
 
     # ## computeChildren
     #
@@ -2122,10 +2014,8 @@ exports.View = class View
       if @computedVersion is @model.version
         return null
 
-      @textElement = new @view.draw.Text(
-        new @view.draw.Point(0, 0),
-        @model.value
-      )
+      @textElement.point = new @view.draw.Point 0, 0
+      @textElement.value = @model.value
 
       height = @view.opts.textHeight
       @minDimensions[0] = new @view.draw.Size(@textElement.bounds().width, height)
@@ -2147,30 +2037,7 @@ exports.View = class View
     #
     # Draw the text element itself.
     drawSelf: (style = {}) ->
-      unless style.noText
-        drawResult = @textElement.makeElement()
-      return drawResult
-
-    # ## Debug output
-
-    # ### debugDimensions
-    #
-    # Draw the text element wherever we're told.
-    debugDimensions: (x, y, line, ctx) ->
-      ctx.globalAlpha = 1
-      oldPoint = @textElement.point
-      @textElement.point = new @view.draw.Point x, y
-      @textElement.draw ctx
-      @textElement.point = oldPoint
-      ctx.globalAlpha = 0.1
-
-    # ### debugAllBoundingBoxes
-    # Draw our text element
-    debugAllBoundingBoxes: (ctx) ->
-      ctx.globalAlpha = 1
-      @computeOwnPath()
-      @textElement.draw ctx
-      ctx.globalAlpha = 0.1
+      @textElement.update()
 
 toRGB = (hex) ->
   # Convert to 6-char hex if not already there
