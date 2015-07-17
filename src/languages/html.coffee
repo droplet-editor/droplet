@@ -6,41 +6,141 @@ parse5 = require 'parse5'
 ATTRIBUTE_CLASSES = ['#attribute']
 
 COLORS = {
-  'Default': 'cyan',
-  '#comment': 'grey'
-  'a': 'grey',
-  'b': 'teal',
-  'body': 'return',
-  'br': 'command',
-  'button': 'yellow',
-  'center': 'red',
-  'div': 'amber',
-  'document': 'bluegrey',
-  'font': 'value',
-  'form': 'deeporange',
-  'h1': 'teal',
-  'h3': 'indigo',
-  'head': 'cyan',
-  'hr': 'lime',
-  'html': 'amber',
-  'iframe': 'green',
-  'img': 'green',
-  'input': 'brown',
-  'label': 'lightblue',
-  'li': 'pink',
-  'link': 'purple',
-  'marquee': 'command',
-  'meta': 'error',
-  'option': 'control',
-  'p': 'deeppurple',
-  'script': 'orange',
-  'select': 'indigo',
-  'strong': 'yellow',
-  'table': 'lightgreen',
-  'td': 'lightblue',
-  'title': 'green',
-  'tr': 'bluegrey',
-  'ul': 'blue'
+  #Metadata
+  '#documentType': 'lightblue'
+  html: 'lightblue'
+  head: 'lightblue'
+  body: 'lightblue'
+  title: 'lightblue'
+  link: 'lightblue'
+  meta: 'lightblue'
+  style: 'lightblue'
+  script: 'lightblue'
+  base: 'lightblue'
+
+  #Grouping
+  p: 'purple'
+  h1: 'purple'
+  h2: 'purple'
+  h3: 'purple'
+  h4: 'purple'
+  h5: 'purple'
+  h6: 'purple'
+  hr: 'purple'
+  div: 'purple'
+  span: 'purple'
+  ul: 'purple'
+  ol: 'purple'
+  li: 'purple'
+  dl: 'purple'
+  dt: 'purple'
+  dd: 'purple'
+  pre: 'purple'
+  blockquote: 'purple'
+  figure: 'purple'
+  figcaption: 'purple'
+  main: 'purple'
+  dd: 'purple'
+
+  #Content
+  a: 'lightgreen'
+  img: 'lightgreen'
+  iframe: 'lightgreen'
+  i: 'lightgreen'
+  b: 'lightgreen'
+  u: 'lightgreen'
+  sub: 'lightgreen'
+  sup: 'lightgreen'
+  br: 'lightgreen'
+  em: 'lightgreen'
+  strong: 'lightgreen'
+  small: 'lightgreen'
+  s: 'lightgreen'
+  cite: 'lightgreen'
+  q: 'lightgreen'
+  dfn: 'lightgreen'
+  abbr: 'lightgreen'
+  ruby: 'lightgreen'
+  rt: 'lightgreen'
+  rp: 'lightgreen'
+  data: 'lightgreen'
+  time: 'lightgreen'
+  code: 'lightgreen'
+  var: 'lightgreen'
+  samp: 'lightgreen'
+  kbd: 'lightgreen'
+  mark: 'lightgreen'
+  bdi: 'lightgreen'
+  bdo: 'lightgreen'
+  wbr: 'lightgreen'
+  '#text': 'lightgreen'
+
+  #Sections
+  article: 'orange'
+  section: 'orange'
+  nav: 'orange'
+  aside: 'orange'
+  hgroup: 'orange'
+  header: 'orange'
+  footer: 'orange'
+  address: 'orange'
+
+  #Table
+  table: 'indigo'
+  caption: 'indigo'
+  colgroup: 'indigo'
+  col: 'indigo'
+  tbody: 'indigo'
+  thead: 'indigo'
+  tfoot: 'indigo'
+  tr: 'indigo'
+  td: 'indigo'
+  th: 'indigo'
+
+  #Form
+  form: 'deeporange'
+  input: 'deeporange'
+  textarea: 'deeporange'
+  label: 'deeporange'
+  button: 'deeporange'
+  select: 'deeporange'
+  option: 'deeporange'
+  optgroup: 'deeporange'
+  datalist: 'deeporange'
+  keygen: 'deeporange'
+  output: 'deeporange'
+  progress: 'deeporange'
+  meter: 'deeporange'
+  fieldset: 'deeporange'
+  legend: 'deeporange'
+
+  #Embedded
+  embed: 'teal'
+  object: 'teal'
+  param: 'teal'
+  video: 'teal'
+  audio: 'teal'
+  source: 'teal'
+  track: 'teal'
+  map: 'teal'
+  area: 'teal'
+
+  #Other known tags
+  ins: 'pink'
+  del: 'pink'
+  details: 'pink'
+  summary: 'pink'
+  menu: 'pink'
+  menuitem: 'pink'
+  dialog: 'pink'
+  noscript: 'pink'
+  template: 'pink'
+  canvas: 'pink'
+  svg: 'pink'
+  frameset: 'pink'
+
+  #Unknow tag fallback
+  'Default': 'yellow'
 }
 
 DEFAULT_INDENT_DEPTH = '  '
