@@ -17,32 +17,32 @@ asyncTest 'Basic Document parsing', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="cyan"
+      color="lightblue"
       socketLevel="0"
       classes="#documentType">&amp;lt;!doctype html&amp;gt;</block>
     <block
       precedence="1"
-      color="amber"
+      color="lightblue"
       socketLevel="0"
       classes="html">&amp;lt;html&amp;gt;<indent
       prefix="  "
       classes="html">
     <block
       precedence="1"
-      color="cyan"
+      color="lightblue"
       socketLevel="0"
       classes="head">&amp;lt;head&amp;gt;<indent
       prefix="  "
       classes="head">
     <block
       precedence="1"
-      color="green"
+      color="lightblue"
       socketLevel="0"
       classes="title">&amp;lt;title&amp;gt;<indent
       prefix="  "
       classes="title"><block
       precedence="1"
-      color="cyan"
+      color="lightgreen"
       socketLevel="0"
       classes="#text"><socket
       precedence="0"
@@ -51,14 +51,14 @@ asyncTest 'Basic Document parsing', ->
     &amp;lt;/head&amp;gt;</block>
     <block
       precedence="1"
-      color="return"
+      color="lightblue"
       socketLevel="0"
       classes="body">&amp;lt;body&amp;gt;<indent
       prefix="  "
       classes="body">
     <block
       precedence="1"
-      color="cyan"
+      color="lightgreen"
       socketLevel="0"
       classes="#text"><socket
       precedence="0"
@@ -84,21 +84,21 @@ asyncTest 'Removal of Empty nodes', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="amber"
+      color="lightblue"
       socketLevel="0"
       classes="html">&amp;lt;html&amp;gt;<indent
       prefix="  "
       classes="html">
     <block
       precedence="1"
-      color="deeppurple"
+      color="purple"
       socketLevel="0"
       classes="p">&amp;lt;p&amp;gt;<indent
       prefix="  "
       classes="p">
     <block
       precedence="1"
-      color="cyan"
+      color="lightgreen"
       socketLevel="0"
       classes="#text"><socket
       precedence="0"
@@ -123,20 +123,20 @@ asyncTest 'Optional Closing tags', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="blue"
+      color="purple"
       socketLevel="0"
       classes="ul">&amp;lt;ul&amp;gt;<indent
       prefix="  "
       classes="ul">
     <block
       precedence="1"
-      color="pink"
+      color="purple"
       socketLevel="0"
       classes="li">&amp;lt;li&amp;gt;<indent
       prefix="  "
       classes="li"><block
       precedence="1"
-      color="cyan"
+      color="lightgreen"
       socketLevel="0"
       classes="#text"><socket
       precedence="0"
@@ -144,13 +144,13 @@ asyncTest 'Optional Closing tags', ->
       classes="#text">Item1</socket></block></indent></block>
     <block
       precedence="1"
-      color="pink"
+      color="purple"
       socketLevel="0"
       classes="li">&amp;lt;li&amp;gt;<indent
       prefix="  "
       classes="li"><block
       precedence="1"
-      color="cyan"
+      color="lightgreen"
       socketLevel="0"
       classes="#text"><socket
       precedence="0"
@@ -173,7 +173,7 @@ asyncTest 'Attribute Sockets', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="return"
+      color="lightblue"
       socketLevel="0"
       classes="body">&amp;lt;body <socket
       precedence="0"
@@ -199,7 +199,7 @@ asyncTest 'Scoket empty attribute values', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="return"
+      color="lightblue"
       socketLevel="0"
       classes="body">&amp;lt;body <socket
       precedence="0"
