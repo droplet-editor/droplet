@@ -5,7 +5,18 @@ parser = require '../parser.coffee'
 parserlib = require '../../vendor/node-parserlib.js'
 
 COLORS = {
-  'Default': 'cyan',
+  'Default': 'cyan'
+  'charset': 'yellow'
+  'namespace': 'orange'
+  'import': 'green'
+  'rule': 'blue'
+  'fontface': 'pink'
+  'keyframes': 'purple'
+  'keyframerule': 'teal'
+  'page': 'lightgreen'
+  'pagemargin': 'lime'
+  'property': 'amber'
+  'mediaquery': 'bluegrey'
 }
 
 DEFAULT_INDENT_DEPTH = '  '
@@ -71,7 +82,7 @@ cssParser.addListener("import", (event) -> Stack.add event, 'import')
 cssParser.addListener("startrule", (event) -> Stack.start event, 'rule')
 cssParser.addListener("endrule", (event) -> Stack.end event)
 cssParser.addListener("property", (event) -> Stack.add event, 'property')
-cssParser.addListener("startmedia", (event) -> Stack.start event, 'media')
+cssParser.addListener("startmedia", (event) -> Stack.start event, 'mediaquery')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
 cssParser.addListener("error", (event) -> Stack.setValid false)
 
@@ -201,6 +212,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @cssBlock node, depth
         @cssSocket node.uri, depth + 1
         for media in node.media
+          media.nodeType = 'media'
           @cssSocket media, depth + 1
       when 'property'
         @cssBlock node, depth
@@ -216,6 +228,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'keyframerule'
         @cssBlock node, depth
         for key in node.keys
+          key.nodeType = 'key'
           @cssSocket key, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
       when 'page'
@@ -232,13 +245,14 @@ exports.CSSParser = class CSSParser extends parser.Parser
         for selector in node.selectors
           @markSelector selector, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
-      when 'media'
+      when 'mediaquery'
         @cssBlock node, depth
         for media in node.media
           @cssSocket media, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
 
     if node instanceof parserlib.css.PropertyValue
+      node.nodeType = 'property-value'
       @cssSocket node, depth
       if node.parts.length > 1
         @cssBlock node, depth + 1
@@ -246,6 +260,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
           @cssSocket part, depth + 2
       for part in node.parts
         if UNITS[part.type]   #dimension
+          part.nodeType = 'property-value-' + part.type
           @cssBlock part, depth + 3
           bounds = @getBounds part
           @cssSocket part, depth + 4, null, {
@@ -257,6 +272,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
             end: bounds.end
           }, UNITS[part.type]
         else if part.type is 'percentage'
+          part.nodeType = 'property-value-' + part.type
           @cssBlock part, depth + 3
           bounds = @getBounds part
           @cssSocket part, depth + 4, null, {
@@ -264,6 +280,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
             end: {line: bounds.end.line, column: bounds.end.column - 1}
           }
         else if part.args
+          part.nodeType = 'property-value-function'
           @cssBlock part, depth + 3
           @mark indentDepth, part.args, depth + 4
         else
@@ -285,24 +302,30 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   markSelectorPart: (part, depth) ->
     if part instanceof parserlib.css.SelectorPart
+      part.nodeType = 'selector-part'
       cnt = 0
       if part.modifiers?.length > 0
         for mod in part.modifiers
+          mod.nodeType = 'selector-part-modifier'
           @cssSocket mod, depth + 2
           @cssBlock mod, depth + 3
           if mod.type in ['class', 'id', 'pseudo']
+            mod.nodeType = 'selector-' + mod.type
             mod.startCol++
             if mod.type is 'pseudo' and mod.text[1] is ':'
               mod.startCol++
             @cssSocket mod, depth + 4
           else if mod.type is 'attribute'
+            mod.nodeType = 'selector-' + mod.type
             @cssSocket mod.attrib, depth + 4
             @cssSocket mod.val, depth + 4
           else if mod.type is 'not'
+            mod.nodeType = 'selector-' + mod.type
             for notPart in mod.args
               @markSelectorPart notPart, depth + 4
           cnt++
       if part.elementName
+        part.elementName.nodeType = 'selector-elementname'
         @cssSocket part.elementName, depth + 2
         cnt++
       if cnt > 1
@@ -310,6 +333,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @cssBlock part, depth + 1
 
   markSelector: (selector, depth) ->
+    selector.nodeType = 'selector'
     if selector.parts.length > 1
       @cssSocket selector, depth
       @cssBlock selector, depth + 1
@@ -336,26 +360,26 @@ CSSParser.drop = (block, context, pred, next) ->
     return helper.FORBID
 
   if blockType is 'charset'
-    if context.type is 'segment' and pred.type is 'segment' and nextType isnt 'charset'
+    if context.type is 'document' and pred.type is 'document' and nextType isnt 'charset'
       return helper.ENCOURAGE
     return helper.FORBID
 
   if blockType is 'import'
-    if context.type is 'segment' and (pred.type is 'segment' or predType in ['charset', 'import']) and nextType isnt 'charset'
+    if context.type is 'document' and (pred.type is 'document' or predType in ['charset', 'import']) and nextType isnt 'charset'
       return helper.ENCOURAGE
     return helper.FORBID
 
   if blockType is 'namespace'
-    if context.type is 'segment' and (pred.type is 'segment' or predType in ['charset', 'import', 'namespace']) and nextType not in ['charset', 'import']
+    if context.type is 'document' and (pred.type is 'document' or predType in ['charset', 'import', 'namespace']) and nextType not in ['charset', 'import']
       return helper.ENCOURAGE
     return helper.FORBID
 
-  if context.type is 'segment'
-    if blockType in ['rule', 'media', 'page', 'fontface', 'keyframes'] and nextType not in ['charset', 'import', 'namespace']
+  if context.type is 'document'
+    if blockType in ['rule', 'mediaquery', 'page', 'fontface', 'keyframes'] and nextType not in ['charset', 'import', 'namespace']
       return helper.ENCOURAGE
     return helper.FORBID
 
-  if contextType is 'media'
+  if contextType is 'mediaquery'
     if blockType is 'rule'
       return helper.ENCOURAGE
     return helper.FORBID
