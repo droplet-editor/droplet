@@ -469,7 +469,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
           unless TAGS[node.nodeName].content is 'optional' or
               (node.nodeName is 'script' and @hasAttribute node, 'src') or
               node.__indentLocation.end is node.__location.end
-            console.log  TAGS[node.nodeName]
             @htmlSocket node, depth + 1, null, indentBounds
 
       when 'text'
