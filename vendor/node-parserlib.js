@@ -2772,8 +2772,8 @@ Parser.prototype = function(){
 
                 lastToken = tokenStream.token();
 
-                //it's an element name
-                if (arg.type == "elementName"){
+                //it's an element name or universal
+                if (i <= 2){
                     part = new SelectorPart(arg, [], arg.toString(), line, col, arg.endLine, arg.endCol);
                 } else {
                     part = new SelectorPart(null, [arg], arg.toString(), line, col, lastToken.endLine, lastToken.endCol);
