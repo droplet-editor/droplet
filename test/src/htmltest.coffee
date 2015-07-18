@@ -51,7 +51,7 @@ asyncTest 'Basic Document parsing', ->
     &amp;lt;/head&amp;gt;</block>
     <block
       precedence="1"
-      color="lightblue"
+      color="orange"
       socketLevel="0"
       classes="body">&amp;lt;body&amp;gt;<indent
       prefix="  "
@@ -173,7 +173,7 @@ asyncTest 'Attribute Sockets', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="lightblue"
+      color="orange"
       socketLevel="0"
       classes="body">&amp;lt;body <socket
       precedence="0"
@@ -199,7 +199,7 @@ asyncTest 'Scoket empty attribute values', ->
     ''').serialize()
   expectedSerialization = '''<document><block
       precedence="1"
-      color="lightblue"
+      color="orange"
       socketLevel="0"
       classes="body">&amp;lt;body <socket
       precedence="0"
@@ -213,4 +213,33 @@ asyncTest 'Scoket empty attribute values', ->
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
       'Empty Attribute values are part of sockets')
+  return start()
+
+asyncTest 'Check overrides', ->
+  htmlParser = new HTML({
+    tags: {body: {category: 'spl'}}
+    categories: {spl: {color: 'green'}}
+  })
+  window.customSerialization = customSerialization = htmlParser.parse(
+    '''
+    <body background = "">
+
+    </body>
+    ''').serialize()
+  expectedSerialization = '''<document><block
+      precedence="1"
+      color="green"
+      socketLevel="0"
+      classes="body">&amp;lt;body <socket
+      precedence="0"
+      handwritten="false"
+      classes="#attribute">background = ""</socket>&amp;gt;<indent
+      prefix="  "
+      classes="body">
+    </indent>
+    &amp;lt;/body&amp;gt;</block></document>'''
+  strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Tag and category overrides work')
   return start()
