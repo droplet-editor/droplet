@@ -5,142 +5,151 @@ parse5 = require 'parse5'
 
 ATTRIBUTE_CLASSES = ['#attribute']
 
-COLORS = {
+TAGS = {
   #Metadata
-  '#documentType': 'lightblue'
-  html: 'lightblue'
-  head: 'lightblue'
-  body: 'lightblue'
-  title: 'lightblue'
-  link: 'lightblue'
-  meta: 'lightblue'
-  style: 'lightblue'
-  script: 'lightblue'
-  base: 'lightblue'
+  '#documentType': {category: 'metadata'}
+  html: {category: 'metadata'}
+  head: {category: 'metadata'}
+  title: {category: 'metadata'}
+  link: {category: 'metadata'}
+  meta: {category: 'metadata'}
+  style: {category: 'metadata'}
+  script: {category: 'metadata'}
+  base: {category: 'metadata'}
 
   #Grouping
-  p: 'purple'
-  h1: 'purple'
-  h2: 'purple'
-  h3: 'purple'
-  h4: 'purple'
-  h5: 'purple'
-  h6: 'purple'
-  hr: 'purple'
-  div: 'purple'
-  span: 'purple'
-  ul: 'purple'
-  ol: 'purple'
-  li: 'purple'
-  dl: 'purple'
-  dt: 'purple'
-  dd: 'purple'
-  pre: 'purple'
-  blockquote: 'purple'
-  figure: 'purple'
-  figcaption: 'purple'
-  main: 'purple'
-  dd: 'purple'
+  p: {category: 'grouping'}
+  hr: {category: 'grouping'}
+  div: {category: 'grouping'}
+  ul: {category: 'grouping'}
+  ol: {category: 'grouping'}
+  li: {category: 'grouping'}
+  dl: {category: 'grouping'}
+  dt: {category: 'grouping'}
+  dd: {category: 'grouping'}
+  pre: {category: 'grouping'}
+  blockquote: {category: 'grouping'}
+  figure: {category: 'grouping'}
+  figcaption: {category: 'grouping'}
+  main: {category: 'grouping'}
+  dd: {category: 'grouping'}
 
   #Content
-  a: 'lightgreen'
-  img: 'lightgreen'
-  iframe: 'lightgreen'
-  i: 'lightgreen'
-  b: 'lightgreen'
-  u: 'lightgreen'
-  sub: 'lightgreen'
-  sup: 'lightgreen'
-  br: 'lightgreen'
-  em: 'lightgreen'
-  strong: 'lightgreen'
-  small: 'lightgreen'
-  s: 'lightgreen'
-  cite: 'lightgreen'
-  q: 'lightgreen'
-  dfn: 'lightgreen'
-  abbr: 'lightgreen'
-  ruby: 'lightgreen'
-  rt: 'lightgreen'
-  rp: 'lightgreen'
-  data: 'lightgreen'
-  time: 'lightgreen'
-  code: 'lightgreen'
-  var: 'lightgreen'
-  samp: 'lightgreen'
-  kbd: 'lightgreen'
-  mark: 'lightgreen'
-  bdi: 'lightgreen'
-  bdo: 'lightgreen'
-  wbr: 'lightgreen'
-  '#text': 'lightgreen'
+  a: {category: 'content'}
+  i: {category: 'content'}
+  b: {category: 'content'}
+  u: {category: 'content'}
+  sub: {category: 'content'}
+  sup: {category: 'content'}
+  br: {category: 'content'}
+  em: {category: 'content'}
+  strong: {category: 'content'}
+  small: {category: 'content'}
+  s: {category: 'content'}
+  cite: {category: 'content'}
+  q: {category: 'content'}
+  dfn: {category: 'content'}
+  abbr: {category: 'content'}
+  ruby: {category: 'content'}
+  rt: {category: 'content'}
+  rp: {category: 'content'}
+  data: {category: 'content'}
+  time: {category: 'content'}
+  code: {category: 'content'}
+  var: {category: 'content'}
+  samp: {category: 'content'}
+  kbd: {category: 'content'}
+  mark: {category: 'content'}
+  bdi: {category: 'content'}
+  bdo: {category: 'content'}
+  span: {category: 'content'}
+  wbr: {category: 'content'}
+  '#text': {category: 'content'}
 
   #Sections
-  article: 'orange'
-  section: 'orange'
-  nav: 'orange'
-  aside: 'orange'
-  hgroup: 'orange'
-  header: 'orange'
-  footer: 'orange'
-  address: 'orange'
+  body: {category: 'sections'}
+  article: {category: 'sections'}
+  section: {category: 'sections'}
+  nav: {category: 'sections'}
+  aside: {category: 'sections'}
+  h1: {category: 'sections'}
+  h2: {category: 'sections'}
+  h3: {category: 'sections'}
+  h4: {category: 'sections'}
+  h5: {category: 'sections'}
+  h6: {category: 'sections'}
+  hgroup: {category: 'sections'}
+  header: {category: 'sections'}
+  footer: {category: 'sections'}
+  address: {category: 'sections'}
 
   #Table
-  table: 'indigo'
-  caption: 'indigo'
-  colgroup: 'indigo'
-  col: 'indigo'
-  tbody: 'indigo'
-  thead: 'indigo'
-  tfoot: 'indigo'
-  tr: 'indigo'
-  td: 'indigo'
-  th: 'indigo'
+  table: {category: 'table'}
+  caption: {category: 'table'}
+  colgroup: {category: 'table'}
+  col: {category: 'table'}
+  tbody: {category: 'table'}
+  thead: {category: 'table'}
+  tfoot: {category: 'table'}
+  tr: {category: 'table'}
+  td: {category: 'table'}
+  th: {category: 'table'}
 
   #Form
-  form: 'deeporange'
-  input: 'deeporange'
-  textarea: 'deeporange'
-  label: 'deeporange'
-  button: 'deeporange'
-  select: 'deeporange'
-  option: 'deeporange'
-  optgroup: 'deeporange'
-  datalist: 'deeporange'
-  keygen: 'deeporange'
-  output: 'deeporange'
-  progress: 'deeporange'
-  meter: 'deeporange'
-  fieldset: 'deeporange'
-  legend: 'deeporange'
+  form: {category: 'form'}
+  input: {category: 'form'}
+  textarea: {category: 'form'}
+  label: {category: 'form'}
+  button: {category: 'form'}
+  select: {category: 'form'}
+  option: {category: 'form'}
+  optgroup: {category: 'form'}
+  datalist: {category: 'form'}
+  keygen: {category: 'form'}
+  output: {category: 'form'}
+  progress: {category: 'form'}
+  meter: {category: 'form'}
+  fieldset: {category: 'form'}
+  legend: {category: 'form'}
 
   #Embedded
-  embed: 'teal'
-  object: 'teal'
-  param: 'teal'
-  video: 'teal'
-  audio: 'teal'
-  source: 'teal'
-  track: 'teal'
-  map: 'teal'
-  area: 'teal'
+  img: {category: 'embedded'}
+  iframe: {category: 'embedded'}
+  embed: {category: 'embedded'}
+  object: {category: 'embedded'}
+  param: {category: 'embedded'}
+  video: {category: 'embedded'}
+  audio: {category: 'embedded'}
+  source: {category: 'embedded'}
+  track: {category: 'embedded'}
+  map: {category: 'embedded'}
+  area: {category: 'embedded'}
 
   #Other known tags
-  ins: 'pink'
-  del: 'pink'
-  details: 'pink'
-  summary: 'pink'
-  menu: 'pink'
-  menuitem: 'pink'
-  dialog: 'pink'
-  noscript: 'pink'
-  template: 'pink'
-  canvas: 'pink'
-  svg: 'pink'
-  frameset: 'pink'
+  ins: {category: 'other'}
+  del: {category: 'other'}
+  details: {category: 'other'}
+  summary: {category: 'other'}
+  menu: {category: 'other'}
+  menuitem: {category: 'other'}
+  dialog: {category: 'other'}
+  noscript: {category: 'other'}
+  template: {category: 'other'}
+  canvas: {category: 'other'}
+  svg: {category: 'other'}
+  frameset: {category: 'other'}
+}
 
-  #Unknow tag fallback
-  'Default': 'yellow'
+CATEGORIES = {
+  metadata: {color: 'lightblue'}
+  grouping: {color: 'purple'}
+  content: {color: 'lightgreen'}
+  sections: {color: 'orange'}
+  table: {color: 'indigo'}
+  form: {color: 'deeporange'}
+  embedded: {color: 'teal'}
+  other: {color: 'pink'}
+  Default: {color: 'yellow'}
 }
 
 DEFAULT_INDENT_DEPTH = '  '
@@ -178,6 +187,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   constructor: (@text, @opts = {}) ->
     super
+
+    @opts.tags = helper.extend({}, TAGS, @opts.tags)
+    @opts.categories = helper.extend({}, CATEGORIES, @opts.categories)
+
     @lines = @text.split '\n'
 
   getPrecedence: (node) -> 1
@@ -191,7 +204,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     return classes
 
   getColor: (node) ->
-    COLORS[node.nodeName] ? COLORS['Default']
+    if @opts.tags[node.nodeName]
+      return @opts.categories[@opts.tags[node.nodeName].category].color
+    return @opts.categories.Default.color
 
   getBounds: (node) ->
     bounds = {
