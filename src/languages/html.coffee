@@ -98,7 +98,7 @@ TAGS = {
   #Form
   form: {category: 'form'}
   input: {category: 'form'}
-  textarea: {category: 'form'}
+  textarea: {category: 'form', content: 'optional'}
   label: {category: 'form'}
   button: {category: 'form'}
   select: {category: 'form'}
@@ -107,14 +107,14 @@ TAGS = {
   datalist: {category: 'form'}
   keygen: {category: 'form'}
   output: {category: 'form'}
-  progress: {category: 'form'}
-  meter: {category: 'form'}
+  progress: {category: 'form', content: 'optional'}
+  meter: {category: 'form', content: 'optional'}
   fieldset: {category: 'form'}
   legend: {category: 'form'}
 
   #Embedded
   img: {category: 'embedded'}
-  iframe: {category: 'embedded'}
+  iframe: {category: 'embedded', content: 'optional'}
   embed: {category: 'embedded'}
   object: {category: 'embedded'}
   param: {category: 'embedded'}
@@ -135,7 +135,7 @@ TAGS = {
   dialog: {category: 'other'}
   noscript: {category: 'other'}
   template: {category: 'other'}
-  canvas: {category: 'other'}
+  canvas: {category: 'other', content: 'optional'}
   svg: {category: 'other'}
   frameset: {category: 'other'}
 }
@@ -466,8 +466,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
           for child in node.childNodes
             @mark indentDepth, child, depth + 1, null
         else
-          if (node.nodeName isnt 'script' or not @hasAttribute node, 'src') and
-              node.__indentLocation.end isnt node.__location.end
+          unless TAGS[node.nodeName].content is 'optional' or
+              (node.nodeName is 'script' and @hasAttribute node, 'src') or
+              node.__indentLocation.end is node.__location.end
+            console.log  TAGS[node.nodeName]
             @htmlSocket node, depth + 1, null, indentBounds
 
       when 'text'
