@@ -2,10 +2,12 @@ assert = require 'assert'
 fs = require 'fs'
 
 Coffee = require '../../src/languages/coffee.coffee'
+Javascript = require '../../src/languages/javascript.coffee'
 model = require '../../src/model.coffee'
 helper = require '../../src/helper.coffee'
 
 coffee = new Coffee()
+js = new Javascript()
 
 describe 'Model',->
   it 'should be able to perform basic token operations', ->
@@ -217,6 +219,38 @@ describe 'Model',->
     for i in [1..10]
       for i in [1..10]
         alert 10
+    '''
+
+  it 'should assign indent even without emptyIndent', ->
+    document = js.parse '''
+    if (x < 10) {
+      
+    }
+    if (x < 10) {
+      
+    }
+    if (x < 10) {
+      
+    }
+    '''
+
+    block1 = document.getBlockOnLine(3)
+    block2 = document.getBlockOnLine(6)
+    destination = document.getBlockOnLine(0).end.prev.prev.prev.container.start
+    document.remove block2
+    document.remove block1
+    document.insert destination, block1
+    destination = document.getBlockOnLine(1).end.prev.prev.prev.container.start
+    document.insert destination, block2
+
+    assert.strictEqual document.stringify(), '''
+    if (x < 10) {
+      if (x < 10) {
+        if (x < 10) {
+          
+        }
+      }
+    }
     '''
 
   # DropletLocation unity
