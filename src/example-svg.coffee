@@ -1,7 +1,26 @@
 viewlib = require './view.coffee'
+drawlib = require './draw.coffee'
+helper = require './helper.coffee'
 modes = require './modes.coffee'
 
 modeOptions = {}
+
+###
+bigSvg = document.createElementNS helper.SVG_STANDARD, 'svg'
+document.body.appendChild bigSvg
+bigSvg.style.width = '500px'
+bigSvg.style.height = '500px'
+draw = new drawlib.Draw(bigSvg)
+path = new draw.Path([
+  new draw.Point 0, 0
+  new draw.Point 100, 0
+  new draw.Point 100, 100
+  new draw.Point 0, 100
+], true, {
+  fillColor: '#AAF'
+})
+path.update()
+###
 
 exports.setModeOptions = (language, options) ->
   modeOptions[language] = options

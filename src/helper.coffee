@@ -9,6 +9,7 @@ exports.BLOCK_ONLY = 1
 exports.MOSTLY_BLOCK = 2
 exports.MOSTLY_VALUE = 3
 exports.VALUE_ONLY = 4
+exports.SVG_STANDARD = 'http://www.w3.org/2000/svg'
 
 exports.ENCOURAGE = 1
 exports.DISCOURAGE = 0

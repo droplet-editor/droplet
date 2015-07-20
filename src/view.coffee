@@ -1533,6 +1533,9 @@ exports.View = class View
           @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset,
             @bounds[@lineLength - 1].bottom()
 
+      left = dedupe left
+      right = dedupe right
+
       # Reverse the left and concatenate it with the right
       # to make a counterclockwise path
       path = left.reverse().concat right
@@ -1974,12 +1977,7 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBounds.x + @view.opts.bevelClip, lastBounds.y + @view.opts.highlightAreaHeight / 2
       highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
-      @highlightArea.destroy()
-      @highlightArea = new @view.draw.Path(highlightAreaPoints, false, {
-        fillColor: '#FF0'
-        strokeColor: '#FF0'
-        lineWidth: 1
-      })
+      @highlightArea.setPoints highlightAreaPoints
       @highlightArea.destroy()
 
       return null
@@ -2069,3 +2067,10 @@ avgColor = (a, factor, b) ->
   newRGB = (a[i] * factor + b[i] * (1 - factor) for k, i in a)
 
   return toHex newRGB
+
+dedupe = (path) ->
+  return path.filter (x, i) ->
+    if i is 0
+      return true
+    else return not x.equals(path[i - 1])
+

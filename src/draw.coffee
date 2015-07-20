@@ -18,10 +18,33 @@ _area = (a, b, c) -> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
 _intersects = (a, b, c, d) ->
   ((_area(a, b, c) > 0) != (_area(a, b, d) > 0)) and ((_area(c, d, a) > 0) != (_area(c, d, b) > 0))
 
-_bisector = (a, b, c) ->
-  a.from(b).normalize().add(
-    c.from(b).normalize()
-  ).normalize()
+_bisector = (a, b, c, magnitude = 1) ->
+  if a.equals(b) or b.equals(c)
+    return null
+
+  sample = a.from(b).normalize()
+
+  diagonal = sample.plus(
+    sampleB = c.from(b).normalize()
+  )
+
+  if diagonal.x is 0 and diagonal.y is 0
+    return null
+  else if sample.equals(sampleB)
+    return null
+
+  diagonal = diagonal.normalize()
+
+  scalar = magnitude / Math.sqrt((1 - diagonal.dot(sample) ** 2))
+
+  diagonal.x *= scalar
+  diagonal.y *= scalar
+
+  if _area(a, b, c) < 0
+    diagonal.x *= -1
+    diagonal.y *= -1
+
+  return diagonal
 
 max = (a, b) -> `(a > b ? a : b)`
 min = (a, b) -> `(b > a ? a : b)`
@@ -83,14 +106,16 @@ exports.Draw = class Draw
 
       magnitude: -> Math.sqrt @x * @x + @y * @y
 
-      mult: (scalar) -> new Point @x * scalar, @y * scalar
+      times: (scalar) -> new Point @x * scalar, @y * scalar
 
-      normalize: -> @mult 1 / @mag()
+      normalize: -> @times 1 / @magnitude()
 
       translate: (vector) ->
         @x += vector.x; @y += vector.y
 
       add: (x, y) -> @x += x; @y += y
+
+      dot: (other) -> @x * other.x + @y * other.y
 
       plus: ({x, y}) -> new Point @x + x, @y + y
 
@@ -222,7 +247,9 @@ exports.Draw = class Draw
         if @_cacheFlag
           if @_points.length is 0
             @_bounds = new NoRectangle()
+            @_lightBevelPath = ''
           else
+            # Bounds
             minX = minY = Infinity
             maxX = maxY = 0
             for point in @_points
@@ -234,6 +261,89 @@ exports.Draw = class Draw
 
             @_bounds.x = minX; @_bounds.y = minY
             @_bounds.width = maxX - minX; @_bounds.height = maxY - minY
+
+            # Light bevels
+            subpaths = []
+            outsidePoints = []
+            insidePoints = []
+            for point, i in @_points[1..]
+              if (point.x > @_points[i].x and point.y <= @_points[i].y) or
+                 (point.y < @_points[i].y and point.x >= @_points[i].x)
+                if outsidePoints.length is 0
+                  insetCoord = @getInsetCoordinate i, BEVEL_SIZE
+                  if insetCoord?
+                    outsidePoints.push @_points[i]
+                    insidePoints.push insetCoord
+                insetCoord = @getInsetCoordinate i + 1, BEVEL_SIZE
+                if insetCoord?
+                  outsidePoints.push point
+                  insidePoints.push insetCoord
+              else unless point.equals(@_points[i]) or outsidePoints.length is 0
+                subpaths.push(
+                  'M' + outsidePoints.concat(insidePoints.reverse()).map((point) -> "#{ point.x} #{ point.y}").join(" L") + ' Z'
+                )
+                outsidePoints.length = insidePoints.length = 0
+
+            if @_points[0].x > @_points[@_points.length - 1].x or
+                @_points[0].y < @_points[@_points.length - 1].y
+              if outsidePoints.length is 0
+                insetCoord = @getInsetCoordinate @_points.length - 1, BEVEL_SIZE
+                if insetCoord?
+                  outsidePoints.push @_points[@_points.length - 1]
+                  insidePoints.push insetCoord
+              insetCoord = @getInsetCoordinate 0, BEVEL_SIZE
+              if insetCoord?
+                outsidePoints.push @_points[0]
+                insidePoints.push insetCoord
+
+            if outsidePoints.length > 0
+              subpaths.push(
+                'M' + outsidePoints.concat(insidePoints.reverse()).map((point) -> "#{point.x} #{point.y}").join(" L") + ' Z'
+              )
+
+            @_lightBevelPath = subpaths.join(' ')
+
+            # Dark bevels
+            subpaths = []
+            outsidePoints = []
+            insidePoints = []
+            for point, i in @_points[1..]
+              if (point.x < @_points[i].x and point.y >= @_points[i].y) or
+                 (point.y > @_points[i].y and point.x <= @_points[i].x)
+                if outsidePoints.length is 0
+                  insetCoord = @getInsetCoordinate i, BEVEL_SIZE
+                  if insetCoord?
+                    outsidePoints.push @_points[i]
+                    insidePoints.push insetCoord
+
+                insetCoord = @getInsetCoordinate i + 1, BEVEL_SIZE
+                if insetCoord?
+                  outsidePoints.push point
+                  insidePoints.push insetCoord
+              else unless point.equals(@_points[i]) or outsidePoints.length is 0
+                subpaths.push(
+                  'M' + outsidePoints.concat(insidePoints.reverse()).map((point) -> "#{point.x} #{point.y}").join(" L") + ' Z'
+                )
+                outsidePoints.length = insidePoints.length = 0
+
+            if @_points[0].x < @_points[@_points.length - 1].x or
+                @_points[0].y > @_points[@_points.length - 1].y
+              if outsidePoints.length is 0
+                insetCoord = @getInsetCoordinate @_points.length - 1, BEVEL_SIZE
+                if insetCoord?
+                  outsidePoints.push @_points[@_points.length - 1]
+                  insidePoints.push insetCoord
+              insetCoord = @getInsetCoordinate 0, BEVEL_SIZE
+              if insetCoord?
+                outsidePoints.push @_points[0]
+                insidePoints.push insetCoord
+
+            if outsidePoints.length > 0
+              subpaths.push(
+                'M' + outsidePoints.concat(insidePoints.reverse()).map((point) -> "#{point.x} #{point.y}").join(" L") + ' Z'
+              )
+
+            @_darkBevelPath = subpaths.join(' ')
 
             @_cacheFlag = false
 
@@ -338,11 +448,38 @@ exports.Draw = class Draw
         pathCommands.push "Z"
         return pathCommands.join ' '
 
+      getInsetCoordinate: (i, length) ->
+        j = i; prev = @_points[i]
+        while prev.equals(@_points[i]) and j > i - @_points.length
+          j--
+          prev = @_points[j %% @_points.length]
+
+        k = i; next = @_points[i]
+        while next.equals(@_points[i]) and k < i + @_points.length
+          k++
+          next = @_points[k %% @_points.length]
+
+        vector = _bisector prev, @_points[i], next, length
+        return null unless vector?
+
+        point = @_points[i].plus vector
+
+        return point
+
+      getLightBevelPath: -> @_clearCache(); @_lightBevelPath
+      getDarkBevelPath: -> @_clearCache(); @_darkBevelPath
+
       # TODO unhackify
       makeElement: ->
         @_clearCache()
 
         pathElement = document.createElementNS SVG_STANDARD, 'path'
+
+        ###
+        @darkPath = document.createElementNS SVG_STANDARD, 'path'
+        @darkPath.setAttribute 'fill', avgColor @style.fillColor, 0.7 '#000'
+        @darkPath.setAttribute 'd', @getLightBevelPath()
+        ###
 
         if @style.fillColor?
           pathElement.setAttribute 'fill', @style.fillColor
@@ -357,57 +494,19 @@ exports.Draw = class Draw
 
         if @bevel
           @backgroundPathElement = pathElement
-          @foregroundPathElement = document.createElementNS SVG_STANDARD, 'path'
-          @foregroundPathElement.setAttribute 'd', pathString
-          @foregroundPathElement.setAttribute 'fill', @style.fillColor
-          container = document.createElementNS SVG_STANDARD, 'g'
           pathElement = document.createElementNS SVG_STANDARD, 'g'
 
-          bigClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
-          @bigClipPathElement = document.createElementNS SVG_STANDARD, 'path'
-          @bigClipPathElement.setAttribute 'd', pathString
-          bigClipPath.appendChild @bigClipPathElement
-          bigClipPath.setAttribute 'id', clipId = 'droplet-clip-path-' + helper.generateGUID()
-          container.appendChild bigClipPath
-
-          littleClipPathA = document.createElementNS SVG_STANDARD, 'clipPath'
-          @littleClipPathAElement = document.createElementNS SVG_STANDARD, 'path'
-          @littleClipPathAElement.setAttribute 'd', pathString
-          @littleClipPathAElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
-          littleClipPathA.appendChild @littleClipPathAElement
-          littleClipPathA.setAttribute 'id', littleClipAId = 'droplet-clip-path-' + helper.generateGUID()
-          container.appendChild littleClipPathA
-
-          littleClipPath = document.createElementNS SVG_STANDARD, 'clipPath'
-          littleClipPath.setAttribute 'clip-path', "url(##{littleClipAId})"
-          @littleClipPathElement = document.createElementNS SVG_STANDARD, 'path'
-          @littleClipPathElement.setAttribute 'd', pathString
-          @littleClipPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
-          littleClipPath.appendChild @littleClipPathElement
-          littleClipPath.setAttribute 'id', littleClipId = 'droplet-clip-path-' + helper.generateGUID()
-          container.appendChild littleClipPath
-
-          pathElement.setAttribute 'clip-path', "url(##{clipId})"
-          @foregroundPathElement.setAttribute 'clip-path', "url(##{littleClipId})"
+          @lightPathElement = document.createElementNS SVG_STANDARD, 'path'
+          @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
+          @lightPathElement.setAttribute 'd', @getLightBevelPath()
 
           @darkPathElement = document.createElementNS SVG_STANDARD, 'path'
-          @darkPathElement.setAttribute 'd', pathString
           @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
-          @darkPathElement.setAttribute 'transform', "translate(#{BEVEL_SIZE},#{BEVEL_SIZE})"
-
-          @lightPathElement = document.createElementNS SVG_STANDARD, 'path'
-          @lightPathElement.setAttribute 'd', pathString
-          @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
-          @lightPathElement.setAttribute 'transform', "translate(#{-BEVEL_SIZE},#{-BEVEL_SIZE})"
+          @darkPathElement.setAttribute 'd', @getDarkBevelPath()
 
           pathElement.appendChild @backgroundPathElement
-          pathElement.appendChild @darkPathElement
           pathElement.appendChild @lightPathElement
-          pathElement.appendChild @foregroundPathElement
-          container.appendChild pathElement
-
-          pathElement = container
-
+          pathElement.appendChild @darkPathElement
         else
           pathElement.setAttribute 'stroke', @style.strokeColor
           pathElement.setAttribute 'stroke-width', @style.lineWidth
@@ -420,7 +519,6 @@ exports.Draw = class Draw
 
           if @bevel
             @backgroundPathElement.setAttribute 'fill', @style.fillColor
-            @foregroundPathElement.setAttribute 'fill', @style.fillColor
             @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
             @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
           else
@@ -439,12 +537,8 @@ exports.Draw = class Draw
           pathString = @getCommandString()
           if @bevel
             @backgroundPathElement.setAttribute 'd', pathString
-            @foregroundPathElement.setAttribute 'd', pathString
-            @lightPathElement.setAttribute 'd', pathString
-            @darkPathElement.setAttribute 'd', pathString
-            @bigClipPathElement.setAttribute 'd', pathString
-            @littleClipPathAElement.setAttribute 'd', pathString
-            @littleClipPathElement.setAttribute 'd', pathString
+            @lightPathElement.setAttribute 'd', @getLightBevelPath()
+            @darkPathElement.setAttribute 'd', @getDarkBevelPath()
           else
             @element.setAttribute 'd', pathString
 
