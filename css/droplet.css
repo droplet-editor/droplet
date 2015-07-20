@@ -186,6 +186,9 @@
   position: absolute;
   top: 0; bottom: 0; right: 0; left: 0;
   z-index: 9999;
+  cursor: -webkit-grabbing;
+  cursor: -moz-grabbing;
+  cursor: grabbing;
 }
 .droplet-transitioning-element {
   position: absolute;
@@ -310,4 +313,16 @@
 }
 text {
   white-space: pre;
+  pointer-events: none;
+}
+.droplet-block-path {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
+.droplet-socket-path {
+  cursor: text;
+}
+.droplet-cursor-rect {
+  cursor: text; 
 }

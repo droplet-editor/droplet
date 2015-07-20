@@ -1566,6 +1566,9 @@ exports.View = class View
       if @model.type is 'block'
         @path.style.fillColor = @view.getColor @model.color
 
+        # Set its cursor TODO make a Draw method for this
+        @path.element.setAttribute 'class', 'droplet-block-path'
+
       # Return it.
       return @path
 
@@ -1802,6 +1805,9 @@ exports.View = class View
       # Make ourselves white, with a
       # gray border.
       @path.style.fillColor = '#FFF'
+
+      # Set its cursor TODO make a Draw method for this
+      @path.element.setAttribute 'class', 'droplet-socket-path'
 
       return @path
 

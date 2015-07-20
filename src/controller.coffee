@@ -477,32 +477,32 @@ Editor::redrawMain = (opts = {}) ->
 
         startHeight = blockView.bounds[0].height + 10
 
-        # Make the path surrounding the gray box (with rounded corners)
-        record.grayBoxPath = path = new @view.draw.Path()
-        path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
-        path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
-        path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
-        path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
+        points = []
+
+        # Make the points surrounding the gray box (with rounded corners)
+        points.push new @view.draw.Point rectangle.right() - 5, rectangle.y
+        points.push new @view.draw.Point rectangle.right(), rectangle.y + 5
+        points.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
+        points.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
 
         if blockView.lineLength > 1
-          path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
-          path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
+          points.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
+          points.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
         else
-          path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+          points.push new @view.draw.Point rectangle.x, rectangle.bottom()
 
         # Handle
-        path.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
-        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
-        path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
-        path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
+        points.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
+        points.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
+        points.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
+        points.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
+        points.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
 
-        path.push new @view.draw.Point rectangle.x, rectangle.y
+        points.push new @view.draw.Point rectangle.x, rectangle.y
 
-        path.bevel = true
-        path.style = {
+        record.grayBoxPath = path = new @view.draw.Path(points, true, {
           fillColor: GRAY_BLOCK_COLOR
-        }
+        })
 
         if opts.boundingRectangle?
           opts.boundingRectangle.unite path.bounds()
@@ -517,6 +517,7 @@ Editor::redrawMain = (opts = {}) ->
         blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
       @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
       ###
+      console.log 'drawing!'
 
       blockView.draw rect, {
         grayscale: false
@@ -1403,6 +1404,7 @@ Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDo
 # blocks without a highlight.
 hook 'mouseup', 0, (point, event, state) ->
   if @draggingBlock? and not @lastHighlight? and not @dragReplacing
+    console.log 'floatifying'
     # Before we put this block into our list of floating blocks,
     # we need to figure out where on the main canvas
     # we are going to render it.
@@ -1421,10 +1423,12 @@ hook 'mouseup', 0, (point, event, state) ->
     palettePoint = @trackerPointToPalette point
     if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
        0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
-       (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
-       0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
+       (-@gutter.offsetWidth < renderPoint.x < @mainCanvas.offsetWidth and
+       0 < renderPoint.y < @mainCanvas.offsetHeight)
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
+
+      console.log 'deletifying'
 
       @endDrag()
       return
@@ -1439,6 +1443,7 @@ hook 'mouseup', 0, (point, event, state) ->
     @pushUndo new FloatingOperation @floatingBlocks.length, newDocument, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
+    console.log 'pushing a floater'
     @floatingBlocks.push new FloatingBlockRecord(
       newDocument
       renderPoint
@@ -1835,6 +1840,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
     @cursorRect.setAttribute 'y', textFocusView.bounds[startRow].y,
     @cursorRect.setAttribute 'width', 1
     @cursorRect.setAttribute 'height', @view.opts.textHeight
+    @cursorRect.setAttribute 'class', 'droplet-cursor-rect'
 
     @textInputHighlighted = false
 
