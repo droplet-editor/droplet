@@ -2072,5 +2072,10 @@ dedupe = (path) ->
   return path.filter (x, i) ->
     if i is 0
       return true
-    else return not x.equals(path[i - 1])
+    else
+      if x.equals(path[i - 1])
+        return false
+      if i < path.length - 1 and x.from(path[i - 1]).normalize().equals(path[i + 1].from(x).normalize())
+        return false
+      return true
 
