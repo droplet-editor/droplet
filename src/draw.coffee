@@ -237,17 +237,18 @@ exports.Draw = class Draw
         @_cacheFlag = true
         @_bounds = new NoRectangle()
 
+        @active = true
+
         @_clearCache()
 
         @element = @makeElement()
         self.ctx.appendChild @element
 
       _clearCache: ->
-        @_cacheFlag = true
         if @_cacheFlag
           if @_points.length is 0
             @_bounds = new NoRectangle()
-            @_lightBevelPath = ''
+            @_lightBevelPath = @_darkBevelPath = ''
           else
             # Bounds
             minX = minY = Infinity
@@ -467,19 +468,17 @@ exports.Draw = class Draw
         return point
 
       getLightBevelPath: -> @_clearCache(); @_lightBevelPath
-      getDarkBevelPath: -> @_clearCache(); @_darkBevelPath
+      getDarkBevelPath: ->
+        @_clearCache()
+        unless @_darkBevelPath?
+          debugger
+        return @_darkBevelPath
 
       # TODO unhackify
       makeElement: ->
         @_clearCache()
 
         pathElement = document.createElementNS SVG_STANDARD, 'path'
-
-        ###
-        @darkPath = document.createElementNS SVG_STANDARD, 'path'
-        @darkPath.setAttribute 'fill', avgColor @style.fillColor, 0.7 '#000'
-        @darkPath.setAttribute 'd', @getLightBevelPath()
-        ###
 
         if @style.fillColor?
           pathElement.setAttribute 'fill', @style.fillColor
@@ -547,11 +546,18 @@ exports.Draw = class Draw
           @element.setAttribute 'visibility', 'visible'
           @active = true
 
-      destroy: ->
+      deactivate: ->
         if @active
-          #ctx.removeChild @element
           @element.setAttribute 'visibility', 'hidden'
           @active = false
+
+      destroy: ->
+        @deactivate()
+        self.ctx.removeChild @element
+
+      focus: ->
+        @activate()
+        self.ctx.appendChild @element
 
       clone: ->
         clone = new Path(@_points.slice(0), @bevel, {
@@ -622,9 +628,14 @@ exports.Draw = class Draw
           text = document.createTextNode @value.replace(/ /g, '\u00A0')
           element.appendChild text
 
-      destroy: ->
-        #self.ctx.removeChild @element
+      deactivate: ->
         @element.setAttribute 'visibility', 'hidden'
+
+      activate: ->
+        @element.setAttribute 'visibility', 'visible'
+
+      destroy: ->
+        self.ctx.removeChild @element
 
   refreshFontCapital:  ->
     metrics = helper.fontMetrics(@fontFamily, @fontSize)

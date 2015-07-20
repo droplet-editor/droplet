@@ -1270,10 +1270,10 @@ hook 'mousemove', 0, (point, event, state) ->
         @redrawHighlights()
 
         if best?
-          @lastHighlightPath?.destroy?()
+          @lastHighlightPath?.deactivate?()
           @lastHighlightPath = @view.getViewNodeFor(best).highlightArea
           @lastHighlightPath.update()
-          @lastHighlightPath.activate()
+          @lastHighlightPath.focus()
           @maskFloatingPaths(best.getDocument())
 
         @lastHighlight = best

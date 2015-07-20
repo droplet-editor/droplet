@@ -215,7 +215,7 @@ exports.View = class View
         strokeColor: '#FF0'
         lineWidth: 1
       })
-      @highlightArea.destroy()
+      @highlightArea.deactivate()
 
       # Versions. The corresponding
       # Model will keep corresponding version
@@ -742,11 +742,11 @@ exports.View = class View
         for child in @oldChildren
           viewNode = @view.getViewNodeFor child.child
           viewNode.forceClean()
-        @path.destroy()
+        @path.deactivate()
         if @textElement?
-          @textElement.destroy()
+          @textElement.deactivate()
         if @highlightArea?
-          @highlightArea.destroy()
+          @highlightArea.deactivate()
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
@@ -1710,7 +1710,7 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBoundsLeft, @dropPoint.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
       @highlightArea.setPoints highlightAreaPoints
-      @highlightArea.destroy()
+      @highlightArea.deactivate()
 
   # # SocketViewNode
   class SocketViewNode extends ContainerViewNode
@@ -1828,18 +1828,15 @@ exports.View = class View
     computeOwnDropArea: ->
       if @model.start.next.type is 'blockStart'
         @dropArea = null
-        @highlightArea.destroy()
+        @highlightArea.deactivate()
       else
-        console.log 'updating socket highlight', @model.stringify()
         @dropPoint = @bounds[0].upperLeftCorner()
-        ###
         @highlightArea.setPoints @path._points
         @highlightArea.style.strokeColor = '#FF0'
         @highlightArea.style.fillColor = 'none'
         @highlightArea.style.lineWidth = @view.opts.padding
         @highlightArea.update()
-        @highlightArea.destroy()
-        ###
+        @highlightArea.deactivate()
 
   # # IndentViewNode
   class IndentViewNode extends ContainerViewNode
@@ -1935,7 +1932,7 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
       @highlightArea.setPoints highlightAreaPoints
-      @highlightArea.destroy()
+      @highlightArea.deactivate()
 
 
   # # DocumentViewNode
@@ -1978,7 +1975,7 @@ exports.View = class View
       highlightAreaPoints.push new @view.draw.Point lastBounds.x, lastBounds.y + @view.opts.highlightAreaHeight / 2 - @view.opts.bevelClip
 
       @highlightArea.setPoints highlightAreaPoints
-      @highlightArea.destroy()
+      @highlightArea.deactivate()
 
       return null
 
