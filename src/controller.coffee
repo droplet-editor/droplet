@@ -2315,6 +2315,7 @@ hook 'mousemove', 0, (point, event, state) ->
         return true
       else
         @lassoSelection = null
+        @redrawLassoHighlight()
         return false
 
     unless @lassoSelectionDocument? and findLassoSelect @lassoSelectionDocument
@@ -2324,13 +2325,19 @@ hook 'mousemove', 0, (point, event, state) ->
           break
 
 Editor::redrawLassoHighlight = ->
+  mainCanvasRectangle = new @draw.Rectangle(
+    @scrollOffsets.main.x,
+    @scrollOffsets.main.y,
+    @mainCanvas.width,
+    @mainCanvas.height
+  )
+
+  # Remove any existing selections
+  tree = @view.getViewNodeFor @tree
+  tree.draw mainCanvasRectangle, {selected: false}
+
   if @lassoSelection?
-    mainCanvasRectangle = new @draw.Rectangle(
-      @scrollOffsets.main.x,
-      @scrollOffsets.main.y,
-      @mainCanvas.width,
-      @mainCanvas.height
-    )
+    # Add any new selections
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw mainCanvasRectangle, {selected: true}
@@ -3229,8 +3236,10 @@ hook 'redraw_main', 1, ->
   # jammed up against the edge of the screen.
   #
   # Default this extra space to fontSize (approx. 1 line).
-  height = bounds.bottom() +
-    (@options.extraBottomHeight ? @fontSize)
+  height = Math.max(
+    bounds.bottom() + (@options.extraBottomHeight ? @fontSize),
+    @dropletElement.offsetHeight
+  )
 
   @mainCanvas.setAttribute 'height', height
   @mainCanvas.style.height = "#{height}px"
