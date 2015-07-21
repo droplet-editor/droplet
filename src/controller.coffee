@@ -41,7 +41,7 @@ CONTROL_KEYS = [17, 162, 163]
 GRAY_BLOCK_MARGIN = 5
 GRAY_BLOCK_HANDLE_WIDTH = 15
 GRAY_BLOCK_HANDLE_HEIGHT = 30
-GRAY_BLOCK_COLOR = '#FFF'
+GRAY_BLOCK_COLOR = 'rgba(256, 256, 256, 0.5)'
 GRAY_BLOCK_BORDER = '#AAA'
 
 userAgent = ''
@@ -451,7 +451,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
         fillColor: GRAY_BLOCK_COLOR
         strokeColor: GRAY_BLOCK_BORDER
         lineWidth: 4
-        dotted: '5 8'
+        dotted: '8 5'
         cssClass: 'droplet-floating-container'
       }
     )
@@ -492,12 +492,22 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 
   record.grayBoxPath.update() #draw @mainCtx
   record.grayBoxPath.focus()
-  ### TODO
-  @mainCtx.fillStyle = '#000'
-  @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
-    blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
-  @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
-  ###
+  record.startText ?= new @view.draw.Text(
+    (new @view.draw.Point(0, 0)), @mode.startComment
+  )
+  record.endText ?= new @view.draw.Text(
+    (new @view.draw.Point(0, 0)), @mode.startComment
+  )
+
+  record.startText.point.x = blockView.totalBounds.x - startWidth
+  record.startText.point.y = blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize
+  record.startText.update()
+  record.startText.focus()
+
+  record.endText.point.x = record.grayBox.right() - endWidth - 5
+  record.endText.point.y = bottomTextPosition
+  record.endText.update()
+  record.endText.focus()
 
   blockView.draw rect, {
     grayscale: false
@@ -506,6 +516,9 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   }
 
   blockView.focusAll()
+
+hook 'populate', 0, ->
+  @currentlyDrawnFloatingBlocks = []
 
 Editor::redrawMain = (opts = {}) ->
   unless @currentlyAnimating_suprressRedraw
@@ -530,11 +543,22 @@ Editor::redrawMain = (opts = {}) ->
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
     @view.getViewNodeFor(@tree).draw rect, options
 
+    for el, i in @currentlyDrawnFloatingBlocks
+      unless el.record in @floatingBlocks
+        el.record.grayBoxPath.destroy()
+        el.record.startText.destroy()
+        el.record.endText.destroy()
+
+    @currentlyDrawnFloatingBlocks = []
+
     # Draw floating blocks
     startWidth = @mode.startComment.length * @fontWidth
     endWidth = @mode.endComment.length * @fontWidth
     for record in @floatingBlocks
-      @drawFloatingBlock(record, startWidth, endWidth, rect, opts)
+      element = @drawFloatingBlock(record, startWidth, endWidth, rect, opts)
+      @currentlyDrawnFloatingBlocks.push {
+        record: record
+      }
 
     # Draw the cursor (if exists, and is inserted)
     @redrawCursors(); @redrawHighlights()
@@ -2483,11 +2507,12 @@ Editor::redrawLassoHighlight = ->
   )
 
   # Remove any existing selections
-  tree = @view.getViewNodeFor @tree
-  tree.draw mainCanvasRectangle, {
-    selected: false
-    noText: @currentlyAnimating # TODO add some modularized way of having global view options
-  }
+  for dropletDocument in @getDocuments()
+    dropletDocumentView = @view.getViewNodeFor dropletDocument
+    dropletDocumentView.draw mainCanvasRectangle, {
+      selected: false
+      noText: @currentlyAnimating # TODO add some modularized way of having global view options
+    }
 
   if @lassoSelection?
     # Add any new selections
