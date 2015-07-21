@@ -324,7 +324,7 @@ text {
 .droplet-socket-path {
   cursor: text;
 }
-.droplet-cursor-rect {
+.droplet-cursor-path {
   cursor: text;
 }
 .droplet-floating-container {

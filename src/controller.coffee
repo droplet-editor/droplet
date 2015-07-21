@@ -356,7 +356,7 @@ exports.Editor = class Editor
     @scrollOffsets.main.y = @mainScroller.scrollTop
     @scrollOffsets.main.x = @mainScroller.scrollLeft
 
-    # TODO migrate from "transform" to "viewBox"
+    # TODO remove @scrollOffsets.main
     @setScrollOffset @mainCtx, @scrollOffsets.main
 
     # Also update scroll for the highlight ctx, so that
@@ -1034,8 +1034,8 @@ hook 'populate', 0, ->
   @mainCanvas.appendChild @highlightCanvas
 
 Editor::clearHighlightCanvas = ->
-  #@clearCanvas @highlightCtx
-  @cursorRect.style.display = 'none'
+  for path in [@textCursorPath]
+    path.deactivate()
 
 # Utility function for clearing the drag canvas,
 # an operation we will be doing a lot.
@@ -1386,8 +1386,7 @@ hook 'mousemove', 0, (point, event, state) ->
           @lastHighlightPath?.deactivate?()
           @lastHighlightPath = @view.getViewNodeFor(best).highlightArea
           @lastHighlightPath.update()
-          @lastHighlightPath.focus()
-          @maskFloatingPaths(best.getDocument())
+          @qualifiedFocus best, @lastHighlightPath
 
         @lastHighlight = best
 
@@ -1401,6 +1400,14 @@ hook 'mousemove', 0, (point, event, state) ->
     else
       @dragCanvas.style.opacity = 0.85
       @begunTrash = false
+
+Editor::qualifiedFocus = (node, path) ->
+  documentIndex = @documentIndex node
+  if documentIndex < @floatingBlocks.length
+    path.activate()
+    @mainCtx.insertBefore path.element, @floatingBlocks[documentIndex].grayBoxPath.element
+  else
+    path.focus()
 
 hook 'mouseup', 0, ->
   clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
@@ -1986,6 +1993,8 @@ Editor::redrawTextInput = ->
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
   return unless @cursorAtSocket()
 
+  @clearHighlightCanvas()
+
   textFocusView = @view.getViewNodeFor @getCursor()
 
   # Determine the coordinate positions
@@ -2007,14 +2016,16 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   #
   # Draw a line if it is just a cursor
   if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
-    @cursorRect.style.display = 'block'
-    @mainCanvas.appendChild @cursorRect
-    @cursorRect.setAttribute 'stroke', '#000'
-    @cursorRect.setAttribute 'x', startPosition
-    @cursorRect.setAttribute 'y', textFocusView.bounds[startRow].y,
-    @cursorRect.setAttribute 'width', 1
-    @cursorRect.setAttribute 'height', @view.opts.textHeight
-    @cursorRect.setAttribute 'class', 'droplet-cursor-rect'
+    @qualifiedFocus @getCursor(), @textCursorPath
+    points = [
+      new @view.draw.Point(startPosition, textFocusView.bounds[startRow].y),
+      new @view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @view.opts.textHeight)
+    ]
+
+    @textCursorPath.setPoints points
+    @textCursorPath.style.strokeColor = '#000'
+    @textCursorPath.update()
+    @qualifiedFocus @getCursor(), @textCursorPath
 
     @textInputHighlighted = false
 
@@ -2022,34 +2033,40 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   else
     @textInputHighlighted = true
 
+    # TODO maybe put this in the view?
+    rectangles = []
+
     if startRow is endRow
-      rect = new @view.draw.Rectangle startPosition,
+      rectangles.push new @view.draw.Rectangle startPosition,
         textFocusView.bounds[startRow].y + @view.opts.textPadding
         endPosition - startPosition, @view.opts.textHeight
 
     else
-      rect = new @view.draw.Rectangle startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
+      rectangles.push new @view.draw.Rectangle startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
         textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
       for i in [startRow + 1...endRow]
-        rect = new @view.draw.Rectangle textFocusView.bounds[i].x,
+        rectangles.push new @view.draw.Rectangle textFocusView.bounds[i].x,
           textFocusView.bounds[i].y + @view.opts.textPadding,
           textFocusView.bounds[i].width,
           @view.opts.textHeight
 
-      rect = new @view.draw.Rectangle textFocusView.bounds[endRow].x,
+      rectangles.push new @view.draw.Rectangle textFocusView.bounds[endRow].x,
         textFocusView.bounds[endRow].y + @view.opts.textPadding,
         endPosition - textFocusView.bounds[endRow].x,
         @view.opts.textHeight
 
-    @cursorRect.style.display = 'block'
-    @mainCanvas.appendChild @cursorRect
-    @cursorRect.setAttribute 'stroke', 'none'
-    @cursorRect.setAttribute 'fill', 'rgba(0, 0, 256, 0.3)'
-    @cursorRect.setAttribute 'x', rect.x
-    @cursorRect.setAttribute 'y', rect.y
-    @cursorRect.setAttribute 'width', rect.width
-    @cursorRect.setAttribute 'height', rect.height
+    left = []; right = []
+    for el, i in rectangles
+      left.push new @view.draw.Point el.x, el.y
+      left.push new @view.draw.Point el.x, el.bottom()
+      right.push new @view.draw.Point el.right(), el.y
+      right.push new @view.draw.Point el.right(), el.bottom()
+
+    @textCursorPath.setPoints left.concat right.reverse()
+    @textCursorPath.style.strokeColor = 'none'
+    @textCursorPath.update()
+    @qualifiedFocus @getCursor(), @textCursorPath
 
   if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.offsetWidth
     @mainScroller.scrollLeft = endPosition - @mainCanvas.offsetWidth + @view.opts.padding
@@ -2520,15 +2537,6 @@ Editor::redrawLassoHighlight = ->
     lassoView.absorbCache()
     lassoView.draw mainCanvasRectangle, {selected: true}
     @maskFloatingPaths(@lassoSelection.start.getDocument())
-
-Editor::maskFloatingPaths = (dropletDocument) ->
-  for record, i in @floatingBlocks by -1
-    if record.block is dropletDocument
-      break
-    else
-      0 # TODO masking
-      #record.grayBoxPath.clip(@highlightCtx)
-      #record.grayBoxPath.bounds().clearRect(@highlightCtx)
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -3901,46 +3909,28 @@ hook 'populate', 0, ->
 # ================================
 hook 'populate', 0, ->
   @cursorCtx = document.createElementNS SVG_STANDARD, 'g'
-  @cursorRect = document.createElementNS SVG_STANDARD, 'rect'
+  @textCursorPath = new @view.draw.Path([], false, {
+    'strokeColor': '#000'
+    'lineWidth': '2'
+    'fillColor': 'rgba(0, 0, 256, 0.3)'
+    'cssClass': 'droplet-cursor-path'
+  })
 
   @mainCanvas.appendChild @cursorCtx
-  @mainCanvas.appendChild @cursorRect
 
 Editor::strokeCursor = (point) ->
   return unless point?
-  ###
-  @cursorCtx.beginPath()
-
-  @cursorCtx.fillStyle =
-    @cursorCtx.strokeStyle = '#000'
-
-  @cursorCtx.lineCap = 'round'
-
-  @cursorCtx.lineWidth = 3
-
-  w = @view.opts.tabWidth / 2 - CURSOR_WIDTH_DECREASE
-  h = @view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
-
-  arcCenter = new @draw.Point point.x + @view.opts.tabOffset + w + CURSOR_WIDTH_DECREASE,
-    point.y - (w*w + h*h) / (2 * h) + h + CURSOR_HEIGHT_DECREASE / 2
-  arcAngle = Math.atan2 w, (w*w + h*h) / (2 * h) - h
-  startAngle = 0.5 * Math.PI - arcAngle
-  endAngle = 0.5 * Math.PI + arcAngle
-
-  @cursorCtx.arc arcCenter.x, arcCenter.y, (w*w + h*h) / (2 * h), startAngle, endAngle
-
-  @cursorCtx.stroke()
-  ###
+  #@cursorElement.setAttribute 'transform', "translate(#{point.x}, #{point.y})"
 
 Editor::highlightFlashShow = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  @cursorCtx.style.display = 'block'
+  @textCursorPath.activate()
   @highlightsCurrentlyShown = true
   @flashTimeout = setTimeout (=> @flash()), 500
 
 Editor::highlightFlashHide = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  @cursorCtx.style.display = 'none'
+  @textCursorPath.deactivate()
   @highlightsCurrentlyShown = false
   @flashTimeout = setTimeout (=> @flash()), 500
 
