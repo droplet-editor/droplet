@@ -193,6 +193,7 @@
 .droplet-transitioning-element {
   position: absolute;
   white-space: pre;
+  vertical-align: text-top;
   z-index: 256;
 }
 .droplet-transitioning-gutter {
@@ -324,5 +325,10 @@ text {
   cursor: text;
 }
 .droplet-cursor-rect {
-  cursor: text; 
+  cursor: text;
+}
+.droplet-floating-container {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
 }

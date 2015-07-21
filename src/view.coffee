@@ -202,9 +202,13 @@ exports.View = class View
       # *Sixth pass variables*
       # computePath
       if @model.type is 'block'
-        @path = new @view.draw.Path([], true)
+        @path = new @view.draw.Path([], true, {
+          cssClass: 'droplet-block-path'
+        })
       else
-        @path = new @view.draw.Path()
+        @path = new @view.draw.Path([], false, {
+          cssClass: "droplet-#{@model.type}-path"
+        })
 
       # *Seventh pass variables*
       # computeDropAreas
@@ -283,6 +287,13 @@ exports.View = class View
     # This is basically a void computeChildren that should be
     # overridden.
     computeChildren: -> @lineLength
+
+    focusAll: ->
+      @path.focus() if @path?
+      if @textElement?
+        @textElement.focus()
+      for child in @children
+        @view.getViewNodeFor(child.child).focusAll()
 
     computeCarriageArrow: ->
       for childObj in @children
@@ -1566,9 +1577,6 @@ exports.View = class View
       if @model.type is 'block'
         @path.style.fillColor = @view.getColor @model.color
 
-        # Set its cursor TODO make a Draw method for this
-        @path.element.setAttribute 'class', 'droplet-block-path'
-
       # Return it.
       return @path
 
@@ -1806,9 +1814,6 @@ exports.View = class View
       # gray border.
       @path.style.fillColor = '#FFF'
 
-      # Set its cursor TODO make a Draw method for this
-      @path.element.setAttribute 'class', 'droplet-socket-path'
-
       return @path
 
     # ## drawSelf (SocketViewNode)
@@ -2039,6 +2044,10 @@ exports.View = class View
     # Draw the text element itself.
     drawSelf: (style = {}) ->
       @textElement.update()
+      if style.noText
+        @textElement.deactivate()
+      else
+        @textElement.activate()
 
 toRGB = (hex) ->
   # Convert to 6-char hex if not already there

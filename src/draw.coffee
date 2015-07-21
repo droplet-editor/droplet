@@ -125,6 +125,7 @@ exports.Draw = class Draw
 
       copy: (point) ->
         @x = point.x; @y = point.y
+        return @
 
       from: (point) -> new Point @x - point.x, @y - point.y
 
@@ -161,6 +162,7 @@ exports.Draw = class Draw
       copy: (rect) ->
         @x = rect.x; @y = rect.y
         @width = rect.width; @height = rect.height
+        return @
 
       clip: (ctx) ->
         ctx.rect @x, @y, @width, @height
@@ -232,7 +234,7 @@ exports.Draw = class Draw
     # This is called Path, but is forced to be closed so is actually a polygon.
     # It can do fast translation and rectangular intersection.
     @Path = class Path
-      constructor: (@_points = [], @bevel = false, @style = {'strokeColor': '#000', 'lineWidth': 0, 'fillColor': 'none'}) ->
+      constructor: (@_points = [], @bevel = false, @style) ->
         @_cachedTranslation = new Point 0, 0
         @_cacheFlag = true
         @_bounds = new NoRectangle()
@@ -241,14 +243,26 @@ exports.Draw = class Draw
 
         @_clearCache()
 
+        @style = helper.extend {
+          'strokeColor': 'none'
+          'lineWidth': 1
+          'fillColor': 'none'
+          'dotted': ''
+        }, @style
+
         @element = @makeElement()
         self.ctx.appendChild @element
 
       _clearCache: ->
         if @_cacheFlag
+          # If we have no points, return the empty rectangle
+          # as our bounding box
           if @_points.length is 0
             @_bounds = new NoRectangle()
             @_lightBevelPath = @_darkBevelPath = ''
+
+          # Otherwise, find our bounding box based
+          # on our points.
           else
             # Bounds
             minX = minY = Infinity
@@ -486,6 +500,8 @@ exports.Draw = class Draw
         @__lastFillColor = @style.fillColor
         @__lastStrokeColor = @style.strokeColor
         @__lastLineWidth = @style.lineWidth
+        @__lastDotted = @style.dotted
+        @__lastCssClass = @style.cssClass
 
         pathString = @getCommandString()
 
@@ -509,6 +525,11 @@ exports.Draw = class Draw
         else
           pathElement.setAttribute 'stroke', @style.strokeColor
           pathElement.setAttribute 'stroke-width', @style.lineWidth
+          if (@style.dotted?.length ? 0) > 0
+            pathElement.setAttribute 'stroke-dasharray', @style.dotted
+
+        if @style.cssClass?
+          pathElement.setAttribute 'class', @style.cssClass
 
         return pathElement
 
@@ -527,9 +548,17 @@ exports.Draw = class Draw
           @__lastStrokeColor = @style.strokeColor
           @element.setAttribute 'stroke', @style.strokeColor
 
+        if not @bevel and @style.dotted isnt @__lastDotted
+          @__lastDotted = @style.dotted
+          @element.setAttribute 'stroke-dasharray', @style.dotted
+
         if not @bevel and @style.lineWidth isnt @__lastLineWidth
           @__lastLineWidth = @style.lineWidth
           @element.setAttribute 'stroke-width', @style.lineWidth
+
+        if @style.cssClass and @style.cssClass isnt @_lastCssClass
+          @_lastCssClass = @style.cssClass
+          @element.setAttribute 'class', @style.cssClass
 
         if @_updateFlag
           @_updateFlag = false
@@ -586,6 +615,8 @@ exports.Draw = class Draw
         @element = @makeElement()
         self.ctx.appendChild @element
 
+        @active = true
+
         @__lastValue = @value
         @__lastPoint = @point.clone()
 
@@ -605,7 +636,7 @@ exports.Draw = class Draw
         # to base ourselves to avoid a chrome bug where text zooming
         # doesn't work for non-alphabetic baselines
         element.setAttribute 'x', @point.x
-        element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent
+        element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent / 2
         element.setAttribute 'dominant-baseline', 'alphabetic'
 
         element.setAttribute 'font-family', self.fontFamily
@@ -620,7 +651,7 @@ exports.Draw = class Draw
         unless @point.equals(@__lastPoint)
           @__lastPoint = @point.clone()
           @element.setAttribute 'x', @point.x
-          @element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent
+          @element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent / 2
 
         unless @value is @__lastValue
           @__lastValue = @value
@@ -629,12 +660,21 @@ exports.Draw = class Draw
           element.appendChild text
 
       deactivate: ->
-        @element.setAttribute 'visibility', 'hidden'
+        if @active
+          @active = false
+          @element.setAttribute 'visibility', 'hidden'
 
       activate: ->
-        @element.setAttribute 'visibility', 'visible'
+        unless @active
+          @active = true
+          @element.setAttribute 'visibility', 'visible'
+
+      focus: ->
+        @activate()
+        self.ctx.appendChild @element
 
       destroy: ->
+        @deactivate()
         self.ctx.removeChild @element
 
   refreshFontCapital:  ->

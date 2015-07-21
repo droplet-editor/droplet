@@ -232,6 +232,8 @@ exports.Parser = class Parser
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
       block.classes = ['__comment__', 'block-only']
+    else
+      block.classes = ['__handwritten__', 'block-only']
 
     return block
 
@@ -497,6 +499,7 @@ exports.wrapParser = (CustomParser) ->
       return parser
 
     parse: (text, opts) ->
+      @opts.parseOptions = opts
       opts ?= wrapAtRoot: true
       return @createParser(text)._parse opts
 

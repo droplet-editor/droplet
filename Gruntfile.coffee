@@ -48,7 +48,11 @@ module.exports = (grunt) ->
 
     qunit:
       options:
-        timeout: 30000
+        timeout: 60000
+        page:
+          viewportSize:
+            width: 1000
+            height: 1000
       all:
         urls:
           (for x in grunt.file.expand('test/*.html')
@@ -92,6 +96,7 @@ module.exports = (grunt) ->
           'test/js/uitest.js': ['test/src/uitest.coffee']
           'test/js/jstest.js': ['test/src/jstest.coffee']
           'test/js/cstest.js': ['test/src/cstest.coffee']
+          'test/js/htmltest.js': ['test/src/htmltest.coffee']
         options:
           transform: ['coffeeify']
           browserifyOptions:
