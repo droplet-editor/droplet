@@ -427,21 +427,22 @@ SyntaxError.prototype = new Error();
 function SyntaxUnit(text, startLine, startCol, endLine, endCol, type){
 
 
+    var loc = this.loc = {};
     /**
      * The column of text on which the unit resides.
      * @type int
      * @property col
      */
-    this.startCol = startCol;
-    this.endCol = endCol;
+    loc.startCol = startCol;
+    loc.endCol = endCol;
 
     /**
      * The line of text on which the unit resides.
      * @type int
      * @property line
      */
-    this.startLine = startLine;
-    this.endLine = endLine;
+    loc.startLine = startLine;
+    loc.endLine = endLine;
 
     /**
      * The text representation of the unit.
@@ -500,8 +501,8 @@ SyntaxUnit.prototype = {
      */
     concat: function(other){
         this.text += other.text;
-        this.endLine = other.endLine;
-        this.endCol = other.endCol;
+        this.loc.endLine = other.loc.endLine;
+        this.loc.endCol = other.loc.endCol;
     }
 
 };
@@ -1470,10 +1471,12 @@ Parser.prototype = function(){
                         this.fire({
                             type:   "charset",
                             charset:charset,
-                            startLine: line,
-                            startCol: col,
-                            endLine: tokenStream.token().endLine,
-                            endCol: tokenStream.token().endCol,
+                            loc: {
+                                startLine: line,
+                                startCol: col,
+                                endLine: tokenStream.token().endLine,
+                                endCol: tokenStream.token().endCol
+                            }
                         });
                     }
                 }
@@ -1516,10 +1519,12 @@ Parser.prototype = function(){
                         type:   "import",
                         uri:    uri,
                         media:  mediaList,
-                        startLine: importToken.startLine,
-                        startCol: importToken.startCol,
-                        endLine: semicolonToken.endLine,
-                        endCol: semicolonToken.endCol,
+                        loc: {
+                            startLine: importToken.startLine,
+                            startCol: importToken.startCol,
+                            endLine: semicolonToken.endLine,
+                            endCol: semicolonToken.endCol
+                        }
                     });
                 }
 
@@ -1570,10 +1575,12 @@ Parser.prototype = function(){
                         type:   "namespace",
                         prefix: prefix,
                         uri:    uri,
-                        startLine: line,
-                        startCol: col,
-                        endLine: semicolonToken.endLine,
-                        endCol: semicolonToken.endCol,
+                        loc: {
+                            startLine: line,
+                            startCol: col,
+                            endLine: semicolonToken.endLine,
+                            endCol: semicolonToken.endCol
+                        }
                     });
                 }
 
@@ -1606,10 +1613,12 @@ Parser.prototype = function(){
                 this.fire({
                     type:   "startmedia",
                     media:  mediaList,
-                    startLine: line,
-                    startCol: col,
-                    endLine: lbraceToken.endLine,
-                    endCol: lbraceToken.endCol
+                    loc: {
+                        startLine: line,
+                        startCol: col,
+                        endLine: lbraceToken.endLine,
+                        endCol: lbraceToken.endCol
+                    }
                 });
 
                 while(true) {
@@ -1631,8 +1640,10 @@ Parser.prototype = function(){
                 this.fire({
                     type:   "endmedia",
                     media:  mediaList,
-                    line:   rbraceToken.endLine,
-                    col:    rbraceToken.endCol
+                    loc: {
+                        line:   rbraceToken.endLine,
+                        col:    rbraceToken.endCol
+                    }
                 });
             },
 
@@ -1829,10 +1840,12 @@ Parser.prototype = function(){
                     type:   "startpage",
                     id:     identifier,
                     pseudo: pseudoPage,
-                    startLine:   line,
-                    startCol:    col,
-                    endLine:     lbraceToken.endLine,
-                    endCol:      lbraceToken.endCol
+                    loc: {
+                        startLine:   line,
+                        startCol:    col,
+                        endLine:     lbraceToken.endLine,
+                        endCol:      lbraceToken.endCol
+                    }
                 });
 
                 this._readDeclarations(false, true);
@@ -1843,8 +1856,10 @@ Parser.prototype = function(){
                     type:   "endpage",
                     id:     identifier,
                     pseudo: pseudoPage,
-                    line:   rbraceToken.endLine,
-                    col:    rbraceToken.endCol
+                    loc: {
+                        line:   rbraceToken.endLine,
+                        col:    rbraceToken.endCol
+                    }
                 });
 
             },
@@ -1872,10 +1887,12 @@ Parser.prototype = function(){
                     this.fire({
                         type: "startpagemargin",
                         margin: marginSym,
-                        startLine:   line,
-                        startCol:    col,
-                        endLine:     lbraceToken.endLine,
-                        endCol:      lbraceToken.endCol
+                        loc: {
+                            startLine:   line,
+                            startCol:    col,
+                            endLine:     lbraceToken.endLine,
+                            endCol:      lbraceToken.endCol
+                        }
                     });
 
                     this._readDeclarations(false);
@@ -1885,8 +1902,10 @@ Parser.prototype = function(){
                     this.fire({
                         type: "endpagemargin",
                         margin: marginSym,
-                        line:   rbraceToken.endLine,
-                        col:    rbraceToken.endCol
+                        loc: {
+                            line:   rbraceToken.endLine,
+                            col:    rbraceToken.endCol
+                        }
                     });
                     return true;
                 } else {
@@ -1974,10 +1993,12 @@ Parser.prototype = function(){
 
                 this.fire({
                     type:   "startfontface",
-                    startLine:   line,
-                    startCol:    col,
-                    endLine:     lbraceToken.endLine,
-                    endCol:      lbraceToken.endCol
+                    loc: {
+                        startLine:   line,
+                        startCol:    col,
+                        endLine:     lbraceToken.endLine,
+                        endCol:      lbraceToken.endCol
+                    }
                 });
 
                 this._readDeclarations(false);
@@ -1986,8 +2007,10 @@ Parser.prototype = function(){
 
                 this.fire({
                     type:   "endfontface",
-                    line:   rbraceToken.endLine,
-                    col:    rbraceToken.endCol
+                    loc: {
+                        line:   rbraceToken.endLine,
+                        col:    rbraceToken.endCol
+                    }
                 });
             },
 
@@ -2012,10 +2035,12 @@ Parser.prototype = function(){
 
                     this.fire({
                         type:   "startviewport",
-                        startLine:   line,
-                        startCol:    col,
-                        endLine:     lbraceToken.endLine,
-                        endCol:      lbraceToken.endCol
+                        loc: {
+                            startLine:   line,
+                            startCol:    col,
+                            endLine:     lbraceToken.endLine,
+                            endCol:      lbraceToken.endCol
+                        }
                     });
 
                     this._readDeclarations(false);
@@ -2024,8 +2049,10 @@ Parser.prototype = function(){
 
                     this.fire({
                         type:   "endviewport",
-                        line:   rbraceToken.endLine,
-                        col:    rbraceToken.endCol
+                        loc: {
+                            line:   rbraceToken.endLine,
+                            col:    rbraceToken.endCol
+                        }
                     });
 
             },
@@ -2192,10 +2219,12 @@ Parser.prototype = function(){
                     this.fire({
                         type:       "startrule",
                         selectors:  selectors,
-                        startLine:  selectors[0].startLine,
-                        startCol:   selectors[0].startCol,
-                        endLine:    lbraceToken.endLine,
-                        endCol:     lbraceToken.endCol
+                        loc: {
+                            startLine:  selectors[0].loc.startLine,
+                            startCol:   selectors[0].loc.startCol,
+                            endLine:    lbraceToken.endLine,
+                            endCol:     lbraceToken.endCol
+                        }
                     });
 
                     this._readDeclarations(false);
@@ -2205,8 +2234,10 @@ Parser.prototype = function(){
                     this.fire({
                         type:       "endrule",
                         selectors:  selectors,
-                        line:       rbraceToken.endLine,
-                        col:        rbraceToken.endCol
+                        loc: {
+                            line:       rbraceToken.endLine,
+                            col:        rbraceToken.endCol
+                        }
                     });
 
                 }
@@ -2318,7 +2349,7 @@ Parser.prototype = function(){
                     }
                 } while(true);
 
-                return new Selector(selector, selector[0].startLine, selector[0].startCol, selector[selector.length-1].endLine, selector[selector.length-1].endCol);
+                return new Selector(selector, selector[0].loc.startLine, selector[0].loc.startCol, selector[selector.length-1].loc.endLine, selector[selector.length-1].loc.endCol);
             },
 
             //CSS3 Selectors
@@ -2812,11 +2843,12 @@ Parser.prototype = function(){
                         this._unexpectedToken(tokenStream.LT(1));
                     }
 
-                    lastToken = expr
+                    lastToken = expr.loc;
                     prioToken = tokenStream.token()
                     prio = this._prio();
                     if(prio)
-                        lastToken = prioToken
+                        lastToken = tokenStream.token();
+                    this._readWhitespace();
 
                     /*
                      * If hacks should be allowed, then only check the root
@@ -2844,10 +2876,12 @@ Parser.prototype = function(){
                         property:   property,
                         value:      expr,
                         important:  prio,
-                        startLine:  property.startLine,
-                        startCol:   property.startCol,
-                        endLine:    lastToken.endLine,
-                        endCol:     lastToken.endCol,
+                        loc: {
+                            startLine:  property.loc.startLine,
+                            startCol:   property.loc.startCol,
+                            endLine:    lastToken.endLine,
+                            endCol:     lastToken.endCol
+                        },
                         invalid:    invalid
                     });
 
@@ -2867,7 +2901,6 @@ Parser.prototype = function(){
                 var tokenStream = this._tokenStream,
                     result      = tokenStream.match(Tokens.IMPORTANT_SYM);
 
-                this._readWhitespace();
                 return result;
             },
 
@@ -2916,7 +2949,7 @@ Parser.prototype = function(){
                     values.push(new PropertyValue(valueParts, valueParts[0].line, valueParts[0].col));
                 }*/
 
-                return values.length > 0 ? new PropertyValue(values, values[0].startLine, values[0].startCol, values[values.length - 1].endLine, values[values.length - 1].endCol) : null;
+                return values.length > 0 ? new PropertyValue(values, values[0].loc.startLine, values[0].loc.startCol, values[values.length - 1].loc.endLine, values[values.length - 1].loc.endCol) : null;
             },
 
             _term: function(inFunction){
@@ -3217,10 +3250,12 @@ Parser.prototype = function(){
                     type:   "startkeyframes",
                     name:   name,
                     prefix: prefix,
-                    startLine:   token.startLine,
-                    startCol:    token.startCol,
-                    endLine:     lbraceToken.endLine,
-                    endCol:      lbraceToken.endCol
+                    loc: {
+                        startLine:   token.startLine,
+                        startCol:    token.startCol,
+                        endLine:     lbraceToken.endLine,
+                        endCol:      lbraceToken.endCol
+                    }
                 });
 
                 this._readWhitespace();
@@ -3241,8 +3276,10 @@ Parser.prototype = function(){
                     type:   "endkeyframes",
                     name:   name,
                     prefix: prefix,
-                    line:   rbraceToken.endLine,
-                    col:    rbraceToken.endCol
+                    loc: {
+                        line:   rbraceToken.endLine,
+                        col:    rbraceToken.endCol
+                    }
                 });
 
             },
@@ -3281,10 +3318,12 @@ Parser.prototype = function(){
                 this.fire({
                     type:   "startkeyframerule",
                     keys:   keyList,
-                    startLine:   keyList[0].startLine,
-                    startCol:    keyList[0].startCol,
-                    endLine:     lbraceToken.endLine,
-                    endCol:      lbraceToken.endCol
+                    loc: {
+                        startLine:   keyList[0].loc.startLine,
+                        startCol:    keyList[0].loc.startCol,
+                        endLine:     lbraceToken.endLine,
+                        endCol:      lbraceToken.endCol
+                    }
                 });
 
                 this._readDeclarations(false);
@@ -3294,8 +3333,10 @@ Parser.prototype = function(){
                 this.fire({
                     type:   "endkeyframerule",
                     keys:   keyList,
-                    line:   rbraceToken.endLine,
-                    col:    rbraceToken.endCol
+                    loc: {
+                        line:   rbraceToken.endLine,
+                        col:    rbraceToken.endCol
+                    }
                 });
 
             },

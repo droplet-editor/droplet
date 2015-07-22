@@ -57,12 +57,13 @@ Stack.start = (element, type) ->
 Stack.end = (element) ->
   top = Stack.top()
   Stack.pop()
-  top.iStartLine = top.endLine
-  top.iStartCol = top.endCol
-  top.endLine = element.line
-  top.endCol = element.col
-  top.iEndLine = top.endLine
-  top.iEndCol = top.endCol - 1
+  top.loc.content = {}
+  top.loc.content.startLine = top.loc.endLine
+  top.loc.content.startCol = top.loc.endCol
+  top.loc.endLine = element.loc.line
+  top.loc.endCol = element.loc.col
+  top.loc.content.endLine = top.loc.endLine
+  top.loc.content.endCol = top.loc.endCol - 1
   Stack.add top, top.nodeType
 
 cssParser = new parserlib.css.Parser()
@@ -107,6 +108,10 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   getClasses: (node) ->
     classes = [node.nodeType || "unknown"]
+    if node.nodeType is 'property'
+      bounds = @getBounds node
+      if @lines[bounds.end.line][bounds.end.column - 1] isnt ';'
+        classes = classes.concat 'no-semicolon'
     return classes
 
   getColor: (node) -> COLORS[node.nodeType] ? COLORS['Default']
@@ -114,12 +119,12 @@ exports.CSSParser = class CSSParser extends parser.Parser
   getBounds: (node) ->
     bounds = {
       start: {
-        line: node.startLine - 1
-        column: node.startCol - 1
+        line: node.loc.startLine - 1
+        column: node.loc.startCol - 1
       }
       end: {
-        line: node.endLine - 1
-        column: node.endCol - 1
+        line: node.loc.endLine - 1
+        column: node.loc.endCol - 1
       }
     }
 
@@ -130,7 +135,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
   cssBlock: (node, depth) ->
     if not node
       return
-    #console.log "Adding Block: ", JSON.stringify @getBounds node
+    # console.log "Adding Block: ", JSON.stringify @getBounds node
     @addBlock
       bounds: @getBounds node
       depth: depth
@@ -142,7 +147,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
   cssSocket: (node, depth, precedence, bounds, dropdown) ->
     if not node
       return
-    #console.log "Adding Socket: ", JSON.stringify @getBounds node
+    # console.log "Adding Socket: ", JSON.stringify @getBounds node
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
@@ -161,12 +166,12 @@ exports.CSSParser = class CSSParser extends parser.Parser
   getIndentBounds: (node) ->
     bounds = {
       start: {
-        line: node.iStartLine - 1
-        column: node.iStartCol - 1
+        line: node.loc.content.startLine - 1
+        column: node.loc.content.startCol - 1
       }
       end: {
-        line: node.iEndLine - 1
-        column: node.iEndCol - 1
+        line: node.loc.content.endLine - 1
+        column: node.loc.content.endCol - 1
       }
     }
 
@@ -380,6 +385,16 @@ CSSParser.drop = (block, context, pred, next) ->
       return helper.ENCOURAGE
     return helper.FORBID
 
+  if blockType is 'property'
+    if contextType in ['page', 'pagemargin', 'fontface', 'viewport', 'rule', 'keyframerule']
+      if 'no-semicolon' in pred.classes
+        return helper.FORBID
+      if 'no-semicolon' not in block.classes
+        return helper.ENCOURAGE
+      if not next
+        return helper.ENCOURAGE
+    return helper.FORBID
+
   if context.type is 'document'
     if blockType in ['rule', 'mediaquery', 'page', 'fontface', 'keyframes'] and nextType not in ['charset', 'import', 'namespace']
       return helper.ENCOURAGE
@@ -391,37 +406,12 @@ CSSParser.drop = (block, context, pred, next) ->
     return helper.FORBID
 
   if contextType is 'page'
-    if blockType in ['property', 'pagemargin']
-      return helper.ENCOURAGE
-    return helper.FORBID
-
-  if contextType is 'pagemargin'
-    if blockType is 'property'
-      return helper.ENCOURAGE
-    return helper.FORBID
-
-  if contextType is 'fontface'
-    if blockType is 'property'
-      return helper.ENCOURAGE
-    return helper.FORBID
-
-  if contextType is 'viewport'
-    if blockType is 'property'
-      return helper.ENCOURAGE
-    return helper.FORBID
-
-  if contextType is 'rule'
-    if blockType is 'property'
+    if blockType is 'pagemargin'
       return helper.ENCOURAGE
     return helper.FORBID
 
   if contextType is 'keyframes'
     if blockType is 'keyframerule'
-      return helper.ENCOURAGE
-    return helper.FORBID
-
-  if contextType is 'keyframerule'
-    if blockType is 'property'
       return helper.ENCOURAGE
     return helper.FORBID
 
