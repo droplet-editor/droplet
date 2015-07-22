@@ -99,6 +99,8 @@ exports.View = class View
     @map = {}
     @contextMaps = []
 
+    @lastIncludes = {}
+
     @draw = new draw.Draw(@ctx)
 
     # Apply default options
@@ -120,7 +122,25 @@ exports.View = class View
     else
       return @createView(model)
 
-  hasViewNodeFor: (model) -> model? and model.id of @map
+  include: (id) ->
+    @lastIncludes[id] = true
+
+  beginDraw: ->
+    @lastIncludes = {}
+
+  cleanupDraw: ->
+    for key, val of @map
+      unless key of @lastIncludes
+        val.hide()
+
+  garbageCollect: ->
+    for key, val of @map
+      unless key of @lastIncludes
+        val.destroy()
+        delete @map[key]
+
+  hasViewNodeFor: (model) ->
+    model? and model.id of @map
 
   # ## createView
   # Given a model object, create a renderer object
@@ -723,6 +743,7 @@ exports.View = class View
     # May require special effects, like graying-out
     # or blueing for lasso select.
     drawSelf: (style = {}) ->
+      @view.include @model.id
 
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
@@ -753,11 +774,23 @@ exports.View = class View
         for child in @oldChildren
           viewNode = @view.getViewNodeFor child.child
           viewNode.forceClean()
+        @hide()
+
+    hide: ->
+      if @path?
         @path.deactivate()
-        if @textElement?
-          @textElement.deactivate()
-        if @highlightArea?
-          @highlightArea.deactivate()
+      if @textElement?
+        @textElement.deactivate()
+      if @highlightArea?
+        @highlightArea.deactivate()
+
+    destroy: ->
+      if @path?
+        @path.destroy()
+      if @textElement?
+        @textElement.destroy()
+      if @highlightArea?
+        @highlightArea.destroy()
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
@@ -1644,6 +1677,8 @@ exports.View = class View
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
 
+      @view.include @model.id
+
       return null
 
   # # BlockViewNode
@@ -1903,7 +1938,8 @@ exports.View = class View
     # ## drawSelf
     #
     # Again, an Indent should draw nothing.
-    drawSelf: -> null
+    drawSelf: ->
+      @view.include @model.id
 
     # ## computeOwnDropArea
     #
@@ -2048,6 +2084,8 @@ exports.View = class View
         @textElement.deactivate()
       else
         @textElement.activate()
+
+      @view.include @model.id
 
 toRGB = (hex) ->
   # Convert to 6-char hex if not already there

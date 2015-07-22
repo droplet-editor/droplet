@@ -523,6 +523,8 @@ hook 'populate', 0, ->
 Editor::redrawMain = (opts = {}) ->
   unless @currentlyAnimating_suprressRedraw
 
+    @view.beginDraw()
+
     # Set our draw tool's font size
     # to the font size we want
     @draw.setGlobalFontSize @fontSize
@@ -580,6 +582,15 @@ Editor::redrawMain = (opts = {}) ->
 
       @fireEvent 'change', []
 
+    @view.cleanupDraw()
+
+    unless @alreadyScheduledCleanup
+      @alreadyScheduledCleanup = true
+      setTimeout (=>
+        @alreadyScheduledCLeanup = false
+        @view.garbageCollect()
+      ), 0
+
     return null
 
 Editor::redrawHighlights = ->
@@ -592,7 +603,6 @@ Editor::redrawHighlights = ->
       @mainCanvas.offsetWidth,
       @mainCanvas.offsetHeight
     ), {grayscale: true}
-    @maskFloatingPaths(@draggingBlock.getDocument())
 
   @redrawCursors()
   @redrawLassoHighlight()
@@ -602,10 +612,9 @@ Editor::clearCursorCanvas = -> #@clearCanvas @cursorCtx
 Editor::redrawCursors = ->
   @clearCursorCanvas()
 
-  if @cursorAtSocket()
-    @redrawTextHighlights()
+  @redrawTextHighlights()
 
-  else unless @lassoSelection?
+  unless @lassoSelection?
     @drawCursor()
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
@@ -1042,6 +1051,7 @@ Editor::clearHighlightCanvas = ->
 Editor::clearDrag = ->
   if @draggingBlock?
     @dragView.getViewNodeFor(@draggingBlock).forceClean()
+    @dragView.garbageCollect()
   @clearHighlightCanvas()
 
 # On resize, we will want to size the drag canvas correctly.
@@ -1219,15 +1229,15 @@ hook 'mousemove', 1, (point, event, state) ->
     # When we are dragging things, we draw the shadow.
     # Also, we translate the block 1x1 to the right,
     # so that we can see its borders.
-    @dragView.clearCache()
+    @dragView.beginDraw()
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
+    draggingBlockView.drawShadow @dragCtx, 5, 5
+    draggingBlockView.draw()
+    @dragView.garbageCollect()
 
     @dragCanvas.style.width = "#{Math.min draggingBlockView.totalBounds.width + 10, window.screen.width}px"
     @dragCanvas.style.height = "#{Math.min draggingBlockView.totalBounds.height + 10, window.screen.height}px"
-
-    draggingBlockView.drawShadow @dragCtx, 5, 5
-    draggingBlockView.draw new @draw.Rectangle 0, 0, @dragCanvas.offsetWidth, @dragCanvas.offsetHeight
 
     # Translate it immediately into position
     position = new @draw.Point(
@@ -1991,9 +2001,9 @@ Editor::redrawTextInput = ->
     @redrawMain()
 
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
-  return unless @cursorAtSocket()
-
   @clearHighlightCanvas()
+
+  return unless @cursorAtSocket()
 
   textFocusView = @view.getViewNodeFor @getCursor()
 
@@ -2536,7 +2546,6 @@ Editor::redrawLassoHighlight = ->
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw mainCanvasRectangle, {selected: true}
-    @maskFloatingPaths(@lassoSelection.start.getDocument())
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -3924,13 +3933,15 @@ Editor::strokeCursor = (point) ->
 
 Editor::highlightFlashShow = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  @textCursorPath.activate()
+  if @cursorAtSocket()
+    @textCursorPath.activate()
   @highlightsCurrentlyShown = true
   @flashTimeout = setTimeout (=> @flash()), 500
 
 Editor::highlightFlashHide = ->
   if @flashTimeout? then clearTimeout @flashTimeout
-  @textCursorPath.deactivate()
+  if @cursorAtSocket()
+    @textCursorPath.deactivate()
   @highlightsCurrentlyShown = false
   @flashTimeout = setTimeout (=> @flash()), 500
 
@@ -4163,7 +4174,7 @@ hook 'redraw_main', 0, (changedBox) ->
 Editor::redrawGutter = (changedBox = true) ->
   treeView = @view.getViewNodeFor @tree
 
-  top = @findLineNumberAtCoordinate @scrollOffsets.main.y
+  top = 0 # TODO @findLineNumberAtCoordinate @scrollOffsets.main.y
   bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.offsetHeight
 
   for line in [top..bottom]
