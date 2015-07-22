@@ -230,16 +230,39 @@ exports.Draw = class Draw
     @NoRectangle = class NoRectangle extends Rectangle
       constructor: -> super(null, null, 0, 0)
 
+    # ## ElementWrapper ###
+    @ElementWrapper = class ElementWrapper
+      constructor: (@element) ->
+        self.ctx.appendChild @element
+        @active = true
+
+      deactivate: ->
+        if @active
+          @active = false
+          @element.setAttribute 'visibility', 'hidden'
+
+      activate: ->
+        unless @active
+          @active = true
+          @element.setAttribute 'visibility', 'visible'
+
+      focus: ->
+        @activate()
+        self.ctx.appendChild @element
+
+      destroy: ->
+        @deactivate()
+        self.ctx.removeChild @element
+
+
     # ## Path ##
     # This is called Path, but is forced to be closed so is actually a polygon.
     # It can do fast translation and rectangular intersection.
-    @Path = class Path
+    @Path = class Path extends ElementWrapper
       constructor: (@_points = [], @bevel = false, @style) ->
         @_cachedTranslation = new Point 0, 0
         @_cacheFlag = true
         @_bounds = new NoRectangle()
-
-        @active = true
 
         @_clearCache()
 
@@ -251,7 +274,7 @@ exports.Draw = class Draw
         }, @style
 
         @element = @makeElement()
-        self.ctx.appendChild @element
+        super @element
 
       _clearCache: ->
         if @_cacheFlag
@@ -570,29 +593,13 @@ exports.Draw = class Draw
           else
             @element.setAttribute 'd', pathString
 
-      activate: ->
-        unless @active
-          @element.setAttribute 'visibility', 'visible'
-          @active = true
-
-      deactivate: ->
-        if @active
-          @element.setAttribute 'visibility', 'hidden'
-          @active = false
-
-      destroy: ->
-        @deactivate()
-        self.ctx.removeChild @element
-
-      focus: ->
-        @activate()
-        self.ctx.appendChild @element
-
       clone: ->
         clone = new Path(@_points.slice(0), @bevel, {
           lineWidth: @style.lineWidth
           fillColor: @style.fillColor
           strokeColor: @style.strokeColor
+          dotted: @style.dotted
+          cssClass: @style.cssClass
         })
         clone._clearCache()
         clone.update()
@@ -603,7 +610,7 @@ exports.Draw = class Draw
     # ## Text ##
     # A Text element. Mainly this exists for computing bounding boxes, which is
     # accomplished via ctx.measureText().
-    @Text = class Text
+    @Text = class Text extends ElementWrapper
       constructor: (@point, @value) ->
         @wantedFont = self.fontSize + 'px ' + self.fontFamily
 
@@ -612,13 +619,12 @@ exports.Draw = class Draw
 
         @_bounds = new Rectangle @point.x, @point.y, self.measureCtx.measureText(@value).width, self.fontSize
 
-        @element = @makeElement()
-        self.ctx.appendChild @element
-
-        @active = true
-
         @__lastValue = @value
         @__lastPoint = @point.clone()
+
+        @element = @makeElement()
+
+        super @element
 
       clone: -> new Text @point, @value
       equals: (other) -> other? and @point.equals(other.point) and @value is other.value

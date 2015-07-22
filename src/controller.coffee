@@ -607,14 +607,16 @@ Editor::redrawHighlights = ->
   @redrawCursors()
   @redrawLassoHighlight()
 
-Editor::clearCursorCanvas = -> #@clearCanvas @cursorCtx
+Editor::clearCursorCanvas = ->
+  @textCursorPath.deactivate()
+  @cursorPath.deactivate()
 
 Editor::redrawCursors = ->
   @clearCursorCanvas()
 
-  @redrawTextHighlights()
-
-  unless @lassoSelection?
+  if @cursorAtSocket()
+    @redrawTextHighlights()
+  else unless @lassoSelection?
     @drawCursor()
 
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
@@ -1392,8 +1394,9 @@ hook 'mousemove', 0, (point, event, state) ->
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
 
+        @lastHighlightPath?.deactivate?()
+
         if best?
-          @lastHighlightPath?.deactivate?()
           @lastHighlightPath = @view.getViewNodeFor(best).highlightArea
           @lastHighlightPath.update()
           @qualifiedFocus best, @lastHighlightPath
@@ -3803,7 +3806,7 @@ Editor::endDrag = ->
   @clearDrag()
   @draggingBlock = null
   @draggingOffset = null
-  @lastHighlightPath?.destroy?()
+  @lastHighlightPath?.deactivate?()
   @lastHighlight = @lastHighlightPath = null
 
   @redrawMain()
@@ -3925,16 +3928,30 @@ hook 'populate', 0, ->
     'cssClass': 'droplet-cursor-path'
   })
 
+  cursorElement = document.createElementNS SVG_STANDARD, 'path'
+  cursorElement.setAttribute 'fill', 'none'
+  cursorElement.setAttribute 'stroke', '#000'
+  cursorElement.setAttribute 'stroke-width', '3'
+  cursorElement.setAttribute 'stroke-linecap', 'round'
+  cursorElement.setAttribute 'd', "M#{@view.opts.tabOffset + CURSOR_WIDTH_DECREASE / 2} 0 " +
+      "Q#{@view.opts.tabOffset + @view.opts.tabWidth / 2} #{@view.opts.tabHeight}" +
+      " #{@view.opts.tabOffset + @view.opts.tabWidth - CURSOR_WIDTH_DECREASE / 2} 0"
+
+  @cursorPath = new @view.draw.ElementWrapper(cursorElement)
+
   @mainCanvas.appendChild @cursorCtx
 
 Editor::strokeCursor = (point) ->
   return unless point?
-  #@cursorElement.setAttribute 'transform', "translate(#{point.x}, #{point.y})"
+  @cursorPath.element.setAttribute 'transform', "translate(#{point.x}, #{point.y})"
+  @qualifiedFocus @getCursor(), @cursorPath
 
 Editor::highlightFlashShow = ->
   if @flashTimeout? then clearTimeout @flashTimeout
   if @cursorAtSocket()
     @textCursorPath.activate()
+  else
+    @cursorPath.activate()
   @highlightsCurrentlyShown = true
   @flashTimeout = setTimeout (=> @flash()), 500
 
@@ -3942,6 +3959,8 @@ Editor::highlightFlashHide = ->
   if @flashTimeout? then clearTimeout @flashTimeout
   if @cursorAtSocket()
     @textCursorPath.deactivate()
+  else
+    @cursorPath.deactivate()
   @highlightsCurrentlyShown = false
   @flashTimeout = setTimeout (=> @flash()), 500
 
