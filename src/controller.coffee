@@ -339,9 +339,12 @@ exports.Editor = class Editor
       @dropletElement.style.left = "0px"
       @dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
 
-    @resizeGutter()
+    #@resizeGutter()
 
-    @mainCanvas.setAttribute 'width', @dropletElement.offsetWidth - @gutter.offsetWidth
+    @viewports.main.height = @dropletElement.clientHeight
+    @viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
+
+    @mainCanvas.setAttribute 'width', @dropletElement.clientWidth - @gutter.clientWidth
 
     @mainCanvas.style.left = "#{@gutter.offsetWidth}px"
     @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
@@ -353,20 +356,8 @@ exports.Editor = class Editor
     @resizeDragCanvas()
 
     # Re-scroll and redraw main
-    @scrollOffsets.main.y = @mainScroller.scrollTop
-    @scrollOffsets.main.x = @mainScroller.scrollLeft
-
-    # TODO remove @scrollOffsets.main
-    @setScrollOffset @mainCtx, @scrollOffsets.main
-
-    # Also update scroll for the highlight ctx, so that
-    # they can match the blocks' positions
-    @setScrollOffset @highlightCtx, @scrollOffsets.main
-    @setScrollOffset @cursorCtx, @scrollOffsets.main
-
-  setScrollOffset: (canvas, offset) ->
-    #canvas.setAttribute 'viewBox', "#{offset.x}, #{offset.y}, #{canvas.offsetWidth}, #{canvas.offsetHeight}"
-    0
+    @viewports.main.y = @mainScroller.scrollTop
+    @viewports.main.x = @mainScroller.scrollLeft
 
   resizePalette: ->
     @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
@@ -377,8 +368,8 @@ exports.Editor = class Editor
     for binding in editorBindings.resize_palette
       binding.call this
 
-    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
-    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
+    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
+    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
 
     @rebuildPalette()
 
@@ -534,7 +525,7 @@ Editor::redrawMain = (opts = {}) ->
 
     @topNubbyPath.update()
 
-    rect = null
+    rect = @viewports.main
     options = {
       grayscale: false
       selected: false
@@ -572,14 +563,6 @@ Editor::redrawMain = (opts = {}) ->
     if @changeEventVersion isnt @tree.version
       @changeEventVersion = @tree.version
 
-      # Update the ace editor value to match,
-      # but don't trigger a resize event.
-      @suppressAceChangeEvent = true
-      oldScroll = @aceEditor.session.getScrollTop()
-      @setAceValue @getValue()
-      @suppressAceChangeEvent = false
-      @aceEditor.session.setScrollTop oldScroll
-
       @fireEvent 'change', []
 
     @view.cleanupDraw()
@@ -598,10 +581,10 @@ Editor::redrawHighlights = ->
   # draw it in gray
   if @draggingBlock? and @inDisplay @draggingBlock
     @view.getViewNodeFor(@draggingBlock).draw new @draw.Rectangle(
-      @scrollOffsets.main.x,
-      @scrollOffsets.main.y,
-      @mainCanvas.offsetWidth,
-      @mainCanvas.offsetHeight
+      @viewports.main.x,
+      @viewports.main.y,
+      @viewports.main.width,
+      @viewports.main.height
     ), {grayscale: true}
 
   @redrawCursors()
@@ -635,8 +618,8 @@ Editor::redrawPalette = ->
   lastBottomEdge = PALETTE_TOP_MARGIN
 
   boundingRect = new @draw.Rectangle(
-    @scrollOffsets.palette.x,
-    @scrollOffsets.palette.y,
+    @viewports.palette.x,
+    @viewports.palette.y,
     @paletteCanvas.offsetWidth,
     @paletteCanvas.offsetHeight
   )
@@ -693,8 +676,8 @@ Editor::trackerPointToPalette = (point) ->
   if not @paletteCanvas.offsetParent?
     return new @draw.Point(NaN, NaN)
   gbr = @paletteCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @scrollOffsets.palette.x,
-                  point.y - gbr.top + @scrollOffsets.palette.y)
+  new @draw.Point(point.x - gbr.left + @viewports.palette.x,
+                  point.y - gbr.top + @viewports.palette.y)
 
 Editor::trackerPointIsInElement = (point, element) ->
   if @readOnly
@@ -1173,10 +1156,7 @@ Editor::wouldDelete = (position) ->
   palettePoint = @trackerPointToPalette position
 
   return not @lastHighlight and not
-      (@mainCanvas.offsetWidth + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x and
-       @mainCanvas.offsetHeight + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y) or
-      (@paletteCanvas.offsetWidth + @scrollOffsets.palette.x > palettePoint.x > @scrollOffsets.palette.x and
-      @paletteCanvas.offsetHeight + @scrollOffsets.palette.y > palettePoint.y > @scrollOffsets.palette.y)
+    (@viewports.main.contains(mainPoint) or @viewports.palette.contains(palettePoint))
 
 # On mousemove, if there is a clicked block but no drag block,
 # we might want to transition to a dragging the block if the user
@@ -1250,10 +1230,10 @@ hook 'mousemove', 1, (point, event, state) ->
     # Construct a quadtree of drop areas
     # for faster dragging
     @dropPointQuadTree = QUAD.init
-      x: @scrollOffsets.main.x
-      y: @scrollOffsets.main.y
-      w: @mainCanvas.offsetWidth
-      h: @mainCanvas.offsetHeight
+      x: @viewports.main.x
+      y: @viewports.main.y
+      w: @viewports.main.width
+      h: @viewports.main.height
 
     for dropletDocument in @getDocuments()
       head = dropletDocument.start
@@ -1355,8 +1335,8 @@ hook 'mousemove', 0, (point, event, state) ->
       head = head.next
 
     if head is @tree.end and @floatingBlocks.length is 0 and
-        @mainCanvas.offsetWidth + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
-        @mainCanvas.offsetHeight + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
+        @viewports.main.right() > mainPoint.x > @viewports.main.x - @gutter.offsetWidth and
+        @viewports.main.bottom() > mainPoint.y > @viewports.main.y
       @view.getViewNodeFor(@tree).highlightArea.update()
       @lastHighlight = @tree
 
@@ -1599,10 +1579,8 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
-    if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.offsetWidth and
-       0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.offsetHeight or not
-       (-@gutter.offsetWidth < renderPoint.x < @mainCanvas.offsetWidth and
-       0 < renderPoint.y < @mainCanvas.offsetHeight)
+    if @viewports.palette.contains(palettePoint) and not
+       @viewports.main.contains(renderPoint)
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
 
@@ -1611,8 +1589,8 @@ hook 'mouseup', 0, (point, event, state) ->
       @endDrag()
       return
 
-    else if renderPoint.x - @scrollOffsets.main.x < 0
-      renderPoint.x = @scrollOffsets.main.x
+    else if renderPoint.x - @viewports.main.x < 0
+      renderPoint.x = @viewports.main.x
 
     # Add the undo operation associated
     # with creating this floating block
@@ -1790,8 +1768,8 @@ hook 'mousedown', 6, (point, event, state) ->
   if not @trackerPointIsInPalette(point) then return
 
   palettePoint = @trackerPointToPalette point
-  if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.offsetHeight and
-     @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.offsetWidth
+  if @viewports.palette.y < palettePoint.y < @viewports.palette.y + @paletteCanvas.offsetHeight and
+     @viewports.palette.x < palettePoint.x < @viewports.palette.x + @paletteCanvas.offsetWidth
     for entry in @currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
@@ -1865,8 +1843,8 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mouseout', (event) =>
         if block is @currentHighlightedPaletteBlock
           @currentHighlightedPaletteBlock = null
-          @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-            @paletteHighlightCanvas.offsetWidth + @scrollOffsets.palette.x, @paletteHighlightCanvas.offsetHeight + @scrollOffsets.palette.y
+          @paletteHighlightCtx.clearRect @viewports.palette.x, @viewports.palette.y,
+            @paletteHighlightCanvas.offsetWidth + @viewports.palette.x, @paletteHighlightCanvas.offsetHeight + @viewports.palette.y
 
     @paletteScrollerStuffing.appendChild hoverDiv
 
@@ -1888,14 +1866,16 @@ hook 'populate', 1, ->
       # (left and top should not be closer than 10 pixels from the edge)
 
       bounds = @view.getViewNodeFor(@getCursor()).bounds[0]
-      inputLeft = bounds.x + @mainCanvas.offsetLeft - @scrollOffsets.main.x
+      ###
+      inputLeft = bounds.x + @mainCanvas.offsetLeft - @viewports.main.x
       inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
       inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
       @hiddenInput.style.left = inputLeft + 'px'
-      inputTop = bounds.y - @scrollOffsets.main.y
+      inputTop = bounds.y - @viewports.main.y
       inputTop = Math.min inputTop, @dropletElement.clientHeight - 10
       inputTop = Math.max 0, inputTop
       @hiddenInput.style.top = inputTop + 'px'
+      ###
 
   @dropletElement.appendChild @hiddenInput
 
@@ -1984,6 +1964,8 @@ Editor::redrawTextInput = ->
 
     # If the layout has not changed enough to affect
     # anything non-local, only redraw locally.
+    @redrawMain()
+    ###
     if helper.deepEquals newp, oldp
       rect = new @draw.NoRectangle()
 
@@ -1993,11 +1975,11 @@ Editor::redrawTextInput = ->
 
       rect.width = Math.max rect.width, @mainCanvas.offsetWidth
 
-
       @redrawMain
         boundingRectangle: rect
 
     else @redrawMain()
+    ###
 
   # Otherwise, redraw the whole thing
   else
@@ -2081,7 +2063,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
     @textCursorPath.update()
     @qualifiedFocus @getCursor(), @textCursorPath
 
-  if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.offsetWidth
+  if scrollIntoView and endPosition > @viewports.main.x + @mainCanvas.offsetWidth
     @mainScroller.scrollLeft = endPosition - @mainCanvas.offsetWidth + @view.opts.padding
 
 escapeString = (str) ->
@@ -2373,8 +2355,8 @@ Editor::showDropdown = (socket = @getCursor()) ->
 
     location = @view.getViewNodeFor(socket).bounds[0]
 
-    @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
-    @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+    @dropdownElement.style.top = location.y + @fontSize - @viewports.main.y + 'px'
+    @dropdownElement.style.left = location.x - @viewports.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
     @dropdownElement.style.minWidth = location.width + 'px'
   ), 0
 
@@ -2477,8 +2459,8 @@ hook 'mousedown', 0, (point, event, state) ->
 
   # If the point was actually in the main canvas,
   # start a lasso select.
-  mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
-  palettePoint = @trackerPointToPalette(point).from @scrollOffsets.palette
+  mainPoint = @trackerPointToMain(point).from @viewports.main
+  palettePoint = @trackerPointToPalette(point).from @viewports.palette
 
   @lassoSelectAnchor = @trackerPointToMain point
 
@@ -2529,17 +2511,10 @@ hook 'mousemove', 0, (point, event, state) ->
           break
 
 Editor::redrawLassoHighlight = ->
-  mainCanvasRectangle = new @draw.Rectangle(
-    @scrollOffsets.main.x,
-    @scrollOffsets.main.y,
-    @mainCanvas.offsetWidth,
-    @mainCanvas.offsetHeight
-  )
-
   # Remove any existing selections
   for dropletDocument in @getDocuments()
     dropletDocumentView = @view.getViewNodeFor dropletDocument
-    dropletDocumentView.draw mainCanvasRectangle, {
+    dropletDocumentView.draw @viewports.main, {
       selected: false
       noText: @currentlyAnimating # TODO add some modularized way of having global view options
     }
@@ -2548,7 +2523,7 @@ Editor::redrawLassoHighlight = ->
     # Add any new selections
     lassoView = @view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
-    lassoView.draw mainCanvasRectangle, {selected: true}
+    lassoView.draw @viewports.main, {selected: true}
 
 # Convnience function for validating
 # a lasso selection. A lasso selection
@@ -2708,10 +2683,10 @@ Editor::getCursor = ->
 Editor::scrollCursorIntoPosition = ->
   axis = @determineCursorPosition().y
 
-  if axis - @scrollOffsets.main.y < 0
+  if axis < @viewports.main.y
     @mainScroller.scrollTop = axis
-  else if axis - @scrollOffsets.main.y > @mainCanvas.offsetHeight
-    @mainScroller.scrollTop = axis - @mainCanvas.offsetHeight
+  else if axis > @viewports.main.bottom()
+    @mainScroller.scrollTop = axis - @viewports.main.height
 
   @mainScroller.scrollLeft = 0
 
@@ -2951,8 +2926,8 @@ Editor::computePlaintextTranslationVectors = ->
       when 'text'
         corner = @view.getViewNodeFor(head).bounds[0].upperLeftCorner()
 
-        corner.x -= @scrollOffsets.main.x
-        corner.y -= @scrollOffsets.main.y
+        corner.x -= @viewports.main.x
+        corner.y -= @viewports.main.y
 
         translationVectors.push (new @draw.Point(state.x, state.y)).from(corner)
         textElements.push @view.getViewNodeFor head
@@ -2994,7 +2969,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     @setAceValue @getValue()
 
-    top = @findLineNumberAtCoordinate @scrollOffsets.main.y
+    top = @findLineNumberAtCoordinate @viewports.main.y
     @aceEditor.scrollToLine top
 
     @aceEditor.resize true
@@ -3021,8 +2996,8 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       # Skip anything that's
       # off the screen the whole time.
-      unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
-                 textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.offsetHeight
+      unless 0 < textElement.bounds[0].bottom() - @viewports.main.y + translationVectors[i].y and
+                 textElement.bounds[0].y - @viewports.main.y + translationVectors[i].y < @viewports.main.height
         continue
 
       div = document.createElement 'div'
@@ -3032,8 +3007,8 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       div.style.font = @fontSize + 'px ' + @fontFamily
 
-      div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-      div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
+      div.style.left = "#{textElement.bounds[0].x - @viewports.main.x}px"
+      div.style.top = "#{textElement.bounds[0].y - @viewports.main.y - @fontAscent}px"
 
       div.className = 'droplet-transitioning-element'
       div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
@@ -3043,8 +3018,8 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       do (div, textElement, translationVectors, i) =>
         setTimeout (=>
-          div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
-          div.style.top = (textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y) + 'px'
+          div.style.left = (textElement.bounds[0].x - @viewports.main.x + translationVectors[i].x) + 'px'
+          div.style.top = (textElement.bounds[0].y - @viewports.main.y + translationVectors[i].y) + 'px'
           div.style.fontSize = @aceFontSize()
         ), fadeTime
 
@@ -3062,7 +3037,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.innerText = div.textContent = line + 1
 
       div.style.left = 0
-      div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
+      div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @viewports.main.y}px"
 
       div.style.font = @fontSize + 'px ' + @fontFamily
       div.style.width = "#{@gutter.offsetWidth}px"
@@ -3200,8 +3175,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         # Skip anything that's
         # off the screen the whole time.
-        unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
-                 textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.offsetHeight
+        unless 0 < textElement.bounds[0].bottom() - @viewports.main.y + translationVectors[i].y and
+                 textElement.bounds[0].y - @viewports.main.y + translationVectors[i].y < @viewports.main.height
           continue
 
         div = document.createElement 'div'
@@ -3212,8 +3187,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         div.style.font = @aceFontSize() + ' ' + @fontFamily
         div.style.position = 'absolute'
 
-        div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
-        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
+        div.style.left = "#{textElement.bounds[0].x - @viewports.main.x + translationVectors[i].x}px"
+        div.style.top = "#{textElement.bounds[0].y - @viewports.main.y + translationVectors[i].y}px"
 
         div.className = 'droplet-transitioning-element'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
@@ -3223,8 +3198,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         do (div, textElement) =>
           setTimeout (=>
-            div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-            div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
+            div.style.left = "#{textElement.bounds[0].x - @viewports.main.x}px"
+            div.style.top = "#{textElement.bounds[0].y - @viewports.main.y - @fontAscent}px"
             div.style.fontSize = @fontSize + 'px'
           ), 0
 
@@ -3261,7 +3236,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         do (div, line) =>
           setTimeout (=>
             div.style.left = 0
-            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent- @scrollOffsets.main.y}px"
+            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent- @viewports.main.y}px"
             div.style.fontSize = @fontSize + 'px'
           ), 0
 
@@ -3369,9 +3344,9 @@ Editor::toggleBlocks = (cb) ->
 # ================================
 
 hook 'populate', 2, ->
-  @scrollOffsets = {
-    main: new @draw.Point 0, 0
-    palette: new @draw.Point 0, 0
+  @viewports = {
+    main: new @draw.NoRectangle()
+    palette: new @draw.NoRectangle()
   }
 
   @mainScroller = document.createElement 'div'
@@ -3388,15 +3363,10 @@ hook 'populate', 2, ->
     @wrapperElement.scrollTop = @wrapperElement.scrollLeft = 0
 
   @mainScroller.addEventListener 'scroll', =>
-    @scrollOffsets.main.y = @mainScroller.scrollTop
-    @scrollOffsets.main.x = @mainScroller.scrollLeft
+    @viewports.main.y = @mainScroller.scrollTop
+    @viewports.main.x = @mainScroller.scrollLeft
 
-    @setScrollOffset @mainCtx, @scrollOffsets.main
-
-    # Also update scroll for the highlight ctx, so that
-    # they can match the blocks' positions
-    @setScrollOffset @highlightCtx, @scrollOffsets.main
-    @setScrollOffset @cursorCtx, @scrollOffsets.main
+    @redrawMain()
 
   @paletteScroller = document.createElement 'div'
   @paletteScroller.className = 'droplet-palette-scroller'
@@ -3408,14 +3378,14 @@ hook 'populate', 2, ->
   @paletteElement.appendChild @paletteScroller
 
   @paletteScroller.addEventListener 'scroll', =>
-    @scrollOffsets.palette.y = @paletteScroller.scrollTop
+    @viewports.palette.y = @paletteScroller.scrollTop
 
     # Temporarily ignoring x-scroll to fix bad x-scrolling behaviour
     # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
-    # @scrollOffsets.palette.x = @paletteScroller.scrollLeft
+    # @viewports.palette.x = @paletteScroller.scrollLeft
 
-    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
-    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@scrollOffsets.palette.x}, #{-@scrollOffsets.palette.y})"
+    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
+    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
 
     # redraw the bits of the palette
     @redrawPalette()
@@ -3444,8 +3414,10 @@ hook 'redraw_main', 1, ->
     @dropletElement.offsetHeight
   )
 
-  @mainCanvas.setAttribute 'height', height
-  @mainCanvas.style.height = "#{height}px"
+  if height isnt @lastHeight
+    @lastHeight = height
+    @mainCanvas.setAttribute 'height', height
+    @mainCanvas.style.height = "#{height}px"
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
@@ -4117,45 +4089,50 @@ Editor::addLineNumberForLine = (line) ->
   treeView = @view.getViewNodeFor @tree
 
   if line of @lineNumberTags
-    lineDiv = @lineNumberTags[line]
+    lineDiv = @lineNumberTags[line].tag
 
   else
     lineDiv = document.createElement 'div'
     lineDiv.innerText = lineDiv.textContent = line + 1
-    @lineNumberTags[line] = lineDiv
+    @lineNumberTags[line] = {
+      tag: lineDiv
+      lastPosition: null
+    }
 
-  lineDiv.className = 'droplet-gutter-line'
+  if treeView.bounds[line].y isnt @lineNumberTags[line].lastPosition
+    lineDiv.className = 'droplet-gutter-line'
 
-  # Add annotation mouseover text
-  # and graphics
-  if @annotations[line]?
-    lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
+    # Add annotation mouseover text
+    # and graphics
+    if @annotations[line]?
+      lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
 
-    title = @annotations[line].map((x) -> x.text).join('\n')
+      title = @annotations[line].map((x) -> x.text).join('\n')
 
-    lineDiv.addEventListener 'mouseover', =>
-      @tooltipElement.innerText =
-        @tooltipElement.textContent = title
-      @tooltipElement.style.display = 'block'
-    lineDiv.addEventListener 'mousemove', (event) =>
-      @tooltipElement.style.left = event.pageX + 'px'
-      @tooltipElement.style.top = event.pageY + 'px'
-    lineDiv.addEventListener 'mouseout', =>
-      @tooltipElement.style.display = 'none'
+      lineDiv.addEventListener 'mouseover', =>
+        @tooltipElement.innerText =
+          @tooltipElement.textContent = title
+        @tooltipElement.style.display = 'block'
+      lineDiv.addEventListener 'mousemove', (event) =>
+        @tooltipElement.style.left = event.pageX + 'px'
+        @tooltipElement.style.top = event.pageY + 'px'
+      lineDiv.addEventListener 'mouseout', =>
+        @tooltipElement.style.display = 'none'
 
-  # Add breakpoint graphics
-  if @breakpoints[line]
-    lineDiv.className += ' droplet_breakpoint'
+    # Add breakpoint graphics
+    if @breakpoints[line]
+      lineDiv.className += ' droplet_breakpoint'
 
-  lineDiv.style.top = "#{treeView.bounds[line].y}px"
+    lineDiv.style.top = "#{treeView.bounds[line].y}px"
 
-  lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
-  lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @fontDescent}"
+    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
+    lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @fontDescent}"
 
-  lineDiv.style.height =  treeView.bounds[line].height + 'px'
-  lineDiv.style.fontSize = @fontSize + 'px'
+    lineDiv.style.height =  treeView.bounds[line].height + 'px'
+    lineDiv.style.fontSize = @fontSize + 'px'
 
-  @lineNumberWrapper.appendChild lineDiv
+    @lineNumberWrapper.appendChild lineDiv
+    @lineNumberTags[line].lastPosition = treeView.bounds[line].y
 
 TYPE_SEVERITY = {
   'error': 2
@@ -4193,15 +4170,15 @@ hook 'redraw_main', 0, (changedBox) ->
 Editor::redrawGutter = (changedBox = true) ->
   treeView = @view.getViewNodeFor @tree
 
-  top = 0 # TODO @findLineNumberAtCoordinate @scrollOffsets.main.y
-  bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.offsetHeight
+  top = @findLineNumberAtCoordinate @viewports.main.y
+  bottom = @findLineNumberAtCoordinate @viewports.main.bottom()
 
   for line in [top..bottom]
     @addLineNumberForLine line
 
   for line, tag of @lineNumberTags
     if line < top or line > bottom
-      @lineNumberTags[line].parentNode.removeChild @lineNumberTags[line]
+      @lineNumberTags[line].tag.parentNode.removeChild @lineNumberTags[line].tag
       delete @lineNumberTags[line]
 
   if changedBox
@@ -4302,10 +4279,7 @@ Editor::documentDimensions = ->
   }
 
 Editor::viewportDimensions = ->
-  return {
-    width: @mainCanvas.offsetWidth
-    height: @mainCanvas.offsetHeight
-  }
+  return @viewports.main
 
 # LINE LOCATION API
 # =================

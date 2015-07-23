@@ -754,18 +754,6 @@ exports.View = class View
       for childObj in @children
         @view.getViewNodeFor(childObj.child).draw boundingRect, style
 
-      children = @children.map (x) -> x.child
-
-      if @oldChildren?
-        for el, i in @oldChildren
-          unless el.child in children
-            @view.getViewNodeFor(el.child).clean(el.version)
-
-      @oldChildren = @children.map (x) => {
-        child: x.child
-        version: @view.getViewNodeFor(x.child).computedVersion
-      }
-
     forceClean: ->
       @clean @computedVersion
 
@@ -1657,7 +1645,7 @@ exports.View = class View
     # Draw our path, with applied
     # styles if necessary.
     drawSelf: (style = {}) ->
-      # We migh want to apply some
+      # We might want to apply some
       # temporary color changes,
       # so store the old colors
       oldFill = @path.style.fillColor

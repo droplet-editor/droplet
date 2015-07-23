@@ -135,8 +135,8 @@
 
 .droplet-hidden-input {
   position: absolute;
-  z-index: -999;
-  opacity: 0;
+  top: -9999px;
+  left: -9999px;
   -webkit-touch-callout: none;
   width: 1px;
   height: 1px;

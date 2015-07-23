@@ -385,10 +385,20 @@ exports.Draw = class Draw
 
             @_cacheFlag = false
 
-      setPoints: (points) ->
+      _setPoints_raw: (points) ->
         @_points = points
         @_cacheFlag = true
         @_updateFlag = true
+
+      setPoints: (points) ->
+        if points.length isnt @_points.length
+          @_setPoints_raw points
+          return
+        for el, i in points
+          unless @_points[i].equals(el)
+            @_setPoints_raw points
+            return
+        return
 
       push: (point) ->
         @_points.push point
