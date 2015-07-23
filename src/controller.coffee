@@ -784,6 +784,10 @@ Editor::getSerializedEditorState = ->
     string: x.block.stringify()
   }
 
+Editor::clearUndoStack = ->
+  @undoStack.length = 0
+  @redoStack.length = 0
+
 Editor::undo = ->
   # Don't allow a socket to be highlighted during
   # an undo operation
