@@ -440,8 +440,11 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     switch node.type
       when 'document'
+        lastChild = null
         for child in node.childNodes
-          @mark indentDepth, child, depth + 1, null
+          unless lastChild and lastChild.__location.end > child.__location.start
+            @mark indentDepth, child, depth + 1, null
+            lastChild = child
 
       when 'emptyTag'
         @htmlBlock node, depth, bounds
@@ -463,8 +466,11 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
             depth: depth
             prefix: prefix
             classes: @getClasses node
+          lastChild = null
           for child in node.childNodes
-            @mark indentDepth, child, depth + 1, null
+            unless lastChild and lastChild.__location.end > child.__location.start
+              @mark indentDepth, child, depth + 1, null
+              lastChild = child
         else
           unless TAGS[node.nodeName].content is 'optional' or
               (node.nodeName is 'script' and @hasAttribute node, 'src') or
