@@ -1831,6 +1831,9 @@ hook 'rebuild_palette', 1, ->
 
     hoverDiv.title = data.title ? block.stringify()
 
+    if data.id?
+      hoverDiv.setAttribute 'data-id', data.id
+
     bounds = @paletteView.getViewNodeFor(block).totalBounds
 
     hoverDiv.style.top = "#{bounds.y}px"
