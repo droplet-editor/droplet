@@ -11,8 +11,8 @@ TAGS = {
   html: {category: 'metadata'}
   head: {category: 'metadata'}
   title: {category: 'metadata'}
-  link: {category: 'metadata'}
-  meta: {category: 'metadata'}
+  link: {category: 'metadata', dropdown: {'*': ['href=""', 'rel=""', 'type=""', 'media=""', 'title=""'] } }
+  meta: {category: 'metadata', dropdown: {'*': ['content=""', 'name=""', 'http-equiv=""', 'property=""'] } }
   style: {category: 'metadata'}
   script: {category: 'metadata'}
   base: {category: 'metadata'}
@@ -20,7 +20,7 @@ TAGS = {
   #Grouping
   p: {category: 'grouping'}
   hr: {category: 'grouping'}
-  div: {category: 'grouping'}
+  div: {category: 'grouping', dropdown: {'*': ['class=""', 'id=""', 'style=""'] } }
   ul: {category: 'grouping'}
   ol: {category: 'grouping'}
   li: {category: 'grouping'}
@@ -35,7 +35,7 @@ TAGS = {
   dd: {category: 'grouping'}
 
   #Content
-  a: {category: 'content'}
+  a: {category: 'content', dropdown: {'*': ['href=""', 'target=""', 'title=""', 'rel=""', 'onclick=""'] } }
   i: {category: 'content'}
   b: {category: 'content'}
   u: {category: 'content'}
@@ -62,7 +62,7 @@ TAGS = {
   mark: {category: 'content'}
   bdi: {category: 'content'}
   bdo: {category: 'content'}
-  span: {category: 'content'}
+  span: {category: 'content', dropdown: {'*': ['class=""', 'id=""', 'style=""'] } }
   wbr: {category: 'content'}
   '#text': {category: 'content'}
 
@@ -96,10 +96,10 @@ TAGS = {
   th: {category: 'table'}
 
   #Form
-  form: {category: 'form'}
-  input: {category: 'form'}
+  form: {category: 'form', dropdown: {'*': ['action=""', 'method=""', 'name=""'] } }
+  input: {category: 'form', dropdown: {'*': ['type=""', 'name=""', 'value=""'] } }
   textarea: {category: 'form', content: 'optional'}
-  label: {category: 'form'}
+  label: {category: 'form', dropdown: {'*': ['for=""'] } }
   button: {category: 'form'}
   select: {category: 'form'}
   option: {category: 'form'}
@@ -113,7 +113,7 @@ TAGS = {
   legend: {category: 'form'}
 
   #Embedded
-  img: {category: 'embedded', dropdown: { '*': ['src=""'] } }
+  img: {category: 'embedded', dropdown: { '*': ['src=""', 'alt=""', 'width=""', 'height=""', 'border=""', 'title=""'] } }
   iframe: {category: 'embedded', content: 'optional'}
   embed: {category: 'embedded'}
   object: {category: 'embedded'}
@@ -197,10 +197,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   getClasses: (node) ->
     classes = [node.nodeName]
-    if node.nodeName in ['thead', 'tbody', 'tr', 'table', 'div']
-      classes = classes.concat 'add-button'
-      if node.childNodes.length isnt 0
-        classes = classes.concat 'subtract-button'
     return classes
 
   getColor: (node) ->
@@ -390,13 +386,13 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       socketLevel: @getSocketLevel node
       parseContext: node.nodeName
 
-  htmlSocket: (node, depth, precedence, bounds, classes) ->
+  htmlSocket: (node, depth, precedence, bounds, classes, noDropdown) ->
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
       precedence: precedence
       classes: classes ? @getClasses node
-      dropdown: @getDropdown node
+      dropdown: if noDropdown then null else @getDropdown node
 
   getIndentPrefix: (bounds, indentDepth, depth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -478,7 +474,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
           unless TAGS[node.nodeName].content is 'optional' or
               (node.nodeName is 'script' and @hasAttribute node, 'src') or
               node.__indentLocation.end is node.__location.end
-            @htmlSocket node, depth + 1, null, indentBounds
+            @htmlSocket node, depth + 1, null, indentBounds, null, true
 
       when 'text'
         @htmlBlock node, depth, bounds
