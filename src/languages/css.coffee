@@ -5,18 +5,22 @@ parser = require '../parser.coffee'
 parserlib = require '../../vendor/node-parserlib.js'
 
 COLORS = {
-  'Default': 'cyan'
-  'charset': 'yellow'
-  'namespace': 'orange'
-  'import': 'green'
-  'rule': 'blue'
-  'fontface': 'pink'
-  'keyframes': 'purple'
-  'keyframerule': 'teal'
-  'page': 'lightgreen'
-  'pagemargin': 'lime'
-  'property': 'amber'
-  'mediaquery': 'bluegrey'
+  charset: 'yellow'
+  namespace: 'orange'
+  import: 'green'
+  rule: 'blue'
+  selector: 'green'
+  'selector-part': 'lightgreen'
+  'selector-modifier': 'cyan'
+  fontface: 'pink'
+  keyframes: 'purple'
+  keyframerule: 'teal'
+  page: 'lightgreen'
+  pagemargin: 'lime'
+  property: 'amber'
+  mediaquery: 'bluegrey'
+
+  Default: 'cyan'
 }
 
 DEFAULT_INDENT_DEPTH = '  '
@@ -224,7 +228,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
           @cssSocket media, depth + 1
       when 'property'
         @cssBlock node, depth
-        @cssSocket node.property, depth + 1
+        #@cssSocket node.property, depth + 1
         @mark indentDepth, node.value, depth + 1, null
       when 'fontface'
         @cssBlock node, depth
@@ -273,21 +277,18 @@ exports.CSSParser = class CSSParser extends parser.Parser
       cnt = 0
       if node.modifiers?.length > 0
         for mod in node.modifiers
-          mod.nodeType = 'selector-part-modifier'
+          mod.nodeType = 'selector-modifier'
           @cssSocket mod, depth + 2
           @cssBlock mod, depth + 3
           if mod.type in ['class', 'id', 'pseudo']
-            mod.nodeType = 'selector-' + mod.type
-            mod.startCol++
+            mod.loc.startCol++
             if mod.type is 'pseudo' and mod.text[1] is ':'
-              mod.startCol++
+              mod.loc.startCol++
             @cssSocket mod, depth + 4
           else if mod.type is 'attribute'
-            mod.nodeType = 'selector-' + mod.type
             @cssSocket mod.attrib, depth + 4
             @cssSocket mod.val, depth + 4
           else if mod.type is 'not'
-            mod.nodeType = 'selector-' + mod.type
             for notPart in mod.args
               @mark indentDepth, notPart, depth + 4
           cnt++
@@ -353,9 +354,9 @@ exports.CSSParser = class CSSParser extends parser.Parser
       @mark indentDepth, child, depth + 1
 
   isComment: (text) ->
-    text.match(/^\s*\/\*.\*\/*$/)
+    text.match(/^\s*\/\*.*\*\/*$/)
 
-CSSParser.empty = '\'\''
+CSSParser.empty = ''
 
 CSSParser.parens = (leading, trainling, node, context) ->
   return [leading, trainling]
@@ -393,6 +394,11 @@ CSSParser.drop = (block, context, pred, next) ->
         return helper.ENCOURAGE
       if not next
         return helper.ENCOURAGE
+    return helper.FORBID
+
+  if blockType is 'selector-modifier'
+    if contextType in ['selector', 'selector-part', 'selector-elementname']
+      return helper.ENCOURAGE
     return helper.FORBID
 
   if context.type is 'document'
