@@ -172,8 +172,6 @@ exports.Editor = class Editor
     @paletteCanvas = @paletteCtx = document.createElementNS SVG_STANDARD, 'svg'
     @paletteCanvas.setAttribute 'class',  'droplet-palette-canvas'
 
-    @paletteElement.appendChild @paletteCanvas
-
     @paletteWrapper.style.position = 'absolute'
     @paletteWrapper.style.left = '0px'
     @paletteWrapper.style.top = '0px'
@@ -360,16 +358,8 @@ exports.Editor = class Editor
     @viewports.main.x = @mainScroller.scrollLeft
 
   resizePalette: ->
-    @paletteCanvas.style.top = "#{@paletteHeader.offsetHeight}px"
-    @paletteCanvas.style.height = "#{@paletteWrapper.offsetHeight - @paletteHeader.offsetHeight}px"
-    @paletteCanvas.style.width = "#{@paletteWrapper.offsetWidth}px"
-
-
     for binding in editorBindings.resize_palette
       binding.call this
-
-    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
-    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
 
     @rebuildPalette()
 
@@ -487,7 +477,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
     (new @view.draw.Point(0, 0)), @mode.startComment
   )
   record.endText ?= new @view.draw.Text(
-    (new @view.draw.Point(0, 0)), @mode.startComment
+    (new @view.draw.Point(0, 0)), @mode.endComment
   )
 
   record.startText.point.x = blockView.totalBounds.x - startWidth
@@ -611,6 +601,8 @@ Editor::clearPaletteHighlightCanvas = -> #@clearCanvas @paletteHighlightCtx
 Editor::redrawPalette = ->
   @clearPalette()
 
+  @paletteView.beginDraw()
+
   # We will construct a vertical layout
   # with padding for the palette blocks.
   # To do this, we will need to keep track
@@ -638,11 +630,16 @@ Editor::redrawPalette = ->
   for binding in editorBindings.redraw_palette
     binding.call this
 
+  console.log 'setting bottom edge to', lastBottomEdge
+
+  @paletteCanvas.style.height = lastBottomEdge + 'px'
+
+  @paletteView.cleanupDraw() #TODO garageCollect()
+
 Editor::rebuildPalette = ->
   @redrawPalette()
   for binding in editorBindings.rebuild_palette
     binding.call this
-
 
 # MOUSE INTERACTION WRAPPERS
 # ================================
@@ -676,8 +673,8 @@ Editor::trackerPointToPalette = (point) ->
   if not @paletteCanvas.offsetParent?
     return new @draw.Point(NaN, NaN)
   gbr = @paletteCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @viewports.palette.x,
-                  point.y - gbr.top + @viewports.palette.y)
+  new @draw.Point(point.x - gbr.left
+                  point.y - gbr.top)
 
 Editor::trackerPointIsInElement = (point, element) ->
   if @readOnly
@@ -1155,8 +1152,7 @@ Editor::wouldDelete = (position) ->
   mainPoint = @trackerPointToMain position
   palettePoint = @trackerPointToPalette position
 
-  return not @lastHighlight and not
-    (@viewports.main.contains(mainPoint) or @viewports.palette.contains(palettePoint))
+  return not @lastHighlight and not @viewports.main.contains(mainPoint)
 
 # On mousemove, if there is a clicked block but no drag block,
 # we might want to transition to a dragging the block if the user
@@ -1561,7 +1557,6 @@ Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDo
 # blocks without a highlight.
 hook 'mouseup', 0, (point, event, state) ->
   if @draggingBlock? and not @lastHighlight? and not @dragReplacing
-    console.log 'floatifying'
     # Before we put this block into our list of floating blocks,
     # we need to figure out where on the main canvas
     # we are going to render it.
@@ -1578,13 +1573,10 @@ hook 'mouseup', 0, (point, event, state) ->
     @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
-    palettePoint = @trackerPointToPalette point
-    if @viewports.palette.contains(palettePoint) and not
-       @viewports.main.contains(renderPoint)
+    unless @viewports.main.right() > renderPoint.x > @viewports.main.x - @gutter.offsetWidth and
+        @viewports.main.bottom() > renderPoint.y > @viewports.main.y
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
-
-      console.log 'deletifying'
 
       @endDrag()
       return
@@ -1768,8 +1760,8 @@ hook 'mousedown', 6, (point, event, state) ->
   if not @trackerPointIsInPalette(point) then return
 
   palettePoint = @trackerPointToPalette point
-  if @viewports.palette.y < palettePoint.y < @viewports.palette.y + @paletteCanvas.offsetHeight and
-     @viewports.palette.x < palettePoint.x < @viewports.palette.x + @paletteCanvas.offsetWidth
+  console.log palettePoint
+  if @viewports.palette.contains(palettePoint)
     for entry in @currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView
 
@@ -1803,50 +1795,6 @@ hook 'redraw_palette', 0, ->
   @clearPaletteHighlightCanvas()
   if @currentHighlightedPaletteBlock?
     @paletteHighlightPath.update()
-
-hook 'rebuild_palette', 1, ->
-  # Remove the existent blocks
-  @paletteScrollerStuffing.innerHTML = ''
-
-  @currentHighlightedPaletteBlock = null
-
-  # Add new blocks
-  for data in @currentPaletteMetadata
-    block = data.block
-
-    hoverDiv = document.createElement 'div'
-    hoverDiv.className = 'droplet-hover-div'
-
-    hoverDiv.title = data.title ? block.stringify()
-
-    bounds = @paletteView.getViewNodeFor(block).totalBounds
-
-    hoverDiv.style.top = "#{bounds.y}px"
-    hoverDiv.style.left = "#{bounds.x}px"
-
-    # Clip boxes to the width of the palette to prevent x-scrolling. TODO: fix x-scrolling behaviour.
-    hoverDiv.style.width = "#{Math.min(bounds.width, Infinity)}px"
-
-    do (block) =>
-      hoverDiv.addEventListener 'mousemove', (event) =>
-        palettePoint = @trackerPointToPalette new @draw.Point(
-            event.clientX, event.clientY)
-        if @viewOrChildrenContains block, palettePoint, @paletteView
-            @clearPaletteHighlightCanvas()
-            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
-            @paletteHighlightPath.update()
-            @currentHighlightedPaletteBlock = block
-        else if block is @currentHighlightedPaletteBlock
-          @currentHighlightedPaletteBlock = null
-          @clearPaletteHighlightCanvas()
-
-      hoverDiv.addEventListener 'mouseout', (event) =>
-        if block is @currentHighlightedPaletteBlock
-          @currentHighlightedPaletteBlock = null
-          @paletteHighlightCtx.clearRect @viewports.palette.x, @viewports.palette.y,
-            @paletteHighlightCanvas.offsetWidth + @viewports.palette.x, @paletteHighlightCanvas.offsetHeight + @viewports.palette.y
-
-    @paletteScrollerStuffing.appendChild hoverDiv
 
 # TEXT INPUT SUPPORT
 # ================================
@@ -3345,8 +3293,8 @@ Editor::toggleBlocks = (cb) ->
 
 hook 'populate', 2, ->
   @viewports = {
-    main: new @draw.NoRectangle()
-    palette: new @draw.NoRectangle()
+    main: new @draw.Rectangle 0, 0, 0, 0
+    palette: new @draw.Rectangle 0, 0, 0, 0
   }
 
   @mainScroller = document.createElement 'div'
@@ -3370,6 +3318,7 @@ hook 'populate', 2, ->
 
   @paletteScroller = document.createElement 'div'
   @paletteScroller.className = 'droplet-palette-scroller'
+  @paletteScroller.appendChild @paletteCanvas
 
   @paletteScrollerStuffing = document.createElement 'div'
   @paletteScrollerStuffing.className = 'droplet-palette-scroller-stuffing'
@@ -3379,16 +3328,7 @@ hook 'populate', 2, ->
 
   @paletteScroller.addEventListener 'scroll', =>
     @viewports.palette.y = @paletteScroller.scrollTop
-
-    # Temporarily ignoring x-scroll to fix bad x-scrolling behaviour
-    # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
-    # @viewports.palette.x = @paletteScroller.scrollLeft
-
-    @paletteCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
-    @paletteHighlightCtx.setAttribute 'transform', "matrix(1, 0, 0, 1, #{-@viewports.palette.x}, #{-@viewports.palette.y})"
-
-    # redraw the bits of the palette
-    @redrawPalette()
+    @viewports.palette.x = @paletteScroller.scrollLeft
 
 Editor::resizeMainScroller = ->
   @mainScroller.style.width = "#{@dropletElement.offsetWidth}px"
@@ -3396,8 +3336,9 @@ Editor::resizeMainScroller = ->
 
 hook 'resize_palette', 0, ->
   @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
-  @paletteScroller.style.width = "#{@paletteCanvas.offsetWidth}px"
-  @paletteScroller.style.height = "#{@paletteCanvas.offsetHeight}px"
+
+  @viewports.palette.height = @paletteScroller.clientHeight
+  @viewports.palette.width = @paletteScroller.clientWidth
 
 hook 'redraw_main', 1, ->
   bounds = @view.getViewNodeFor(@tree).getBounds()

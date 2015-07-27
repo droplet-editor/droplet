@@ -324,6 +324,20 @@ text {
 .droplet-socket-path {
   cursor: text;
 }
+/*
+.droplet-block-path:hover .droplet-background-path {
+  stroke: #FF0;
+  stroke-width: 2px;
+}
+.droplet-block-path:hover .droplet-light-bevel-path .droplet-dark-bevel-path {
+  fill: #FF0 !important;
+}
+*/
+.droplet-palette-canvas .droplet-socket-path {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
 .droplet-cursor-path {
   cursor: text;
 }
