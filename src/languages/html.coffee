@@ -113,7 +113,7 @@ TAGS = {
   legend: {category: 'form'}
 
   #Embedded
-  img: {category: 'embedded'}
+  img: {category: 'embedded', dropdown: { '*': ['src=""'] } }
   iframe: {category: 'embedded', content: 'optional'}
   embed: {category: 'embedded'}
   object: {category: 'embedded'}
@@ -207,6 +207,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     if @opts.tags[node.nodeName]
       return @opts.categories[@opts.tags[node.nodeName].category].color
     return @opts.categories.Default.color
+
+  getDropdown: (node) ->
+    return @opts.tags[node.nodeName]?.dropdown?['*'] ? null
 
   getBounds: (node) ->
     bounds = {
@@ -393,6 +396,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       depth: depth
       precedence: precedence
       classes: classes ? @getClasses node
+      dropdown: @getDropdown node
 
   getIndentPrefix: (bounds, indentDepth, depth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -451,7 +455,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         for attrib in node.attributes
           if attrib.end - attrib.start > 1
             @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
-
       when 'blockTag'
         @htmlBlock node, depth, bounds
         for attrib in node.attributes
