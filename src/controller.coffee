@@ -448,6 +448,9 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 
         record.playButton = new @view.draw.ElementWrapper(playElement)
 
+        record.playButton.element.addEventListener 'mousedown', =>
+          @fireEvent 'runcode', [record.block.stringify()]
+
       if blockView.lineLength is 1
         record.playButton.element.setAttribute('transform', "translate(#{
           blockView.totalBounds.x - startWidth / 2 - 10 / 2}, #{
@@ -458,9 +461,6 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
           blockView.totalBounds.x - startWidth / 2 - 10 / 2}, #{
           blockView.totalBounds.y + blockView.distanceToBase[0].above
           })")
-
-      record.playButton.element.addEventListener 'mousedown', =>
-        @fireEvent 'runcode', [record.block.stringify()]
 
     oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
 
