@@ -13,6 +13,7 @@ COLORS = {
   'selector-part': 'lightgreen'
   'selector-modifier': 'cyan'
   fontface: 'pink'
+  viewport: 'orange'
   keyframes: 'purple'
   keyframerule: 'teal'
   page: 'lightgreen'
@@ -29,16 +30,18 @@ UNITS = {}
 
 (->
   UTS = {
-    length: ['em', 'rem', 'ex', 'px', 'cm', 'mm', 'in', 'pt', 'pc', 'ch', 'vh', 'vw', 'vmax', 'vmin']
+    length: ['em', 'px', 'mm', 'in', 'pt']
     angle: ['deg', 'rad', 'grad']
     time: ['ms', 's']
     frequency: ['hz', 'khz']
     resolution: ['dpi', 'dpcm']
+    pseudoElements: ['before', 'after', 'first-letter', 'first-line', 'selection']
+    pseudoClasses: ['active', 'hover', 'link', 'focus', 'visited']
   }
 
   for k, v of UTS
     UNITS[k] = {
-      dropdownOnly: true
+      dropdownOnly: if k is 'pseudoElements' then true else false
       options: v
       generate: -> @options.map (x) => {text: x, display: x}
     }
@@ -77,6 +80,8 @@ cssParser.addListener("charset", (event) -> Stack.add event, 'charset')
 cssParser.addListener("namespace", (event) ->  Stack.add event, 'namespace')
 cssParser.addListener("startfontface", (event) -> Stack.start event, 'fontface')
 cssParser.addListener("endfontface", (event) -> Stack.end event)
+cssParser.addListener("startviewport", (event) -> Stack.start event, 'viewport')
+cssParser.addListener("endviewport", (event) -> Stack.end event)
 cssParser.addListener("startkeyframes", (event) -> Stack.start event, 'keyframes')
 cssParser.addListener("startkeyframerule", (event) -> Stack.start event, 'keyframerule')
 cssParser.addListener("endkeyframerule", (event) -> Stack.end event)
@@ -139,7 +144,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
   cssBlock: (node, depth) ->
     if not node
       return
-    # console.log "Adding Block: ", JSON.stringify @getBounds node
+    #console.log "Adding Block: ", JSON.stringify @getBounds node
     @addBlock
       bounds: @getBounds node
       depth: depth
@@ -151,7 +156,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
   cssSocket: (node, depth, precedence, bounds, dropdown) ->
     if not node
       return
-    # console.log "Adding Socket: ", JSON.stringify @getBounds node
+    #console.log "Adding Socket: ", JSON.stringify @getBounds node
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
@@ -233,6 +238,9 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'fontface'
         @cssBlock node, depth
         @handleCompoundNode indentDepth, node, depth + 1
+      when 'viewport'
+        @cssBlock node, depth
+        @handleCompoundNode indentDepth, node, depth + 1
       when 'keyframes'
         @cssBlock node, depth
         @cssSocket node.name, depth + 1
@@ -280,11 +288,16 @@ exports.CSSParser = class CSSParser extends parser.Parser
           mod.nodeType = 'selector-modifier'
           @cssSocket mod, depth + 2
           @cssBlock mod, depth + 3
-          if mod.type in ['class', 'id', 'pseudo']
+          if mod.type in ['class', 'id']
             mod.loc.startCol++
-            if mod.type is 'pseudo' and mod.text[1] is ':'
-              mod.loc.startCol++
             @cssSocket mod, depth + 4
+          else if mod.type is 'pseudo'
+            mod.loc.startCol++
+            if mod.text[1] is ':'
+              mod.loc.startCol++
+              @cssSocket mod, depth + 4, null, null, UNITS['pseudoElements']
+            else
+              @cssSocket mod, depth + 4, null, null, UNITS['pseudoClasses']
           else if mod.type is 'attribute'
             @cssSocket mod.attrib, depth + 4
             @cssSocket mod.val, depth + 4

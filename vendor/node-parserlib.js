@@ -1176,7 +1176,7 @@ Combinator.prototype.constructor = Combinator;
  */
 function MediaFeature(name, value){
 
-    SyntaxUnit.call(this, "(" + name + (value !== null ? ":" + value : "") + ")", name.startLine, name.startCol, value.endLine, value.endCol, Parser.MEDIA_FEATURE_TYPE);
+    SyntaxUnit.call(this, "(" + name + (value !== null ? ":" + value : "") + ")", name.loc.startLine, name.loc.startCol, value ? value.loc.endLine : name.loc.endLine, value ? value.loc.endCol : name.loc.endCol, Parser.MEDIA_FEATURE_TYPE);
 
     /**
      * The name of the media feature
@@ -1692,7 +1692,7 @@ Parser.prototype = function(){
                     expressions = [];
 
                 if (tokenStream.match(Tokens.IDENT)){
-                    ident = tokenStream.token().value.toLowerCase();
+                    ident = SyntaxUnit.fromToken(tokenStream.token());
 
                     //since there's no custom tokens for these, need to manually check
                     if (ident != "only" && ident != "not"){
@@ -1700,6 +1700,7 @@ Parser.prototype = function(){
                         ident = null;
                     } else {
                         token = tokenStream.token();
+                        lastToken = token;
                     }
                 }
 
@@ -1707,6 +1708,7 @@ Parser.prototype = function(){
 
                 if (tokenStream.peek() == Tokens.IDENT){
                     type = this._media_type();
+                    lastToken = tokenStream.token();
                     if (token === null){
                         token = tokenStream.token();
                     }
@@ -1730,9 +1732,9 @@ Parser.prototype = function(){
                         expressions.push(this._media_expression());
                     }
                 }
-                lastToken = expressions[expressions.length - 1];
-                if(!lastToken)
-                    lastToken = token;
+                if (expressions.length > 0) {
+                    lastToken = expressions[expressions.length - 1].loc;
+                }
 
                 return new MediaQuery(ident, type, expressions, token.startLine, token.startCol, lastToken.endLine, lastToken.endCol);
             },
