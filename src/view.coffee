@@ -230,6 +230,8 @@ exports.View = class View
       # {height:2, draw:true}
       @glue = {}
 
+      @group = new @view.draw.Group()
+
       # *Sixth pass variables*
       # computePath
       if @model.type is 'block'
@@ -240,6 +242,8 @@ exports.View = class View
         @path = new @view.draw.Path([], false, {
           cssClass: "droplet-#{@model.type}-path"
         })
+
+      @path.setParent @group
 
       # *Seventh pass variables*
       # computeDropAreas
@@ -252,7 +256,7 @@ exports.View = class View
       })
       @highlightArea.deactivate()
 
-      @elements = [@path, @highlightArea]
+      @elements = [@group, @path, @highlightArea]
 
       # Versions. The corresponding
       # Model will keep corresponding version
@@ -322,10 +326,7 @@ exports.View = class View
     computeChildren: -> @lineLength
 
     focusAll: ->
-      for element in @elements when element isnt @highlightArea
-        element?.focus?()
-      for child in @children
-        @view.getViewNodeFor(child.child).focusAll()
+      @group.focus()
 
     computeCarriageArrow: ->
       for childObj in @children
@@ -759,12 +760,18 @@ exports.View = class View
 
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
-    draw: (boundingRect, style = {}) ->
+    draw: (boundingRect, style = {}, parent = null) ->
       @drawSelf style
-      @path.activate()
+
+      @group.activate(); @path.activate()
+
+      if parent?
+        @group.setParent parent
+      else
+        @group.setParent @view.draw.ctx
 
       for childObj in @children
-        @view.getViewNodeFor(childObj.child).draw boundingRect, style
+        @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
 
     forceClean: ->
       @clean @computedVersion
@@ -2049,6 +2056,7 @@ exports.View = class View
         new @view.draw.Point(0, 0),
         @model.value
       )
+      @textElement.setParent @group
       @elements.push @textElement
 
     # ## computeChildren

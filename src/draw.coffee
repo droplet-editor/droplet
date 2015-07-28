@@ -253,12 +253,22 @@ exports.Draw = class Draw
 
       focus: ->
         @activate()
-        self.ctx.appendChild @element
+        (@element.parentElement ? self.ctx).appendChild @element
+
+      setParent: (parent) ->
+        if parent instanceof ElementWrapper
+          parent = parent.element
+
+        unless parent is @element.parentElement
+          parent.appendChild @element
 
       destroy: ->
         @deactivate()
-        self.ctx.removeChild @element
+        @element.parentElement.removeChild @element
 
+    @Group = class Group extends ElementWrapper
+      constructor: ->
+        super document.createElementNS SVG_STANDARD, 'g'
 
     # ## Path ##
     # This is called Path, but is forced to be closed so is actually a polygon.
@@ -713,24 +723,6 @@ exports.Draw = class Draw
           @element.removeChild(@element.lastChild)
           text = document.createTextNode @value.replace(/ /g, '\u00A0')
           element.appendChild text
-
-      deactivate: ->
-        if @active
-          @active = false
-          @element.setAttribute 'visibility', 'hidden'
-
-      activate: ->
-        unless @active
-          @active = true
-          @element.setAttribute 'visibility', 'visible'
-
-      focus: ->
-        @activate()
-        self.ctx.appendChild @element
-
-      destroy: ->
-        @deactivate()
-        self.ctx.removeChild @element
 
   refreshFontCapital:  ->
     metrics = helper.fontMetrics(@fontFamily, @fontSize)

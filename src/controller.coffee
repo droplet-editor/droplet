@@ -194,7 +194,7 @@ exports.Editor = class Editor
     @dragView = new view.View @dragCtx, @standardViewSettings
     @draw = new draw.Draw(@mainCtx)
 
-    @dropletElement.style.left = @paletteWrapper.offsetWidth + 'px'
+    @dropletElement.style.left = @paletteWrapper.clientWidth + 'px'
 
     @wrapperElement.appendChild @paletteWrapper
 
@@ -331,8 +331,8 @@ exports.Editor = class Editor
 
     @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
     if @paletteEnabled
-      @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
-      @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
+      @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.clientWidth}px"
     else
       @dropletElement.style.left = "0px"
       @dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
@@ -344,8 +344,8 @@ exports.Editor = class Editor
 
     @mainCanvas.setAttribute 'width', @dropletElement.clientWidth - @gutter.clientWidth
 
-    @mainCanvas.style.left = "#{@gutter.offsetWidth}px"
-    @transitionContainer.style.left = "#{@gutter.offsetWidth}px"
+    @mainCanvas.style.left = "#{@gutter.clientWidth}px"
+    @transitionContainer.style.left = "#{@gutter.clientWidth}px"
 
     @resizePalette()
     @resizePaletteHighlight()
@@ -388,8 +388,8 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
   @topNubbyPath = new @draw.Path([], true)
 
-  @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, -5
-  @topNubbyPath.push new @draw.Point @mainCanvas.offsetWidth, height
+  @topNubbyPath.push new @draw.Point @mainCanvas.clientWidth, -5
+  @topNubbyPath.push new @draw.Point @mainCanvas.clientWidth, height
 
   @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
   @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
@@ -407,6 +407,37 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
 Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
+
+Editor::initializeFloatingBlock = (record, i) ->
+  record.renderGroup = new @view.draw.Group()
+
+  record.grayBox = new @view.draw.NoRectangle()
+  record.grayBoxPath = new @view.draw.Path(
+    [], false, {
+      fillColor: GRAY_BLOCK_COLOR
+      strokeColor: GRAY_BLOCK_BORDER
+      lineWidth: 4
+      dotted: '8 5'
+      cssClass: 'droplet-floating-container'
+    }
+  )
+  record.startText = new @view.draw.Text(
+    (new @view.draw.Point(0, 0)), @mode.startComment
+  )
+  record.endText = new @view.draw.Text(
+    (new @view.draw.Point(0, 0)), @mode.endComment
+  )
+
+  for element in [record.grayBoxPath, record.startText, record.endText]
+    element.setParent record.renderGroup
+
+  @view.getViewNodeFor(record.block).group.setParent record.renderGroup
+
+  # TODO maybe refactor into qualifiedFocus
+  if i < @floatingBlocks.length
+    @mainCtx.insertBefore record.renderGroup.element, @floatingBlocks[i].renderGroup.element
+  else
+    @mainCtx.appendChild record.renderGroup
 
 Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   blockView = @view.getViewNodeFor record.block
@@ -427,15 +458,6 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 
   unless rectangle.equals(record.grayBox)
     record.grayBox = rectangle
-    record.grayBoxPath ?= new @view.draw.Path(
-      [], false, {
-        fillColor: GRAY_BLOCK_COLOR
-        strokeColor: GRAY_BLOCK_BORDER
-        lineWidth: 4
-        dotted: '8 5'
-        cssClass: 'droplet-floating-container'
-      }
-    )
 
     oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
 
@@ -472,12 +494,6 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       return @redrawMain opts
 
   record.grayBoxPath.update()
-  record.startText ?= new @view.draw.Text(
-    (new @view.draw.Point(0, 0)), @mode.startComment
-  )
-  record.endText ?= new @view.draw.Text(
-    (new @view.draw.Point(0, 0)), @mode.endComment
-  )
 
   record.startText.point.x = blockView.totalBounds.x - startWidth
   record.startText.point.y = blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize
@@ -492,8 +508,6 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
     selected: false
     noText: false
   }
-
-  blockView.focusAll()
 
 hook 'populate', 0, ->
   @currentlyDrawnFloatingBlocks = []
@@ -609,8 +623,8 @@ Editor::redrawPalette = ->
   boundingRect = new @draw.Rectangle(
     @viewports.palette.x,
     @viewports.palette.y,
-    @paletteCanvas.offsetWidth,
-    @paletteCanvas.offsetHeight
+    @paletteCanvas.clientWidth,
+    @paletteCanvas.clientHeight
   )
 
   for entry in @currentPaletteBlocks
@@ -1040,9 +1054,9 @@ Editor::resizeDragCanvas = ->
   @dragCanvas.style.width = "#{0}px"
   @dragCanvas.style.height = "#{0}px"
 
-  @highlightCanvas.style.width = "#{@dropletElement.offsetWidth - @gutter.offsetWidth}px"
+  @highlightCanvas.style.width = "#{@dropletElement.clientWidth - @gutter.clientWidth}px"
 
-  @highlightCanvas.style.height = "#{@dropletElement.offsetHeight}px"
+  @highlightCanvas.style.height = "#{@dropletElement.clientHeight}px"
 
   @highlightCanvas.style.left = "#{@mainCanvas.offsetLeft}px"
 
@@ -1330,7 +1344,7 @@ hook 'mousemove', 0, (point, event, state) ->
       head = head.next
 
     if head is @tree.end and @floatingBlocks.length is 0 and
-        @viewports.main.right() > mainPoint.x > @viewports.main.x - @gutter.offsetWidth and
+        @viewports.main.right() > mainPoint.x > @viewports.main.x - @gutter.clientWidth and
         @viewports.main.bottom() > mainPoint.y > @viewports.main.y
       @view.getViewNodeFor(@tree).highlightArea.update()
       @lastHighlight = @tree
@@ -1393,7 +1407,7 @@ Editor::qualifiedFocus = (node, path) ->
   documentIndex = @documentIndex node
   if documentIndex < @floatingBlocks.length
     path.activate()
-    @mainCtx.insertBefore path.element, @floatingBlocks[documentIndex].grayBoxPath.element
+    @mainCtx.insertBefore path.element, @floatingBlocks[documentIndex].renderGroup.element
   else
     path.focus()
 
@@ -1572,7 +1586,7 @@ hook 'mouseup', 0, (point, event, state) ->
     @spliceOut @draggingBlock
 
     # If we dropped it off in the palette, abort (so as to delete the block).
-    unless @viewports.main.right() > renderPoint.x > @viewports.main.x - @gutter.offsetWidth and
+    unless @viewports.main.right() > renderPoint.x > @viewports.main.x - @gutter.clientWidth and
         @viewports.main.bottom() > renderPoint.y > @viewports.main.y
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
@@ -1591,10 +1605,12 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add this block to our list of floating blocks
     console.log 'pushing a floater'
-    @floatingBlocks.push new FloatingBlockRecord(
+    @floatingBlocks.push record = new FloatingBlockRecord(
       newDocument
       renderPoint
     )
+
+    @initializeFloatingBlock record, @floatingBlocks.length - 1
 
     @setCursor @draggingBlock.start
 
@@ -1623,10 +1639,12 @@ Editor::performFloatingOperation = (op, direction) ->
     if @cursor.document > op.index
       @cursor.document += 1
 
-    @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
+    @floatingBlocks.splice op.index, 0, record = new FloatingBlockRecord(
       op.block.clone()
       op.position
     )
+
+    @initializeFloatingBlock record, op.index
   else
     # If the cursor's document is about to vanish,
     # put it back in the main tree.
@@ -1787,9 +1805,9 @@ hook 'populate', 1, ->
   @paletteElement.appendChild @paletteHighlightCanvas
 
 Editor::resizePaletteHighlight = ->
-  @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
-  @paletteHighlightCanvas.style.width = "#{@paletteCanvas.offsetWidth}px"
-  @paletteHighlightCanvas.style.height = "#{@paletteCanvas.offsetHeight}px"
+  @paletteHighlightCanvas.style.top = @paletteHeader.clientHeight + 'px'
+  @paletteHighlightCanvas.style.width = "#{@paletteCanvas.clientWidth}px"
+  @paletteHighlightCanvas.style.height = "#{@paletteCanvas.clientHeight}px"
 
 hook 'redraw_palette', 0, ->
   @clearPaletteHighlightCanvas()
@@ -1860,7 +1878,7 @@ hook 'populate', 1, ->
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
   if @showPaletteInTextMode and @paletteEnabled
-    width -= @paletteWrapper.offsetWidth
+    width -= @paletteWrapper.clientWidth
 
   @aceElement.style.width = "#{width}px"
   @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
@@ -1921,7 +1939,7 @@ Editor::redrawTextInput = ->
       rect.unite treeView.bounds[line]
       rect.unite treeView.bounds[line + 1] if line + 1 < treeView.bounds.length
 
-      rect.width = Math.max rect.width, @mainCanvas.offsetWidth
+      rect.width = Math.max rect.width, @mainCanvas.clientWidth
 
       @redrawMain
         boundingRectangle: rect
@@ -2011,8 +2029,8 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
     @textCursorPath.update()
     @qualifiedFocus @getCursor(), @textCursorPath
 
-  if scrollIntoView and endPosition > @viewports.main.x + @mainCanvas.offsetWidth
-    @mainScroller.scrollLeft = endPosition - @mainCanvas.offsetWidth + @view.opts.padding
+  if scrollIntoView and endPosition > @viewports.main.x + @mainCanvas.clientWidth
+    @mainScroller.scrollLeft = endPosition - @mainCanvas.clientWidth + @view.opts.padding
 
 escapeString = (str) ->
   str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
@@ -2297,7 +2315,7 @@ Editor::showDropdown = (socket = @getCursor()) ->
   # some padding on the right. After checking for this,
   # move the dropdown element into position
   setTimeout (=>
-    if @dropdownElement.offsetHeight < @dropdownElement.scrollHeight
+    if @dropdownElement.clientHeight < @dropdownElement.scrollHeight
       for el in dropdownItems
         el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
 
@@ -2849,7 +2867,7 @@ Editor::computePlaintextTranslationVectors = ->
     x: (@aceEditor.container.getBoundingClientRect().left -
         @aceElement.getBoundingClientRect().left +
         @aceEditor.renderer.$gutterLayer.gutterWidth) -
-        @gutter.offsetWidth + 5 # TODO find out where this 5 comes from
+        @gutter.clientWidth + 5 # TODO find out where this 5 comes from
     y: (@aceEditor.container.getBoundingClientRect().top -
         @aceElement.getBoundingClientRect().top) -
         aceSession.getScrollTop()
@@ -2863,7 +2881,7 @@ Editor::computePlaintextTranslationVectors = ->
     leftEdge: (@aceEditor.container.getBoundingClientRect().left -
         getOffsetLeft(@aceElement) +
         @aceEditor.renderer.$gutterLayer.gutterWidth) -
-        @gutter.offsetWidth + 5 # TODO see above
+        @gutter.clientWidth + 5 # TODO see above
   }
 
   @measureCtx.font = @aceFontSize() + ' ' + @fontFamily
@@ -2925,7 +2943,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     @redrawMain noText: true
 
     # Hide scrollbars and increase width
-    if @mainScroller.scrollWidth > @mainScroller.offsetWidth
+    if @mainScroller.scrollWidth > @mainScroller.clientWidth
       @mainScroller.style.overflowX = 'scroll'
     else
       @mainScroller.style.overflowX = 'hidden'
@@ -2988,7 +3006,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @viewports.main.y}px"
 
       div.style.font = @fontSize + 'px ' + @fontFamily
-      div.style.width = "#{@gutter.offsetWidth}px"
+      div.style.width = "#{@gutter.clientWidth}px"
       translatingElements.push div
 
       div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
@@ -3027,7 +3045,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
           @paletteWrapper.style.transition = "left #{translateTime}ms"
 
         @dropletElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
       ), fadeTime
 
     setTimeout (=>
@@ -3038,7 +3056,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       # Translate the ACE editor div into frame.
       @aceElement.style.top = '0px'
       if @showPaletteInTextMode and @paletteEnabled
-        @aceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
         @aceElement.style.left = '0px'
 
@@ -3106,12 +3124,12 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
       if paletteAppearingWithFreeze
         @paletteWrapper.style.top = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+        @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
         @paletteHeader.style.zIndex = 0
 
       @dropletElement.style.top = "0px"
       if @paletteEnabled and not paletteAppearingWithFreeze
-        @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
         @dropletElement.style.left = "0px"
 
@@ -3166,7 +3184,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         div.innerText = div.textContent = line + 1
 
         div.style.font = @aceFontSize() + ' ' + @fontFamily
-        div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
+        div.style.width = "#{@aceEditor.renderer.$gutter.clientWidth}px"
 
         div.style.left = 0
         div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
@@ -3199,7 +3217,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
       if paletteAppearingWithFreeze
         @paletteWrapper.style.transition = @dropletElement.style.transition
-        @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
         @paletteWrapper.style.left = '0px'
 
       setTimeout (=>
@@ -3243,7 +3261,7 @@ Editor::enablePalette = (enabled) ->
         @paletteWrapper.style.transition = "left 500ms"
 
       activeElement.style.left = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
 
       @paletteHeader.style.zIndex = 0
 
@@ -3261,14 +3279,14 @@ Editor::enablePalette = (enabled) ->
 
     else
       @paletteWrapper.style.top = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
       @paletteHeader.style.zIndex = 257
 
       setTimeout (=>
         activeElement.style.transition =
           @paletteWrapper.style.transition = "left 500ms"
 
-        activeElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+        activeElement.style.left = "#{@paletteWrapper.clientWidth}px"
         @paletteWrapper.style.left = '0px'
 
         setTimeout (=>
@@ -3331,11 +3349,11 @@ hook 'populate', 2, ->
     @viewports.palette.x = @paletteScroller.scrollLeft
 
 Editor::resizeMainScroller = ->
-  @mainScroller.style.width = "#{@dropletElement.offsetWidth}px"
-  @mainScroller.style.height = "#{@dropletElement.offsetHeight}px"
+  @mainScroller.style.width = "#{@dropletElement.clientWidth}px"
+  @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
 
 hook 'resize_palette', 0, ->
-  @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
+  @paletteScroller.style.top = "#{@paletteHeader.clientHeight}px"
 
   @viewports.palette.height = @paletteScroller.clientHeight
   @viewports.palette.width = @paletteScroller.clientWidth
@@ -3352,7 +3370,7 @@ hook 'redraw_main', 1, ->
   # Default this extra space to fontSize (approx. 1 line).
   height = Math.max(
     bounds.bottom() + (@options.extraBottomHeight ? @fontSize),
-    @dropletElement.offsetHeight
+    @dropletElement.clientHeight
   )
 
   if height isnt @lastHeight
@@ -3597,7 +3615,7 @@ Editor::setEditorState = (useBlocks) ->
     @dropletElement.style.top = '0px'
     if @paletteEnabled
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
-      @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
       @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
       @dropletElement.style.left = '0px'
@@ -3634,7 +3652,7 @@ Editor::setEditorState = (useBlocks) ->
 
     @aceElement.style.top = '0px'
     if paletteVisibleInNewState
-      @aceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
+      @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
       @aceElement.style.left = '0px'
 
@@ -3989,8 +4007,8 @@ Editor::resizeGutter = ->
     @gutter.style.width = @lastGutterWidth + 'px'
     return @resize()
 
-  unless @lastGutterHeight is Math.max(@dropletElement.offsetHeight, @mainCanvas.offsetHeight)
-    @lastGutterHeight = Math.max(@dropletElement.offsetHeight, @mainCanvas.offsetHeight)
+  unless @lastGutterHeight is Math.max(@dropletElement.clientHeight, @mainCanvas.clientHeight)
+    @lastGutterHeight = Math.max(@dropletElement.clientHeight, @mainCanvas.clientHeight)
     @gutter.style.height = @lastGutterHeight + 'px'
 
 Editor::addLineNumberForLine = (line) ->
