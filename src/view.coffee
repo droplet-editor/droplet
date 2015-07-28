@@ -313,7 +313,7 @@ exports.View = class View
     computeChildren: -> @lineLength
 
     focusAll: ->
-      for element in @elements
+      for element in @elements when element isnt @highlightArea
         element?.focus?()
       for child in @children
         @view.getViewNodeFor(child.child).focusAll()
