@@ -117,9 +117,7 @@ exports.Parser = class Parser
       opts.color,
       opts.socketLevel,
       opts.classes,
-      false
-
-    block.parseContext = opts.parseContext # TODO unhack
+      opts.parseContext
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -220,7 +218,7 @@ exports.Parser = class Parser
   # Construct a handwritten block with the given
   # text inside
   constructHandwrittenBlock: (text) ->
-    block = new model.Block 0, 'blank', helper.ANY_DROP, false
+    block = new model.Block 0, 'blank', helper.ANY_DROP
     socket = new model.Socket @empty, 0, true
     textToken = new model.TextToken text
 
@@ -262,7 +260,7 @@ exports.Parser = class Parser
       if not (i of markupOnLines)
         # If this line is not properly indented,
         # flag it in the model.
-        if indentDepth >= line.length or line[...indentDepth].trim().length > 0
+        if indentDepth > line.length or line[...indentDepth].trim().length > 0
           head.specialIndent = (' ' for [0...line.length - line.trimLeft().length]).join ''
           line = line.trimLeft()
         else
@@ -293,7 +291,7 @@ exports.Parser = class Parser
       # If there is markup on this line, insert it.
       else
         # Flag if this line is not properly indented.
-        if indentDepth >= line.length or line[...indentDepth].trim().length > 0
+        if indentDepth > line.length or line[...indentDepth].trim().length > 0
           lastIndex = line.length - line.trimLeft().length
           head.specialIndent = line[0...lastIndex]
         else

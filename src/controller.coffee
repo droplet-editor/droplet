@@ -784,6 +784,10 @@ Editor::getSerializedEditorState = ->
     string: x.block.stringify()
   }
 
+Editor::clearUndoStack = ->
+  @undoStack.length = 0
+  @redoStack.length = 0
+
 Editor::undo = ->
   # Don't allow a socket to be highlighted during
   # an undo operation
@@ -1827,6 +1831,9 @@ hook 'rebuild_palette', 1, ->
     hoverDiv.className = 'droplet-hover-div'
 
     hoverDiv.title = data.title ? block.stringify()
+
+    if data.id?
+      hoverDiv.setAttribute 'data-id', data.id
 
     bounds = @paletteView.getViewNodeFor(block).totalBounds
 

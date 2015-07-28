@@ -5,42 +5,151 @@ parse5 = require 'parse5'
 
 ATTRIBUTE_CLASSES = ['#attribute']
 
-COLORS = {
-  'Default': 'cyan',
-  '#comment': 'grey'
-  'a': 'grey',
-  'b': 'teal',
-  'body': 'return',
-  'br': 'command',
-  'button': 'yellow',
-  'center': 'red',
-  'div': 'amber',
-  'document': 'bluegrey',
-  'font': 'value',
-  'form': 'deeporange',
-  'h1': 'teal',
-  'h3': 'indigo',
-  'head': 'cyan',
-  'hr': 'lime',
-  'html': 'amber',
-  'iframe': 'green',
-  'img': 'green',
-  'input': 'brown',
-  'label': 'lightblue',
-  'li': 'pink',
-  'link': 'purple',
-  'marquee': 'command',
-  'meta': 'error',
-  'option': 'control',
-  'p': 'deeppurple',
-  'script': 'orange',
-  'select': 'indigo',
-  'strong': 'yellow',
-  'table': 'lightgreen',
-  'td': 'lightblue',
-  'title': 'green',
-  'tr': 'bluegrey',
-  'ul': 'blue'
+TAGS = {
+  #Metadata
+  '#documentType': {category: 'metadata'}
+  html: {category: 'metadata'}
+  head: {category: 'metadata'}
+  title: {category: 'metadata'}
+  link: {category: 'metadata'}
+  meta: {category: 'metadata'}
+  style: {category: 'metadata'}
+  script: {category: 'metadata'}
+  base: {category: 'metadata'}
+
+  #Grouping
+  p: {category: 'grouping'}
+  hr: {category: 'grouping'}
+  div: {category: 'grouping'}
+  ul: {category: 'grouping'}
+  ol: {category: 'grouping'}
+  li: {category: 'grouping'}
+  dl: {category: 'grouping'}
+  dt: {category: 'grouping'}
+  dd: {category: 'grouping'}
+  pre: {category: 'grouping'}
+  blockquote: {category: 'grouping'}
+  figure: {category: 'grouping'}
+  figcaption: {category: 'grouping'}
+  main: {category: 'grouping'}
+  dd: {category: 'grouping'}
+
+  #Content
+  a: {category: 'content'}
+  i: {category: 'content'}
+  b: {category: 'content'}
+  u: {category: 'content'}
+  sub: {category: 'content'}
+  sup: {category: 'content'}
+  br: {category: 'content'}
+  em: {category: 'content'}
+  strong: {category: 'content'}
+  small: {category: 'content'}
+  s: {category: 'content'}
+  cite: {category: 'content'}
+  q: {category: 'content'}
+  dfn: {category: 'content'}
+  abbr: {category: 'content'}
+  ruby: {category: 'content'}
+  rt: {category: 'content'}
+  rp: {category: 'content'}
+  data: {category: 'content'}
+  time: {category: 'content'}
+  code: {category: 'content'}
+  var: {category: 'content'}
+  samp: {category: 'content'}
+  kbd: {category: 'content'}
+  mark: {category: 'content'}
+  bdi: {category: 'content'}
+  bdo: {category: 'content'}
+  span: {category: 'content'}
+  wbr: {category: 'content'}
+  '#text': {category: 'content'}
+
+  #Sections
+  body: {category: 'sections'}
+  article: {category: 'sections'}
+  section: {category: 'sections'}
+  nav: {category: 'sections'}
+  aside: {category: 'sections'}
+  h1: {category: 'sections'}
+  h2: {category: 'sections'}
+  h3: {category: 'sections'}
+  h4: {category: 'sections'}
+  h5: {category: 'sections'}
+  h6: {category: 'sections'}
+  hgroup: {category: 'sections'}
+  header: {category: 'sections'}
+  footer: {category: 'sections'}
+  address: {category: 'sections'}
+
+  #Table
+  table: {category: 'table'}
+  caption: {category: 'table'}
+  colgroup: {category: 'table'}
+  col: {category: 'table'}
+  tbody: {category: 'table'}
+  thead: {category: 'table'}
+  tfoot: {category: 'table'}
+  tr: {category: 'table'}
+  td: {category: 'table'}
+  th: {category: 'table'}
+
+  #Form
+  form: {category: 'form'}
+  input: {category: 'form'}
+  textarea: {category: 'form'}
+  label: {category: 'form'}
+  button: {category: 'form'}
+  select: {category: 'form'}
+  option: {category: 'form'}
+  optgroup: {category: 'form'}
+  datalist: {category: 'form'}
+  keygen: {category: 'form'}
+  output: {category: 'form'}
+  progress: {category: 'form'}
+  meter: {category: 'form'}
+  fieldset: {category: 'form'}
+  legend: {category: 'form'}
+
+  #Embedded
+  img: {category: 'embedded'}
+  iframe: {category: 'embedded'}
+  embed: {category: 'embedded'}
+  object: {category: 'embedded'}
+  param: {category: 'embedded'}
+  video: {category: 'embedded'}
+  audio: {category: 'embedded'}
+  source: {category: 'embedded'}
+  track: {category: 'embedded'}
+  map: {category: 'embedded'}
+  area: {category: 'embedded'}
+
+  #Other known tags
+  ins: {category: 'other'}
+  del: {category: 'other'}
+  details: {category: 'other'}
+  summary: {category: 'other'}
+  menu: {category: 'other'}
+  menuitem: {category: 'other'}
+  dialog: {category: 'other'}
+  noscript: {category: 'other'}
+  template: {category: 'other'}
+  canvas: {category: 'other'}
+  svg: {category: 'other'}
+  frameset: {category: 'other'}
+}
+
+CATEGORIES = {
+  metadata: {color: 'lightblue'}
+  grouping: {color: 'purple'}
+  content: {color: 'lightgreen'}
+  sections: {color: 'orange'}
+  table: {color: 'indigo'}
+  form: {color: 'deeporange'}
+  embedded: {color: 'teal'}
+  other: {color: 'pink'}
+  Default: {color: 'yellow'}
 }
 
 DEFAULT_INDENT_DEPTH = '  '
@@ -78,6 +187,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   constructor: (@text, @opts = {}) ->
     super
+
+    @opts.tags = helper.extend({}, TAGS, @opts.tags)
+    @opts.categories = helper.extend({}, CATEGORIES, @opts.categories)
+
     @lines = @text.split '\n'
 
   getPrecedence: (node) -> 1
@@ -91,7 +204,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     return classes
 
   getColor: (node) ->
-    COLORS[node.nodeName] ? COLORS['Default']
+    if @opts.tags[node.nodeName]
+      return @opts.categories[@opts.tags[node.nodeName].category].color
+    return @opts.categories.Default.color
 
   getBounds: (node) ->
     bounds = {
@@ -141,6 +256,15 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         start = string.indexOf att.name.toLowerCase()
         end = start + att.name.length
         string = string[end...]
+        if string.trimLeft()[0] is '='
+          add = 0
+          newStr = string.trimLeft()[1...].trimLeft()
+          add = string.length - newStr.length
+          string = string[add...]
+          if string[0] in ['"', '\''] and string[0] is string[1]
+            add += 2
+            string = string[2...]
+          end += add
         if att.value.length isnt 0
           diff = string.indexOf(att.value.toLowerCase())
           if string[diff-1] in ['"', '\''] and string[diff-1] is string[diff + att.value.length]
@@ -261,6 +385,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       color: @getColor node
       classes: @getClasses node
       socketLevel: @getSocketLevel node
+      parseContext: node.nodeName
 
   htmlSocket: (node, depth, precedence, bounds, classes) ->
     @addSocket
@@ -295,7 +420,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         column = 0
     @positions[@text.length] = {'line': line, 'column': column}
 
-    if @opts.parseOptions?.wrapAtRoot is false
+    parseContext = @opts.parseOptions?.context
+
+    if parseContext and parseContext not in ['html', 'head', 'body']
       root = htmlParser.parseFragment @text
       @cleanTree root
       @fixBounds root
