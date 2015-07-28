@@ -439,11 +439,11 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 
     startHeight = blockView.bounds[0].height + 10
 
-    if @options.playButtons
+    if @options.playButtons?
       unless record.playButton?
         playElement = document.createElementNS SVG_STANDARD, 'path'
         playElement.setAttribute 'd', 'M0 0 L0 10 L10 5 Z'
-        playElement.setAttribute 'fill', '#000'
+        playElement.setAttribute 'fill', @options.playButtons?.color ? '#000'
         playElement.setAttribute 'class', 'droplet-play-button'
 
         record.playButton = new @view.draw.ElementWrapper(playElement)
@@ -479,7 +479,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       points.push new @view.draw.Point rectangle.x, rectangle.bottom()
 
     # Handle
-    unless @options.playButtons
+    unless @options.playButtons?
       handleHeight = startHeight
       handleWidth = startWidth
 
@@ -508,7 +508,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 
   record.grayBoxPath.update()
   record.grayBoxPath.focus()
-  if @options.playButtons
+  if @options.playButtons?
     record.playButton.focus()
   record.startText ?= new @view.draw.Text(
     (new @view.draw.Point(0, 0)), @mode.startComment
@@ -569,7 +569,7 @@ Editor::redrawMain = (opts = {}) ->
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @floatingBlocks
         el.record.grayBoxPath.destroy()
-        if @options.playButtons
+        if @options.playButtons?
           el.record.playButton.destroy()
         el.record.startText.destroy()
         el.record.endText.destroy()
