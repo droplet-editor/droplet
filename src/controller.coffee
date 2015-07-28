@@ -459,7 +459,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
           blockView.totalBounds.y + blockView.distanceToBase[0].above
           })")
 
-      record.playButton.element.addEventListener 'click', =>
+      record.playButton.element.addEventListener 'mousedown', =>
         @fireEvent 'runcode', [record.block.stringify()]
 
     oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
