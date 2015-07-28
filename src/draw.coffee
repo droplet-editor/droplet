@@ -538,7 +538,8 @@ exports.Draw = class Draw
 
         pathString = @getCommandString()
 
-        pathElement.setAttribute 'd', pathString
+        if pathString.length > 0
+          pathElement.setAttribute 'd', pathString
 
         if @bevel
           @backgroundPathElement = pathElement
@@ -547,13 +548,15 @@ exports.Draw = class Draw
 
           @lightPathElement = document.createElementNS SVG_STANDARD, 'path'
           @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
-          @lightPathElement.setAttribute 'd', @getLightBevelPath()
+          if pathString.length > 0
+            @lightPathElement.setAttribute 'd', @getLightBevelPath()
           @lightPathElement.setAttribute 'class', 'droplet-light-bevel-path'
 
           @darkPathElement = document.createElementNS SVG_STANDARD, 'path'
           @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
-          @darkPathElement.setAttribute 'd', @getDarkBevelPath()
-          @darkPathElement.setAttribute 'class', 'droplet-dark-bevel-path'
+          if pathString.length > 0
+            @darkPathElement.setAttribute 'd', @getDarkBevelPath()
+          @backgroundPathElement.setAttribute 'class', 'droplet-dark-bevel-path'
 
           pathElement.appendChild @backgroundPathElement
           pathElement.appendChild @lightPathElement
@@ -599,12 +602,13 @@ exports.Draw = class Draw
         if @_updateFlag
           @_updateFlag = false
           pathString = @getCommandString()
-          if @bevel
-            @backgroundPathElement.setAttribute 'd', pathString
-            @lightPathElement.setAttribute 'd', @getLightBevelPath()
-            @darkPathElement.setAttribute 'd', @getDarkBevelPath()
-          else
-            @element.setAttribute 'd', pathString
+          if pathString.length > 0
+            if @bevel
+              @backgroundPathElement.setAttribute 'd', pathString
+              @lightPathElement.setAttribute 'd', @getLightBevelPath()
+              @darkPathElement.setAttribute 'd', @getDarkBevelPath()
+            else
+              @element.setAttribute 'd', pathString
 
       clone: ->
         clone = new Path(@_points.slice(0), @bevel, {

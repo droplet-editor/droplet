@@ -1,4 +1,4 @@
-browserify = require 'browserify'
+ldbrowserify = require 'browserify'
 coffeeify = require 'coffeeify'
 watchify = require 'watchify'
 
@@ -71,7 +71,7 @@ module.exports = (grunt) ->
           timeout: 10000
 
     browserify:
-      build:
+      testserver:
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
           'example/example-svg.js': ['./src/example-svg.coffee']
@@ -90,6 +90,23 @@ module.exports = (grunt) ->
           '''
           watch: true
           keepAlive: true
+      build:
+        files:
+          'dist/droplet-full.js': ['./src/main.coffee']
+          'example/example-svg.js': ['./src/example-svg.coffee']
+        options:
+          transform: ['coffeeify']
+          browserifyOptions:
+            standalone: 'droplet'
+            noParse: NO_PARSE
+          banner: '''
+          /* Droplet.
+           * Copyright (c) <%=grunt.template.today('yyyy')%> Anthony Bau.
+           * MIT License.
+           *
+           * Date: <%=grunt.template.today('yyyy-mm-dd')%>
+           */
+          '''
       test:
         files:
           'test/js/tests.js': ['test/src/tests.coffee']
@@ -177,4 +194,4 @@ module.exports = (grunt) ->
       grunt.task.run 'mochaTest'
 
 
-  grunt.registerTask 'testserver', ['connect:testserver', 'browserify:build']
+  grunt.registerTask 'testserver', ['connect:testserver', 'browserify:testserver']

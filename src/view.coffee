@@ -92,6 +92,8 @@ arrayEq = (a, b) ->
 # and options object.
 exports.View = class View
   constructor: (@ctx, @opts = {}) ->
+    @ctx ?= document.createElementNS SVG_STANDARD, 'svg'
+
     # @map maps Model objects
     # to corresponding View objects,
     # so that rerendering the same model

@@ -231,7 +231,7 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   strictEqual testedBlockView.dimensions[0].height,
     2 * view_.opts.textPadding +
     1 * view_.opts.textHeight +
-    8 * view_.opts.padding -
+    10 * view_.opts.padding -
     1 * view_.opts.indentTongueHeight, 'Original height O.K.'
 
   block = document.getBlockOnLine 1
@@ -255,7 +255,7 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   strictEqual testedBlockView.dimensions[0].height,
     2 * view_.opts.textPadding +
     1 * view_.opts.textHeight +
-    8 * view_.opts.padding -
+    10 * view_.opts.padding -
     1 * view_.opts.indentTongueHeight, 'Dragging other block in works'
   start()
 

@@ -364,11 +364,11 @@ getRandomTextOp = (editor, rng) ->
   return {socket, text}
 
 performTextOperation = (editor, text, cb) ->
-  simulate('mousedown', editor.mainScrollerStuffing, {
+  simulate('mousedown', editor.mainCanvas, {
     dx: text.socket.handle.x + editor.gutter.offsetWidth,
     dy: text.socket.handle.y
   })
-  simulate('mouseup', editor.mainScrollerStuffing, {
+  simulate('mouseup', editor.mainCanvas, {
     dx: text.socket.handle.x + editor.gutter.offsetWidth,
     dy: text.socket.handle.y
   })
@@ -391,7 +391,7 @@ performTextOperation = (editor, text, cb) ->
   ), 0
 
 performDragOperation = (editor, drag, cb) ->
-  simulate('mousedown', editor.mainScrollerStuffing, {
+  simulate('mousedown', editor.mainCanvas, {
     dx: drag.drag.handle.x + editor.gutter.offsetWidth,
     dy: drag.drag.handle.y
   })
@@ -428,7 +428,7 @@ performDragOperation = (editor, drag, cb) ->
 pickUpLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
   bound = editor.view.getViewNodeFor(block).bounds[0]
-  simulate('mousedown', editor.mainScrollerStuffing, {
+  simulate('mousedown', editor.mainCanvas, {
     dx: bound.x + editor.gutter.offsetWidth + 5,
     dy: bound.y + 5
   })
