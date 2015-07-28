@@ -630,8 +630,6 @@ Editor::redrawPalette = ->
   for binding in editorBindings.redraw_palette
     binding.call this
 
-  console.log 'setting bottom edge to', lastBottomEdge
-
   @paletteCanvas.style.height = lastBottomEdge + 'px'
 
   @paletteView.cleanupDraw() #TODO garageCollect()
