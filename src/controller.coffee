@@ -567,6 +567,9 @@ Editor::redrawMain = (opts = {}) ->
     return null
 
 Editor::redrawHighlights = ->
+  @redrawCursors()
+  @redrawLassoHighlight()
+
   # If there is an block that is being dragged,
   # draw it in gray
   if @draggingBlock? and @inDisplay @draggingBlock
@@ -576,9 +579,6 @@ Editor::redrawHighlights = ->
       @viewports.main.width,
       @viewports.main.height
     ), {grayscale: true}
-
-  @redrawCursors()
-  @redrawLassoHighlight()
 
 Editor::clearCursorCanvas = ->
   @textCursorPath.deactivate()
@@ -772,6 +772,10 @@ Editor::getSerializedEditorState = ->
     position: x.position
     string: x.block.stringify()
   }
+
+Editor::clearUndoStack = ->
+  @undoStack.length = 0
+  @redoStack.length = 0
 
 Editor::undo = ->
   # Don't allow a socket to be highlighted during
@@ -1597,11 +1601,12 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @setCursor @draggingBlock.start
 
+    # TODO write a test for this logic
     for el, i in rememberedSocketOffsets
       @rememberedSockets.push new RememberedSocketRecord(
         new CrossDocumentLocation(
-          @floatingBlocks.length - 1,
-          new model.Location(el.offset, 'socket')
+          @floatingBlocks.length,
+          new model.Location(el.offset + 1, 'socket')
         ),
         el.text
       )

@@ -961,7 +961,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = []) ->
+  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -979,7 +979,7 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes
+    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
