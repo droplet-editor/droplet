@@ -79,7 +79,7 @@ unsortedEditorBindings = {
 
 editorBindings = {}
 
-SVG_STANDARD = 'http://www.w3.org/2000/svg'
+SVG_STANDARD = helper.SVG_STANDARD
 
 EMBOSS_FILTER_SVG =  """
 <svg xmlns="#{SVG_STANDARD}">
@@ -471,8 +471,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       opts.boundingRectangle.unite(oldBounds)
       return @redrawMain opts
 
-  record.grayBoxPath.update() #draw @mainCtx
-  record.grayBoxPath.focus()
+  record.grayBoxPath.update()
   record.startText ?= new @view.draw.Text(
     (new @view.draw.Point(0, 0)), @mode.startComment
   )
@@ -483,12 +482,10 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   record.startText.point.x = blockView.totalBounds.x - startWidth
   record.startText.point.y = blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize
   record.startText.update()
-  record.startText.focus()
 
   record.endText.point.x = record.grayBox.right() - endWidth - 5
   record.endText.point.y = bottomTextPosition
   record.endText.update()
-  record.endText.focus()
 
   blockView.draw rect, {
     grayscale: false
@@ -2090,7 +2087,7 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
       if parent?
         return @reparse parent, recovery, updates, originalTrigger
       else
-        @markBlock originalTrigger, {color: '#F00'}
+        @view.getViewNodeFor(originalTrigger).mark {color: '#F00'}
         return false
 
   return if newList.start.next is newList.end
@@ -3452,22 +3449,9 @@ Editor::getHighlightPath = (model, style, view = @view) ->
 Editor::markLine = (line, style) ->
   block = @tree.getBlockOnLine line
 
-  if block?
-    @markedLines[line] =
-      model: block
-      style: style
+  @view.getViewNodeFor(block).mark style
 
-  @redrawHighlights()
-
-Editor::markBlock = (block, style) ->
-  key = @nextMarkedBlockId++
-
-  @markedBlocks[key] = {
-    model: block
-    style: style
-  }
-
-  return key
+  @redrawMain()
 
 # ## Mark
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
@@ -3476,32 +3460,12 @@ Editor::mark = (location, style) ->
   block = @tree.getFromTextLocation location
   block = block.container ? block
 
-  # `key` is a unique identifier for this
-  # mark, to be used later for removal
-  key = @nextMarkedBlockId++
-
-  @markedBlocks[key] = {
-    model: block
-    style: style
-  }
-
-  @redrawHighlights()
-
-  # Return `key`, so that the caller can
-  # remove the line mark later with unmark(key)
-  return key
-
-Editor::unmark = (key) ->
-  delete @markedBlocks[key]
-  return true
-
-Editor::unmarkLine = (line) ->
-  delete @markedLines[line]
+  @view.getViewNodeFor(block).mark style
 
   @redrawMain()
 
 Editor::clearLineMarks = ->
-  @markedLines = @markedBlocks = {}
+  @view.clearMarks()
 
   @redrawMain()
 

@@ -4,10 +4,11 @@
 # Minimalistic HTML5 canvas wrapper. Mainly used as conveneince tools in Droplet.
 
 ## Private (convenience) functions
-SVG_STANDARD = 'http://www.w3.org/2000/svg'
 BEVEL_SIZE = 1.5
+EPSILON = 0.00001
 
 helper = require './helper.coffee'
+SVG_STANDARD = helper.SVG_STANDARD
 
 # ## _area ##
 # Signed area of the triangle formed by vectors [ab] and [ac]
@@ -30,7 +31,7 @@ _bisector = (a, b, c, magnitude = 1) ->
 
   if diagonal.x is 0 and diagonal.y is 0
     return null
-  else if sample.equals(sampleB)
+  else if sample.almostEquals(sampleB)
     return null
 
   diagonal = diagonal.normalize()
@@ -132,6 +133,10 @@ exports.Draw = class Draw
       clear: -> @x = @y = 0
 
       equals: (point) -> point.x is @x and point.y is @y
+
+      almostEquals: (point) ->
+        Math.abs(point.x - @x) < EPSILON and
+        Math.abs(point.y - @y) < EPSILON
 
     # ## Size ##
     # A Size knows its width and height.
@@ -390,6 +395,14 @@ exports.Draw = class Draw
         @_cacheFlag = true
         @_updateFlag = true
 
+      setMarkStyle: (style) ->
+        if style? and style.color isnt @markColor?
+          @markColor = style.color
+          @_markFlag = true
+        else if @markColor?
+          @markColor = null
+          @_markFlag = true
+
       setPoints: (points) ->
         if points.length isnt @_points.length
           @_setPoints_raw points
@@ -556,7 +569,7 @@ exports.Draw = class Draw
           @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
           if pathString.length > 0
             @darkPathElement.setAttribute 'd', @getDarkBevelPath()
-          @backgroundPathElement.setAttribute 'class', 'droplet-dark-bevel-path'
+          @darkPathElement.setAttribute 'class', 'droplet-dark-bevel-path'
 
           pathElement.appendChild @backgroundPathElement
           pathElement.appendChild @lightPathElement
@@ -598,6 +611,25 @@ exports.Draw = class Draw
         if @style.cssClass and @style.cssClass isnt @_lastCssClass
           @_lastCssClass = @style.cssClass
           @element.setAttribute 'class', @style.cssClass
+
+        if @_markFlag
+          if @markColor?
+            if @bevel
+              @backgroundPathElement.setAttribute 'stroke', @markColor
+              @backgroundPathElement.setAttribute 'stroke-width', '2'
+              @lightPathElement.setAttribute 'fill', @markColor
+              @darkPathElement.setAttribute 'fill', @markColor
+            else
+              @element.setAttribute 'stroke', @markColor
+              @element.setAttribute 'stroke-width', '2'
+          else
+            if @bevel
+              @backgroundPathElement.setAttribute 'stroke', 'none'
+              @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
+              @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
+            else
+              @element.setAttribute 'stroke', @style.strokeColor
+              @backgroundPathElement.setAttribute 'line-width', @style.lineWidth
 
         if @_updateFlag
           @_updateFlag = false

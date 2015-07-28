@@ -27,7 +27,7 @@ CARRIAGE_GROW_DOWN = 3
 DROPDOWN_ARROW_HEIGHT = 8
 
 DROP_TRIANGLE_COLOR = '#555'
-SVG_STANDARD = 'http://www.w3.org/2000/svg'
+SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
   showDropdowns: true
@@ -102,6 +102,7 @@ exports.View = class View
     @contextMaps = []
 
     @lastIncludes = {}
+    @marks = {}
 
     @draw = new draw.Draw(@ctx)
 
@@ -126,6 +127,14 @@ exports.View = class View
 
   include: (id) ->
     @lastIncludes[id] = true
+
+  registerMark: (id) ->
+    @marks[id] = true
+
+  clearMarks: ->
+    for key, val of @marks
+      @map[key].unmark()
+    @marks = {}
 
   beginDraw: ->
     @lastIncludes = {}
@@ -1625,6 +1634,11 @@ exports.View = class View
       array.push new @view.draw.Point(point.x + @view.opts.tabWidth,
         point.y)
 
+    mark: (style) ->
+      @view.registerMark @model.id
+      @markStyle = style
+
+    unmark: -> @markStyle = null
 
     # ## computeOwnDropArea
     # By default, we will not have a
@@ -1657,6 +1671,8 @@ exports.View = class View
       if style.selected
         @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
+
+      @path.setMarkStyle @markStyle
 
       @path.update()
 
@@ -2121,7 +2137,7 @@ dedupe = (path) ->
     else
       if x.equals(path[i - 1])
         return false
-      if i < path.length - 1 and x.from(path[i - 1]).normalize().equals(path[i + 1].from(x).normalize())
+      if i < path.length - 1 and x.from(path[i - 1]).normalize().almostEquals(path[i + 1].from(x).normalize())
         return false
       return true
 
