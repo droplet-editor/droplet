@@ -1614,11 +1614,12 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @setCursor @draggingBlock.start
 
+    # TODO write a test for this logic
     for el, i in rememberedSocketOffsets
       @rememberedSockets.push new RememberedSocketRecord(
         new CrossDocumentLocation(
-          @floatingBlocks.length - 1,
-          new model.Location(el.offset, 'socket')
+          @floatingBlocks.length,
+          new model.Location(el.offset + 1, 'socket')
         ),
         el.text
       )
