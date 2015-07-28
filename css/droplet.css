@@ -346,3 +346,6 @@ text {
   cursor: -moz-grab;
   cursor: grab;
 }
+.droplet-play-button {
+  cursor: pointer;
+}

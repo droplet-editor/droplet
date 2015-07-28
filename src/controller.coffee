@@ -437,9 +437,32 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       }
     )
 
-    oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
-
     startHeight = blockView.bounds[0].height + 10
+
+    if @options.playButtons
+      unless record.playButton?
+        playElement = document.createElementNS SVG_STANDARD, 'path'
+        playElement.setAttribute 'd', 'M0 0 L0 10 L10 5 Z'
+        playElement.setAttribute 'fill', '#000'
+        playElement.setAttribute 'class', 'droplet-play-button'
+
+        record.playButton = new @view.draw.ElementWrapper(playElement)
+
+      if blockView.lineLength is 1
+        record.playButton.element.setAttribute('transform', "translate(#{
+          blockView.totalBounds.x - startWidth / 2 - 10 / 2}, #{
+          blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize / 2 - 5
+          })")
+      else
+        record.playButton.element.setAttribute('transform', "translate(#{
+          blockView.totalBounds.x - startWidth / 2 - 10 / 2}, #{
+          blockView.totalBounds.y + blockView.distanceToBase[0].above
+          })")
+
+      record.playButton.element.addEventListener 'click', =>
+        @fireEvent 'runcode', [record.block.stringify()]
+
+    oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
 
     points = []
 
@@ -456,11 +479,23 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       points.push new @view.draw.Point rectangle.x, rectangle.bottom()
 
     # Handle
-    points.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
-    points.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
-    points.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
-    points.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
-    points.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
+    unless @options.playButtons
+      handleHeight = startHeight
+      handleWidth = startWidth
+
+    else if blockView.lineLength is 1
+      handleHeight = startHeight
+      handleWidth = startWidth + 15
+
+    else if blockView.distanceToBase[0].below < 15
+      handleHeight = startHeight + 15 - blockView.distanceToBase[0].below
+      handleWidth = startWidth
+
+    points.push new @view.draw.Point rectangle.x, rectangle.y + handleHeight
+    points.push new @view.draw.Point rectangle.x - handleWidth + 5, rectangle.y + handleHeight
+    points.push new @view.draw.Point rectangle.x - handleWidth, rectangle.y + handleHeight - 5
+    points.push new @view.draw.Point rectangle.x - handleWidth, rectangle.y + 5
+    points.push new @view.draw.Point rectangle.x - handleWidth + 5, rectangle.y
 
     points.push new @view.draw.Point rectangle.x, rectangle.y
 
@@ -471,8 +506,10 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       opts.boundingRectangle.unite(oldBounds)
       return @redrawMain opts
 
-  record.grayBoxPath.update() #draw @mainCtx
+  record.grayBoxPath.update()
   record.grayBoxPath.focus()
+  if @options.playButtons
+    record.playButton.focus()
   record.startText ?= new @view.draw.Text(
     (new @view.draw.Point(0, 0)), @mode.startComment
   )
@@ -480,7 +517,10 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
     (new @view.draw.Point(0, 0)), @mode.endComment
   )
 
-  record.startText.point.x = blockView.totalBounds.x - startWidth
+  if blockView.lineLength is 1 and @options.playButtons
+    record.startText.point.x = blockView.totalBounds.x - startWidth - 15
+  else
+    record.startText.point.x = blockView.totalBounds.x - startWidth
   record.startText.point.y = blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize
   record.startText.update()
   record.startText.focus()
@@ -529,6 +569,8 @@ Editor::redrawMain = (opts = {}) ->
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @floatingBlocks
         el.record.grayBoxPath.destroy()
+        if @options.playButtons
+          el.record.playButton.destroy()
         el.record.startText.destroy()
         el.record.endText.destroy()
 
@@ -629,8 +671,6 @@ Editor::redrawPalette = ->
 
   for binding in editorBindings.redraw_palette
     binding.call this
-
-  console.log 'setting bottom edge to', lastBottomEdge
 
   @paletteCanvas.style.height = lastBottomEdge + 'px'
 
