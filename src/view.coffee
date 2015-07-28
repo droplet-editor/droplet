@@ -243,6 +243,8 @@ exports.View = class View
       })
       @highlightArea.deactivate()
 
+      @elements = [@path, @highlightArea]
+
       # Versions. The corresponding
       # Model will keep corresponding version
       # numbers, and each of our passes can
@@ -311,9 +313,8 @@ exports.View = class View
     computeChildren: -> @lineLength
 
     focusAll: ->
-      @path.focus() if @path?
-      if @textElement?
-        @textElement.focus()
+      for element in @elements
+        element?.focus?()
       for child in @children
         @view.getViewNodeFor(child.child).focusAll()
 
@@ -767,20 +768,12 @@ exports.View = class View
         @hide()
 
     hide: ->
-      if @path?
-        @path.deactivate()
-      if @textElement?
-        @textElement.deactivate()
-      if @highlightArea?
-        @highlightArea.deactivate()
+      for element in @elements
+        element?.deactivate?()
 
     destroy: ->
-      if @path?
-        @path.destroy()
-      if @textElement?
-        @textElement.destroy()
-      if @highlightArea?
-        @highlightArea.destroy()
+      for element in @elements
+        element?.destroy?()
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
@@ -1636,7 +1629,11 @@ exports.View = class View
     # ## computeOwnDropArea
     # By default, we will not have a
     # drop area (not be droppable).
-    computeOwnDropArea: -> @dropArea = @highlightArea = null
+    computeOwnDropArea: ->
+      @dropArea = null
+      if @highlightArea?
+        @elements = @elements.filter (x) -> x isnt @highlightArea
+        @highlightArea = null
 
     # ## shouldAddTab
     # By default, we will ask
@@ -1750,7 +1747,14 @@ exports.View = class View
 
   # # SocketViewNode
   class SocketViewNode extends ContainerViewNode
-    constructor: -> super
+    constructor: ->
+      super
+      if @view.opts.showDropdowns and @model.dropdown?
+        @dropdownElement ?= new @view.draw.Path([], false, {fillColor: DROP_TRIANGLE_COLOR})
+        @dropdownElement.element.setAttribute 'class', 'droplet-dropdown-arrow'
+        @dropdownElement.deactivate()
+
+        @elements.push @dropdownElement
 
     shouldAddTab: NO
 
@@ -1843,18 +1847,19 @@ exports.View = class View
 
     # ## drawSelf (SocketViewNode)
     drawSelf: (style) ->
-      path = super(style)
+      super
       if @model.hasDropdown() and @view.opts.showDropdowns
-        ###TODO
-        ctx.beginPath()
-        ctx.fillStyle = DROP_TRIANGLE_COLOR
-        ctx.moveTo @bounds[0].x + helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
-        ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING, @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2
-        ctx.lineTo @bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2, @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2
-        ctx.fill()
-        ###
-        0
-      return path
+        @dropdownElement.setPoints([new @view.draw.Point(@bounds[0].x + helper.DROPDOWN_ARROW_PADDING,
+            @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2),
+          new @view.draw.Point(@bounds[0].x + helper.DROPDOWN_ARROW_WIDTH - helper.DROPDOWN_ARROW_PADDING,
+            @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2),
+          new @view.draw.Point(@bounds[0].x + helper.DROPDOWN_ARROW_WIDTH / 2,
+            @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2)
+        ])
+        @dropdownElement.update()
+        @dropdownElement.activate()
+      else if @dropdownElement?
+        @dropdownElement.deactivate()
 
     # ## computeOwnDropArea (SocketViewNode)
     # Socket drop areas are actually the same
@@ -2028,6 +2033,7 @@ exports.View = class View
         new @view.draw.Point(0, 0),
         @model.value
       )
+      @elements.push @textElement
 
     # ## computeChildren
     #

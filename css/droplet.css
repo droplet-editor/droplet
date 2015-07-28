@@ -346,3 +346,6 @@ text {
   cursor: -moz-grab;
   cursor: grab;
 }
+.droplet-dropdown-arrow {
+  cursor: pointer;
+}
