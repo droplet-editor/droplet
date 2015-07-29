@@ -357,15 +357,35 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         @jsBlock node, depth, bounds
         @mark indentDepth, node.body, depth + 1, null
         @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
-        for param in node.params
-          @jsSocketAndMark indentDepth, param, depth + 1, null, null, ['no-drop']
+        if node.params.length > 0
+          @addSocket {
+            bounds: {
+              start: @getBounds(node.params[0]).start
+              end: @getBounds(node.params[0]).end
+            }
+            depth: depth + 1
+            precedence: 0
+            dropdown: null
+            classes: ['no-drop']
+            empty: ''
+          }
       when 'FunctionExpression'
         @jsBlock node, depth, bounds
         @mark indentDepth, node.body, depth + 1, null
         if node.id?
           @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
-        for param in node.params
-          @jsSocketAndMark indentDepth, param, depth + 1, null, null, ['no-drop']
+        if node.params.length > 0
+          @addSocket {
+            bounds: {
+              start: @getBounds(node.params[0]).start
+              end: @getBounds(node.params[0]).end
+            }
+            depth: depth + 1
+            precedence: 0
+            dropdown: null
+            classes: ['no-drop']
+            empty: ''
+          }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.left, depth + 1, null
@@ -549,7 +569,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         depth: depth
         precedence: precedence
         classes: classes ? []
-        accepts: @getAcceptsRule node
         dropdown: dropdown
 
     @mark indentDepth, node, depth + 1, bounds
