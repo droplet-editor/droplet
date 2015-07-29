@@ -627,16 +627,16 @@ exports.Draw = class Draw
             if @bevel
               @backgroundPathElement.setAttribute 'stroke', @markColor
               @backgroundPathElement.setAttribute 'stroke-width', '2'
-              @lightPathElement.setAttribute 'fill', @markColor
-              @darkPathElement.setAttribute 'fill', @markColor
+              @lightPathElement.setAttribute 'visibility', 'hidden'
+              @darkPathElement.setAttribute 'visibility', 'hidden'
             else
               @element.setAttribute 'stroke', @markColor
               @element.setAttribute 'stroke-width', '2'
           else
             if @bevel
               @backgroundPathElement.setAttribute 'stroke', 'none'
-              @lightPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#FFF'
-              @darkPathElement.setAttribute 'fill', avgColor @style.fillColor, 0.7, '#000'
+              @lightPathElement.setAttribute 'visibility', 'visible'
+              @darkPathElement.setAttribute 'visibility', 'visible'
             else
               @element.setAttribute 'stroke', @style.strokeColor
               @backgroundPathElement.setAttribute 'line-width', @style.lineWidth

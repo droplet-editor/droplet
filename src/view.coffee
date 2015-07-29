@@ -1668,6 +1668,7 @@ exports.View = class View
     mark: (style) ->
       @view.registerMark @model.id
       @markStyle = style
+      @focusAll()
 
     unmark: -> @markStyle = null
 

@@ -1871,8 +1871,6 @@ hook 'populate', 1, ->
     @hiddenInput.addEventListener event, =>
       @highlightFlashShow()
       if @cursorAtSocket()
-        @populateSocket @getCursor(), @hiddenInput.value
-
         @redrawTextInput()
 
         # Update the dropdown size to match
@@ -2008,7 +2006,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
         endPosition - startPosition, @view.opts.textHeight
 
     else
-      rectangles.push new @view.draw.Rectangle startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
+      rectangles.push new @view.draw.Rectangle startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
         textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
       for i in [startRow + 1...endRow]
@@ -2157,7 +2155,7 @@ Editor::populateSocket = (socket, string) ->
 
     first = last = new model.TextToken lines[0]
     for line, i in lines when i > 0
-      last = helper.connect new model.NewlineToken(), last
+      last = helper.connect last, new model.NewlineToken()
       last = helper.connect last, new model.TextToken line
 
     @spliceIn (new model.List(first, last)), socket.start
