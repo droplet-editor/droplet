@@ -311,8 +311,16 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   # This shared logic handles the sockets for the Code function
   # definitions, even when merged into a parent block.
   addCode: (node, depth, indentDepth) ->
-    for param in node.params
-      @csSocketAndMark param, depth, 0, indentDepth, FORBID_ALL
+    # Combining all the parameters into one socket
+    if node.params?.length ? 0 > 0
+      @addSocket {
+        bounds: @boundCombine @getBounds(node.params[0]), @getBounds(node.params[node.params.length - 1])
+        depth,
+        precedence: 0,
+        dropdown: null,
+        classes: ['forbid-all', '__function_param__']
+        empty: ''
+      }
     @mark node.body, depth, 0, null, indentDepth
 
   # ## mark ##
@@ -704,6 +712,11 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     else if b.line < a.line then a
     else if a.column < b.column then b
     else a
+
+  boundCombine: (a, b) ->
+    start = @boundMin a.start, b.start
+    end = @boundMax a.end, b.end
+    return {start, end}
 
   # ## getBounds ##
   # Get the boundary locations of a CoffeeScript node,
