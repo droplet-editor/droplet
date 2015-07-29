@@ -146,6 +146,10 @@ To have your parser actually put blocks in, you will need to do some things in t
   color: '#HEXCOLOR'
   precedence: Number
   classes: [] # Array of strings.
+  buttons: {
+    addButton: Boolean
+    subtractButton: Boolean
+  }
 })
 
 # Add a Socket
@@ -210,4 +214,22 @@ MyParser.drop = (block, context, preceding, succeeding) ->
     return helper.DISCOURAGE
   else
     return helper.FORBID
+
+# HandleButton is called whenever a button is clicked
+# You are allowed to modify this text provided
+# the new text forms a single block
+# which will replace the original block
+MyParser.handleButton = (text, command, block) ->
+  # "text" is the text of the block whose button was clicked
+  # "command" is the button which was clicked
+  # and is equal to 'add-button'
+  # or 'subtract-button' telling which block was clicked
+  # "block" contains information about the original block
+  switch command
+    when 'add-button'
+      return newText
+    when 'subtract-button'
+      return newText
+  # Return 'text' is you don't want to change anything
+  return text
 ```

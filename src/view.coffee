@@ -29,6 +29,9 @@ DROPDOWN_ARROW_HEIGHT = 8
 DROP_TRIANGLE_COLOR = '#555'
 
 DEFAULT_OPTIONS =
+  buttonWidth: 15
+  buttonHeight: 15
+  buttonPadding: 6
   showDropdowns: true
   padding: 5
   indentWidth: 10
@@ -1670,13 +1673,48 @@ exports.View = class View
 
       super
 
+      @extraWidth = 0
+      if @model.buttons.addButton
+        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+      if @model.buttons.subtractButton
+        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
       # Blocks have a shape including a lego nubby "tab", and so
       # they need to be at least wide enough for tabWidth+tabOffset.
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
 
+      @minDimensions[@minDimensions.length - 1].width += @extraWidth
+
       return null
+
+    drawSelf: (ctx, style) ->
+      super
+
+      drawButton = (text, rect, ctx) =>
+        path = rect.toPath().reverse()
+        path.style.fillColor = @path.style.fillColor
+        if style.grayscale
+          path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
+        if style.selected
+          path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
+        path.bevel = true;
+        path.draw ctx
+        textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
+        dx = rect.width - textElement.bounds().width
+        dy = rect.height - @view.opts.textHeight
+        #console.log dx, dy
+        textElement.translate
+          x: rect.x + Math.ceil(dx / 2)
+          y: rect.y + Math.ceil(dy)
+        textElement.draw ctx
+
+      if @model.buttons.addButton
+        drawButton '+', @addButtonRect, ctx
+      if @model.buttons.subtractButton
+        drawButton '-', @subtractButtonRect, ctx
 
     shouldAddTab: ->
       if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
@@ -1686,6 +1724,30 @@ exports.View = class View
       else
         return not ('mostly-value' in @model.classes or
           'value-only' in @model.classes)
+
+    computePath: ->
+      super
+      lastLine = @bounds.length - 1
+      lastRect = @bounds[lastLine]
+      start = lastRect.x + lastRect.width - @extraWidth
+      top = lastRect.y + lastRect.height/2 - @view.opts.buttonHeight/2
+      # Cases when last line is MULTILINE
+      if @multilineChildrenData[lastLine] is MULTILINE_END
+        multilineChild = @lineChildren[lastLine][0]
+        multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[lastLine - multilineChild.startLine]
+        # If it is a G-Shape
+        if @lineChildren[lastLine].length > 1
+          height = multilineBounds.bottom() - lastRect.y
+          top = lastRect.y + height/2 - @view.opts.buttonHeight/2
+        else
+          height = lastRect.bottom() - multilineBounds.bottom()
+          top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
+
+      if @model.buttons.addButton
+        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+        start += @view.opts.buttonWidth + @view.opts.buttonPadding
+      if @model.buttons.subtractButton
+        @subtractButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
 
     computeOwnPath: ->
       super

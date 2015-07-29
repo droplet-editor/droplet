@@ -1159,6 +1159,34 @@ hook 'mousedown', 1, (point, event, state) ->
         @redrawMain()
         return
 
+# If the user clicks inside a block
+# and the block contains a button
+# which is either add or subtract button
+# call the handleButton callback
+hook 'mousedown', 4, (point, event, state) ->
+  if state.consumedHitTest then return
+  if not @trackerPointIsInMain(point) then return
+
+  mainPoint = @trackerPointToMain point
+
+  #Buttons aren't clickable in a selection
+  if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
+
+  hitTestResult = @hitTest mainPoint, @tree
+
+  if hitTestResult?
+    hitTestBlock = @view.getViewNodeFor hitTestResult
+    str = hitTestResult.stringifyInPlace()
+
+    if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
+      line = @mode.handleButton str, 'add-button', hitTestResult.getReader()
+      @populateBlock hitTestResult, line
+      state.consumedHitTest = true
+    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
+      line = @mode.handleButton str, 'subtract-button', hitTestResult.getReader()
+      @populateBlock hitTestResult, line
+      state.consumedHitTest = true
+
 # If the user lifts the mouse
 # before they have dragged five pixels,
 # abort stuff.
@@ -2178,6 +2206,31 @@ Editor::populateSocket = (socket, string) ->
       last = helper.connect last, new model.TextToken line
 
     @spliceIn (new model.List(first, last)), socket.start
+
+Editor::populateBlock = (block, string) ->
+  newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
+  if newBlock
+    # For Cursor Recovery
+    if @cursor.count < block.start.getLocation().count
+      # Before the block -> No special needs - Recoverable
+      @replace block, newBlock
+    else if @cursor.count < block.end.getLocation().count
+      # Inside the block -> Set to block Start - Not recoverable
+      # Pretty sure this can be handled better
+      # Not sure how to, though
+      @setCursor block, null, 'before'
+      @replace block, newBlock
+    else
+      # After the block -> Change count manually to recover - Recoverable
+      cursor = @cursor.clone()
+      oldBlockEnd = block.end.getLocation().count
+      # Need to set to a valid position before replacing block
+      @setCursor @tree
+      @replace block, newBlock
+      cursor.count += newBlock.end.getLocation().count - oldBlockEnd #Kind-of Hacky :P
+      @cursor = cursor
+    return true
+  return false
 
 # Convenience hit-testing function
 Editor::hitTestTextInput = (point, block) ->
