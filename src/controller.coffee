@@ -2176,7 +2176,7 @@ Editor::populateSocket = (socket, string) ->
 
     first = last = new model.TextToken lines[0]
     for line, i in lines when i > 0
-      last = helper.connect new model.NewlineToken(), last
+      last = helper.connect last, new model.NewlineToken()
       last = helper.connect last, new model.TextToken line
 
     @spliceIn (new model.List(first, last)), socket.start
