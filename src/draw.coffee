@@ -264,7 +264,8 @@ exports.Draw = class Draw
 
       destroy: ->
         @deactivate()
-        @element.parentElement.removeChild @element
+        if @element.parentElement?
+          @element.parentElement.removeChild @element
 
     @Group = class Group extends ElementWrapper
       constructor: ->

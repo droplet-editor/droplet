@@ -571,7 +571,7 @@ Editor::redrawMain = (opts = {}) ->
     unless @alreadyScheduledCleanup
       @alreadyScheduledCleanup = true
       setTimeout (=>
-        @alreadyScheduledCLeanup = false
+        @alreadyScheduledCleanup = false
         @view.garbageCollect()
       ), 0
 
@@ -1810,7 +1810,7 @@ hook 'populate', 1, ->
   @paletteElement.appendChild @paletteHighlightCanvas
 
 Editor::resizePaletteHighlight = ->
-  @paletteHighlightCanvas.style.top = @paletteHeader.clientHeight + 'px'
+  @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
   @paletteHighlightCanvas.style.width = "#{@paletteCanvas.clientWidth}px"
   @paletteHighlightCanvas.style.height = "#{@paletteCanvas.clientHeight}px"
 
@@ -3356,7 +3356,7 @@ Editor::resizeMainScroller = ->
   @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
 
 hook 'resize_palette', 0, ->
-  @paletteScroller.style.top = "#{@paletteHeader.clientHeight}px"
+  @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
 
   @viewports.palette.height = @paletteScroller.clientHeight
   @viewports.palette.width = @paletteScroller.clientWidth

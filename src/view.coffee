@@ -145,10 +145,13 @@ exports.View = class View
         val.hide()
 
   garbageCollect: ->
+    destroyed = 0
     for key, val of @map
       unless key of @lastIncludes
+        destroyed += 1
         val.destroy()
         delete @map[key]
+    console.log 'destroyed', destroyed
 
   hasViewNodeFor: (model) ->
     model? and model.id of @map

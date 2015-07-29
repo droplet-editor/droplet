@@ -140,8 +140,8 @@ asyncTest 'Controller: reparse and undo reparse', ->
   editor.setEditorState(true)
   editor.setValue('var hello = 1;')
 
-  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
-  simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 160, dy: 20})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 160, dy: 20})
 
   ok(editor.cursorAtSocket(), 'Has text focus')
   equal(editor.getCursor().stringify(), '1')
@@ -152,12 +152,12 @@ asyncTest 'Controller: reparse and undo reparse', ->
     ok(editor.cursorAtSocket(), 'Editor still has text focus')
     equal(editor.getCursor().stringify(), '2 + 3')
 
-    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
-    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
 
     # Sockets are separate
-    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 30})
-    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 30})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 160, dy: 30})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 160, dy: 30})
 
     ok(editor.cursorAtSocket(), 'Has text focus')
 
@@ -166,8 +166,8 @@ asyncTest 'Controller: reparse and undo reparse', ->
     editor.undo()
 
     setTimeout (->
-      simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
-      simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 160, dy: 20})
+      simulate('mousedown', '.droplet-main-canvas', {dx: 160, dy: 20})
+      simulate('mouseup', '.droplet-main-canvas', {dx: 160, dy: 20})
       equal(editor.getCursor().stringify(), '1', 'Successfully undid reparse')
     ), 0
 
@@ -186,8 +186,8 @@ asyncTest 'Controller: reparse fallback', ->
   editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
-  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
-  simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 260, dy: 30})
 
   ok(editor.cursorAtSocket(), 'Has text focus')
   equal(editor.getCursor().stringify(), 'a')
@@ -198,15 +198,15 @@ asyncTest 'Controller: reparse fallback', ->
     ok(editor.cursorAtSocket(), 'Editor still has text focus')
     equal(editor.getCursor().stringify(), 'a, b')
 
-    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
-    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
 
     # Did not insert parentheses
     equal(editor.getValue().trim(), 'var hello = function (a, b) {};')
 
     # Sockets are separate
-    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
-    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 260, dy: 30})
 
     ok(editor.cursorAtSocket(), 'Has text focus')
 
@@ -227,8 +227,8 @@ asyncTest 'Controller: does not throw on reparse error', ->
   editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
-  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
-  simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 260, dy: 30})
 
   ok(editor.getCursor(), 'Has text focus')
   equal(editor.getCursor().stringify(), 'a')
@@ -239,8 +239,8 @@ asyncTest 'Controller: does not throw on reparse error', ->
     ok(editor.getCursor(), 'Editor still has getCursor()')
     equal(editor.getCursor().stringify(), '18n')
 
-    simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
-    simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 300})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
 
     ok(true, 'Does not throw on reparse')
 
@@ -267,20 +267,20 @@ asyncTest 'Controller: Can replace a block where we found it', ->
   editor.setValue('for (var i = 0; i < 5; i++) {\n' +
                    '  fd(10);\n' +
                    '}\n')
-  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 30})
   simulate('mousemove', '.droplet-drag-cover'
-    {location: '.droplet-main-scroller-stuffing', dx: 305, dy: 35})
+    {location: '.droplet-main-canvas', dx: 305, dy: 35})
   simulate('mouseup', '.droplet-drag-cover'
-    {location: '.droplet-main-scroller-stuffing', dx: 305, dy: 35})
+    {location: '.droplet-main-canvas', dx: 305, dy: 35})
   equal(editor.getValue() , 'for (var i = 0; i < 5; i++) {\n' +
                             '  fd(10);\n' +
                             '}\n')
 
-  simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 300, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 30})
   simulate('mousemove', '.droplet-drag-cover'
-    {location: '.droplet-main-scroller-stuffing', dx: 290, dy: 25})
+    {location: '.droplet-main-canvas', dx: 290, dy: 25})
   simulate('mouseup', '.droplet-drag-cover'
-    {location: '.droplet-main-scroller-stuffing', dx: 290, dy: 25})
+    {location: '.droplet-main-canvas', dx: 290, dy: 25})
   equal(editor.getValue() , 'for (var i = 0; i < i++; __) {\n' +
                             '  fd(10);\n' +
                             '}\n')
