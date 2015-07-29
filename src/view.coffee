@@ -773,6 +773,10 @@ exports.View = class View
       for childObj in @children
         @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
 
+    root: ->
+      for child in @children
+        @view.getViewNodeFor(child.child).root()
+
     # ## computeChildren (ListViewNode)
     # Figure out which children lie on each line,
     # and compute `@multilineChildrenData` simultaneously.
@@ -1183,8 +1187,6 @@ exports.View = class View
     # Draw the drop-shadow of the path on the given
     # context.
     drawShadow: (x, y) ->
-      @path.drawShadow x, y, @view.opts.shadowBlur
-
       for childObj in @children
         @view.getViewNodeFor(childObj.child).drawShadow x, y
 
@@ -1230,6 +1232,10 @@ exports.View = class View
 
     root: ->
       @group.setParent @view.draw.ctx
+
+    drawShadow: (x, y) ->
+      @path.drawShadow x, y, @view.opts.shadowBlur
+      super
 
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.

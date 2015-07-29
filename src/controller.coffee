@@ -635,6 +635,10 @@ Editor::redrawPalette = ->
     # Render the block
     paletteBlockView.draw boundingRect
 
+    element = document.createElementNS SVG_STANDARD, 'title'
+    element.innerHTML = entry.title ? entry.block.stringify()
+    paletteBlockView.group.element.appendChild element
+
     # Update lastBottomEdge
     lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
 
