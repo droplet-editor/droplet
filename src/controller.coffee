@@ -1915,8 +1915,6 @@ hook 'populate', 1, ->
     @hiddenInput.addEventListener event, =>
       @highlightFlashShow()
       if @cursorAtSocket()
-        @populateSocket @getCursor(), @hiddenInput.value
-
         @redrawTextInput()
 
         # Update the dropdown size to match
@@ -2039,7 +2037,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
         endPosition - startPosition, @view.opts.textHeight
 
     else
-      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
+      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
         textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
       for i in [startRow + 1...endRow]
