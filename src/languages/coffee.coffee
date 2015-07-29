@@ -1111,4 +1111,10 @@ CoffeeScriptParser.parens = (leading, trailing, node, context) ->
 
   return
 
+CoffeeScriptParser.getDefaultSelectionRange = (string) ->
+  start = 0; end = string.length
+  if string[0] is string[string.length - 1] and string[0] in ['"', '\'', '/']
+    start += 1; end -= 1
+  return {start, end}
+
 module.exports = parser.wrapParser CoffeeScriptParser
