@@ -1224,6 +1224,7 @@ hook 'mousemove', 1, (point, event, state) ->
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
     draggingBlockView.drawShadow @dragCtx, 5, 5
+    draggingBlockView.root()
     draggingBlockView.draw()
     @dragView.garbageCollect()
 

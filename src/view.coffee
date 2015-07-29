@@ -230,33 +230,7 @@ exports.View = class View
       # {height:2, draw:true}
       @glue = {}
 
-      @group = new @view.draw.Group()
-
-      # *Sixth pass variables*
-      # computePath
-      if @model.type is 'block'
-        @path = new @view.draw.Path([], true, {
-          cssClass: 'droplet-block-path'
-        })
-      else
-        @path = new @view.draw.Path([], false, {
-          cssClass: "droplet-#{@model.type}-path"
-        })
-
-      @path.setParent @group
-
-      # *Seventh pass variables*
-      # computeDropAreas
-      # each one is a @view.draw.Path (or null)
-      @dropArea = null
-      @highlightArea = new @view.draw.Path([], false, {
-        fillColor: '#FF0'
-        strokeColor: '#FF0'
-        lineWidth: 1
-      })
-      @highlightArea.deactivate()
-
-      @elements = [@group, @path, @highlightArea]
+      @elements = []
 
       # Versions. The corresponding
       # Model will keep corresponding version
@@ -265,6 +239,13 @@ exports.View = class View
       # that rerendering is fast when there are
       # few or no changes to the Model).
       @computedVersion = -1
+
+    draw: (boundingRect, style = {}, parent = null) ->
+      @drawSelf style, parent
+
+    root: ->
+      for element in @elements
+        element.setParent @view.draw.ctx
 
     serialize: (line) ->
       result = []
@@ -695,7 +676,8 @@ exports.View = class View
 
           @totalBounds.width = maxRight - @totalBounds.x
 
-        @totalBounds.unite @path.bounds()
+        if @path?
+          @totalBounds.unite @path.bounds()
 
       @lastComputedLinePredicate = @model.isLastOnLine()
 
@@ -758,21 +740,6 @@ exports.View = class View
     drawSelf: (style = {}) ->
       @view.include @model.id
 
-    # ## draw (GenericViewNode)
-    # Call `drawSelf` and recurse, if we are in the viewport.
-    draw: (boundingRect, style = {}, parent = null) ->
-      @drawSelf style
-
-      @group.activate(); @path.activate()
-
-      if parent?
-        @group.setParent parent
-      else
-        @group.setParent @view.draw.ctx
-
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
-
     forceClean: ->
       @clean @computedVersion
 
@@ -800,6 +767,11 @@ exports.View = class View
   class ListViewNode extends GenericViewNode
     constructor: (@model, @view) ->
       super
+
+    draw: (boundingRect, style = {}, parent = null) ->
+      super
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
 
     # ## computeChildren (ListViewNode)
     # Figure out which children lie on each line,
@@ -1225,6 +1197,52 @@ exports.View = class View
   class ContainerViewNode extends ListViewNode
     constructor: (@model, @view) ->
       super
+
+      # *Sixth pass variables*
+      # computePath
+      @group = new @view.draw.Group()
+
+      if @model.type is 'block'
+        @path = new @view.draw.Path([], true, {
+          cssClass: 'droplet-block-path'
+        })
+      else
+        @path = new @view.draw.Path([], false, {
+          cssClass: "droplet-#{@model.type}-path"
+        })
+
+      @path.setParent @group
+
+      # *Seventh pass variables*
+      # computeDropAreas
+      # each one is a @view.draw.Path (or null)
+      @dropArea = null
+      @highlightArea = new @view.draw.Path([], false, {
+        fillColor: '#FF0'
+        strokeColor: '#FF0'
+        lineWidth: 1
+      })
+      @highlightArea.deactivate()
+
+      @elements.push @group
+      @elements.push @path
+      @elements.push @highlightArea
+
+    root: ->
+      @group.setParent @view.draw.ctx
+
+    # ## draw (GenericViewNode)
+    # Call `drawSelf` and recurse, if we are in the viewport.
+    draw: (boundingRect, style = {}, parent = null) ->
+      @drawSelf style, parent
+
+      @group.activate(); @path.activate()
+
+      if parent?
+        @group.setParent parent
+
+      for childObj in @children
+        @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
 
     computeCarriageArrow: (root = false) ->
       oldCarriageArrow = @carriageArrow
@@ -2056,7 +2074,6 @@ exports.View = class View
         new @view.draw.Point(0, 0),
         @model.value
       )
-      @textElement.setParent @group
       @elements.push @textElement
 
     # ## computeChildren
@@ -2098,12 +2115,15 @@ exports.View = class View
     # ## drawSelf
     #
     # Draw the text element itself.
-    drawSelf: (style = {}) ->
+    drawSelf: (style = {}, parent = null) ->
       @textElement.update()
       if style.noText
         @textElement.deactivate()
       else
         @textElement.activate()
+
+      if parent?
+        @textElement.setParent parent
 
       @view.include @model.id
 
