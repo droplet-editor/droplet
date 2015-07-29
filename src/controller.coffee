@@ -981,7 +981,7 @@ class RememberedSocketRecord
       @text
     )
 
-Editor::replace = (before, after, updates) ->
+Editor::replace = (before, after, updates = []) ->
   dropletDocument = before.start.getDocument()
   if dropletDocument?
     operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
