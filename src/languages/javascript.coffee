@@ -361,7 +361,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @addSocket {
             bounds: {
               start: @getBounds(node.params[0]).start
-              end: @getBounds(node.params[0]).end
+              end: @getBounds(node.params[node.params.length - 1]).end
             }
             depth: depth + 1
             precedence: 0
@@ -397,7 +397,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @addSocket {
             bounds: {
               start: @getBounds(node.params[0]).start
-              end: @getBounds(node.params[0]).end
+              end: @getBounds(node.params[node.params.length - 1]).end
             }
             depth: depth + 1
             precedence: 0
