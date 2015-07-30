@@ -659,8 +659,37 @@ JavaScriptParser.endComment = '*/'
 
 JavaScriptParser.handleButton = (text, button, oldBlock) ->
   if button is 'add-button' and 'IfStatement' in oldBlock.classes
-    return text + ''' else if (__) {
-      __
-    }'''
+    # Parse to find the last "else" or "else if"
+    node = acorn.parse(text, {
+      locations: true
+      line: 0
+      allowReturnOutsideFunction: true
+    }).body[0]
+    currentElif = node
+    elseLocation = null
+    while true
+      if currentElif.type is 'IfStatement'
+        if currentElif.alternate?
+          elseLocation = {
+            line: currentElif.alternate.loc.start.line
+            column: currentElif.alternate.loc.start.column
+          }
+          currentElif = currentElif.alternate
+        else
+          elseLocation = null
+          break
+      else
+        break
+
+    if elseLocation?
+      lines = text.split('\n')
+      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+      return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
+        __
+      }'''
+    else
+      return text + ''' else {
+        __
+      }'''
 
 module.exports = parser.wrapParser JavaScriptParser
