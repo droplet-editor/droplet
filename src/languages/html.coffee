@@ -292,19 +292,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     if not node
       return
 
-    if node.childNodes?
-      for child, i in node.childNodes
-        if i is node.childNodes.length - 1
-          lastPosition = node.__location?.endTag?.start ? lastPosition
-        else
-          lastPosition = node.childNodes[i+1].__location.start ? lastPosition
-        @fixBounds child, lastPosition
-      newList = []
-      for child in node.childNodes
-        if !child.remove
-          newList.push child
-      node.childNodes = newList
-
     if node.nodeName is '#text'
       node.type = 'text'
       if node.value.trim().length is 0
@@ -322,6 +309,19 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       if node.__location?
         @setAttribs node, @text[node.__location.start...node.__location.end]
       return
+
+    if node.childNodes?
+      for child, i in node.childNodes
+        if i is node.childNodes.length - 1
+          lastPosition = node.__location?.endTag?.start ? lastPosition
+        else
+          lastPosition = node.childNodes[i+1].__location.start ? lastPosition
+        @fixBounds child, lastPosition
+      newList = []
+      for child in node.childNodes
+        if !child.remove
+          newList.push child
+      node.childNodes = newList
 
     if node.nodeName is '#document' or node.nodeName is '#document-fragment'
       node.type = 'document'
@@ -341,24 +341,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
 
-  makeIndentBounds: (node) ->
-    bounds = {
-      start: @positions[node.__indentLocation.start]
-      end: @positions[node.__indentLocation.end]
-    }
-
-    if node.__location.endTag?
-      lastLine = @positions[node.__location.endTag.start].line - 1
-      if lastLine > bounds.end.line or (lastLine is bounds.end.line and @lines[lastLine].length > bounds.end.column)
-        bounds.end = {
-          line: lastLine
-          column: @lines[lastLine].length
-        }
-      else if node.__indentLocation.start is node.__indentLocation.end and node.__location.endTag
-        bounds.end = @positions[node.__location.endTag.start]
-
-    return bounds
-
   trimText: (node, lastPosition) ->
     location = node.__location
     location.end = Math.min location.end, lastPosition
@@ -377,6 +359,24 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       location.start += text.length - leftTrimText.length
       text = leftTrimText
     node.value = text
+
+  makeIndentBounds: (node) ->
+    bounds = {
+      start: @positions[node.__indentLocation.start]
+      end: @positions[node.__indentLocation.end]
+    }
+
+    if node.__location.endTag?
+      lastLine = @positions[node.__location.endTag.start].line - 1
+      if lastLine > bounds.end.line or (lastLine is bounds.end.line and @lines[lastLine].length > bounds.end.column)
+        bounds.end = {
+          line: lastLine
+          column: @lines[lastLine].length
+        }
+      else if node.__indentLocation.start is node.__indentLocation.end and node.__location.endTag
+        bounds.end = @positions[node.__location.endTag.start]
+
+    return bounds
 
   getSocketLevel: (node) -> helper.ANY_DROP
 
