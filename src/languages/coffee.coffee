@@ -180,13 +180,13 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   markRoot: ->
     # Preprocess comments
-    do @stripComments
-
     retries = Math.max(1, Math.min(5, Math.ceil(@lines.length / 2)))
     firstError = null
     # Get the CoffeeScript AST from the text
     loop
       try
+        do @stripComments
+
         tree = CoffeeScript.nodes(@text)
         annotateCsNodes tree
         nodes = tree.expressions
@@ -1032,11 +1032,11 @@ fixCoffeeScriptError = (lines, e) ->
 fixQuotedString = (lines) ->
   line = lines[0]
   quotechar = if /^"|"$/.test(line) then '"' else "'"
-  if line.getCharAt(0) is quotechar
+  if line.charAt(0) is quotechar
     line = line.substr(1)
-  if line.getCharAt(line.length - 1) is quotechar
-    line = line.substr(0, line.length -1)
-  return quoteAndCEscape fixQuotedLine line
+  if line.charAt(line.length - 1) is quotechar
+    line = line.substr(0, line.length - 1)
+  return lines[0] = quoteAndCEscape line
 
 looseCUnescape = (str) ->
   codes =

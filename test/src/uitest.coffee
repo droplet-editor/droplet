@@ -184,7 +184,7 @@ asyncTest 'Controller: reparse fallback', ->
   })
 
   editor.setEditorState(true)
-  editor.setValue('var hello = function (a) {};')
+  editor.setValue('var hello = mFunction(a);')
 
   simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
   simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
@@ -202,7 +202,7 @@ asyncTest 'Controller: reparse fallback', ->
     simulate('mouseup', '.droplet-main-scroller-stuffing', {dx: 300, dy: 300})
 
     # Did not insert parentheses
-    equal(editor.getValue().trim(), 'var hello = function (a, b) {};')
+    equal(editor.getValue().trim(), 'var hello = mFunction(a, b);')
 
     # Sockets are separate
     simulate('mousedown', '.droplet-main-scroller-stuffing', {dx: 260, dy: 30})
@@ -630,6 +630,70 @@ asyncTest 'Controller: Quoted string selection', ->
 
     start()
   ), 0
+
+asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks'
+        blocks: [
+          {block: 'a is b'}
+          {block: 'fd 10'}
+          {block: 'bk 10'}
+          {block: '''
+          for i in [0..10]
+            ``
+          '''}
+          {block: '''
+          if a is b
+            ``
+          '''}
+        ]
+      }
+    ]
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('fd "hello"')
+
+  entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
+  {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
+
+  executeAsyncSequence [
+    (->
+      simulate('mousedown', editor.mainScrollerStuffing, {
+        dx: x + 5 + editor.gutter.offsetWidth
+        dy: y + 5
+      })
+      simulate('mouseup', editor.mainScrollerStuffing, {
+        dx: x + 5 + editor.gutter.offsetWidth
+        dy: y + 5
+      })
+    ), (->
+      equal editor.hiddenInput.selectionStart, 1
+      equal editor.hiddenInput.selectionEnd, 6
+
+      $('.droplet-hidden-input').sendkeys('hel"lo')
+    ), (->
+      simulate('mousedown', editor.mainScrollerStuffing, {
+        dx: 500
+        dy: 500
+      })
+      simulate('mouseup', editor.mainScrollerStuffing, {
+        dx: 500
+        dy: 500
+      })
+    ), (->
+      equal editor.getValue(), 'fd "hel\\"lo"\n'
+      start()
+    )
+  ]
 
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''

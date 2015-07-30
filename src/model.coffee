@@ -427,7 +427,7 @@ exports.List = class List
     indent = []
 
     head = @start
-    until head is @end
+    while true
       if head instanceof IndentStartToken
         indent.push head.container.prefix
       else if head instanceof IndentEndToken
@@ -436,6 +436,9 @@ exports.List = class List
         str += '\n' + (head.specialIndent ? indent.join(''))
       else
         str += head.stringify()
+
+      if head is @end
+        break
       head = head.next
 
     return str
