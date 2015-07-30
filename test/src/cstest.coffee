@@ -189,8 +189,7 @@ asyncTest 'Merged code blocks', ->
       precedence="0"
       color="purple"
       socketLevel="0"
-      classes="Assign mostly-block"
-    ><socket
+      classes="Assign mostly-block"><socket
       precedence="0"
       handwritten="false"
       classes="Value lvalue"
@@ -198,7 +197,7 @@ asyncTest 'Merged code blocks', ->
     > = (<socket
       precedence="0"
       handwritten="false"
-      classes="Param forbid-all"
+      classes="forbid-all __function_param__"
     >y</socket
     >) -&gt; <socket
       precedence="0"
@@ -228,7 +227,7 @@ asyncTest 'Merged code blocks', ->
       precedence="0"
       handwritten="false"
       classes="Value"
-    >\'clickme\'</socket
+    >'clickme'</socket
     >, -&gt;<indent
       prefix="  "
       classes=""
@@ -241,7 +240,8 @@ asyncTest 'Merged code blocks', ->
       precedence="-1"
       handwritten="false"
       classes="Value"
-    >\'ouch\'</socket></block></indent></block></document>'''
+    >'ouch'</socket></block></indent></block></document>
+  '''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
