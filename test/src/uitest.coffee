@@ -210,7 +210,7 @@ asyncTest 'Controller: reparse fallback', ->
 
     ok(editor.cursorAtSocket(), 'Has text focus')
 
-    equal(editor.getCursor().stringify(), 'a, b')
+    equal(editor.getCursor().stringify(), 'a')
 
     start()
   ), 10)
