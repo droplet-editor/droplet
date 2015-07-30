@@ -2326,9 +2326,10 @@ Editor::showDropdown = (socket = @getCursor()) ->
       @undoCapture()
 
       # Attempting to populate the socket after the dropdown has closed should no-op
-      return if @dropdownElement.style.display == 'none'
+      if (not @cursorAtSocket()) or @dropdownElement.style.display == 'none'
+        return
 
-      @populateSocket socket, text
+      @populateSocket @getCursor(), text
       @hiddenInput.value = text
 
       @redrawMain()
