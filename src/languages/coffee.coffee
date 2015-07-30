@@ -311,8 +311,39 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   # This shared logic handles the sockets for the Code function
   # definitions, even when merged into a parent block.
   addCode: (node, depth, indentDepth) ->
-    for param in node.params
-      @csSocketAndMark param, depth, 0, indentDepth, FORBID_ALL
+    # Combining all the parameters into one socket
+    if node.params?.length ? 0 > 0
+      @addSocket {
+        bounds: @boundCombine @getBounds(node.params[0]), @getBounds(node.params[node.params.length - 1])
+        depth,
+        precedence: 0,
+        dropdown: null,
+        classes: ['forbid-all', '__function_param__']
+        empty: ''
+      }
+
+    # If there are no parameters, attempt to insert an empty socket so the user can add some
+    else
+      nodeBoundsStart = @getBounds(node).start
+      match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)\s*(-|=)>/)
+      if match?
+        @addSocket {
+          bounds: {
+            start: {
+              line: nodeBoundsStart.line
+              column: nodeBoundsStart.column + match[1].length
+            }
+            end: {
+              line: nodeBoundsStart.line
+              column: nodeBoundsStart.column + match[1].length + match[2].length
+            }
+          },
+          depth,
+          precedence: 0,
+          dropdown: null,
+          classes: ['forbid-all', '__function_param__']
+          empty: ''
+        }
     @mark node.body, depth, 0, null, indentDepth
 
   # ## mark ##
@@ -704,6 +735,11 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     else if b.line < a.line then a
     else if a.column < b.column then b
     else a
+
+  boundCombine: (a, b) ->
+    start = @boundMin a.start, b.start
+    end = @boundMax a.end, b.end
+    return {start, end}
 
   # ## getBounds ##
   # Get the boundary locations of a CoffeeScript node,
@@ -1110,5 +1146,13 @@ CoffeeScriptParser.parens = (leading, trailing, node, context) ->
     trailing trailing() + ')'
 
   return
+
+CoffeeScriptParser.getDefaultSelectionRange = (string) ->
+  start = 0; end = string.length
+  if string.length > 1 and string[0] is string[string.length - 1] and string[0] in ['"', '\'', '/']
+    start += 1; end -= 1
+    if string.length > 5 and string[0..2] is string[-3..-1] and string[0..2] in ['"""', '\'\'\'', '///']
+      start += 2; end -= 2
+  return {start, end}
 
 module.exports = parser.wrapParser CoffeeScriptParser

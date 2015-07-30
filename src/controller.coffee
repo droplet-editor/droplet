@@ -2366,9 +2366,10 @@ Editor::showDropdown = (socket = @getCursor()) ->
       @undoCapture()
 
       # Attempting to populate the socket after the dropdown has closed should no-op
-      return if @dropdownElement.style.display == 'none'
+      if (not @cursorAtSocket()) or @dropdownElement.style.display == 'none'
+        return
 
-      @populateSocket socket, text
+      @populateSocket @getCursor(), text
       @hiddenInput.value = text
 
       @redrawMain()
@@ -2716,7 +2717,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
-    @setTextSelectionRange 0, @hiddenInput.value.length
+    {start, end} = @mode.getDefaultSelectionRange @hiddenInput.value
+    @setTextSelectionRange start, end
 
 Editor::determineCursorPosition = ->
   # Do enough of the redraw to get the bounds
@@ -2860,7 +2862,7 @@ hook 'keydown', 0, (event, state) ->
   if @readOnly
     return
   if event.which is ENTER_KEY
-    if not @cursorAtSocket() and not event.shiftKey
+    if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
       newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
       newSocket.handwritten = true; newSocket.setParent newBlock
