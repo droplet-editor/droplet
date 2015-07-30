@@ -2663,7 +2663,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
-    @setTextSelectionRange 0, @hiddenInput.value.length
+    {start, end} = @mode.getDefaultSelectionRange @hiddenInput.value
+    @setTextSelectionRange start, end
 
 Editor::determineCursorPosition = ->
   # Do enough of the redraw to get the bounds
