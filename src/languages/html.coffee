@@ -287,30 +287,30 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         else
           i++
 
-  fixBounds: (node) ->
+  fixBounds: (node, lastPosition) ->
 
     if not node
       return
 
     if node.childNodes?
-      for child in node.childNodes
-        @fixBounds child
+      for child, i in node.childNodes
+        if i is node.childNodes.length - 1
+          lastPosition = node.__location?.endTag?.start ? lastPosition
+        else
+          lastPosition = node.childNodes[i+1].__location.start ? lastPosition
+        @fixBounds child, lastPosition
       newList = []
       for child in node.childNodes
         if !child.remove
           newList.push child
       node.childNodes = newList
 
-    if node.nodeName is '#document' or node.nodeName is '#document-fragment'
-      node.type = 'document'
-      return
-
     if node.nodeName is '#text'
       node.type = 'text'
       if node.value.trim().length is 0
         node.remove = true
       else
-        @trimText node
+        @trimText node, lastPosition
       return
 
     if node.nodeName is '#comment'
@@ -321,6 +321,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       node.type = 'emptyTag'
       if node.__location?
         @setAttribs node, @text[node.__location.start...node.__location.end]
+      return
+
+    if node.nodeName is '#document' or node.nodeName is '#document-fragment'
+      node.type = 'document'
       return
 
     node.type = 'blockTag'
@@ -355,10 +359,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     return bounds
 
-  trimText: (node) ->
-    text = node.value
+  trimText: (node, lastPosition) ->
     location = node.__location
-    text = text.split '\n'
+    location.end = Math.min location.end, lastPosition
+    text = @text[location.start...location.end].split '\n'
     i = 0
     while text[i].trim().length is 0
       location.start += text[i].length + 1
@@ -425,15 +429,15 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     if parseContext and parseContext not in ['html', 'head', 'body']
       root = htmlParser.parseFragment @text
       @cleanTree root
-      @fixBounds root
+      @fixBounds root, @text.length
     else
       root = htmlParser.parse @text
       @cleanTree root
-      @fixBounds root
+      @fixBounds root, @text.length
       if root.childNodes.length is 0
         root = htmlParser.parseFragment @text
         @cleanTree root
-        @fixBounds root
+        @fixBounds root, @text.length
     @mark 0, root, 0, null
 
   mark: (indentDepth, node, depth, bounds) ->
