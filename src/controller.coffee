@@ -2807,7 +2807,7 @@ hook 'keydown', 0, (event, state) ->
   if @readOnly
     return
   if event.which is ENTER_KEY
-    if not @cursorAtSocket() and not event.shiftKey
+    if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
       newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
       newSocket.handwritten = true; newSocket.setParent newBlock
