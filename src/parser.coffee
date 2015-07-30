@@ -132,7 +132,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty, opts.precedence,
       false,
       opts.classes,
       opts.dropdown
