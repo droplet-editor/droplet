@@ -369,6 +369,25 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
+        else
+          nodeBoundsStart = @getBounds(node.id).end
+          match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()\s*\)/)
+          if match?
+            position = {
+              line: nodeBoundsStart.line
+              column: nodeBoundsStart.column + match[1].length
+            }
+            @addSocket {
+              bounds: {
+                start: position
+                end: position
+              },
+              depth,
+              precedence: 0,
+              dropdown: null,
+              classes: ['forbid-all', '__function_param__']
+              empty: ''
+            }
       when 'FunctionExpression'
         @jsBlock node, depth, bounds
         @mark indentDepth, node.body, depth + 1, null
@@ -386,6 +405,29 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
+        else
+          if node.id?
+            nodeBoundsStart = @getBounds(node.id).end
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()\s*\)/)
+          else
+            nodeBoundsStart = @getBounds(node).start
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*function\s*\()\s*\)/)
+          if match?
+            position = {
+              line: nodeBoundsStart.line
+              column: nodeBoundsStart.column + match[1].length
+            }
+            @addSocket {
+              bounds: {
+                start: position
+                end: position
+              },
+              depth,
+              precedence: 0,
+              dropdown: null,
+              classes: ['forbid-all', '__function_param__']
+              empty: ''
+            }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.left, depth + 1, null
