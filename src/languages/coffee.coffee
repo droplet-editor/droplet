@@ -321,6 +321,28 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
         classes: ['forbid-all', '__function_param__']
         empty: ''
       }
+
+    # If there are no parameters, attempt to insert an empty socket so the user can add some
+    else
+      nodeBoundsStart = @getBounds(node).start
+      debugger
+      match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()\s*\)\s*(-|=)>/)
+      if match?
+        position = {
+          line: nodeBoundsStart.line
+          column: nodeBoundsStart.column + match[1].length
+        }
+        @addSocket {
+          bounds: {
+            start: position
+            end: position
+          },
+          depth,
+          precedence: 0,
+          dropdown: null,
+          classes: ['forbid-all', '__function_param__']
+          empty: ''
+        }
     @mark node.body, depth, 0, null, indentDepth
 
   # ## mark ##
