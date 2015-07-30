@@ -371,16 +371,18 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           }
         else
           nodeBoundsStart = @getBounds(node.id).end
-          match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()\s*\)/)
+          match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
           if match?
-            position = {
-              line: nodeBoundsStart.line
-              column: nodeBoundsStart.column + match[1].length
-            }
             @addSocket {
               bounds: {
-                start: position
-                end: position
+                start: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length
+                }
+                end: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length + match[2].length
+                }
               },
               depth,
               precedence: 0,
@@ -408,19 +410,22 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         else
           if node.id?
             nodeBoundsStart = @getBounds(node.id).end
-            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()\s*\)/)
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
           else
             nodeBoundsStart = @getBounds(node).start
-            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*function\s*\()\s*\)/)
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*function\s*\()(\s*\))/)
           if match?
-            position = {
-              line: nodeBoundsStart.line
-              column: nodeBoundsStart.column + match[1].length
-            }
+            position =
             @addSocket {
               bounds: {
-                start: position
-                end: position
+                start: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length
+                }
+                end: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length + match[2].length
+                }
               },
               depth,
               precedence: 0,
