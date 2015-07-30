@@ -1115,6 +1115,8 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length
   if string[0] is string[string.length - 1] and string[0] in ['"', '\'', '/']
     start += 1; end -= 1
+    if string[0..2] is string[-3..-1] and string[0..2] in ['"""', '\'\'\'', '///']
+      start += 2; end -= 2
   return {start, end}
 
 module.exports = parser.wrapParser CoffeeScriptParser
