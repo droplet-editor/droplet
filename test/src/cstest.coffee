@@ -159,7 +159,11 @@ asyncTest 'Dotted methods', ->
       precedence="0"
       handwritten="false"
       classes="Literal"
-    >log</socket>.fd()</block></socket
+    >log</socket>.fd(<socket
+      precedence="0"
+      handwritten="false"
+      classes="mostly-value"
+    ></socket>)</block></socket
     ></block></socket
     ></block></socket
     ></block></socket></block
@@ -168,7 +172,11 @@ asyncTest 'Dotted methods', ->
       color="blue"
       socketLevel="0"
       classes="Call works-as-method-call mostly-block"
-    >fd()</block></document>'''
+    >fd(<socket
+      precedence="0"
+      handwritten="false"
+      classes="mostly-value"
+    ></socket>)</block></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
