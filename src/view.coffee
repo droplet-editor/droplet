@@ -101,7 +101,8 @@ exports.View = class View
     @map = {}
     @contextMaps = []
 
-    @lastIncludes = {}
+    @oldTree = {}
+    @newTree = {}
     @marks = {}
 
     @draw = new draw.Draw(@ctx)
@@ -1215,6 +1216,7 @@ exports.View = class View
         @path = new @view.draw.Path([], false, {
           cssClass: "droplet-#{@model.type}-path"
         })
+      @totalBounds = new @view.draw.NoRectangle()
 
       @path.setParent @group
 
@@ -1243,15 +1245,23 @@ exports.View = class View
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
     draw: (boundingRect, style = {}, parent = null) ->
-      @drawSelf style, parent
+      if not boundingRect? or @totalBounds.overlap boundingRect
+        @drawSelf style, parent
 
-      @group.activate(); @path.activate()
+        @group.activate(); @path.activate()
+        if @highlightArea?
+          @highlightArea.setParent @view.draw.ctx
 
-      if parent?
-        @group.setParent parent
+        if parent?
+          @group.setParent parent
 
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
+        for childObj in @children
+          @view.getViewNodeFor(childObj.child).draw boundingRect, style, @group
+
+      else
+        @group.destroy()
+        if @highlightArea?
+          @highlightArea.destroy()
 
     computeCarriageArrow: (root = false) ->
       oldCarriageArrow = @carriageArrow
@@ -1682,6 +1692,7 @@ exports.View = class View
       @dropArea = null
       if @highlightArea?
         @elements = @elements.filter (x) -> x isnt @highlightArea
+        @highlightArea.destroy()
         @highlightArea = null
 
     # ## shouldAddTab
@@ -2084,6 +2095,7 @@ exports.View = class View
         new @view.draw.Point(0, 0),
         @model.value
       )
+      @textElement.destroy()
       @elements.push @textElement
 
     # ## computeChildren

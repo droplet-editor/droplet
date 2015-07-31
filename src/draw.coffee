@@ -263,7 +263,6 @@ exports.Draw = class Draw
           parent.appendChild @element
 
       destroy: ->
-        @deactivate()
         if @element.parentElement?
           @element.parentElement.removeChild @element
 
