@@ -572,12 +572,14 @@ Editor::redrawMain = (opts = {}) ->
 
     @view.cleanupDraw()
 
+    ###
     unless @alreadyScheduledCleanup
       @alreadyScheduledCleanup = true
       setTimeout (=>
         @alreadyScheduledCleanup = false
         @view.garbageCollect()
       ), 0
+    ###
 
     return null
 
@@ -1053,7 +1055,6 @@ Editor::clearHighlightCanvas = ->
 # an operation we will be doing a lot.
 Editor::clearDrag = ->
   if @draggingBlock?
-    @dragView.getViewNodeFor(@draggingBlock).forceClean()
     @dragView.garbageCollect()
   @clearHighlightCanvas()
 
@@ -1149,8 +1150,6 @@ hook 'mousedown', 1, (point, event, state) ->
         @clickedBlock = new model.List record.block.start.next, record.block.end.prev
         @clickedPoint = point
 
-        @view.getViewNodeFor(@clickedBlock).absorbCache()
-
         state.consumedHitTest = true
 
         @redrawMain()
@@ -1210,6 +1209,10 @@ hook 'mousemove', 1, (point, event, state) ->
       mainPoint = @trackerPointToMain @clickedPoint
       viewNode = @view.getViewNodeFor @draggingBlock
 
+      if @draggingBlock instanceof model.List and not
+          (@draggingBlock instanceof model.Container)
+        viewNode.absorbCache()
+
       @draggingOffset = null
 
       for bound, line in viewNode.bounds
@@ -1229,11 +1232,13 @@ hook 'mousemove', 1, (point, event, state) ->
     # Also, we translate the block 1x1 to the right,
     # so that we can see its borders.
     @dragView.beginDraw()
+    console.log 'oldRoots', (key for key of @dragView.oldRoots), 'newRoots', (key for key of @dragView.newRoots)
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
     draggingBlockView.drawShadow @dragCtx, 5, 5
     draggingBlockView.root()
     draggingBlockView.draw()
+    console.log 'oldRoots', (key for key of @dragView.oldRoots), 'newRoots', (key for key of @dragView.newRoots)
     @dragView.garbageCollect()
 
     @dragCanvas.style.width = "#{Math.min draggingBlockView.totalBounds.width + 10, window.screen.width}px"

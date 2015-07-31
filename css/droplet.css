@@ -323,15 +323,24 @@ text {
 }
 .droplet-socket-path {
   cursor: text;
-} /*
-.droplet-block-path:hover .droplet-background-path {
+}
+.droplet-main-canvas text {
+  fill: #000;
+}
+/*
+.droplet-block-path:hover ~ text {
+  fill: #000;
+}
+*/
+.droplet-block-path:hover .droplet-background-path {/*
   stroke: #FF0;
   stroke-width: 2px;
-  stroke-alignment: inner;
-}
+  stroke-alignment: inner;*/
+  /*filter: url(#saturate);*/
+}/*
 .droplet-block-path:hover .droplet-light-bevel-path, .droplet-block-path:hover .droplet-dark-bevel-path {
   fill: #FF0;
-} */
+}*/
 .droplet-palette-canvas .droplet-socket-path {
   cursor: -webkit-grab;
   cursor: -moz-grab;

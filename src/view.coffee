@@ -152,14 +152,17 @@ exports.View = class View
     else
       return @auxiliaryMap[node.id] = new AuxiliaryViewNode(@, node)
 
-  registerRoot: (model) ->
+  registerRoot: (node) ->
     for id, aux of @newRoots
-      if aux.model.hasParent(model)
+      if (aux.model instanceof model.List and not
+          (aux.model instanceof model.Container)) and
+          aux.model.hasParent(node)
         delete @newRoots[id]
-      else if model.hasParent(aux.model)
+      else if aux.model.contains(node)
         return
 
-    @newRoots[model.id] = @getAuxiliaryNode(model)
+    @newRoots[node.id] =
+      @unflaggedToDelete[node.id] = @getAuxiliaryNode(node)
 
   cleanupDraw: ->
     for id, el of @oldRoots
@@ -185,11 +188,18 @@ exports.View = class View
     @cleanupDraw()
 
     for id, el of @flaggedToDelete when id of @map
-      console.log 'destroying', id
       @map[id].destroy()
-      delete @map[id]
-      delete @auxiliaryMap[id]
-      delete @flaggedToDelete[id]
+      @destroy id
+
+  destroy: (id) ->
+    for child in @map[id].children
+      if @map[child.child.id]?
+        @destroy child.child.id
+    delete @map[id]
+    delete @auxiliaryMap[id]
+    delete @flaggedToDelete[id]
+
+    @flaggedToDelete = {}
 
   hasViewNodeFor: (model) -> model? and model.id of @map
 
@@ -222,6 +232,10 @@ exports.View = class View
     cleanup: ->
       @view.unflag @
 
+      if @model instanceof model.List and not
+          (@model instanceof model.Container)
+        console.log 'cleaning a list'
+
       if @model.version is @computedVersion
         return
 
@@ -236,6 +250,9 @@ exports.View = class View
       for id, child of @children
         unless id of children
           @view.flag child
+          if @model instanceof model.List and not
+              (@model instanceof model.Container)
+            console.log 'hey! a list just flagged', child
 
       @children = children
 
@@ -812,16 +829,6 @@ exports.View = class View
     # or blueing for lasso select.
     drawSelf: (style = {}) ->
 
-    forceClean: ->
-      @clean @computedVersion
-
-    clean: (version) ->
-      if version is @computedVersion and @oldChildren?
-        for child in @oldChildren
-          viewNode = @view.getViewNodeFor child.child
-          viewNode.forceClean()
-        @hide()
-
     hide: ->
       for element in @elements
         element?.deactivate?()
@@ -854,6 +861,10 @@ exports.View = class View
     root: ->
       for child in @children
         @view.getViewNodeFor(child.child).root()
+
+    destroy: (root = true) ->
+      for child in @children
+        @view.getViewNodeFor(child.child).destroy()
 
     # ## computeChildren (ListViewNode)
     # Figure out which children lie on each line,
@@ -1181,6 +1192,8 @@ exports.View = class View
     # to acquire all the properties of its children
     # TODO re-examine
     absorbCache: ->
+      @view.registerRoot @model
+
       @computeChildren()
       @computeCarriageArrow true
       @computeMargins()
@@ -1283,6 +1296,7 @@ exports.View = class View
       # *Sixth pass variables*
       # computePath
       @group = new @view.draw.Group()
+      @group.element.setAttribute 'class', 'droplet-container-group'
 
       if @model.type is 'block'
         @path = new @view.draw.Path([], true, {
@@ -1310,6 +1324,16 @@ exports.View = class View
       @elements.push @group
       @elements.push @path
       @elements.push @highlightArea
+
+    destroy: (root = true) ->
+      if root
+        for element in @elements
+          element?.destroy?()
+      else if @highlightArea?
+        @highlightArea.destroy()
+
+      for child in @children
+        @view.getViewNodeFor(child.child).destroy(false)
 
     root: ->
       @group.setParent @view.draw.ctx

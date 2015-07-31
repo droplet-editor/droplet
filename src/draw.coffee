@@ -695,7 +695,7 @@ exports.Draw = class Draw
 
       makeElement: ->
         element = document.createElementNS SVG_STANDARD, 'text'
-        element.setAttribute 'fill', '#000'
+        #element.setAttribute 'fill', '#444'
 
         # We use the alphabetic baseline and add the distance
         # to base ourselves to avoid a chrome bug where text zooming
