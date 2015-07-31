@@ -472,12 +472,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       when 'ThrowStatement'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1, null
-      when 'IfStatement', 'ConditionalExpression'
-        @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
-        @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
-        if node.alternate?
-          @jsSocketAndMark indentDepth, node.alternate, depth + 1, 10
       when 'ForStatement'
         @jsBlock node, depth, bounds
 

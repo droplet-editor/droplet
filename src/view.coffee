@@ -952,12 +952,12 @@ exports.View = class View
             minDistanceToBase[line].above + margins.top)
           @minDistanceToBase[desiredLine].below = Math.max(
             @minDistanceToBase[desiredLine].below,
-            minDistanceToBase[line].below + bottomMargin + (
-              if @model.buttons?.addButton or @model.buttons?.subtractButton and desiredLine is @lineLength - 1
+            minDistanceToBase[line].below + Math.max(bottomMargin, (
+              if (@model.buttons?.addButton or @model.buttons?.subtractButton) and desiredLine is @lineLength - 1
                 @view.opts.buttonPadding + @view.opts.buttonHeight
               else
                 0
-            ))
+            )))
 
       # Height is just the sum of the above-base and below-base counts.
       # Empty lines should have some height.

@@ -615,7 +615,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Special case: "unless" keyword; in this case
       # we want to skip the Op that wraps the condition.
       when 'If'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK
+        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: true}
 
         # Check to see if we are an "unless".
         # We will deem that we are an unless if:
@@ -643,13 +643,24 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
         @mark node.body, depth + 1, 0, null, indentDepth
 
-        if node.elseBody?
-          # Artificially "mark" the line containing the "else"
-          # token, so that the following body can be single-line
-          # if necessary.
-          @flagLineAsMarked node.elseToken.first_line
+        currentNode = node
 
-          @mark node.elseBody, depth + 1, 0, null, indentDepth
+        while currentNode?
+          if currentNode.isChain
+            currentNode = currentNode.elseBodyNode()
+            @csSocketAndMark currentNode.rawCondition, depth + 1, 0, indentDepth
+            @mark currentNode.body, depth + 1, 0, null, indentDepth
+
+          else if currentNode.elseBody?
+            # Artificially "mark" the line containing the "else"
+            # token, so that the following body can be single-line
+            # if necessary.
+            @flagLineAsMarked currentNode.elseToken.first_line
+            @mark currentNode.elseBody, depth + 1, 0, null, indentDepth
+            currentNode = null
+
+          else
+            currentNode = null
 
       # ### Arr ###
       # Color VALUE, sockets @objects.
@@ -877,7 +888,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   # ## csBlock ##
   # A general utility function for adding an ICE editor
   # block around a given node.
-  csBlock: (node, depth, precedence, wrappingParen, classes = []) ->
+  csBlock: (node, depth, precedence, wrappingParen, classes = [], buttons) ->
     @addBlock {
       bounds: @getBounds (wrappingParen ? node)
       depth: depth
@@ -885,6 +896,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       color: @getColor(node)
       classes: getClassesFor(node).concat classes
       parenWrapped: wrappingParen?
+      buttons: buttons
     }
 
   # Add an indent node and guess
@@ -1154,5 +1166,33 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
     if string.length > 5 and string[0..2] is string[-3..-1] and string[0..2] in ['"""', '\'\'\'', '///']
       start += 2; end -= 2
   return {start, end}
+
+CoffeeScriptParser.handleButton = (text, button, oldBlock) ->
+  if button is 'add-button' and 'If' in oldBlock.classes
+    # Parse to find the last "else" or "else if"
+    node = CoffeeScript.nodes(text, {
+      locations: true
+      line: 0
+      allowReturnOutsideFunction: true
+    }).expressions[0]
+
+    lines = text.split '\n'
+
+    currentNode = node
+    elseLocation = null
+
+    while currentNode.isChain
+      currentNode = currentNode.elseBodyNode()
+
+    if currentNode.elseBody?
+      lines = text.split('\n')
+      elseLocation = {
+        line: currentNode.elseToken.last_line
+        column: currentNode.elseToken.last_column + 2
+      }
+      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+      return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
+    else
+      return text + '\nelse\n  ``'
 
 module.exports = parser.wrapParser CoffeeScriptParser
