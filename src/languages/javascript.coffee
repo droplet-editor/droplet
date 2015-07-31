@@ -554,7 +554,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             depth: depth + 1
             precedence: NEVER_PAREN
             dropdown: null
-            classes: ['no-drop']
+            classes: ['mostly-value']
             empty: ''
           }
       when 'MemberExpression'
