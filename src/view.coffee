@@ -153,12 +153,16 @@ exports.View = class View
       return @auxiliaryMap[node.id] = new AuxiliaryViewNode(@, node)
 
   registerRoot: (node) ->
+    if node instanceof model.List and not (
+       node instanceof model.Container)
+      node.traverseOneLevel (head) =>
+        unless head instanceof model.NewlineToken
+          @registerRoot head
+      return
     for id, aux of @newRoots
-      if (aux.model instanceof model.List and not
-          (aux.model instanceof model.Container)) and
-          aux.model.hasParent(node)
+      if aux.model.hasParent(node)
         delete @newRoots[id]
-      else if aux.model.contains(node)
+      else if node.hasParent(aux.model)
         return
 
     @newRoots[node.id] =

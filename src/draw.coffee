@@ -722,7 +722,7 @@ exports.Draw = class Draw
           @__lastValue = @value
           @element.removeChild(@element.lastChild)
           text = document.createTextNode @value.replace(/ /g, '\u00A0')
-          element.appendChild text
+          @element.appendChild text
 
   refreshFontCapital:  ->
     metrics = helper.fontMetrics(@fontFamily, @fontSize)

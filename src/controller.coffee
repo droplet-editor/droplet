@@ -572,14 +572,12 @@ Editor::redrawMain = (opts = {}) ->
 
     @view.cleanupDraw()
 
-    ###
     unless @alreadyScheduledCleanup
       @alreadyScheduledCleanup = true
       setTimeout (=>
         @alreadyScheduledCleanup = false
         @view.garbageCollect()
       ), 0
-    ###
 
     return null
 
