@@ -283,13 +283,29 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       while i < node.childNodes.length
         @cleanTree node.childNodes[i]
         if not node.childNodes[i].__location
+          if node.childNodes[i].childNodes?
+            for child in node.childNodes[i].childNodes
+              child.parentNode = node
           node.childNodes = node.childNodes[0...i].concat(node.childNodes[i].childNodes || []).concat node.childNodes[i+1...]
         else
           i++
 
-  fixBounds: (node, lastPosition) ->
+  fixBounds: (node) ->
 
     if not node
+      return
+
+    if node.childNodes?
+      for child, i in node.childNodes
+        @fixBounds child
+      newList = []
+      for child in node.childNodes
+        if !child.remove
+          newList.push child
+      node.childNodes = newList
+
+    if node.nodeName is '#document' or node.nodeName is '#document-fragment'
+      node.type = 'document'
       return
 
     if node.nodeName is '#text'
@@ -297,7 +313,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       if node.value.trim().length is 0
         node.remove = true
       else
-        @trimText node, lastPosition
+        @trimText node
       return
 
     if node.nodeName is '#comment'
@@ -310,23 +326,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         @setAttribs node, @text[node.__location.start...node.__location.end]
       return
 
-    if node.childNodes?
-      for child, i in node.childNodes
-        if i is node.childNodes.length - 1
-          lastPosition = node.__location?.endTag?.start ? lastPosition
-        else
-          lastPosition = node.childNodes[i+1].__location.start ? lastPosition
-        @fixBounds child, lastPosition
-      newList = []
-      for child in node.childNodes
-        if !child.remove
-          newList.push child
-      node.childNodes = newList
-
-    if node.nodeName is '#document' or node.nodeName is '#document-fragment'
-      node.type = 'document'
-      return
-
     node.type = 'blockTag'
 
     node.__indentLocation = {start: node.__location.startTag.end}
@@ -337,13 +336,31 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       node.__indentLocation.end = node.__location.startTag.end
 
     if not node.__location.endTag
-      node.__location.end = node.__indentLocation.end
+      # Forcing object copy because
+      # sometimes parse5 reuses location info
+      # for semi-fake nodes.
+      node.__location = {
+        start: node.__location.start
+        end: node.__indentLocation.end
+      }
 
     @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
 
-  trimText: (node, lastPosition) ->
+  getEndPoint: (node) ->
+    if node.nodeName in ['#document', '#document-fragment']
+      return @text.length
+    last = null
+    parent = node.parentNode
+    ind = parent.childNodes.indexOf node
+    if ind is parent.childNodes.length - 1
+      last = if parent.__location?.endTag? then parent.__location.endTag.start else @getEndPoint parent
+    else
+      last = parent.childNodes[ind+1].__location.start
+    return last
+
+  trimText: (node) ->
     location = node.__location
-    location.end = Math.min location.end, lastPosition
+    location.end = Math.min location.end, @getEndPoint node
     text = @text[location.start...location.end].split '\n'
     i = 0
     while text[i].trim().length is 0
@@ -429,66 +446,75 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     if parseContext and parseContext not in ['html', 'head', 'body']
       root = htmlParser.parseFragment @text
       @cleanTree root
-      @fixBounds root, @text.length
+      @fixBounds root
     else
       root = htmlParser.parse @text
       @cleanTree root
-      @fixBounds root, @text.length
+      @fixBounds root
       if root.childNodes.length is 0
         root = htmlParser.parseFragment @text
         @cleanTree root
-        @fixBounds root, @text.length
+        @fixBounds root
+    window.root = root
+    window.parse5 = htmlParser
     @mark 0, root, 0, null
 
-  mark: (indentDepth, node, depth, bounds) ->
+  mark: (indentDepth, node, depth, bounds, nomark = false) ->
 
     switch node.type
       when 'document'
         lastChild = null
         for child in node.childNodes
-          unless lastChild and lastChild.__location.end > child.__location.start
-            @mark indentDepth, child, depth + 1, null
+          if lastChild and lastChild.__location.end > child.__location.start then nomark = true else nomark = false
+          @mark indentDepth, child, depth + 1, null, nomark
+          unless nomark
             lastChild = child
 
       when 'emptyTag'
-        @htmlBlock node, depth, bounds
-        for attrib in node.attributes
-          if attrib.end - attrib.start > 1
-            @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
+        unless nomark
+          @htmlBlock node, depth, bounds
+          for attrib in node.attributes
+            if attrib.end - attrib.start > 1
+              @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
+
       when 'blockTag'
-        @htmlBlock node, depth, bounds
-        for attrib in node.attributes
-          @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
-        indentBounds = @makeIndentBounds node
-        if indentBounds.start.line isnt indentBounds.end.line or indentBounds.start.column isnt indentBounds.end.column
-          depth++
-          prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
-          indentDepth += prefix.length
-          @addIndent
-            bounds: indentBounds
-            depth: depth
-            prefix: prefix
-            classes: @getClasses node
-          lastChild = null
-          for child in node.childNodes
-            unless lastChild and lastChild.__location.end > child.__location.start
-              @mark indentDepth, child, depth + 1, null
-              lastChild = child
-        else
-          unless TAGS[node.nodeName].content is 'optional' or
-              (node.nodeName is 'script' and @hasAttribute node, 'src') or
-              node.__indentLocation.end is node.__location.end
-            @htmlSocket node, depth + 1, null, indentBounds, null, true
+        unless nomark
+          @htmlBlock node, depth, bounds
+          for attrib in node.attributes
+            @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
+          indentBounds = @makeIndentBounds node
+          if indentBounds.start.line isnt indentBounds.end.line or indentBounds.start.column isnt indentBounds.end.column
+            depth++
+            prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
+            indentDepth += prefix.length
+            @addIndent
+              bounds: indentBounds
+              depth: depth
+              prefix: prefix
+              classes: @getClasses node
+            lastChild = null
+          else
+            unless TAGS[node.nodeName].content is 'optional' or
+                (node.nodeName is 'script' and @hasAttribute node, 'src') or
+                node.__indentLocation.end is node.__location.end
+              @htmlSocket node, depth + 1, null, indentBounds, null, true
+        for child in node.childNodes
+          if lastChild and lastChild.__location.end > child.__location.start then nomark = true else nomark = false
+          @mark indentDepth, child, depth + 1, null, nomark
+          unless nomark
+            lastChild = child
 
       when 'text'
-        @htmlBlock node, depth, bounds
-        @htmlSocket node, depth + 1, null
+        unless nomark
+          @htmlBlock node, depth, bounds
+          @htmlSocket node, depth + 1, null
 
       when 'comment'
-        @htmlBlock node, depth, bounds
-        node.__location.start += 4
-        node.__location.end -= 3
-        @htmlSocket node, depth + 1, null
+        unless nomark
+          @htmlBlock node, depth, bounds
+          node.__location.start += 4
+          node.__location.end -= 3
+          @htmlSocket node, depth + 1, null
 
   isComment: (text) ->
     text.match(/<!--.*-->/)
