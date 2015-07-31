@@ -529,7 +529,34 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         else if known.anyobj and node.callee.type is 'MemberExpression'
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN
         for argument, i in node.arguments
-          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
+          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i], (if i is 0 then '' else undefined)
+        if node.arguments.length is 0
+          position = {
+            line: node.callee.loc.end.line
+            column: node.callee.loc.end.column
+          }
+          string = @lines[position.line][position.column..].match(/^\s*\(/)[0]
+          position.column += string.length
+          endPosition = {
+            line: position.line
+            column: position.column
+          }
+          space = @lines[position.line][position.column..].match(/^(\s*)\)/)
+          if space?
+            endPosition.column += space[1].length
+          else
+            debugger
+          @addSocket {
+            bounds: {
+              start: position
+              end: endPosition
+            }
+            depth: depth + 1
+            precedence: NEVER_PAREN
+            dropdown: null
+            classes: ['no-drop']
+            empty: ''
+          }
       when 'MemberExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.object, depth + 1

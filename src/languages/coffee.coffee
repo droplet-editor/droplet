@@ -553,6 +553,28 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             # In the 'beginner' case of a simple method call with a
             # simple base object variable, let the variable be socketed.
             @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
+
+          if node.args.length is 0 and not node.do
+            variableBounds = @getBounds(node.variable)
+            start = {
+              line: variableBounds.end.line
+              column: variableBounds.end.column + 1
+            }
+            end = {
+              line: start.line
+              column: start.column
+            }
+            space = @lines[start.line][start.column..].match(/^(\s*)\)/)
+            if space?
+              end.column += space[1].length
+            @addSocket {
+              bounds: {start, end}
+              depth,
+              precedence: 0,
+              dropdown: null,
+              classes: ['mostly-value']
+              empty: ''
+            }
         else
           @csBlock node, depth, 0, wrappingParen, ANY_DROP
 
@@ -566,6 +588,8 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
               # Inline function definitions that appear as the last arg
               # of a function call will be melded into the parent block.
               @addCode arg, depth + 1, indentDepth
+            else if index is 0
+              @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index], ''
             else
               @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index]
 
@@ -923,17 +947,17 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   # ## csSocket ##
   # A similar utility function for adding sockets.
-  csSocket: (node, depth, precedence, classes = [], dropdown) ->
+  csSocket: (node, depth, precedence, classes = [], dropdown, empty) ->
     @addSocket {
       bounds: @getBounds node
-      depth, precedence, dropdown
+      depth, precedence, dropdown, empty
       classes: getClassesFor(node).concat classes
     }
 
   # ## csSocketAndMark ##
   # Adds a socket for a node, and recursively @marks it.
-  csSocketAndMark: (node, depth, precedence, indentDepth, classes, dropdown) ->
-    socket = @csSocket node, depth, precedence, classes, dropdown
+  csSocketAndMark: (node, depth, precedence, indentDepth, classes, dropdown, empty) ->
+    socket = @csSocket node, depth, precedence, classes, dropdown, empty
     @mark node, depth + 1, precedence, null, indentDepth
     return socket
 
