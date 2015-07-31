@@ -210,7 +210,7 @@ asyncTest 'Controller: reparse fallback', ->
 
     ok(editor.cursorAtSocket(), 'Has text focus')
 
-    equal(editor.getCursor().stringify(), 'a')
+    equal(editor.getCursor().stringify(), 'a, b')
 
     start()
   ), 10)
@@ -580,6 +580,56 @@ asyncTest 'Controller: remembered sockets', ->
       start()
     )
   ]
+
+asyncTest 'Controller: Quoted string selection', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks'
+        blocks: [
+          {block: 'a is b'}
+          {block: 'fd 10'}
+          {block: 'bk 10'}
+          {block: '''
+          for i in [0..10]
+            ``
+          '''}
+          {block: '''
+          if a is b
+            ``
+          '''}
+        ]
+      }
+    ]
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('fd "hello"')
+
+  entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
+  {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
+
+  simulate('mousedown', editor.mainScrollerStuffing, {
+    dx: x + 5 + editor.gutter.offsetWidth
+    dy: y + 5
+  })
+  simulate('mouseup', editor.mainScrollerStuffing, {
+    dx: x + 5 + editor.gutter.offsetWidth
+    dy: y + 5
+  })
+
+  setTimeout (->
+    equal editor.hiddenInput.selectionStart, 1
+    equal editor.hiddenInput.selectionEnd, 6
+
+    start()
+  ), 0
 
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''

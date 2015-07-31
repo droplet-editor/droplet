@@ -132,7 +132,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty, opts.precedence,
       false,
       opts.classes,
       opts.dropdown
@@ -480,6 +480,8 @@ Parser.drop = (block, context, pred, next) ->
 Parser.empty = ''
 Parser.emptyIndent = ''
 
+getDefaultSelectionRange = (string) -> {start: 0, end: string.length}
+
 exports.wrapParser = (CustomParser) ->
   class CustomParserFactory extends ParserFactory
     constructor: (@opts = {}) ->
@@ -487,6 +489,7 @@ exports.wrapParser = (CustomParser) ->
       @emptyIndent = CustomParser.emptyIndent
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
+      @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?

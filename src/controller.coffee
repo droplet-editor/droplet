@@ -1618,11 +1618,12 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @setCursor @draggingBlock.start
 
+    # TODO write a test for this logic
     for el, i in rememberedSocketOffsets
       @rememberedSockets.push new RememberedSocketRecord(
         new CrossDocumentLocation(
-          @floatingBlocks.length - 1,
-          new model.Location(el.offset, 'socket')
+          @floatingBlocks.length,
+          new model.Location(el.offset + 1, 'socket')
         ),
         el.text
       )
@@ -1914,8 +1915,6 @@ hook 'populate', 1, ->
     @hiddenInput.addEventListener event, =>
       @highlightFlashShow()
       if @cursorAtSocket()
-        @populateSocket @getCursor(), @hiddenInput.value
-
         @redrawTextInput()
 
         # Update the dropdown size to match
@@ -2038,7 +2037,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
         endPosition - startPosition, @view.opts.textHeight
 
     else
-      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding +
+      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
         textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
 
       for i in [startRow + 1...endRow]
@@ -2175,7 +2174,7 @@ Editor::populateSocket = (socket, string) ->
 
     first = last = new model.TextToken lines[0]
     for line, i in lines when i > 0
-      last = helper.connect new model.NewlineToken(), last
+      last = helper.connect last, new model.NewlineToken()
       last = helper.connect last, new model.TextToken line
 
     @spliceIn (new model.List(first, last)), socket.start
@@ -2314,9 +2313,10 @@ Editor::showDropdown = (socket = @getCursor()) ->
       @undoCapture()
 
       # Attempting to populate the socket after the dropdown has closed should no-op
-      return if @dropdownElement.style.display == 'none'
+      if (not @cursorAtSocket()) or @dropdownElement.style.display == 'none'
+        return
 
-      @populateSocket socket, text
+      @populateSocket @getCursor(), text
       @hiddenInput.value = text
 
       @redrawMain()
@@ -2664,7 +2664,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
-    @setTextSelectionRange 0, @hiddenInput.value.length
+    {start, end} = @mode.getDefaultSelectionRange @hiddenInput.value
+    @setTextSelectionRange start, end
 
 Editor::determineCursorPosition = ->
   # Do enough of the redraw to get the bounds
@@ -2808,7 +2809,7 @@ hook 'keydown', 0, (event, state) ->
   if @readOnly
     return
   if event.which is ENTER_KEY
-    if not @cursorAtSocket() and not event.shiftKey
+    if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
       newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
       newSocket.handwritten = true; newSocket.setParent newBlock
