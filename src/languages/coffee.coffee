@@ -1036,7 +1036,7 @@ fixQuotedString = (lines) ->
     line = line.substr(1)
   if line.charAt(line.length - 1) is quotechar
     line = line.substr(0, line.length - 1)
-  return lines[0] = quoteAndCEscape line
+  return lines[0] = quoteAndCEscape looseCUnescape(line), quotechar
 
 looseCUnescape = (str) ->
   codes =
@@ -1056,7 +1056,8 @@ quoteAndCEscape = (str, quotechar) ->
   result = JSON.stringify(str)
   if quotechar is "'"
     return quotechar +
-      result.substr(1, result.length -2).replace(/\\"/g, '"').
+      result.substr(1, result.length - 2).
+             replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
       replace(/'/g, "\\'") + quotechar
   return result
 

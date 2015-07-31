@@ -660,7 +660,7 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
   })
 
   editor.setEditorState(true)
-  editor.setValue('fd "hello"')
+  editor.setValue("fd 'hello'")
 
   entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
   {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
@@ -679,7 +679,7 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
       equal editor.hiddenInput.selectionStart, 1
       equal editor.hiddenInput.selectionEnd, 6
 
-      $('.droplet-hidden-input').sendkeys('hel"lo')
+      $('.droplet-hidden-input').sendkeys("h\\tel\\\\\"'lo")
     ), (->
       simulate('mousedown', editor.mainScrollerStuffing, {
         dx: 500
@@ -690,7 +690,7 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
         dy: 500
       })
     ), (->
-      equal editor.getValue(), 'fd "hel\\"lo"\n'
+      equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'\n"""
       start()
     )
   ]
