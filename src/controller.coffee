@@ -386,20 +386,24 @@ Editor::clearMain = (opts) ->
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
 
-  @topNubbyPath = new @draw.Path([], true)
+  @topNubbyPath ?= new @draw.Path([], true)
 
-  @topNubbyPath.push new @draw.Point @mainCanvas.clientWidth, -5
-  @topNubbyPath.push new @draw.Point @mainCanvas.clientWidth, height
+  points = []
 
-  @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
-  @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
+  points.push new @draw.Point @mainCanvas.clientWidth, -5
+  points.push new @draw.Point @mainCanvas.clientWidth, height
+
+  points.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
+  points.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
       @view.opts.tabHeight + height
-  @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
+  points.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
       @view.opts.tabHeight + height
-  @topNubbyPath.push new @draw.Point @view.opts.tabOffset, height
+  points.push new @draw.Point @view.opts.tabOffset, height
 
-  @topNubbyPath.push new @draw.Point -5, height
-  @topNubbyPath.push new @draw.Point -5, -5
+  points.push new @draw.Point -5, height
+  points.push new @draw.Point -5, -5
+
+  @topNubbyPath.setPoints points
 
   @topNubbyPath.style.fillColor = color
 

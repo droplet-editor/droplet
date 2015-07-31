@@ -109,6 +109,8 @@ exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
 
+  hasParent: (x) -> false
+
   contains: (token) ->
     if token instanceof Container
       token = token.start

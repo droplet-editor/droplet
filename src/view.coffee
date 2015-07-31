@@ -99,10 +99,14 @@ exports.View = class View
     # so that rerendering the same model
     # can be fast
     @map = {}
-    @contextMaps = []
 
-    @oldTree = {}
-    @newTree = {}
+    @oldRoots = {}
+    @newRoots = {}
+    @auxiliaryMap = {}
+
+    @flaggedToDelete = {}
+    @unflaggedToDelete = {}
+
     @marks = {}
 
     @draw = new draw.Draw(@ctx)
@@ -126,9 +130,6 @@ exports.View = class View
     else
       return @createView(model)
 
-  include: (id) ->
-    @lastIncludes[id] = true
-
   registerMark: (id) ->
     @marks[id] = true
 
@@ -138,24 +139,59 @@ exports.View = class View
     @marks = {}
 
   beginDraw: ->
-    @lastIncludes = {}
-
-  cleanupDraw: ->
-    for key, val of @map
-      unless key of @lastIncludes
-        val.hide()
-
-  garbageCollect: ->
-    destroyed = 0
-    for key, val of @map
-      unless key of @lastIncludes
-        destroyed += 1
-        val.destroy()
-        delete @map[key]
-    console.log 'destroyed', destroyed
+    @oldRoots = @newRoots
+    @newRoots = {}
+    @unflaggedToDelete = {}
 
   hasViewNodeFor: (model) ->
     model? and model.id of @map
+
+  getAuxiliaryNode: (node) ->
+    if node.id of @auxiliaryMap
+      return @auxiliaryMap[node.id]
+    else
+      return @auxiliaryMap[node.id] = new AuxiliaryViewNode(@, node)
+
+  registerRoot: (model) ->
+    for id, aux of @newRoots
+      if aux.model.hasParent(model)
+        delete @newRoots[id]
+      else if model.hasParent(aux.model)
+        return
+
+    @newRoots[model.id] = @getAuxiliaryNode(model)
+
+  cleanupDraw: ->
+    for id, el of @oldRoots
+      unless id of @newRoots
+        @flag el
+
+    for id, el of @newRoots
+      el.cleanup()
+
+    for id, el of @flaggedToDelete when id of @unflaggedToDelete
+      delete @flaggedToDelete[id]
+
+    for id, el of @flaggedToDelete when id of @map
+      @map[id].hide()
+
+  flag: (auxiliaryNode) ->
+    @flaggedToDelete[auxiliaryNode.model.id] = auxiliaryNode
+
+  unflag: (auxiliaryNode) ->
+    @unflaggedToDelete[auxiliaryNode.model.id] = auxiliaryNode
+
+  garbageCollect: ->
+    @cleanupDraw()
+
+    for id, el of @flaggedToDelete when id of @map
+      console.log 'destroying', id
+      @map[id].destroy()
+      delete @map[id]
+      delete @auxiliaryMap[id]
+      delete @flaggedToDelete[id]
+
+  hasViewNodeFor: (model) -> model? and model.id of @map
 
   # ## createView
   # Given a model object, create a renderer object
@@ -178,6 +214,37 @@ exports.View = class View
     else
       @opts.colors[color] ? '#ffffff'
 
+  class AuxiliaryViewNode
+    constructor: (@view, @model) ->
+      @children = {}
+      @computedVersion = -1
+
+    cleanup: ->
+      @view.unflag @
+
+      if @model.version is @computedVersion
+        return
+
+      children = {}
+      if @model instanceof model.Container
+        @model.traverseOneLevel (head) =>
+          if head instanceof model.NewlineToken
+            return
+          else
+            children[head.id] = @view.getAuxiliaryNode head
+
+      for id, child of @children
+        unless id of children
+          @view.flag child
+
+      @children = children
+
+      for id, child of @children
+        child.cleanup()
+
+      @computedVersion = @model.version
+
+
   # # GenericViewNode
   # Class from which all renderer classes will
   # extend.
@@ -186,6 +253,8 @@ exports.View = class View
       # Record ourselves in the map
       # from model to renderer
       @view.map[@model.id] = this
+
+      @view.registerRoot @model
 
       @lastCoordinate = new @view.draw.Point 0, 0
 
@@ -742,7 +811,6 @@ exports.View = class View
     # May require special effects, like graying-out
     # or blueing for lasso select.
     drawSelf: (style = {}) ->
-      @view.include @model.id
 
     forceClean: ->
       @clean @computedVersion
@@ -758,9 +826,15 @@ exports.View = class View
       for element in @elements
         element?.deactivate?()
 
-    destroy: ->
-      for element in @elements
-        element?.destroy?()
+    destroy: (root = true) ->
+      if root
+        for element in @elements
+          element?.destroy?()
+      else if @highlightArea?
+        @highlightArea.destroy()
+
+      for child in @children
+        @view.getViewNodeFor(child.child).destroy(false)
 
     # ## drawShadow (GenericViewNode)
     # Draw the shadow of our path
@@ -1081,6 +1155,8 @@ exports.View = class View
     # Takes two arguments, which can be changed
     # to translate the entire document from the upper-left corner.
     layout: (left = @lastCoordinate.x, top = @lastCoordinate.y) ->
+      @view.registerRoot @model
+
       @lastCoordinate = new @view.draw.Point left, top
 
       @computeChildren()
@@ -1726,8 +1802,6 @@ exports.View = class View
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
 
-      @view.include @model.id
-
       return null
 
   # # BlockViewNode
@@ -1996,7 +2070,6 @@ exports.View = class View
     #
     # Again, an Indent should draw nothing.
     drawSelf: ->
-      @view.include @model.id
 
     # ## computeOwnDropArea
     #
@@ -2146,8 +2219,6 @@ exports.View = class View
 
       if parent?
         @textElement.setParent parent
-
-      @view.include @model.id
 
 toRGB = (hex) ->
   # Convert to 6-char hex if not already there
