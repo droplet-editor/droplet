@@ -96,7 +96,8 @@ exports.Parser = class Parser
       opts.color,
       opts.socketLevel,
       opts.classes,
-      opts.parseContext
+      opts.parseContext,
+      opts.buttons
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -456,6 +457,9 @@ Parser.drop = (block, context, pred, next) ->
   else
     return helper.ENCOURAGE
 
+Parser.handleButton = (text, command, oldblock) ->
+  return text
+
 Parser.empty = ''
 Parser.emptyIndent = ''
 
@@ -506,3 +510,5 @@ exports.wrapParser = (CustomParser) ->
       return [leading, trailing]
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
+
+    handleButton: (text, command, oldblock) -> CustomParser.handleButton text, command, oldblock

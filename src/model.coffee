@@ -427,7 +427,7 @@ exports.List = class List
     indent = []
 
     head = @start
-    until head is @end
+    while true
       if head instanceof IndentStartToken
         indent.push head.container.prefix
       else if head instanceof IndentEndToken
@@ -436,6 +436,9 @@ exports.List = class List
         str += '\n' + (head.specialIndent ? indent.join(''))
       else
         str += head.stringify()
+
+      if head is @end
+        break
       head = head.next
 
     return str
@@ -961,7 +964,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext) ->
+  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -979,7 +982,7 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext
+    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
