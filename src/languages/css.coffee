@@ -9,8 +9,8 @@ COLORS = {
   namespace: 'orange'
   import: 'green'
   rule: 'blue'
-  selector: 'green'
-  'selector-part': 'lightgreen'
+  selector: 'lightgreen'
+  'selector-part': 'green'
   'selector-modifier': 'cyan'
   fontface: 'pink'
   viewport: 'orange'
@@ -273,10 +273,11 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
     if node instanceof parserlib.css.Selector
       node.nodeType = 'selector'
-      if node.parts.length > 1
-        @cssSocket node, depth
-        @cssBlock node, depth + 1
-        depth += 2
+      #if node.parts.length > 1
+      #  null
+      @cssSocket node, depth
+      @cssBlock node, depth + 1
+      depth += 2
       for part in node.parts
         @mark indentDepth, part, depth
 
@@ -309,9 +310,10 @@ exports.CSSParser = class CSSParser extends parser.Parser
         node.elementName.nodeType = 'selector-elementname'
         @cssSocket node.elementName, depth + 2
         cnt++
-      if cnt > 1
-        @cssSocket node, depth
-        @cssBlock node, depth + 1
+      #if cnt > 1
+      #  null
+      @cssSocket node, depth
+      @cssBlock node, depth + 1
 
     if node instanceof parserlib.css.PropertyValue
       node.nodeType = 'property-value'
