@@ -201,7 +201,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   getButtons: (node) ->
     buttons = {}
-    if node.nodeName in ['thead', 'tbody', 'tr', 'table', 'div']
+    if node.nodeName in ['thead', 'tbody', 'tr', 'table']
       buttons.addButton = true
       if node.childNodes.length isnt 0
         buttons.subtractButton = true
