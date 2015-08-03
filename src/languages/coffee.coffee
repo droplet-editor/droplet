@@ -555,6 +555,8 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
 
           if node.args.length is 0 and not node.do
+            # The only way we can have zero arguments in CoffeeScript
+            # is for the parenthesis to open immediately after the function name.
             variableBounds = @getBounds(node.variable)
             start = {
               line: variableBounds.end.line
@@ -588,7 +590,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
               # Inline function definitions that appear as the last arg
               # of a function call will be melded into the parent block.
               @addCode arg, depth + 1, indentDepth
-            else if index is 0
+            else if index is 0 and node.args.length is 1
               @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index], ''
             else
               @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index]
