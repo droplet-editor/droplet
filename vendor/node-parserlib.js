@@ -3652,6 +3652,30 @@ Parser.prototype = function(){
                 return result;
             },
 
+            parseSelectorSubPart: function(input){
+
+                this._tokenStream = new TokenStream(input, Tokens);
+
+                this._readWhitespace();
+
+                var result = this._simple_selector_sequence();
+
+                this._readWhitespace();
+
+                this._verifyEnd();
+
+                if (result.modifiers.length > 1 ||
+                    result.modifiers.length == 1 && result.elementName){
+                    throw "Not a SubPart"
+                }
+
+                if (result.elementName){
+                    return result.elementName;
+                }
+
+                return result.modifiers[0];
+            },
+
             /**
              * Parses an HTML style attribute: a set of CSS declarations
              * separated by semicolons.

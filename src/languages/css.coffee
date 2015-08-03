@@ -26,6 +26,12 @@ COLORS = {
 
 DEFAULT_INDENT_DEPTH = '  '
 
+PARSE_CONTEXTS = {
+  selector: 'parseSelector'
+  'selector-modifier': 'parseSelectorSubPart'
+  'property-value': 'parsePropertyValue'
+}
+
 UNITS = {}
 
 (->
@@ -98,12 +104,10 @@ cssParser.addListener("startmedia", (event) -> Stack.start event, 'mediaquery')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
 cssParser.addListener("error", (event) -> Stack.setValid false)
 
-ObjectReturning = ["parseSelector", "parsePropertyValue", "parseMediaQuery"]
-
 # Though we are not parsnig style Attribute
 # it is the same as parsing a set of declarations
 # and we use it to parse a single declaration
-ParseOrder = ["parse", "parseStyleAttribute"].concat ObjectReturning
+ParseOrder = ["parse", "parseSelectorSubPart", "parseSelector", "parsePropertyValue", "parseMediaQuery", "parseStyleAttribute"]
 
 exports.CSSParser = class CSSParser extends parser.Parser
 
@@ -115,8 +119,8 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   getPrecedence: (node) -> 1
 
-  getClasses: (node) ->
-    classes = [node.nodeType || "unknown"]
+  getClasses: (node, type) ->
+    classes = [type || node.nodeType || "unknown"]
     if node.nodeType is 'property'
       bounds = @getBounds node
       if @lines[bounds.end.line][bounds.end.column - 1] isnt ';'
@@ -152,18 +156,30 @@ exports.CSSParser = class CSSParser extends parser.Parser
       color: @getColor node
       classes: @getClasses node
       socketLevel: @getSocketLevel node
+      parseContext: node.nodeType
 
-  cssSocket: (node, depth, precedence, bounds, dropdown) ->
+  cssSocket: (node, depth, precedence, bounds, dropdown, type) ->
     if not node
       return
     #console.log "Adding Socket: ", JSON.stringify @getBounds node
+    empty = ''
+    switch node.nodeType
+      when 'selector'
+        empty = '__'
+      when 'property-value'
+        empty = '__'
+      when 'property-part'
+        empty = '__'
+      when 'selector-modifier'
+        empty = '__'
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
       precedence: precedence ? @getPrecedence node
-      classes: @getClasses node
+      classes: @getClasses node, type
       acccepts: @getAcceptsRule node
       dropdown: dropdown
+      empty: empty
 
   getIndentPrefix: (bounds, indentDepth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -192,21 +208,72 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
     return bounds
 
+  nameTree: (node) ->
+    if not node
+      return
+
+    unless node.nodeType
+      if node instanceof parserlib.css.Selector
+        node.nodeType = 'selector'
+      else if node instanceof parserlib.css.SelectorPart
+        node.nodeType = 'selector-part'
+      else if node instanceof parserlib.css.SelectorSubPart
+        if node.type is 'elementName'
+          node.nodeType = 'selector-elementname'
+        else
+          node.nodeType = 'selector-modifier'
+      else if node instanceof parserlib.css.PropertyValue
+        node.nodeType = 'property-value'
+      else if node instanceof parserlib.css.PropertyValuePart
+        node.nodeType = 'property-part'
+      else if node instanceof parserlib.css.MediaQuery
+        node.nodeType = 'media'
+
+    switch node.nodeType
+      when 'keyframerule'
+        for key in node.keys
+          key.nodeType = 'key'
+      when 'rule'
+        for sel in node.selectors
+          @nameTree sel
+      when 'selector'
+        for part in node.parts
+          @nameTree part
+      when 'selector-part'
+        for mod in node.modifiers
+          @nameTree mod
+        @nameTree node.elementName
+      when 'property'
+        @nameTree node.value
+      when 'property-value'
+        for part in node.parts
+          @nameTree part
+
+    if node.children?
+      for child in node.children
+        @nameTree child
+
   markRoot: ->
     #console.log 'Parsing: ', @text
     ast = null
-    for parse in ParseOrder
-      try
-        Stack.init()
-        Stack.setValid true
-        #console.log parse
-        ast = cssParser[parse] @text
-      catch e
-        Stack.setValid false
-      if Stack.getValid()
-        break
+    parseContext = PARSE_CONTEXTS[@opts.parseOptions?.context]
+    if parseContext
+      Stack.init()
+      ast = cssParser[parseContext] @text
+    else
+      for parse in ParseOrder
+        try
+          Stack.init()
+          Stack.setValid true
+          #console.log parse
+          ast = cssParser[parse] @text
+        catch e
+          Stack.setValid false
+        if Stack.getValid()
+          break
     if Stack.getValid()
       root = ast ? Stack.top()
+      @nameTree root
       window.root = root
       window.Stack = Stack
       @mark 0, root, 0
@@ -229,7 +296,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @cssBlock node, depth
         @cssSocket node.uri, depth + 1
         for media in node.media
-          media.nodeType = 'media'
           @cssSocket media, depth + 1
       when 'property'
         @cssBlock node, depth
@@ -248,7 +314,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'keyframerule'
         @cssBlock node, depth
         for key in node.keys
-          key.nodeType = 'key'
           @cssSocket key, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
       when 'page'
@@ -263,97 +328,83 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'rule'
         @cssBlock node, depth
         for selector in node.selectors
-          @mark indentDepth, selector, depth + 1
+          @cssSocket selector, depth + 1
+          @mark indentDepth, selector, depth + 2
         @handleCompoundNode indentDepth, node, depth + 1
       when 'mediaquery'
         @cssBlock node, depth
         for media in node.media
           @cssSocket media, depth + 1
         @handleCompoundNode indentDepth, node, depth + 1
+      when 'selector'
+        @cssBlock node, depth
+        depth++
+        for part in node.parts
+          if part.modifiers?.length > 0
+            for mod in part.modifiers
+              @cssSocket mod, depth + 1
+              @mark indentDepth, mod, depth + 2
+          if part.elementName
+            @cssSocket part.elementName, depth + 1
+      when 'selector-modifier'
+        if node.type in ['class', 'id']
+          @cssBlock node, depth + 3
+          node.loc.startCol++
+          @cssSocket node, depth + 4, null, null, null, node.type
+        else if node.type is 'pseudo'
+          @cssBlock node, depth + 3
+          node.loc.startCol++
+          if node.text[1] is ':'
+            node.loc.startCol++
+            @cssSocket node, depth + 4, null, null, UNITS['pseudoElements'], node.type
+          else
+            @cssSocket node, depth + 4, null, null, UNITS['pseudoClasses'], node.type
+        else if node.type is 'attribute'
+          @cssBlock node, depth + 3
+          @cssSocket node.attrib, depth + 4, null, null, null, node.type
+          @cssSocket node.val, depth + 4, null, null, null, node.type
+        else if node.type is 'not'
+          @cssBlock node, depth + 3
+          arg = node.args[0]
+          arg = arg.elementName ? arg.modifiers[0]
+          @cssSocket arg, depth + 4, null, null, null, node.type
+          @mark indentDepth, arg, depth + 4
 
-    if node instanceof parserlib.css.Selector
-      node.nodeType = 'selector'
-      #if node.parts.length > 1
-      #  null
-      @cssSocket node, depth
-      @cssBlock node, depth + 1
-      depth += 2
-      for part in node.parts
-        @mark indentDepth, part, depth
-
-    if node instanceof parserlib.css.SelectorPart
-      node.nodeType = 'selector-part'
-      cnt = 0
-      if node.modifiers?.length > 0
-        for mod in node.modifiers
-          mod.nodeType = 'selector-modifier'
-          @cssSocket mod, depth + 2
-          @cssBlock mod, depth + 3
-          if mod.type in ['class', 'id']
-            mod.loc.startCol++
-            @cssSocket mod, depth + 4
-          else if mod.type is 'pseudo'
-            mod.loc.startCol++
-            if mod.text[1] is ':'
-              mod.loc.startCol++
-              @cssSocket mod, depth + 4, null, null, UNITS['pseudoElements']
-            else
-              @cssSocket mod, depth + 4, null, null, UNITS['pseudoClasses']
-          else if mod.type is 'attribute'
-            @cssSocket mod.attrib, depth + 4
-            @cssSocket mod.val, depth + 4
-          else if mod.type is 'not'
-            for notPart in mod.args
-              @mark indentDepth, notPart, depth + 4
-          cnt++
-      if node.elementName
-        node.elementName.nodeType = 'selector-elementname'
-        @cssSocket node.elementName, depth + 2
-        cnt++
-      #if cnt > 1
-      #  null
-      @cssSocket node, depth
-      @cssBlock node, depth + 1
-
-    if node instanceof parserlib.css.PropertyValue
-      node.nodeType = 'property-value'
-      if node.parts.length > 1
-        @cssSocket node, depth
-        @cssBlock node, depth + 1
-      for part in node.parts
-        if UNITS[part.type]   #dimension
-          @cssSocket part, depth + 2
-          part.nodeType = 'property-value-' + part.type
-          @cssBlock part, depth + 3
-          bounds = @getBounds part
-          @cssSocket part, depth + 4, null, {
-            start: bounds.start
-            end: {line: bounds.end.line, column: bounds.end.column - part.units.length}
-          }
-          @cssSocket part, depth + 4, null, {
-            start: {line: bounds.end.line, column: bounds.end.column - part.units.length}
-            end: bounds.end
-          }, UNITS[part.type]
-        else if part.args
-          @cssSocket part, depth + 2
-          part.nodeType = 'property-value-function'
-          @cssBlock part, depth + 3
-          @mark indentDepth, part.args, depth + 4
-        else if part.type is 'percentage'
-          @cssSocket part, depth + 2
-          part.nodeType = 'property-value-' + part.type
-          @cssBlock part, depth + 3
-          bounds = @getBounds part
-          @cssSocket part, depth + 4, null, {
-            start: bounds.start
-            end: {line: bounds.end.line, column: bounds.end.column - 1}
-          }
-        else if part.type in ['string', 'integer', 'number', 'uri', 'color', 'identifier']
-          @cssSocket part, depth + 2
-        else
-          #@cssSocket part, depth + 2
-          console.log part
-          null
+      when 'property-value'
+        if node.parts.length > 1
+          @cssSocket node, depth
+          @cssBlock node, depth + 1
+        for part in node.parts
+          if UNITS[part.type]   #dimension
+            @cssSocket part, depth + 2
+            @cssBlock part, depth + 3
+            bounds = @getBounds part
+            @cssSocket part, depth + 4, null, {
+              start: bounds.start
+              end: {line: bounds.end.line, column: bounds.end.column - part.units.length}
+            }
+            @cssSocket part, depth + 4, null, {
+              start: {line: bounds.end.line, column: bounds.end.column - part.units.length}
+              end: bounds.end
+            }, UNITS[part.type]
+          else if part.args
+            @cssSocket part, depth + 2
+            @cssBlock part, depth + 3
+            @mark indentDepth, part.args, depth + 4
+          else if part.type is 'percentage'
+            @cssSocket part, depth + 2
+            @cssBlock part, depth + 3
+            bounds = @getBounds part
+            @cssSocket part, depth + 4, null, {
+              start: bounds.start
+              end: {line: bounds.end.line, column: bounds.end.column - 1}
+            }
+          else if part.type in ['string', 'integer', 'number', 'uri', 'color', 'identifier']
+            @cssSocket part, depth + 2
+          else
+            #@cssSocket part, depth + 2
+            console.log part
+            null
 
   handleCompoundNode: (indentDepth, node, depth) ->
     indentBounds = @getIndentBounds node
@@ -412,7 +463,12 @@ CSSParser.drop = (block, context, pred, next) ->
     return helper.FORBID
 
   if blockType is 'selector-modifier'
-    if contextType in ['selector', 'selector-part', 'selector-elementname']
+    if contextType in ['selector', 'selector-part', 'selector-elementname', 'selector-modifier']
+      return helper.ENCOURAGE
+    return helper.FORBID
+
+  if blockType is 'selector'
+    if contextType is 'selector'
       return helper.ENCOURAGE
     return helper.FORBID
 
