@@ -664,8 +664,6 @@ exports.Draw = class Draw
         clone.update()
         return clone
 
-      drawShadow: (ctx, offsetX, offsetY, blur) -> #TODO
-
     # ## Text ##
     # A Text element. Mainly this exists for computing bounding boxes, which is
     # accomplished via ctx.measureText().

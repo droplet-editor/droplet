@@ -82,17 +82,12 @@ editorBindings = {}
 SVG_STANDARD = helper.SVG_STANDARD
 
 EMBOSS_FILTER_SVG =  """
-<svg xmlns="#{SVG_STANDARD}">
-  <filter id="droplet-path-bevel" filterUnits="objectBoundingBox" x="-10%" y="-10%" width="150%" height="150%">
-    <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="interim"/>
-    <feComponentTransfer in="interim" out="blur">
-      <feFuncA type="linear" slope="1.3" intercept="0">
-    </feComponentTransfer>
-    <feDiffuseLighting in="blur" surfaceScale="5" specularConstant="0.5" specularExponent="10" result="specOut">
-      <feDistantLight azimuth="225" elevation="45"/>
-    </feDiffuseLighting>
-    <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specOut2"/>
-    <feComposite in="SourceGraphic" in2="specOut2" operator="arithmetic" k1="1.4" k2="0" k3="0" k4="0" result="litPaint" />
+<svg xlmns="#{SVG_STANDARD}">
+  <filter id="dropShadow" x="0" y="0" width="200%" height="200%">
+    <feOffset result="offOut" in="SourceAlpha" dx="5" dy="5" />
+    <feGaussianBlur result="blurOut" in="offOut" stdDeviation="1" />
+    <feBlend in="SourceGraphic" in2="blurOut" out="blendOut" mode="normal" />
+    <feComposite in="blendOut" in2="SourceGraphic" k2="0.5" k3="0.5" operator="arithmetic" />
   </filter>
 </svg>
 """
@@ -182,6 +177,8 @@ exports.Editor = class Editor
     # drag canvas.
     @dragCanvas = @dragCtx = document.createElementNS SVG_STANDARD, 'svg'
     @dragCanvas.setAttribute 'class',  'droplet-drag-canvas'
+
+    @dragCanvas.setAttribute 'filter', 'url(#dropShadow)'
 
     @dragCanvas.style.left = '-9999px'
     @dragCanvas.style.top = '-9999px'
@@ -1230,13 +1227,10 @@ hook 'mousemove', 1, (point, event, state) ->
     # Also, we translate the block 1x1 to the right,
     # so that we can see its borders.
     @dragView.beginDraw()
-    console.log 'oldRoots', (key for key of @dragView.oldRoots), 'newRoots', (key for key of @dragView.newRoots)
     draggingBlockView = @dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
-    draggingBlockView.drawShadow @dragCtx, 5, 5
     draggingBlockView.root()
     draggingBlockView.draw()
-    console.log 'oldRoots', (key for key of @dragView.oldRoots), 'newRoots', (key for key of @dragView.newRoots)
     @dragView.garbageCollect()
 
     @dragCanvas.style.width = "#{Math.min draggingBlockView.totalBounds.width + 10, window.screen.width}px"
@@ -1616,7 +1610,6 @@ hook 'mouseup', 0, (point, event, state) ->
     @pushUndo new FloatingOperation @floatingBlocks.length, newDocument, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
-    console.log 'pushing a floater'
     @floatingBlocks.push record = new FloatingBlockRecord(
       newDocument
       renderPoint
@@ -1790,7 +1783,6 @@ hook 'mousedown', 6, (point, event, state) ->
   if not @trackerPointIsInPalette(point) then return
 
   palettePoint = @trackerPointToPalette point
-  console.log palettePoint
   if @viewports.palette.contains(palettePoint)
     for entry in @currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView

@@ -197,7 +197,7 @@ exports.View = class View
 
   destroy: (id) ->
     for child in @map[id].children
-      if @map[child.child.id]?
+      if @map[child.child.id]? and not @unflaggedToDelete[child.child.id]
         @destroy child.child.id
     delete @map[id]
     delete @auxiliaryMap[id]
@@ -847,12 +847,6 @@ exports.View = class View
       for child in @children
         @view.getViewNodeFor(child.child).destroy(false)
 
-    # ## drawShadow (GenericViewNode)
-    # Draw the shadow of our path
-    # on a canvas context. Used
-    # for drop shadow when dragging.
-    drawShadow: ->
-
   class ListViewNode extends GenericViewNode
     constructor: (@model, @view) ->
       super
@@ -1280,15 +1274,6 @@ exports.View = class View
       # Return the glue we just computed.
       return @glue
 
-    # ## drawShadow
-    # Draw the drop-shadow of the path on the given
-    # context.
-    drawShadow: (x, y) ->
-      for childObj in @children
-        @view.getViewNodeFor(childObj.child).drawShadow x, y
-
-      return null
-
   # # ContainerViewNode
   # Class from which `socketView`, `indentView`, `blockView`, and `documentView` extend.
   # Contains function for dealing with multiple children, making polygons to wrap
@@ -1342,10 +1327,6 @@ exports.View = class View
     root: ->
       @group.setParent @view.draw.ctx
 
-    drawShadow: (x, y) ->
-      @path.drawShadow x, y, @view.opts.shadowBlur
-      super
-
     # ## draw (GenericViewNode)
     # Call `drawSelf` and recurse, if we are in the viewport.
     draw: (boundingRect, style = {}, parent = null) ->
@@ -1373,7 +1354,7 @@ exports.View = class View
 
       parent = @model.parent
 
-      if (not root) and parent?.type is 'indent' and
+      if (not root) and parent?.type is 'indent' and @view.hasViewNodeFor(parent) and
           @view.getViewNodeFor(parent).lineLength > 1 and
           @lineLength is 1
         head = @model.start
@@ -1392,7 +1373,7 @@ exports.View = class View
         @changedBoundingBox = true
 
       if @computedVersion is @model.version and
-         (not @model.parent? or
+         (not @model.parent? or not @view.hasViewNodeFor(@model.parent) or
          @model.parent.version is @view.getViewNodeFor(@model.parent).computedVersion)
         return null
 
