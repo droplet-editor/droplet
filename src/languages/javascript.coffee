@@ -413,7 +413,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
           else
             nodeBoundsStart = @getBounds(node).start
-            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*function\s*\()(\s*\))/)
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*function\s*\()(\s*)\)/)
           if match?
             position =
             @addSocket {

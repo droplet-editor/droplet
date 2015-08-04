@@ -2320,6 +2320,19 @@ Editor::formatDropdown = (socket = @getCursor()) ->
   @dropdownElement.style.fontSize = @fontSize
   @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
 
+Editor::getDropdownList = (socket) ->
+  result = socket.dropdown
+  if result.generate
+    result = result.generate
+  if 'function' is typeof result
+    result = socket.dropdown()
+  else
+    result = socket.dropdown
+  if result.options
+    result = result.options
+  return result.map (x) ->
+    if 'string' is typeof x then { text: x, display: x } else x
+
 Editor::showDropdown = (socket = @getCursor()) ->
   @dropdownVisible = true
 
@@ -2330,7 +2343,7 @@ Editor::showDropdown = (socket = @getCursor()) ->
 
   @formatDropdown socket
 
-  for el, i in socket.dropdown.generate() then do (el) =>
+  for el, i in @getDropdownList(socket) then do (el) =>
     div = document.createElement 'div'
     div.innerHTML = el.display
     div.className = 'droplet-dropdown-item'
