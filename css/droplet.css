@@ -9,6 +9,8 @@
   margin-top: -2px;
   margin-left: -1px;
   opacity: 0.85;
+  -webkit-filter: drop-shadow( 5px 5px 5px #888 );
+  filter: drop-shadow( 5px 5px 5px #888 ); /* Same syntax as box-shadow */
 }
 .droplet-palette-canvas {
   z-index: 1;
@@ -356,4 +358,5 @@ text {
 }
 .droplet-dropdown-arrow {
   cursor: pointer;
-}
+} 
+

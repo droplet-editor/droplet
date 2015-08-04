@@ -178,10 +178,9 @@ exports.Editor = class Editor
     @dragCanvas = @dragCtx = document.createElementNS SVG_STANDARD, 'svg'
     @dragCanvas.setAttribute 'class',  'droplet-drag-canvas'
 
-    @dragCanvas.setAttribute 'filter', 'url(#dropShadow)'
-
-    @dragCanvas.style.left = '-9999px'
-    @dragCanvas.style.top = '-9999px'
+    @dragCanvas.style.left = '0px'
+    @dragCanvas.style.top = '0px'
+    @dragCanvas.style.transform = 'translate(-9999px,-9999px)'
 
     # Instantiate the Droplet views
     @view = new view.View @mainCtx, @standardViewSettings
@@ -1287,8 +1286,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
         head = head.next
 
-    @dragCanvas.style.top = "#{position.y + getOffsetTop(@dropletElement)}px"
-    @dragCanvas.style.left = "#{position.x + getOffsetLeft(@dropletElement)}px"
+    @dragCanvas.style.transform = "translate(#{position.x + getOffsetLeft(@dropletElement)}px,#{position.y + getOffsetTop(@dropletElement)}px)"
 
     # Now we are done with the "clickedX" suite of stuff.
     @clickedPoint = @clickedBlock = null
@@ -1336,8 +1334,7 @@ hook 'mousemove', 0, (point, event, state) ->
 
     rect = @wrapperElement.getBoundingClientRect()
 
-    @dragCanvas.style.top = "#{position.y - rect.top}px"
-    @dragCanvas.style.left = "#{position.x - rect.left}px"
+    @dragCanvas.style.transform =  "translate(#{position.x - rect.left}px,#{position.y - rect.top}px)"
 
     mainPoint = @trackerPointToMain(position)
 
@@ -3686,8 +3683,7 @@ hook 'mousedown', -1, ->
 
 # On mouseup, throw the drag canvas away completely.
 hook 'mouseup', 0, ->
-  @dragCanvas.style.top =
-    @dragCanvas.style.left = '-9999px'
+  @dragCanvas.style.transform = "translate(-9999px, -9999px)"
 
   @dragCover.style.display = 'none'
 
