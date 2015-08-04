@@ -357,15 +357,82 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         @jsBlock node, depth, bounds
         @mark indentDepth, node.body, depth + 1, null
         @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
-        for param in node.params
-          @jsSocketAndMark indentDepth, param, depth + 1, null, null, ['no-drop']
+        if node.params.length > 0
+          @addSocket {
+            bounds: {
+              start: @getBounds(node.params[0]).start
+              end: @getBounds(node.params[node.params.length - 1]).end
+            }
+            depth: depth + 1
+            precedence: 0
+            dropdown: null
+            classes: ['no-drop']
+            empty: ''
+          }
+        else
+          nodeBoundsStart = @getBounds(node.id).end
+          match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
+          if match?
+            @addSocket {
+              bounds: {
+                start: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length
+                }
+                end: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length + match[2].length
+                }
+              },
+              depth,
+              precedence: 0,
+              dropdown: null,
+              classes: ['forbid-all', '__function_param__']
+              empty: ''
+            }
       when 'FunctionExpression'
         @jsBlock node, depth, bounds
         @mark indentDepth, node.body, depth + 1, null
         if node.id?
           @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
-        for param in node.params
-          @jsSocketAndMark indentDepth, param, depth + 1, null, null, ['no-drop']
+        if node.params.length > 0
+          @addSocket {
+            bounds: {
+              start: @getBounds(node.params[0]).start
+              end: @getBounds(node.params[node.params.length - 1]).end
+            }
+            depth: depth + 1
+            precedence: 0
+            dropdown: null
+            classes: ['no-drop']
+            empty: ''
+          }
+        else
+          if node.id?
+            nodeBoundsStart = @getBounds(node.id).end
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
+          else
+            nodeBoundsStart = @getBounds(node).start
+            match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*function\s*\()(\s*\))/)
+          if match?
+            position =
+            @addSocket {
+              bounds: {
+                start: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length
+                }
+                end: {
+                  line: nodeBoundsStart.line
+                  column: nodeBoundsStart.column + match[1].length + match[2].length
+                }
+              },
+              depth,
+              precedence: 0,
+              dropdown: null,
+              classes: ['forbid-all', '__function_param__']
+              empty: ''
+            }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.left, depth + 1, null
@@ -375,7 +442,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.argument?
           @jsSocketAndMark indentDepth, node.argument, depth + 1, null
       when 'IfStatement', 'ConditionalExpression'
-        @jsBlock node, depth, bounds
+        @jsBlock node, depth, bounds, {addButton: true}
         @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
         @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
 
@@ -405,12 +472,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       when 'ThrowStatement'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1, null
-      when 'IfStatement', 'ConditionalExpression'
-        @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
-        @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
-        if node.alternate?
-          @jsSocketAndMark indentDepth, node.alternate, depth + 1, 10
       when 'ForStatement'
         @jsBlock node, depth, bounds
 
@@ -533,7 +594,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       else
         console.log 'Unrecognized', node
 
-  jsBlock: (node, depth, bounds) ->
+  jsBlock: (node, depth, bounds, buttons) ->
     @addBlock
       bounds: bounds ? @getBounds node
       depth: depth
@@ -541,6 +602,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       color: @getColor node
       classes: @getClasses node
       socketLevel: @getSocketLevel node
+      buttons: buttons
 
   jsSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes, dropdown) ->
     unless node.type is 'BlockStatement'
@@ -549,7 +611,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         depth: depth
         precedence: precedence
         classes: classes ? []
-        accepts: @getAcceptsRule node
         dropdown: dropdown
 
     @mark indentDepth, node, depth + 1, bounds
@@ -655,5 +716,46 @@ JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
 JavaScriptParser.startComment = '/*'
 JavaScriptParser.endComment = '*/'
+
+JavaScriptParser.handleButton = (text, button, oldBlock) ->
+  if button is 'add-button' and 'IfStatement' in oldBlock.classes
+    # Parse to find the last "else" or "else if"
+    node = acorn.parse(text, {
+      locations: true
+      line: 0
+      allowReturnOutsideFunction: true
+    }).body[0]
+    currentElif = node
+    elseLocation = null
+    while true
+      if currentElif.type is 'IfStatement'
+        if currentElif.alternate?
+          elseLocation = {
+            line: currentElif.alternate.loc.start.line
+            column: currentElif.alternate.loc.start.column
+          }
+          currentElif = currentElif.alternate
+        else
+          elseLocation = null
+          break
+      else
+        break
+
+    if elseLocation?
+      lines = text.split('\n')
+      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+      return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
+        __
+      }'''
+    else
+      return text + ''' else {
+        __
+      }'''
+
+JavaScriptParser.getDefaultSelectionRange = (string) ->
+  start = 0; end = string.length
+  if string[0] is string[string.length - 1] and string[0] in ['"', '\'', '/']
+    start += 1; end -= 1
+  return {start, end}
 
 module.exports = parser.wrapParser JavaScriptParser

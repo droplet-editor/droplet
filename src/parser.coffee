@@ -117,7 +117,8 @@ exports.Parser = class Parser
       opts.color,
       opts.socketLevel,
       opts.classes,
-      opts.parseContext
+      opts.parseContext,
+      opts.buttons
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -132,7 +133,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty, opts.precedence,
       false,
       opts.classes,
       opts.dropdown
@@ -477,8 +478,13 @@ Parser.drop = (block, context, pred, next) ->
   else
     return helper.ENCOURAGE
 
+Parser.handleButton = (text, command, oldblock) ->
+  return text
+
 Parser.empty = ''
 Parser.emptyIndent = ''
+
+getDefaultSelectionRange = (string) -> {start: 0, end: string.length}
 
 exports.wrapParser = (CustomParser) ->
   class CustomParserFactory extends ParserFactory
@@ -487,6 +493,7 @@ exports.wrapParser = (CustomParser) ->
       @emptyIndent = CustomParser.emptyIndent
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
+      @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
@@ -524,3 +531,5 @@ exports.wrapParser = (CustomParser) ->
       return [leading, trailing]
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
+
+    handleButton: (text, command, oldblock) -> CustomParser.handleButton text, command, oldblock

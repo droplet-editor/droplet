@@ -30,6 +30,9 @@ DROP_TRIANGLE_COLOR = '#555'
 SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
+  buttonWidth: 15
+  buttonHeight: 15
+  buttonPadding: 6
   showDropdowns: true
   padding: 5
   indentWidth: 20
@@ -1037,7 +1040,12 @@ exports.View = class View
             minDistanceToBase[line].above + margins.top)
           @minDistanceToBase[desiredLine].below = Math.max(
             @minDistanceToBase[desiredLine].below,
-            minDistanceToBase[line].below + bottomMargin)
+            minDistanceToBase[line].below + Math.max(bottomMargin, (
+              if (@model.buttons?.addButton or @model.buttons?.subtractButton) and desiredLine is @lineLength - 1
+                @view.opts.buttonPadding + @view.opts.buttonHeight
+              else
+                0
+            )))
 
       # Height is just the sum of the above-base and below-base counts.
       # Empty lines should have some height.
@@ -1586,7 +1594,6 @@ exports.View = class View
             right.push new @view.draw.Point bounds.right(), multilineBounds.bottom()
             right.push new @view.draw.Point bounds.right(), bounds.bottom()
 
-
         # "Glue" phase
         # Here we use our glue spacing data
         # to draw glue, if necessary.
@@ -1743,6 +1750,27 @@ exports.View = class View
       if @model.type is 'block'
         @path.style.fillColor = @view.getColor @model.color
 
+      # Add the add button if necessary
+      if @model.buttons?.addButton
+        lastLine = @bounds.length - 1
+        lastRect = @bounds[lastLine]
+        start = lastRect.x + lastRect.width - @extraWidth
+        top = lastRect.y + lastRect.height/2 - @view.opts.buttonHeight/2
+        # Cases when last line is MULTILINE
+        if @multilineChildrenData[lastLine] is MULTILINE_END
+          multilineChild = @lineChildren[lastLine][0]
+          multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[lastLine - multilineChild.startLine]
+          # If it is a G-Shape
+          if @lineChildren[lastLine].length > 1
+            height = multilineBounds.bottom() - lastRect.y
+            top = lastRect.y + height/2 - @view.opts.buttonHeight/2
+          else
+            height = lastRect.bottom() - multilineBounds.bottom()
+            top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
+
+          @addButtonPath.element.setAttribute 'transform', "translate(#{start}, #{top})"
+          @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+
       # Return it.
       return @path
 
@@ -1827,7 +1855,27 @@ exports.View = class View
 
   # # BlockViewNode
   class BlockViewNode extends ContainerViewNode
-    constructor: -> super
+    constructor: ->
+      super
+      if @model.buttons?.addButton
+        @addButtonPath = new @view.draw.Path([
+            new @view.draw.Point 0, 0
+            new @view.draw.Point 0 + @view.opts.buttonWidth, 0
+            new @view.draw.Point 0 + @view.opts.buttonWidth, 0 + @view.opts.buttonHeight
+            new @view.draw.Point 0, 0 + @view.opts.buttonHeight
+        ], true, {
+          fillColor: @view.getColor(@model.color)
+          cssClass: 'droplet-button-path'
+        })
+
+        textElement = new @view.draw.Text(new @view.draw.Point(
+          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText('+').width)/ 2,
+          @view.opts.buttonHeight - @view.opts.textHeight
+        ), '+')
+        textElement.setParent @addButtonPath
+
+        @addButtonPath.setParent @group
+        @elements.push @addButtonPath
 
     computeMinDimensions: ->
       if @computedVersion is @model.version
@@ -1835,11 +1883,20 @@ exports.View = class View
 
       super
 
+      @extraWidth = 0
+      if @model.buttons.addButton
+        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+      if @model.buttons.subtractButton
+        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
       # Blocks have a shape including a lego nubby "tab", and so
       # they need to be at least wide enough for tabWidth+tabOffset.
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
+
+      @minDimensions[@minDimensions.length - 1].width += @extraWidth
 
       return null
 

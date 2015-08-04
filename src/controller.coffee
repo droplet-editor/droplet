@@ -985,7 +985,7 @@ class RememberedSocketRecord
       @text
     )
 
-Editor::replace = (before, after, updates) ->
+Editor::replace = (before, after, updates = []) ->
   dropletDocument = before.start.getDocument()
   if dropletDocument?
     operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
@@ -1146,6 +1146,36 @@ hook 'mousedown', 1, (point, event, state) ->
 
         @redrawMain()
         return
+
+# If the user clicks inside a block
+# and the block contains a button
+# which is either add or subtract button
+# call the handleButton callback
+hook 'mousedown', 4, (point, event, state) ->
+  if state.consumedHitTest then return
+  if not @trackerPointIsInMain(point) then return
+
+  mainPoint = @trackerPointToMain point
+
+  #Buttons aren't clickable in a selection
+  if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
+
+  hitTestResult = @hitTest mainPoint, @tree
+
+  if hitTestResult?
+    hitTestBlock = @view.getViewNodeFor hitTestResult
+    str = hitTestResult.stringifyInPlace()
+
+    if hitTestBlock.addButtonPath? and hitTestBlock.addButtonRect.contains mainPoint
+      line = @mode.handleButton str, 'add-button', hitTestResult.getReader()
+      @populateBlock hitTestResult, line
+      state.consumedHitTest = true
+    ### TODO
+    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
+      line = @mode.handleButton str, 'subtract-button', hitTestResult.getReader()
+      @populateBlock hitTestResult, line
+      state.consumedHitTest = true
+    ###
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -2154,6 +2184,31 @@ Editor::populateSocket = (socket, string) ->
 
     @spliceIn (new model.List(first, last)), socket.start
 
+Editor::populateBlock = (block, string) ->
+  newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
+  if newBlock
+    # For Cursor Recovery
+    if @cursor.count < block.start.getLocation().count
+      # Before the block -> No special needs - Recoverable
+      @replace block, newBlock
+    else if @cursor.count < block.end.getLocation().count
+      # Inside the block -> Set to block Start - Not recoverable
+      # Pretty sure this can be handled better
+      # Not sure how to, though
+      @setCursor block, null, 'before'
+      @replace block, newBlock
+    else
+      # After the block -> Change count manually to recover - Recoverable
+      cursor = @cursor.clone()
+      oldBlockEnd = block.end.getLocation().count
+      # Need to set to a valid position before replacing block
+      @setCursor @tree
+      @replace block, newBlock
+      cursor.count += newBlock.end.getLocation().count - oldBlockEnd #Kind-of Hacky :P
+      @cursor = cursor
+    return true
+  return false
+
 # Convenience hit-testing function
 Editor::hitTestTextInput = (point, block) ->
   head = block.start
@@ -2288,9 +2343,10 @@ Editor::showDropdown = (socket = @getCursor()) ->
       @undoCapture()
 
       # Attempting to populate the socket after the dropdown has closed should no-op
-      return if @dropdownElement.style.display == 'none'
+      if (not @cursorAtSocket()) or @dropdownElement.style.display == 'none'
+        return
 
-      @populateSocket socket, text
+      @populateSocket @getCursor(), text
       @hiddenInput.value = text
 
       @redrawMain()
@@ -2612,7 +2668,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
-    @setTextSelectionRange 0, @hiddenInput.value.length
+    {start, end} = @mode.getDefaultSelectionRange @hiddenInput.value
+    @setTextSelectionRange start, end
 
 Editor::determineCursorPosition = ->
   # Do enough of the redraw to get the bounds
@@ -2756,7 +2813,7 @@ hook 'keydown', 0, (event, state) ->
   if @readOnly
     return
   if event.which is ENTER_KEY
-    if not @cursorAtSocket() and not event.shiftKey
+    if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
       newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
       newSocket.handwritten = true; newSocket.setParent newBlock

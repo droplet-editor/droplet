@@ -1,10 +1,10 @@
 # Droplet config editor
 dropletConfig = ace.edit 'droplet-config'
 dropletConfig.setTheme 'ace/theme/chrome'
-dropletConfig.getSession().setMode 'ace/mode/json'
+dropletConfig.getSession().setMode 'ace/mode/javascript'
 
 dropletConfig.setValue localStorage.getItem('config') ? '''
-  {
+  ({
     "mode": "coffeescript",
     "modeOptions": {
       "functions": {
@@ -35,7 +35,7 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
         ]
       }
     ]
-  }
+  })
 '''
 
 editor = null
@@ -56,7 +56,7 @@ createEditor = (options) ->
 
   window.editor = editor
 
-createEditor JSON.parse dropletConfig.getValue()
+createEditor eval dropletConfig.getValue()
 
 $('#toggle').on 'click', ->
   editor.toggleBlocks()
@@ -65,7 +65,7 @@ $('#toggle').on 'click', ->
 # Stuff for testing convenience
 $('#update').on 'click', ->
   localStorage.setItem 'config', dropletConfig.getValue()
-  createEditor JSON.parse dropletConfig.getValue()
+  createEditor eval dropletConfig.getValue()
 
 configCurrentlyOut = localStorage.getItem('configOut') is 'yes'
 

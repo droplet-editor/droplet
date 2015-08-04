@@ -356,7 +356,6 @@ text {
   cursor: -moz-grab;
   cursor: grab;
 }
-.droplet-dropdown-arrow {
+.droplet-dropdown-arrow, .droplet-button-path {
   cursor: pointer;
-} 
-
+}
