@@ -139,8 +139,6 @@ exports.View = class View
     @marks = {}
 
   beginDraw: ->
-    @garbageCollect()
-    @oldRoots = @newRoots
     @newRoots = {}
 
   hasViewNodeFor: (model) ->
@@ -193,12 +191,14 @@ exports.View = class View
   garbageCollect: ->
     @cleanupDraw()
 
-    for id, el of @newRoots
-      el.update()
-
     for id, el of @flaggedToDelete when id of @map
       @map[id].destroy()
       @destroy id
+
+    for id, el of @newRoots
+      el.update()
+
+    @oldRoots = @newRoots
 
   destroy: (id) ->
     for child in @map[id].children
@@ -270,10 +270,6 @@ exports.View = class View
             return
           else
             children[head.id] = @view.getAuxiliaryNode head
-
-      for id, child of @children
-        unless id of children
-          @view.flag child
 
       @children = children
 
