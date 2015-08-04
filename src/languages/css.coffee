@@ -248,6 +248,8 @@ exports.CSSParser = class CSSParser extends parser.Parser
       when 'property-value'
         for part in node.parts
           @nameTree part
+      when 'property-part'
+        @nameTree node.args
 
     if node.children?
       for child in node.children
