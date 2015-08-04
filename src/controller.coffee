@@ -620,20 +620,13 @@ Editor::redrawPalette = ->
   # of the last bottom edge of a palette block.
   lastBottomEdge = PALETTE_TOP_MARGIN
 
-  boundingRect = new @draw.Rectangle(
-    @viewports.palette.x,
-    @viewports.palette.y,
-    @paletteCanvas.clientWidth,
-    @paletteCanvas.clientHeight
-  )
-
   for entry in @currentPaletteBlocks
     # Layout this block
     paletteBlockView = @paletteView.getViewNodeFor entry.block
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
     # Render the block
-    paletteBlockView.draw boundingRect
+    paletteBlockView.draw()
 
     element = document.createElementNS SVG_STANDARD, 'title'
     element.innerHTML = entry.title ? entry.block.stringify()
@@ -647,7 +640,7 @@ Editor::redrawPalette = ->
 
   @paletteCanvas.style.height = lastBottomEdge + 'px'
 
-  @paletteView.cleanupDraw() #TODO garageCollect()
+  @paletteView.garbageCollect()
 
 Editor::rebuildPalette = ->
   @redrawPalette()

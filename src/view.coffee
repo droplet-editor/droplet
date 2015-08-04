@@ -1768,8 +1768,8 @@ exports.View = class View
             height = lastRect.bottom() - multilineBounds.bottom()
             top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-          @addButtonPath.element.setAttribute 'transform', "translate(#{start}, #{top})"
-          @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+        @addButtonPath.element.setAttribute 'transform', "translate(#{start}, #{top})"
+        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
 
       # Return it.
       return @path
