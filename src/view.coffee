@@ -139,9 +139,9 @@ exports.View = class View
     @marks = {}
 
   beginDraw: ->
+    @garbageCollect()
     @oldRoots = @newRoots
     @newRoots = {}
-    @unflaggedToDelete = {}
 
   hasViewNodeFor: (model) ->
     model? and model.id of @map
@@ -165,10 +165,12 @@ exports.View = class View
       else if node.hasParent(aux.model)
         return
 
-    @newRoots[node.id] =
-      @unflaggedToDelete[node.id] = @getAuxiliaryNode(node)
+    @newRoots[node.id] = @getAuxiliaryNode(node)
 
   cleanupDraw: ->
+    @flaggedToDelete = {}
+    @unflaggedToDelete = {}
+
     for id, el of @oldRoots
       unless id of @newRoots
         @flag el
@@ -191,6 +193,9 @@ exports.View = class View
   garbageCollect: ->
     @cleanupDraw()
 
+    for id, el of @newRoots
+      el.update()
+
     for id, el of @flaggedToDelete when id of @map
       @map[id].destroy()
       @destroy id
@@ -202,8 +207,6 @@ exports.View = class View
     delete @map[id]
     delete @auxiliaryMap[id]
     delete @flaggedToDelete[id]
-
-    @flaggedToDelete = {}
 
   hasViewNodeFor: (model) -> model? and model.id of @map
 
@@ -236,9 +239,26 @@ exports.View = class View
     cleanup: ->
       @view.unflag @
 
-      if @model instanceof model.List and not
-          (@model instanceof model.Container)
-        console.log 'cleaning a list'
+      if @model.version is @computedVersion
+        return
+
+      children = {}
+      if @model instanceof model.Container
+        @model.traverseOneLevel (head) =>
+          if head instanceof model.NewlineToken
+            return
+          else
+            children[head.id] = @view.getAuxiliaryNode head
+
+      for id, child of @children
+        unless id of children
+          @view.flag child
+
+      for id, child of children
+        child.cleanup()
+
+    update: ->
+      @view.unflag @
 
       if @model.version is @computedVersion
         return
@@ -254,17 +274,13 @@ exports.View = class View
       for id, child of @children
         unless id of children
           @view.flag child
-          if @model instanceof model.List and not
-              (@model instanceof model.Container)
-            console.log 'hey! a list just flagged', child
 
       @children = children
 
       for id, child of @children
-        child.cleanup()
+        child.update()
 
       @computedVersion = @model.version
-
 
   # # GenericViewNode
   # Class from which all renderer classes will
@@ -416,7 +432,7 @@ exports.View = class View
     # This is a void computeMargins that should be overridden.
     computeMargins: ->
       if @computedVersion is @model.version and
-         (not @model.parent? or
+         (not @model.parent? or not @view.hasViewNodeFor(@model.parent) or
          @model.parent.version is @view.getViewNodeFor(@model.parent).computedVersion)
         return @margins
 
@@ -561,7 +577,7 @@ exports.View = class View
         @distanceToBase[i].above = @minDistanceToBase[i].above
         @distanceToBase[i].below = @minDistanceToBase[i].below
 
-      if @model.parent? and not root and
+      if @model.parent? and @view.hasViewNodeFor(@model.parent) and not root and
           (@topLineSticksToBottom or @bottomLineSticksToTop or
            (@lineLength > 1 and not @model.isLastOnLine()))
         parentNode = @view.getViewNodeFor @model.parent

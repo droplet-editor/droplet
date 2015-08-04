@@ -1048,8 +1048,6 @@ Editor::clearHighlightCanvas = ->
 # Utility function for clearing the drag canvas,
 # an operation we will be doing a lot.
 Editor::clearDrag = ->
-  if @draggingBlock?
-    @dragView.garbageCollect()
   @clearHighlightCanvas()
 
 # On resize, we will want to size the drag canvas correctly.
