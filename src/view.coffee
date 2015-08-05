@@ -120,7 +120,9 @@ exports.View = class View
         @opts[option] = DEFAULT_OPTIONS[option]
 
   # Simple method for clearing caches
-  clearCache: -> @map = {}
+  clearCache: ->
+    @beginDraw()
+    @garbageCollect()
 
   # ## getViewNodeFor
   # Given a model object,
@@ -258,6 +260,7 @@ exports.View = class View
           @view.flag child
 
       for id, child of children
+        @children[id] = child
         child.cleanup()
 
     update: ->
