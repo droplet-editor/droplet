@@ -2134,16 +2134,21 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   parent = list.start.parent
   context = (list.start.container ? list.start.parent).parseContext
 
+  # Added primarly for CSS -> `a:b` can be a selector or a property depending on parent context.
+  parentContext = (list.start.container ? list.start.parent).parent?.parent?.parseContext #Parenting twice because parentBlock->Indent/socket->currentBlock
+
   try
     newList = @mode.parse list.stringifyInPlace(),{
       wrapAtRoot: parent.type isnt 'socket'
       context: context
+      parentContext: parentContext
     }
   catch e
     try
       newList = @mode.parse recovery(list.stringifyInPlace()), {
         wrapAtRoot: parent.type isnt 'socket'
         context: context
+        parentContext: parentContext
       }
     catch e
       # Seek a parent that is not a socket

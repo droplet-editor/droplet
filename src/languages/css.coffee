@@ -29,7 +29,9 @@ DEFAULT_INDENT_DEPTH = '  '
 PARSE_CONTEXTS = {
   selector: 'parseSelector'
   'selector-modifier': 'parseSelectorSubPart'
+  property: 'parseStyleAttribute'
   'property-value': 'parsePropertyValue'
+  'property-part': 'parsePropertyValue'
 }
 
 UNITS = {}
@@ -79,7 +81,7 @@ Stack.end = (element) ->
   top.loc.content.endCol = top.loc.endCol - 1
   Stack.add top, top.nodeType
 
-cssParser = new parserlib.css.Parser()
+window.cssParser = cssParser = new parserlib.css.Parser()
 cssParser.addListener("startstylesheet", -> null)
 cssParser.addListener("endstylesheet", -> null)
 cssParser.addListener("charset", (event) -> Stack.add event, 'charset')
@@ -104,7 +106,7 @@ cssParser.addListener("startmedia", (event) -> Stack.start event, 'mediaquery')
 cssParser.addListener("endmedia", (event) -> Stack.end event)
 cssParser.addListener("error", (event) -> Stack.setValid false)
 
-# Though we are not parsnig style Attribute
+# Though we are not parsing style Attribute
 # it is the same as parsing a set of declarations
 # and we use it to parse a single declaration
 ParseOrder = ["parse", "parseSelectorSubPart", "parseSelector", "parsePropertyValue", "parseMediaQuery", "parseStyleAttribute"]
@@ -166,11 +168,11 @@ exports.CSSParser = class CSSParser extends parser.Parser
     switch node.nodeType
       when 'selector'
         empty = '__'
+      when 'selector-modifier'
+        empty = '__'
       when 'property-value'
         empty = '__'
       when 'property-part'
-        empty = '__'
-      when 'selector-modifier'
         empty = '__'
     @addSocket
       bounds: bounds ? @getBounds node
@@ -180,6 +182,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
       acccepts: @getAcceptsRule node
       dropdown: dropdown
       empty: empty
+      parseContext: node.nodeType
 
   getIndentPrefix: (bounds, indentDepth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -256,12 +259,16 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @nameTree child
 
   markRoot: ->
-    #console.log 'Parsing: ', @text
+    #console.log 'Parsing: ', @text, @opts.parseOptions?.context
     ast = null
     parseContext = PARSE_CONTEXTS[@opts.parseOptions?.context]
     if parseContext
+      if @opts.parseOptions.context in ['selector', 'selector-part'] and @opts.parseOptions.parentContext is 'property'
+        parseContext = PARSE_CONTEXTS['property-value']
       Stack.init()
+      Stack.setValid true
       ast = cssParser[parseContext] @text
+      console.log ast, Stack.top()
     else
       for parse in ParseOrder
         try

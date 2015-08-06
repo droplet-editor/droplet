@@ -14,7 +14,7 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
           {"block": ".spl {\\n  \\n}"},
           {
             "block": "selector.highlights",
-            "expansion": "elementName.class#id:hover::first-child > div[target=_blank]"
+            "expansion": "elementName.class#id:hover::before > div[target=_blank]"
           },
           {"block": "@media print {\\n  \\n}"},
           {"block": "@page {\\n  \\n}"},
