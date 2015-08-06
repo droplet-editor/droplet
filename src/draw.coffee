@@ -96,6 +96,11 @@ exports.Draw = class Draw
     @fontAscent = 2
     @fontBaseline = 10
 
+    @measureCtx.font = "#{@fontSize}px #{@fontFamily}"
+
+    @ctx.style.fontFamily = @fontFamily
+    @ctx.style.fontSize = @fontSize
+
     self = this
 
     # ## Point ##
@@ -673,19 +678,14 @@ exports.Draw = class Draw
     # accomplished via ctx.measureText().
     @Text = class Text extends ElementWrapper
       constructor: (@point, @value) ->
-        @wantedFont = self.fontSize + 'px ' + self.fontFamily
-
-        unless self.measureCtx.font is @wantedFont
-          self.measureCtx.font = self.fontSize + 'px ' + self.fontFamily
-
-        @_bounds = new Rectangle @point.x, @point.y, self.measureCtx.measureText(@value).width, self.fontSize
-
         @__lastValue = @value
         @__lastPoint = @point.clone()
 
         @element = @makeElement()
 
         super @element
+
+        @_bounds = new Rectangle @point.x, @point.y, @element.getComputedTextLength(), self.fontSize
 
       clone: -> new Text @point, @value
       equals: (other) -> other? and @point.equals(other.point) and @value is other.value
@@ -706,8 +706,8 @@ exports.Draw = class Draw
         element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent / 2
         element.setAttribute 'dominant-baseline', 'alphabetic'
 
-        element.setAttribute 'font-family', self.fontFamily
-        element.setAttribute 'font-size', self.fontSize
+        #element.setAttribute 'font-family', self.fontFamily
+        #element.setAttribute 'font-size', self.fontSize
 
         text = document.createTextNode @value.replace(/ /g, '\u00A0') # Preserve whitespace
         element.appendChild text
@@ -733,10 +733,12 @@ exports.Draw = class Draw
 
   setGlobalFontSize:  (size) ->
     @fontSize = size
+    @ctx.style.fontSize = size
     @refreshFontCapital()
 
   setGlobalFontFamily:  (family) ->
     @fontFamily = family
+    @ctx.style.fontFamily = family
     @refreshFontCapital()
 
   getGlobalFontSize:  -> @fontSize

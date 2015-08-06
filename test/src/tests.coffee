@@ -635,13 +635,16 @@ asyncTest 'Controller: arbitrary row/column marking', ->
     prompt 10 / 10
   '''
 
-  key = editor.mark {row: 2, col: 4}, {color: '#F00'}
+  equal editor.tree.getFromTextLocation({row: 2, col: 9, type: 'block'}).stringify(), '10 - 10', 'Selected the right block'
 
-  strictEqual editor.markedBlocks[key].model.stringify({}), '10 - 10'
-  strictEqual editor.markedBlocks[key].style.color, '#F00'
+  before = $('[stroke=#F00]').length
 
-  editor.unmark key
-  ok key not of editor.markedBlocks
+  key = editor.mark {row: 2, col: 9, type: 'block'}, {color: '#F00'}
+
+  after = $('[stroke=#F00]').length
+
+  ok after > before, 'Added a red mark'
+
   start()
 
 asyncTest 'Controller: dropdown menus', ->

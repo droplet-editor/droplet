@@ -632,6 +632,8 @@ Editor::redrawPalette = ->
     element.innerHTML = entry.title ? entry.block.stringify()
     paletteBlockView.group.element.appendChild element
 
+    paletteBlockView.group.element.setAttribute 'data-id', entry.id
+
     # Update lastBottomEdge
     lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
 

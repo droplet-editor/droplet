@@ -93,34 +93,34 @@ asyncTest 'Controller: palette block expansion', ->
       blocks: [{
         block: 'pen()',
         expansion: 'pen red',
-        title: 'ptest'
+        id: 'ptest'
       }, {
         block: 'a = b',
         expansion: -> return 'a' + (++varcount) + ' = b'
-        title: 'ftest'
+        id: 'ftest'
       },
       ],
     }]
   })
-  simulate('mousedown', '[title=ptest]')
+  simulate('mousedown', '[data-id=ptest]')
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '[title=ptest]', dx: 5 })
+    { location: '[data-id=ptest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
     { location: '.droplet-main-scroller' })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller' })
   equal(editor.getValue().trim(), 'pen red')
-  simulate('mousedown', '[title=ftest]')
+  simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '[title=ftest]', dx: 5 })
+    { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
   equal(editor.getValue().trim(), 'pen red\na1 = b')
-  simulate('mousedown', '[title=ftest]')
+  simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '[title=ftest]', dx: 5 })
+    { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 80 })
   simulate('mouseup', '.droplet-drag-cover',
@@ -140,8 +140,8 @@ asyncTest 'Controller: reparse and undo reparse', ->
   editor.setEditorState(true)
   editor.setValue('var hello = 1;')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 160, dy: 20})
-  simulate('mouseup', '.droplet-main-canvas', {dx: 160, dy: 20})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 120, dy: 20})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 120, dy: 20})
 
   ok(editor.cursorAtSocket(), 'Has text focus')
   equal(editor.getCursor().stringify(), '1')
@@ -156,8 +156,8 @@ asyncTest 'Controller: reparse and undo reparse', ->
     simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
 
     # Sockets are separate
-    simulate('mousedown', '.droplet-main-canvas', {dx: 160, dy: 30})
-    simulate('mouseup', '.droplet-main-canvas', {dx: 160, dy: 30})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 120, dy: 30})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 120, dy: 30})
 
     ok(editor.cursorAtSocket(), 'Has text focus')
 
@@ -166,8 +166,8 @@ asyncTest 'Controller: reparse and undo reparse', ->
     editor.undo()
 
     setTimeout (->
-      simulate('mousedown', '.droplet-main-canvas', {dx: 160, dy: 20})
-      simulate('mouseup', '.droplet-main-canvas', {dx: 160, dy: 20})
+      simulate('mousedown', '.droplet-main-canvas', {dx: 120, dy: 20})
+      simulate('mouseup', '.droplet-main-canvas', {dx: 120, dy: 20})
       equal(editor.getCursor().stringify(), '1', 'Successfully undid reparse')
     ), 0
 
@@ -186,8 +186,8 @@ asyncTest 'Controller: reparse fallback', ->
   editor.setEditorState(true)
   editor.setValue('var hello = mFunction(a);')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
-  simulate('mouseup', '.droplet-main-canvas', {dx: 260, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 220, dy: 30})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 220, dy: 30})
 
   ok(editor.cursorAtSocket(), 'Has text focus')
   equal(editor.getCursor().stringify(), 'a')
@@ -205,8 +205,8 @@ asyncTest 'Controller: reparse fallback', ->
     equal(editor.getValue().trim(), 'var hello = mFunction(a, b);')
 
     # Sockets are separate
-    simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
-    simulate('mouseup', '.droplet-main-canvas', {dx: 260, dy: 30})
+    simulate('mousedown', '.droplet-main-canvas', {dx: 220, dy: 30})
+    simulate('mouseup', '.droplet-main-canvas', {dx: 220, dy: 30})
 
     ok(editor.cursorAtSocket(), 'Has text focus')
 
@@ -224,11 +224,13 @@ asyncTest 'Controller: does not throw on reparse error', ->
     palette: []
   })
 
+  before = $('[stroke=#F00]').length
+
   editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
-  simulate('mouseup', '.droplet-main-canvas', {dx: 260, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 220, dy: 30})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 220, dy: 30})
 
   ok(editor.getCursor(), 'Has text focus')
   equal(editor.getCursor().stringify(), 'a')
@@ -244,14 +246,9 @@ asyncTest 'Controller: does not throw on reparse error', ->
 
     ok(true, 'Does not throw on reparse')
 
-    foundErrorMark = false
-    for key, val of editor.markedBlocks
-      if val.model.stringify() is '18n' and
-          val.style.color is '#F00'
-        foundErrorMark = true
-        break
+    after = $('[stroke=#F00]').length
 
-    ok(foundErrorMark, 'Marks block with a red line')
+    ok(after > before, 'Marks block with a red line')
 
     start()
   ), 10)
@@ -267,20 +264,20 @@ asyncTest 'Controller: Can replace a block where we found it', ->
   editor.setValue('for (var i = 0; i < 5; i++) {\n' +
                    '  fd(10);\n' +
                    '}\n')
-  simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
   simulate('mousemove', '.droplet-drag-cover'
-    {location: '.droplet-main-canvas', dx: 305, dy: 35})
+    {location: '.droplet-main-canvas', dx: 265, dy: 35})
   simulate('mouseup', '.droplet-drag-cover'
-    {location: '.droplet-main-canvas', dx: 305, dy: 35})
+    {location: '.droplet-main-canvas', dx: 265, dy: 35})
   equal(editor.getValue() , 'for (var i = 0; i < 5; i++) {\n' +
                             '  fd(10);\n' +
                             '}\n')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 260, dy: 30})
   simulate('mousemove', '.droplet-drag-cover'
-    {location: '.droplet-main-canvas', dx: 290, dy: 25})
+    {location: '.droplet-main-canvas', dx: 210, dy: 25})
   simulate('mouseup', '.droplet-drag-cover'
-    {location: '.droplet-main-canvas', dx: 290, dy: 25})
+    {location: '.droplet-main-canvas', dx: 210, dy: 25})
   equal(editor.getValue() , 'for (var i = 0; i < i++; __) {\n' +
                             '  fd(10);\n' +
                             '}\n')
@@ -365,11 +362,11 @@ getRandomTextOp = (editor, rng) ->
 
 performTextOperation = (editor, text, cb) ->
   simulate('mousedown', editor.mainCanvas, {
-    dx: text.socket.handle.x + editor.gutter.offsetWidth,
+    dx: text.socket.handle.x,
     dy: text.socket.handle.y
   })
   simulate('mouseup', editor.mainCanvas, {
-    dx: text.socket.handle.x + editor.gutter.offsetWidth,
+    dx: text.socket.handle.x,
     dy: text.socket.handle.y
   })
   setTimeout (->
@@ -392,12 +389,12 @@ performTextOperation = (editor, text, cb) ->
 
 performDragOperation = (editor, drag, cb) ->
   simulate('mousedown', editor.mainCanvas, {
-    dx: drag.drag.handle.x + editor.gutter.offsetWidth,
+    dx: drag.drag.handle.x,
     dy: drag.drag.handle.y
   })
   simulate('mousemove', editor.dragCover, {
     location: editor.mainCanvas
-    dx: drag.drag.handle.x + editor.gutter.offsetWidth + 5,
+    dx: drag.drag.handle.x + 5,
     dy: drag.drag.handle.y + 5
   })
   simulate('mousemove', editor.dragCover, {
@@ -429,12 +426,12 @@ pickUpLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
   bound = editor.view.getViewNodeFor(block).bounds[0]
   simulate('mousedown', editor.mainCanvas, {
-    dx: bound.x + editor.gutter.offsetWidth + 5,
+    dx: bound.x + 5,
     dy: bound.y + 5
   })
   simulate('mousemove', editor.dragCover, {
     location: editor.mainCanvas
-    dx: bound.x + editor.gutter.offsetWidth + 10,
+    dx: bound.x + 10,
     dy: bound.y + 10
   })
 
@@ -615,12 +612,12 @@ asyncTest 'Controller: Quoted string selection', ->
   entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
   {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
 
-  simulate('mousedown', editor.mainScrollerStuffing, {
-    dx: x + 5 + editor.gutter.offsetWidth
+  simulate('mousedown', editor.mainCanvas, {
+    dx: x + 5
     dy: y + 5
   })
-  simulate('mouseup', editor.mainScrollerStuffing, {
-    dx: x + 5 + editor.gutter.offsetWidth
+  simulate('mouseup', editor.mainCanvas, {
+    dx: x + 5
     dy: y + 5
   })
 
@@ -667,12 +664,12 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
 
   executeAsyncSequence [
     (->
-      simulate('mousedown', editor.mainScrollerStuffing, {
-        dx: x + 5 + editor.gutter.offsetWidth
+      simulate('mousedown', editor.mainCanvas, {
+        dx: x + 5
         dy: y + 5
       })
-      simulate('mouseup', editor.mainScrollerStuffing, {
-        dx: x + 5 + editor.gutter.offsetWidth
+      simulate('mouseup', editor.mainCanvas, {
+        dx: x + 5
         dy: y + 5
       })
     ), (->
@@ -681,11 +678,11 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
 
       $('.droplet-hidden-input').sendkeys("h\\tel\\\\\"'lo")
     ), (->
-      simulate('mousedown', editor.mainScrollerStuffing, {
+      simulate('mousedown', editor.mainCanvas, {
         dx: 500
         dy: 500
       })
-      simulate('mouseup', editor.mainScrollerStuffing, {
+      simulate('mouseup', editor.mainCanvas, {
         dx: 500
         dy: 500
       })
