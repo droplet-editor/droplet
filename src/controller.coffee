@@ -2210,25 +2210,9 @@ Editor::populateSocket = (socket, string) ->
 Editor::populateBlock = (block, string) ->
   newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
   if newBlock
-    # For Cursor Recovery
-    if @cursor.count < block.start.getLocation().count
-      # Before the block -> No special needs - Recoverable
-      @replace block, newBlock
-    else if @cursor.count < block.end.getLocation().count
-      # Inside the block -> Set to block Start - Not recoverable
-      # Pretty sure this can be handled better
-      # Not sure how to, though
-      @setCursor block, null, 'before'
-      @replace block, newBlock
-    else
-      # After the block -> Change count manually to recover - Recoverable
-      cursor = @cursor.clone()
-      oldBlockEnd = block.end.getLocation().count
-      # Need to set to a valid position before replacing block
-      @setCursor @tree
-      @replace block, newBlock
-      cursor.count += newBlock.end.getLocation().count - oldBlockEnd #Kind-of Hacky :P
-      @cursor = cursor
+    location = block.start.prev
+    @spliceOut block
+    @spliceIn newBlock, location
     return true
   return false
 

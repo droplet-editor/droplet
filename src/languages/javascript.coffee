@@ -369,7 +369,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
-        else
+        else if @opts.zeroParamFunctions
           nodeBoundsStart = @getBounds(node.id).end
           match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
           if match?
@@ -407,7 +407,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
-        else
+        else if @opts.zeroParamFunctions
           if node.id?
             nodeBoundsStart = @getBounds(node.id).end
             match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
