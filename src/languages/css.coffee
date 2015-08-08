@@ -34,26 +34,15 @@ PARSE_CONTEXTS = {
   'property-part': 'parsePropertyValue'
 }
 
-UNITS = {}
-
-(->
-  UTS = {
-    length: ['em', 'px', 'mm', 'in', 'pt']
-    angle: ['deg', 'rad', 'grad']
-    time: ['ms', 's']
-    frequency: ['hz', 'khz']
-    resolution: ['dpi', 'dpcm']
-    pseudoElements: ['before', 'after', 'first-letter', 'first-line', 'selection']
-    pseudoClasses: ['active', 'hover', 'link', 'focus', 'visited']
-  }
-
-  for k, v of UTS
-    UNITS[k] = {
-      dropdownOnly: if k is 'pseudoElements' then true else false
-      options: v
-      generate: -> @options.map (x) => {text: x, display: x}
-    }
-)()   #To prevent namespace pollution
+UNITS = {
+  length: ['em', 'px', 'mm', 'in', 'pt']
+  angle: ['deg', 'rad', 'grad']
+  time: ['ms', 's']
+  frequency: ['hz', 'khz']
+  resolution: ['dpi', 'dpcm']
+  pseudoElements: ['before', 'after', 'first-letter', 'first-line', 'selection']
+  pseudoClasses: ['active', 'hover', 'link', 'focus', 'visited']
+}
 
 Stack = []
 Stack.setValid = (state) -> Stack._valid = state
@@ -268,7 +257,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
       Stack.init()
       Stack.setValid true
       ast = cssParser[parseContext] @text
-      console.log ast, Stack.top()
     else
       for parse in ParseOrder
         try
@@ -433,8 +421,11 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
 CSSParser.empty = ''
 
-CSSParser.parens = (leading, trainling, node, context) ->
-  return [leading, trainling]
+CSSParser.parens = (leading, trailing, node, context) ->
+  #console.log node
+  if context?.classes[0] in ['page', 'pagemargin', 'fontface', 'viewport', 'rule', 'keyframerule'] and node.classes[0] in ['selector', 'property']
+    trailing ';'
+  return
 
 CSSParser.drop = (block, context, pred, next) ->
   #console.log block, context, pred
@@ -482,12 +473,12 @@ CSSParser.drop = (block, context, pred, next) ->
     return helper.FORBID
 
   if context.type is 'document'
-    if blockType in ['rule', 'mediaquery', 'page', 'fontface', 'keyframes'] and nextType not in ['charset', 'import', 'namespace']
+    if blockType in ['rule', 'mediaquery', 'page', 'fontface', 'keyframes', 'viewport'] and nextType not in ['charset', 'import', 'namespace']
       return helper.ENCOURAGE
     return helper.FORBID
 
   if contextType is 'mediaquery'
-    if blockType is 'rule'
+    if blockType in ['rule', 'page', 'viewport', 'fontface']
       return helper.ENCOURAGE
     return helper.FORBID
 

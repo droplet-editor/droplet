@@ -8,17 +8,15 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
     "mode": "css",
     "palette": [
      {
-        "name": "Examples",
-        "color": "blue",
+        "name": "All",
+        "color": "lightblue",
         "blocks": [
           {"block": ".spl {\\n  \\n}"},
+          {"block": "background: 'red';"},
           {
             "block": "selector.highlights",
             "expansion": "elementName.class#id:hover::before > div[target=_blank]"
           },
-          {"block": "@media print {\\n  \\n}"},
-          {"block": "@page {\\n  \\n}"},
-          {"block": "background: 'red';"},
           {"block": "@charset \\"UTF-8\\";"},
           {
             "block": "@import url(\\"\\");",
@@ -27,7 +25,47 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
           {
             "block": "@namespace \\"uri\\";",
             "expansion": "@namespace svg \\"http://www.w3.org/2000/svg\\";"
-          }
+          },
+          {"block": "@font-face {\\n  \\n}"},
+          {"block": "@keyframes mymove {\\n  \\n}"},
+          {"block": "@page {\\n  \\n}"},
+          {"block": "@media print {\\n  \\n}"}
+        ]
+      },
+      {
+        "name": "Properties",
+        "color": "orange",
+        "blocks": [
+          {"block": "display: none;"},
+          {"block": "width: 1366px;"},
+          {"block": "height: 80%;"},
+          {"block": "font-size: small;"},
+          {"block": "font-weight: 500;"},
+          {
+            "block": "font-family: serif;",
+            "expansion": "font-family: \\"Times New Roman\\", Times, serif;"
+          },
+          {"block": "color: blue;"},
+          {"block": "float: left;"},
+          {
+            "block": "padding: 10%",
+            "expansion": "padding: 25px 50px 75px 100px;"
+          },
+          {"block": "text-align: center;"},
+          {"block": "border: 5px solid red;"},
+          {"block": "margin: 10px;"},
+          {"block": "position: relative;"},
+          {"block": "z-index: 10;"},
+          {
+            "block": "background: black;",
+            "expansion": "background: #ffffff url(\\"img_tree.png\\") no-repeat right top;"
+          },
+          {"block": "text-decoration: none;"},
+          {"block": "left: 100px;"},
+          {"block": "overflow: hidden;"},
+          {"block": "clear: none;"},
+          {"block": "cursor: crosshair;"},
+          {"block": "visibility: hidden;"}
         ]
       }
     ]
