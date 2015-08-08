@@ -11,8 +11,8 @@ TAGS = {
   html: {category: 'metadata'}
   head: {category: 'metadata'}
   title: {category: 'metadata'}
-  link: {category: 'metadata'}
-  meta: {category: 'metadata'}
+  link: {category: 'metadata', dropdown: {'*': ['href=""', 'rel=""', 'type=""', 'media=""', 'title=""'] } }
+  meta: {category: 'metadata', dropdown: {'*': ['content=""', 'name=""', 'http-equiv=""', 'property=""'] } }
   style: {category: 'metadata'}
   script: {category: 'metadata'}
   base: {category: 'metadata'}
@@ -20,7 +20,7 @@ TAGS = {
   #Grouping
   p: {category: 'grouping'}
   hr: {category: 'grouping'}
-  div: {category: 'grouping'}
+  div: {category: 'grouping', dropdown: {'*': ['class=""', 'id=""', 'style=""'] } }
   ul: {category: 'grouping'}
   ol: {category: 'grouping'}
   li: {category: 'grouping'}
@@ -35,7 +35,7 @@ TAGS = {
   dd: {category: 'grouping'}
 
   #Content
-  a: {category: 'content'}
+  a: {category: 'content', dropdown: {'*': ['href=""', 'target=""', 'title=""', 'rel=""', 'onclick=""'] } }
   i: {category: 'content'}
   b: {category: 'content'}
   u: {category: 'content'}
@@ -62,7 +62,7 @@ TAGS = {
   mark: {category: 'content'}
   bdi: {category: 'content'}
   bdo: {category: 'content'}
-  span: {category: 'content'}
+  span: {category: 'content', dropdown: {'*': ['class=""', 'id=""', 'style=""'] } }
   wbr: {category: 'content'}
   '#text': {category: 'content'}
 
@@ -96,10 +96,10 @@ TAGS = {
   th: {category: 'table'}
 
   #Form
-  form: {category: 'form'}
-  input: {category: 'form'}
-  textarea: {category: 'form'}
-  label: {category: 'form'}
+  form: {category: 'form', dropdown: {'*': ['action=""', 'method=""', 'name=""'] } }
+  input: {category: 'form', dropdown: {'*': ['type=""', 'name=""', 'value=""'] } }
+  textarea: {category: 'form', content: 'optional'}
+  label: {category: 'form', dropdown: {'*': ['for=""'] } }
   button: {category: 'form'}
   select: {category: 'form'}
   option: {category: 'form'}
@@ -107,14 +107,14 @@ TAGS = {
   datalist: {category: 'form'}
   keygen: {category: 'form'}
   output: {category: 'form'}
-  progress: {category: 'form'}
-  meter: {category: 'form'}
+  progress: {category: 'form', content: 'optional'}
+  meter: {category: 'form', content: 'optional'}
   fieldset: {category: 'form'}
   legend: {category: 'form'}
 
   #Embedded
-  img: {category: 'embedded'}
-  iframe: {category: 'embedded'}
+  img: {category: 'embedded', dropdown: { '*': ['src=""', 'alt=""', 'width=""', 'height=""', 'border=""', 'title=""'] } }
+  iframe: {category: 'embedded', content: 'optional'}
   embed: {category: 'embedded'}
   object: {category: 'embedded'}
   param: {category: 'embedded'}
@@ -135,7 +135,7 @@ TAGS = {
   dialog: {category: 'other'}
   noscript: {category: 'other'}
   template: {category: 'other'}
-  canvas: {category: 'other'}
+  canvas: {category: 'other', content: 'optional'}
   svg: {category: 'other'}
   frameset: {category: 'other'}
 }
@@ -211,6 +211,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     if @opts.tags[node.nodeName]
       return @opts.categories[@opts.tags[node.nodeName].category].color
     return @opts.categories.Default.color
+
+  getDropdown: (node) ->
+    return @opts.tags[node.nodeName]?.dropdown?['*'] ? null
 
   getBounds: (node) ->
     bounds = {
@@ -288,6 +291,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       while i < node.childNodes.length
         @cleanTree node.childNodes[i]
         if not node.childNodes[i].__location
+          if node.childNodes[i].childNodes?
+            for child in node.childNodes[i].childNodes
+              child.parentNode = node
           node.childNodes = node.childNodes[0...i].concat(node.childNodes[i].childNodes || []).concat node.childNodes[i+1...]
         else
           i++
@@ -298,7 +304,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       return
 
     if node.childNodes?
-      for child in node.childNodes
+      for child, i in node.childNodes
         @fixBounds child
       newList = []
       for child in node.childNodes
@@ -338,9 +344,46 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       node.__indentLocation.end = node.__location.startTag.end
 
     if not node.__location.endTag
-      node.__location.end = node.__indentLocation.end
+      # Forcing object copy because
+      # sometimes parse5 reuses location info
+      # for semi-fake nodes.
+      node.__location = {
+        start: node.__location.start
+        end: node.__indentLocation.end
+      }
 
     @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
+
+  getEndPoint: (node) ->
+    if node.nodeName in ['#document', '#document-fragment']
+      return @text.length
+    last = null
+    parent = node.parentNode
+    ind = parent.childNodes.indexOf node
+    if ind is parent.childNodes.length - 1
+      last = if parent.__location?.endTag? then parent.__location.endTag.start else @getEndPoint parent
+    else
+      last = parent.childNodes[ind+1].__location.start
+    return last
+
+  trimText: (node) ->
+    location = node.__location
+    location.end = Math.min location.end, @getEndPoint node
+    text = @text[location.start...location.end].split '\n'
+    i = 0
+    while text[i].trim().length is 0
+      location.start += text[i].length + 1
+      i++
+    j = text.length - 1
+    while text[j].trim().length is 0
+      j--
+    text = text[i..j].join '\n'
+    location.end = location.start + text.length
+    if i isnt 0
+      leftTrimText = text.trimLeft()
+      location.start += text.length - leftTrimText.length
+      text = leftTrimText
+    node.value = text
 
   makeIndentBounds: (node) ->
     bounds = {
@@ -360,25 +403,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     return bounds
 
-  trimText: (node) ->
-    text = node.value
-    location = node.__location
-    text = text.split '\n'
-    i = 0
-    while text[i].trim().length is 0
-      location.start += text[i].length + 1
-      i++
-    j = text.length - 1
-    while text[j].trim().length is 0
-      j--
-    text = text[i..j].join '\n'
-    location.end = location.start + text.length
-    if i isnt 0
-      leftTrimText = text.trimLeft()
-      location.start += text.length - leftTrimText.length
-      text = leftTrimText
-    node.value = text
-
   getSocketLevel: (node) -> helper.ANY_DROP
 
   htmlBlock: (node, depth, bounds) ->
@@ -392,12 +416,13 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       parseContext: node.nodeName
       buttons: @getButtons node
 
-  htmlSocket: (node, depth, precedence, bounds, classes) ->
+  htmlSocket: (node, depth, precedence, bounds, classes, noDropdown) ->
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
       precedence: precedence
       classes: classes ? @getClasses node
+      dropdown: if noDropdown then null else @getDropdown node
 
   getIndentPrefix: (bounds, indentDepth, depth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -439,51 +464,66 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         root = htmlParser.parseFragment @text
         @cleanTree root
         @fixBounds root
+    window.root = root
+    window.parse5 = htmlParser
     @mark 0, root, 0, null
 
-  mark: (indentDepth, node, depth, bounds) ->
+  mark: (indentDepth, node, depth, bounds, nomark = false) ->
 
     switch node.type
       when 'document'
+        lastChild = null
         for child in node.childNodes
-          @mark indentDepth, child, depth + 1, null
+          if lastChild and lastChild.__location.end > child.__location.start then nomark = true else nomark = false
+          @mark indentDepth, child, depth + 1, null, nomark
+          unless nomark
+            lastChild = child
 
       when 'emptyTag'
-        @htmlBlock node, depth, bounds
-        for attrib in node.attributes
-          if attrib.end - attrib.start > 1
-            @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
+        unless nomark
+          @htmlBlock node, depth, bounds
+          for attrib in node.attributes
+            if attrib.end - attrib.start > 1
+              @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
 
       when 'blockTag'
-        @htmlBlock node, depth, bounds
-        for attrib in node.attributes
-          @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
-        indentBounds = @makeIndentBounds node
-        if indentBounds.start.line isnt indentBounds.end.line or indentBounds.start.column isnt indentBounds.end.column
-          depth++
-          prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
-          indentDepth += prefix.length
-          @addIndent
-            bounds: indentBounds
-            depth: depth
-            prefix: prefix
-            classes: @getClasses node
-          for child in node.childNodes
-            @mark indentDepth, child, depth + 1, null
-        else
-          if (node.nodeName isnt 'script' or not @hasAttribute node, 'src') and
-              node.__indentLocation.end isnt node.__location.end
-            @htmlSocket node, depth + 1, null, indentBounds
+        unless nomark
+          @htmlBlock node, depth, bounds
+          for attrib in node.attributes
+            @htmlSocket node, depth + 1, null, @genBounds(attrib), ATTRIBUTE_CLASSES
+          indentBounds = @makeIndentBounds node
+          if indentBounds.start.line isnt indentBounds.end.line or indentBounds.start.column isnt indentBounds.end.column
+            depth++
+            prefix = @getIndentPrefix(indentBounds, indentDepth, depth)
+            indentDepth += prefix.length
+            @addIndent
+              bounds: indentBounds
+              depth: depth
+              prefix: prefix
+              classes: @getClasses node
+            lastChild = null
+          else
+            unless TAGS[node.nodeName].content is 'optional' or
+                (node.nodeName is 'script' and @hasAttribute node, 'src') or
+                node.__indentLocation.end is node.__location.end
+              @htmlSocket node, depth + 1, null, indentBounds, null, true
+        for child in node.childNodes
+          if lastChild and lastChild.__location.end > child.__location.start then nomark = true else nomark = false
+          @mark indentDepth, child, depth + 1, null, nomark
+          unless nomark
+            lastChild = child
 
       when 'text'
-        @htmlBlock node, depth, bounds
-        @htmlSocket node, depth + 1, null
+        unless nomark
+          @htmlBlock node, depth, bounds
+          @htmlSocket node, depth + 1, null
 
       when 'comment'
-        @htmlBlock node, depth, bounds
-        node.__location.start += 4
-        node.__location.end -= 3
-        @htmlSocket node, depth + 1, null
+        unless nomark
+          @htmlBlock node, depth, bounds
+          node.__location.start += 4
+          node.__location.end -= 3
+          @htmlSocket node, depth + 1, null
 
   isComment: (text) ->
     text.match(/<!--.*-->/)
