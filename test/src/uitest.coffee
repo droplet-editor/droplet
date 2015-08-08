@@ -152,8 +152,11 @@ asyncTest 'Controller: reparse and undo reparse', ->
     ok(editor.cursorAtSocket(), 'Editor still has text focus')
     equal(editor.getCursor().stringify(), '2 + 3')
 
-    simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 300})
-    simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
+    # unfocus
+    evt = document.createEvent 'Event'
+    evt.initEvent 'keydown', true, true
+    evt.keyCode = evt.which = 13
+    editor.dropletElement.dispatchEvent(evt)
 
     # Sockets are separate
     simulate('mousedown', '.droplet-main-canvas', {dx: 120, dy: 30})
@@ -198,8 +201,11 @@ asyncTest 'Controller: reparse fallback', ->
     ok(editor.cursorAtSocket(), 'Editor still has text focus')
     equal(editor.getCursor().stringify(), 'a, b')
 
-    simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 300})
-    simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
+    # unfocus
+    evt = document.createEvent 'Event'
+    evt.initEvent 'keydown', true, true
+    evt.keyCode = evt.which = 13
+    editor.dropletElement.dispatchEvent(evt)
 
     # Did not insert parentheses
     equal(editor.getValue().trim(), 'var hello = mFunction(a, b);')
@@ -241,8 +247,11 @@ asyncTest 'Controller: does not throw on reparse error', ->
     ok(editor.getCursor(), 'Editor still has getCursor()')
     equal(editor.getCursor().stringify(), '18n')
 
-    simulate('mousedown', '.droplet-main-canvas', {dx: 300, dy: 300})
-    simulate('mouseup', '.droplet-main-canvas', {dx: 300, dy: 300})
+    # unfocus
+    evt = document.createEvent 'Event'
+    evt.initEvent 'keydown', true, true
+    evt.keyCode = evt.which = 13
+    editor.dropletElement.dispatchEvent(evt)
 
     ok(true, 'Does not throw on reparse')
 
@@ -370,21 +379,15 @@ performTextOperation = (editor, text, cb) ->
     dy: text.socket.handle.y
   })
   setTimeout (->
-    $(editor.hiddenInput).sendkeys(text.text)
-    setTimeout (->
-      # Unfocus
-      simulate('mousedown', editor.mainScroller, {
-        location: editor.mainCanvas
-        dx: editor.mainCanvas.offsetWidth - 1
-        dy: editor.mainCanvas.offsetHeight - 1
-      })
-      simulate('mouseup', editor.mainScroller, {
-        location: editor.mainCanvas
-        dx: editor.mainCanvas.offsetWidth - 1
-        dy: editor.mainCanvas.offsetHeight - 1
-      })
-      setTimeout cb, 0
-    ), 0
+    $(editor.hiddeninput).sendkeys(text.text)
+
+    # unfocus
+    evt = document.createEvent 'Event'
+    evt.initEvent 'keydown', true, true
+    evt.keyCode = evt.which = 13
+    editor.dropletElement.dispatchEvent(evt)
+
+    setTimeout cb, 0
   ), 0
 
 performDragOperation = (editor, drag, cb) ->
@@ -402,25 +405,18 @@ performDragOperation = (editor, drag, cb) ->
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  simulate('mouseup', editor.mainScroller, {
+  simulate('mouseup', editor.mainCanvas, {
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  # Unfocus the text input that may have been focused
-  # when we dragged
-  setTimeout (->
-    simulate('mousedown', editor.mainScroller, {
-      location: editor.mainCanvas
-      dx: editor.mainCanvas.offsetWidth - 1
-      dy: editor.mainCanvas.offsetHeight - 1
-    })
-    simulate('mouseup', editor.mainScroller, {
-      location: editor.mainCanvas
-      dx: editor.mainCanvas.offsetWidth - 1
-      dy: editor.mainCanvas.offsetHeight - 1
-    })
-    setTimeout cb, 0
-  ), 0
+
+  # unfocus
+  evt = document.createEvent 'Event'
+  evt.initEvent 'keydown', true, true
+  evt.keyCode = evt.which = 13
+  editor.dropletElement.dispatchEvent(evt)
+
+  setTimeout cb, 0
 
 pickUpLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
@@ -443,7 +439,7 @@ dropLocation = (editor, document, location) ->
     dx: blockView.dropPoint.x + 5,
     dy: blockView.dropPoint.y + 5
   })
-  simulate('mouseup', editor.mainScroller, {
+  simulate('mouseup', editor.mainCanvas, {
     dx: blockView.dropPoint.x + 5
     dy: blockView.dropPoint.y + 5
   })
@@ -678,14 +674,11 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
 
       $('.droplet-hidden-input').sendkeys("h\\tel\\\\\"'lo")
     ), (->
-      simulate('mousedown', editor.mainCanvas, {
-        dx: 500
-        dy: 500
-      })
-      simulate('mouseup', editor.mainCanvas, {
-        dx: 500
-        dy: 500
-      })
+      # unfocus
+      evt = document.createEvent 'Event'
+      evt.initEvent 'keydown', true, true
+      evt.keyCode = evt.which = 13
+      editor.dropletElement.dispatchEvent(evt)
     ), (->
       equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'\n"""
       start()

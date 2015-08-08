@@ -1044,9 +1044,10 @@ exports.View = class View
           @minDistanceToBase[desiredLine].below = Math.max(
             @minDistanceToBase[desiredLine].below,
             minDistanceToBase[line].below + Math.max(bottomMargin, (
-              # TODO this is an imperfect condition.
-              if (@model.buttons?.addButton or @model.buttons?.subtractButton) and desiredLine is @lineLength - 1 and
-                  @multilineChildrenData[line] is MULTILINE_END and @lineChildren[line].length is 1
+              if (@model.buttons?.addButton or @model.buttons?.subtractButton) and
+                  desiredLine is @lineLength - 1 and
+                  @multilineChildrenData[line] is MULTILINE_END and
+                  @lineChildren[line].length is 1
                 @view.opts.buttonPadding + @view.opts.buttonHeight
               else
                 0
