@@ -4,24 +4,31 @@ parser = require '../parser.coffee'
 
 parserlib = require '../../vendor/node-parserlib.js'
 
-COLORS = {
-  charset: 'yellow'
-  namespace: 'orange'
-  import: 'green'
-  rule: 'blue'
-  selector: 'lightgreen'
-  'selector-part': 'green'
-  'selector-modifier': 'cyan'
-  fontface: 'pink'
-  viewport: 'orange'
-  keyframes: 'purple'
-  keyframerule: 'teal'
-  page: 'lightgreen'
-  pagemargin: 'lime'
-  property: 'amber'
-  mediaquery: 'bluegrey'
+NODES = {
+  # Rules and related
+  rule: {color: 'orange'}
+  selector: {color: 'green'}
+  'selector-modifier': {color: 'lightblue'}
+  property: {color: 'amber'}
+  'property-value': {color: 'teal'}
+  'property-part': {color: 'indigo'}
 
-  Default: 'cyan'
+  # Single line commands
+  charset: {color: 'yellow'}
+  namespace: {color: 'yellow'}
+  import: {color: 'yellow'}
+
+  # @ Rules
+  fontface: {color: 'purple'}
+  viewport: {color: 'purple'}
+  keyframes: {color: 'purple'}
+  keyframerule: {color: 'blue'}
+  page: {color: 'purple'}
+  pagemargin: {color: 'blue'}
+  mediaquery: {color: 'purple'}
+
+  # Default fallback
+  Default: {color: 'cyan'}
 }
 
 DEFAULT_INDENT_DEPTH = '  '
@@ -43,6 +50,8 @@ UNITS = {
   pseudoElements: ['before', 'after', 'first-letter', 'first-line', 'selection']
   pseudoClasses: ['active', 'hover', 'link', 'focus', 'visited']
 }
+
+PROPERTY_CONTAINING = ['page', 'pagemargin', 'fontface', 'viewport', 'rule', 'keyframerule']
 
 Stack = []
 Stack.setValid = (state) -> Stack._valid = state
@@ -104,6 +113,9 @@ exports.CSSParser = class CSSParser extends parser.Parser
 
   constructor: (@text, @opts = {}) ->
     super
+
+    @opts.nodes = helper.extend({}, NODES, @opts.nodes)
+
     @lines = @text.split '\n'
 
   getAcceptsRule: (node) -> default: helper.NORMAL
@@ -118,7 +130,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
         classes = classes.concat 'no-semicolon'
     return classes
 
-  getColor: (node) -> COLORS[node.nodeType] ? COLORS['Default']
+  getColor: (node) -> @opts.nodes[node.nodeType]?.color ? @opts.nodes.Default.color
 
   getBounds: (node) ->
     bounds = {
@@ -248,26 +260,39 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @nameTree child
 
   markRoot: ->
-    #console.log 'Parsing: ', @text, @opts.parseOptions?.context
+    #console.log 'Parsing: ', @text, @opts.parseOptions
     ast = null
     parseContext = PARSE_CONTEXTS[@opts.parseOptions?.context]
+    # Required because 'selector' parse
+    # preference is higher than 'property'
+    # The other way round would also require some if-elses (probably more than this)
     if parseContext
+      # Reparse property-value as property-value instead of selector
       if @opts.parseOptions.context in ['selector', 'selector-part'] and @opts.parseOptions.parentContext is 'property'
         parseContext = PARSE_CONTEXTS['property-value']
       Stack.init()
       Stack.setValid true
       ast = cssParser[parseContext] @text
     else
-      for parse in ParseOrder
-        try
-          Stack.init()
-          Stack.setValid true
-          #console.log parse
-          ast = cssParser[parse] @text
-        catch e
-          Stack.setValid false
-        if Stack.getValid()
-          break
+      foundSolution = false
+      # Parse `a:b` inside a rule(or similar) as property instead of selector
+      if @opts.parseOptions?.parentContext in PROPERTY_CONTAINING
+        Stack.init()
+        Stack.setValid true
+        cssParser[PARSE_CONTEXTS.property] @text
+        if Stack.top().children[0]?.type is 'property'
+          foundSolution = true
+      if not foundSolution
+        for parse in ParseOrder
+          try
+            Stack.init()
+            Stack.setValid true
+            #console.log parse
+            ast = cssParser[parse] @text
+          catch e
+            Stack.setValid false
+          if Stack.getValid()
+            break
     if Stack.getValid()
       root = ast ? Stack.top()
       @nameTree root
@@ -400,7 +425,7 @@ exports.CSSParser = class CSSParser extends parser.Parser
             @cssSocket part, depth + 2
           else
             #@cssSocket part, depth + 2
-            console.log part
+            #console.log part
             null
 
   handleCompoundNode: (indentDepth, node, depth) ->
@@ -422,8 +447,8 @@ exports.CSSParser = class CSSParser extends parser.Parser
 CSSParser.empty = ''
 
 CSSParser.parens = (leading, trailing, node, context) ->
-  #console.log node
-  if context?.classes[0] in ['page', 'pagemargin', 'fontface', 'viewport', 'rule', 'keyframerule'] and node.classes[0] in ['selector', 'property']
+  #console.log leading(), trailing(), node, context
+  if context?.type is 'indent' and context?.classes[0] in ['page', 'pagemargin', 'fontface', 'viewport', 'rule', 'keyframerule'] and node.classes[0] in ['selector', 'property']
     trailing ';'
   return
 
