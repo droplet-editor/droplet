@@ -11,7 +11,7 @@ dropletConfig.setValue localStorage.getItem('config') ? '''
         "name": "All",
         "color": "lightblue",
         "blocks": [
-          {"block": ".spl {\\n  \\n}"},
+          {"block": "a {\\n  \\n}"},
           {"block": "background: 'red';"},
           {
             "block": "selector.highlights",
