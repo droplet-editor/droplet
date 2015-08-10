@@ -79,7 +79,7 @@ Stack.end = (element) ->
   top.loc.content.endCol = top.loc.endCol - 1
   Stack.add top, top.nodeType
 
-window.cssParser = cssParser = new parserlib.css.Parser()
+cssParser = new parserlib.css.Parser()
 cssParser.addListener("startstylesheet", -> null)
 cssParser.addListener("endstylesheet", -> null)
 cssParser.addListener("charset", (event) -> Stack.add event, 'charset')
@@ -151,7 +151,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
   cssBlock: (node, depth) ->
     if not node
       return
-    #console.log "Adding Block: ", JSON.stringify @getBounds node
     @addBlock
       bounds: @getBounds node
       depth: depth
@@ -164,7 +163,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
   cssSocket: (node, depth, precedence, bounds, dropdown, type) ->
     if not node
       return
-    #console.log "Adding Socket: ", JSON.stringify @getBounds node
     empty = ''
     switch node.nodeType
       when 'selector'
@@ -203,8 +201,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
         column: node.loc.content.endCol - 1
       }
     }
-
-    #console.log bounds
 
     if @lines[bounds.end.line][...bounds.end.column].trim().length is 0
       bounds.end.line--
@@ -260,7 +256,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
         @nameTree child
 
   markRoot: ->
-    #console.log 'Parsing: ', @text, @opts.parseOptions
     ast = null
     parseContext = PARSE_CONTEXTS[@opts.parseOptions?.context]
     # Required because 'selector' parse
@@ -287,7 +282,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
           try
             Stack.init()
             Stack.setValid true
-            #console.log parse
             ast = cssParser[parse] @text
           catch e
             Stack.setValid false
@@ -296,8 +290,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
     if Stack.getValid()
       root = ast ? Stack.top()
       @nameTree root
-      window.root = root
-      window.Stack = Stack
       @mark 0, root, 0
     else
       throw "Invalid Data"
@@ -424,15 +416,12 @@ exports.CSSParser = class CSSParser extends parser.Parser
           else if part.type in ['string', 'integer', 'number', 'uri', 'color', 'identifier']
             @cssSocket part, depth + 2
           else
-            #@cssSocket part, depth + 2
-            #console.log part
             null
 
   handleCompoundNode: (indentDepth, node, depth) ->
     indentBounds = @getIndentBounds node
     prefix = @getIndentPrefix indentBounds, indentDepth
     indentDepth += prefix.length
-    #console.log "Adding Indent: ", JSON.stringify indentBounds
     @addIndent
       bounds: indentBounds
       depth: depth
@@ -447,13 +436,11 @@ exports.CSSParser = class CSSParser extends parser.Parser
 CSSParser.empty = ''
 
 CSSParser.parens = (leading, trailing, node, context) ->
-  #console.log leading(), trailing(), node, context
   if context?.type is 'indent' and context?.classes[0] in ['page', 'pagemargin', 'fontface', 'viewport', 'rule', 'keyframerule'] and node.classes[0] in ['selector', 'property']
     trailing ';'
   return
 
 CSSParser.drop = (block, context, pred, next) ->
-  #console.log block, context, pred
   blockType = block.classes[0]
   contextType = context.classes[0]
   predType = pred?.classes[0]
@@ -525,7 +512,6 @@ CSSParser.handleButton = (text, command, classes) ->
 
   if command is 'add-button'
     text = text.split('}')[0] + '  a: b;\n' + '}';
-    console.log text
 
   return text
 
