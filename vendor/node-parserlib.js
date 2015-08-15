@@ -6695,6 +6695,7 @@ parserlib.css = {
 Colors              :Colors,
 Combinator          :Combinator,
 Parser              :Parser,
+Properties          :Properties,
 PropertyName        :PropertyName,
 PropertyValue       :PropertyValue,
 PropertyValuePart   :PropertyValuePart,
