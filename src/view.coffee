@@ -2060,9 +2060,12 @@ exports.View = class View
       else
         super
 
-      # Make ourselves white, with a
-      # gray border.
-      @path.style.fillColor = '#FFF'
+      # If the socket is empty, make it invisible except
+      # for mouseover
+      if @model.start.next is @model.end and @model.emptyString is ''
+        @path.style.cssClass = 'droplet-socket-path droplet-empty-socket-path'
+      else
+        @path.style.cssClass = 'droplet-socket-path'
 
       return @path
 

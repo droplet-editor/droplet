@@ -359,3 +359,12 @@ text {
 .droplet-dropdown-arrow, .droplet-button-path {
   cursor: pointer;
 }
+.droplet-socket-path {
+  fill: #FFF;
+}
+.droplet-empty-socket-path {
+  opacity: 0;
+}
+.droplet-empty-socket-path:hover {
+  opacity: 1;
+}

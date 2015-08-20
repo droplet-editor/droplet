@@ -536,6 +536,7 @@ Editor::redrawMain = (opts = {}) ->
     # Draw the new tree on the main context
     layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
     @view.getViewNodeFor(@tree).draw rect, options
+    @view.getViewNodeFor(@tree).root()
 
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @floatingBlocks
@@ -2945,6 +2946,11 @@ Editor::computePlaintextTranslationVectors = ->
         textElements.push @view.getViewNodeFor head
 
         state.x += @fontWidth * head.value.length
+
+      when 'socketStart'
+        if head.next is head.container.end or
+            head.next.type is 'text' and head.next.value is ''
+          state.x += @fontWidth * head.container.emptyString.length
 
       # Newline moves the cursor to the next line,
       # plus some indent.
