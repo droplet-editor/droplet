@@ -9,26 +9,51 @@ INDENTS = ['block', 'classBody']
 SKIPS = ['compilationUnit',
   'variableDeclarators'
   'variableDeclarator'
-  'classDeclaration',
   'memberDeclaration',
   'constructorDeclaration',
   'methodDeclaration',
   'formalParameters',
-  'formalParameterList'
+  'formalParameterList',
+  'forControl',
+  'switchBlockStatementGroup'
+  'switchLabel',
+  'expressionList',
+  'finallyBlock',
+  'arguments',
+  'classCreatorRest',
+  'qualifiedName',
+  'creator',
+  'classOrInterfaceModifier',
+  'modifier',
+  'catchClause'
 ]
 PARENS = [
   'statement'
+  'typeDeclaration'
   'blockStatement'
   'localVariableDeclarationStatement'
   'primary'
+  'parExpression'
+  'classBodyDeclaration'
 ]
 SOCKET_TOKENS = [
   'Identifier'
   'IntegerLiteral'
+  'FloatingPointLiteral'
+  'CharacterLiteral'
   'StringLiteral'
+  'NullLiteral'
+  'BooleanLiteral'
+  'THIS'
+]
+BLOCK_TOKENS = [
+  'BREAK'
+]
+PLAIN_SOCKETS = [
+  'importName'
 ]
 COLORS_FORWARD = {
-  'statement': 'control'
+  'statement': 'command'
   'typeDeclaration': 'control'
   'classBodyDeclaration': 'control'
   'variableDeclarator': 'command'
@@ -36,11 +61,21 @@ COLORS_FORWARD = {
   'statementExpression': 'command'
   'blockStatement': 'command'
   'expression': 'value'
+  'localVariableDeclaration': 'command'
+  'importDeclaration': 'command'
+  'memberDeclaration': 'command'
+  'packageDeclaration': 'command'
+  'type': 'value'
+  'createdName': 'value'
+  'classDeclaration': 'control'
 }
-COLORS_BACKWARD = {}
+COLORS_BACKWARD = {
+  'controlStatement': 'control'
+  'terminalStatement': 'return'
+}
 
 config = {
-  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD,
+  INDENTS, SKIPS, PLAIN_SOCKETS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD, BLOCK_TOKENS
 }
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'Java', config

@@ -51,7 +51,8 @@ exports.createANTLRParser = (name, config, root) ->
     return result
 
   getBounds = (node) ->
-    if node.start? and node.stop?
+    if node.start?
+      node.stop ?= node.start
       return {
         start: {
           line: node.start.line - 1

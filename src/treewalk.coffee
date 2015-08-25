@@ -23,6 +23,8 @@ exports.createTreewalkParser = (parse, config, root) ->
       @mark parseTree, '', 0
 
     guessPrefix: (bounds) ->
+      ###
+      # By voting:
       votes = {}
       for i in [bounds.start.line + 1..bounds.end.line]
         line = @lines[i]
@@ -34,19 +36,30 @@ exports.createTreewalkParser = (parse, config, root) ->
         if val > max
           best = key
           max = val
-      return best
+      ###
+      # First line:
+      i = bounds.start.line + 1
+      until @lines[i].trim().length > 0
+        i += 1
+      line = @lines[i]
+      prefix = line[0...line.length - line.trimLeft().length]
+      return prefix
 
 
     det: (rule) ->
       if rule in config.INDENTS then return 'indent'
       else if rule in config.SKIPS then return 'skip'
+      else if rule in config.PLAIN_SOCKETS then (debugger; return 'plainSocket')
       else if rule in config.PARENS then return 'parens'
       else return 'block'
 
     detNode: (node) -> if node.blockified then 'block' else @det(node.type)
     detToken: (node) ->
       if node.type?
-        if node.type in config.SOCKET_TOKENS then 'socket' else 'none'
+        #console.log node.type
+        if node.type in config.SOCKET_TOKENS then 'socket'
+        else if node.type in config.BLOCK_TOKENS then 'block'
+        else 'none'
       else 'none'
 
     getDropType: (context) -> ({
@@ -64,6 +77,18 @@ exports.createTreewalkParser = (parse, config, root) ->
           return config.COLORS_FORWARD[el]
       return 'violet'
 
+    getMarkedChild: (node) ->
+      child = null
+      for el, i in node.children
+        if (el.children.length > 0 and @detNode(el) is 'block') or
+           (el.children.length is 0 and @detToken(el) isnt 'none') or
+           (el = @getMarkedChild(el))?
+          if child?
+            return null
+          else
+            child = el
+      return child
+
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
         context = node.parent
@@ -74,11 +99,23 @@ exports.createTreewalkParser = (parse, config, root) ->
       rules.push node.type
 
       # Pass through to child if single-child
-      if node.children.length is 1
+      if node.children.length is 1 and @detNode(node) isnt 'plainSocket'
         @mark node.children[0], prefix, depth, true, rules, context, wrap
 
       else if node.children.length > 0
-        switch @detNode node
+        switch @detNode(node)
+          when 'plainSocket'
+            if wrap?
+              bounds = wrap.bounds
+            else
+              bounds = node.bounds
+
+            if context? and @detNode(context) is 'block'
+              @addSocket
+                bounds: bounds
+                depth: depth
+                classes: rules
+
           when 'block'
             if wrap?
               bounds = wrap.bounds
@@ -99,16 +136,10 @@ exports.createTreewalkParser = (parse, config, root) ->
               parseContext: (if wrap? then wrap.type else rules[0])
 
           when 'parens'
-            # Parens are assumed to wrap the only child that has children
-            child = null; ok = true
-            for el, i in node.children
-              if el.children.length > 0
-                if child?
-                  ok = false
-                  break
-                else
-                  child = el
-            if ok
+            # Parens are assumed to wrap the only child that has children,
+            # or the only child
+            child = @getMarkedChild node
+            if child?
               @mark child, prefix, depth, true, rules, context, wrap ? node
               return
 
@@ -139,7 +170,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               if child.children.length > 0
                 break
               else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0
-                console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
+                #console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
                 start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
@@ -169,6 +200,24 @@ exports.createTreewalkParser = (parse, config, root) ->
             bounds: node.bounds
             depth: depth
             classes: rules
+      else if @detToken(node) is 'block'
+        if wrap?
+          bounds = wrap.bounds
+        else
+          bounds = node.bounds
+
+        if context? and @detNode(context) is 'block'
+          @addSocket
+            bounds: bounds
+            depth: depth
+            classes: rules
+
+        @addBlock
+          bounds: bounds
+          depth: depth + 1
+          color: @getColor rules
+          classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
+          parseContext: (if wrap? then wrap.type else rules[0])
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'

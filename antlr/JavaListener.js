@@ -29,6 +29,15 @@ JavaListener.prototype.exitPackageDeclaration = function(ctx) {
 };
 
 
+// Enter a parse tree produced by JavaParser#importName.
+JavaListener.prototype.enterImportName = function(ctx) {
+};
+
+// Exit a parse tree produced by JavaParser#importName.
+JavaListener.prototype.exitImportName = function(ctx) {
+};
+
+
 // Enter a parse tree produced by JavaParser#importDeclaration.
 JavaListener.prototype.enterImportDeclaration = function(ctx) {
 };
@@ -647,6 +656,24 @@ JavaListener.prototype.enterStatement = function(ctx) {
 
 // Exit a parse tree produced by JavaParser#statement.
 JavaListener.prototype.exitStatement = function(ctx) {
+};
+
+
+// Enter a parse tree produced by JavaParser#controlStatement.
+JavaListener.prototype.enterControlStatement = function(ctx) {
+};
+
+// Exit a parse tree produced by JavaParser#controlStatement.
+JavaListener.prototype.exitControlStatement = function(ctx) {
+};
+
+
+// Enter a parse tree produced by JavaParser#terminalStatement.
+JavaListener.prototype.enterTerminalStatement = function(ctx) {
+};
+
+// Exit a parse tree produced by JavaParser#terminalStatement.
+JavaListener.prototype.exitTerminalStatement = function(ctx) {
 };
 
 

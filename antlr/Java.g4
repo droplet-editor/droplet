@@ -49,8 +49,12 @@ packageDeclaration
     :   annotation* 'package' qualifiedName ';'
     ;
 
+importName
+    : 'static'? qualifiedName ('.' '*')?
+    ;
+
 importDeclaration
-    :   'import' 'static'? qualifiedName ('.' '*')? ';'
+    :   'import' importName ';'
     ;
 
 typeDeclaration
@@ -404,7 +408,15 @@ localVariableDeclaration
 statement
     :   block
     |   ASSERT expression (':' expression)? ';'
-    |   'if' parExpression statement ('else' statement)?
+    |   controlStatement
+    |   terminalStatement
+    |   ';'
+    |   statementExpression ';'
+    |   Identifier ':' statement
+    ;
+
+controlStatement
+    :   'if' parExpression statement ('else' statement)?
     |   'for' '(' forControl ')' statement
     |   'while' parExpression statement
     |   'do' statement 'while' parExpression ';'
@@ -412,13 +424,14 @@ statement
     |   'try' resourceSpecification block catchClause* finallyBlock?
     |   'switch' parExpression '{' switchBlockStatementGroup* switchLabel* '}'
     |   'synchronized' parExpression block
-    |   'return' expression? ';'
+    ;
+
+
+terminalStatement
+    :   'return' expression? ';'
     |   'throw' expression ';'
     |   'break' Identifier? ';'
     |   'continue' Identifier? ';'
-    |   ';'
-    |   statementExpression ';'
-    |   Identifier ':' statement
     ;
 
 catchClause

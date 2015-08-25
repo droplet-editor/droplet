@@ -221,6 +221,13 @@ exports.View = class View
       # few or no changes to the Model).
       @computedVersion = -1
 
+    isVisiblyLastOnLine: ->
+      if @model.isLastOnLine()
+        return true
+      else
+        end = @model.end ? @model
+        return end.next?.type is 'text' and end.next.next?.type is 'newline'
+
     serialize: (line) ->
       result = []
       for prop in [
@@ -302,7 +309,7 @@ exports.View = class View
       padding = @view.opts.padding
 
       left = if @model.isFirstOnLine() or @lineLength > 1 then padding else 0
-      right = if @model.isLastOnLine() or @lineLength > 1 then padding else 0
+      right = if @isVisiblyLastOnLine() or @lineLength > 1 then padding else 0
 
       if parenttype is 'block' and @model.type is 'indent'
         @margins =
@@ -440,7 +447,7 @@ exports.View = class View
 
       if @model.parent? and not root and
           (@topLineSticksToBottom or @bottomLineSticksToTop or
-           (@lineLength > 1 and not @model.isLastOnLine()))
+           (@lineLength > 1 and not @isVisiblyLastOnLine()))
         parentNode = @view.getViewNodeFor @model.parent
         startLine = @model.getLinesToParent()
 
@@ -463,7 +470,7 @@ exports.View = class View
               @dimensions[lineCount - 1].width,
               distance.below + distance.above)
 
-        if @lineLength > 1 and not @model.isLastOnLine() and @model.type is 'block'
+        if @lineLength > 1 and not @isVisiblyLastOnLine() and @model.type is 'block'
           distance = @distanceToBase[@lineLength - 1]
           distance.below = parentNode.distanceToBase[startLine + @lineLength - 1].below
           @dimensions[lineCount - 1] = new @view.draw.Size(
@@ -611,7 +618,7 @@ exports.View = class View
       # to `true` whenever a bounding box changed on the bounding box
       # passes.
       if @computedVersion is @model.version and
-           (@model.isLastOnLine() is @lastComputedLinePredicate) and
+           (@isVisiblyLastOnLine() is @lastComputedLinePredicate) and
            not @changedBoundingBox
         return null
 
@@ -622,7 +629,7 @@ exports.View = class View
       # It is possible that we have a version increment
       # without changing bounding boxes. If this is the case,
       # we don't need to recompute our own path.
-      if @changedBoundingBox or (@model.isLastOnLine() isnt @lastComputedLinePredicate)
+      if @changedBoundingBox or (@isVisiblyLastOnLine() isnt @lastComputedLinePredicate)
         @computeOwnPath()
 
         # Recompute `totalBounds`, which is used
@@ -649,7 +656,7 @@ exports.View = class View
 
         @totalBounds.unite @path.bounds()
 
-      @lastComputedLinePredicate = @model.isLastOnLine()
+      @lastComputedLinePredicate = @isVisiblyLastOnLine()
 
       return null
 
@@ -1238,7 +1245,7 @@ exports.View = class View
           head = head.prev
 
         if head is parent.start
-          if @model.isLastOnLine()
+          if @isVisiblyLastOnLine()
             @carriageArrow = CARRIAGE_ARROW_INDENT
           else
             @carriageArrow = CARRIAGE_GROW_DOWN
@@ -1522,7 +1529,8 @@ exports.View = class View
           left.push new @view.draw.Point destinationBounds.x, destinationBounds.y
 
           @addTab right, new @view.draw.Point destinationBounds.x + @view.opts.tabOffset, destinationBounds.y
-        else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG and @model.isLastOnLine()
+        else if @carriageArrow is CARRIAGE_ARROW_SIDEALONG and (@isVisiblyLastOnLine() or
+              @model.end.next.type is 'text' and @model.end.next.next.type is 'newline')
           parentViewNode = @view.getViewNodeFor @model.parent
           destinationBounds = parentViewNode.bounds[@model.getLinesToParent()]
 
@@ -1569,7 +1577,7 @@ exports.View = class View
 
       # If necessary, add tab
       # at the bottom.
-      if @shouldAddTab() and @model.isLastOnLine() and
+      if @shouldAddTab() and @isVisiblyLastOnLine() and
             @carriageArrow is CARRIAGE_ARROW_NONE
           @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset,
             @bounds[@lineLength - 1].bottom()
