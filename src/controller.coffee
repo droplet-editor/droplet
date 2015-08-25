@@ -1710,8 +1710,8 @@ hook 'populate', 0, ->
 
   @setPalette @paletteGroups
 
-parseBlock = (mode, code) =>
-  block = mode.parse(code).start.next.container
+parseBlock = (mode, code, context) =>
+  block = mode.parse(code, {context}).start.next.container
   block.start.prev = block.end.next = null
   block.setParent null
   return block
@@ -1749,7 +1749,7 @@ Editor::setPalette = (paletteGroups) ->
 
     # Parse all the blocks in this palette and clone them
     for data in paletteGroup.blocks
-      newBlock = parseBlock(@mode, data.block)
+      newBlock = parseBlock(@mode, data.block, data.context)
       expansion = data.expansion or null
       newPaletteBlocks.push
         block: newBlock
