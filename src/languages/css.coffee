@@ -569,9 +569,10 @@ exports.CSSParser = class CSSParser extends parser.Parser
   getPropertyChoices: (node) ->
     str = parserlib.css.Properties[node.property.text]
     if typeof str is 'string'
-      types = str.split('|').map((x)->x.trim())
+      types = str.split('|').map((x)->x.trim()).filter((x)->x.length isnt 0 and x[0] isnt '-')
       lst = types.filter((x)->x[0]!='<')
       if lst.length > 0
+        console.log lst
         lst.dropdownOnly = types.length is lst.length
         return lst
     return null
@@ -744,7 +745,6 @@ exports.CSSParser = class CSSParser extends parser.Parser
         #@cssSocket node.property, depth + 1
         dropdown = @getPropertyChoices node
         if dropdown
-          console.log node.property.text, dropdown
           @cssSocket node.value, depth + 1, null, null, dropdown
         else
           @mark indentDepth, node.value, depth + 1, null
