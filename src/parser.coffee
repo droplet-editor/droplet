@@ -112,7 +112,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket opts.empty ? @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty, opts.parseContext, opts.precedence,
       false,
       opts.classes,
       opts.dropdown
@@ -199,7 +199,7 @@ exports.Parser = class Parser
   # text inside
   constructHandwrittenBlock: (text) ->
     block = new model.Block 0, 'blank', helper.ANY_DROP
-    socket = new model.Socket @empty, 0, true
+    socket = new model.Socket @empty, null, 0, true
     textToken = new model.TextToken text
 
     helper.connect block.start, socket.start

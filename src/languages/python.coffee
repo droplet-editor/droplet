@@ -10,9 +10,11 @@ treewalk = require '../treewalk.coffee'
 
 skulpt = require '../../vendor/skulpt'
 
+PYTHON_KEYWORDS = ['and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'exec', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'not', 'or', 'pass', 'print', 'raise', 'return', 'try', 'while', 'with', 'yield']
+
 # PARSER SECTION
 parse = (context, text) ->
-  result = transform skulpt.parser.parse('file.py', text), text.split('\n')
+  result = transform skulpt.parser.parse('file.py', text, context), text.split('\n')
   console.log result
   return result
 
@@ -37,8 +39,12 @@ getBounds = (node, lines) ->
   return bounds
 
 transform = (node, lines, parent = null) ->
+  type = skulpt.tables.ParseTables.number2symbol[node.type] ? skulpt.Tokenizer.tokenNames[node.type] ? node.type
+  if type is 'T_NAME'
+    if node.value in PYTHON_KEYWORDS
+      type = 'T_KEYWORD'
   result = {
-    type: skulpt.tables.ParseTables.number2symbol[node.type] ? skulpt.Tokenizer.tokenNames[node.type] ? node.type
+    type: type
     bounds: getBounds(node, lines)
     parent: parent
   }
@@ -49,39 +55,45 @@ transform = (node, lines, parent = null) ->
   return result
 
 # CONFIG SECTION
-INDENTS = ['suite']
-SKIPS = [
-  'file_input'
-  'parameters'
-  'compound_stmt'
-  'small_stmt'
-  'simple_stmt'
-  'trailer'
-  'arglist'
-  'testlist_comp'
-]
-PARENS = [
-  'stmt'
-]
-SOCKET_TOKENS = [
-  'T_NAME', 'T_NUMBER', 'T_STRING'
-]
-COLORS_FORWARD = {
-  'funcdef': 'control'
-  'for_stmt': 'control'
-  'while_stmt': 'control'
-  'if_stmt': 'control'
-  'import_stmt': 'command'
-  'print_stmt': 'command'
-  'expr_stmt': 'command'
-  'testlist': 'value'
-  'test': 'value'
-  'expr': 'value'
-}
-COLORS_BACKWARD = {}
-
 config = {
-  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD,
+  INDENTS: ['suite']
+  SKIPS: [
+    'file_input'
+    'parameters'
+    'compound_stmt'
+    'small_stmt'
+    'simple_stmt'
+    'trailer'
+    'arglist'
+    'testlist_comp'
+    'with_item'
+    'listmaker'
+    'list_for'
+  ]
+  PARENS : [
+    'stmt'
+  ]
+  SOCKET_TOKENS : [
+    'T_NAME', 'T_NUMBER', 'T_STRING'
+  ]
+  COLORS_FORWARD : {
+    'funcdef': 'control'
+    'for_stmt': 'control'
+    'while_stmt': 'control'
+    'with_stmt': 'control'
+    'if_stmt': 'control'
+    'try_stmt': 'control'
+    'import_stmt': 'command'
+    'print_stmt': 'command'
+    'expr_stmt': 'command'
+    'return_stmt': 'return'
+    'testlist': 'value'
+    'comparison': 'value'
+    'test': 'value'
+    'expr': 'value'
+  }
+  COLORS_BACKWARD : {}
+  BLOCK_TOKENS: [], PLAIN_SOCKETS: [], VALUE_TYPES: [], BLOCK_TYPES: []
 }
 
 module.exports = parser.wrapParser treewalk.createTreewalkParser parse, config

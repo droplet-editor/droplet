@@ -39,21 +39,35 @@ exports.createTreewalkParser = (parse, config, root) ->
       ###
       # First line:
       i = bounds.start.line + 1
-      until @lines[i].trim().length > 0
+
+      until i > bounds.end.line or (@lines[i].trim().length > 0)
         i += 1
-      line = @lines[i]
+
+      if i > bounds.end.line
+        line = @lines[bounds.start.line + 1]
+      else
+        line = @lines[i]
+
       prefix = line[0...line.length - line.trimLeft().length]
+
       return prefix
 
 
     det: (rule) ->
       if rule in config.INDENTS then return 'indent'
       else if rule in config.SKIPS then return 'skip'
-      else if rule in config.PLAIN_SOCKETS then (debugger; return 'plainSocket')
+      else if rule in config.PLAIN_SOCKETS then return 'plainSocket'
       else if rule in config.PARENS then return 'parens'
       else return 'block'
 
     detNode: (node) -> if node.blockified then 'block' else @det(node.type)
+    detDropType: (rules) ->
+      for el, i in rules
+        if el in config.VALUE_TYPES
+          return 'mostly-value'
+        else if el in config.BLOCK_TYPES
+          return 'mostly-block'
+      return 'any-drop'
     detToken: (node) ->
       if node.type?
         #console.log node.type
@@ -132,7 +146,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth + 1
               color: @getColor rules
-              classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
+              classes: rules.concat(if context? then @getDropType(context) else @detDropType(rules))
               parseContext: (if wrap? then wrap.type else rules[0])
 
           when 'parens'
@@ -166,18 +180,43 @@ exports.createTreewalkParser = (parse, config, root) ->
 
           when 'indent' then if @det(context) is 'block'
             start = origin = node.children[0].bounds.start
-            for child, i in node.children
-              if child.children.length > 0
-                break
-              else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0
-                #console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
-                start = child.bounds.end
+
+            if config.INDENT_START_EXCLUDE_TOKEN
+              # Config
+              for child, i in node.children
+                if child.children.length > 0
+                  break
+                else if child.type is config.INDENT_START_EXCLUDE_TOKEN
+                  start = child.bounds.end
+                  break
+
+            else
+              # Heuristic
+              for child, i in node.children
+                if child.children.length > 0
+                  break
+                else unless (helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0) # TODO this is very buggy for empty indents
+                  #console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
+                  start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
+
+            # Use last child wherever possible
+            worked = false
             for child, i in node.children by -1
               if child.children.length > 0
                 end = child.bounds.end
+                worked = true
                 break
+
+            # Otherwise try to use our config
+            if config.INDENT_END_EXCLUDE_TOKEN? and not worked
+              for child, i in node.children by -1
+                if child.type is config.INDENT_END_EXCLUDE_TOKEN
+                  end = child.bounds.start
+                  if @lines[end.line][...end.column].trim().length is 0
+                    end.line -= 1
+                    end.column = @lines[end.line].length
 
             bounds = {
               start: start
@@ -224,8 +263,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       for c in context.classes
         if c in block.classes
           return helper.ENCOURAGE
-        else
-          return helper.DISCOURAGE
+      return helper.DISCOURAGE
 
   # Doesn't yet deal with parens
   TreewalkParser.parens = (leading, trailing, node, context) ->

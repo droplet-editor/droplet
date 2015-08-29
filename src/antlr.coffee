@@ -35,7 +35,8 @@ exports.createANTLRParser = (name, config, root) ->
   # Transform an ANTLR tree into a treewalker-type tree
   transform = (node, parent = null) ->
     result = {}
-    if node.children?
+    if not node.symbol?
+      node.children ?= []
       result.terminal = node.children.length is 0
       result.type = node.parser.ruleNames[node.ruleIndex]
       result.children = (transform(child, result) for child in node.children)

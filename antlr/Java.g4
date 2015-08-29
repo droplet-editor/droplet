@@ -416,14 +416,14 @@ statement
     ;
 
 controlStatement
-    :   'if' parExpression statement ('else' statement)?
+    :   'if' '(' expression ')' statement ('else' statement)?
     |   'for' '(' forControl ')' statement
-    |   'while' parExpression statement
-    |   'do' statement 'while' parExpression ';'
+    |   'while' '(' expression ')' statement
+    |   'do' statement 'while' '(' expression ')' ';'
     |   'try' block (catchClause+ finallyBlock? | finallyBlock)
     |   'try' resourceSpecification block catchClause* finallyBlock?
-    |   'switch' parExpression '{' switchBlockStatementGroup* switchLabel* '}'
-    |   'synchronized' parExpression block
+    |   'switch' '(' expression ')' '{' switchBlockStatementGroup* switchLabel* '}'
+    |   'synchronized' '(' expression ')' block
     ;
 
 
