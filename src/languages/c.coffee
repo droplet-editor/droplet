@@ -16,7 +16,7 @@ SKIPS = ['blockItemList',
   'argumentExpressionList',
   'initDeclaratorList']
 PARENS = ['expressionStatement', 'primaryExpression']
-SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'Constant']
+SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'Constant', 'Int', 'Long','Double', 'Short', 'Signed', 'Void', 'Char']
 COLORS_FORWARD = {
   'statement': 'command'
   'selectionStatement': 'control'
@@ -38,7 +38,16 @@ COLORS_BACKWARD = {
 }
 
 config = {
-  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD, PLAIN_SOCKETS: [], VALUE_TYPES: [], BLOCK_TYPES: [], BLOCK_TOKENS: []
+  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD, PLAIN_SOCKETS: [],
+  VALUE_TYPES: ['expression'], BLOCK_TYPES: ['statement'],
+  BLOCK_TOKENS: [],
+  INDENT_START_EXCLUDE_TOKEN: 'LeftBrace', INDENT_END_EXCLUDE_TOKEN: 'RightBrace'
 }
 
-module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config
+wrappedParser = parser.wrapParser antlrHelper.createANTLRParser 'C', config
+wrappedParser.parens =  (leading, trailing, node, context) ->
+  if context?.type is 'socket'
+    trailing trailing().replace(/;?\s*$/, '')
+  else
+    trailing trailing().replace(/;?\s*$/, ';')
+module.exports = wrappedParser

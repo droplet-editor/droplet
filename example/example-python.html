@@ -8,10 +8,6 @@
         position: absolute;
         top: 45; bottom: 25; right: 25; left: 25;
       }
-      #left-panel {
-        position: absolute;
-        top: 0; bottom: 0; width: 500px; left: 0;
-      }
       #droplet-config {
         position: absolute;
         top: 25; bottom: 0; left: 0; right: 0;
@@ -23,7 +19,7 @@
       }
       #right-panel {
         position: absolute;
-        top: 0; bottom: 0; left: 525px; right: 0;
+        top: 0; bottom: 0; left: 0px; right: 0;
       }
       #toggle, #update {
         position: absolute;
@@ -44,15 +40,6 @@
     </style>
   </head>
   <body>
-    <div id="left-panel">
-      <div id="update">
-        <div id="update">
-          Update
-        </div>
-      </div>
-      <div id="droplet-config">
-      </div>
-    </div>
     <div id="right-panel">
       <div id="close">
       </div>
@@ -68,7 +55,7 @@
     <script src="../vendor/ace/ace.js"></script>
     <script src="../dist/droplet-full.js"></script>
 
-    <script src="example.coffee" type="text/coffeescript"></script>
+    <script src="example-python.coffee" type="text/coffeescript"></script>
     <script src="//localhost:35729/livereload.js"></script>
   </body>
 </html>

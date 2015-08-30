@@ -78,4 +78,13 @@ config = {
   INDENT_START_EXCLUDE_TOKEN: 'LBRACE', INDENT_END_EXCLUDE_TOKEN: 'RBRACE'
 }
 
-module.exports = parser.wrapParser antlrHelper.createANTLRParser 'Java', config
+wrappedParser = parser.wrapParser antlrHelper.createANTLRParser 'Java', config
+wrappedParser.parens =  (leading, trailing, node, context) ->
+  if context?.type is 'socket' or
+     (not context? and 'mostly-value' in node.classes or 'value-only' in node.classes) or
+     'ends-with-brace' in node.classes or
+     node.type is 'document'
+    trailing trailing().replace(/;?\s*$/, '')
+  else
+    trailing trailing().replace(/;?\s*$/, ';')
+module.exports = wrappedParser
