@@ -23,6 +23,26 @@ exports.ParserFactory = class ParserFactory
 
   createParser: (text) -> new Parser text, @opts
 
+exports.ParsingContext = class ParsingContext
+  constructor: (@prefix = '', @suffix = '', @indent = '') ->
+
+  forward: (text) ->
+    lines = text.split '\n'
+    result = @prefix + lines.map((x) => @indent + x).join('\n') + @suffix
+    return result
+
+  backward: (document) ->
+    prefixLines = @prefix.split '\n'
+    block = document.getFromTextLocation {
+      type: 'block'
+      row: prefixLines.length - 1
+      col: prefixLines[prefixLines.length - 1].length
+    }
+    newDocument = new model.Document()
+    helper.connect newDocument.start, block.start
+    helper.connect block.end, newDocument.end
+    return newDocument
+
 # ## Parser ##
 # The Parser class is a simple
 # wrapper on the above functions
@@ -37,9 +57,11 @@ exports.Parser = class Parser
 
   # ## parse ##
   _parse: (opts) ->
+
     opts = _extend opts, {
       wrapAtRoot: true
     }
+
     # Generate the list of tokens
     @markRoot opts.context
 
@@ -50,7 +72,6 @@ exports.Parser = class Parser
     document = @applyMarkup opts
 
     @detectParenWrap document
-
 
     # Correct parent tree
     document.correctParentTree()
@@ -473,6 +494,7 @@ exports.wrapParser = (CustomParser) ->
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
+      @canParse = CustomParser.canParse
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
@@ -482,10 +504,15 @@ exports.wrapParser = (CustomParser) ->
       parser.emptyIndent = @emptyIndent
       return parser
 
-    parse: (text, opts) ->
-      @opts.parseOptions = opts
-      opts ?= wrapAtRoot: true
-      return @createParser(text)._parse opts
+    parse: (text, opts, wrapperContext) ->
+      if wrapperContext?
+        context = new ParsingContext wrapperContext.prefix, wrapperContext.suffix, wrapperContext.indent
+        result = context.backward(@parse(context.forward(text), opts, null))
+        return result
+      else
+        @opts.parseOptions = opts
+        opts ?= wrapAtRoot: true
+        return @createParser(text)._parse opts
 
     parens: (leading, trailing, node, context) ->
       # leadingFn is always a getter/setter for leading

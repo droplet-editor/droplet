@@ -1,4 +1,7 @@
 # Droplet config editor
+expressionContext = {
+  prefix: 'a = '
+}
 config = {
   "mode": "python",
   "palette": [
@@ -8,15 +11,14 @@ config = {
             'blocks': [
                 {
                     'block': "print 'hello'",
-                    'context': 'stmt'
                 },
                 {
                     'block': "input('Enter a number')",
-                    'context': 'expr'
+                    'wrapperContext': expressionContext
                 },
                 {
                     'block': "raw_input('Enter a string')",
-                    'context': 'expr'
+                    'wrapperContext': expressionContext
                 }
             ]
         },
@@ -26,29 +28,99 @@ config = {
             'blocks': [
                 {
                     'block': "for i in range(0, 10):\n  print 'hello'",
-                    'context': 'stmt'
                 },
                 {
                     'block': "if a == b:\n  print 'hello'",
-                    'context': 'stmt'
                 },
                 {
                     'block': "while a < b:\n  print 'hello'",
-                    'context': 'stmt'
                 }
             ]
         },
         {
             'name': 'Methods',
-            'color': 'control',
+            'color': 'purple',
             'blocks': [
                 {
+                    'block': 'import module'
+                },
+                {
+                    'block': 'from module import something'
+                },
+                {
                     'block': "def myMethod(arg):\n  print 'hello'",
-                    'context': 'stmt'
                 },
                 {
                     'block': "return 'hello'",
-                    'context': 'stmt'
+                },
+                {
+                    'block': "myMethod(arg)",
+                    'wrapperContext': expressionContext
+                },
+            ]
+        },
+        {
+            'name': 'Variables',
+            'color': 'red',
+            'blocks': [
+                {
+                    'block': 'a = 1'
+                }
+            ]
+        },
+        {
+            'name': 'Math'
+            'color': 'red',
+            'blocks': [
+                {
+                    'block': 'a + b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a - b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a * b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a / b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a % b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a ** b'
+                    'wrapperContext': expressionContext
+                }
+            ]
+        }
+        {
+          'name': 'Logic'
+          'color': 'teal'
+          'blocks': [
+                {
+                    'block': 'a == b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a < b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a > b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a and b'
+                    'wrapperContext': expressionContext
+                },
+                {
+                    'block': 'a or b'
+                    'wrapperContext': expressionContext
                 }
             ]
         }

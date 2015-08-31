@@ -77,6 +77,7 @@ config = {
     'T_NAME', 'T_NUMBER', 'T_STRING'
   ]
   COLORS_FORWARD : {
+    'term': 'value'
     'funcdef': 'control'
     'for_stmt': 'control'
     'while_stmt': 'control'
@@ -96,4 +97,8 @@ config = {
   BLOCK_TOKENS: [], PLAIN_SOCKETS: [], VALUE_TYPES: [], BLOCK_TYPES: []
 }
 
-module.exports = parser.wrapParser treewalk.createTreewalkParser parse, config
+result = treewalk.createTreewalkParser parse, config
+result.canParse = (node) ->
+  return ('stmt' in node.classes) or
+         ('small_stmt' in node.classes)
+module.exports = parser.wrapParser result

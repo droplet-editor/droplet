@@ -1232,7 +1232,7 @@ hook 'mousemove', 1, (point, event, state) ->
       # Substitute in expansion for this palette entry, if supplied.
       expansion = @clickedBlockPaletteEntry.expansion
       if 'function' is typeof expansion then expansion = expansion()
-      if (expansion) then expansion = parseBlock(@mode, expansion)
+      if (expansion) then expansion = parseBlock(@mode, expansion, @clickedPaletteBlockEntry.context, @clickedPaletteBlockEntry.wrapperContext)
       @draggingBlock = (expansion or @draggingBlock).clone()
 
     else
@@ -1710,8 +1710,8 @@ hook 'populate', 0, ->
 
   @setPalette @paletteGroups
 
-parseBlock = (mode, code, context) =>
-  block = mode.parse(code, {context}).start.next.container
+parseBlock = (mode, code, context, wrapperContext) =>
+  block = mode.parse(code, {context}, wrapperContext).start.next.container
   block.start.prev = block.end.next = null
   block.setParent null
   return block
@@ -1749,7 +1749,7 @@ Editor::setPalette = (paletteGroups) ->
 
     # Parse all the blocks in this palette and clone them
     for data in paletteGroup.blocks
-      newBlock = parseBlock(@mode, data.block, data.context)
+      newBlock = parseBlock(@mode, data.block, data.context, data.wrapperContext)
       expansion = data.expansion or null
       newPaletteBlocks.push
         block: newBlock
@@ -2115,6 +2115,10 @@ hook 'mousedown', 7, ->
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
 Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
+  console.log 'hello, working', @mode.canParse
+  if @mode.canParse? and (not @mode.canParse(list.start.container ? list.start.parent)) and list.start.parent?
+    return @reparse list.start.parent, recovery, updates, originalTrigger
+
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
