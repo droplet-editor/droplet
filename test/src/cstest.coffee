@@ -264,7 +264,7 @@ asyncTest 'Custom Colors', ->
     }
   })
   customSerialization = customCoffee.parse(
-      'return b != (a += [c + d][0]);').serialize()
+      'return b != (a += [c + d][0])').serialize()
   expectedSerialization = '''<document
     ><block
      precedence="0"
@@ -351,7 +351,7 @@ asyncTest 'Custom Colors', ->
     ></block
     ></socket
     ></block
-    >;</document>'''
+    ></document>'''
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
