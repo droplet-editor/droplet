@@ -383,6 +383,8 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
 
   @topNubbyPath ?= new @draw.Path([], true)
+  @topNubbyPath.activate()
+  @topNubbyPath.setParent @mainCtx
 
   points = []
 
@@ -628,6 +630,7 @@ Editor::redrawPalette = ->
 
     # Render the block
     paletteBlockView.draw()
+    paletteBlockView.group.setParent @paletteCtx
 
     element = document.createElementNS SVG_STANDARD, 'title'
     element.innerHTML = entry.title ? entry.block.stringify()
@@ -3143,7 +3146,10 @@ Editor::aceFontSize = ->
 
 Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
   if not @currentlyUsingBlocks and not @currentlyAnimating
+    beforeTime = +(new Date())
     setValueResult = @copyAceEditor()
+    afterTime = +(new Date())
+    console.log 'elapsed:', afterTime - beforeTime
 
     unless setValueResult.success
       if setValueResult.error
@@ -3876,6 +3882,7 @@ hook 'populate', 0, ->
     'fillColor': 'rgba(0, 0, 256, 0.3)'
     'cssClass': 'droplet-cursor-path'
   })
+  @textCursorPath.setParent @mainCtx
 
   cursorElement = document.createElementNS SVG_STANDARD, 'path'
   cursorElement.setAttribute 'fill', 'none'
@@ -3887,6 +3894,7 @@ hook 'populate', 0, ->
       " #{@view.opts.tabOffset + @view.opts.tabWidth - CURSOR_WIDTH_DECREASE / 2} 0"
 
   @cursorPath = new @view.draw.ElementWrapper(cursorElement)
+  @cursorPath.setParent @mainCtx
 
   @mainCanvas.appendChild @cursorCtx
 

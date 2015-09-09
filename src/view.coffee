@@ -343,6 +343,7 @@ exports.View = class View
       @glue = {}
 
       @elements = []
+      @activeElements = []
 
       # Versions. The corresponding
       # Model will keep corresponding version
@@ -1310,8 +1311,7 @@ exports.View = class View
 
       # *Sixth pass variables*
       # computePath
-      @group = new @view.draw.Group()
-      @group.element.setAttribute 'class', 'droplet-container-group'
+      @group = new @view.draw.Group('droplet-container-group')
 
       if @model.type is 'block'
         @path = new @view.draw.Path([], true, {
@@ -1360,6 +1360,10 @@ exports.View = class View
         @drawSelf style, parent
 
         @group.activate(); @path.activate()
+
+        for element in @activeElements
+          element.activate()
+
         if @highlightArea?
           @highlightArea.setParent @view.draw.ctx
 
@@ -1774,9 +1778,10 @@ exports.View = class View
             height = lastRect.bottom() - multilineBounds.bottom()
             top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-        @addButtonPath.element.setAttribute 'transform', "translate(#{start}, #{top})"
-        @addButtonPath.activate()
+        @addButtonPath.style.transform = "translate(#{start}, #{top})"
         @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+
+        @elements.push @addButtonPath
 
       # Return it.
       return @path
@@ -1884,6 +1889,9 @@ exports.View = class View
         @addButtonPath.setParent @group
         @elements.push @addButtonPath
 
+        @activeElements.push textElement
+        @activeElements.push @addButtonPath
+
     computeMinDimensions: ->
       if @computedVersion is @model.version
         return null
@@ -1971,8 +1979,7 @@ exports.View = class View
     constructor: ->
       super
       if @view.opts.showDropdowns and @model.dropdown?
-        @dropdownElement ?= new @view.draw.Path([], false, {fillColor: DROP_TRIANGLE_COLOR})
-        @dropdownElement.element.setAttribute 'class', 'droplet-dropdown-arrow'
+        @dropdownElement ?= new @view.draw.Path([], false, {fillColor: DROP_TRIANGLE_COLOR, cssClass: 'droplet-dropdown-arrow'})
         @dropdownElement.deactivate()
 
         @elements.push @dropdownElement
@@ -2081,8 +2088,11 @@ exports.View = class View
             @bounds[0].y + (@bounds[0].height + DROPDOWN_ARROW_HEIGHT) / 2)
         ])
         @dropdownElement.update()
-        @dropdownElement.activate()
+
+        @activeElements.push @dropdownElement
+
       else if @dropdownElement?
+        @activeElements = @activeElements.filter (x) -> x isnt @dropdownElement
         @dropdownElement.deactivate()
 
     # ## computeOwnDropArea (SocketViewNode)

@@ -243,37 +243,60 @@ exports.Draw = class Draw
     # ## ElementWrapper ###
     @ElementWrapper = class ElementWrapper
       constructor: (@element) ->
-        self.ctx.appendChild @element
-        @active = true
+        if @element?
+          @element.setAttribute 'visibility', 'hidden'
+        @active = false
+        @parent = @element?.parentElement ? self.ctx
+
+      manifest: ->
+        unless @element?
+          @element = @makeElement()
+          @getParentElement().appendChild @element
+
+          unless @active
+            @element.setAttribute 'visibility', 'hidden'
 
       deactivate: ->
         if @active
           @active = false
-          @element.setAttribute 'visibility', 'hidden'
+          @element?.setAttribute 'visibility', 'hidden'
 
       activate: ->
+        @manifest()
         unless @active
           @active = true
-          @element.setAttribute 'visibility', 'visible'
+          @element?.setAttribute 'visibility', 'visible'
 
       focus: ->
         @activate()
-        (@element.parentElement ? self.ctx).appendChild @element
+        @getParentElement().appendChild @element
+
+      getParentElement: ->
+        if @parent instanceof ElementWrapper
+          @parent.manifest()
+          return @parent.element
+        else
+          return @parent
 
       setParent: (parent) ->
-        if parent instanceof ElementWrapper
-          parent = parent.element
+        @parent = parent
 
-        unless parent is @element.parentElement
-          parent.appendChild @element
+        if @element?
+          parent = @getParentElement()
+          unless parent is @element.parentElement
+            parent.appendChild @element
 
       destroy: ->
-        if @element.parentElement?
-          @element.parentElement.removeChild @element
+        if @element?
+          if @element.parentElement?
+            @element.parentElement.removeChild @element
 
     @Group = class Group extends ElementWrapper
       constructor: ->
-        super document.createElementNS SVG_STANDARD, 'g'
+        super()
+
+      makeElement: ->
+        return document.createElementNS SVG_STANDARD, 'g'
 
     # ## Path ##
     # This is called Path, but is forced to be closed so is actually a polygon.
@@ -291,10 +314,10 @@ exports.Draw = class Draw
           'lineWidth': 1
           'fillColor': 'none'
           'dotted': ''
+          'transform': ''
         }, @style
 
-        @element = @makeElement()
-        super @element
+        super()
 
       _clearCache: ->
         if @_cacheFlag
@@ -567,6 +590,7 @@ exports.Draw = class Draw
         @__lastLineWidth = @style.lineWidth
         @__lastDotted = @style.dotted
         @__lastCssClass = @style.cssClass
+        @__lastTransform = @style.transform
 
         pathString = @getCommandString()
 
@@ -602,9 +626,13 @@ exports.Draw = class Draw
         if @style.cssClass?
           pathElement.setAttribute 'class', @style.cssClass
 
+        if @style.transform?
+          pathElement.setAttribute 'transform', @style.transform
+
         return pathElement
 
       update: ->
+        return unless @element?
         if @style.fillColor isnt @__lastFillColor
           @__lastFillColor = @style.fillColor
 
@@ -627,9 +655,13 @@ exports.Draw = class Draw
           @__lastLineWidth = @style.lineWidth
           @element.setAttribute 'stroke-width', @style.lineWidth
 
-        if @style.cssClass and @style.cssClass isnt @_lastCssClass
+        if @style.cssClass? and @style.cssClass isnt @_lastCssClass
           @_lastCssClass = @style.cssClass
           @element.setAttribute 'class', @style.cssClass
+
+        if @style.transform? and @style.transform is @_lastTransform
+          @_lastTransform = @style.transform
+          @element.setAttribute 'transform', @style.transform
 
         if @_markFlag
           if @markColor?
@@ -681,11 +713,9 @@ exports.Draw = class Draw
         @__lastValue = @value
         @__lastPoint = @point.clone()
 
-        @element = @makeElement()
+        @_bounds = new Rectangle @point.x, @point.y, self.measureCtx.measureText(@value).width, self.fontSize
 
-        super @element
-
-        @_bounds = new Rectangle @point.x, @point.y, @element.getComputedTextLength(), self.fontSize
+        super()
 
       clone: -> new Text @point, @value
       equals: (other) -> other? and @point.equals(other.point) and @value is other.value
@@ -715,6 +745,7 @@ exports.Draw = class Draw
         return element
 
       update: ->
+        return unless @element?
         unless @point.equals(@__lastPoint)
           @__lastPoint = @point.clone()
           @element.setAttribute 'x', @point.x
@@ -734,11 +765,13 @@ exports.Draw = class Draw
   setGlobalFontSize:  (size) ->
     @fontSize = size
     @ctx.style.fontSize = size
+    @measureCtx.font = "#{@fontSize}px #{@fontFamily}"
     @refreshFontCapital()
 
   setGlobalFontFamily:  (family) ->
     @fontFamily = family
     @ctx.style.fontFamily = family
+    @measureCtx.font = "#{@fontSize}px #{@fontFamily}"
     @refreshFontCapital()
 
   getGlobalFontSize:  -> @fontSize
