@@ -749,7 +749,7 @@ exports.Draw = class Draw
         unless @point.equals(@__lastPoint)
           @__lastPoint = @point.clone()
           @element.setAttribute 'x', @point.x
-          @element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent / 2
+          @element.setAttribute 'y', @point.y + self.fontBaseline - self.fontAscent / 2
 
         unless @value is @__lastValue
           @__lastValue = @value

@@ -521,7 +521,9 @@ Editor::redrawMain = (opts = {}) ->
 
     # Set our draw tool's font size
     # to the font size we want
-    @draw.setGlobalFontSize @fontSize
+    @view.draw.setGlobalFontSize @fontSize
+    @paletteView.draw.setGlobalFontSize @fontSize
+    @dragView.draw.setGlobalFontSize @fontSize
 
     # Clear the main canvas
     @clearMain(opts)
@@ -3476,7 +3478,7 @@ Editor::setFontSize_raw = (fontSize) ->
     @fontDescent = metrics.descent
 
     @view.clearCache()
-
+    @paletteView.clearCache()
     @dragView.clearCache()
 
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
