@@ -855,14 +855,16 @@ exports.View = class View
     hide: ->
       for element in @elements
         element?.deactivate?()
+      @activeElements = []
 
     destroy: (root = true) ->
       if root
         for element in @elements
           element?.destroy?()
-        @activeElements = []
       else if @highlightArea?
         @highlightArea.destroy()
+
+      @activeElements = []
 
       for child in @children
         @view.getViewNodeFor(child.child).destroy(false)
@@ -1983,6 +1985,8 @@ exports.View = class View
       if @view.opts.showDropdowns and @model.dropdown?
         @dropdownElement ?= new @view.draw.Path([], false, {fillColor: DROP_TRIANGLE_COLOR, cssClass: 'droplet-dropdown-arrow'})
         @dropdownElement.deactivate()
+
+        @dropdownElement.setParent @group
 
         @elements.push @dropdownElement
 
