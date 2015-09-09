@@ -87,3 +87,46 @@ asyncTest 'Parse Contexts', ->
       helper.xmlPrettyPrint(expectedSerialization2),
       'a:b resolves to a selector without a context')
   return start()
+
+asyncTest 'Check overrides', ->
+  htmlParser = new CSS({
+    properties: {background: {color: 'red'}}
+    nodes: {rule: {color: 'blue'}}
+  })
+  window.customSerialization = customSerialization = htmlParser.parse(
+    '''
+    a {
+      background: red;
+    }
+    ''').serialize()
+  expectedSerialization = '''<document><block
+      precedence="1"
+      color="blue"
+      socketLevel="0"
+      classes="rule"><socket
+      precedence="1"
+      handwritten="false"
+      classes="selector"><block
+      precedence="1"
+      color="green"
+      socketLevel="0"
+      classes="selector"><socket
+      precedence="1"
+      handwritten="false"
+      classes="selector-elementname">a</socket></block></socket> {<indent
+      prefix="  "
+      classes="rule">
+    <block
+      precedence="1"
+      color="red"
+      socketLevel="0"
+      classes="property">background: <socket
+      precedence="1"
+      handwritten="false"
+      classes="property-part">red</socket>;</block></indent>
+    }</block></document>'''
+  strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Node and property overrides work')
+  return start()
