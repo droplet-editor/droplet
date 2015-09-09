@@ -93,7 +93,7 @@ exports.Draw = class Draw
     @measureCtx = canvas.getContext '2d'
     @fontSize = 15
     @fontFamily = 'Courier New, monospace'
-    @fontAscent = 2
+    @fontAscent = -2
     @fontBaseline = 10
 
     @measureCtx.font = "#{@fontSize}px #{@fontFamily}"
@@ -733,7 +733,7 @@ exports.Draw = class Draw
         # to base ourselves to avoid a chrome bug where text zooming
         # doesn't work for non-alphabetic baselines
         element.setAttribute 'x', @point.x
-        element.setAttribute 'y', @point.y + self.fontBaseline + self.fontAscent / 2
+        element.setAttribute 'y', @point.y + self.fontBaseline - self.fontAscent / 2
         element.setAttribute 'dominant-baseline', 'alphabetic'
 
         #element.setAttribute 'font-family', self.fontFamily

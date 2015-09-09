@@ -519,12 +519,6 @@ Editor::redrawMain = (opts = {}) ->
 
     @view.beginDraw()
 
-    # Set our draw tool's font size
-    # to the font size we want
-    @view.draw.setGlobalFontSize @fontSize
-    @paletteView.draw.setGlobalFontSize @fontSize
-    @dragView.draw.setGlobalFontSize @fontSize
-
     # Clear the main canvas
     @clearMain(opts)
 
@@ -3471,6 +3465,7 @@ Editor::setFontSize_raw = (fontSize) ->
     @tooltipElement.style.fontSize = "#{fontSize}px"
 
     @view.opts.textHeight =
+      @paletteView.opts.textHeight =
       @dragView.opts.textHeight = helper.getFontHeight @fontFamily, @fontSize
 
     metrics = helper.fontMetrics(@fontFamily, @fontSize)
@@ -3480,6 +3475,10 @@ Editor::setFontSize_raw = (fontSize) ->
     @view.clearCache()
     @paletteView.clearCache()
     @dragView.clearCache()
+
+    @view.draw.setGlobalFontSize @fontSize
+    @paletteView.draw.setGlobalFontSize @fontSize
+    @dragView.draw.setGlobalFontSize @fontSize
 
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
 
