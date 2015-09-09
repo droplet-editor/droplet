@@ -770,6 +770,13 @@ exports.Token = class Token
 
     @version = 0
 
+  getLinesToParent: ->
+    head = @; lines = 0
+    until head is @parent.start
+      lines++ if head.type is 'newline'
+      head = head.prev
+    return lines
+
   setParent: (@parent) ->
 
   hasParent: (parent) ->
