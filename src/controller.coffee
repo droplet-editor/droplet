@@ -2931,6 +2931,7 @@ Editor::computePlaintextTranslationVectors = ->
   }
 
   @measureCtx.font = @aceFontSize() + ' ' + @fontFamily
+  fontWidth = @measureCtx.measureText(' ').width
 
   rownum = 0
   until head is @tree.end
@@ -2944,12 +2945,12 @@ Editor::computePlaintextTranslationVectors = ->
         translationVectors.push (new @draw.Point(state.x, state.y)).from(corner)
         textElements.push @view.getViewNodeFor head
 
-        state.x += @fontWidth * head.value.length
+        state.x += fontWidth * head.value.length
 
       when 'socketStart'
         if head.next is head.container.end or
             head.next.type is 'text' and head.next.value is ''
-          state.x += @fontWidth * head.container.emptyString.length
+          state.x += fontWidth * head.container.emptyString.length
 
       # Newline moves the cursor to the next line,
       # plus some indent.
@@ -2961,9 +2962,9 @@ Editor::computePlaintextTranslationVectors = ->
         rownum += 1
         state.y += state.lineHeight * wrappedlines
         if head.specialIndent?
-          state.x = state.leftEdge + @fontWidth * head.specialIndent.length
+          state.x = state.leftEdge + fontWidth * head.specialIndent.length
         else
-          state.x = state.leftEdge + state.indent * @fontWidth
+          state.x = state.leftEdge + state.indent * fontWidth
 
       when 'indentStart'
         state.indent += head.container.depth

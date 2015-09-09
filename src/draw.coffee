@@ -314,7 +314,6 @@ exports.Draw = class Draw
           'lineWidth': 1
           'fillColor': 'none'
           'dotted': ''
-          'transform': ''
         }, @style
 
         super()
@@ -659,7 +658,7 @@ exports.Draw = class Draw
           @_lastCssClass = @style.cssClass
           @element.setAttribute 'class', @style.cssClass
 
-        if @style.transform? and @style.transform is @_lastTransform
+        if @style.transform? and @style.transform isnt @_lastTransform
           @_lastTransform = @style.transform
           @element.setAttribute 'transform', @style.transform
 

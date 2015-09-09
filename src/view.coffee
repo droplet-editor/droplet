@@ -860,6 +860,7 @@ exports.View = class View
       if root
         for element in @elements
           element?.destroy?()
+        @activeElements = []
       else if @highlightArea?
         @highlightArea.destroy()
 
