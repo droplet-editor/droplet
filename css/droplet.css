@@ -348,6 +348,15 @@ text {
   cursor: -moz-grab;
   cursor: grab;
 }
+.droplet-palette-canvas>g:hover>.droplet-block-path>.droplet-light-bevel-path, .droplet-palette-canvas>g:hover>.droplet-block-path>.droplet-dark-bevel-path {
+  fill: #FF0;
+}
+
+.droplet-palette-canvas>g:hover>.droplet-block-path>.droplet-background-path {
+  stroke: #FF0;
+  stroke-width: 2px;
+}
+
 .droplet-cursor-path {
   cursor: text;
 }
