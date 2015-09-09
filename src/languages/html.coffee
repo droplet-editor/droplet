@@ -201,7 +201,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   getButtons: (node) ->
     buttons = {}
-    if node.nodeName in ['thead', 'tbody', 'tr', 'table', 'div']
+    if node.nodeName in ['thead', 'tbody', 'tr', 'table']
       buttons.addButton = true
       if node.childNodes.length isnt 0
         buttons.subtractButton = true
@@ -391,6 +391,13 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       end: @positions[node.__indentLocation.end]
     }
 
+    trailingText = @lines[bounds.start.line][bounds.start.column...]
+    if trailingText.length > 0 and trailingText.trim().length is 0
+      bounds.start = {
+        line: bounds.start.line
+        column: @lines[bounds.start.line].length
+      }
+
     if node.__location.endTag?
       lastLine = @positions[node.__location.endTag.start].line - 1
       if lastLine > bounds.end.line or (lastLine is bounds.end.line and @lines[lastLine].length > bounds.end.column)
@@ -464,8 +471,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
         root = htmlParser.parseFragment @text
         @cleanTree root
         @fixBounds root
-    window.root = root
-    window.parse5 = htmlParser
     @mark 0, root, 0, null
 
   mark: (indentDepth, node, depth, bounds, nomark = false) ->
@@ -503,7 +508,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
               classes: @getClasses node
             lastChild = null
           else
-            unless TAGS[node.nodeName].content is 'optional' or
+            unless TAGS[node.nodeName]?.content is 'optional' or
                 (node.nodeName is 'script' and @hasAttribute node, 'src') or
                 node.__indentLocation.end is node.__location.end
               @htmlSocket node, depth + 1, null, indentBounds, null, true

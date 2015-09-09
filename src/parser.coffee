@@ -330,7 +330,14 @@ exports.Parser = class Parser
         # Append the rest of the string
         # (after the last piece of markup)
         unless lastIndex >= line.length
-          head = helper.connect head, new model.TextToken(line[lastIndex...line.length])
+          if stack.length is 0 or stack[stack.length - 1].type is 'indent'
+            block = @constructHandwrittenBlock line[lastIndex...line.length]
+
+            helper.connect head, block.start
+            head = block.end
+
+          else
+            head = helper.connect head, new model.TextToken(line[lastIndex...line.length])
 
         # Append the needed newline token
         head = helper.connect head, new model.NewlineToken()

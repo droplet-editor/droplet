@@ -243,3 +243,33 @@ asyncTest 'Check overrides', ->
       helper.xmlPrettyPrint(expectedSerialization),
       'Tag and category overrides work')
   return start()
+
+asyncTest 'Trailing Space', ->
+  htmlParser = new HTML()
+  window.customSerialization = customSerialization = htmlParser.parse(
+    '''
+    <body>   
+      Hello
+    </body>
+    ''').serialize()
+  expectedSerialization = '''<document><block
+      precedence="1"
+      color="orange"
+      socketLevel="0"
+      classes="body">&amp;lt;body>   <indent
+      prefix="  "
+      classes="body">
+    <block
+      precedence="1"
+      color="lightgreen"
+      socketLevel="0"
+      classes="#text"><socket
+      precedence="0"
+      handwritten="false"
+      classes="#text">Hello</socket></block></indent>
+    &amp;lt;/body&amp;gt;</block></document>'''
+  strictEqual(
+      helper.xmlPrettyPrint(customSerialization),
+      helper.xmlPrettyPrint(expectedSerialization),
+      'Trailing space is part of parent block')
+  return start()

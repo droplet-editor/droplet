@@ -2182,7 +2182,14 @@ Editor::populateSocket = (socket, string) ->
 Editor::populateBlock = (block, string) ->
   newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
   if newBlock
+    # Find the first token before the block
+    # that will still be around after the
+    # block has been removed
     position = block.start.prev
+    while position?.type is 'newline' and not (
+          position.prev?.type is 'indentStart' and
+          position.prev.container.end is block.end.next)
+      position = position.prev
     @spliceOut block
     @spliceIn newBlock, position
     return true

@@ -282,6 +282,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         }
       }
 
+      bounds.start.column += (@lines[bounds.start.line][bounds.start.column..].match(/^\s*/) ? [''])[0].length
+
       if @lines[bounds.end.line][...bounds.end.column].trim().length is 0
         bounds.end.line -= 1
         bounds.end.column = @lines[bounds.end.line].length
