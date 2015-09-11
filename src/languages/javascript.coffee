@@ -532,7 +532,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i], (
             if i is 0 and node.arguments.length is 1 then '' else undefined
           )
-        if node.arguments.length is 0
+        if not known and node.arguments.length is 0
           position = {
             line: node.callee.loc.end.line
             column: node.callee.loc.end.column
@@ -546,8 +546,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           space = @lines[position.line][position.column..].match(/^(\s*)\)/)
           if space?
             endPosition.column += space[1].length
-          else
-            debugger
           @addSocket {
             bounds: {
               start: position

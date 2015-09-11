@@ -109,11 +109,7 @@ asyncTest 'JS dotted methods', ->
       color="red"
       socketLevel="0"
       classes="CallExpression mostly-block"
-    >pos(<socket
-      precedence="100"
-      handwritten="false"
-      classes="mostly-value"
-    ></socket>)</block></socket></block></socket
+    >pos()</block></socket></block></socket
     >)</block></socket
     >)</block></socket
     >)</block></socket

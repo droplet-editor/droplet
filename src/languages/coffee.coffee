@@ -554,7 +554,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             # simple base object variable, let the variable be socketed.
             @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
 
-          if node.args.length is 0 and not node.do
+          if not known and node.args.length is 0 and not node.do
             # The only way we can have zero arguments in CoffeeScript
             # is for the parenthesis to open immediately after the function name.
             variableBounds = @getBounds(node.variable)
