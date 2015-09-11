@@ -40,6 +40,7 @@ DEFAULT_OPTIONS =
   dropAreaHeight: 20
   indentDropAreaMinWidth: 50
   minSocketWidth: 10
+  invisibleSocketWidth: 5
   textHeight: 15
   textPadding: 1
   emptyLineWidth: 50
@@ -1756,6 +1757,9 @@ exports.View = class View
 
     shouldAddTab: NO
 
+    isInvisibleSocket: ->
+      '' is @model.emptyString and @model.start?.next is @model.end
+
     # ## computeDimensions (SocketViewNode)
     # Sockets have a couple exceptions to normal dimension computation.
     #
@@ -1777,8 +1781,11 @@ exports.View = class View
           @minDistanceToBase[0].above + @minDistanceToBase[0].below
 
       for dimension in @minDimensions
-        dimension.width =
-            Math.max(dimension.width, @view.opts.minSocketWidth)
+        dimension.width = Math.max(dimension.width,
+          if @isInvisibleSocket()
+            @view.opts.invisibleSocketWidth
+          else
+            @view.opts.minSocketWidth)
 
         if @model.hasDropdown() and @view.opts.showDropdowns
           dimension.width += helper.DROPDOWN_ARROW_WIDTH
@@ -1838,10 +1845,12 @@ exports.View = class View
       else
         super
 
-      # Make ourselves white, with a
-      # gray border.
-      @path.style.fillColor = '#FFF'
-      @path.style.strokeColor = '#FFF'
+      if '' is @model.emptyString and @model.start?.next is @model.end
+        # Empty sockets with empty emptyString defaults are transparent
+        @path.style.fillColor = @path.style.strokeColor = 'rgba(0,0,0,0)'
+      else
+        # Make ourselves white, with a white border.
+        @path.style.fillColor = @path.style.strokeColor = '#FFF'
 
       return @path
 
