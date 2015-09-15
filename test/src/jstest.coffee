@@ -305,7 +305,11 @@ asyncTest 'JS omits unary +/- for literals', ->
       '  precedence="100"' +
       '  handwritten="false"' +
       '  classes=""' +
-      '>a</socket>()</block></socket></block>' +
+      '>a</socket>(<socket
+        precedence="100"
+        handwritten="false"
+        classes="mostly-value"
+      ></socket>)</block></socket></block>' +
       '</socket>);</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
@@ -485,7 +489,11 @@ asyncTest 'JS beginner mode loops', ->
     '  precedence="100"' +
     '  handwritten="false"' +
     '  classes=""' +
-    '>go</socket>();</block></indent>\n}</block></document>'
+    '>go</socket>(<socket
+      precedence="100"
+      handwritten="false"
+      classes="mostly-value"
+    ></socket>);</block></indent>\n}</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),
