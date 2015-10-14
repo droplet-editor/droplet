@@ -95,6 +95,7 @@ exports.Editor = class Editor
     @paletteGroups = @options.palette
     @showPaletteInTextMode = @options.showPaletteInTextMode ? false
     @paletteEnabled = @options.enablePaletteAtStart ? true
+    @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
 
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -991,6 +992,14 @@ Editor::replace = (before, after, updates = []) ->
   else
     return null
 
+Editor::adjustPosToLineStart = (pos) ->
+  line = @aceEditor.session.getLine pos.row
+  if pos.row == @aceEditor.session.getLength() - 1
+    pos.column = if (pos.column >= line.length / 2) then line.length else 0
+  else
+    pos.column = 0
+  pos
+
 Editor::correctCursor = ->
   cursor = @fromCrossDocumentLocation @cursor
   unless @validCursorPosition cursor
@@ -1366,6 +1375,10 @@ hook 'mousemove', 0, (point, event, state) ->
     if not @currentlyUsingBlocks
       if @trackerPointIsInAce position
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
+
+        if @dropIntoAceAtLineStart
+          pos = @adjustPosToLineStart pos
+
         @aceEditor.focus()
         @aceEditor.session.selection.moveToPosition pos
       else
@@ -1470,6 +1483,9 @@ hook 'mouseup', 1, (point, event, state) ->
         prefix = ''
         indentation = currentIndentation
         suffix = ''
+
+        if @dropIntoAceAtLineStart
+          pos = @adjustPosToLineStart pos
 
         if currentIndentation.length == line.length or currentIndentation.length == pos.column
           # line is whitespace only or we're inserting at the beginning of a line
@@ -3395,6 +3411,8 @@ Editor::enablePalette = (enabled) ->
         @paletteWrapper.style.left = '-9999px'
 
         @currentlyAnimating = false
+
+        @fireEvent 'palettetoggledone', [@paletteEnabled]
       ), 500
 
     else
@@ -3416,6 +3434,8 @@ Editor::enablePalette = (enabled) ->
           @resize()
 
           @currentlyAnimating = false
+
+          @fireEvent 'palettetoggledone', [@paletteEnabled]
         ), 500
       ), 0
 
