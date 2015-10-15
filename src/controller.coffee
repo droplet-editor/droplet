@@ -1478,15 +1478,14 @@ hook 'mouseup', 1, (point, event, state) ->
         # Get the line of text we're dropping into
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
         line = @aceEditor.session.getLine pos.row
-        currentIndentation = leadingWhitespaceRegex.exec(line)[0]
+        indentation = leadingWhitespaceRegex.exec(line)[0]
 
         skipInitialIndent = true
         prefix = ''
-        indentation = currentIndentation
         suffix = ''
 
         if @dropIntoAceAtLineStart
-          # First, adjust currentIndentation if we're dropping into the start of a
+          # First, adjust indentation if we're dropping into the start of a
           # line that ends an indentation block
           firstNonWhitespaceRegex = /\S/
           firstChar = firstNonWhitespaceRegex.exec(line)
@@ -1494,7 +1493,7 @@ hook 'mouseup', 1, (point, event, state) ->
             # If this line starts with a closing bracket, use the previous line's indentation
             # TODO: generalize for language indentation semantics besides C/JavaScript
             prevLine = @aceEditor.session.getLine(pos.row - 1)
-            currentIndentation = leadingWhitespaceRegex.exec(prevLine)[0]
+            indentation = leadingWhitespaceRegex.exec(prevLine)[0]
           # Adjust pos to start of the line (as we did during mousemove)
           pos = @adjustPosToLineStart pos
           skipInitialIndent = false
@@ -1503,7 +1502,7 @@ hook 'mouseup', 1, (point, event, state) ->
           else
             # Handle the case where we're dropping a block at the end of the last line
             prefix = '\n'
-        else if currentIndentation.length == line.length or currentIndentation.length == pos.column
+        else if indentation.length == line.length or indentation.length == pos.column
           # line is whitespace only or we're inserting at the beginning of a line
           # Append with a newline
           suffix = '\n' + indentation
