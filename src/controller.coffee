@@ -1475,19 +1475,31 @@ hook 'mouseup', 1, (point, event, state) ->
 
       if @trackerPointIsInAce position
         leadingWhitespaceRegex = /^(\s*)/
+        firstNonWhitespaceRegex = /\S/
         # Get the line of text we're dropping into
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
         line = @aceEditor.session.getLine pos.row
         currentIndentation = leadingWhitespaceRegex.exec(line)[0]
+        firstChar = firstNonWhitespaceRegex.exec(line)
+        if firstChar and firstChar[0] == '}'
+          # If this line starts with a closing bracket, use the previous line's indentation
+          # TODO: generalize for language indentation semantics besides C/JavaScript
+          prevLine = @aceEditor.session.getLine(pos.row - 1)
+          currentIndentation = leadingWhitespaceRegex.exec(prevLine)[0]
 
+        skipInitialIndent = true
         prefix = ''
         indentation = currentIndentation
         suffix = ''
 
         if @dropIntoAceAtLineStart
           pos = @adjustPosToLineStart pos
-
-        if currentIndentation.length == line.length or currentIndentation.length == pos.column
+          skipInitialIndent = false
+          if pos.column == 0
+            suffix = '\n'
+          else
+            prefix = '\n'
+        else if currentIndentation.length == line.length or currentIndentation.length == pos.column
           # line is whitespace only or we're inserting at the beginning of a line
           # Append with a newline
           suffix = '\n' + indentation
@@ -1495,9 +1507,9 @@ hook 'mouseup', 1, (point, event, state) ->
           # We're at the end of a non-empty line.
           # Insert a new line, and base our indentation off of the next line
           prefix = '\n'
+          skipInitialIndent = false
           nextLine = @aceEditor.session.getLine(pos.row + 1)
           indentation = leadingWhitespaceRegex.exec(nextLine)[0]
-        else
 
         # Call prepareNode, which may append with a semicolon
         @prepareNode @draggingBlock, null
@@ -1506,7 +1518,7 @@ hook 'mouseup', 1, (point, event, state) ->
         # Indent each line, unless it's the first line and wasn't placed on
         # a newline
         text = text.split('\n').map((line, index) =>
-          return (if index == 0 and prefix == '' then '' else indentation) + line
+          return (if index == 0 and skipInitialIndent then '' else indentation) + line
         ).join('\n')
 
         text = prefix + text + suffix
