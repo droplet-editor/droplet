@@ -633,7 +633,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       socketLevel: @getSocketLevel node
       buttons: buttons
 
-  jsSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes, dropdown) ->
+  jsSocketAndMark: (indentDepth, node, depth, precedence, bounds, classes, dropdown, empty) ->
     unless node.type is 'BlockStatement'
       @addSocket
         bounds: bounds ? @getBounds node
@@ -641,6 +641,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         precedence: precedence
         classes: classes ? []
         dropdown: dropdown
+        empty: empty
 
     @mark indentDepth, node, depth + 1, bounds
 
