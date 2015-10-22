@@ -370,6 +370,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             dropdown: null
             classes: ['no-drop']
             empty: ''
+            parseContext: 'NO_REPARSE'
           }
         else if @opts.zeroParamFunctions
           nodeBoundsStart = @getBounds(node.id).end

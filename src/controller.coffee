@@ -2152,14 +2152,18 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   if list.start.type is 'socketStart'
     return if list.start.next is list.end
 
-    originalText = list.textContent()
-    @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
-
-    # Try reparsing the parent again after the reparse. If it fails,
-    # repopulate with the original text and try again.
-    unless @reparse list.parent, recovery, updates, originalTrigger
-      @populateSocket list, originalText
+    # Sockets with 'NO_REPARSE' should bubble reparses up to the parent.
+    if list.parseContext = 'NO_REPARSE'
       @reparse list.parent, recovery, updates, originalTrigger
+    else
+      originalText = list.textContent()
+      @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
+
+      # Try reparsing the parent again after the reparse. If it fails,
+      # repopulate with the original text and try again.
+      unless @reparse list.parent, recovery, updates, originalTrigger
+        @populateSocket list, originalText
+        @reparse list.parent, recovery, updates, originalTrigger
     return
 
   parent = list.start.parent
