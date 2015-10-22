@@ -2153,7 +2153,8 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     return if list.start.next is list.end
 
     originalText = list.textContent()
-    @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
+    unless list.parseContext = 'NO_REPARSE'
+      @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
     # repopulate with the original text and try again.

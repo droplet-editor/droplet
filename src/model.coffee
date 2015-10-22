@@ -1018,7 +1018,7 @@ exports.SocketEndToken = class SocketEndToken extends EndToken
     else ''
 
 exports.Socket = class Socket extends Container
-  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null, @parseContext) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -1039,7 +1039,7 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown, @parseContext
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
