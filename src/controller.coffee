@@ -2153,12 +2153,17 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     return if list.start.next is list.end
 
     originalText = list.textContent()
+    originalUpdates = updates.map (location) ->
+      count: location.count, type: location.type
     @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
     # repopulate with the original text and try again.
     unless @reparse list.parent, recovery, updates, originalTrigger
       @populateSocket list, originalText
+      originalUpdates.forEach (location, i) ->
+        updates[i].count = location.count
+        updates[i].type = location.type
       @reparse list.parent, recovery, updates, originalTrigger
     return
 
