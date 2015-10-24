@@ -4325,16 +4325,11 @@ hook 'populate', 1, ->
   pressedXKey = false
 
   @copyPasteInput.addEventListener 'keydown', (event) ->
+    pressedVKey = pressedXKey = false
     if event.keyCode is 86
       pressedVKey = true
     else if event.keyCode is 88
       pressedXKey = true
-
-  @copyPasteInput.addEventListener 'keyup', (event) ->
-    if event.keyCode is 86
-      pressedVKey = false
-    else if event.keyCode is 88
-      pressedXKey = false
 
   @copyPasteInput.addEventListener 'input', =>
     if @readOnly
