@@ -7,6 +7,9 @@ livereload = require 'tiny-lr'
 path = require 'path'
 fs = require 'fs'
 
+if process.env.LANGUAGE
+  ignoredLanguages = ["./src/languages/!(#{process.env.LANGUAGE}).coffee"]
+
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
   middlewares.unshift (req, res, next) ->
@@ -75,6 +78,7 @@ module.exports = (grunt) ->
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
         options:
+          ignore: ignoredLanguages
           transform: ['coffeeify']
           browserifyOptions:
             standalone: 'droplet'
