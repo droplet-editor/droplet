@@ -371,7 +371,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
-        else if @opts.zeroParamFunctions
+        else unless @opts.lockZeroParamFunctions
           nodeBoundsStart = @getBounds(node.id).end
           match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
           if match?
@@ -409,7 +409,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
-        else if @opts.zeroParamFunctions
+        else unless @opts.lockZeroParamFunctions
           if node.id?
             nodeBoundsStart = @getBounds(node.id).end
             match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
@@ -528,7 +528,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i], (
             if i is 0 and node.arguments.length is 1 then '' else undefined
           )
-        if not known and node.arguments.length is 0
+        if not known and node.arguments.length is 0 and not @opts.lockZeroParamFunctions
           position = {
             line: node.callee.loc.end.line
             column: node.callee.loc.end.column
