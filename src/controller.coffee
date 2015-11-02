@@ -243,12 +243,13 @@ exports.Editor = class Editor
         handler.call this, event, state
 
     for eventName, elements of {
-        keydown: [@dropletElement, @paletteElement]
-        keyup: [@dropletElement, @paletteElement]
-        mousedown: [@dropletElement, @paletteHeader, @paletteScrollerStuffing, @dragCover]
-        dblclick: [@dropletElement, @paletteHeader, @paletteScrollerStuffing, @dragCover]
-        mouseup: [window]
-        mousemove: [window] } then do (eventName, elements) =>
+      keydown: [@dropletElement, @paletteElement]
+      keyup: [@dropletElement, @paletteElement]
+      mousedown: [@dropletElement, @paletteHeader, @paletteScrollerStuffing, @dragCover]
+      dblclick: [@dropletElement, @paletteHeader, @paletteScrollerStuffing, @dragCover]
+      mouseup: [window]
+      mousemove: [window]
+    } then do (eventName, elements) =>
       for element in elements
         if /^key/.test eventName
           element.addEventListener eventName, dispatchKeyEvent
@@ -2092,7 +2093,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 
     if startRow is endRow
       @cursorCtx.fillRect startPosition,
-        textFocusView.bounds[startRow].y + @view.opts.textPadding
+        textFocusView.bounds[startRow].y + @view.opts.textPadding,
         endPosition - startPosition, @view.opts.textHeight
 
     else
