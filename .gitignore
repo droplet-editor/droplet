@@ -7,3 +7,5 @@ example/*.js
 example/*.map
 test/*.js
 test/*.map
+.DS_Store
+.idea/
