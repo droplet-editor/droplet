@@ -245,8 +245,8 @@ exports.Editor = class Editor
     for eventName, elements of {
         keydown: [@dropletElement, @paletteElement]
         keyup: [@dropletElement, @paletteElement]
-        mousedown: [@dropletElement, @paletteElement, @dragCover]
-        dblclick: [@dropletElement, @paletteElement, @dragCover]
+        mousedown: [@dropletElement, @paletteHeader, @paletteScrollerStuffing, @dragCover]
+        dblclick: [@dropletElement, @paletteHeader, @paletteScrollerStuffing, @dragCover]
         mouseup: [window]
         mousemove: [window] } then do (eventName, elements) =>
       for element in elements
