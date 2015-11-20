@@ -174,13 +174,16 @@ exports.List = class List
     helper.connect list.end, after
     list.notifyChange()
 
-    # Make and return an undo operation
-    operation = new Operation 'insert', list
-    operation.location = location
+    if location?
+      # Make and return an undo operation
+      operation = new Operation 'insert', list
+      operation.location = location
 
-    # Preserve updates
-    updates.forEach (x, i) ->
-      x.set(updateTokens[i].getLocation())
+      # Preserve updates
+      updates.forEach (x, i) ->
+        x.set(updateTokens[i].getLocation())
+    else
+      operation = null
 
     return operation
 
@@ -870,6 +873,9 @@ exports.Token = class Token
     count = 0
     head = @
     dropletDocument = @getDocument()
+
+    if not dropletDocument?
+      return null
 
     until head is dropletDocument.start
       head = head.prev

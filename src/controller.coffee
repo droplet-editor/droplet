@@ -96,6 +96,7 @@ exports.Editor = class Editor
     @showPaletteInTextMode = @options.showPaletteInTextMode ? false
     @paletteEnabled = @options.enablePaletteAtStart ? true
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
+    @allowFloatingBlocks = @options.allowFloatingBlocks ? true
 
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -896,7 +897,7 @@ Editor::getPreserves = (dropletDocument) ->
     location.document is dropletDocument
   ).map((location) -> location.location)
 
-Editor::spliceOut = (node) ->
+Editor::spliceOut = (node, container = null) ->
   # Make an empty list if we haven't been
   # passed one
   unless node instanceof model.List
@@ -906,9 +907,9 @@ Editor::spliceOut = (node) ->
 
   dropletDocument = node.getDocument()
 
-  if dropletDocument?
-    parent = node.parent
+  parent = node.parent
 
+  if dropletDocument?
     operation = node.getDocument().remove node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
 
@@ -939,6 +940,9 @@ Editor::spliceOut = (node) ->
 
           @floatingBlocks.splice i, 1
           break
+  else if container?
+    # No document, so try to remove from container if it was supplied
+    container.remove node
 
   @prepareNode node, null
   @correctCursor()
@@ -952,25 +956,29 @@ Editor::spliceIn = (node, location) ->
     container = container.parent
   else if container.type is 'socket' and
       container.start.next isnt container.end
-    # If we're splicing into a socket and it already has
-    # something in it, remove it. Additionally, remember the old
-    # contents in @rememberedSockets for later repopulation if they take
-    # the block back out.
-    @rememberedSockets.push new RememberedSocketRecord(
-      @toCrossDocumentLocation(container),
-      container.textContent()
-    )
-    @spliceOut new model.List container.start.next, container.end.prev
+    if @documentIndex(container) != -1
+      # If we're splicing into a socket found in a document and it already has
+      # something in it, remove it. Additionally, remember the old
+      # contents in @rememberedSockets for later repopulation if they take
+      # the block back out.
+      @rememberedSockets.push new RememberedSocketRecord(
+        @toCrossDocumentLocation(container),
+        container.textContent()
+      )
+    @spliceOut (new model.List container.start.next, container.end.prev), container
 
   dropletDocument = location.getDocument()
 
+  @prepareNode node, container
+
   if dropletDocument?
-    @prepareNode node, container
     operation = dropletDocument.insert location, node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     @correctCursor()
     return operation
   else
+    # No document, so just insert into container
+    container.insert location, node
     return null
 
 class RememberedSocketRecord
@@ -1643,10 +1651,8 @@ hook 'mouseup', 0, (point, event, state) ->
     renderPoint = @trackerPointToMain trackPoint
     palettePoint = @trackerPointToPalette trackPoint
 
-    # Remove the block from the tree.
-    @undoCapture()
-    rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
-    @spliceOut @draggingBlock
+    removeBlock = true
+    addBlockAsFloatingBlock = true
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
@@ -1657,11 +1663,25 @@ hook 'mouseup', 0, (point, event, state) ->
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
 
+      addBlockAsFloatingBlock = false
+    else
+      if renderPoint.x - @scrollOffsets.main.x < 0
+        renderPoint.x = @scrollOffsets.main.x
+
+      # If @allowFloatingBlocks is false, we end the drag without deleting the block.
+      if not @allowFloatingBlocks
+        addBlockAsFloatingBlock = false
+        removeBlock = false
+
+    if removeBlock
+      # Remove the block from the tree.
+      @undoCapture()
+      rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
+      @spliceOut @draggingBlock
+
+    if not addBlockAsFloatingBlock
       @endDrag()
       return
-
-    else if renderPoint.x - @scrollOffsets.main.x < 0
-      renderPoint.x = @scrollOffsets.main.x
 
     # Add the undo operation associated
     # with creating this floating block
@@ -1840,6 +1860,10 @@ hook 'mousedown', 6, (point, event, state) ->
   palettePoint = @trackerPointToPalette point
   if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
      @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
+
+    if @handleTextInputClickInPalette palettePoint
+      state.consumedHitTest = true
+      return
 
     for entry in @currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @paletteView
@@ -2353,6 +2377,30 @@ Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
   else
     return false
 
+# Convenience hit-testing function
+Editor::hitTestTextInputInPalette = (point, block) ->
+  head = block.start
+  while head?
+    if head.type is 'socketStart' and head.container.isDroppable() and
+        @paletteView.getViewNodeFor(head.container).path.contains point
+      return head.container
+    head = head.next
+
+  return null
+
+Editor::handleTextInputClickInPalette = (palettePoint) ->
+  for entry in @currentPaletteBlocks
+    hitTestResult = @hitTestTextInputInPalette palettePoint, entry.block
+
+    # If they have clicked a socket, check to see if it is a dropdown
+    if hitTestResult?
+      if hitTestResult.hasDropdown()
+        @showDropdown hitTestResult, true
+        return true
+
+  return false
+
+
 # Create the dropdown DOM element at populate time.
 hook 'populate', 0, ->
   @dropdownElement = document.createElement 'div'
@@ -2365,10 +2413,10 @@ hook 'populate', 0, ->
 
 # Update the dropdown to match
 # the current text focus font and size.
-Editor::formatDropdown = (socket = @getCursor()) ->
+Editor::formatDropdown = (socket = @getCursor(), view = @view) ->
   @dropdownElement.style.fontFamily = @fontFamily
   @dropdownElement.style.fontSize = @fontSize
-  @dropdownElement.style.minWidth = @view.getViewNodeFor(socket).bounds[0].width
+  @dropdownElement.style.minWidth = view.getViewNodeFor(socket).bounds[0].width
 
 Editor::getDropdownList = (socket) ->
   result = socket.dropdown
@@ -2383,7 +2431,7 @@ Editor::getDropdownList = (socket) ->
   return result.map (x) ->
     if 'string' is typeof x then { text: x, display: x } else x
 
-Editor::showDropdown = (socket = @getCursor()) ->
+Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
   @dropdownVisible = true
 
   dropdownItems = []
@@ -2391,7 +2439,7 @@ Editor::showDropdown = (socket = @getCursor()) ->
   @dropdownElement.innerHTML = ''
   @dropdownElement.style.display = 'inline-block'
 
-  @formatDropdown socket
+  @formatDropdown socket, if inPalette then @paletteView else @view
 
   for el, i in @getDropdownList(socket) then do (el) =>
     div = document.createElement 'div'
@@ -2406,13 +2454,19 @@ Editor::showDropdown = (socket = @getCursor()) ->
       @undoCapture()
 
       # Attempting to populate the socket after the dropdown has closed should no-op
-      if (not @cursorAtSocket()) or @dropdownElement.style.display == 'none'
+      if @dropdownElement.style.display == 'none'
         return
 
-      @populateSocket @getCursor(), text
-      @hiddenInput.value = text
+      if inPalette
+        @populateSocket socket, text
+        @redrawPalette()
+      else
+        if not @cursorAtSocket()
+          return
+        @populateSocket @getCursor(), text
+        @hiddenInput.value = text
+        @redrawMain()
 
-      @redrawMain()
       @hideDropdown()
 
     div.addEventListener 'mouseup', ->
@@ -2435,11 +2489,16 @@ Editor::showDropdown = (socket = @getCursor()) ->
       for el in dropdownItems
         el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
 
-    location = @view.getViewNodeFor(socket).bounds[0]
-
-    @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
-    @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
-    @dropdownElement.style.minWidth = location.width + 'px'
+    if inPalette
+      location = @paletteView.getViewNodeFor(socket).bounds[0]
+      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.palette.y + @paletteCanvas.offsetTop + 'px'
+      @dropdownElement.style.left = location.x - @scrollOffsets.palette.x + @paletteCanvas.offsetLeft + 'px'
+      @dropdownElement.style.minWidth = location.width + 'px'
+    else
+      location = @view.getViewNodeFor(socket).bounds[0]
+      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
+      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+      @dropdownElement.style.minWidth = location.width + 'px'
   ), 0
 
 Editor::hideDropdown = ->
