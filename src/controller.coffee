@@ -2491,14 +2491,22 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
     if inPalette
       location = @paletteView.getViewNodeFor(socket).bounds[0]
-      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.palette.y + @paletteCanvas.offsetTop + 'px'
       @dropdownElement.style.left = location.x - @scrollOffsets.palette.x + @paletteCanvas.offsetLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
+
+      dropdownTop = location.y + @fontSize - @scrollOffsets.palette.y + @paletteCanvas.offsetTop
+      if dropdownTop + @dropdownElement.offsetHeight > @paletteElement.offsetHeight
+        dropdownTop -= (@fontSize + @dropdownElement.offsetHeight)
+      @dropdownElement.style.top = dropdownTop + 'px'
     else
       location = @view.getViewNodeFor(socket).bounds[0]
-      @dropdownElement.style.top = location.y + @fontSize - @scrollOffsets.main.y + 'px'
       @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
+
+      dropdownTop = location.y + @fontSize - @scrollOffsets.main.y
+      if dropdownTop + @dropdownElement.offsetHeight > @dropletElement.offsetHeight
+        dropdownTop -= (@fontSize + @dropdownElement.offsetHeight)
+      @dropdownElement.style.top = dropdownTop + 'px'
   ), 0
 
 Editor::hideDropdown = ->
