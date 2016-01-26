@@ -772,7 +772,7 @@ JavaScriptParser.handleButton = (text, button, oldBlock) ->
 
     if elseLocation?
       lines = text.split('\n')
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
       return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
         __
       }'''
