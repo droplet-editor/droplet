@@ -736,6 +736,7 @@ isStandardForLoop = (node) ->
       node.test.operator is '<' and
       node.test.left.type is 'Identifier' and
       node.test.left.name is variableName and
+      node.test.right.type in ['Literal', 'Identifier'] and
       node.update.type is 'UpdateExpression' and
       node.update.operator is '++' and
       node.update.argument.type is 'Identifier' and
