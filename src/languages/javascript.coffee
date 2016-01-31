@@ -164,10 +164,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
 
     @mark 0, tree, 0, null
 
-  fullFunctionNameArray: (node) ->
-    if node.type isnt 'CallExpression' and node.type isnt 'NewExpression'
-      throw new Error
-    obj = node.callee
+  fullNameArray: (obj) ->
     props = []
     while obj.type is 'MemberExpression'
       props.unshift obj.property.name
@@ -178,10 +175,17 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       props.unshift '*'
     props
 
-  lookupFunctionName: (node) ->
-    fname = @fullFunctionNameArray node
+  lookupKnownName: (node) ->
+    if node.type is 'CallExpression' or node.type is 'NewExpression'
+      identifier = false
+    else if node.type is 'Identifier' or node.type is 'MemberExpression'
+      identifier = true
+    else
+      throw new Error
+    fname = @fullNameArray if identifier then node else node.callee
     full = fname.join '.'
-    if full of @opts.functions
+    fn = @opts.functions[full]
+    if fn and ((identifier and fn.property) || (not identifier and not fn.property))
       return name: full, anyobj: false, fn: @opts.functions[full]
     last = fname[fname.length - 1]
     if fname.length > 1 and (wildcard = '*.' + last) not of @opts.functions
@@ -189,7 +193,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     if not wildcard and (wildcard = '?.' + last) not of @opts.functions
       wildcard = null  # no match for '?.foo'
     if wildcard isnt null
-      return name: last, anyobj: true, fn: @opts.functions[wildcard]
+      fn = @opts.functions[wildcard]
+      if fn and ((identifier and fn.property) || (not identifier and not fn.property))
+        return name: last, anyobj: true, fn: @opts.functions[wildcard]
     return null
 
   getAcceptsRule: (node) -> default: helper.NORMAL
@@ -197,8 +203,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     if node.type of CLASS_EXCEPTIONS
       return CLASS_EXCEPTIONS[node.type].concat([node.type])
     else
-      if node.type is 'CallExpression'
-        known = @lookupFunctionName node
+      if node.type is 'CallExpression' or node.type is 'NewExpression' or node.type is 'Identifier'
+        known = @lookupKnownName node
         if not known or (known.fn.value and known.fn.command)
           return [node.type, 'any-drop']
         if known.fn.value
@@ -251,19 +257,15 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     switch node.type
       when 'ExpressionStatement'
         return @getColor node.expression
-      when 'CallExpression'
-        known = @lookupFunctionName node
-        if not known
-          return @opts.categories.command.color
-        else if known.fn.color
-          return known.fn.color
-        else if known.fn.value and not known.fn.command
-          return @opts.categories.value.color
-        else
-          return @opts.categories.command.color
-      else
-        category = @lookupCategory node
-        return category?.color or 'command'
+      when 'CallExpression', 'NewExpression', 'MemberExpression', 'Identifier'
+        known = @lookupKnownName node
+        if known
+          if known.fn.color
+            return known.fn.color
+          else if known.fn.value and not known.fn.command
+            return @opts.categories.value.color
+    category = @lookupCategory node
+    return category?.color or 'command'
 
   getSocketLevel: (node) -> helper.ANY_DROP
 
@@ -437,7 +439,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.left, depth + 1, null
+        @jsSocketAndMark indentDepth, node.left, depth + 1, NEVER_PAREN
         @jsSocketAndMark indentDepth, node.right, depth + 1, null
       when 'ReturnStatement'
         @jsBlock node, depth, bounds
@@ -517,9 +519,11 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.name is '__'
           block = @jsBlock node, depth, bounds
           block.flagToRemove = true
+        else if @lookupKnownName node
+          @jsBlock node, depth, bounds
       when 'CallExpression', 'NewExpression'
         @jsBlock node, depth, bounds
-        known = @lookupFunctionName node
+        known = @lookupKnownName node
         if not known
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
@@ -555,8 +559,11 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           }
       when 'MemberExpression'
         @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.object, depth + 1
-        @jsSocketAndMark indentDepth, node.property, depth + 1
+        known = @lookupKnownName node
+        if not known
+          @jsSocketAndMark indentDepth, node.property, depth + 1
+        if not known or known.anyobj
+          @jsSocketAndMark indentDepth, node.object, depth + 1
       when 'UpdateExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1
@@ -565,7 +572,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         for declaration in node.declarations
           @mark indentDepth, declaration, depth + 1
       when 'VariableDeclarator'
-        @jsSocketAndMark indentDepth, node.id, depth
+        @jsSocketAndMark indentDepth, node.id, depth, NEVER_PAREN
         if node.init?
           @jsSocketAndMark indentDepth, node.init, depth, NEVER_PAREN
       when 'LogicalExpression'
