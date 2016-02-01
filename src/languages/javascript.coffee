@@ -439,7 +439,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.left, depth + 1, NEVER_PAREN
+        @jsSocketAndMark indentDepth, node.left, depth + 1, null
         @jsSocketAndMark indentDepth, node.right, depth + 1, null
       when 'ReturnStatement'
         @jsBlock node, depth, bounds
@@ -572,7 +572,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         for declaration in node.declarations
           @mark indentDepth, declaration, depth + 1
       when 'VariableDeclarator'
-        @jsSocketAndMark indentDepth, node.id, depth, NEVER_PAREN
+        @jsSocketAndMark indentDepth, node.id, depth
         if node.init?
           @jsSocketAndMark indentDepth, node.init, depth, NEVER_PAREN
       when 'LogicalExpression'
