@@ -3744,12 +3744,12 @@ Editor::unmark = (key) ->
 Editor::unmarkLine = (line) ->
   delete @markedLines[line]
 
-  @redrawMain()
+  @redrawHighlights()
 
 Editor::clearLineMarks = ->
   @markedLines = @markedBlocks = {}
 
-  @redrawMain()
+  @redrawHighlights()
 
 # LINE HOVER SUPPORT
 # ================================
