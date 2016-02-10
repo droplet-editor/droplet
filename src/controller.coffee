@@ -3739,6 +3739,8 @@ Editor::mark = (location, style) ->
 
 Editor::unmark = (key) ->
   delete @markedBlocks[key]
+
+  @redrawHighlights()
   return true
 
 Editor::unmarkLine = (line) ->
