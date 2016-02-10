@@ -696,11 +696,8 @@ exports.Container = class Container extends List
   # ## getFromTextLocation ##
   # Given a TextLocation, find the token at that row, column, and length.
   getFromTextLocation: (location) ->
-    head = @start
+    head = @start.next # Move past the DocumentStartToken
     best = head
-
-    if head instanceof DocumentStartToken
-      head = head.next
 
     row = 0
 
