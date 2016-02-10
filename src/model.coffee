@@ -699,6 +699,9 @@ exports.Container = class Container extends List
     head = @start
     best = head
 
+    if head instanceof DocumentStartToken
+      head = head.next
+
     row = 0
 
     until not head? or row is location.row
