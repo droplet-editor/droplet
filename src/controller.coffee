@@ -2866,6 +2866,19 @@ Editor::scrollCursorIntoPosition = ->
 
   @mainScroller.scrollLeft = 0
 
+# Moves the cursor to the end of the document and scrolls it into position
+# (in block and text mode)
+Editor::scrollCursorToEndOfDocument = ->
+  if @currentlyUsingBlocks
+    pos = @tree.end
+    while pos && !@validCursorPosition(pos)
+      pos = pos.prev
+    @setCursor(pos)
+    @scrollCursorIntoPosition()
+  else
+    @aceEditor.scrollToLine @aceEditor.session.getLength()
+
+
 # Pressing the up-arrow moves the cursor up.
 hook 'keydown', 0, (event, state) ->
   if event.which is UP_ARROW_KEY
