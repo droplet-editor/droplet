@@ -2869,12 +2869,14 @@ Editor::scrollCursorIntoPosition = ->
 # Moves the cursor to the end of the document and scrolls it into position
 # (in block and text mode)
 Editor::scrollCursorToEndOfDocument = ->
-  pos = @tree.end
-  while pos && !@validCursorPosition(pos)
-    pos = pos.prev
-  @setCursor(pos)
-  @scrollCursorIntoPosition()
-  @aceEditor.scrollToLine @aceEditor.session.getLength()
+  if @currentlyUsingBlocks
+    pos = @tree.end
+    while pos && !@validCursorPosition(pos)
+      pos = pos.prev
+    @setCursor(pos)
+    @scrollCursorIntoPosition()
+  else
+    @aceEditor.scrollToLine @aceEditor.session.getLength()
 
 
 # Pressing the up-arrow moves the cursor up.
