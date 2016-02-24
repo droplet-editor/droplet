@@ -1331,6 +1331,7 @@ hook 'mousemove', 1, (point, event, state) ->
                   allowed = false
                   break
               if allowed
+                console.log("QT insert: x: " + dropPoint.x + ", y: " + dropPoint.y);
                 @dropPointQuadTree.insert
                   x: dropPoint.x
                   y: dropPoint.y
@@ -1353,7 +1354,15 @@ hook 'mousemove', 1, (point, event, state) ->
     # Redraw the main canvas
     @redrawMain()
 
+Editor::blockGetFirstSocket = (block) ->
+  head = block.start
+  until head is block.end
+    return head.container if head.type is 'socketStart'
+    head = head.next
+  return null
+
 Editor::getAcceptLevel = (drag, drop) ->
+  console.log('drag type is: ' + drag.type + ', drop type is: ' + drop.type);
   if drop.type is 'socket'
     if drag.type is 'list'
       return helper.FORBID
@@ -1362,6 +1371,8 @@ Editor::getAcceptLevel = (drag, drop) ->
   else if drop.type is 'block'
     if drop.parent.type is 'socket'
       return helper.FORBID
+    else if '__handwritten__' in drop.classes and @blockGetFirstSocket drag
+      return @mode.drop drag.getReader(), drop.getReader(), null, null
     else
       next = drop.nextSibling()
       return @mode.drop drag.getReader(), drop.parent.getReader(), drop.getReader(), next?.getReader?()
@@ -1561,7 +1572,15 @@ hook 'mouseup', 1, (point, event, state) ->
         when 'indent', 'socket'
           @spliceIn @draggingBlock, @lastHighlight.start
         when 'block'
-          @spliceIn @draggingBlock, @lastHighlight.end
+          # temp code
+          blockSocket = @blockGetFirstSocket @draggingBlock
+          if blockSocket and '__handwritten__' in @lastHighlight.classes
+            @spliceIn @draggingBlock, @lastHighlight.start.prev
+            @spliceOut @lastHighlight
+            @spliceIn @lastHighlight, blockSocket.start
+            @reparse @draggingBlock.parent
+          else
+            @spliceIn @draggingBlock, @lastHighlight.end
         else
           if @lastHighlight.type is 'document'
             @spliceIn @draggingBlock, @lastHighlight.start

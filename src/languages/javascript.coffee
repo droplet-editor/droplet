@@ -714,6 +714,10 @@ JavaScriptParser.drop = (block, context, pred) ->
     else if 'mostly-value' in block.classes
       return helper.DISCOURAGE
 
+  else if context.type is 'block'
+    if '__handwritten__' in context.classes
+      return helper.ENCOURAGE
+
   return helper.DISCOURAGE
 
 # Check to see if a "for" loop is standard, for beginner mode.
