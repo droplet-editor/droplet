@@ -2605,7 +2605,7 @@ Editor::resizeLassoCanvas = ->
 
 Editor::clearLassoSelection = ->
   @lassoSelection = null
-  @redrawMain()
+  @redrawHighlights()
 
 # On mousedown, if nobody has taken
 # a hit test yet, start a lasso select.
@@ -2742,7 +2742,7 @@ hook 'mouseup', 0, (point, event, state) ->
     @lassoSelectAnchor = null
     @clearLassoSelectCanvas()
 
-    @redrawMain()
+    @redrawHighlights()
   @lassoSelectionDocument = null
 
 # On mousedown, we might want to
