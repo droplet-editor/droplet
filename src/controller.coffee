@@ -1714,7 +1714,6 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @clearDrag()
     @redrawMain()
-    @redrawHighlights()
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
@@ -2815,7 +2814,6 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   @redrawMain()
   @highlightFlashShow()
-  @redrawHighlights()
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
