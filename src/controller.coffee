@@ -591,7 +591,6 @@ Editor::redrawHighlights = ->
     ), {grayscale: true}
     @maskFloatingPaths(@draggingBlock.getDocument())
 
-  @redrawCursors()
   @redrawLassoHighlight()
 
 Editor::clearCursorCanvas = ->
