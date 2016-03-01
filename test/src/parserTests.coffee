@@ -5,11 +5,15 @@ Coffee = require '../../src/languages/coffee.coffee'
 
 coffee = new Coffee()
 
+total = 0
+
 describe 'Parser unity', (done) ->
   testString = (str) ->
     it 'should round-trip ' + str.split('\n')[0] +
         (if str.split('\n').length > 1 then '...' else ''), ->
+      total += 1
       assert.equal str, coffee.parse(str, wrapAtRoot: true).stringify(coffee)
+      console.log total, 'total assertions'
   testString '/// #{x} ///'
   testString 'fd 10'
   testString 'fd 10 + 10'
@@ -42,7 +46,10 @@ describe 'Parser unity', (done) ->
 
       filelines = file.split '\n'
       for line, i in unparsed.split '\n'
+        total += 1
         assert.equal line, filelines[i], "#{i} failed"
+      console.log total, 'total assertions'
 
   testFile 'test/data/nodes.coffee'
   testFile 'test/data/allTests.coffee'
+

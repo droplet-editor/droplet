@@ -1121,6 +1121,13 @@ hook 'mousedown', 1, (point, event, state) ->
   # If it's not in the main pane, pass.
   if not @trackerPointIsInMain(point) then return
 
+  console.log point, event.target, @mainScrollerStuffing.offsetHeight, @mainScroller.offsetHeight
+
+  # If the event registered in the scrollbar, pass.
+  if event.target is @mainScroller
+    console.log 'hit scrollbar'
+    return
+
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
 
