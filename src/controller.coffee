@@ -1397,7 +1397,7 @@ Editor::getClosestDroppableBlock = (mainPoint) ->
 
 Editor::getClosestDroppableBlockFromPosition = (position) ->
   if not @currentlyUsingBlocks
-    return nil
+    return null
 
   mainPoint = @trackerPointToMain(position)
   @getClosestDroppableBlock(mainPoint)
