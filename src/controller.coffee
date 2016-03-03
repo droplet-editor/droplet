@@ -1264,11 +1264,20 @@ hook 'mousemove', 1, (point, event, state) ->
 
       # Substitute in expansion for this palette entry, if supplied.
       expansion = @clickedBlockPaletteEntry.expansion
-      # Call expansion() function with no parameter to get the initial value
+
+      # Call expansion() function with no parameter to get the initial value.
       if 'function' is typeof expansion then expansion = expansion()
       if (expansion) then expansion = parseBlock(@mode, expansion)
       @draggingBlock = (expansion or @draggingBlock).clone()
+
+      # Special @draggingBlock setup for expansion function blocks.
       if 'function' is typeof @clickedBlockPaletteEntry.expansion
+        # Any block generated from an expansion function should be treated as
+        # any-drop because it can change with subsequent expansion() calls.
+        if 'mostly-value' in @draggingBlock.classes
+          @draggingBlock.classes.push 'any-drop'
+
+        # Attach expansion() function and lastExpansionText to @draggingBlock.
         @draggingBlock.lastExpansionText = expansion
         @draggingBlock.expansion = @clickedBlockPaletteEntry.expansion
 
@@ -1361,38 +1370,37 @@ hook 'mousemove', 1, (point, event, state) ->
     # Redraw the main canvas
     @redrawMain()
 
-Editor::getClosestDroppableBlock = (position) ->
+Editor::getClosestDroppableBlock = (mainPoint) ->
   best = null; min = Infinity
 
   if not (@dropPointQuadTree)
     return null
 
   testPoints = @dropPointQuadTree.retrieve {
-    x: position.x - MAX_DROP_DISTANCE
-    y: position.y - MAX_DROP_DISTANCE
+    x: mainPoint.x - MAX_DROP_DISTANCE
+    y: mainPoint.y - MAX_DROP_DISTANCE
     w: MAX_DROP_DISTANCE * 2
     h: MAX_DROP_DISTANCE * 2
   }, (point) =>
     unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
       # Find a modified "distance" to the point
       # that weights horizontal distance more
-      distance = position.from(point)
+      distance = mainPoint.from(point)
       distance.y *= 2; distance = distance.magnitude()
 
       # Select the node that is closest by said "distance"
-      if distance < min and position.from(point).magnitude() < MAX_DROP_DISTANCE and
+      if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
          @view.getViewNodeFor(point._droplet_node).highlightArea?
         best = point._droplet_node
         min = distance
   best
 
-Editor::isDragPointOverSocket = (position) ->
+Editor::getClosestDroppableBlockFromPosition = (position) ->
   if not @currentlyUsingBlocks
-    return true
+    return nil
 
   mainPoint = @trackerPointToMain(position)
-  dropBlock = @getClosestDroppableBlock(mainPoint)
-  return (dropBlock) and dropBlock.type is 'socket'
+  @getClosestDroppableBlock(mainPoint)
 
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
@@ -1421,14 +1429,18 @@ hook 'mousemove', 0, (point, event, state) ->
       point.y + @draggingOffset.y
     )
 
-    # If there is an expansion function, call it again here:
+    # If there is an expansion function, call it again here.
     if (@draggingBlock.expansion)
-      # Call expansion() with the position for all drag moves:
-      expansionText = @draggingBlock.expansion(position)
+      # Call expansion() with the closest droppable block for all drag moves.
+      expansionText = @draggingBlock.expansion(@getClosestDroppableBlockFromPosition(position))
+
+      # Create replacement @draggingBlock if the returned text is new.
       if expansionText isnt @draggingBlock.lastExpansionText
         newBlock = parseBlock(@mode, expansionText)
         newBlock.lastExpansionText = expansionText
         newBlock.expansion = @draggingBlock.expansion
+        if 'any-drop' in @draggingBlock.classes
+          newBlock.classes.push 'any-drop'
         @draggingBlock = newBlock
         @drawDraggingBlock()
 
