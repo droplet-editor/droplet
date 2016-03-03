@@ -203,7 +203,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     if node.type of CLASS_EXCEPTIONS
       return CLASS_EXCEPTIONS[node.type].concat([node.type])
     else
-      if node.type is 'CallExpression' or node.type is 'NewExpression' or node.type is 'Identifier'
+      if node.type is 'CallExpression' or node.type is 'NewExpression' or node.type is 'Identifier' or node.type is 'MemberExpression'
         known = @lookupKnownName node
         if not known or (known.fn.value and known.fn.command)
           return [node.type, 'any-drop']
