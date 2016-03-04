@@ -1216,6 +1216,22 @@ hook 'mouseup', 0, (point, event, state) ->
     @clickedBlock = null
     @clickedPoint = null
 
+Editor::drawDraggingBlock = ->
+  # Draw the new dragging block on the drag canvas.
+  #
+  # When we are dragging things, we draw the shadow.
+  # Also, we translate the block 1x1 to the right,
+  # so that we can see its borders.
+  @dragView.clearCache()
+  draggingBlockView = @dragView.getViewNodeFor @draggingBlock
+  draggingBlockView.layout 1, 1
+
+  @dragCanvas.width = Math.min draggingBlockView.totalBounds.width + 10, window.screen.width
+  @dragCanvas.height = Math.min draggingBlockView.totalBounds.height + 10, window.screen.height
+
+  draggingBlockView.drawShadow @dragCtx, 5, 5
+  draggingBlockView.draw @dragCtx, new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
+
 Editor::wouldDelete = (position) ->
 
   mainPoint = @trackerPointToMain position
@@ -1248,9 +1264,22 @@ hook 'mousemove', 1, (point, event, state) ->
 
       # Substitute in expansion for this palette entry, if supplied.
       expansion = @clickedBlockPaletteEntry.expansion
+
+      # Call expansion() function with no parameter to get the initial value.
       if 'function' is typeof expansion then expansion = expansion()
       if (expansion) then expansion = parseBlock(@mode, expansion)
       @draggingBlock = (expansion or @draggingBlock).clone()
+
+      # Special @draggingBlock setup for expansion function blocks.
+      if 'function' is typeof @clickedBlockPaletteEntry.expansion
+        # Any block generated from an expansion function should be treated as
+        # any-drop because it can change with subsequent expansion() calls.
+        if 'mostly-value' in @draggingBlock.classes
+          @draggingBlock.classes.push 'any-drop'
+
+        # Attach expansion() function and lastExpansionText to @draggingBlock.
+        @draggingBlock.lastExpansionText = expansion
+        @draggingBlock.expansion = @clickedBlockPaletteEntry.expansion
 
     else
       # Find the line on the block that we have
@@ -1276,19 +1305,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # TODO figure out what to do with lists here
 
     # Draw the new dragging block on the drag canvas.
-    #
-    # When we are dragging things, we draw the shadow.
-    # Also, we translate the block 1x1 to the right,
-    # so that we can see its borders.
-    @dragView.clearCache()
-    draggingBlockView = @dragView.getViewNodeFor @draggingBlock
-    draggingBlockView.layout 1, 1
-
-    @dragCanvas.width = Math.min draggingBlockView.totalBounds.width + 10, window.screen.width
-    @dragCanvas.height = Math.min draggingBlockView.totalBounds.height + 10, window.screen.height
-
-    draggingBlockView.drawShadow @dragCtx, 5, 5
-    draggingBlockView.draw @dragCtx, new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
+    @drawDraggingBlock()
 
     # Translate it immediately into position
     position = new @draw.Point(
@@ -1353,6 +1370,38 @@ hook 'mousemove', 1, (point, event, state) ->
     # Redraw the main canvas
     @redrawMain()
 
+Editor::getClosestDroppableBlock = (mainPoint) ->
+  best = null; min = Infinity
+
+  if not (@dropPointQuadTree)
+    return null
+
+  testPoints = @dropPointQuadTree.retrieve {
+    x: mainPoint.x - MAX_DROP_DISTANCE
+    y: mainPoint.y - MAX_DROP_DISTANCE
+    w: MAX_DROP_DISTANCE * 2
+    h: MAX_DROP_DISTANCE * 2
+  }, (point) =>
+    unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
+      # Find a modified "distance" to the point
+      # that weights horizontal distance more
+      distance = mainPoint.from(point)
+      distance.y *= 2; distance = distance.magnitude()
+
+      # Select the node that is closest by said "distance"
+      if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
+         @view.getViewNodeFor(point._droplet_node).highlightArea?
+        best = point._droplet_node
+        min = distance
+  best
+
+Editor::getClosestDroppableBlockFromPosition = (position) ->
+  if not @currentlyUsingBlocks
+    return null
+
+  mainPoint = @trackerPointToMain(position)
+  @getClosestDroppableBlock(mainPoint)
+
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
     if drag.type is 'list'
@@ -1380,6 +1429,21 @@ hook 'mousemove', 0, (point, event, state) ->
       point.y + @draggingOffset.y
     )
 
+    # If there is an expansion function, call it again here.
+    if (@draggingBlock.expansion)
+      # Call expansion() with the closest droppable block for all drag moves.
+      expansionText = @draggingBlock.expansion(@getClosestDroppableBlockFromPosition(position))
+
+      # Create replacement @draggingBlock if the returned text is new.
+      if expansionText isnt @draggingBlock.lastExpansionText
+        newBlock = parseBlock(@mode, expansionText)
+        newBlock.lastExpansionText = expansionText
+        newBlock.expansion = @draggingBlock.expansion
+        if 'any-drop' in @draggingBlock.classes
+          newBlock.classes.push 'any-drop'
+        @draggingBlock = newBlock
+        @drawDraggingBlock()
+
     if not @currentlyUsingBlocks
       if @trackerPointIsInAce position
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
@@ -1399,8 +1463,6 @@ hook 'mousemove', 0, (point, event, state) ->
 
     mainPoint = @trackerPointToMain(position)
 
-    best = null; min = Infinity
-
     # Check to see if the tree is empty;
     # if it is, drop on the tree always
     head = @tree.start.next
@@ -1417,41 +1479,25 @@ hook 'mousemove', 0, (point, event, state) ->
       # If the user is touching the original location,
       # assume they want to replace the block where they found it.
       if @hitTest mainPoint, @draggingBlock
-        best = null
+        dropBlock = null
         @dragReplacing = true
 
       # Otherwise, find the closest droppable block
       else
         @dragReplacing = false
-        testPoints = @dropPointQuadTree.retrieve {
-          x: mainPoint.x - MAX_DROP_DISTANCE
-          y: mainPoint.y - MAX_DROP_DISTANCE
-          w: MAX_DROP_DISTANCE * 2
-          h: MAX_DROP_DISTANCE * 2
-        }, (point) =>
-          unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
-            # Find a modified "distance" to the point
-            # that weights horizontal distance more
-            distance = mainPoint.from(point)
-            distance.y *= 2; distance = distance.magnitude()
-
-            # Select the node that is closest by said "distance"
-            if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-               @view.getViewNodeFor(point._droplet_node).highlightArea?
-              best = point._droplet_node
-              min = distance
+        dropBlock = @getClosestDroppableBlock(mainPoint)
 
       # Update highlight if necessary.
-      if best isnt @lastHighlight
+      if dropBlock isnt @lastHighlight
         # TODO if this becomes a performance issue,
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
 
-        if best?
-          @view.getViewNodeFor(best).highlightArea.draw @highlightCtx
-          @maskFloatingPaths(best.getDocument())
+        if dropBlock?
+          @view.getViewNodeFor(dropBlock).highlightArea.draw @highlightCtx
+          @maskFloatingPaths(dropBlock.getDocument())
 
-        @lastHighlight = best
+        @lastHighlight = dropBlock
 
     palettePoint = @trackerPointToPalette position
 
