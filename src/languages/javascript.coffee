@@ -439,8 +439,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.left, depth + 1, null
-        @jsSocketAndMark indentDepth, node.right, depth + 1, null
+        @jsSocketAndMark indentDepth, node.left, depth + 1, NEVER_PAREN
+        @jsSocketAndMark indentDepth, node.right, depth + 1, NEVER_PAREN
       when 'ReturnStatement'
         @jsBlock node, depth, bounds
         if node.argument?

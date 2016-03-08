@@ -168,12 +168,12 @@ asyncTest 'JS Custom Colors', ->
       socketLevel="0"
       classes="mostly-block AssignmentExpression"
     >(<socket
-      precedence="0"
+      precedence="100"
       handwritten="false"
       classes=""
     >a</socket
     > += <socket
-      precedence="0"
+      precedence="100"
       handwritten="false"
       classes=""
     ><block
