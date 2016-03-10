@@ -233,8 +233,8 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   genBounds: (location) ->
     bounds = {
-      start: @positions[location.startOffset]
-      end: @positions[location.endOffset]
+      start: @positions[location.start]
+      end: @positions[location.end]
     }
 
     return bounds
@@ -307,8 +307,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
           i++
 
   fixBounds: (node) ->
-    console.log "__location: #{JSON.stringify(node.__location)}"
-
     if not node
       return
 
@@ -378,9 +376,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
   trimText: (node) ->
     location = node.__location
     location.endOffset = Math.min location.endOffset, @getEndPoint node
-    console.log "calling trimText on node #{node.type}"
     text = @text[location.startOffset...location.endOffset].split '\n'
-    console.log "text length is #{text.length} location is #{JSON.stringify(location)}"
     i = 0
     while text[i].trim().length is 0
       location.startOffset += text[i].length + 1
