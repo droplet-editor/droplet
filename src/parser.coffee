@@ -133,9 +133,15 @@ exports.Parser = class Parser
 
     @addMarkup indent, opts.bounds, opts.depth
 
+  checkBounds: (bounds) ->
+    if not (bounds?.start?.line? and bounds?.start?.column? and
+            bounds?.end?.line? and bounds?.end?.column?)
+      throw new IllegalArgumentException 'bad bounds object'
+
   # ## addMarkup ##
   # Add a container around some bounds
   addMarkup: (container, bounds, depth) ->
+    @checkBounds bounds
     @markup.push
       token: container.start
       location: bounds.start
