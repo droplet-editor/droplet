@@ -865,6 +865,11 @@ class CapturePoint
   constructor: (rememberedSockets) ->
     @rememberedSockets = rememberedSockets.map (x) -> x.clone()
 
+Editor::setFocusedText = (value) ->
+  if @getCursor().type is 'socket'
+    @populateSocket @getCursor(), value
+    @redrawMain()
+
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
