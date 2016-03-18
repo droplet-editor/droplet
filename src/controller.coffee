@@ -591,7 +591,6 @@ Editor::redrawHighlights = ->
     ), {grayscale: true}
     @maskFloatingPaths(@draggingBlock.getDocument())
 
-  @redrawCursors()
   @redrawLassoHighlight()
 
 Editor::clearCursorCanvas = ->
@@ -1760,7 +1759,6 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @clearDrag()
     @redrawMain()
-    @redrawHighlights()
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
@@ -2653,7 +2651,7 @@ Editor::resizeLassoCanvas = ->
 
 Editor::clearLassoSelection = ->
   @lassoSelection = null
-  @redrawMain()
+  @redrawHighlights()
 
 # On mousedown, if nobody has taken
 # a hit test yet, start a lasso select.
@@ -2790,7 +2788,7 @@ hook 'mouseup', 0, (point, event, state) ->
     @lassoSelectAnchor = null
     @clearLassoSelectCanvas()
 
-    @redrawMain()
+    @redrawHighlights()
   @lassoSelectionDocument = null
 
 # On mousedown, we might want to
@@ -2861,7 +2859,6 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   @redrawMain()
   @highlightFlashShow()
-  @redrawHighlights()
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
