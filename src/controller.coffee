@@ -1369,7 +1369,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # Redraw the main canvas
     @redrawMain()
 
-Editor::getClosestDroppableBlock = (mainPoint) ->
+Editor::getClosestDroppableBlock = (mainPoint, event) ->
   best = null; min = Infinity
 
   if not (@dropPointQuadTree)
@@ -1484,7 +1484,7 @@ hook 'mousemove', 0, (point, event, state) ->
       # Otherwise, find the closest droppable block
       else
         @dragReplacing = false
-        dropBlock = @getClosestDroppableBlock(mainPoint)
+        dropBlock = @getClosestDroppableBlock(mainPoint, event)
 
       # Update highlight if necessary.
       if dropBlock isnt @lastHighlight
