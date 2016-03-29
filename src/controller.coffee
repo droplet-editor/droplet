@@ -1381,7 +1381,7 @@ Editor::getClosestDroppableBlock = (mainPoint, event) ->
     w: MAX_DROP_DISTANCE * 2
     h: MAX_DROP_DISTANCE * 2
   }, (point) =>
-    unless (point.acceptLevel is helper.DISCOURAGE) and not event.shiftKey
+    unless (point.acceptLevel is helper.DISCOURAGE) and not event?.shiftKey
       # Find a modified "distance" to the point
       # that weights horizontal distance more
       distance = mainPoint.from(point)
