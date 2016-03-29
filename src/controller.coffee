@@ -1369,7 +1369,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # Redraw the main canvas
     @redrawMain()
 
-Editor::getClosestDroppableBlock = (mainPoint, event) ->
+Editor::getClosestDroppableBlock = (mainPoint, isDebugMode) ->
   best = null; min = Infinity
 
   if not (@dropPointQuadTree)
@@ -1381,7 +1381,7 @@ Editor::getClosestDroppableBlock = (mainPoint, event) ->
     w: MAX_DROP_DISTANCE * 2
     h: MAX_DROP_DISTANCE * 2
   }, (point) =>
-    unless (point.acceptLevel is helper.DISCOURAGE) and not event?.shiftKey
+    unless (point.acceptLevel is helper.DISCOURAGE) and not isDebugMode
       # Find a modified "distance" to the point
       # that weights horizontal distance more
       distance = mainPoint.from(point)
@@ -1394,12 +1394,12 @@ Editor::getClosestDroppableBlock = (mainPoint, event) ->
         min = distance
   best
 
-Editor::getClosestDroppableBlockFromPosition = (position) ->
+Editor::getClosestDroppableBlockFromPosition = (position, isDebugMode) ->
   if not @currentlyUsingBlocks
     return null
 
   mainPoint = @trackerPointToMain(position)
-  @getClosestDroppableBlock(mainPoint)
+  @getClosestDroppableBlock(mainPoint, isDebugMode)
 
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
@@ -1431,7 +1431,7 @@ hook 'mousemove', 0, (point, event, state) ->
     # If there is an expansion function, call it again here.
     if (@draggingBlock.expansion)
       # Call expansion() with the closest droppable block for all drag moves.
-      expansionText = @draggingBlock.expansion(@getClosestDroppableBlockFromPosition(position))
+      expansionText = @draggingBlock.expansion(@getClosestDroppableBlockFromPosition(position, event.shiftKey))
 
       # Create replacement @draggingBlock if the returned text is new.
       if expansionText isnt @draggingBlock.lastExpansionText
@@ -1484,7 +1484,7 @@ hook 'mousemove', 0, (point, event, state) ->
       # Otherwise, find the closest droppable block
       else
         @dragReplacing = false
-        dropBlock = @getClosestDroppableBlock(mainPoint, event)
+        dropBlock = @getClosestDroppableBlock(mainPoint, event.shiftKey)
 
       # Update highlight if necessary.
       if dropBlock isnt @lastHighlight
