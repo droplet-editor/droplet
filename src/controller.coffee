@@ -1834,8 +1834,10 @@ Editor::setPalette = (paletteGroups) ->
         paletteHeaderRow.style.height = 0
 
     # Create the element itself
-    paletteGroupHeader = document.createElement 'div'
+    paletteGroupHeader = paletteGroup.header = document.createElement 'div'
     paletteGroupHeader.className = 'droplet-palette-group-header'
+    if paletteGroup.id
+      paletteGroupHeader.id = 'droplet-palette-group-header-' + paletteGroup.id
     paletteGroupHeader.innerText = paletteGroupHeader.textContent = paletteGroupHeader.textContent = paletteGroup.name # innerText and textContent for FF compatability
     if paletteGroup.color
       paletteGroupHeader.className += ' ' + paletteGroup.color
@@ -1854,32 +1856,12 @@ Editor::setPalette = (paletteGroups) ->
         title: data.title
         id: data.id
 
-    paletteGroupBlocks = newPaletteBlocks
+    paletteGroup.parsedBlocks = newPaletteBlocks
 
     # When we click this element,
     # we should switch to it in the palette.
     updatePalette = =>
-      # Record that we are the selected group now
-      @currentPaletteGroup = paletteGroup.name
-      @currentPaletteBlocks = paletteGroupBlocks
-      @currentPaletteMetadata = paletteGroupBlocks
-
-      # Unapply the "selected" style to the current palette group header
-      @currentPaletteGroupHeader?.className =
-          @currentPaletteGroupHeader.className.replace(
-              /\s[-\w]*-selected\b/, '')
-
-      # Now we are the current palette group header
-      @currentPaletteGroupHeader = paletteGroupHeader
-      @currentPaletteIndex = i
-
-      # Apply the "selected" style to us
-      @currentPaletteGroupHeader.className +=
-          ' droplet-palette-group-header-selected'
-
-      # Redraw the palette.
-      @rebuildPalette()
-      @fireEvent 'selectpalette', [paletteGroup.name]
+      @changePaletteGroup paletteGroup
 
     clickHandler = =>
       do updatePalette
@@ -1893,6 +1875,40 @@ Editor::setPalette = (paletteGroups) ->
 
   @resizePalette()
   @resizePaletteHighlight()
+
+# Change which palette group is selected.
+# group argument can be object, id (string), or name (string)
+#
+Editor::changePaletteGroup = (group) ->
+  for curGroup, i in @paletteGroups
+    if group is curGroup or group is curGroup.id or group is curGroup.name
+      paletteGroup = curGroup
+      break
+
+  if not paletteGroup
+    return
+
+  # Record that we are the selected group now
+  @currentPaletteGroup = paletteGroup.name
+  @currentPaletteBlocks = paletteGroup.parsedBlocks
+  @currentPaletteMetadata = paletteGroup.parsedBlocks
+
+  # Unapply the "selected" style to the current palette group header
+  @currentPaletteGroupHeader?.className =
+      @currentPaletteGroupHeader.className.replace(
+          /\s[-\w]*-selected\b/, '')
+
+  # Now we are the current palette group header
+  @currentPaletteGroupHeader = paletteGroup.header
+  @currentPaletteIndex = i
+
+  # Apply the "selected" style to us
+  @currentPaletteGroupHeader.className +=
+      ' droplet-palette-group-header-selected'
+
+  # Redraw the palette.
+  @rebuildPalette()
+  @fireEvent 'selectpalette', [paletteGroup.name]
 
 # The next thing we need to do with the palette
 # is let people pick things up from it.
