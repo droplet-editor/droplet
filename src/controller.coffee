@@ -1876,6 +1876,9 @@ Editor::setPalette = (paletteGroups) ->
   @resizePalette()
   @resizePaletteHighlight()
 
+# Change which palette group is selected.
+# group argument can be object, id (string), or name (string)
+#
 Editor::changePaletteGroup = (group) ->
   for curGroup, i in @paletteGroups
     if group is curGroup or group is curGroup.id or group is curGroup.name
