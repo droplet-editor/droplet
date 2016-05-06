@@ -180,8 +180,16 @@ PALPABLE_CONTENT = ['a', 'abbr', 'address', 'article', 'aside', 'audio', 'b', 'b
 
 SCRIPT_SUPPORTING = ['script', 'template']
 
-htmlParser = new parse5.Parser null, {decodeHtmlEntities: false, locationInfo: true}
-htmlSerializer = new parse5.Serializer null, {encodeHtmlEntities: false}
+htmlParser =
+  parseFragment: (frag) ->
+    parse5.parseFragment frag, {decodeHtmlEntities: false, locationInfo: true}
+
+  parse: (doc) ->
+    parse5.parse doc, {decodeHtmlEntities: false, locationInfo: true}
+
+htmlSerializer =
+  serialize: (tree) ->
+     parse5.serialize tree, {encodeHtmlEntities: false}
 
 exports.HTMLParser = class HTMLParser extends parser.Parser
 
@@ -217,8 +225,8 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
   getBounds: (node) ->
     bounds = {
-      start: @positions[node.__location.start]
-      end: @positions[node.__location.end]
+      start: @positions[node.__location.startOffset]
+      end: @positions[node.__location.endOffset]
     }
 
     return bounds
@@ -248,7 +256,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     return false
 
   setAttribs: (node, string) ->
-    offset = node.__location.start
+    offset = node.__location.startOffset
     node.attributes = []
     string = string.toLowerCase()
 
@@ -299,7 +307,6 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
           i++
 
   fixBounds: (node) ->
-
     if not node
       return
 
@@ -331,28 +338,28 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     if not @isBlockNode node
       node.type = 'emptyTag'
       if node.__location?
-        @setAttribs node, @text[node.__location.start...node.__location.end]
+        @setAttribs node, @text[node.__location.startOffset...node.__location.endOffset]
       return
 
     node.type = 'blockTag'
 
-    node.__indentLocation = {start: node.__location.startTag.end}
+    node.__indentLocation = {startOffset: node.__location.startTag.endOffset}
 
     if node.childNodes?.length > 0
-      node.__indentLocation.end = node.childNodes[node.childNodes.length - 1].__location.end
+      node.__indentLocation.endOffset = node.childNodes[node.childNodes.length - 1].__location.endOffset
     else
-      node.__indentLocation.end = node.__location.startTag.end
+      node.__indentLocation.endOffset = node.__location.startTag.endOffset
 
     if not node.__location.endTag
       # Forcing object copy because
       # sometimes parse5 reuses location info
       # for semi-fake nodes.
       node.__location = {
-        start: node.__location.start
-        end: node.__indentLocation.end
+        startOffset: node.__location.startOffset
+        endOffset: node.__indentLocation.endOffset
       }
 
-    @setAttribs node, @text[node.__location.start...node.__indentLocation.start]
+    @setAttribs node, @text[node.__location.startOffset...node.__indentLocation.startOffset]
 
   getEndPoint: (node) ->
     if node.nodeName in ['#document', '#document-fragment']
@@ -361,34 +368,34 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
     parent = node.parentNode
     ind = parent.childNodes.indexOf node
     if ind is parent.childNodes.length - 1
-      last = if parent.__location?.endTag? then parent.__location.endTag.start else @getEndPoint parent
+      last = if parent.__location?.endTag? then parent.__location.endTag.startOffset else @getEndPoint parent
     else
-      last = parent.childNodes[ind+1].__location.start
+      last = parent.childNodes[ind+1].__location.startOffset
     return last
 
   trimText: (node) ->
     location = node.__location
-    location.end = Math.min location.end, @getEndPoint node
-    text = @text[location.start...location.end].split '\n'
+    location.endOffset = Math.min location.endOffset, @getEndPoint node
+    text = @text[location.startOffset...location.endOffset].split '\n'
     i = 0
     while text[i].trim().length is 0
-      location.start += text[i].length + 1
+      location.startOffset += text[i].length + 1
       i++
     j = text.length - 1
     while text[j].trim().length is 0
       j--
     text = text[i..j].join '\n'
-    location.end = location.start + text.length
+    location.endOffset = location.startOffset + text.length
     if i isnt 0
       leftTrimText = text.trimLeft()
-      location.start += text.length - leftTrimText.length
+      location.startOffset += text.length - leftTrimText.length
       text = leftTrimText
     node.value = text
 
   makeIndentBounds: (node) ->
     bounds = {
-      start: @positions[node.__indentLocation.start]
-      end: @positions[node.__indentLocation.end]
+      start: @positions[node.__indentLocation.startOffset]
+      end: @positions[node.__indentLocation.endOffset]
     }
 
     trailingText = @lines[bounds.start.line][bounds.start.column...]
@@ -399,14 +406,14 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       }
 
     if node.__location.endTag?
-      lastLine = @positions[node.__location.endTag.start].line - 1
+      lastLine = @positions[node.__location.endTag.startOffset].line - 1
       if lastLine > bounds.end.line or (lastLine is bounds.end.line and @lines[lastLine].length > bounds.end.column)
         bounds.end = {
           line: lastLine
           column: @lines[lastLine].length
         }
-      else if node.__indentLocation.start is node.__indentLocation.end and node.__location.endTag
-        bounds.end = @positions[node.__location.endTag.start]
+      else if node.__indentLocation.startOffset is node.__indentLocation.endOffset and node.__location.endTag
+        bounds.end = @positions[node.__location.endTag.startOffset]
 
     return bounds
 
@@ -479,7 +486,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       when 'document'
         lastChild = null
         for child in node.childNodes
-          if lastChild and lastChild.__location.end > child.__location.start then nomark = true else nomark = false
+          if lastChild and lastChild.__location.endOffset > child.__location.startOffset then nomark = true else nomark = false
           @mark indentDepth, child, depth + 1, null, nomark
           unless nomark
             lastChild = child
@@ -510,10 +517,10 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
           else
             unless TAGS[node.nodeName]?.content is 'optional' or
                 (node.nodeName is 'script' and @hasAttribute node, 'src') or
-                node.__indentLocation.end is node.__location.end
+                node.__indentLocation.endOffset is node.__location.endOffset
               @htmlSocket node, depth + 1, null, indentBounds, null, true
         for child in node.childNodes
-          if lastChild and lastChild.__location.end > child.__location.start then nomark = true else nomark = false
+          if lastChild and lastChild.__location.endOffset > child.__location.startOffset then nomark = true else nomark = false
           @mark indentDepth, child, depth + 1, null, nomark
           unless nomark
             lastChild = child
@@ -526,8 +533,8 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       when 'comment'
         unless nomark
           @htmlBlock node, depth, bounds
-          node.__location.start += 4
-          node.__location.end -= 3
+          node.__location.startOffset += 4
+          node.__location.endOffset -= 3
           @htmlSocket node, depth + 1, null
 
   isComment: (text) ->
