@@ -210,9 +210,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
   getButtons: (node) ->
     buttons = {}
     if node.nodeName in ['thead', 'tbody', 'tr', 'table']
-      buttons.addButton = true
+      buttons.addButton = '+'
       if node.childNodes.length isnt 0
-        buttons.subtractButton = true
+        buttons.subtractButton = '-'
     return buttons
 
   getColor: (node) ->

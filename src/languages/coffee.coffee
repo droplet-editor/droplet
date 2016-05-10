@@ -644,7 +644,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Special case: "unless" keyword; in this case
       # we want to skip the Op that wraps the condition.
       when 'If'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: true}
+        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: '+'}
 
         # Check to see if we are an "unless".
         # We will deem that we are an unless if:
