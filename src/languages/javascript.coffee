@@ -345,6 +345,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
   isComment: (text) ->
     text.match(/^\s*\/\/.*$/)
 
+  indentAndCommentMarker: (text) ->
+    text.match(/^\s*\/\//)[0]
+
   mark: (indentDepth, node, depth, bounds) ->
     switch node.type
       when 'Program'
@@ -754,6 +757,7 @@ JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
 JavaScriptParser.startComment = '/*'
 JavaScriptParser.endComment = '*/'
+JavaScriptParser.startSingleLineComment = '//'
 
 JavaScriptParser.handleButton = (text, button, oldBlock) ->
   if button is 'add-button' and 'IfStatement' in oldBlock.classes

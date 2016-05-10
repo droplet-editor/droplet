@@ -3045,8 +3045,8 @@ hook 'keydown', 0, (event, state) ->
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity
-      newSocket.handwritten = true; newSocket.setParent newBlock
+      newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity, true
+      newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
 
@@ -3063,10 +3063,36 @@ hook 'keydown', 0, (event, state) ->
       @newHandwrittenSocket = newSocket
 
     else if @cursorAtSocket() and not event.shiftKey
+      socket = @getCursor()
       @hiddenInput.blur()
       @dropletElement.focus()
       @setCursor @cursor, (token) -> token.type isnt 'socketStart'
       @redrawMain()
+      if '__comment__' in socket.classes and @mode.startSingleLineComment
+        # Create another single line comment block just below
+        newBlock = new model.Block 0, 'blank', helper.ANY_DROP
+        newBlock.classes = ['__comment__', 'block-only']
+        newBlock.socketLevel = helper.BLOCK_ONLY
+        newTextMarker = new model.TextToken @mode.startSingleLineComment
+        newSocket = new model.Socket @mode.empty, 0, true
+        newSocket.classes = ['__comment__']
+        newSocket.setParent newBlock
+
+        helper.connect newBlock.start, newTextMarker
+        helper.connect newTextMarker, newSocket.start
+        helper.connect newSocket.end, newBlock.end
+
+        # Seek a place near the cursor we can actually
+        # put a block.
+        head = @getCursor()
+        while head.type is 'newline'
+          head = head.prev
+
+        @spliceIn newBlock, head #MUTATION
+
+        @redrawMain()
+
+        @newHandwrittenSocket = newSocket
 
 hook 'keyup', 0, (event, state) ->
   if @readOnly
