@@ -205,7 +205,8 @@ exports.Parser = class Parser
   # text inside
   constructHandwrittenBlock: (text) ->
     block = new model.Block 0, 'blank', helper.ANY_DROP
-    socket = new model.Socket @empty, 0, true
+    socket = new model.Socket '', 0, true
+    socket.setParent block
 
     if @isComment text
       posAfterIndentAndCommentMarker = @indentAndCommentMarker(text).length
@@ -219,9 +220,11 @@ exports.Parser = class Parser
       block.classes = ['__handwritten__', 'block-only']
 
     textToken = new model.TextToken text
+    textToken.setParent block
 
     if textPrefix
       textPrefixToken = new model.TextToken textPrefix
+      textPrefixToken.setParent block
       helper.connect block.start, textPrefixToken
       helper.connect textPrefixToken, socket.start
     else

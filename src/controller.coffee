@@ -2864,9 +2864,11 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @cursor.is(destination)
-    @reparse @getCursor(), null, (if destination.document is @cursor.document then [destination.location] else [])
-    @hiddenInput.blur()
-    @dropletElement.focus()
+    socket = @getCursor()
+    if '__comment__' not in socket.classes
+      @reparse socket, null, (if destination.document is @cursor.document then [destination.location] else [])
+      @hiddenInput.blur()
+      @dropletElement.focus()
 
   @cursor = destination
 
@@ -3074,7 +3076,8 @@ hook 'keydown', 0, (event, state) ->
         newBlock.classes = ['__comment__', 'block-only']
         newBlock.socketLevel = helper.BLOCK_ONLY
         newTextMarker = new model.TextToken @mode.startSingleLineComment
-        newSocket = new model.Socket @mode.empty, 0, true
+        newTextMarker.setParent newBlock
+        newSocket = new model.Socket '', 0, true
         newSocket.classes = ['__comment__']
         newSocket.setParent newBlock
 
