@@ -1196,13 +1196,15 @@ hook 'mousedown', 4, (point, event, state) ->
 
     if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
       line = @mode.handleButton str, 'add-button', hitTestResult.getReader()
-      @populateBlock hitTestResult, line
-      @redrawMain()
+      if line?.length >= 0
+        @populateBlock hitTestResult, line
+        @redrawMain()
       state.consumedHitTest = true
     else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
       line = @mode.handleButton str, 'subtract-button', hitTestResult.getReader()
-      @populateBlock hitTestResult, line
-      @redrawMain()
+      if line?.length >= 0
+        @populateBlock hitTestResult, line
+        @redrawMain()
       state.consumedHitTest = true
 
 # If the user lifts the mouse

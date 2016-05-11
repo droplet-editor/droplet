@@ -236,6 +236,9 @@ exports.Parser = class Parser
 
     return block
 
+  handleButton: (text, command, oldblock) ->
+    return text
+
   applyMarkup: (opts) ->
     # For convenience, will we
     # separate the markup by the line on which it is placed.
@@ -485,9 +488,6 @@ Parser.drop = (block, context, pred, next) ->
   else
     return helper.ENCOURAGE
 
-Parser.handleButton = (text, command, oldblock) ->
-  return text
-
 Parser.empty = ''
 Parser.emptyIndent = ''
 
@@ -540,4 +540,6 @@ exports.wrapParser = (CustomParser) ->
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 
-    handleButton: (text, command, oldblock) -> CustomParser.handleButton text, command, oldblock
+    handleButton: (text, command, oldblock) ->
+      parser = @createParser(text)
+      parser.handleButton text, command, oldblock
