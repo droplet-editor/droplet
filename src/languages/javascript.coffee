@@ -590,13 +590,16 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       when 'CallExpression', 'NewExpression'
         known = @lookupKnownName node
         blockOpts = {}
-        if @opts.paramButtonsForUnknownFunctions
+        if known?.fn
+          showButtons = known.fn.minArgs? or known.fn.maxArgs?
+        else
+          showButtons = @opts.paramButtonsForUnknownFunctions
+
+        if showButtons
           blockOpts.addButton = '\u21A0'
           blockOpts.subtractButton = '\u219E'
-        if known?.fn
-          blockOpts.addButton = known?.fn.addButton
-          blockOpts.subtractButton = known?.fn.subtractButton
         @jsBlock node, depth, bounds, blockOpts
+
         if not known
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
