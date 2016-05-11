@@ -1721,9 +1721,9 @@ exports.View = class View
         textElement.draw ctx
 
       if @model.buttons.addButton
-        drawButton '+', @addButtonRect, ctx
+        drawButton @model.buttons.addButton, @addButtonRect, ctx
       if @model.buttons.subtractButton
-        drawButton '-', @subtractButtonRect, ctx
+        drawButton @model.buttons.subtractButton, @subtractButtonRect, ctx
 
     shouldAddTab: ->
       if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
@@ -1752,11 +1752,11 @@ exports.View = class View
           height = lastRect.bottom() - multilineBounds.bottom()
           top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-      if @model.buttons.addButton
-        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
-        start += @view.opts.buttonWidth + @view.opts.buttonPadding
       if @model.buttons.subtractButton
         @subtractButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+        start += @view.opts.buttonWidth + @view.opts.buttonPadding
+      if @model.buttons.addButton
+        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
 
     computeOwnPath: ->
       super

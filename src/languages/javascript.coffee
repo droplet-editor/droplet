@@ -345,6 +345,72 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
   isComment: (text) ->
     text.match(/^\s*\/\/.*$/)
 
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and 'IfStatement' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = acorn.parse(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      currentElif = node
+      elseLocation = null
+      while true
+        if currentElif.type is 'IfStatement'
+          if currentElif.alternate?
+            elseLocation = {
+              line: currentElif.alternate.loc.start.line
+              column: currentElif.alternate.loc.start.column
+            }
+            currentElif = currentElif.alternate
+          else
+            elseLocation = null
+            break
+        else
+          break
+
+      if elseLocation?
+        lines = text.split('\n')
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
+        return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
+          __
+        }'''
+      else
+        return text + ''' else {
+          __
+        }'''
+    else if 'CallExpression' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = acorn.parse(text, {
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      known = @lookupKnownName node.expression
+      argCount = node.expression.arguments.length
+      if button is 'add-button'
+        maxArgs = known?.fn.maxArgs
+        maxArgs ?= Infinity
+        if argCount >= maxArgs
+          return
+        if argCount
+          lastArgPosition = node.expression.arguments[argCount - 1].end
+          return text[...lastArgPosition].trimRight() + ', __' + text[lastArgPosition..].trimLeft()
+        else
+          lastArgPosition = node.expression.end - 1
+          return text[...lastArgPosition].trimRight() + '__' + text[lastArgPosition..].trimLeft()
+      else if button is 'subtract-button'
+        minArgs = known?.fn.minArgs
+        minArgs ?= 0
+        if argCount <= minArgs
+          return
+        if argCount > 0
+          lastArgPosition = node.expression.arguments[argCount - 1].end
+          if argCount is 1
+            newLastArgPosition = node.expression.arguments[0].start
+          else
+            newLastArgPosition = node.expression.arguments[argCount - 2].end
+          return text[...newLastArgPosition].trimRight() + text[lastArgPosition..].trimLeft()
+
   mark: (indentDepth, node, depth, bounds) ->
     switch node.type
       when 'Program'
@@ -446,7 +512,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.argument?
           @jsSocketAndMark indentDepth, node.argument, depth + 1, null
       when 'IfStatement', 'ConditionalExpression'
-        @jsBlock node, depth, bounds, {addButton: true}
+        @jsBlock node, depth, bounds, {addButton: '+'}
         @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
         @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
 
@@ -522,17 +588,27 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         else if @lookupKnownName node
           @jsBlock node, depth, bounds
       when 'CallExpression', 'NewExpression'
-        @jsBlock node, depth, bounds
         known = @lookupKnownName node
+        blockOpts = {}
+        if known?.fn
+          showButtons = known.fn.minArgs? or known.fn.maxArgs?
+        else
+          showButtons = @opts.paramButtonsForUnknownFunctions
+
+        if showButtons
+          blockOpts.addButton = '\u21A0'
+          blockOpts.subtractButton = '\u219E'
+        @jsBlock node, depth, bounds, blockOpts
+
         if not known
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN
         for argument, i in node.arguments
-          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i], (
-            if i is 0 and node.arguments.length is 1 then '' else undefined
-          )
+          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
         if not known and node.arguments.length is 0 and not @opts.lockZeroParamFunctions
+          # Create a special socket that can be used for inserting the first parameter
+          # (NOTE: this socket may not be visible if the bounds start/end are the same)
           position = {
             line: node.callee.loc.end.line
             column: node.callee.loc.end.column
@@ -754,41 +830,6 @@ JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
 JavaScriptParser.startComment = '/*'
 JavaScriptParser.endComment = '*/'
-
-JavaScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'IfStatement' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = acorn.parse(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).body[0]
-    currentElif = node
-    elseLocation = null
-    while true
-      if currentElif.type is 'IfStatement'
-        if currentElif.alternate?
-          elseLocation = {
-            line: currentElif.alternate.loc.start.line
-            column: currentElif.alternate.loc.start.column
-          }
-          currentElif = currentElif.alternate
-        else
-          elseLocation = null
-          break
-      else
-        break
-
-    if elseLocation?
-      lines = text.split('\n')
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
-      return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
-        __
-      }'''
-    else
-      return text + ''' else {
-        __
-      }'''
 
 JavaScriptParser.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length

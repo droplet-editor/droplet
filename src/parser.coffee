@@ -133,9 +133,15 @@ exports.Parser = class Parser
 
     @addMarkup indent, opts.bounds, opts.depth
 
+  checkBounds: (bounds) ->
+    if not (bounds?.start?.line? and bounds?.start?.column? and
+            bounds?.end?.line? and bounds?.end?.column?)
+      throw new IllegalArgumentException 'bad bounds object'
+
   # ## addMarkup ##
   # Add a container around some bounds
   addMarkup: (container, bounds, depth) ->
+    @checkBounds bounds
     @markup.push
       token: container.start
       location: bounds.start
@@ -214,6 +220,9 @@ exports.Parser = class Parser
       block.classes = ['__handwritten__', 'block-only']
 
     return block
+
+  handleButton: (text, command, oldblock) ->
+    return text
 
   applyMarkup: (opts) ->
     # For convenience, will we
@@ -464,9 +473,6 @@ Parser.drop = (block, context, pred, next) ->
   else
     return helper.ENCOURAGE
 
-Parser.handleButton = (text, command, oldblock) ->
-  return text
-
 Parser.empty = ''
 Parser.emptyIndent = ''
 
@@ -518,4 +524,6 @@ exports.wrapParser = (CustomParser) ->
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 
-    handleButton: (text, command, oldblock) -> CustomParser.handleButton text, command, oldblock
+    handleButton: (text, command, oldblock) ->
+      parser = @createParser(text)
+      parser.handleButton text, command, oldblock

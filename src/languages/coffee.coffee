@@ -644,7 +644,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Special case: "unless" keyword; in this case
       # we want to skip the Op that wraps the condition.
       when 'If'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: true}
+        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: '+'}
 
         # Check to see if we are an "unless".
         # We will deem that we are an unless if:
@@ -760,6 +760,34 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
             @csSocketAndMark property.value, depth + 1, 0, indentDepth
 
+
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and 'If' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = CoffeeScript.nodes(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).expressions[0]
+
+      lines = text.split '\n'
+
+      currentNode = node
+      elseLocation = null
+
+      while currentNode.isChain
+        currentNode = currentNode.elseBodyNode()
+
+      if currentNode.elseBody?
+        lines = text.split('\n')
+        elseLocation = {
+          line: currentNode.elseToken.last_line
+          column: currentNode.elseToken.last_column + 2
+        }
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+        return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
+      else
+        return text + '\nelse\n  ``'
 
   locationsAreIdentical: (a, b) ->
     return a.line is b.line and a.column is b.column
@@ -1196,33 +1224,5 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
     if string.length > 5 and string[0..2] is string[-3..-1] and string[0..2] in ['"""', '\'\'\'', '///']
       start += 2; end -= 2
   return {start, end}
-
-CoffeeScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'If' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = CoffeeScript.nodes(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).expressions[0]
-
-    lines = text.split '\n'
-
-    currentNode = node
-    elseLocation = null
-
-    while currentNode.isChain
-      currentNode = currentNode.elseBodyNode()
-
-    if currentNode.elseBody?
-      lines = text.split('\n')
-      elseLocation = {
-        line: currentNode.elseToken.last_line
-        column: currentNode.elseToken.last_column + 2
-      }
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
-      return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
-    else
-      return text + '\nelse\n  ``'
 
 module.exports = parser.wrapParser CoffeeScriptParser
