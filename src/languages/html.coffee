@@ -591,6 +591,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
   isComment: (text) ->
     text.match(/<!--.*-->/)
 
+  indentAndCommentMarker: (text) ->
+    return ['']
+
 HTMLParser.parens = (leading, trailing, node, context) ->
   return [leading, trailing]
 

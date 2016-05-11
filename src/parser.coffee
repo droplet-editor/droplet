@@ -205,19 +205,34 @@ exports.Parser = class Parser
   # text inside
   constructHandwrittenBlock: (text) ->
     block = new model.Block 0, 'blank', helper.ANY_DROP
-    socket = new model.Socket @empty, 0, true
-    textToken = new model.TextToken text
+    socket = new model.Socket '', 0, true
+    socket.setParent block
 
-    helper.connect block.start, socket.start
+    if @isComment text
+      posAfterIndentAndCommentMarker = @indentAndCommentMarker(text).length
+      if posAfterIndentAndCommentMarker
+        textPrefix = text[...posAfterIndentAndCommentMarker]
+        text = text[posAfterIndentAndCommentMarker..]
+      block.socketLevel = helper.BLOCK_ONLY
+      block.classes = ['__comment__', 'block-only']
+      socket.classes = ['__comment__']
+    else
+      block.classes = ['__handwritten__', 'block-only']
+
+    textToken = new model.TextToken text
+    textToken.setParent block
+
+    if textPrefix
+      textPrefixToken = new model.TextToken textPrefix
+      textPrefixToken.setParent block
+      helper.connect block.start, textPrefixToken
+      helper.connect textPrefixToken, socket.start
+    else
+      helper.connect block.start, socket.start
+
     helper.connect socket.start, textToken
     helper.connect textToken, socket.end
     helper.connect socket.end, block.end
-
-    if @isComment text
-      block.socketLevel = helper.BLOCK_ONLY
-      block.classes = ['__comment__', 'block-only']
-    else
-      block.classes = ['__handwritten__', 'block-only']
 
     return block
 
@@ -485,6 +500,7 @@ exports.wrapParser = (CustomParser) ->
       @emptyIndent = CustomParser.emptyIndent
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
+      @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
 
     # TODO kind of hacky assignation of @empty,

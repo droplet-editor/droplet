@@ -217,6 +217,9 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   isComment: (str) ->
     str.match(/^\s*#.*$/)?
 
+  indentAndCommentMarker: (str) ->
+    str.match(/^\s*#/)?[0]
+
   stripComments: ->
     # Preprocess comment lines:
     try
@@ -1159,6 +1162,7 @@ CoffeeScriptParser.empty = "``"
 CoffeeScriptParser.emptyIndent = "``"
 CoffeeScriptParser.startComment = '###'
 CoffeeScriptParser.endComment = '###'
+CoffeeScriptParser.startSingleLineComment = '# '
 
 CoffeeScriptParser.drop = (block, context, pred) ->
   if context.type is 'socket'

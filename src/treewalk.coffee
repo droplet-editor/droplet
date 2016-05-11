@@ -16,6 +16,9 @@ exports.createTreewalkParser = (parse, config, root) ->
     isComment: (text) ->
       text.match(/^\s*\/\/.*$/)
 
+    indentAndCommentMarker: (text) ->
+      text.match(/^\s*\/\//)[0]
+
     markRoot: (context = root) ->
       parseTree = parse(context, @text)
 

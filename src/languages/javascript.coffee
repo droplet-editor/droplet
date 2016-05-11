@@ -345,6 +345,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
   isComment: (text) ->
     text.match(/^\s*\/\/.*$/)
 
+  indentAndCommentMarker: (text) ->
+    text.match(/^\s*\/\//)[0]
+
   handleButton: (text, button, oldBlock) ->
     if button is 'add-button' and 'IfStatement' in oldBlock.classes
       # Parse to find the last "else" or "else if"
@@ -830,6 +833,7 @@ JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
 JavaScriptParser.startComment = '/*'
 JavaScriptParser.endComment = '*/'
+JavaScriptParser.startSingleLineComment = '//'
 
 JavaScriptParser.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length
