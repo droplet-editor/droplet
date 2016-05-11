@@ -345,6 +345,72 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
   isComment: (text) ->
     text.match(/^\s*\/\/.*$/)
 
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and 'IfStatement' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = acorn.parse(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      currentElif = node
+      elseLocation = null
+      while true
+        if currentElif.type is 'IfStatement'
+          if currentElif.alternate?
+            elseLocation = {
+              line: currentElif.alternate.loc.start.line
+              column: currentElif.alternate.loc.start.column
+            }
+            currentElif = currentElif.alternate
+          else
+            elseLocation = null
+            break
+        else
+          break
+
+      if elseLocation?
+        lines = text.split('\n')
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
+        return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
+          __
+        }'''
+      else
+        return text + ''' else {
+          __
+        }'''
+    else if 'CallExpression' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = acorn.parse(text, {
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      known = @lookupKnownName node.expression
+      argCount = node.expression.arguments.length
+      if button is 'add-button'
+        maxArgs = known?.fn.maxArgs
+        maxArgs ?= Infinity
+        if argCount >= maxArgs
+          return
+        if argCount
+          lastArgPosition = node.expression.arguments[argCount - 1].end
+          return text[...lastArgPosition].trimRight() + ', __' + text[lastArgPosition..].trimLeft()
+        else
+          lastArgPosition = node.expression.end - 1
+          return text[...lastArgPosition].trimRight() + '__' + text[lastArgPosition..].trimLeft()
+      else if button is 'subtract-button'
+        minArgs = known?.fn.minArgs
+        minArgs ?= 0
+        if argCount <= minArgs
+          return
+        if argCount > 0
+          lastArgPosition = node.expression.arguments[argCount - 1].end
+          if argCount is 1
+            newLastArgPosition = node.expression.arguments[0].start
+          else
+            newLastArgPosition = node.expression.arguments[argCount - 2].end
+          return text[...newLastArgPosition].trimRight() + text[lastArgPosition..].trimLeft()
+
   mark: (indentDepth, node, depth, bounds) ->
     switch node.type
       when 'Program'
@@ -523,7 +589,14 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsBlock node, depth, bounds
       when 'CallExpression', 'NewExpression'
         known = @lookupKnownName node
-        @jsBlock node, depth, bounds, {addButton: known?.fn.addButton, subtractButton: known?.fn.subtractButton}
+        blockOpts = {}
+        if @opts.paramButtonsForUnknownFunctions
+          blockOpts.addButton = '\u21A0'
+          blockOpts.subtractButton = '\u219E'
+        if known?.fn
+          blockOpts.addButton = known?.fn.addButton
+          blockOpts.subtractButton = known?.fn.subtractButton
+        @jsBlock node, depth, bounds, blockOpts
         if not known
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
@@ -754,64 +827,6 @@ JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
 JavaScriptParser.startComment = '/*'
 JavaScriptParser.endComment = '*/'
-
-JavaScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'IfStatement' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = acorn.parse(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).body[0]
-    currentElif = node
-    elseLocation = null
-    while true
-      if currentElif.type is 'IfStatement'
-        if currentElif.alternate?
-          elseLocation = {
-            line: currentElif.alternate.loc.start.line
-            column: currentElif.alternate.loc.start.column
-          }
-          currentElif = currentElif.alternate
-        else
-          elseLocation = null
-          break
-      else
-        break
-
-    if elseLocation?
-      lines = text.split('\n')
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
-      return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
-        __
-      }'''
-    else
-      return text + ''' else {
-        __
-      }'''
-  else if 'CallExpression' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = acorn.parse(text, {
-      line: 0
-      allowReturnOutsideFunction: true
-    }).body[0]
-    argCount = node.expression.arguments.length
-    if button is 'add-button'
-      if argCount
-        lastArgPosition = node.expression.arguments[argCount - 1].end
-        return text[...lastArgPosition].trimRight() + ', __' + text[lastArgPosition..].trimLeft()
-      else
-        lastArgPosition = node.expression.end - 1
-        return text[...lastArgPosition].trimRight() + '__' + text[lastArgPosition..].trimLeft()
-    else if button is 'subtract-button'
-      if argCount > 0
-        lastArgPosition = node.expression.arguments[argCount - 1].end
-        if argCount is 1
-          newLastArgPosition = node.expression.arguments[0].start
-        else
-          newLastArgPosition = node.expression.arguments[argCount - 2].end
-        return text[...newLastArgPosition].trimRight() + text[lastArgPosition..].trimLeft()
-
 
 JavaScriptParser.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length
