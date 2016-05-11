@@ -413,7 +413,6 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           else
             newLastArgPosition = node.expression.arguments[argCount - 2].end
           return text[...newLastArgPosition].trimRight() + text[lastArgPosition..].trimLeft()
->>>>>>> code-dot-org
 
   mark: (indentDepth, node, depth, bounds) ->
     switch node.type
