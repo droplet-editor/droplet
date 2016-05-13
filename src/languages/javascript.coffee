@@ -593,14 +593,22 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       when 'CallExpression', 'NewExpression'
         known = @lookupKnownName node
         blockOpts = {}
+        argCount = node.arguments.length
         if known?.fn
           showButtons = known.fn.minArgs? or known.fn.maxArgs?
+          minArgs = known.fn.minArgs or 0
+          maxArgs = if known.fn.maxArgs? then known.fn.maxArgs else Infinity
         else
-          showButtons = @opts.paramButtonsForUnknownFunctions
+          showButtons = @opts.paramButtonsForUnknownFunctions and
+              (argCount isnt 0 or not @opts.lockZeroParamFunctions)
+          minArgs = 0
+          maxArgs = Infinity
 
         if showButtons
-          blockOpts.addButton = '\u21A0'
-          blockOpts.subtractButton = '\u219E'
+          if argCount < maxArgs
+            blockOpts.addButton = '\u21A0'
+          if argCount > minArgs
+            blockOpts.subtractButton = '\u219E'
         @jsBlock node, depth, bounds, blockOpts
 
         if not known
@@ -609,7 +617,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN
         for argument, i in node.arguments
           @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
-        if not known and node.arguments.length is 0 and not @opts.lockZeroParamFunctions
+        if not known and argCount is 0 and not @opts.lockZeroParamFunctions
           # Create a special socket that can be used for inserting the first parameter
           # (NOTE: this socket may not be visible if the bounds start/end are the same)
           position = {
