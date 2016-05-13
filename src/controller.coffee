@@ -2524,6 +2524,9 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       if inPalette
         @populateSocket socket, text
         @redrawPalette()
+      else if not socket.editable()
+        @populateSocket socket, text
+        @redrawMain()
       else
         if not @cursorAtSocket()
           return
