@@ -596,8 +596,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         argCount = node.arguments.length
         if known?.fn
           showButtons = known.fn.minArgs? or known.fn.maxArgs?
-          minArgs = known.fn.minArgs or 0
-          maxArgs = if known.fn.maxArgs? then known.fn.maxArgs else Infinity
+          minArgs = known.fn.minArgs ? 0
+          maxArgs = known.fn.maxArgs ? Infinity
         else
           showButtons = @opts.paramButtonsForUnknownFunctions and
               (argCount isnt 0 or not @opts.lockZeroParamFunctions)
@@ -614,7 +614,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if not known
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
-          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN
+          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
         for argument, i in node.arguments
           @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
         if not known and argCount is 0 and not @opts.lockZeroParamFunctions
