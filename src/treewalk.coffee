@@ -36,7 +36,6 @@ exports.createTreewalkParser = (parse, config, root) ->
           max = val
       return best
 
-
     det: (rule) ->
       if rule in config.INDENTS then return 'indent'
       else if rule in config.SKIPS then return 'skip'
@@ -90,11 +89,12 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: bounds
                 depth: depth
                 classes: rules
+                dropdown: null
 
             @addBlock
               bounds: bounds
               depth: depth + 1
-              color: @getColor rules
+              color: config.COLOR_CB(@opts, node) ? @getColor rules
               classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
               parseContext: (if wrap? then wrap.type else rules[0])
 
@@ -125,11 +125,12 @@ exports.createTreewalkParser = (parse, config, root) ->
                   bounds: bounds
                   depth: depth
                   classes: rules
+                  dropdown: null
 
               @addBlock
                 bounds: bounds
                 depth: depth + 1
-                color: @getColor rules
+                color: config.COLOR_CB(@opts, node) ? @getColor rules
                 classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
                 parseContext: (if wrap? then wrap.type else rules[0])
 
@@ -169,6 +170,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             bounds: node.bounds
             depth: depth
             classes: rules
+            dropdown: config.DROPDOWN_CB?(@opts, node) ? null
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'
