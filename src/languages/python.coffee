@@ -14,15 +14,8 @@ PYTHON_KEYWORDS = ['and', 'as', 'assert', 'break', 'class', 'continue', 'def', '
 
 PYTHON_BUILTIN = ['type', 'object', 'hashCount', 'none', 'NotImplemented', 'pyCheckArgs', 'pyCheckType', 'checkSequence', 'checkIterable', 'checkCallable', 'checkNumber', 'checkComplex', 'checkInt', 'checkFloat', 'checkString', 'checkClass', 'checkBool', 'checkNone', 'checkFunction', 'func', 'range', 'asnum$', 'assk$', 'asnum$nofloat', 'round', 'len', 'min', 'max', 'any', 'all', 'sum', 'zip', 'abs', 'ord', 'chr', 'int2str_', 'hex', 'oct', 'bin', 'dir', 'repr', 'open', 'isinstance', 'hash', 'getattr', 'setattr', 'raw_input', 'input', 'jseval', 'jsmillis', 'superbi', 'eval_', 'map', 'reduce', 'filter', 'hasattr', 'pow', 'quit', 'issubclass', 'globals', 'divmod', 'format', 'bytearray', 'callable', 'delattr', 'execfile', 'frozenset', 'help', 'iter', 'locals', 'memoryview', 'next_', 'property', 'reload', 'reversed', 'unichr', 'vars', 'xrange', 'apply_', 'buffer', 'coerce', 'intern', 'BaseException', 'Exception', 'StandardError', 'AssertionError', 'AttributeError', 'ImportError', 'IndentationError', 'IndexError', 'KeyError', 'NameError', 'UnboundLocalError', 'OverflowError', 'ParseError', 'RuntimeError', 'SuspensionError', 'SystemExit', 'SyntaxError', 'TokenError', 'TypeError', 'ValueError', 'ZeroDivisionError', 'TimeLimitError', 'IOError', 'NotImplementedError', 'NegativePowerError', 'ExternalError', 'OperationError', 'SystemError', 'method', 'seqtype', 'list', 'interned', 'str', 'tuple', 'dict', 'numtype', 'biginteger', 'int_', 'bool', 'float_', 'nmber', 'lng', 'complex', 'slice', 'slice$start', 'slice$stop', 'slice$step', 'set', 'print', 'module', 'structseq_types', 'make_structseq', 'generator', 'makeGenerator', 'file', 'enumerate', '__import__', 'timSort', 'listSlice', 'sorted']
 
-# TODO: how do we add keywords without hardcoding?
-PYTHON_RANDOM = ['seed', 'random', 'randint', 'randrange', 'uniform', 'triangular', 'gauss', 'normalvariate', 'lognormvariate', 'expovariate', 'choice', 'shuffle', 'sample']
-
-PYTHON_MATH = ['pi', 'e', 'fabs', 'asin', 'acos', 'atan', 'atan2', 'sin', 'cos', 'tan', 'asinh', 'acosh', 'atanh', 'sinh', 'cosh', 'tanh', 'ceil', 'copysign', 'floor', 'sqrt', 'trunc', 'log', 'log10', 'isnan', 'exp', 'pow', 'radians', 'degrees', 'hypot', 'factorial']
-
-ES_KEYWORDS = ['init', 'setTempo', 'finish', 'fitMedia', 'makeBeat', 'setEffect', 'selectRandomFile', 'insertMedia', 'analyze', 'analyzeForTime', 'analyzeTrack', 'analyzeTrackForTime', 'dur', 'importImage', 'importFile', 'insertMediaSection', 'makeBeatSlice', 'readInput', 'replaceListElement', 'replaceString', 'reverseList', 'reverseString', 'rhythmEffects', 'shuffleList', 'shuffleString']
-
-PYTHON_KEYWORDS = PYTHON_KEYWORDS.concat(PYTHON_BUILTIN, PYTHON_RANDOM, PYTHON_MATH, ES_KEYWORDS)
-PYTHON_KEYWORDS = PYTHON_KEYWORDS.filter((v, i) -> return PYTHON_KEYWORDS.indexOf(v) == i) # remove duplicates
+PYTHON_KEYWORDS = PYTHON_KEYWORDS.concat(PYTHON_BUILTIN)
+PYTHON_KEYWORDS = PYTHON_KEYWORDS.filter((v, i) -> return PYTHON_KEYWORDS.indexOf(v) == i) # remove possible duplicates
 
 # PARSER SECTION
 parse = (context, text) ->
@@ -56,7 +49,7 @@ getFunctionName = (node) ->
   else if node.type is 'power' and node.children.some((n) -> n.type is 'trailer')
     siblingNode = node.children[0].children?[0]
 
-  if siblingNode?.type is 'T_KEYWORD'
+  if siblingNode?.type in ['T_KEYWORD', 'T_NAME']
     return siblingNode.meta.value
 
   if node.parent? then getFunctionName(node.parent)
@@ -78,11 +71,11 @@ getDropdown = (opts, node) ->
   funcName = getFunctionName(node)
 
   if argNum? and funcName?
-    return opts.functions[funcName]?.dropdown?[argNum] ? null
+    return opts.functions?[funcName]?.dropdown?[argNum] ? null
 
 getColor = (opts, node) ->
   if getArgNum(node) is null
-    return opts.functions[getFunctionName(node)]?.color ? null
+    return opts.functions?[getFunctionName(node)]?.color ? null
     
 transform = (node, lines, parent = null) ->
   type = skulpt.tables.ParseTables.number2symbol[node.type] ? skulpt.Tokenizer.tokenNames[node.type] ? node.type

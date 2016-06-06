@@ -43,9 +43,13 @@ exports.createTreewalkParser = (parse, config, root) ->
       else return 'block'
 
     detNode: (node) -> if node.blockified then 'block' else @det(node.type)
+
     detToken: (node) ->
       if node.type?
-        if node.type in config.SOCKET_TOKENS then 'socket' else 'none'
+        if node.type in config.SOCKET_TOKENS
+          # user-defined function names (in modeOptions) are being excluded
+          if @opts.functions? and node.meta.value in Object.keys(@opts.functions) then 'none' else 'socket'
+        else 'none'
       else 'none'
 
     getDropType: (context) -> ({
@@ -165,7 +169,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         for child in node.children
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
-        if @detToken(node) is 'socket'
+        if @detToken(node) is 'socket' # TODO: it doesn't differentiate between function names and arguments
           @addSocket
             bounds: node.bounds
             depth: depth
