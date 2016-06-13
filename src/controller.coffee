@@ -252,7 +252,6 @@ exports.Editor = class Editor
     if @aceEditor instanceof Node
       @wrapperElement = @aceEditor
 
-
       @aceElement = document.createElement 'div'
       @aceElement.className = 'droplet-ace'
 
@@ -269,7 +268,12 @@ exports.Editor = class Editor
 
     else
       @wrapperElement = document.createElement 'div'
-      @wrapperElement.className = 'droplet-editor'
+      @wrapperElement.style.position = 'absolute'
+      @wrapperElement.style.right = @wrapperElement.style.left = @wrapperElement.style.top = @wrapperElement.style.bottom = '0px'
+      @wrapperElement.style.overflow = 'hidden'
+
+      @aceElement = @aceEditor.container
+      @aceElement.className = 'droplet-ace'
 
       @aceEditor.container.parentElement.appendChild @wrapperElement
       @wrapperElement.appendChild @aceEditor.container
