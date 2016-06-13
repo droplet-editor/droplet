@@ -1908,7 +1908,6 @@ parseBlock = (mode, code) =>
 Editor::setPalette = (paletteGroups) ->
   @paletteHeader.innerHTML = ''
   @session.paletteGroups = paletteGroups
-  console.log 'setting palette'
 
   @session.currentPaletteBlocks = []
   @session.currentPaletteMetadata = []
