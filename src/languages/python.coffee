@@ -76,7 +76,35 @@ getDropdown = (opts, node) ->
 getColor = (opts, node) ->
   if getArgNum(node) is null
     return opts.functions?[getFunctionName(node)]?.color ? null
-    
+
+insertButton = (opts, node) ->
+  if node.type is 'if_stmt'
+    return {addButton: true}
+  else
+    return null
+
+handelButton = (text, button, oldBlocks) ->
+  checkElif = (node) ->
+    res = 'init'
+    if node.type is 'if_stmt'
+      node.children?.forEach((c) -> if c.type is 'T_KEYWORD' then res = c.meta.value)
+    else
+      node.children?.forEach((c) -> res = checkElif(c))
+    return res
+
+  if button is 'add-button' and 'if_stmt' in oldBlocks.classes
+    node = parse({}, text).children[0]
+    elif = checkElif(node)
+
+    if elif is 'if' or elif is 'elif'
+      text += '''\nelse:\n  print \'hi\''''
+    else if elif is 'else'
+      text = text.replace('else:', 'elif a == b:')
+      text += '''\nelse:\n  print \'hi\''''
+
+  return text
+
+
 transform = (node, lines, parent = null) ->
   type = skulpt.tables.ParseTables.number2symbol[node.type] ? skulpt.Tokenizer.tokenNames[node.type] ? node.type
 
@@ -142,6 +170,8 @@ config = {
   BLOCK_TOKENS: [], PLAIN_SOCKETS: [], VALUE_TYPES: [], BLOCK_TYPES: []
   DROPDOWN_CB: getDropdown
   COLOR_CB: getColor
+  BUTTON_CB: insertButton
+  HANDLE_BUTTON_CB: handelButton
 }
 
 result = treewalk.createTreewalkParser parse, config

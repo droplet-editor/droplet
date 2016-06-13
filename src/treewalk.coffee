@@ -101,6 +101,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               color: config.COLOR_CB(@opts, node) ? @getColor rules
               classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
               parseContext: (if wrap? then wrap.type else rules[0])
+              buttons: config.BUTTON_CB(@opts, node) ? null
 
           when 'parens'
             # Parens are assumed to wrap the only child that has children
@@ -186,5 +187,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
   # Doesn't yet deal with parens
   TreewalkParser.parens = (leading, trailing, node, context) ->
+
+  TreewalkParser.handleButton = config.HANDLE_BUTTON_CB
 
   return TreewalkParser
