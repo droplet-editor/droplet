@@ -174,7 +174,7 @@ class Session
 
 # ## The Editor Class
 exports.Editor = class Editor
-  constructor: (@wrapperElement, @options) ->
+  constructor: (@aceEditor, @options) ->
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
     # element with all the necessary ICE editor components.
@@ -188,11 +188,6 @@ exports.Editor = class Editor
 
     # We give our element a tabIndex so that it can be focused and capture keypresses.
     @dropletElement.tabIndex = 0
-
-    # Append that div.
-    @wrapperElement.appendChild @dropletElement
-
-    @wrapperElement.style.backgroundColor = '#FFF'
 
     # ### Canvases
     # Create the palette and main canvases
@@ -231,8 +226,6 @@ exports.Editor = class Editor
 
     @dropletElement.style.left = @paletteWrapper.offsetWidth + 'px'
 
-    @wrapperElement.appendChild @paletteWrapper
-
     @draw = new draw.Draw()
 
     do @draw.refreshFontCapital
@@ -255,19 +248,37 @@ exports.Editor = class Editor
       ctx: @mainCtx
       draw: @draw
 
-    @aceElement = document.createElement 'div'
-    @aceElement.className = 'droplet-ace'
+    # We can be passed a div
+    if @aceEditor instanceof Node
+      @wrapperElement = @aceEditor
 
-    @wrapperElement.appendChild @aceElement
 
-    @aceEditor = ace.edit @aceElement
+      @aceElement = document.createElement 'div'
+      @aceElement.className = 'droplet-ace'
 
-    @aceEditor.setTheme 'ace/theme/chrome'
-    @aceEditor.setFontSize 15
-    acemode = @options.mode
-    if acemode is 'coffeescript' then acemode = 'coffee'
-    @aceEditor.getSession().setMode 'ace/mode/' + acemode
-    @aceEditor.getSession().setTabSize 2
+      @wrapperElement.appendChild @aceElement
+
+      @aceEditor = ace.edit @aceElement
+
+      @aceEditor.setTheme 'ace/theme/chrome'
+      @aceEditor.setFontSize 15
+      acemode = @options.mode
+      if acemode is 'coffeescript' then acemode = 'coffee'
+      @aceEditor.getSession().setMode 'ace/mode/' + acemode
+      @aceEditor.getSession().setTabSize 2
+
+    else
+      @wrapperElement = document.createElement 'div'
+      @wrapperElement.className = 'droplet-editor'
+
+      @aceEditor.container.parentElement.appendChild @wrapperElement
+      @wrapperElement.appendChild @aceEditor.container
+
+    # Append populated divs
+    @wrapperElement.appendChild @dropletElement
+    @wrapperElement.appendChild @paletteWrapper
+
+    @wrapperElement.style.backgroundColor = '#FFF'
 
     @currentlyAnimating = false
 
