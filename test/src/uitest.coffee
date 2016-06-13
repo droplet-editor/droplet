@@ -245,7 +245,7 @@ asyncTest 'Controller: does not throw on reparse error', ->
     ok(true, 'Does not throw on reparse')
 
     foundErrorMark = false
-    for key, val of editor.markedBlocks
+    for key, val of editor.session.markedBlocks
       if val.model.stringify() is '18n' and
           val.style.color is '#F00'
         foundErrorMark = true
@@ -288,14 +288,14 @@ asyncTest 'Controller: Can replace a block where we found it', ->
 
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
-  head = editor.tree.start
+  head = editor.session.tree.start
   # Skip the first block if it is the entire document
-  if head.next.container?.end is editor.tree.end.prev
+  if head.next.container?.end is editor.session.tree.end.prev
     head = head.next.next
   dragPossibilities = []
-  until head is editor.tree.end
+  until head is editor.session.tree.end
     if head.type is 'blockStart'
-      bound = editor.view.getViewNodeFor(head.container).bounds[0]
+      bound = editor.session.view.getViewNodeFor(head.container).bounds[0]
       handle = {x: bound.x + 5, y: bound.y + 5}
       dragPossibilities.push {
         block: head.container
@@ -306,17 +306,17 @@ getRandomDragOp = (editor, rng) ->
   drag = dragPossibilities[Math.floor rng() * dragPossibilities.length]
 
   # Find all the drop areas
-  head = editor.tree.start
+  head = editor.session.tree.start
 
   # Disclude the main tree if we're dragging the first block
   if drag is dragPossibilities[0]
     head = head.next
   dropPossibilities = []
-  until head is editor.tree.end
+  until head is editor.session.tree.end
     if head is drag.block.start
       head = drag.block.end
     if head.type.match(/Start$/)?
-      dropPoint = editor.view.getViewNodeFor(head.container).dropPoint
+      dropPoint = editor.session.view.getViewNodeFor(head.container).dropPoint
       if dropPoint?
         if head.container.type is 'block'
           parent = head.container.parent
@@ -345,11 +345,11 @@ generateRandomAlphabetic = (rng) ->
   return str
 
 getRandomTextOp = (editor, rng) ->
-  head = editor.tree.start
+  head = editor.session.tree.start
   socketPossibilities = []
-  until head is editor.tree.end
+  until head is editor.session.tree.end
     if head.type is 'socketStart' and head.container.editable()
-      bound = editor.view.getViewNodeFor(head.container).bounds[0]
+      bound = editor.session.view.getViewNodeFor(head.container).bounds[0]
       handle = {x: bound.x + 5, y: bound.y + 5}
       socketPossibilities.push {
         block: head.container
@@ -427,7 +427,7 @@ performDragOperation = (editor, drag, cb) ->
 
 pickUpLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
-  bound = editor.view.getViewNodeFor(block).bounds[0]
+  bound = editor.session.view.getViewNodeFor(block).bounds[0]
   simulate('mousedown', editor.mainScrollerStuffing, {
     dx: bound.x + editor.gutter.offsetWidth + 5,
     dy: bound.y + 5
@@ -440,7 +440,7 @@ pickUpLocation = (editor, document, location) ->
 
 dropLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
-  blockView = editor.view.getViewNodeFor block
+  blockView = editor.session.view.getViewNodeFor block
   simulate('mousemove', editor.dragCover, {
     location: editor.mainCanvas
     dx: blockView.dropPoint.x + 5,
@@ -612,8 +612,8 @@ asyncTest 'Controller: Quoted string selection', ->
   editor.setEditorState(true)
   editor.setValue('fd "hello"')
 
-  entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
-  {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
+  entity = editor.session.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
+  {x, y} = editor.session.view.getViewNodeFor(entity).bounds[0]
 
   simulate('mousedown', editor.mainScrollerStuffing, {
     dx: x + 5 + editor.gutter.offsetWidth
@@ -662,8 +662,8 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
   editor.setEditorState(true)
   editor.setValue("fd 'hello'")
 
-  entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
-  {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
+  entity = editor.session.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
+  {x, y} = editor.session.view.getViewNodeFor(entity).bounds[0]
 
   executeAsyncSequence [
     (->

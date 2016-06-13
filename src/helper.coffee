@@ -108,15 +108,15 @@ exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
 
 exports.clipLines = (lines, start, end) ->
   if start.line isnt end.line
-    console.log 'pieces:',
-      "'#{lines[start.line][start.column..]}'",
-      "'#{lines[start.line + 1...end.line].join('\n')}'",
-      "'#{lines[end.line][...end.column]}'"
+    #console.log 'pieces:',
+    #  "'#{lines[start.line][start.column..]}'",
+    #  "'#{lines[start.line + 1...end.line].join('\n')}'",
+    #  "'#{lines[end.line][...end.column]}'"
     return lines[start.line][start.column..] +
     lines[start.line + 1...end.line].join('\n') +
     lines[end.line][...end.column]
   else
-    console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
+    #console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
     return lines[start.line][start.column...end.column]
 
 exports.getFontHeight = (family, size) ->

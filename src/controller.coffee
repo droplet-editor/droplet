@@ -88,9 +88,9 @@ hook = (event, priority, fn) ->
     fn: fn
   }
 
-# ## The Editor Class
-exports.Editor = class Editor
-  constructor: (@wrapperElement, @options) ->
+class Session
+  constructor: (@editor, @options, standardViewSettings) ->
+    # Option flags
     @readOnly = false
     @paletteGroups = @options.palette
     @showPaletteInTextMode = @options.showPaletteInTextMode ? false
@@ -98,18 +98,64 @@ exports.Editor = class Editor
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
     @allowFloatingBlocks = @options.allowFloatingBlocks ? true
 
+    # Mode
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
     if @options.mode of modes
-      @mode = new modes[@options.mode] @options.modeOptions # TODO session
+      @mode = new modes[@options.mode] @options.modeOptions
     else
-      @mode = new coffee @options.modeOptions # TODO session
+      @mode = new coffee @options.modeOptions
 
-    @draw = new draw.Draw()
+    # Instantiate an Droplet editor view
+    @view = new view.View standardViewSettings
+    @paletteView = new view.View helper.extend {}, standardViewSettings, {
+      showDropdowns: @options.showDropdownInPalette ? false
+    }
+    @dragView = new view.View standardViewSettings
 
-    # No gutter decorations to start
-    @gutterDecorations = {} # TODO session
+    # ## Document initialization
+    # We start of with an empty document
+    @tree = new model.Document()
 
+    # Line markings
+    @markedLines = {}
+    @markedBlocks = {}; @nextMarkedBlockId = 0
+    @extraMarks = {}
+
+    # Undo/redo stack
+    @undoStack = []
+    @redoStack = []
+    @changeEventVersion = 0
+
+    # Floating blocks
+    @floatingBlocks = []
+
+    # Cursor
+    @cursor = new CrossDocumentLocation(0, new model.Location(0, 'documentStart'))
+
+    # Scrolling
+    @scrollOffsets = {
+      main: new @editor.draw.Point 0, 0
+      palette: new @editor.draw.Point 0, 0
+    }
+
+    # Block toggle
+    @currentlyUsingBlocks = true
+
+    # Fonts
+    @fontSize = 15
+    @fontFamily = 'Courier New'
+
+    metrics = helper.fontMetrics(@fontFamily, @fontSize)
+    @fontAscent = metrics.prettytop
+    @fontDescent = metrics.descent
+
+    # Remembered sockets
+    @rememberedSockets = []
+
+# ## The Editor Class
+exports.Editor = class Editor
+  constructor: (@wrapperElement, @options) ->
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
     # element with all the necessary ICE editor components.
@@ -168,6 +214,8 @@ exports.Editor = class Editor
 
     @wrapperElement.appendChild @paletteWrapper
 
+    @draw = new draw.Draw()
+
     do @draw.refreshFontCapital
 
     @standardViewSettings =
@@ -188,15 +236,10 @@ exports.Editor = class Editor
       ctx: @mainCtx
       draw: @draw
 
+    @session = new Session @, @options, @standardViewSettings
+
     # Set up event bindings before creating a view
     @bindings = {}
-
-    # Instantiate an Droplet editor view
-    @view = new view.View @standardViewSettings # TODO session
-    @paletteView = new view.View helper.extend {}, @standardViewSettings, { # TODO session
-      showDropdowns: @options.showDropdownInPalette ? false
-    }
-    @dragView = new view.View @standardViewSettings # TODO session
 
     boundListeners = []
 
@@ -256,10 +299,6 @@ exports.Editor = class Editor
         else
           element.addEventListener eventName, dispatchMouseEvent
 
-    # ## Document initialization
-    # We start of with an empty document
-    @tree = new model.Document() # TODO session
-
     @resizeBlockMode()
 
     # Now that we've populated everything, immediately redraw.
@@ -268,7 +307,7 @@ exports.Editor = class Editor
 
     # If we were given an unrecognized mode or asked to start in text mode,
     # flip into text mode here
-    useBlockMode = @mode? && !@options.textModeAtStart
+    useBlockMode = @session.mode? && !@options.textModeAtStart
     # Always call @setEditorState to ensure palette is positioned properly
     @setEditorState useBlockMode
 
@@ -278,21 +317,21 @@ exports.Editor = class Editor
     modeClass = modes[mode]
     if modeClass
       @options.mode = mode
-      @mode = new modeClass modeOptions # TODO session
+      @session.mode = new modeClass modeOptions
     else
       @options.mode = null
-      @mode = null
+      @session.mode = null
     @setValue @getValue()
 
   getMode: ->
     @options.mode
 
   setReadOnly: (readOnly) ->
-    @readOnly = readOnly
+    @session.readOnly = readOnly
     @aceEditor.setReadOnly readOnly
 
   getReadOnly: ->
-    @readOnly
+    @session.readOnly
 
   # ## Foundational Resize
   # At the editor core, we will need to resize
@@ -307,7 +346,7 @@ exports.Editor = class Editor
     @resizeTextMode()
 
     @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
-    if @paletteEnabled
+    if @session.paletteEnabled
       @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
       @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.offsetWidth}px"
     else
@@ -334,15 +373,15 @@ exports.Editor = class Editor
     @resizeDragCanvas()
 
     # Re-scroll and redraw main
-    @scrollOffsets.main.y = @mainScroller.scrollTop # TODO session
-    @scrollOffsets.main.x = @mainScroller.scrollLeft # TODO session
+    @session.scrollOffsets.main.y = @mainScroller.scrollTop
+    @session.scrollOffsets.main.x = @mainScroller.scrollLeft
 
-    @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    @mainCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.main.x, -@session.scrollOffsets.main.y
 
     # Also update scroll for the highlight ctx, so that
     # they can match the blocks' positions
-    @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
-    @cursorCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    @highlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.main.x, -@session.scrollOffsets.main.y
+    @cursorCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.main.x, -@session.scrollOffsets.main.y
 
     @redrawMain()
 
@@ -357,13 +396,13 @@ exports.Editor = class Editor
     for binding in editorBindings.resize_palette
       binding.call this
 
-    @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
-    @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+    @paletteCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
+    @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
 
     @rebuildPalette()
 
   resize: ->
-    if @currentlyUsingBlocks
+    if @session.currentlyUsingBlocks #TODO session
       @resizeBlockMode()
     else
       @resizeTextMode()
@@ -383,7 +422,7 @@ Editor::clearMain = (opts) ->
     @mainCtx.clearRect opts.boundingRectangle.x, opts.boundingRectangle.y,
       opts.boundingRectangle.width, opts.boundingRectangle.height
   else
-    @mainCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
+    @mainCtx.clearRect @session.scrollOffsets.main.x, @session.scrollOffsets.main.y, @mainCanvas.width, @mainCanvas.height
 
 Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
@@ -395,12 +434,12 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
     @topNubbyPath.push new @draw.Point @mainCanvas.width, -5
     @topNubbyPath.push new @draw.Point @mainCanvas.width, height
 
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
-        @view.opts.tabHeight + height
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
-        @view.opts.tabHeight + height
-    @topNubbyPath.push new @draw.Point @view.opts.tabOffset, height
+    @topNubbyPath.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth, height
+    @topNubbyPath.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth * (1 - @session.view.opts.tabSideWidth),
+        @session.view.opts.tabHeight + height
+    @topNubbyPath.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth * @session.view.opts.tabSideWidth,
+        @session.view.opts.tabHeight + height
+    @topNubbyPath.push new @draw.Point @session.view.opts.tabOffset, height
 
     @topNubbyPath.push new @draw.Point -5, height
     @topNubbyPath.push new @draw.Point -5, -5
@@ -413,50 +452,50 @@ Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
 Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
-  blockView = @view.getViewNodeFor record.block
+  blockView = @session.view.getViewNodeFor record.block
   blockView.layout record.position.x, record.position.y
 
-  rectangle = new @view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
+  rectangle = new @session.view.draw.Rectangle(); rectangle.copy(blockView.totalBounds)
   rectangle.x -= GRAY_BLOCK_MARGIN; rectangle.y -= GRAY_BLOCK_MARGIN
   rectangle.width += 2 * GRAY_BLOCK_MARGIN; rectangle.height += 2 * GRAY_BLOCK_MARGIN
 
-  bottomTextPosition = blockView.totalBounds.bottom() - blockView.distanceToBase[blockView.lineLength - 1].below - @fontSize
+  bottomTextPosition = blockView.totalBounds.bottom() - blockView.distanceToBase[blockView.lineLength - 1].below - @session.fontSize
 
   if (blockView.totalBounds.width - blockView.bounds[blockView.bounds.length - 1].width) < endWidth
     if blockView.lineLength > 1
-      rectangle.height += @fontSize
-      bottomTextPosition = rectangle.bottom() - @fontSize - 5
+      rectangle.height += @session.fontSize
+      bottomTextPosition = rectangle.bottom() - @session.fontSize - 5
     else
       rectangle.width += endWidth
 
   unless rectangle.equals(record.grayBox)
     record.grayBox = rectangle
 
-    oldBounds = record.grayBoxPath?.bounds?() ? new @view.draw.NoRectangle()
+    oldBounds = record.grayBoxPath?.bounds?() ? new @session.view.draw.NoRectangle()
 
     startHeight = blockView.bounds[0].height + 10
 
     # Make the path surrounding the gray box (with rounded corners)
-    record.grayBoxPath = path = new @view.draw.Path()
-    path.push new @view.draw.Point rectangle.right() - 5, rectangle.y
-    path.push new @view.draw.Point rectangle.right(), rectangle.y + 5
-    path.push new @view.draw.Point rectangle.right(), rectangle.bottom() - 5
-    path.push new @view.draw.Point rectangle.right() - 5, rectangle.bottom()
+    record.grayBoxPath = path = new @session.view.draw.Path()
+    path.push new @session.view.draw.Point rectangle.right() - 5, rectangle.y
+    path.push new @session.view.draw.Point rectangle.right(), rectangle.y + 5
+    path.push new @session.view.draw.Point rectangle.right(), rectangle.bottom() - 5
+    path.push new @session.view.draw.Point rectangle.right() - 5, rectangle.bottom()
 
     if blockView.lineLength > 1
-      path.push new @view.draw.Point rectangle.x + 5, rectangle.bottom()
-      path.push new @view.draw.Point rectangle.x, rectangle.bottom() - 5
+      path.push new @session.view.draw.Point rectangle.x + 5, rectangle.bottom()
+      path.push new @session.view.draw.Point rectangle.x, rectangle.bottom() - 5
     else
-      path.push new @view.draw.Point rectangle.x, rectangle.bottom()
+      path.push new @session.view.draw.Point rectangle.x, rectangle.bottom()
 
     # Handle
-    path.push new @view.draw.Point rectangle.x, rectangle.y + startHeight
-    path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
-    path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
-    path.push new @view.draw.Point rectangle.x - startWidth, rectangle.y + 5
-    path.push new @view.draw.Point rectangle.x - startWidth + 5, rectangle.y
+    path.push new @session.view.draw.Point rectangle.x, rectangle.y + startHeight
+    path.push new @session.view.draw.Point rectangle.x - startWidth + 5, rectangle.y + startHeight
+    path.push new @session.view.draw.Point rectangle.x - startWidth, rectangle.y + startHeight - 5
+    path.push new @session.view.draw.Point rectangle.x - startWidth, rectangle.y + 5
+    path.push new @session.view.draw.Point rectangle.x - startWidth + 5, rectangle.y
 
-    path.push new @view.draw.Point rectangle.x, rectangle.y
+    path.push new @session.view.draw.Point rectangle.x, rectangle.y
 
 
     path.bevel = false
@@ -474,13 +513,13 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
       @mainCtx.restore()
       return @redrawMain opts
 
-  # TODO this will need to become configurable by the @mode
+  # TODO this will need to become configurable by the @session.mode
   @mainCtx.globalAlpha *= 0.8
   record.grayBoxPath.draw @mainCtx
   @mainCtx.fillStyle = '#000'
-  @mainCtx.fillText(@mode.startComment, blockView.totalBounds.x - startWidth,
-    blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize)
-  @mainCtx.fillText(@mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
+  @mainCtx.fillText(@session.mode.startComment, blockView.totalBounds.x - startWidth,
+    blockView.totalBounds.y + blockView.distanceToBase[0].above - @session.fontSize)
+  @mainCtx.fillText(@session.mode.endComment, record.grayBox.right() - endWidth - 5, bottomTextPosition)
   @mainCtx.globalAlpha /= 0.8
 
   blockView.draw @mainCtx, rect, {
@@ -494,7 +533,7 @@ Editor::redrawMain = (opts = {}) ->
 
     # Set our draw tool's font size
     # to the font size we want
-    @draw.setGlobalFontSize @fontSize
+    @draw.setGlobalFontSize @session.fontSize
 
     # Supply our main canvas for measuring
     @draw.setCtx @mainCtx
@@ -509,8 +548,8 @@ Editor::redrawMain = (opts = {}) ->
       opts.boundingRectangle.clip @mainCtx
 
     rect = opts.boundingRectangle ? new @draw.Rectangle(
-      @scrollOffsets.main.x,
-      @scrollOffsets.main.y,
+      @session.scrollOffsets.main.x,
+      @session.scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
     )
@@ -521,13 +560,13 @@ Editor::redrawMain = (opts = {}) ->
     }
 
     # Draw the new tree on the main context
-    layoutResult = @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
-    @view.getViewNodeFor(@tree).draw @mainCtx, rect, options
+    layoutResult = @session.view.getViewNodeFor(@session.tree).layout 0, @nubbyHeight
+    @session.view.getViewNodeFor(@session.tree).draw @mainCtx, rect, options
 
     # Draw floating blocks
-    startWidth = @mainCtx.measureText(@mode.startComment).width
-    endWidth = @mainCtx.measureText(@mode.endComment).width
-    for record in @floatingBlocks
+    startWidth = @mainCtx.measureText(@session.mode.startComment).width
+    endWidth = @mainCtx.measureText(@session.mode.endComment).width
+    for record in @session.floatingBlocks
       @drawFloatingBlock(record, startWidth, endWidth, rect, opts)
 
     if opts.boundingRectangle?
@@ -540,8 +579,8 @@ Editor::redrawMain = (opts = {}) ->
     for binding in editorBindings.redraw_main
       binding.call this, layoutResult
 
-    if @changeEventVersion isnt @tree.version
-      @changeEventVersion = @tree.version
+    if @session.changeEventVersion isnt @session.tree.version
+      @session.changeEventVersion = @session.tree.version
 
       # Update the ace editor value to match,
       # but don't trigger a resize event.
@@ -559,33 +598,33 @@ Editor::redrawHighlights = ->
   # Draw highlights around marked lines
   @clearHighlightCanvas()
 
-  for line, info of @markedLines
+  for line, info of @session.markedLines
     if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
-      delete @markedLines[line]
+      delete @session.markedLines[line]
 
-  for id, info of @markedBlocks
+  for id, info of @session.markedBlocks
     if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
-      delete @markedLines[id]
+      delete @session.markedLines[id]
 
-  for id, info of @extraMarks
+  for id, info of @session.extraMarks
     if @inDisplay info.model
       path = @getHighlightPath info.model, info.style
       path.draw @highlightCtx
     else
-      delete @extraMarks[id]
+      delete @session.extraMarks[id]
 
   # If there is an block that is being dragged,
   # draw it in gray
   if @draggingBlock? and @inDisplay @draggingBlock
-    @view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
-      @scrollOffsets.main.x,
-      @scrollOffsets.main.y,
+    @session.view.getViewNodeFor(@draggingBlock).draw @highlightCtx, new @draw.Rectangle(
+      @session.scrollOffsets.main.x,
+      @session.scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
     ), {grayscale: true}
@@ -594,7 +633,7 @@ Editor::redrawHighlights = ->
   @redrawLassoHighlight()
 
 Editor::clearCursorCanvas = ->
-  @cursorCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
+  @cursorCtx.clearRect @session.scrollOffsets.main.x, @session.scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
 
 Editor::redrawCursors = ->
   @clearCursorCanvas()
@@ -608,11 +647,11 @@ Editor::redrawCursors = ->
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
 Editor::clearPalette = ->
-  @paletteCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+  @paletteCtx.clearRect @session.scrollOffsets.palette.x, @session.scrollOffsets.palette.y,
     @paletteCanvas.width, @paletteCanvas.height
 
 Editor::clearPaletteHighlightCanvas = ->
-  @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
+  @paletteHighlightCtx.clearRect @session.scrollOffsets.palette.x, @session.scrollOffsets.palette.y,
     @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
 
 Editor::redrawPalette = ->
@@ -625,15 +664,15 @@ Editor::redrawPalette = ->
   lastBottomEdge = PALETTE_TOP_MARGIN
 
   boundingRect = new @draw.Rectangle(
-    @scrollOffsets.palette.x,
-    @scrollOffsets.palette.y,
+    @session.scrollOffsets.palette.x,
+    @session.scrollOffsets.palette.y,
     @paletteCanvas.width,
     @paletteCanvas.height
   )
 
   for entry in @currentPaletteBlocks
     # Layout this block
-    paletteBlockView = @paletteView.getViewNodeFor entry.block
+    paletteBlockView = @session.paletteView.getViewNodeFor entry.block
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
 
     # Render the block
@@ -676,18 +715,18 @@ Editor::trackerPointToMain = (point) ->
   if not @mainCanvas.offsetParent?
     return new @draw.Point(NaN, NaN)
   gbr = @mainCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @scrollOffsets.main.x,
-                  point.y - gbr.top + @scrollOffsets.main.y)
+  new @draw.Point(point.x - gbr.left + @session.scrollOffsets.main.x,
+                  point.y - gbr.top + @session.scrollOffsets.main.y)
 
 Editor::trackerPointToPalette = (point) ->
   if not @paletteCanvas.offsetParent?
     return new @draw.Point(NaN, NaN)
   gbr = @paletteCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @scrollOffsets.palette.x,
-                  point.y - gbr.top + @scrollOffsets.palette.y)
+  new @draw.Point(point.x - gbr.left + @session.scrollOffsets.palette.x,
+                  point.y - gbr.top + @session.scrollOffsets.palette.y)
 
 Editor::trackerPointIsInElement = (point, element) ->
-  if @readOnly
+  if @session.readOnly
     return false
   if not element.offsetParent?
     return false
@@ -714,8 +753,8 @@ Editor::trackerPointIsInAce = (point) ->
 # ### hitTest
 # Simple function for going through a linked-list block
 # and seeing what the innermost child is that we hit.
-Editor::hitTest = (point, block, view = @view) ->
-  if @readOnly
+Editor::hitTest = (point, block, view = @session.view) ->
+  if @session.readOnly
     return null
 
   head = block.start
@@ -740,7 +779,7 @@ hook 'mousedown', 10, ->
 Editor::removeBlankLines = ->
   # If we have blank lines at the end,
   # get rid of them
-  head = tail = @tree.end.prev
+  head = tail = @session.tree.end.prev
   while head?.type is 'newline'
     head = head.prev
 
@@ -752,10 +791,6 @@ Editor::removeBlankLines = ->
 
 # We must declare a few
 # fields a populate time
-hook 'populate', 0, ->
-  @undoStack = [] # TODO session
-  @redoStack = [] # TODO session
-  @changeEventVersion = 0 # TODO session
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
@@ -780,24 +815,24 @@ class EditorState
   }
 
 Editor::getSerializedEditorState = ->
-  return new EditorState @tree.stringify(), @floatingBlocks.map (x) -> {
+  return new EditorState @session.tree.stringify(), @session.floatingBlocks.map (x) -> {
     position: x.position
     string: x.block.stringify()
   }
 
 Editor::clearUndoStack = ->
-  @undoStack.length = 0
-  @redoStack.length = 0
+  @session.undoStack.length = 0
+  @session.redoStack.length = 0
 
 Editor::undo = ->
   # Don't allow a socket to be highlighted during
   # an undo operation
-  @setCursor @cursor, ((x) -> x.type isnt 'socketStart')
+  @setCursor @session.cursor, ((x) -> x.type isnt 'socketStart')
 
   currentValue = @getSerializedEditorState()
 
-  until @undoStack.length is 0 or
-      (@undoStack[@undoStack.length - 1] instanceof CapturePoint and
+  until @session.undoStack.length is 0 or
+      (@session.undoStack[@session.undoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popUndo()
     if operation instanceof FloatingOperation
@@ -809,8 +844,8 @@ Editor::undo = ->
 
   # Set the the remembered socket contents to the state it was in
   # at this point in the undo stack.
-  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
-    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
+  if @session.undoStack[@session.undoStack.length - 1] instanceof CapturePoint
+    @session.rememberedSockets = @session.undoStack[@session.undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popUndo()
   @correctCursor()
@@ -818,24 +853,24 @@ Editor::undo = ->
   return
 
 Editor::pushUndo = (operation) ->
-  @redoStack.length = 0
-  @undoStack.push operation
+  @session.redoStack.length = 0
+  @session.undoStack.push operation
 
 Editor::popUndo = ->
-  operation = @undoStack.pop()
-  @redoStack.push(operation) if operation?
+  operation = @session.undoStack.pop()
+  @session.redoStack.push(operation) if operation?
   return operation
 
 Editor::popRedo = ->
-  operation = @redoStack.pop()
-  @undoStack.push(operation) if operation?
+  operation = @session.redoStack.pop()
+  @session.undoStack.push(operation) if operation?
   return operation
 
 Editor::redo = ->
   currentValue = @getSerializedEditorState()
 
-  until @redoStack.length is 0 or
-      (@redoStack[@redoStack.length - 1] instanceof CapturePoint and
+  until @session.redoStack.length is 0 or
+      (@session.redoStack[@session.redoStack.length - 1] instanceof CapturePoint and
       not @getSerializedEditorState().equals(currentValue))
     operation = @popRedo()
     if operation instanceof FloatingOperation
@@ -847,8 +882,8 @@ Editor::redo = ->
 
   # Set the the remembered socket contents to the state it was in
   # at this point in the undo stack.
-  if @undoStack[@undoStack.length - 1] instanceof CapturePoint
-    @rememberedSockets = @undoStack[@undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
+  if @session.undoStack[@session.undoStack.length - 1] instanceof CapturePoint
+    @session.rememberedSockets = @session.undoStack[@session.undoStack.length - 1].rememberedSockets.map (x) -> x.clone()
 
   @popRedo()
   @redrawMain()
@@ -860,7 +895,7 @@ Editor::redo = ->
 # also remembers the @rememberedSocket state at the time it was placed,
 # to preserved remembered socket contents across undo and redo.
 Editor::undoCapture = ->
-  @pushUndo new CapturePoint(@rememberedSockets)
+  @pushUndo new CapturePoint(@session.rememberedSockets)
 
 class CapturePoint
   constructor: (rememberedSockets) ->
@@ -869,26 +904,13 @@ class CapturePoint
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
-hook 'populate', 7, ->
-  # ## rememberedSockets ##
-  # This is an array with pair elements mapping locations of sockets
-  # to old text values, for when users drop a block into a socket and then pull
-  # it back out again. All the mutation operations (spliceIn, spliceOut, replace)
-  # update these locations to attempt to make sure the locations point to the same sockets,
-  # and the Controller will also attempt to bring the locations with a dragged block
-  # if they are inside it.
-  #
-  # A snapshot of this array is taken every CapturePoint in the undo stack and restored
-  # when the undo stack reaches this point, to persist this effect across undo and redo.
-  @rememberedSockets = []
-
 Editor::getPreserves = (dropletDocument) ->
   if dropletDocument instanceof model.Document
     dropletDocument = @documentIndex dropletDocument
 
-  array = [@cursor]
+  array = [@session.cursor]
 
-  array = array.concat @rememberedSockets.map(
+  array = array.concat @session.rememberedSockets.map(
     (x) -> x.socket
   )
 
@@ -916,28 +938,28 @@ Editor::spliceOut = (node, container = null) ->
     # dictionary of remembered socket contents, repopulate the socket with
     # its old contents.
     if parent?.type is 'socket' and node.start.type is 'blockStart'
-      for socket, i in @rememberedSockets
+      for socket, i in @session.rememberedSockets
         if @fromCrossDocumentLocation(socket.socket) is parent
-          @rememberedSockets.splice i, 0
+          @session.rememberedSockets.splice i, 0
           @populateSocket parent, socket.text
           break
 
     # Remove the floating dropletDocument if it is now
     # empty
     if dropletDocument.start.next is dropletDocument.end
-      for record, i in @floatingBlocks
+      for record, i in @session.floatingBlocks
         if record.block is dropletDocument
           @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
 
           # If the cursor's document is about to vanish,
           # put it back in the main tree.
-          if @cursor.document is i + 1
-            @setCursor @tree.start
+          if @session.cursor.document is i + 1
+            @setCursor @session.tree.start
 
-          if @cursor.document > i + 1
-            @cursor.document -= 1
+          if @session.cursor.document > i + 1
+            @session.cursor.document -= 1
 
-          @floatingBlocks.splice i, 1
+          @session.floatingBlocks.splice i, 1
           break
   else if container?
     # No document, so try to remove from container if it was supplied
@@ -958,9 +980,9 @@ Editor::spliceIn = (node, location) ->
     if @documentIndex(container) != -1
       # If we're splicing into a socket found in a document and it already has
       # something in it, remove it. Additionally, remember the old
-      # contents in @rememberedSockets for later repopulation if they take
+      # contents in @session.rememberedSockets for later repopulation if they take
       # the block back out.
-      @rememberedSockets.push new RememberedSocketRecord(
+      @session.rememberedSockets.push new RememberedSocketRecord(
         @toCrossDocumentLocation(container),
         container.textContent()
       )
@@ -1008,14 +1030,14 @@ Editor::adjustPosToLineStart = (pos) ->
   pos
 
 Editor::correctCursor = ->
-  cursor = @fromCrossDocumentLocation @cursor
+  cursor = @fromCrossDocumentLocation @session.cursor
   unless @validCursorPosition cursor
     until not cursor? or (@validCursorPosition(cursor) and cursor.type isnt 'socketStart')
       cursor = cursor.next
-    unless cursor? then cursor = @fromCrossDocumentLocation @cursor
+    unless cursor? then cursor = @fromCrossDocumentLocation @session.cursor
     until not cursor? or (@validCursorPosition(cursor) and cursor.type isnt 'socketStart')
       cursor = cursor.prev
-    @cursor = @toCrossDocumentLocation cursor
+    @session.cursor = @toCrossDocumentLocation cursor
 
 Editor::prepareNode = (node, context) ->
   if node instanceof model.Container
@@ -1025,7 +1047,7 @@ Editor::prepareNode = (node, context) ->
     else
       trailing = node.getTrailingText()
 
-    [leading, trailing] = @mode.parens leading, trailing, node.getReader(),
+    [leading, trailing] = @session.mode.parens leading, trailing, node.getReader(),
       context?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
@@ -1067,7 +1089,7 @@ hook 'populate', 0, ->
   @dropletElement.appendChild @highlightCanvas
 
 Editor::clearHighlightCanvas = ->
-  @highlightCtx.clearRect @scrollOffsets.main.x, @scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
+  @highlightCtx.clearRect @session.scrollOffsets.main.x, @session.scrollOffsets.main.y, @highlightCanvas.width, @highlightCanvas.height
 
 # Utility function for clearing the drag canvas,
 # an operation we will be doing a lot.
@@ -1089,14 +1111,14 @@ Editor::resizeDragCanvas = ->
 
 
 Editor::getDocuments = ->
-  documents = [@tree]
-  for el, i in @floatingBlocks
+  documents = [@session.tree]
+  for el, i in @session.floatingBlocks
     documents.push el.block
   return documents
 
 Editor::getDocument = (n) ->
-  if n is 0 then @tree
-  else @floatingBlocks[n - 1].block
+  if n is 0 then @session.tree
+  else @session.floatingBlocks[n - 1].block
 
 Editor::documentIndex = (block) ->
   @getDocuments().indexOf block.getDocument()
@@ -1128,15 +1150,15 @@ hook 'mousedown', 1, (point, event, state) ->
     if @handleTextInputClick mainPoint, dropletDocument
       state.consumedHitTest = true
       return
-    else if @cursor.document is i and @cursorAtSocket()
-      @setCursor @cursor, ((token) -> token.type isnt 'socketStart')
+    else if @session.cursor.document is i and @cursorAtSocket()
+      @setCursor @session.cursor, ((token) -> token.type isnt 'socketStart')
 
     hitTestResult = @hitTest mainPoint, dropletDocument
 
     # Produce debugging output
     if @debugging and event.shiftKey
       line = null
-      node = @view.getViewNodeFor(hitTestResult)
+      node = @session.view.getViewNodeFor(hitTestResult)
       for box, i in node.bounds
         if box.contains(mainPoint)
           line = i
@@ -1163,12 +1185,12 @@ hook 'mousedown', 1, (point, event, state) ->
       return
 
     else if i > 0
-      record = @floatingBlocks[i - 1]
+      record = @session.floatingBlocks[i - 1]
       if record.grayBoxPath? and record.grayBoxPath.contains @trackerPointToMain point
         @clickedBlock = new model.List record.block.start.next, record.block.end.prev
         @clickedPoint = point
 
-        @view.getViewNodeFor(@clickedBlock).absorbCache()
+        @session.view.getViewNodeFor(@clickedBlock).absorbCache()
 
         state.consumedHitTest = true
 
@@ -1188,20 +1210,20 @@ hook 'mousedown', 4, (point, event, state) ->
   #Buttons aren't clickable in a selection
   if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
 
-  hitTestResult = @hitTest mainPoint, @tree
+  hitTestResult = @hitTest mainPoint, @session.tree
 
   if hitTestResult?
-    hitTestBlock = @view.getViewNodeFor hitTestResult
+    hitTestBlock = @session.view.getViewNodeFor hitTestResult
     str = hitTestResult.stringifyInPlace()
 
     if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-      line = @mode.handleButton str, 'add-button', hitTestResult.getReader()
+      line = @session.mode.handleButton str, 'add-button', hitTestResult.getReader()
       if line?.length >= 0
         @populateBlock hitTestResult, line
         @redrawMain()
       state.consumedHitTest = true
     else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-      line = @mode.handleButton str, 'subtract-button', hitTestResult.getReader()
+      line = @session.mode.handleButton str, 'subtract-button', hitTestResult.getReader()
       if line?.length >= 0
         @populateBlock hitTestResult, line
         @redrawMain()
@@ -1225,8 +1247,8 @@ Editor::drawDraggingBlock = ->
   # When we are dragging things, we draw the shadow.
   # Also, we translate the block 1x1 to the right,
   # so that we can see its borders.
-  @dragView.clearCache()
-  draggingBlockView = @dragView.getViewNodeFor @draggingBlock
+  @session.dragView.clearCache()
+  draggingBlockView = @session.dragView.getViewNodeFor @draggingBlock
   draggingBlockView.layout 1, 1
 
   @dragCanvas.width = Math.min draggingBlockView.totalBounds.width + 10, window.screen.width
@@ -1241,10 +1263,10 @@ Editor::wouldDelete = (position) ->
   palettePoint = @trackerPointToPalette position
 
   return not @lastHighlight and not
-      (@mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x and
-       @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y) or
-      (@paletteCanvas.width + @scrollOffsets.palette.x > palettePoint.x > @scrollOffsets.palette.x and
-      @paletteCanvas.height + @scrollOffsets.palette.y > palettePoint.y > @scrollOffsets.palette.y)
+      (@mainCanvas.width + @session.scrollOffsets.main.x > mainPoint.x > @session.scrollOffsets.main.x and
+       @mainCanvas.height + @session.scrollOffsets.main.y > mainPoint.y > @session.scrollOffsets.main.y) or
+      (@paletteCanvas.width + @session.scrollOffsets.palette.x > palettePoint.x > @session.scrollOffsets.palette.x and
+      @paletteCanvas.height + @session.scrollOffsets.palette.y > palettePoint.y > @session.scrollOffsets.palette.y)
 
 # On mousemove, if there is a clicked block but no drag block,
 # we might want to transition to a dragging the block if the user
@@ -1262,7 +1284,7 @@ hook 'mousemove', 1, (point, event, state) ->
     # NOTE: this really falls under "PALETTE SUPPORT", but must
     # go here. Try to organise this better.
     if @clickedBlockPaletteEntry
-      @draggingOffset = @paletteView.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
+      @draggingOffset = @session.paletteView.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
         @trackerPointToPalette(@clickedPoint))
 
       # Substitute in expansion for this palette entry, if supplied.
@@ -1270,7 +1292,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
       # Call expansion() function with no parameter to get the initial value.
       if 'function' is typeof expansion then expansion = expansion()
-      if (expansion) then expansion = parseBlock(@mode, expansion)
+      if (expansion) then expansion = parseBlock(@session.mode, expansion)
       @draggingBlock = (expansion or @draggingBlock).clone()
 
       # Special @draggingBlock setup for expansion function blocks.
@@ -1292,7 +1314,7 @@ hook 'mousemove', 1, (point, event, state) ->
       # To do this, we will assume that the left edge of a free
       # block are all aligned.
       mainPoint = @trackerPointToMain @clickedPoint
-      viewNode = @view.getViewNodeFor @draggingBlock
+      viewNode = @session.view.getViewNodeFor @draggingBlock
 
       @draggingOffset = null
 
@@ -1319,8 +1341,8 @@ hook 'mousemove', 1, (point, event, state) ->
     # Construct a quadtree of drop areas
     # for faster dragging
     @dropPointQuadTree = QUAD.init
-      x: @scrollOffsets.main.x
-      y: @scrollOffsets.main.y
+      x: @session.scrollOffsets.main.x
+      y: @session.scrollOffsets.main.y
       w: @mainCanvas.width
       h: @mainCanvas.height
 
@@ -1340,11 +1362,11 @@ hook 'mousemove', 1, (point, event, state) ->
         if head instanceof model.StartToken
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
-            dropPoint = @view.getViewNodeFor(head.container).dropPoint
+            dropPoint = @session.view.getViewNodeFor(head.container).dropPoint
 
             if dropPoint?
               allowed = true
-              for record, i in @floatingBlocks by -1
+              for record, i in @session.floatingBlocks by -1
                 if record.block is dropletDocument
                   break
                 else if record.grayBoxPath.contains dropPoint
@@ -1393,13 +1415,13 @@ Editor::getClosestDroppableBlock = (mainPoint, isDebugMode) ->
 
       # Select the node that is closest by said "distance"
       if distance < min and mainPoint.from(point).magnitude() < MAX_DROP_DISTANCE and
-         @view.getViewNodeFor(point._droplet_node).highlightArea?
+         @session.view.getViewNodeFor(point._droplet_node).highlightArea?
         best = point._droplet_node
         min = distance
   best
 
 Editor::getClosestDroppableBlockFromPosition = (position, isDebugMode) ->
-  if not @currentlyUsingBlocks
+  if not @session.currentlyUsingBlocks
     return null
 
   mainPoint = @trackerPointToMain(position)
@@ -1410,16 +1432,16 @@ Editor::getAcceptLevel = (drag, drop) ->
     if drag.type is 'list'
       return helper.FORBID
     else
-      return @mode.drop drag.getReader(), drop.getReader(), null, null
+      return @session.mode.drop drag.getReader(), drop.getReader(), null, null
   else if drop.type is 'block'
     if drop.parent.type is 'socket'
       return helper.FORBID
     else
       next = drop.nextSibling()
-      return @mode.drop drag.getReader(), drop.parent.getReader(), drop.getReader(), next?.getReader?()
+      return @session.mode.drop drag.getReader(), drop.parent.getReader(), drop.getReader(), next?.getReader?()
   else
     next = drop.firstChild()
-    return @mode.drop drag.getReader(), drop.getReader(), drop.getReader(), next?.getReader?()
+    return @session.mode.drop drag.getReader(), drop.getReader(), drop.getReader(), next?.getReader?()
 
 # On mousemove, if there is a dragged block, we want to
 # translate the drag canvas into place,
@@ -1439,7 +1461,7 @@ hook 'mousemove', 0, (point, event, state) ->
 
       # Create replacement @draggingBlock if the returned text is new.
       if expansionText isnt @draggingBlock.lastExpansionText
-        newBlock = parseBlock(@mode, expansionText)
+        newBlock = parseBlock(@session.mode, expansionText)
         newBlock.lastExpansionText = expansionText
         newBlock.expansion = @draggingBlock.expansion
         if 'any-drop' in @draggingBlock.classes
@@ -1447,11 +1469,11 @@ hook 'mousemove', 0, (point, event, state) ->
         @draggingBlock = newBlock
         @drawDraggingBlock()
 
-    if not @currentlyUsingBlocks
+    if not @session.currentlyUsingBlocks
       if @trackerPointIsInAce position
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
 
-        if @dropIntoAceAtLineStart
+        if @session.dropIntoAceAtLineStart
           pos = @adjustPosToLineStart pos
 
         @aceEditor.focus()
@@ -1468,15 +1490,15 @@ hook 'mousemove', 0, (point, event, state) ->
 
     # Check to see if the tree is empty;
     # if it is, drop on the tree always
-    head = @tree.start.next
+    head = @session.tree.start.next
     while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
       head = head.next
 
-    if head is @tree.end and @floatingBlocks.length is 0 and
-        @mainCanvas.width + @scrollOffsets.main.x > mainPoint.x > @scrollOffsets.main.x - @gutter.offsetWidth and
-        @mainCanvas.height + @scrollOffsets.main.y > mainPoint.y > @scrollOffsets.main.y
-      @view.getViewNodeFor(@tree).highlightArea.draw @highlightCtx
-      @lastHighlight = @tree
+    if head is @session.tree.end and @session.floatingBlocks.length is 0 and
+        @mainCanvas.width + @session.scrollOffsets.main.x > mainPoint.x > @session.scrollOffsets.main.x - @gutter.offsetWidth and
+        @mainCanvas.height + @session.scrollOffsets.main.y > mainPoint.y > @session.scrollOffsets.main.y
+      @session.view.getViewNodeFor(@session.tree).highlightArea.draw @highlightCtx
+      @lastHighlight = @session.tree
 
     else
       # If the user is touching the original location,
@@ -1497,7 +1519,7 @@ hook 'mousemove', 0, (point, event, state) ->
         @redrawHighlights()
 
         if dropBlock?
-          @view.getViewNodeFor(dropBlock).highlightArea.draw @highlightCtx
+          @session.view.getViewNodeFor(dropBlock).highlightArea.draw @highlightCtx
           @maskFloatingPaths(dropBlock.getDocument())
 
         @lastHighlight = dropBlock
@@ -1523,7 +1545,7 @@ hook 'mouseup', 1, (point, event, state) ->
   # We will consume this event iff we dropped it successfully
   # in the root tree.
   if @draggingBlock?
-    if not @currentlyUsingBlocks
+    if not @session.currentlyUsingBlocks
       # See if we can drop the block's text in ace mode.
       position = new @draw.Point(
         point.x + @draggingOffset.x,
@@ -1541,7 +1563,7 @@ hook 'mouseup', 1, (point, event, state) ->
         prefix = ''
         suffix = ''
 
-        if @dropIntoAceAtLineStart
+        if @session.dropIntoAceAtLineStart
           # First, adjust indentation if we're dropping into the start of a
           # line that ends an indentation block
           firstNonWhitespaceRegex = /\S/
@@ -1573,7 +1595,7 @@ hook 'mouseup', 1, (point, event, state) ->
 
         # Call prepareNode, which may append with a semicolon
         @prepareNode @draggingBlock, null
-        text = @draggingBlock.stringify @mode
+        text = @draggingBlock.stringify @session.mode
 
         # Indent each line, unless it's the first line and wasn't placed on
         # a newline
@@ -1643,7 +1665,7 @@ hook 'mouseup', 1, (point, event, state) ->
       newIndex = futureCursorLocation.document
 
       for el, i in rememberedSocketOffsets
-        @rememberedSockets.push new RememberedSocketRecord(
+        @session.rememberedSockets.push new RememberedSocketRecord(
           new CrossDocumentLocation(
             newIndex
             new model.Location(el.offset + newBeginning, 'socket')
@@ -1659,7 +1681,7 @@ Editor::spliceRememberedSocketOffsets = (block) ->
     blockBegin = block.start.getLocation().count
     offsets = []
     newRememberedSockets = []
-    for el, i in @rememberedSockets
+    for el, i in @session.rememberedSockets
       if block.contains @fromCrossDocumentLocation(el.socket)
         offsets.push {
           offset: el.socket.location.count - blockBegin
@@ -1667,7 +1689,7 @@ Editor::spliceRememberedSocketOffsets = (block) ->
         }
       else
         newRememberedSockets.push el
-    @rememberedSockets = newRememberedSockets
+    @session.rememberedSockets = newRememberedSockets
     return offsets
   else
     []
@@ -1675,15 +1697,10 @@ Editor::spliceRememberedSocketOffsets = (block) ->
 # FLOATING BLOCK SUPPORT
 # ================================
 
-# We need to initialize the @floatingBlocks
-# array at populate-time.
-hook 'populate', 0, ->
-  @floatingBlocks = []
-
 class FloatingBlockRecord
   constructor: (@block, @position) ->
 
-Editor::inTree = (block) -> (block.container ? block).getDocument() is @tree
+Editor::inTree = (block) -> (block.container ? block).getDocument() is @session.tree
 Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDocuments()
 
 # We can create floating blocks by dropping
@@ -1705,20 +1722,20 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # If we dropped it off in the palette, abort (so as to delete the block).
     palettePoint = @trackerPointToPalette point
-    if 0 < palettePoint.x - @scrollOffsets.palette.x < @paletteCanvas.width and
-       0 < palettePoint.y - @scrollOffsets.palette.y < @paletteCanvas.height or not
-       (-@gutter.offsetWidth < renderPoint.x - @scrollOffsets.main.x < @mainCanvas.width and
-       0 < renderPoint.y - @scrollOffsets.main.y< @mainCanvas.height)
+    if 0 < palettePoint.x - @session.scrollOffsets.palette.x < @paletteCanvas.width and
+       0 < palettePoint.y - @session.scrollOffsets.palette.y < @paletteCanvas.height or not
+       (-@gutter.offsetWidth < renderPoint.x - @session.scrollOffsets.main.x < @mainCanvas.width and
+       0 < renderPoint.y - @session.scrollOffsets.main.y< @mainCanvas.height)
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
 
       addBlockAsFloatingBlock = false
     else
-      if renderPoint.x - @scrollOffsets.main.x < 0
-        renderPoint.x = @scrollOffsets.main.x
+      if renderPoint.x - @session.scrollOffsets.main.x < 0
+        renderPoint.x = @session.scrollOffsets.main.x
 
-      # If @allowFloatingBlocks is false, we end the drag without deleting the block.
-      if not @allowFloatingBlocks
+      # If @session.allowFloatingBlocks is false, we end the drag without deleting the block.
+      if not @session.allowFloatingBlocks
         addBlockAsFloatingBlock = false
         removeBlock = false
 
@@ -1736,10 +1753,10 @@ hook 'mouseup', 0, (point, event, state) ->
     # with creating this floating block
     newDocument = new model.Document({roundedSingletons: true})
     newDocument.insert newDocument.start, @draggingBlock
-    @pushUndo new FloatingOperation @floatingBlocks.length, newDocument, renderPoint, 'create'
+    @pushUndo new FloatingOperation @session.floatingBlocks.length, newDocument, renderPoint, 'create'
 
     # Add this block to our list of floating blocks
-    @floatingBlocks.push new FloatingBlockRecord(
+    @session.floatingBlocks.push new FloatingBlockRecord(
       newDocument
       renderPoint
     )
@@ -1748,9 +1765,9 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # TODO write a test for this logic
     for el, i in rememberedSocketOffsets
-      @rememberedSockets.push new RememberedSocketRecord(
+      @session.rememberedSockets.push new RememberedSocketRecord(
         new CrossDocumentLocation(
-          @floatingBlocks.length,
+          @session.floatingBlocks.length,
           new model.Location(el.offset + 1, 'socket')
         ),
         el.text
@@ -1766,20 +1783,20 @@ hook 'mouseup', 0, (point, event, state) ->
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
-    if @cursor.document > op.index
-      @cursor.document += 1
+    if @session.cursor.document > op.index
+      @session.cursor.document += 1
 
-    @floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
+    @session.floatingBlocks.splice op.index, 0, new FloatingBlockRecord(
       op.block.clone()
       op.position
     )
   else
     # If the cursor's document is about to vanish,
     # put it back in the main tree.
-    if @cursor.document is op.index + 1
-      @setCursor @tree.start
+    if @session.cursor.document is op.index + 1
+      @setCursor @session.tree.start
 
-    @floatingBlocks.splice op.index, 1
+    @session.floatingBlocks.splice op.index, 1
 
 class FloatingOperation
   constructor: (@index, @block, @position, @type) ->
@@ -1807,7 +1824,7 @@ hook 'populate', 0, ->
   # Append the element.
   @paletteElement.appendChild @paletteHeader
 
-  @setPalette @paletteGroups
+  @setPalette @session.paletteGroups
 
 parseBlock = (mode, code) =>
   block = mode.parse(code).start.next.container
@@ -1817,14 +1834,14 @@ parseBlock = (mode, code) =>
 
 Editor::setPalette = (paletteGroups) ->
   @paletteHeader.innerHTML = ''
-  @paletteGroups = paletteGroups
+  @session.paletteGroups = paletteGroups
 
   @currentPaletteBlocks = []
   @currentPaletteMetadata = []
 
   paletteHeaderRow = null
 
-  for paletteGroup, i in @paletteGroups then do (paletteGroup, i) =>
+  for paletteGroup, i in @session.paletteGroups then do (paletteGroup, i) =>
     # Start a new row, if we're at that point
     # in our appending cycle
     if i % 2 is 0
@@ -1832,7 +1849,7 @@ Editor::setPalette = (paletteGroups) ->
       paletteHeaderRow.className = 'droplet-palette-header-row'
       @paletteHeader.appendChild paletteHeaderRow
       # hide the header if there is only one group, and it has no name.
-      if @paletteGroups.length is 1 and !paletteGroup.name
+      if @session.paletteGroups.length is 1 and !paletteGroup.name
         paletteHeaderRow.style.height = 0
 
     # Create the element itself
@@ -1850,7 +1867,7 @@ Editor::setPalette = (paletteGroups) ->
 
     # Parse all the blocks in this palette and clone them
     for data in paletteGroup.blocks
-      newBlock = parseBlock(@mode, data.block)
+      newBlock = parseBlock(@session.mode, data.block)
       expansion = data.expansion or null
       newPaletteBlocks.push
         block: newBlock
@@ -1882,7 +1899,7 @@ Editor::setPalette = (paletteGroups) ->
 # group argument can be object, id (string), or name (string)
 #
 Editor::changePaletteGroup = (group) ->
-  for curGroup, i in @paletteGroups
+  for curGroup, i in @session.paletteGroups
     if group is curGroup or group is curGroup.id or group is curGroup.name
       paletteGroup = curGroup
       break
@@ -1922,15 +1939,15 @@ hook 'mousedown', 6, (point, event, state) ->
   if not @trackerPointIsInPalette(point) then return
 
   palettePoint = @trackerPointToPalette point
-  if @scrollOffsets.palette.y < palettePoint.y < @scrollOffsets.palette.y + @paletteCanvas.height and
-     @scrollOffsets.palette.x < palettePoint.x < @scrollOffsets.palette.x + @paletteCanvas.width
+  if @session.scrollOffsets.palette.y < palettePoint.y < @session.scrollOffsets.palette.y + @paletteCanvas.height and
+     @session.scrollOffsets.palette.x < palettePoint.x < @session.scrollOffsets.palette.x + @paletteCanvas.width
 
     if @handleTextInputClickInPalette palettePoint
       state.consumedHitTest = true
       return
 
     for entry in @currentPaletteBlocks
-      hitTestResult = @hitTest palettePoint, entry.block, @paletteView
+      hitTestResult = @hitTest palettePoint, entry.block, @session.paletteView
 
       if hitTestResult?
         @clickedBlock = entry.block
@@ -1982,7 +1999,7 @@ hook 'rebuild_palette', 1, ->
     if data.id?
       hoverDiv.setAttribute 'data-id', data.id
 
-    bounds = @paletteView.getViewNodeFor(block).totalBounds
+    bounds = @session.paletteView.getViewNodeFor(block).totalBounds
 
     hoverDiv.style.top = "#{bounds.y}px"
     hoverDiv.style.left = "#{bounds.x}px"
@@ -1995,9 +2012,9 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mousemove', (event) =>
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
-        if @viewOrChildrenContains block, palettePoint, @paletteView
+        if @session.viewOrChildrenContains block, palettePoint, @session.paletteView
             @clearPaletteHighlightCanvas()
-            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @paletteView
+            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @session.paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
             @currentHighlightedPaletteBlock = block
         else if block is @currentHighlightedPaletteBlock
@@ -2007,8 +2024,8 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mouseout', (event) =>
         if block is @currentHighlightedPaletteBlock
           @currentHighlightedPaletteBlock = null
-          @paletteHighlightCtx.clearRect @scrollOffsets.palette.x, @scrollOffsets.palette.y,
-            @paletteHighlightCanvas.width + @scrollOffsets.palette.x, @paletteHighlightCanvas.height + @scrollOffsets.palette.y
+          @paletteHighlightCtx.clearRect @session.scrollOffsets.palette.x, @session.scrollOffsets.palette.y,
+            @paletteHighlightCanvas.width + @session.scrollOffsets.palette.x, @paletteHighlightCanvas.height + @session.scrollOffsets.palette.y
 
     @paletteScrollerStuffing.appendChild hoverDiv
 
@@ -2029,12 +2046,12 @@ hook 'populate', 1, ->
       # position when @hiddenInput receives keystrokes with focus
       # (left and top should not be closer than 10 pixels from the edge)
 
-      bounds = @view.getViewNodeFor(@getCursor()).bounds[0]
-      inputLeft = bounds.x + @mainCanvas.offsetLeft - @scrollOffsets.main.x
+      bounds = @session.view.getViewNodeFor(@getCursor()).bounds[0]
+      inputLeft = bounds.x + @mainCanvas.offsetLeft - @session.scrollOffsets.main.x
       inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
       inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
       @hiddenInput.style.left = inputLeft + 'px'
-      inputTop = bounds.y - @scrollOffsets.main.y
+      inputTop = bounds.y - @session.scrollOffsets.main.y
       inputTop = Math.min inputTop, @dropletElement.clientHeight - 10
       inputTop = Math.max 0, inputTop
       @hiddenInput.style.top = inputTop + 'px'
@@ -2071,7 +2088,7 @@ hook 'populate', 1, ->
 
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
-  if @showPaletteInTextMode and @paletteEnabled
+  if @session.showPaletteInTextMode and @session.paletteEnabled
     width -= @paletteWrapper.offsetWidth
 
   @aceElement.style.width = "#{width}px"
@@ -2088,7 +2105,7 @@ Editor::redrawTextInput = ->
   # the hidden input value.
   @populateSocket @getCursor(), @hiddenInput.value
 
-  textFocusView = @view.getViewNodeFor @getCursor()
+  textFocusView = @session.view.getViewNodeFor @getCursor()
 
   # Determine the coordinate positions
   # of the typing cursor
@@ -2106,7 +2123,7 @@ Editor::redrawTextInput = ->
       head = head.prev
       if head.type is 'newline' then line++
 
-    treeView = @view.getViewNodeFor dropletDocument
+    treeView = @session.view.getViewNodeFor dropletDocument
 
     oldp = helper.deepCopy [
       treeView.glue[line - 1],
@@ -2146,7 +2163,7 @@ Editor::redrawTextInput = ->
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
   return unless @cursorAtSocket()
 
-  textFocusView = @view.getViewNodeFor @getCursor()
+  textFocusView = @session.view.getViewNodeFor @getCursor()
 
   # Determine the coordinate positions
   # of the typing cursor
@@ -2155,11 +2172,11 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 
   lines = @getCursor().stringify().split '\n'
 
-  startPosition = textFocusView.bounds[startRow].x + @view.opts.textPadding +
+  startPosition = textFocusView.bounds[startRow].x + @session.view.opts.textPadding +
     @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
-  endPosition = textFocusView.bounds[endRow].x + @view.opts.textPadding +
+  endPosition = textFocusView.bounds[endRow].x + @session.view.opts.textPadding +
     @mainCtx.measureText(last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n'))).width +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
@@ -2170,7 +2187,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
     @cursorCtx.lineWidth = 1
     @cursorCtx.strokeStyle = '#000'
     @cursorCtx.strokeRect startPosition, textFocusView.bounds[startRow].y,
-      0, @view.opts.textHeight
+      0, @session.view.opts.textHeight
     @textInputHighlighted = false
 
   # Draw a translucent rectangle if there is a selection.
@@ -2180,26 +2197,26 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 
     if startRow is endRow
       @cursorCtx.fillRect startPosition,
-        textFocusView.bounds[startRow].y + @view.opts.textPadding
-        endPosition - startPosition, @view.opts.textHeight
+        textFocusView.bounds[startRow].y + @session.view.opts.textPadding
+        endPosition - startPosition, @session.view.opts.textHeight
 
     else
-      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @view.opts.textPadding,
-        textFocusView.bounds[startRow].right() - @view.opts.textPadding - startPosition, @view.opts.textHeight
+      @cursorCtx.fillRect startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textPadding,
+        textFocusView.bounds[startRow].right() - @session.view.opts.textPadding - startPosition, @session.view.opts.textHeight
 
       for i in [startRow + 1...endRow]
         @cursorCtx.fillRect textFocusView.bounds[i].x,
-          textFocusView.bounds[i].y + @view.opts.textPadding,
+          textFocusView.bounds[i].y + @session.view.opts.textPadding,
           textFocusView.bounds[i].width,
-          @view.opts.textHeight
+          @session.view.opts.textHeight
 
       @cursorCtx.fillRect textFocusView.bounds[endRow].x,
-        textFocusView.bounds[endRow].y + @view.opts.textPadding,
+        textFocusView.bounds[endRow].y + @session.view.opts.textPadding,
         endPosition - textFocusView.bounds[endRow].x,
-        @view.opts.textHeight
+        @session.view.opts.textHeight
 
-  if scrollIntoView and endPosition > @scrollOffsets.main.x + @mainCanvas.width
-    @mainScroller.scrollLeft = endPosition - @mainCanvas.width + @view.opts.padding
+  if scrollIntoView and endPosition > @session.scrollOffsets.main.x + @mainCanvas.width
+    @mainScroller.scrollLeft = endPosition - @mainCanvas.width + @session.view.opts.padding
 
 escapeString = (str) ->
   str[0] + str[1...-1].replace(/(\'|\"|\n)/g, '\\$1') + str[str.length - 1]
@@ -2259,13 +2276,13 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   context = (list.start.container ? list.start.parent).parseContext
 
   try
-    newList = @mode.parse list.stringifyInPlace(),{
+    newList = @session.mode.parse list.stringifyInPlace(),{
       wrapAtRoot: parent.type isnt 'socket'
       context: context
     }
   catch e
     try
-      newList = @mode.parse recovery(list.stringifyInPlace()), {
+      newList = @session.mode.parse recovery(list.stringifyInPlace()), {
         wrapAtRoot: parent.type isnt 'socket'
         context: context
       }
@@ -2332,7 +2349,7 @@ Editor::populateSocket = (socket, string) ->
     @spliceIn (new model.List(first, last)), socket.start
 
 Editor::populateBlock = (block, string) ->
-  newBlock = @mode.parse(string, wrapAtRoot: false).start.next.container
+  newBlock = @session.mode.parse(string, wrapAtRoot: false).start.next.container
   if newBlock
     # Find the first token before the block
     # that will still be around after the
@@ -2352,7 +2369,7 @@ Editor::hitTestTextInput = (point, block) ->
   head = block.start
   while head?
     if head.type is 'socketStart' and head.container.isDroppable() and
-        @view.getViewNodeFor(head.container).path.contains point
+        @session.view.getViewNodeFor(head.container).path.contains point
       return head.container
     head = head.next
 
@@ -2362,14 +2379,14 @@ Editor::hitTestTextInput = (point, block) ->
 # the text input selection, given
 # points on the main canvas.
 Editor::getTextPosition = (point) ->
-  textFocusView = @view.getViewNodeFor @getCursor()
+  textFocusView = @session.view.getViewNodeFor @getCursor()
 
-  row = Math.floor((point.y - textFocusView.bounds[0].y) / (@fontSize + 2 * @view.opts.padding))
+  row = Math.floor((point.y - textFocusView.bounds[0].y) / (@session.fontSize + 2 * @session.view.opts.padding))
 
   row = Math.max row, 0
   row = Math.min row, textFocusView.lineLength - 1
 
-  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
+  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @session.view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @mainCtx.measureText(' ').width)
 
   lines = @getCursor().stringify().split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
@@ -2412,14 +2429,14 @@ Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
         @redrawMain()
 
       if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
+          mainPoint.x - @session.view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
         @showDropdown hitTestResult
 
       @textInputSelecting = false
 
     else
       if @getCursor().hasDropdown() and
-          mainPoint.x - @view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
+          mainPoint.x - @session.view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
         @showDropdown()
 
       @setTextInputAnchor mainPoint
@@ -2446,7 +2463,7 @@ Editor::hitTestTextInputInPalette = (point, block) ->
   head = block.start
   while head?
     if head.type is 'socketStart' and head.container.isDroppable() and
-        @paletteView.getViewNodeFor(head.container).path.contains point
+        @session.paletteView.getViewNodeFor(head.container).path.contains point
       return head.container
     head = head.next
 
@@ -2477,9 +2494,9 @@ hook 'populate', 0, ->
 
 # Update the dropdown to match
 # the current text focus font and size.
-Editor::formatDropdown = (socket = @getCursor(), view = @view) ->
-  @dropdownElement.style.fontFamily = @fontFamily
-  @dropdownElement.style.fontSize = @fontSize
+Editor::formatDropdown = (socket = @getCursor(), view = @session.view) ->
+  @dropdownElement.style.fontFamily = @session.fontFamily
+  @dropdownElement.style.fontSize = @session.fontSize
   @dropdownElement.style.minWidth = view.getViewNodeFor(socket).bounds[0].width
 
 Editor::getDropdownList = (socket) ->
@@ -2503,7 +2520,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
   @dropdownElement.innerHTML = ''
   @dropdownElement.style.display = 'inline-block'
 
-  @formatDropdown socket, if inPalette then @paletteView else @view
+  @formatDropdown socket, if inPalette then @session.paletteView else @session.view
 
   for el, i in @getDropdownList(socket) then do (el) =>
     div = document.createElement 'div'
@@ -2557,22 +2574,22 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
         el.style.paddingRight = DROPDOWN_SCROLLBAR_PADDING
 
     if inPalette
-      location = @paletteView.getViewNodeFor(socket).bounds[0]
-      @dropdownElement.style.left = location.x - @scrollOffsets.palette.x + @paletteCanvas.offsetLeft + 'px'
+      location = @session.paletteView.getViewNodeFor(socket).bounds[0]
+      @dropdownElement.style.left = location.x - @session.scrollOffsets.palette.x + @paletteCanvas.offsetLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-      dropdownTop = location.y + @fontSize - @scrollOffsets.palette.y + @paletteCanvas.offsetTop
+      dropdownTop = location.y + @session.fontSize - @session.scrollOffsets.palette.y + @paletteCanvas.offsetTop
       if dropdownTop + @dropdownElement.offsetHeight > @paletteElement.offsetHeight
-        dropdownTop -= (@fontSize + @dropdownElement.offsetHeight)
+        dropdownTop -= (@session.fontSize + @dropdownElement.offsetHeight)
       @dropdownElement.style.top = dropdownTop + 'px'
     else
-      location = @view.getViewNodeFor(socket).bounds[0]
-      @dropdownElement.style.left = location.x - @scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
+      location = @session.view.getViewNodeFor(socket).bounds[0]
+      @dropdownElement.style.left = location.x - @session.scrollOffsets.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-      dropdownTop = location.y + @fontSize - @scrollOffsets.main.y
+      dropdownTop = location.y + @session.fontSize - @session.scrollOffsets.main.y
       if dropdownTop + @dropdownElement.offsetHeight > @dropletElement.offsetHeight
-        dropdownTop -= (@fontSize + @dropdownElement.offsetHeight)
+        dropdownTop -= (@session.fontSize + @dropdownElement.offsetHeight)
       @dropdownElement.style.top = dropdownTop + 'px'
   ), 0
 
@@ -2589,14 +2606,14 @@ hook 'dblclick', 0, (point, event, state) ->
     # Otherwise, look for a socket that
     # the user has clicked
     mainPoint = @trackerPointToMain point
-    hitTestResult = @hitTestTextInput mainPoint, @tree
+    hitTestResult = @hitTestTextInput mainPoint, @session.tree
 
     # If they have clicked a socket,
     # focus it, and
     unless hitTestResult is @getCursor()
       if hitTestResult? and hitTestResult.editable()
         @redrawMain()
-        hitTestResult = @hitTestTextInput mainPoint, @tree
+        hitTestResult = @hitTestTextInput mainPoint, @session.tree
 
     if hitTestResult? and hitTestResult.editable()
       @setCursor hitTestResult
@@ -2692,8 +2709,8 @@ hook 'mousedown', 0, (point, event, state) ->
 
   # If the point was actually in the main canvas,
   # start a lasso select.
-  mainPoint = @trackerPointToMain(point).from @scrollOffsets.main
-  palettePoint = @trackerPointToPalette(point).from @scrollOffsets.palette
+  mainPoint = @trackerPointToMain(point).from @session.scrollOffsets.main
+  palettePoint = @trackerPointToPalette(point).from @session.scrollOffsets.palette
 
   @lassoSelectAnchor = @trackerPointToMain point
 
@@ -2714,18 +2731,18 @@ hook 'mousemove', 0, (point, event, state) ->
 
     findLassoSelect = (dropletDocument) =>
       first = dropletDocument.start
-      until (not first?) or first.type is 'blockStart' and @view.getViewNodeFor(first.container).path.intersects lassoRectangle
+      until (not first?) or first.type is 'blockStart' and @session.view.getViewNodeFor(first.container).path.intersects lassoRectangle
         first = first.next
 
       last = dropletDocument.end
-      until (not last?) or last.type is 'blockEnd' and @view.getViewNodeFor(last.container).path.intersects lassoRectangle
+      until (not last?) or last.type is 'blockEnd' and @session.view.getViewNodeFor(last.container).path.intersects lassoRectangle
         last = last.prev
 
       @clearLassoSelectCanvas(); @clearHighlightCanvas()
 
       @lassoSelectCtx.strokeStyle = '#00f'
-      @lassoSelectCtx.strokeRect lassoRectangle.x - @scrollOffsets.main.x,
-        lassoRectangle.y - @scrollOffsets.main.y,
+      @lassoSelectCtx.strokeRect lassoRectangle.x - @session.scrollOffsets.main.x,
+        lassoRectangle.y - @session.scrollOffsets.main.y,
         lassoRectangle.width,
         lassoRectangle.height
 
@@ -2747,18 +2764,18 @@ hook 'mousemove', 0, (point, event, state) ->
 Editor::redrawLassoHighlight = ->
   if @lassoSelection?
     mainCanvasRectangle = new @draw.Rectangle(
-      @scrollOffsets.main.x,
-      @scrollOffsets.main.y,
+      @session.scrollOffsets.main.x,
+      @session.scrollOffsets.main.y,
       @mainCanvas.width,
       @mainCanvas.height
     )
-    lassoView = @view.getViewNodeFor(@lassoSelection)
+    lassoView = @session.view.getViewNodeFor(@lassoSelection)
     lassoView.absorbCache()
     lassoView.draw @highlightCtx, mainCanvasRectangle, {selected: true}
     @maskFloatingPaths(@lassoSelection.start.getDocument())
 
 Editor::maskFloatingPaths = (dropletDocument) ->
-  for record, i in @floatingBlocks by -1
+  for record, i in @session.floatingBlocks by -1
     if record.block is dropletDocument
       break
     else
@@ -2829,9 +2846,6 @@ hook 'mousedown', 3, (point, event, state) ->
 
 # CURSOR OPERATION SUPPORT
 # ================================
-hook 'populate', 0, ->
-  @cursor = new CrossDocumentLocation(0, new model.Location(0, 'documentStart'))
-
 class CrossDocumentLocation
   constructor: (@document, @location) ->
 
@@ -2868,14 +2882,14 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   destination = @toCrossDocumentLocation destination
 
   # If the cursor was at a text input, reparse the old one
-  if @cursorAtSocket() and not @cursor.is(destination)
+  if @cursorAtSocket() and not @session.cursor.is(destination)
     socket = @getCursor()
     if '__comment__' not in socket.classes
-      @reparse socket, null, (if destination.document is @cursor.document then [destination.location] else [])
+      @reparse socket, null, (if destination.document is @session.cursor.document then [destination.location] else [])
       @hiddenInput.blur()
       @dropletElement.focus()
 
-  @cursor = destination
+  @session.cursor = destination
 
   # If we have messed up (usually because
   # of a reparse), scramble to find a nearby
@@ -2887,37 +2901,37 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
   # If we are now at a text input, populate the hidden input
   if @cursorAtSocket()
-    if @getCursor()?.id of @extraMarks
-      delete @extraMarks[focus?.id]
+    if @getCursor()?.id of @session.extraMarks
+      delete @session.extraMarks[focus?.id]
     @undoCapture()
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
-    {start, end} = @mode.getDefaultSelectionRange @hiddenInput.value
+    {start, end} = @session.mode.getDefaultSelectionRange @hiddenInput.value
     @setTextSelectionRange start, end
 
 Editor::determineCursorPosition = ->
   # Do enough of the redraw to get the bounds
-  @view.getViewNodeFor(@tree).layout 0, @nubbyHeight
+  @session.view.getViewNodeFor(@session.tree).layout 0, @nubbyHeight
 
   # Get a cursor that is in the model
   cursor = @getCursor()
 
   if cursor.type is 'documentStart'
-    bound = @view.getViewNodeFor(cursor.container).bounds[0]
+    bound = @session.view.getViewNodeFor(cursor.container).bounds[0]
     return new @draw.Point bound.x, bound.y
 
   else if cursor.type is 'indentStart'
     line = if cursor.next.type is 'newline' then 1 else 0
-    bound = @view.getViewNodeFor(cursor.container).bounds[line]
+    bound = @session.view.getViewNodeFor(cursor.container).bounds[line]
     return new @draw.Point bound.x, bound.y
 
   else
     line = @getCursor().getTextLocation().row - cursor.parent.getTextLocation().row
-    bound = @view.getViewNodeFor(cursor.parent).bounds[line]
+    bound = @session.view.getViewNodeFor(cursor.parent).bounds[line]
     return new @draw.Point bound.x, bound.bottom()
 
 Editor::getCursor = ->
-  cursor = @fromCrossDocumentLocation @cursor
+  cursor = @fromCrossDocumentLocation @session.cursor
 
   if cursor.type is 'socketStart'
     return cursor.container
@@ -2927,9 +2941,9 @@ Editor::getCursor = ->
 Editor::scrollCursorIntoPosition = ->
   axis = @determineCursorPosition().y
 
-  if axis - @scrollOffsets.main.y < 0
+  if axis - @session.scrollOffsets.main.y < 0
     @mainScroller.scrollTop = axis
-  else if axis - @scrollOffsets.main.y > @mainCanvas.height
+  else if axis - @session.scrollOffsets.main.y > @mainCanvas.height
     @mainScroller.scrollTop = axis - @mainCanvas.height
 
   @mainScroller.scrollLeft = 0
@@ -2937,8 +2951,8 @@ Editor::scrollCursorIntoPosition = ->
 # Moves the cursor to the end of the document and scrolls it into position
 # (in block and text mode)
 Editor::scrollCursorToEndOfDocument = ->
-  if @currentlyUsingBlocks
-    pos = @tree.end
+  if @session.currentlyUsingBlocks
+    pos = @session.tree.end
     while pos && !@validCursorPosition(pos)
       pos = pos.prev
     @setCursor(pos)
@@ -3001,7 +3015,7 @@ Editor::deleteAtCursor = ->
   @redrawMain()
 
 hook 'keydown', 0, (event, state) ->
-  if @readOnly
+  if @session.readOnly
     return
   if event.which isnt BACKSPACE_KEY
     return
@@ -3043,16 +3057,13 @@ Editor::deleteLassoSelection = ->
 # HANDWRITTEN BLOCK SUPPORT
 # ================================
 
-hook 'populate', 0, ->
-  @handwrittenBlocks = []
-
 hook 'keydown', 0, (event, state) ->
-  if @readOnly
+  if @session.readOnly
     return
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket @mode.empty, Infinity, true
+      newBlock = new model.Block(); newSocket = new model.Socket @session.mode.empty, Infinity, true
       newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
@@ -3073,14 +3084,14 @@ hook 'keydown', 0, (event, state) ->
       socket = @getCursor()
       @hiddenInput.blur()
       @dropletElement.focus()
-      @setCursor @cursor, (token) -> token.type isnt 'socketStart'
+      @setCursor @session.cursor, (token) -> token.type isnt 'socketStart'
       @redrawMain()
-      if '__comment__' in socket.classes and @mode.startSingleLineComment
+      if '__comment__' in socket.classes and @session.mode.startSingleLineComment
         # Create another single line comment block just below
         newBlock = new model.Block 0, 'blank', helper.ANY_DROP
         newBlock.classes = ['__comment__', 'block-only']
         newBlock.socketLevel = helper.BLOCK_ONLY
-        newTextMarker = new model.TextToken @mode.startSingleLineComment
+        newTextMarker = new model.TextToken @session.mode.startSingleLineComment
         newTextMarker.setParent newBlock
         newSocket = new model.Socket '', 0, true
         newSocket.classes = ['__comment__']
@@ -3103,7 +3114,7 @@ hook 'keydown', 0, (event, state) ->
         @newHandwrittenSocket = newSocket
 
 hook 'keyup', 0, (event, state) ->
-  if @readOnly
+  if @session.readOnly
     return
   # prevents routing the initial enter keypress to a new handwritten
   # block by focusing the block only after the enter key is released.
@@ -3143,7 +3154,6 @@ hook 'populate', 1, ->
   @aceEditor.getSession().setMode 'ace/mode/' + acemode
   @aceEditor.getSession().setTabSize 2
 
-  @currentlyUsingBlocks = true
   @currentlyAnimating = false
 
   @transitionContainer = document.createElement 'div'
@@ -3176,7 +3186,7 @@ Editor::computePlaintextTranslationVectors = ->
   # to end up.
   textElements = []; translationVectors = []
 
-  head = @tree.start
+  head = @session.tree.start
 
   aceSession = @aceEditor.session
   state = {
@@ -3202,19 +3212,19 @@ Editor::computePlaintextTranslationVectors = ->
         @gutter.offsetWidth + 5 # TODO see above
   }
 
-  @mainCtx.font = @aceFontSize() + ' ' + @fontFamily
+  @mainCtx.font = @aceFontSize() + ' ' + @session.fontFamily
 
   rownum = 0
-  until head is @tree.end
+  until head is @session.tree.end
     switch head.type
       when 'text'
-        corner = @view.getViewNodeFor(head).bounds[0].upperLeftCorner()
+        corner = @session.view.getViewNodeFor(head).bounds[0].upperLeftCorner()
 
-        corner.x -= @scrollOffsets.main.x
-        corner.y -= @scrollOffsets.main.y
+        corner.x -= @session.scrollOffsets.main.x
+        corner.y -= @session.scrollOffsets.main.y
 
         translationVectors.push (new @draw.Point(state.x, state.y)).from(corner)
-        textElements.push @view.getViewNodeFor head
+        textElements.push @session.view.getViewNodeFor head
 
         state.x += @mainCtx.measureText(head.value).width
 
@@ -3246,14 +3256,14 @@ Editor::computePlaintextTranslationVectors = ->
   }
 
 Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
-  if @currentlyUsingBlocks and not @currentlyAnimating
+  if @session.currentlyUsingBlocks and not @currentlyAnimating
     @hideDropdown()
 
     @fireEvent 'statechange', [false]
 
     @setAceValue @getValue()
 
-    top = @findLineNumberAtCoordinate @scrollOffsets.main.y
+    top = @findLineNumberAtCoordinate @session.scrollOffsets.main.y
     @aceEditor.scrollToLine top
 
     @aceEditor.resize true
@@ -3268,7 +3278,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     @mainScroller.style.overflowY = 'hidden'
     @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
-    @currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
+    @session.currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
 
     # Compute where the text will end up
     # in the ace editor
@@ -3280,8 +3290,8 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       # Skip anything that's
       # off the screen the whole time.
-      unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
-                 textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
+      unless 0 < textElement.bounds[0].bottom() - @session.scrollOffsets.main.y + translationVectors[i].y and
+                 textElement.bounds[0].y - @session.scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
         continue
 
       div = document.createElement 'div'
@@ -3289,10 +3299,10 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       div.innerText = div.textContent = textElement.model.value
 
-      div.style.font = @fontSize + 'px ' + @fontFamily
+      div.style.font = @session.fontSize + 'px ' + @session.fontFamily
 
-      div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-      div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
+      div.style.left = "#{textElement.bounds[0].x - @session.scrollOffsets.main.x}px"
+      div.style.top = "#{textElement.bounds[0].y - @session.scrollOffsets.main.y - @session.fontAscent}px"
 
       div.className = 'droplet-transitioning-element'
       div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
@@ -3302,16 +3312,16 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       do (div, textElement, translationVectors, i) =>
         setTimeout (=>
-          div.style.left = (textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x) + 'px'
-          div.style.top = (textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y) + 'px'
+          div.style.left = (textElement.bounds[0].x - @session.scrollOffsets.main.x + translationVectors[i].x) + 'px'
+          div.style.top = (textElement.bounds[0].y - @session.scrollOffsets.main.y + translationVectors[i].y) + 'px'
           div.style.fontSize = @aceFontSize()
         ), fadeTime
 
     top = Math.max @aceEditor.getFirstVisibleRow(), 0
-    bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
+    bottom = Math.min @aceEditor.getLastVisibleRow(), @session.view.getViewNodeFor(@session.tree).lineLength - 1
     aceScrollTop = @aceEditor.session.getScrollTop()
 
-    treeView = @view.getViewNodeFor @tree
+    treeView = @session.view.getViewNodeFor @session.tree
     lineHeight = @aceEditor.renderer.layerConfig.lineHeight
 
     for line in [top..bottom]
@@ -3321,9 +3331,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.innerText = div.textContent = line + 1
 
       div.style.left = 0
-      div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent - @scrollOffsets.main.y}px"
+      div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent - @session.scrollOffsets.main.y}px"
 
-      div.style.font = @fontSize + 'px ' + @fontFamily
+      div.style.font = @session.fontSize + 'px ' + @session.fontFamily
       div.style.width = "#{@gutter.offsetWidth}px"
       translatingElements.push div
 
@@ -3356,7 +3366,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       @highlightCanvas.style.opacity =
       @cursorCanvas.style.opacity = 0
 
-    paletteDisappearingWithMelt = @paletteEnabled and not @showPaletteInTextMode
+    paletteDisappearingWithMelt = @session.paletteEnabled and not @session.showPaletteInTextMode
 
     if paletteDisappearingWithMelt
       # Move the palette header into the background
@@ -3377,7 +3387,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       # Translate the ACE editor div into frame.
       @aceElement.style.top = '0px'
-      if @showPaletteInTextMode and @paletteEnabled
+      if @session.showPaletteInTextMode and @session.paletteEnabled
         @aceElement.style.left = "#{@paletteWrapper.offsetWidth}px"
       else
         @aceElement.style.left = '0px'
@@ -3401,7 +3411,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       for div in translatingElements
         div.parentNode.removeChild div
 
-      @fireEvent 'toggledone', [@currentlyUsingBlocks]
+      @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
 
       if cb? then do cb
     ), fadeTime + translateTime
@@ -3412,7 +3422,7 @@ Editor::aceFontSize = ->
   parseFloat(@aceEditor.getFontSize()) + 'px'
 
 Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
-  if not @currentlyUsingBlocks and not @currentlyAnimating
+  if not @session.currentlyUsingBlocks and not @currentlyAnimating
     setValueResult = @copyAceEditor()
 
     unless setValueResult.success
@@ -3420,13 +3430,12 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         @fireEvent 'parseerror', [setValueResult.error]
       return setValueResult
 
-
     if @aceEditor.getFirstVisibleRow() is 0
       @mainScroller.scrollTop = 0
     else
-      @mainScroller.scrollTop = @view.getViewNodeFor(@tree).bounds[@aceEditor.getFirstVisibleRow()].y
+      @mainScroller.scrollTop = @session.view.getViewNodeFor(@session.tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
-    @currentlyUsingBlocks = true
+    @session.currentlyUsingBlocks = true
     @currentlyAnimating = true
     @fireEvent 'statechange', [true]
 
@@ -3442,7 +3451,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       @aceElement.style.top = "-9999px"
       @aceElement.style.left = "-9999px"
 
-      paletteAppearingWithFreeze = @paletteEnabled and not @showPaletteInTextMode
+      paletteAppearingWithFreeze = @session.paletteEnabled and not @session.showPaletteInTextMode
 
       if paletteAppearingWithFreeze
         @paletteWrapper.style.top = '0px'
@@ -3450,7 +3459,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         @paletteHeader.style.zIndex = 0
 
       @dropletElement.style.top = "0px"
-      if @paletteEnabled and not paletteAppearingWithFreeze
+      if @session.paletteEnabled and not paletteAppearingWithFreeze
         @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
       else
         @dropletElement.style.left = "0px"
@@ -3463,8 +3472,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         # Skip anything that's
         # off the screen the whole time.
-        unless 0 < textElement.bounds[0].bottom() - @scrollOffsets.main.y + translationVectors[i].y and
-                 textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
+        unless 0 < textElement.bounds[0].bottom() - @session.scrollOffsets.main.y + translationVectors[i].y and
+                 textElement.bounds[0].y - @session.scrollOffsets.main.y + translationVectors[i].y < @mainCanvas.height
           continue
 
         div = document.createElement 'div'
@@ -3472,11 +3481,11 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         div.innerText = div.textContent = textElement.model.value
 
-        div.style.font = @aceFontSize() + ' ' + @fontFamily
+        div.style.font = @aceFontSize() + ' ' + @session.fontFamily
         div.style.position = 'absolute'
 
-        div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x + translationVectors[i].x}px"
-        div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y + translationVectors[i].y}px"
+        div.style.left = "#{textElement.bounds[0].x - @session.scrollOffsets.main.x + translationVectors[i].x}px"
+        div.style.top = "#{textElement.bounds[0].y - @session.scrollOffsets.main.y + translationVectors[i].y}px"
 
         div.className = 'droplet-transitioning-element'
         div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
@@ -3486,15 +3495,15 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         do (div, textElement) =>
           setTimeout (=>
-            div.style.left = "#{textElement.bounds[0].x - @scrollOffsets.main.x}px"
-            div.style.top = "#{textElement.bounds[0].y - @scrollOffsets.main.y - @fontAscent}px"
-            div.style.fontSize = @fontSize + 'px'
+            div.style.left = "#{textElement.bounds[0].x - @session.scrollOffsets.main.x}px"
+            div.style.top = "#{textElement.bounds[0].y - @session.scrollOffsets.main.y - @session.fontAscent}px"
+            div.style.fontSize = @session.fontSize + 'px'
           ), 0
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
-      bottom = Math.min @aceEditor.getLastVisibleRow(), @view.getViewNodeFor(@tree).lineLength - 1
+      bottom = Math.min @aceEditor.getLastVisibleRow(), @session.view.getViewNodeFor(@session.tree).lineLength - 1
 
-      treeView = @view.getViewNodeFor @tree
+      treeView = @session.view.getViewNodeFor @session.tree
       lineHeight = @aceEditor.renderer.layerConfig.lineHeight
 
       aceScrollTop = @aceEditor.session.getScrollTop()
@@ -3505,7 +3514,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         div.innerText = div.textContent = line + 1
 
-        div.style.font = @aceFontSize() + ' ' + @fontFamily
+        div.style.font = @aceFontSize() + ' ' + @session.fontFamily
         div.style.width = "#{@aceEditor.renderer.$gutter.offsetWidth}px"
 
         div.style.left = 0
@@ -3524,8 +3533,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         do (div, line) =>
           setTimeout (=>
             div.style.left = 0
-            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent- @scrollOffsets.main.y}px"
-            div.style.fontSize = @fontSize + 'px'
+            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent- @session.scrollOffsets.main.y}px"
+            div.style.fontSize = @session.fontSize + 'px'
           ), 0
 
       for el in [@mainCanvas, @highlightCanvas, @cursorCanvas]
@@ -3568,7 +3577,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
         @resizeBlockMode()
 
-        @fireEvent 'toggledone', [@currentlyUsingBlocks]
+        @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
 
         if cb? then do cb
       ), translateTime + fadeTime
@@ -3578,16 +3587,16 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
     return success: true
 
 Editor::enablePalette = (enabled) ->
-  if not @currentlyAnimating and @paletteEnabled != enabled
-    @paletteEnabled = enabled
+  if not @currentlyAnimating and @session.paletteEnabled != enabled
+    @session.paletteEnabled = enabled
     @currentlyAnimating = true
 
-    if @currentlyUsingBlocks
+    if @session.currentlyUsingBlocks
       activeElement = @dropletElement
     else
       activeElement = @aceElement
 
-    if not @paletteEnabled
+    if not @session.paletteEnabled
       activeElement.style.transition =
         @paletteWrapper.style.transition = "left 500ms"
 
@@ -3607,7 +3616,7 @@ Editor::enablePalette = (enabled) ->
 
         @currentlyAnimating = false
 
-        @fireEvent 'palettetoggledone', [@paletteEnabled]
+        @fireEvent 'palettetoggledone', [@session.paletteEnabled]
       ), 500
 
     else
@@ -3630,13 +3639,13 @@ Editor::enablePalette = (enabled) ->
 
           @currentlyAnimating = false
 
-          @fireEvent 'palettetoggledone', [@paletteEnabled]
+          @fireEvent 'palettetoggledone', [@session.paletteEnabled]
         ), 500
       ), 0
 
 
 Editor::toggleBlocks = (cb) ->
-  if @currentlyUsingBlocks
+  if @session.currentlyUsingBlocks
     return @performMeltAnimation 500, 1000, cb
   else
     return @performFreezeAnimation 500, 500, cb
@@ -3645,11 +3654,6 @@ Editor::toggleBlocks = (cb) ->
 # ================================
 
 hook 'populate', 2, ->
-  @scrollOffsets = {
-    main: new @draw.Point 0, 0
-    palette: new @draw.Point 0, 0
-  }
-
   @mainScroller = document.createElement 'div'
   @mainScroller.className = 'droplet-main-scroller'
 
@@ -3664,15 +3668,15 @@ hook 'populate', 2, ->
     @wrapperElement.scrollTop = @wrapperElement.scrollLeft = 0
 
   @mainScroller.addEventListener 'scroll', =>
-    @scrollOffsets.main.y = @mainScroller.scrollTop
-    @scrollOffsets.main.x = @mainScroller.scrollLeft
+    @session.scrollOffsets.main.y = @mainScroller.scrollTop
+    @session.scrollOffsets.main.x = @mainScroller.scrollLeft
 
-    @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    @mainCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.main.x, -@session.scrollOffsets.main.y
 
     # Also update scroll for the highlight ctx, so that
     # they can match the blocks' positions
-    @highlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
-    @cursorCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
+    @highlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.main.x, -@session.scrollOffsets.main.y
+    @cursorCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.main.x, -@session.scrollOffsets.main.y
 
     @redrawMain()
 
@@ -3686,14 +3690,14 @@ hook 'populate', 2, ->
   @paletteElement.appendChild @paletteScroller
 
   @paletteScroller.addEventListener 'scroll', =>
-    @scrollOffsets.palette.y = @paletteScroller.scrollTop
+    @session.scrollOffsets.palette.y = @paletteScroller.scrollTop
 
     # Temporarily ignoring x-scroll to fix bad x-scrolling behaviour
     # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
-    # @scrollOffsets.palette.x = @paletteScroller.scrollLeft
+    # @session.scrollOffsets.palette.x = @paletteScroller.scrollLeft
 
-    @paletteCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
-    @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.palette.x, -@scrollOffsets.palette.y
+    @paletteCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
+    @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
 
     # redraw the bits of the palette
     @redrawPalette()
@@ -3708,9 +3712,9 @@ hook 'resize_palette', 0, ->
   @paletteScroller.style.height = "#{@paletteCanvas.offsetHeight}px"
 
 hook 'redraw_main', 1, ->
-  bounds = @view.getViewNodeFor(@tree).getBounds()
-  for record in @floatingBlocks
-    bounds.unite @view.getViewNodeFor(record.block).getBounds()
+  bounds = @session.view.getViewNodeFor(@session.tree).getBounds()
+  for record in @session.floatingBlocks
+    bounds.unite @session.view.getViewNodeFor(record.block).getBounds()
 
   @mainScrollerStuffing.style.width = "#{bounds.right()}px"
 
@@ -3720,12 +3724,12 @@ hook 'redraw_main', 1, ->
   #
   # Default this extra space to fontSize (approx. 1 line).
   @mainScrollerStuffing.style.height = "#{bounds.bottom() +
-    (@options.extraBottomHeight ? @fontSize)}px"
+    (@options.extraBottomHeight ? @session.fontSize)}px"
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
   for entry in @currentPaletteBlocks
-    bounds.unite @paletteView.getViewNodeFor(entry.block).getBounds()
+    bounds.unite @session.paletteView.getViewNodeFor(entry.block).getBounds()
 
   # For now, we will comment out this line
   # due to bugs
@@ -3734,32 +3738,24 @@ hook 'redraw_palette', 0, ->
 
 # MULTIPLE FONT SIZE SUPPORT
 # ================================
-hook 'populate', 0, ->
-  @fontSize = 15
-  @fontFamily = 'Courier New'
-
-  metrics = helper.fontMetrics(@fontFamily, @fontSize)
-  @fontAscent = metrics.prettytop
-  @fontDescent = metrics.descent
-
 Editor::setFontSize_raw = (fontSize) ->
-  unless @fontSize is fontSize
-    @fontSize = fontSize
+  unless @session.fontSize is fontSize
+    @session.fontSize = fontSize
 
     @paletteHeader.style.fontSize = "#{fontSize}px"
     @gutter.style.fontSize = "#{fontSize}px"
     @tooltipElement.style.fontSize = "#{fontSize}px"
 
-    @view.opts.textHeight =
-      @dragView.opts.textHeight = helper.getFontHeight @fontFamily, @fontSize
+    @session.view.opts.textHeight =
+      @session.dragView.opts.textHeight = helper.getFontHeight @session.fontFamily, @session.fontSize
 
-    metrics = helper.fontMetrics(@fontFamily, @fontSize)
-    @fontAscent = metrics.prettytop
-    @fontDescent = metrics.descent
+    metrics = helper.fontMetrics(@session.fontFamily, @session.fontSize)
+    @session.fontAscent = metrics.prettytop
+    @session.fontDescent = metrics.descent
 
-    @view.clearCache()
+    @session.view.clearCache()
 
-    @dragView.clearCache()
+    @session.dragView.clearCache()
 
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
 
@@ -3769,12 +3765,12 @@ Editor::setFontSize_raw = (fontSize) ->
 Editor::setFontFamily = (fontFamily) ->
   @draw.setGlobalFontFamily fontFamily
 
-  @fontFamily = fontFamily
+  @session.fontFamily = fontFamily
 
-  @view.opts.textHeight = helper.getFontHeight @fontFamily, @fontSize
-  @fontAscent = helper.fontMetrics(@fontFamily, @fontSize).prettytop
+  @session.view.opts.textHeight = helper.getFontHeight @session.fontFamily, @session.fontSize
+  @session.fontAscent = helper.fontMetrics(@session.fontFamily, @session.fontSize).prettytop
 
-  @view.clearCache(); @dragView.clearCache()
+  @session.view.clearCache(); @session.dragView.clearCache()
   @gutter.style.fontFamily = fontFamily
   @tooltipElement.style.fontFamily = fontFamily
 
@@ -3787,13 +3783,7 @@ Editor::setFontSize = (fontSize) ->
 
 # LINE MARKING SUPPORT
 # ================================
-
-hook 'populate', 0, ->
-  @markedLines = {}
-  @markedBlocks = {}; @nextMarkedBlockId = 0
-  @extraMarks = {}
-
-Editor::getHighlightPath = (model, style, view = @view) ->
+Editor::getHighlightPath = (model, style, view = @session.view) ->
   path = view.getViewNodeFor(model).path.clone()
 
   path.style.fillColor = null
@@ -3804,10 +3794,10 @@ Editor::getHighlightPath = (model, style, view = @view) ->
   return path
 
 Editor::markLine = (line, style) ->
-  block = @tree.getBlockOnLine line
+  block = @session.tree.getBlockOnLine line
 
   if block?
-    @markedLines[line] =
+    @session.markedLines[line] =
       model: block
       style: style
 
@@ -3816,7 +3806,7 @@ Editor::markLine = (line, style) ->
 Editor::markBlock = (block, style) ->
   key = @nextMarkedBlockId++
 
-  @markedBlocks[key] = {
+  @session.markedBlocks[key] = {
     model: block
     style: style
   }
@@ -3827,14 +3817,14 @@ Editor::markBlock = (block, style) ->
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
 # with the given style.
 Editor::mark = (location, style) ->
-  block = @tree.getFromTextLocation location
+  block = @session.tree.getFromTextLocation location
   block = block.container ? block
 
   # `key` is a unique identifier for this
   # mark, to be used later for removal
   key = @nextMarkedBlockId++
 
-  @markedBlocks[key] = {
+  @session.markedBlocks[key] = {
     model: block
     style: style
   }
@@ -3846,18 +3836,18 @@ Editor::mark = (location, style) ->
   return key
 
 Editor::unmark = (key) ->
-  delete @markedBlocks[key]
+  delete @session.markedBlocks[key]
 
   @redrawHighlights()
   return true
 
 Editor::unmarkLine = (line) ->
-  delete @markedLines[line]
+  delete @session.markedLines[line]
 
   @redrawHighlights()
 
 Editor::clearLineMarks = ->
-  @markedLines = @markedBlocks = {}
+  @session.markedLines = @session.markedBlocks = {}
 
   @redrawHighlights()
 
@@ -3875,7 +3865,7 @@ hook 'mousemove', 0, (point, event, state) ->
 
     mainPoint = @trackerPointToMain point
 
-    treeView = @view.getViewNodeFor @tree
+    treeView = @session.view.getViewNodeFor @session.tree
 
     if @lastHoveredLine? and treeView.bounds[@lastHoveredLine]? and
         treeView.bounds[@lastHoveredLine].contains mainPoint
@@ -3904,14 +3894,14 @@ Editor::setValue_raw = (value) ->
   try
     if @trimWhitespace then value = value.trim()
 
-    newParse = @mode.parse value, wrapAtRoot: true
+    newParse = @session.mode.parse value, wrapAtRoot: true
 
-    unless @tree.start.next is @tree.end
-      removal = new model.List @tree.start.next, @tree.end.prev
+    unless @session.tree.start.next is @session.tree.end
+      removal = new model.List @session.tree.start.next, @session.tree.end.prev
       @spliceOut removal
 
     unless newParse.start.next is newParse.end
-      @spliceIn new model.List(newParse.start.next, newParse.end.prev), @tree.start
+      @spliceIn new model.List(newParse.start.next, newParse.end.prev), @session.tree.start
 
     @removeBlankLines()
     @redrawMain()
@@ -3930,7 +3920,7 @@ Editor::setValue = (value) ->
 
   @aceEditor.session.setScrollTop oldScrollTop
 
-  if @currentlyUsingBlocks
+  if @session.currentlyUsingBlocks
     result = @setValue_raw value
     if result.success is false
       @setEditorState false
@@ -3945,8 +3935,8 @@ Editor::addEmptyLine = (str) ->
     return str + '\n'
 
 Editor::getValue = ->
-  if @currentlyUsingBlocks
-    return @addEmptyLine @tree.stringify()
+  if @session.currentlyUsingBlocks
+    return @addEmptyLine @session.tree.stringify()
   else
     @getAceValue()
 
@@ -3983,11 +3973,11 @@ Editor::hasEvent = (event) -> event of @bindings and @bindings[event]?
 
 Editor::setEditorState = (useBlocks) ->
   if useBlocks
-    unless @currentlyUsingBlocks
+    unless @session.currentlyUsingBlocks
       @setValue @getAceValue()
 
     @dropletElement.style.top = '0px'
-    if @paletteEnabled
+    if @session.paletteEnabled
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
       @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
     else
@@ -3995,7 +3985,7 @@ Editor::setEditorState = (useBlocks) ->
       @dropletElement.style.left = '0px'
 
     @aceElement.style.top = @aceElement.style.left = '-9999px'
-    @currentlyUsingBlocks = true
+    @session.currentlyUsingBlocks = true
 
     @lineNumberWrapper.style.display = 'block'
 
@@ -4007,11 +3997,11 @@ Editor::setEditorState = (useBlocks) ->
   else
     @hideDropdown()
 
-    paletteVisibleInNewState = @paletteEnabled and @showPaletteInTextMode
+    paletteVisibleInNewState = @session.paletteEnabled and @session.showPaletteInTextMode
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
-    if @currentlyUsingBlocks
+    if @session.currentlyUsingBlocks
       @setAceValue @getValue()
 
     @aceEditor.resize true
@@ -4030,7 +4020,7 @@ Editor::setEditorState = (useBlocks) ->
     else
       @aceElement.style.left = '0px'
 
-    @currentlyUsingBlocks = false
+    @session.currentlyUsingBlocks = false
 
     @lineNumberWrapper.style.display = 'none'
 
@@ -4073,7 +4063,7 @@ hook 'mousedown', 10, ->
 Editor::endDrag = ->
   # Ensure that the cursor is not in a socket.
   if @cursorAtSocket()
-    @setCursor @cursor, (x) -> x.type isnt 'socketStart'
+    @setCursor @session.cursor, (x) -> x.type isnt 'socketStart'
 
   @draggingBlock = null
   @draggingOffset = null
@@ -4218,10 +4208,10 @@ Editor::strokeCursor = (point) ->
 
   @cursorCtx.lineWidth = 3
 
-  w = @view.opts.tabWidth / 2 - CURSOR_WIDTH_DECREASE
-  h = @view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
+  w = @session.view.opts.tabWidth / 2 - CURSOR_WIDTH_DECREASE
+  h = @session.view.opts.tabHeight - CURSOR_HEIGHT_DECREASE
 
-  arcCenter = new @draw.Point point.x + @view.opts.tabOffset + w + CURSOR_WIDTH_DECREASE,
+  arcCenter = new @draw.Point point.x + @session.view.opts.tabOffset + w + CURSOR_WIDTH_DECREASE,
     point.y - (w*w + h*h) / (2 * h) + h + CURSOR_HEIGHT_DECREASE / 2
   arcAngle = Math.atan2 w, (w*w + h*h) / (2 * h) - h
   startAngle = 0.5 * Math.PI - arcAngle
@@ -4283,14 +4273,14 @@ hook 'populate', 0, ->
 # ================================
 
 # TODO possibly move this next utility function to view?
-Editor::viewOrChildrenContains = (model, point, view = @view) ->
+Editor::viewOrChildrenContains = (model, point, view = @session.view) ->
   modelView = view.getViewNodeFor model
 
   if modelView.path.contains point
     return true
 
   for childObj in modelView.children
-    if @viewOrChildrenContains childObj.child, point, view
+    if @session.viewOrChildrenContains childObj.child, point, view
       return true
 
   return false
@@ -4341,7 +4331,7 @@ hook 'mousedown', 11, (point, event, state) ->
 
   # Find the line that was clicked
   mainPoint = @trackerPointToMain point
-  treeView = @view.getViewNodeFor @tree
+  treeView = @session.view.getViewNodeFor @session.tree
   clickedLine = @findLineNumberAtCoordinate mainPoint.y
   @fireEvent 'guttermousedown', [{line: clickedLine, event: event}]
 
@@ -4392,7 +4382,7 @@ Editor::resizeGutter = ->
     @mainScrollerStuffing.offsetHeight)}px"
 
 Editor::addLineNumberForLine = (line) ->
-  treeView = @view.getViewNodeFor @tree
+  treeView = @session.view.getViewNodeFor @session.tree
 
   if line of @lineNumberTags
     lineDiv = @lineNumberTags[line]
@@ -4427,11 +4417,11 @@ Editor::addLineNumberForLine = (line) ->
 
   lineDiv.style.top = "#{treeView.bounds[line].y}px"
 
-  lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @fontAscent}px"
-  lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @fontDescent}"
+  lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent}px"
+  lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @session.fontDescent}"
 
   lineDiv.style.height =  treeView.bounds[line].height + 'px'
-  lineDiv.style.fontSize = @fontSize + 'px'
+  lineDiv.style.fontSize = @session.fontSize + 'px'
 
   @lineNumberWrapper.appendChild lineDiv
 
@@ -4445,7 +4435,7 @@ getMostSevereAnnotationType = (arr) ->
   TYPE_FROM_SEVERITY[Math.max.apply(this, arr.map((x) -> TYPE_SEVERITY[x.type]))]
 
 Editor::findLineNumberAtCoordinate = (coord) ->
-  treeView = @view.getViewNodeFor @tree
+  treeView = @session.view.getViewNodeFor @session.tree
   start = 0; end = treeView.bounds.length
   pivot = Math.floor (start + end) / 2
 
@@ -4469,10 +4459,10 @@ hook 'redraw_main', 0, (changedBox) ->
   @redrawGutter(changedBox)
 
 Editor::redrawGutter = (changedBox = true) ->
-  treeView = @view.getViewNodeFor @tree
+  treeView = @session.view.getViewNodeFor @session.tree
 
-  top = @findLineNumberAtCoordinate @scrollOffsets.main.y
-  bottom = @findLineNumberAtCoordinate @scrollOffsets.main.y + @mainCanvas.height
+  top = @findLineNumberAtCoordinate @session.scrollOffsets.main.y
+  bottom = @findLineNumberAtCoordinate @session.scrollOffsets.main.y + @mainCanvas.height
 
   for line in [top..bottom]
     @addLineNumberForLine line
@@ -4509,7 +4499,7 @@ hook 'populate', 1, ->
       pressedXKey = true
 
   @copyPasteInput.addEventListener 'input', =>
-    if @readOnly
+    if @session.readOnly
       return
     if pressedVKey and not @cursorAtSocket()
       str = @copyPasteInput.value; lines = str.split '\n'
@@ -4521,7 +4511,7 @@ hook 'populate', 1, ->
       str = str.replace /^\n*|\n*$/g, ''
 
       try
-        blocks = @mode.parse str
+        blocks = @session.mode.parse str
         blocks = new model.List blocks.start.next, blocks.end.prev
       catch e
         blocks = null
@@ -4562,13 +4552,13 @@ hook 'keyup', 0, (point, event, state) ->
 # ================================
 
 Editor::overflowsX = ->
-  @documentDimensions().width > @viewportDimensions().width
+  @documentDimensions().width > @session.viewportDimensions().width
 
 Editor::overflowsY = ->
-  @documentDimensions().height > @viewportDimensions().height
+  @documentDimensions().height > @session.viewportDimensions().height
 
 Editor::documentDimensions = ->
-  bounds = @view.getViewNodeFor(@tree).totalBounds
+  bounds = @session.view.getViewNodeFor(@session.tree).totalBounds
   return {
     width: bounds.width
     height: bounds.height
@@ -4583,8 +4573,8 @@ Editor::viewportDimensions = ->
 # LINE LOCATION API
 # =================
 Editor::getLineMetrics = (row) ->
-  viewNode = @view.getViewNodeFor @tree
-  bounds = (new @view.draw.Rectangle()).copy(viewNode.bounds[row])
+  viewNode = @session.view.getViewNodeFor @session.tree
+  bounds = (new @session.view.draw.Rectangle()).copy(viewNode.bounds[row])
   bounds.x += @mainCanvas.offsetLeft + @mainCanvas.offsetParent.offsetLeft
   return {
     bounds: bounds
@@ -4600,7 +4590,7 @@ Editor::dumpNodeForDebug = (hitTestResult, line) ->
   console.log('Model node:')
   console.log(hitTestResult.serialize())
   console.log('View node:')
-  console.log(@view.getViewNodeFor(hitTestResult).serialize(line))
+  console.log(@session.view.getViewNodeFor(hitTestResult).serialize(line))
 
 # CLOSING FOUNDATIONAL STUFF
 # ================================
