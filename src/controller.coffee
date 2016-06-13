@@ -101,14 +101,14 @@ exports.Editor = class Editor
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
     if @options.mode of modes
-      @mode = new modes[@options.mode] @options.modeOptions
+      @mode = new modes[@options.mode] @options.modeOptions # TODO session
     else
-      @mode = new coffee @options.modeOptions
+      @mode = new coffee @options.modeOptions # TODO session
 
     @draw = new draw.Draw()
 
     # No gutter decorations to start
-    @gutterDecorations = {}
+    @gutterDecorations = {} # TODO session
 
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
@@ -191,12 +191,12 @@ exports.Editor = class Editor
     # Set up event bindings before creating a view
     @bindings = {}
 
-    # Instantiate an ICE editor view
-    @view = new view.View @standardViewSettings
-    @paletteView = new view.View helper.extend {}, @standardViewSettings, {
+    # Instantiate an Droplet editor view
+    @view = new view.View @standardViewSettings # TODO session
+    @paletteView = new view.View helper.extend {}, @standardViewSettings, { # TODO session
       showDropdowns: @options.showDropdownInPalette ? false
     }
-    @dragView = new view.View @standardViewSettings
+    @dragView = new view.View @standardViewSettings # TODO session
 
     boundListeners = []
 
@@ -258,7 +258,7 @@ exports.Editor = class Editor
 
     # ## Document initialization
     # We start of with an empty document
-    @tree = new model.Document()
+    @tree = new model.Document() # TODO session
 
     @resizeBlockMode()
 
@@ -278,7 +278,7 @@ exports.Editor = class Editor
     modeClass = modes[mode]
     if modeClass
       @options.mode = mode
-      @mode = new modeClass modeOptions
+      @mode = new modeClass modeOptions # TODO session
     else
       @options.mode = null
       @mode = null
@@ -334,8 +334,8 @@ exports.Editor = class Editor
     @resizeDragCanvas()
 
     # Re-scroll and redraw main
-    @scrollOffsets.main.y = @mainScroller.scrollTop
-    @scrollOffsets.main.x = @mainScroller.scrollLeft
+    @scrollOffsets.main.y = @mainScroller.scrollTop # TODO session
+    @scrollOffsets.main.x = @mainScroller.scrollLeft # TODO session
 
     @mainCtx.setTransform 1, 0, 0, 1, -@scrollOffsets.main.x, -@scrollOffsets.main.y
 
@@ -753,9 +753,9 @@ Editor::removeBlankLines = ->
 # We must declare a few
 # fields a populate time
 hook 'populate', 0, ->
-  @undoStack = []
-  @redoStack = []
-  @changeEventVersion = 0
+  @undoStack = [] # TODO session
+  @redoStack = [] # TODO session
+  @changeEventVersion = 0 # TODO session
 
 # Now we hook to ctrl-z to undo.
 hook 'keydown', 0, (event, state) ->
