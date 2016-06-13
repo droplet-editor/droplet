@@ -51,6 +51,25 @@ isOSX = /OS X/.test(userAgent)
 command_modifiers = if isOSX then META_KEYS else CONTROL_KEYS
 command_pressed = (e) -> if isOSX then e.metaKey else e.ctrlKey
 
+class PairDict
+  constructor: (@pairs) ->
+
+  get: (index) ->
+    for el, i in @pairs
+      if el[0] is index
+        return el[1]
+
+  contains: (index) ->
+    @pairs.some (x) -> x[0] is index
+
+  set: (index, value) ->
+    for el, i in @pairs
+      if el[0] is index
+        el[1] = index
+        return true
+    @pairs.push [index, value]
+    return false
+
 # FOUNDATION
 # ================================
 
@@ -104,7 +123,7 @@ class Session
     if @options.mode of modes
       @mode = new modes[@options.mode] @options.modeOptions
     else
-      @mode = new coffee @options.modeOptions
+      @mode = null
 
     # Instantiate an Droplet editor view
     @view = new view.View standardViewSettings
@@ -236,7 +255,43 @@ exports.Editor = class Editor
       ctx: @mainCtx
       draw: @draw
 
+    @aceElement = document.createElement 'div'
+    @aceElement.className = 'droplet-ace'
+
+    @wrapperElement.appendChild @aceElement
+
+    @aceEditor = ace.edit @aceElement
+
+    @aceEditor.setTheme 'ace/theme/chrome'
+    @aceEditor.setFontSize 15
+    acemode = @options.mode
+    if acemode is 'coffeescript' then acemode = 'coffee'
+    @aceEditor.getSession().setMode 'ace/mode/' + acemode
+    @aceEditor.getSession().setTabSize 2
+
+    @currentlyAnimating = false
+
+    @transitionContainer = document.createElement 'div'
+    @transitionContainer.className = 'droplet-transition-container'
+
+    @dropletElement.appendChild @transitionContainer
+
     @session = new Session @, @options, @standardViewSettings
+    @sessions = new PairDict([
+      [@aceEditor.getSession(), @session]
+    ])
+
+    @blankSession = new Session @, {mode: '', palette: []}, @standardViewSettings
+
+    # Sessions are bound to other ace sessions;
+    # on ace session change Droplet will also change sessions.
+    @aceEditor.on 'changeSession', (e) =>
+      if @sessions.contains(e.session)
+        @session = @sessions.get(e.session)
+        @updateNewSession()
+      else
+        @setEditorState false
+        @session = @blankSession
 
     # Set up event bindings before creating a view
     @bindings = {}
@@ -406,6 +461,24 @@ exports.Editor = class Editor
       @resizeBlockMode()
     else
       @resizeTextMode()
+
+  updateNewSession: ->
+    @setEditorState @session.currentlyUsingBlocks
+    @redrawMain()
+    @rebuildPalette()
+    @redrawPalette()
+
+  bindNewSession: (opts) ->
+    if @sessions.contains(@aceEditor.getSession())
+      throw new ArgumentError 'Cannot bind a new session where one already exists.'
+    else
+      session = new Session @, opts, @standardViewSettings
+      @sessions.set(@aceEditor.getSession(), session)
+      @session = session
+      @session.currentlyUsingBlocks = false
+      @setValue @getAceValue()
+      @setPalette @session.paletteGroups
+      return session
 
 
 # RENDERING CAPABILITIES
@@ -670,7 +743,7 @@ Editor::redrawPalette = ->
     @paletteCanvas.height
   )
 
-  for entry in @currentPaletteBlocks
+  for entry in @session.currentPaletteBlocks
     # Layout this block
     paletteBlockView = @session.paletteView.getViewNodeFor entry.block
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
@@ -1835,9 +1908,10 @@ parseBlock = (mode, code) =>
 Editor::setPalette = (paletteGroups) ->
   @paletteHeader.innerHTML = ''
   @session.paletteGroups = paletteGroups
+  console.log 'setting palette'
 
-  @currentPaletteBlocks = []
-  @currentPaletteMetadata = []
+  @session.currentPaletteBlocks = []
+  @session.currentPaletteMetadata = []
 
   paletteHeaderRow = null
 
@@ -1908,21 +1982,21 @@ Editor::changePaletteGroup = (group) ->
     return
 
   # Record that we are the selected group now
-  @currentPaletteGroup = paletteGroup.name
-  @currentPaletteBlocks = paletteGroup.parsedBlocks
-  @currentPaletteMetadata = paletteGroup.parsedBlocks
+  @session.currentPaletteGroup = paletteGroup.name
+  @session.currentPaletteBlocks = paletteGroup.parsedBlocks
+  @session.currentPaletteMetadata = paletteGroup.parsedBlocks
 
   # Unapply the "selected" style to the current palette group header
-  @currentPaletteGroupHeader?.className =
-      @currentPaletteGroupHeader.className.replace(
+  @session.currentPaletteGroupHeader?.className =
+      @session.currentPaletteGroupHeader.className.replace(
           /\s[-\w]*-selected\b/, '')
 
   # Now we are the current palette group header
-  @currentPaletteGroupHeader = paletteGroup.header
+  @session.currentPaletteGroupHeader = paletteGroup.header
   @currentPaletteIndex = i
 
   # Apply the "selected" style to us
-  @currentPaletteGroupHeader.className +=
+  @session.currentPaletteGroupHeader.className +=
       ' droplet-palette-group-header-selected'
 
   # Redraw the palette.
@@ -1946,7 +2020,7 @@ hook 'mousedown', 6, (point, event, state) ->
       state.consumedHitTest = true
       return
 
-    for entry in @currentPaletteBlocks
+    for entry in @session.currentPaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @session.paletteView
 
       if hitTestResult?
@@ -1988,7 +2062,7 @@ hook 'rebuild_palette', 1, ->
   @currentHighlightedPaletteBlock = null
 
   # Add new blocks
-  for data in @currentPaletteMetadata
+  for data in @session.currentPaletteMetadata
     block = data.block
 
     hoverDiv = document.createElement 'div'
@@ -2012,7 +2086,7 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mousemove', (event) =>
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
-        if @session.viewOrChildrenContains block, palettePoint, @session.paletteView
+        if @viewOrChildrenContains block, palettePoint, @session.paletteView
             @clearPaletteHighlightCanvas()
             @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @session.paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
@@ -2470,7 +2544,7 @@ Editor::hitTestTextInputInPalette = (point, block) ->
   return null
 
 Editor::handleTextInputClickInPalette = (palettePoint) ->
-  for entry in @currentPaletteBlocks
+  for entry in @session.currentPaletteBlocks
     hitTestResult = @hitTestTextInputInPalette palettePoint, entry.block
 
     # If they have clicked a socket, check to see if it is a dropdown
@@ -3139,28 +3213,6 @@ Editor::copyAceEditor = ->
   @resizeBlockMode()
   return @setValue_raw @getAceValue()
 
-hook 'populate', 1, ->
-  @aceElement = document.createElement 'div'
-  @aceElement.className = 'droplet-ace'
-
-  @wrapperElement.appendChild @aceElement
-
-  @aceEditor = ace.edit @aceElement
-
-  @aceEditor.setTheme 'ace/theme/chrome'
-  @aceEditor.setFontSize 15
-  acemode = @options.mode
-  if acemode is 'coffeescript' then acemode = 'coffee'
-  @aceEditor.getSession().setMode 'ace/mode/' + acemode
-  @aceEditor.getSession().setTabSize 2
-
-  @currentlyAnimating = false
-
-  @transitionContainer = document.createElement 'div'
-  @transitionContainer.className = 'droplet-transition-container'
-
-  @dropletElement.appendChild @transitionContainer
-
 # For animation and ace editor,
 # we will need a couple convenience functions
 # for getting the "absolute"-esque position
@@ -3728,7 +3780,7 @@ hook 'redraw_main', 1, ->
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
-  for entry in @currentPaletteBlocks
+  for entry in @session.currentPaletteBlocks
     bounds.unite @session.paletteView.getViewNodeFor(entry.block).getBounds()
 
   # For now, we will comment out this line
@@ -4280,7 +4332,7 @@ Editor::viewOrChildrenContains = (model, point, view = @session.view) ->
     return true
 
   for childObj in modelView.children
-    if @session.viewOrChildrenContains childObj.child, point, view
+    if @viewOrChildrenContains childObj.child, point, view
       return true
 
   return false
@@ -4552,10 +4604,10 @@ hook 'keyup', 0, (point, event, state) ->
 # ================================
 
 Editor::overflowsX = ->
-  @documentDimensions().width > @session.viewportDimensions().width
+  @documentDimensions().width > @viewportDimensions().width
 
 Editor::overflowsY = ->
-  @documentDimensions().height > @session.viewportDimensions().height
+  @documentDimensions().height > @viewportDimensions().height
 
 Editor::documentDimensions = ->
   bounds = @session.view.getViewNodeFor(@session.tree).totalBounds
