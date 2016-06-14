@@ -117,7 +117,7 @@ asyncTest 'Controller: palette block expansion', ->
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
-  equal(editor.getValue().trim(), 'pen red\na1 = b')
+  equal(editor.getValue().trim(), 'pen red\na3 = b')
   simulate('mousedown', '[title=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[title=ftest]', dx: 5 })
@@ -125,7 +125,7 @@ asyncTest 'Controller: palette block expansion', ->
     { location: '.droplet-main-scroller', dx: 40, dy: 80 })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 80 })
-  equal(editor.getValue().trim(), 'pen red\na1 = b\na2 = b')
+  equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
   start()
 
 asyncTest 'Controller: reparse and undo reparse', ->

@@ -210,9 +210,9 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
   getButtons: (node) ->
     buttons = {}
     if node.nodeName in ['thead', 'tbody', 'tr', 'table']
-      buttons.addButton = true
+      buttons.addButton = '+'
       if node.childNodes.length isnt 0
-        buttons.subtractButton = true
+        buttons.subtractButton = '-'
     return buttons
 
   getColor: (node) ->
@@ -452,6 +452,57 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
       else
         return DEFAULT_INDENT_DEPTH
 
+  handleButton: (text, button, oldblock) ->
+    classes = oldblock.classes
+    fragment = htmlParser.parseFragment text
+    @prototype.cleanTree fragment
+    block = fragment.childNodes[0]
+    prev = null
+    if block.nodeName is 'tr'
+      prev = 'td'
+    else if block.nodeName in ['table', 'thead', 'tbody']
+      prev = 'tr'
+    else if block.nodeName is 'div'
+      prev = 'div'
+    if prev
+      last = block.childNodes.length - 1
+      while last >= 0
+        if block.childNodes[last].nodeName is prev
+          break
+        last--
+      last++
+      if button is 'add-button'
+        indentPrefix = DEFAULT_INDENT_DEPTH
+        if block.childNodes?.length is 1 and block.childNodes[0].nodeName is '#text' and block.childNodes[0].value.trim().length is 0
+          block.childNodes[0].value = '\n'
+        else
+          lines = block.childNodes?[0]?.value?.split('\n')
+          if lines?.length > 1
+            indentPrefix = lines[lines.length - 1]
+        switch block.nodeName
+          when 'tr'
+            extra = htmlParser.parseFragment '\n' + indentPrefix + '<td></td>'
+          when 'table'
+            extra = htmlParser.parseFragment '\n' + indentPrefix + '<tr>\n' + indentPrefix + '\n' + indentPrefix + '</tr>'
+          when 'tbody'
+            extra = htmlParser.parseFragment '\n' + indentPrefix + '<tr>\n' + indentPrefix + '\n' + indentPrefix + '</tr>'
+          when 'thead'
+            extra = htmlParser.parseFragment '\n' + indentPrefix + '<tr>\n' + indentPrefix + '\n' + indentPrefix + '</tr>'
+          when 'div'
+            extra = htmlParser.parseFragment '\n' + indentPrefix + '<div>\n' + indentPrefix + '\n' + indentPrefix + '</div>'
+        block.childNodes = block.childNodes[...last].concat(extra.childNodes).concat block.childNodes[last...]
+      else if button is 'subtract-button'
+          mid = last - 2
+          while mid >= 0
+            if block.childNodes[mid].nodeName is prev
+              break
+            mid--
+          block.childNodes = (if mid >=0 then block.childNodes[..mid] else []).concat block.childNodes[last...]
+          if block.childNodes.length is 1 and block.childNodes[0].nodeName is '#text' and block.childNodes[0].value.trim().length is 0
+            block.childNodes[0].value = '\n  \n'
+
+    return htmlSerializer.serialize fragment
+
   markRoot: ->
     @positions = []
     line = 0
@@ -540,59 +591,11 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
   isComment: (text) ->
     text.match(/<!--.*-->/)
 
+  indentAndCommentMarker: (text) ->
+    return ['']
+
 HTMLParser.parens = (leading, trailing, node, context) ->
   return [leading, trailing]
-
-HTMLParser.handleButton = (text, button, oldblock) ->
-  classes = oldblock.classes
-  fragment = htmlParser.parseFragment text
-  @prototype.cleanTree fragment
-  block = fragment.childNodes[0]
-  prev = null
-  if block.nodeName is 'tr'
-    prev = 'td'
-  else if block.nodeName in ['table', 'thead', 'tbody']
-    prev = 'tr'
-  else if block.nodeName is 'div'
-    prev = 'div'
-  if prev
-    last = block.childNodes.length - 1
-    while last >= 0
-      if block.childNodes[last].nodeName is prev
-        break
-      last--
-    last++
-    if button is 'add-button'
-      indentPrefix = DEFAULT_INDENT_DEPTH
-      if block.childNodes?.length is 1 and block.childNodes[0].nodeName is '#text' and block.childNodes[0].value.trim().length is 0
-        block.childNodes[0].value = '\n'
-      else
-        lines = block.childNodes?[0]?.value?.split('\n')
-        if lines?.length > 1
-          indentPrefix = lines[lines.length - 1]
-      switch block.nodeName
-        when 'tr'
-          extra = htmlParser.parseFragment '\n' + indentPrefix + '<td></td>'
-        when 'table'
-          extra = htmlParser.parseFragment '\n' + indentPrefix + '<tr>\n' + indentPrefix + '\n' + indentPrefix + '</tr>'
-        when 'tbody'
-          extra = htmlParser.parseFragment '\n' + indentPrefix + '<tr>\n' + indentPrefix + '\n' + indentPrefix + '</tr>'
-        when 'thead'
-          extra = htmlParser.parseFragment '\n' + indentPrefix + '<tr>\n' + indentPrefix + '\n' + indentPrefix + '</tr>'
-        when 'div'
-          extra = htmlParser.parseFragment '\n' + indentPrefix + '<div>\n' + indentPrefix + '\n' + indentPrefix + '</div>'
-      block.childNodes = block.childNodes[...last].concat(extra.childNodes).concat block.childNodes[last...]
-    else if button is 'subtract-button'
-        mid = last - 2
-        while mid >= 0
-          if block.childNodes[mid].nodeName is prev
-            break
-          mid--
-        block.childNodes = (if mid >=0 then block.childNodes[..mid] else []).concat block.childNodes[last...]
-        if block.childNodes.length is 1 and block.childNodes[0].nodeName is '#text' and block.childNodes[0].value.trim().length is 0
-          block.childNodes[0].value = '\n  \n'
-
-  return htmlSerializer.serialize fragment
 
 HTMLParser.drop = (block, context, pred, next) ->
 
