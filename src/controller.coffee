@@ -3454,9 +3454,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       else
         @aceElement.style.left = '0px'
 
-      if paletteDisappearingWithMelt
-        @paletteWrapper.style.top = '-9999px'
-        @paletteWrapper.style.left = '-9999px'
+      #if paletteDisappearingWithMelt
+      #  @paletteWrapper.style.top = '-9999px'
+      #  @paletteWrapper.style.left = '-9999px'
 
       @dropletElement.style.top = '-9999px'
       @dropletElement.style.left = '-9999px'
@@ -3673,8 +3673,8 @@ Editor::enablePalette = (enabled) ->
         activeElement.style.transition =
           @paletteWrapper.style.transition = ''
 
-        @paletteWrapper.style.top = '-9999px'
-        @paletteWrapper.style.left = '-9999px'
+        #@paletteWrapper.style.top = '-9999px'
+        #@paletteWrapper.style.left = '-9999px'
 
         @currentlyAnimating = false
 
@@ -4043,7 +4043,8 @@ Editor::setEditorState = (useBlocks) ->
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
       @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
     else
-      @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
+      @paletteWrapper.style.top = '0px'
+      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
       @dropletElement.style.left = '0px'
 
     @aceElement.style.top = @aceElement.style.left = '-9999px'
@@ -4074,7 +4075,8 @@ Editor::setEditorState = (useBlocks) ->
     if paletteVisibleInNewState
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
     else
-      @paletteWrapper.style.top = @paletteWrapper.style.left = '-9999px'
+      @paletteWrapper.style.top = '0px'
+      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
     @aceElement.style.top = '0px'
     if paletteVisibleInNewState
