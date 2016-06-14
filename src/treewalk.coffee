@@ -93,6 +93,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: bounds
                 depth: depth
                 classes: rules
+                parseContext: (if wrap? then wrap.type else rules[0])
 
             @addBlock
               bounds: bounds
@@ -128,6 +129,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                   bounds: bounds
                   depth: depth
                   classes: rules
+                  parseContext: (if wrap? then wrap.type else rules[0])
 
               @addBlock
                 bounds: bounds
@@ -172,6 +174,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             bounds: node.bounds
             depth: depth
             classes: rules
+            parseContext: (if wrap? then wrap.type else rules[0])
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'

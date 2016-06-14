@@ -2405,6 +2405,8 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   parent = list.start.parent
   context = (list.start.container ? list.start.parent).parseContext
 
+  console.log 'REPARSING', list, list.stringify(), list.start.parent, 'WITH', context
+
   try
     newList = @session.mode.parse list.stringifyInPlace(),{
       wrapAtRoot: parent.type isnt 'socket'

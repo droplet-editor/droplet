@@ -115,7 +115,8 @@ exports.Parser = class Parser
     socket = new model.Socket opts.empty ? @empty, opts.precedence,
       false,
       opts.classes,
-      opts.dropdown
+      opts.dropdown,
+      opts.parseContext
 
     @addMarkup socket, opts.bounds, opts.depth
 

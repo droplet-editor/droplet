@@ -1024,7 +1024,7 @@ exports.SocketEndToken = class SocketEndToken extends EndToken
     else ''
 
 exports.Socket = class Socket extends Container
-  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null, @parseContext = null) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
