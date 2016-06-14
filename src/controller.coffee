@@ -108,7 +108,7 @@ hook = (event, priority, fn) ->
   }
 
 class Session
-  constructor: (@editor, @options, standardViewSettings) ->
+  constructor: (@options, standardViewSettings) ->
     # Option flags
     @readOnly = false
     @paletteGroups = @options.palette
@@ -154,8 +154,8 @@ class Session
 
     # Scrolling
     @scrollOffsets = {
-      main: new @editor.draw.Point 0, 0
-      palette: new @editor.draw.Point 0, 0
+      main: new draw.Point 0, 0
+      palette: new draw.Point 0, 0
     }
 
     # Block toggle
@@ -273,7 +273,7 @@ exports.Editor = class Editor
       @wrapperElement.style.overflow = 'hidden'
 
       @aceElement = @aceEditor.container
-      @aceElement.className = 'droplet-ace'
+      @aceElement.className += ' droplet-ace'
 
       @aceEditor.container.parentElement.appendChild @wrapperElement
       @wrapperElement.appendChild @aceEditor.container
@@ -291,12 +291,10 @@ exports.Editor = class Editor
 
     @dropletElement.appendChild @transitionContainer
 
-    @session = new Session @, @options, @standardViewSettings
+    @session = new Session @options, @standardViewSettings
     @sessions = new PairDict([
       [@aceEditor.getSession(), @session]
     ])
-
-    @blankSession = new Session @, {mode: '', palette: []}, @standardViewSettings
 
     # Sessions are bound to other ace sessions;
     # on ace session change Droplet will also change sessions.
@@ -304,9 +302,12 @@ exports.Editor = class Editor
       if @sessions.contains(e.session)
         @session = @sessions.get(e.session)
         @updateNewSession()
+      else if e.session._dropletSession?
+        @session = e.session._dropletSession
+        @sessions.set(e.session, e.session._dropletSession)
       else
+        @session = null
         @setEditorState false
-        @session = @blankSession
 
     # Set up event bindings before creating a view
     @bindings = {}
@@ -413,6 +414,8 @@ exports.Editor = class Editor
     @aceEditor.resize true
 
   resizeBlockMode: ->
+    return unless @session?
+
     @resizeTextMode()
 
     @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
@@ -478,18 +481,31 @@ exports.Editor = class Editor
       @resizeTextMode()
 
   updateNewSession: ->
+    return unless @session?
+
+    # Force scroll into our position
+    offsetY =@session.scrollOffsets.main.y
+    offsetX = @session.scrollOffsets.main.x
+
     @setEditorState @session.currentlyUsingBlocks
+
     @redrawMain()
-    @rebuildPalette()
-    @redrawPalette()
+
+    @mainScroller.scrollTop = offsetY
+    @mainScroller.scrollLeft = offsetX
+
+    @setPalette @session.paletteGroups
+
+  hasSessionFor: (aceSession) -> @sessions.contains(aceSession)
 
   bindNewSession: (opts) ->
     if @sessions.contains(@aceEditor.getSession())
       throw new ArgumentError 'Cannot bind a new session where one already exists.'
     else
-      session = new Session @, opts, @standardViewSettings
+      session = new Session opts, @standardViewSettings
       @sessions.set(@aceEditor.getSession(), session)
       @session = session
+      e.session._dropletSession = @session
       @session.currentlyUsingBlocks = false
       @setValue @getAceValue()
       @setPalette @session.paletteGroups
@@ -617,6 +633,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   }
 
 Editor::redrawMain = (opts = {}) ->
+  return unless @session?
   unless @currentlyAnimating_suprressRedraw
 
     # Set our draw tool's font size
@@ -683,6 +700,7 @@ Editor::redrawMain = (opts = {}) ->
     return null
 
 Editor::redrawHighlights = ->
+  return unless @session?
   # Draw highlights around marked lines
   @clearHighlightCanvas()
 
@@ -724,6 +742,7 @@ Editor::clearCursorCanvas = ->
   @cursorCtx.clearRect @session.scrollOffsets.main.x, @session.scrollOffsets.main.y, @cursorCanvas.width, @cursorCanvas.height
 
 Editor::redrawCursors = ->
+  return unless @session?
   @clearCursorCanvas()
 
   if @cursorAtSocket()
@@ -743,6 +762,7 @@ Editor::clearPaletteHighlightCanvas = ->
     @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
 
 Editor::redrawPalette = ->
+  return unless @session?
   @clearPalette()
 
   # We will construct a vertical layout
@@ -909,10 +929,14 @@ Editor::getSerializedEditorState = ->
   }
 
 Editor::clearUndoStack = ->
+  return unless @session?
+
   @session.undoStack.length = 0
   @session.redoStack.length = 0
 
 Editor::undo = ->
+  return unless @session?
+
   # Don't allow a socket to be highlighted during
   # an undo operation
   @setCursor @session.cursor, ((x) -> x.type isnt 'socketStart')
@@ -2176,7 +2200,7 @@ hook 'populate', 1, ->
 
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
-  if @session.showPaletteInTextMode and @session.paletteEnabled
+  if @session?.showPaletteInTextMode and @session?.paletteEnabled
     width -= @paletteWrapper.offsetWidth
 
   @aceElement.style.width = "#{width}px"
@@ -2186,6 +2210,8 @@ last_ = (array) -> array[array.length - 1]
 
 # Redraw function for text input
 Editor::redrawTextInput = ->
+  return unless @session?
+
   sameLength = @getCursor().stringify().split('\n').length is @hiddenInput.value.split('\n').length
   dropletDocument = @getCursor().getDocument()
 
@@ -2249,6 +2275,7 @@ Editor::redrawTextInput = ->
     @redrawMain()
 
 Editor::redrawTextHighlights = (scrollIntoView = false) ->
+  return unless @session?
   return unless @cursorAtSocket()
 
   textFocusView = @session.view.getViewNodeFor @getCursor()
@@ -2850,6 +2877,8 @@ hook 'mousemove', 0, (point, event, state) ->
           break
 
 Editor::redrawLassoHighlight = ->
+  return unless @session?
+
   if @lassoSelection?
     mainCanvasRectangle = new @draw.Rectangle(
       @session.scrollOffsets.main.x,
@@ -3426,7 +3455,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     @mainCanvas.style.transition =
       @highlightCanvas.style.transition =
-      @cursorCanvas.style.opacity = "opacity #{fadeTime}ms linear"
+      @cursorCanvas.style.transition = "opacity #{fadeTime}ms linear"
 
     @mainCanvas.style.opacity =
       @highlightCanvas.style.opacity =
@@ -3488,6 +3517,7 @@ Editor::aceFontSize = ->
   parseFloat(@aceEditor.getFontSize()) + 'px'
 
 Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
+  return unless @session?
   if not @session.currentlyUsingBlocks and not @currentlyAnimating
     setValueResult = @copyAceEditor()
 
@@ -3860,6 +3890,8 @@ Editor::getHighlightPath = (model, style, view = @session.view) ->
   return path
 
 Editor::markLine = (line, style) ->
+  return unless @session?
+
   block = @session.tree.getBlockOnLine line
 
   if block?
@@ -3870,6 +3902,8 @@ Editor::markLine = (line, style) ->
   @redrawHighlights()
 
 Editor::markBlock = (block, style) ->
+  return unless @session?
+
   key = @nextMarkedBlockId++
 
   @session.markedBlocks[key] = {
@@ -3883,6 +3917,8 @@ Editor::markBlock = (block, style) ->
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
 # with the given style.
 Editor::mark = (location, style) ->
+  return unless @session?
+
   block = @session.tree.getFromTextLocation location
   block = block.container ? block
 
@@ -3978,6 +4014,8 @@ Editor::setValue_raw = (value) ->
     return success: false, error: e
 
 Editor::setValue = (value) ->
+  if not @session?
+    return @aceEditor.setValue value
 
   oldScrollTop = @aceEditor.session.getScrollTop()
 
@@ -4001,7 +4039,7 @@ Editor::addEmptyLine = (str) ->
     return str + '\n'
 
 Editor::getValue = ->
-  if @session.currentlyUsingBlocks
+  if @session?.currentlyUsingBlocks
     return @addEmptyLine @session.tree.stringify()
   else
     @getAceValue()
@@ -4038,7 +4076,13 @@ Editor::hasEvent = (event) -> event of @bindings and @bindings[event]?
 # ================================
 
 Editor::setEditorState = (useBlocks) ->
+  @mainCanvas.style.transition = @paletteWrapper.style.transition =
+    @highlightCanvas.style.transition = ''
+
   if useBlocks
+    if not @session?
+      throw new ArgumentError 'cannot switch to blocks if a session has not been set up.'
+
     unless @session.currentlyUsingBlocks
       @setValue @getAceValue()
 
@@ -4055,19 +4099,19 @@ Editor::setEditorState = (useBlocks) ->
 
     @lineNumberWrapper.style.display = 'block'
 
-    @mainCanvas.opacity = @paletteWrapper.opacity =
-      @highlightCanvas.opacity = 1
+    @mainCanvas.style.opacity =
+      @highlightCanvas.style.opacity = 1
 
     @resizeBlockMode(); @redrawMain()
 
   else
     @hideDropdown()
 
-    paletteVisibleInNewState = @session.paletteEnabled and @session.showPaletteInTextMode
+    paletteVisibleInNewState = @session?.paletteEnabled and @session.showPaletteInTextMode
 
     oldScrollTop = @aceEditor.session.getScrollTop()
 
-    if @session.currentlyUsingBlocks
+    if @session?.currentlyUsingBlocks
       @setAceValue @getValue()
 
     @aceEditor.resize true
@@ -4086,12 +4130,12 @@ Editor::setEditorState = (useBlocks) ->
     else
       @aceElement.style.left = '0px'
 
-    @session.currentlyUsingBlocks = false
+    @session?.currentlyUsingBlocks = false
 
     @lineNumberWrapper.style.display = 'none'
 
-    @mainCanvas.opacity =
-      @highlightCanvas.opacity = 0
+    @mainCanvas.style.opacity =
+      @highlightCanvas.style.opacity = 0
 
     @resizeBlockMode()
 
@@ -4525,6 +4569,7 @@ hook 'redraw_main', 0, (changedBox) ->
   @redrawGutter(changedBox)
 
 Editor::redrawGutter = (changedBox = true) ->
+  return unless @session?
   treeView = @session.view.getViewNodeFor @session.tree
 
   top = @findLineNumberAtCoordinate @session.scrollOffsets.main.y
