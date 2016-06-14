@@ -142,7 +142,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               if child.children.length > 0
                 break
               else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0
-                console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
+                #console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
                 start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
@@ -178,8 +178,8 @@ exports.createTreewalkParser = (parse, config, root) ->
       for c in context.classes
         if c in block.classes
           return helper.ENCOURAGE
-        else
-          return helper.DISCOURAGE
+      console.log block.classes, context.classes
+      return helper.DISCOURAGE
 
   # Doesn't yet deal with parens
   TreewalkParser.parens = (leading, trailing, node, context) ->

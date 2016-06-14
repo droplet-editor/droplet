@@ -498,76 +498,76 @@ asyncTest 'Controller: cursor motion and rendering', ->
   strictEqual editor.determineCursorPosition().x, 0,
     'Cursor position correct after \'alert 10\' (x - down)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    1 * editor.view.opts.textHeight +
-    2 * editor.view.opts.padding +
-    2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - down)'
+    1 * editor.session.view.opts.textHeight +
+    2 * editor.session.view.opts.padding +
+    2 * editor.session.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - down)'
 
   moveCursorDown()
 
-  strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
+  strictEqual editor.determineCursorPosition().x, editor.session.view.opts.indentWidth,
     'Cursor position correct after \'if a is b\' (x - down)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    2 * editor.view.opts.textHeight +
-    6 * editor.view.opts.padding +
-    4 * editor.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - down)'
+    2 * editor.session.view.opts.textHeight +
+    6 * editor.session.view.opts.padding +
+    4 * editor.session.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - down)'
 
   moveCursorDown()
 
-  strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
+  strictEqual editor.determineCursorPosition().x, editor.session.view.opts.indentWidth,
     'Cursor position correct after \'alert 20\' (x - down)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    3 * editor.view.opts.textHeight +
-    8 * editor.view.opts.padding +
-    6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - down)'
+    3 * editor.session.view.opts.textHeight +
+    8 * editor.session.view.opts.padding +
+    6 * editor.session.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - down)'
 
   moveCursorDown()
 
-  strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
+  strictEqual editor.determineCursorPosition().x, editor.session.view.opts.indentWidth,
     'Cursor position correct at end of indent (x - down)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    4 * editor.view.opts.textHeight +
-    10 * editor.view.opts.padding +
-    8 * editor.view.opts.textPadding, 'Cursor position at end of indent (y - down)'
+    4 * editor.session.view.opts.textHeight +
+    10 * editor.session.view.opts.padding +
+    8 * editor.session.view.opts.textPadding, 'Cursor position at end of indent (y - down)'
 
   moveCursorDown()
 
-  strictEqual editor.cursor.location.type, 'indentStart', 'Cursor skipped middle of block'
+  strictEqual editor.session.cursor.location.type, 'indentStart', 'Cursor skipped middle of block'
 
   moveCursorUp()
 
-  strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
+  strictEqual editor.determineCursorPosition().x, editor.session.view.opts.indentWidth,
     'Cursor position correct at end of indent (x - up)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    4 * editor.view.opts.textHeight +
-    10 * editor.view.opts.padding +
-    8 * editor.view.opts.textPadding, 'Cursor position at end of indent (y - up)'
+    4 * editor.session.view.opts.textHeight +
+    10 * editor.session.view.opts.padding +
+    8 * editor.session.view.opts.textPadding, 'Cursor position at end of indent (y - up)'
 
   moveCursorUp()
 
-  strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
+  strictEqual editor.determineCursorPosition().x, editor.session.view.opts.indentWidth,
     'Cursor position correct after \'alert 20\' (x - up)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    3 * editor.view.opts.textHeight +
-    8 * editor.view.opts.padding +
-    6 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - up)'
+    3 * editor.session.view.opts.textHeight +
+    8 * editor.session.view.opts.padding +
+    6 * editor.session.view.opts.textPadding, 'Cursor position correct after \'alert 20\' (y - up)'
 
   moveCursorUp()
 
-  strictEqual editor.determineCursorPosition().x, editor.view.opts.indentWidth,
+  strictEqual editor.determineCursorPosition().x, editor.session.view.opts.indentWidth,
     'Cursor position correct after \'if a is b\' (y - up)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    2 * editor.view.opts.textHeight +
-    6 * editor.view.opts.padding +
-    4 * editor.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - up)'
+    2 * editor.session.view.opts.textHeight +
+    6 * editor.session.view.opts.padding +
+    4 * editor.session.view.opts.textPadding, 'Cursor position correct after \'if a is b\' (y - up)'
 
   moveCursorUp()
 
   strictEqual editor.determineCursorPosition().x, 0,
     'Cursor position correct after \'alert 10\' (x - up)'
   strictEqual editor.determineCursorPosition().y, editor.nubbyHeight +
-    1 * editor.view.opts.textHeight +
-    2 * editor.view.opts.padding +
-    2 * editor.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - up)'
+    1 * editor.session.view.opts.textHeight +
+    2 * editor.session.view.opts.padding +
+    2 * editor.session.view.opts.textPadding, 'Cursor position correct after \'alert 10\' (y - up)'
 
   moveCursorUp()
 
@@ -637,11 +637,11 @@ asyncTest 'Controller: arbitrary row/column marking', ->
 
   key = editor.mark {row: 2, col: 4}, {color: '#F00'}
 
-  strictEqual editor.markedBlocks[key].model.stringify({}), '10 - 10'
-  strictEqual editor.markedBlocks[key].style.color, '#F00'
+  strictEqual editor.session.markedBlocks[key].model.stringify({}), '10 - 10'
+  strictEqual editor.session.markedBlocks[key].style.color, '#F00'
 
   editor.unmark key
-  ok key not of editor.markedBlocks
+  ok key not of editor.session.markedBlocks
   start()
 
 asyncTest 'Controller: dropdown menus', ->
@@ -670,10 +670,10 @@ asyncTest 'Controller: dropdown menus', ->
   '''
 
   # Assert that the arrow is there
-  strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
+  strictEqual Math.round(editor.session.view.getViewNodeFor(editor.session.tree.getBlockOnLine(0)).bounds[0].width), 90
 
   # no-throw
-  editor.setCursor editor.tree.getBlockOnLine(0).end.prev.container.start
+  editor.setCursor editor.session.tree.getBlockOnLine(0).end.prev.container.start
   editor.showDropdown()
   start()
 
@@ -703,10 +703,10 @@ asyncTest 'Controller: dropdown menus with functions', ->
   '''
 
   # Assert that the arrow is there
-  strictEqual Math.round(editor.view.getViewNodeFor(editor.tree.getBlockOnLine(0)).bounds[0].width), 90
+  strictEqual Math.round(editor.session.view.getViewNodeFor(editor.session.tree.getBlockOnLine(0)).bounds[0].width), 90
 
   # no-throw
-  editor.setCursor editor.tree.getBlockOnLine(0).end.prev.container.start
+  editor.setCursor editor.session.tree.getBlockOnLine(0).end.prev.container.start
   editor.showDropdown()
   start()
 
@@ -728,7 +728,7 @@ asyncTest 'Controller: showPaletteInTextMode false', ->
     states.push usingBlocks
 
   editor.performMeltAnimation 10, 10, ->
-    strictEqual paletteWrapper.style.left, '-9999px'
+    strictEqual paletteWrapper.style.left, '-270px'
     strictEqual aceEditor.style.left, '0px'
     editor.performFreezeAnimation 10, 10, ->
       strictEqual paletteWrapper.style.left, '0px'
@@ -776,7 +776,7 @@ asyncTest 'Controller: enablePalette false', ->
   strictEqual dropletWrapper.style.left, '270px'
 
   verifyPaletteHidden = ->
-    strictEqual paletteWrapper.style.left, '-9999px'
+    strictEqual paletteWrapper.style.left, '-270px'
     strictEqual dropletWrapper.style.left, '0px'
     start()
 
