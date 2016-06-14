@@ -291,10 +291,14 @@ exports.Editor = class Editor
 
     @dropletElement.appendChild @transitionContainer
 
-    @session = new Session @options, @standardViewSettings
-    @sessions = new PairDict([
-      [@aceEditor.getSession(), @session]
-    ])
+    if @options?
+      @session = new Session @options, @standardViewSettings
+      @sessions = new PairDict([
+        [@aceEditor.getSession(), @session]
+      ])
+    else
+      @session = null
+      @sessions = new PairDict []
 
     # Sessions are bound to other ace sessions;
     # on ace session change Droplet will also change sessions.
@@ -378,7 +382,7 @@ exports.Editor = class Editor
 
     # If we were given an unrecognized mode or asked to start in text mode,
     # flip into text mode here
-    useBlockMode = @session.mode? && !@options.textModeAtStart
+    useBlockMode = @session?.mode? && !@options.textModeAtStart
     # Always call @setEditorState to ensure palette is positioned properly
     @setEditorState useBlockMode
 
@@ -412,6 +416,11 @@ exports.Editor = class Editor
   resizeTextMode: ->
     @resizeAceElement()
     @aceEditor.resize true
+
+    if @session?
+      @resizePalette()
+
+    return
 
   resizeBlockMode: ->
     return unless @session?
@@ -472,10 +481,13 @@ exports.Editor = class Editor
     @paletteCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
     @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
 
+    unless @session?.currentlyUsingBlocks
+     @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+
     @rebuildPalette()
 
   resize: ->
-    if @session.currentlyUsingBlocks #TODO session
+    if @session?.currentlyUsingBlocks #TODO session
       @resizeBlockMode()
     else
       @resizeTextMode()
@@ -762,7 +774,8 @@ Editor::clearPaletteHighlightCanvas = ->
     @paletteHighlightCanvas.width, @paletteHighlightCanvas.height
 
 Editor::redrawPalette = ->
-  return unless @session?
+  return unless @session?.currentPaletteBlocks?
+
   @clearPalette()
 
   # We will construct a vertical layout
@@ -793,6 +806,7 @@ Editor::redrawPalette = ->
     binding.call this
 
 Editor::rebuildPalette = ->
+  return unless @session?.currentPaletteBlocks?
   @redrawPalette()
   for binding in editorBindings.rebuild_palette
     binding.call this
@@ -834,7 +848,7 @@ Editor::trackerPointToPalette = (point) ->
                   point.y - gbr.top + @session.scrollOffsets.palette.y)
 
 Editor::trackerPointIsInElement = (point, element) ->
-  if @session.readOnly
+  if not @session? or @session.readOnly
     return false
   if not element.offsetParent?
     return false
@@ -1936,10 +1950,11 @@ hook 'populate', 0, ->
   # Append the element.
   @paletteElement.appendChild @paletteHeader
 
-  @setPalette @session.paletteGroups
+  if @session?
+    @setPalette @session.paletteGroups
 
-parseBlock = (mode, code) =>
-  block = mode.parse(code).start.next.container
+parseBlock = (mode, code, context = null) =>
+  block = mode.parse(code, {context}).start.next.container
   block.start.prev = block.end.next = null
   block.setParent null
   return block
@@ -1979,7 +1994,7 @@ Editor::setPalette = (paletteGroups) ->
 
     # Parse all the blocks in this palette and clone them
     for data in paletteGroup.blocks
-      newBlock = parseBlock(@session.mode, data.block)
+      newBlock = parseBlock(@session.mode, data.block, data.context)
       expansion = data.expansion or null
       newPaletteBlocks.push
         block: newBlock
@@ -3132,7 +3147,7 @@ Editor::deleteAtCursor = ->
   @redrawMain()
 
 hook 'keydown', 0, (event, state) ->
-  if @session.readOnly
+  if not @session? or @session.readOnly
     return
   if event.which isnt BACKSPACE_KEY
     return
@@ -3175,7 +3190,7 @@ Editor::deleteLassoSelection = ->
 # ================================
 
 hook 'keydown', 0, (event, state) ->
-  if @session.readOnly
+  if not @session? or @session.readOnly
     return
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
@@ -3231,7 +3246,7 @@ hook 'keydown', 0, (event, state) ->
         @newHandwrittenSocket = newSocket
 
 hook 'keyup', 0, (event, state) ->
-  if @session.readOnly
+  if not @session? or @session.readOnly
     return
   # prevents routing the initial enter keypress to a new handwritten
   # block by focusing the block only after the enter key is released.
@@ -3791,6 +3806,7 @@ hook 'populate', 2, ->
     # Temporarily ignoring x-scroll to fix bad x-scrolling behaviour
     # when dragging blocks out of the palette. TODO: fix x-scrolling behaviour.
     # @session.scrollOffsets.palette.x = @paletteScroller.scrollLeft
+    #
 
     @paletteCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
     @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
@@ -4612,7 +4628,7 @@ hook 'populate', 1, ->
       pressedXKey = true
 
   @copyPasteInput.addEventListener 'input', =>
-    if @session.readOnly
+    if not @session? or @session.readOnly
       return
     if pressedVKey and not @cursorAtSocket()
       str = @copyPasteInput.value; lines = str.split '\n'
