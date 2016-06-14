@@ -481,7 +481,7 @@ exports.Editor = class Editor
     @paletteCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
     @paletteHighlightCtx.setTransform 1, 0, 0, 1, -@session.scrollOffsets.palette.x, -@session.scrollOffsets.palette.y
 
-    unless @session?.currentlyUsingBlocks
+    unless @session?.currentlyUsingBlocks or @session?.showPaletteInTextMode and @session?.paletteEnabled
      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
 
     @rebuildPalette()
