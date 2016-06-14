@@ -505,7 +505,7 @@ exports.Editor = class Editor
       session = new Session opts, @standardViewSettings
       @sessions.set(@aceEditor.getSession(), session)
       @session = session
-      e.session._dropletSession = @session
+      @aceEditor.getSession()._dropletSession = @session
       @session.currentlyUsingBlocks = false
       @setValue @getAceValue()
       @setPalette @session.paletteGroups
