@@ -41,7 +41,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
 
     det: (rule) ->
-      if rule in config.INDENTS then return 'indent'
+      if rule of config.INDENTS then return 'indent'
       else if rule in config.SKIPS then return 'skip'
       else if rule in config.PARENS then return 'parens'
       else return 'block'
@@ -166,6 +166,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
               classes: rules
+              parseContext: config.INDENTS[node.type]
 
         for child in node.children
           @mark child, prefix, depth + 2, false

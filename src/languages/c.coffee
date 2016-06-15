@@ -6,7 +6,10 @@
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
 
-INDENTS = ['compoundStatement', 'structDeclarationsBlock']
+INDENTS = {
+  'compoundStatement': 'blockItem',
+  'structDeclarationsBlock': 'structDeclaration'
+}
 SKIPS = ['blockItemList',
   'macroParamList',
   'compilationUnit',
@@ -68,15 +71,13 @@ config.parenRules = {
 }
 
 # TODO Implement removing parentheses at some point
-###
-config.unParenWrap = (leading, trailing, node, context) ->
-  while true
-    if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-      leading leading().replace(/^\s*\(\s*/, '')
-      trailing trailing().replace(/\s*\)\s*$/, '')
-    else
-      break
-###
+#config.unParenWrap = (leading, trailing, node, context) ->
+#  while true
+#   if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+#     leading leading().replace(/^\s*\(\s*/, '')
+#      trailing trailing().replace(/\s*\)\s*$/, '')
+#    else
+#      break
 
 # DEBUG
 config.unParenWrap = null

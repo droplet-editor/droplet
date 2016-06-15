@@ -130,7 +130,7 @@ exports.Parser = class Parser
   #   prefix: String
   # }
   addIndent: (opts) ->
-    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes
+    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes, opts.parseContext
 
     @addMarkup indent, opts.bounds, opts.depth
 

@@ -2403,7 +2403,11 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     return
 
   parent = list.start.parent
-  context = (list.start.container ? list.start.parent).parseContext
+
+  if parent.type is 'indent' and not list.start.container?.parseContext?
+    context = parent.parseContext
+  else
+    context = (list.start.container ? list.start.parent).parseContext
 
   console.log 'REPARSING', list, list.stringify(), list.start.parent, 'WITH', context
 

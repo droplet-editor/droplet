@@ -1076,7 +1076,7 @@ exports.IndentEndToken = class IndentEndToken extends EndToken
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@emptyString, @prefix = '', @classes = []) ->
+  constructor: (@emptyString, @prefix = '', @classes = [], @parseContext = null) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
