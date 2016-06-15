@@ -205,7 +205,7 @@ exports.Parser = class Parser
   # Construct a handwritten block with the given
   # text inside
   constructHandwrittenBlock: (text) ->
-    block = new model.Block 0, 'blank', helper.ANY_DROP
+    block = new model.Block 0, 'comment', helper.ANY_DROP
     socket = new model.Socket '', 0, true
     socket.setParent block
 

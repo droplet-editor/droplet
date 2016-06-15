@@ -37,6 +37,8 @@ COLORS_FORWARD = {
   'multiplicativeExpression': 'value'
   'declaration': 'command'
   'parameterDeclaration': 'command'
+  'unaryExpression': 'value'
+  'typeName': 'value'
 }
 COLORS_BACKWARD = {
   'iterationStatement': 'control'

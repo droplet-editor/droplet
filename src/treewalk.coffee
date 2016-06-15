@@ -182,7 +182,6 @@ exports.createTreewalkParser = (parse, config, root) ->
       for c in context.classes
         if c in block.classes
           return helper.ENCOURAGE
-      console.log block.classes, context.classes
       return helper.DISCOURAGE
 
   # Doesn't yet deal with parens

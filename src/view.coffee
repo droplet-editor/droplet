@@ -53,6 +53,7 @@ DEFAULT_OPTIONS =
   ctx: document.createElement('canvas').getContext('2d')
   colors:
     error: '#ff0000'
+    comment: '#c0c0c0'  # gray
     return: '#fff59d'   # yellow
     control: '#ffcc80'  # orange
     value: '#a5d6a7'    # green
