@@ -47,6 +47,8 @@ exports.createANTLRParser = (name, config, root) ->
       result.children = []
       result.bounds = getBounds node
       result.parent = parent
+      if node.symbol?.text
+        result.data = {text: node.symbol.text}
 
     return result
 

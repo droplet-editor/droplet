@@ -35,6 +35,7 @@ COLORS_FORWARD = {
   'selectionStatement': 'control'
   'iterationStatement': 'control'
   'functionDefinition': 'control'
+  'expressionStatement': 'command'
   'expression': 'value'
   'additiveExpression': 'value'
   'multiplicativeExpression': 'value'
@@ -46,14 +47,40 @@ COLORS_FORWARD = {
 COLORS_BACKWARD = {
   'iterationStatement': 'control'
   'selectionStatement': 'control'
-  'postfixExpression': 'command'
   'assignmentExpression': 'command'
   'relationalExpression': 'value'
   'initDeclarator': 'command'
 }
+SHAPES_FORWARD = {
+  'externalDeclaration': 'block-only'
+  'structDeclaration': 'block-only'
+  'declarationSpecifier': 'block-only'
+  'statement': 'block-only'
+  'selectionStatement': 'block-only'
+  'iterationStatement': 'block-only'
+  'functionDefinition': 'block-only'
+  'expressionStatement': 'value-only'
+  'expression': 'value-only'
+  'additiveExpression': 'value-only'
+  'multiplicativeExpression': 'value-only'
+  'declaration': 'block-only'
+  'parameterDeclaration': 'block-only'
+  'unaryExpression': 'value-only'
+  'typeName': 'value-only'
+}
+SHAPES_BACKWARD = {
+  'equalityExpression': 'value-only'
+  'logicalAndExpression': 'value-only'
+  'logicalOrExpression': 'value-only'
+  'iterationStatement': 'block-only'
+  'selectionStatement': 'block-only'
+  'assignmentExpression': 'block-only'
+  'relationalExpression': 'value-only'
+  'initDeclarator': 'block-only'
+}
 
 config = {
-  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD
+  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD, SHAPES_FORWARD, SHAPES_BACKWARD
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
@@ -69,6 +96,42 @@ config.parenRules = {
     'postfixExpression': ADD_PARENS
   }
 }
+
+config.SHOULD_SOCKET = (opts, node) ->
+  return true unless node.parent? and node.parent.parent? and node.parent.parent.parent?
+  # If it is a function call, and we are the first child
+  if node.parent.type is 'primaryExpression' and
+     node.parent.parent.type is 'postfixExpression' and
+     node.parent.parent.parent.type is 'postfixExpression' and
+     node.parent.parent.parent.children.length in [3, 4] and
+     node.parent.parent.parent.children[1].type is 'LeftParen' and
+     (node.parent.parent.parent.children[2].type is 'RightParen' or node.parent.parent.parent.children[3]?.type is 'RightParen') and
+     node.parent.parent is node.parent.parent.parent.children[0] and
+     node.data.text of opts.knownFunctions
+    return false
+  return true
+
+config.COLOR_CALLBACK = (opts, node) ->
+  if node.type is 'postfixExpression' and
+     node.children.length in [3, 4] and
+     node.children[1].type is 'LeftParen' and
+     (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
+     node.children[0].children[0].type is 'primaryExpression' and
+     node.children[0].children[0].children[0].type is 'Identifier' and
+     node.children[0].children[0].children[0].data.text of opts.knownFunctions
+    return opts.knownFunctions[node.children[0].children[0].children[0].data.text].color
+  return null
+
+config.SHAPE_CALLBACK = (opts, node) ->
+  if node.type is 'postfixExpression' and
+     node.children.length in [3, 4] and
+     node.children[1].type is 'LeftParen' and
+     (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
+     node.children[0].children[0].type is 'primaryExpression' and
+     node.children[0].children[0].children[0].type is 'Identifier' and
+     node.children[0].children[0].children[0].data.text of opts.knownFunctions
+    return opts.knownFunctions[node.children[0].children[0].children[0].data.text].shape
+  return null
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->

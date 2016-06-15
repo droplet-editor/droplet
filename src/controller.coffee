@@ -300,6 +300,10 @@ exports.Editor = class Editor
       @session = null
       @sessions = new PairDict []
 
+      @options = {
+        extraBottomHeight: 10
+      }
+
     # Sessions are bound to other ace sessions;
     # on ace session change Droplet will also change sessions.
     @aceEditor.on 'changeSession', (e) =>
@@ -1418,7 +1422,7 @@ hook 'mousemove', 1, (point, event, state) ->
 
       # Call expansion() function with no parameter to get the initial value.
       if 'function' is typeof expansion then expansion = expansion()
-      if (expansion) then expansion = parseBlock(@session.mode, expansion)
+      if (expansion) then expansion = parseBlock(@session.mode, expansion, @clickedBlockPaletteEntry.context)
       @draggingBlock = (expansion or @draggingBlock).clone()
 
       # Special @draggingBlock setup for expansion function blocks.
@@ -1999,6 +2003,7 @@ Editor::setPalette = (paletteGroups) ->
       newPaletteBlocks.push
         block: newBlock
         expansion: expansion
+        context: data.context
         title: data.title
         id: data.id
 
@@ -2404,12 +2409,10 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
   parent = list.start.parent
 
-  if parent.type is 'indent' and not list.start.container?.parseContext?
+  if parent?.type is 'indent' and not list.start.container?.parseContext?
     context = parent.parseContext
   else
     context = (list.start.container ? list.start.parent).parseContext
-
-  console.log 'REPARSING', list, list.stringify(), list.start.parent, 'WITH', context
 
   try
     newList = @session.mode.parse list.stringifyInPlace(),{
@@ -4646,7 +4649,7 @@ hook 'populate', 1, ->
       str = str.replace /^\n*|\n*$/g, ''
 
       try
-        blocks = @session.mode.parse str
+        blocks = @session.mode.parse str, {context: @getCursor().parent.parseContext}
         blocks = new model.List blocks.start.next, blocks.end.prev
       catch e
         blocks = null

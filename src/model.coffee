@@ -1045,7 +1045,7 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown, @parseContext
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
@@ -1086,7 +1086,7 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes, @parseContext
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<indent prefix=\"#{

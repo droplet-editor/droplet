@@ -58,7 +58,10 @@ exports.createTreewalkParser = (parse, config, root) ->
       'skip': 'mostly-block'
     })[@detNode(context)]
 
-    getColor: (rules) ->
+    getColor: (node, rules) ->
+      color = config.COLOR_CALLBACK(@opts, node)
+      if color?
+        return color
       for el, i in rules by -1
         if el of config.COLORS_BACKWARD
           return config.COLORS_BACKWARD[el]
@@ -66,6 +69,18 @@ exports.createTreewalkParser = (parse, config, root) ->
         if el of config.COLORS_FORWARD
           return config.COLORS_FORWARD[el]
       return 'violet'
+
+    getShape: (node, rules) ->
+      shape = config.SHAPE_CALLBACK(@opts, node)
+      if shape?
+        return shape
+      for el, i in rules by -1
+        if el of config.SHAPES_BACKWARD
+          return config.SHAPES_BACKWARD[el]
+      for el, i in rules
+        if el of config.SHAPES_FORWARD
+          return config.SHAPES_FORWARD[el]
+      return 'mostly-block'
 
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
@@ -98,8 +113,8 @@ exports.createTreewalkParser = (parse, config, root) ->
             @addBlock
               bounds: bounds
               depth: depth + 1
-              color: @getColor rules
-              classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
+              color: @getColor node, rules
+              classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
               parseContext: (if wrap? then wrap.type else rules[0])
 
           when 'parens'
@@ -134,8 +149,8 @@ exports.createTreewalkParser = (parse, config, root) ->
               @addBlock
                 bounds: bounds
                 depth: depth + 1
-                color: @getColor rules
-                classes: rules.concat(if context? then @getDropType(context) else 'any-drop')
+                color: @getColor node, rules
+                classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
                 parseContext: (if wrap? then wrap.type else rules[0])
 
           when 'indent' then if @det(context) is 'block'
@@ -171,7 +186,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         for child in node.children
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
-        if @detToken(node) is 'socket'
+        if @detToken(node) is 'socket' and config.SHOULD_SOCKET(@opts, node)
           @addSocket
             bounds: node.bounds
             depth: depth
