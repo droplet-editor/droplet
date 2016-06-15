@@ -182,9 +182,26 @@ exports.createTreewalkParser = (parse, config, root) ->
       for c in context.classes
         if c in block.classes
           return helper.ENCOURAGE
+
+        # Check to see if we could paren-wrap this
+        if config.parenRules? and c of config.parenRules
+          for m in block.classes
+            if m of config.parenRules[c]
+              return helper.ENCOURAGE
+
       return helper.DISCOURAGE
 
   # Doesn't yet deal with parens
-  TreewalkParser.parens = (leading, trailing, node, context) ->
+  TreewalkParser.parens = (leading, trailing, node, context)->
+    return unless context?
+    # If we already match types, we're fine
+    for c in context.classes
+      if c in node.classes
+        return
+
+    # Otherwise, wrap according to the provided rule
+    for c in context.classes when c of config.parenRules
+      for m in node.classes when m of config.parenRules[c]
+        return config.parenRules[c][m] leading, trailing, node, context
 
   return TreewalkParser

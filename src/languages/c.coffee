@@ -53,4 +53,12 @@ config = {
   INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD
 }
 
+config.parenRules = {
+  'primaryExpression': {
+    'expression': (leading, trailing, node, context) ->
+      leading '(' + leading()
+      trailing trailing() + ')'
+  }
+}
+
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config

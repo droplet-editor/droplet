@@ -1173,7 +1173,7 @@ Editor::prepareNode = (node, context) ->
     else
       trailing = node.getTrailingText()
 
-    [leading, trailing] = @session.mode.parens leading, trailing, node.getReader(),
+    [leading, trailing, classes] = @session.mode.parens leading, trailing, node.getReader(),
       context?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
