@@ -193,7 +193,14 @@ exports.createTreewalkParser = (parse, config, root) ->
 
   # Doesn't yet deal with parens
   TreewalkParser.parens = (leading, trailing, node, context)->
-    return unless context?
+    # If we're moving to null, remove parens (where possible)
+    unless context?
+      if config.unParenWrap?
+        return config.unParenWrap leading, trailing, node, context
+      else
+        return
+
+
     # If we already match types, we're fine
     for c in context.classes
       if c in node.classes
