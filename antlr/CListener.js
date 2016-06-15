@@ -749,69 +749,6 @@ CListener.prototype.exitTranslationUnit = function(ctx) {
 };
 
 
-// Enter a parse tree produced by CParser#includeDirective.
-CListener.prototype.enterIncludeDirective = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#includeDirective.
-CListener.prototype.exitIncludeDirective = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#defineDirective.
-CListener.prototype.enterDefineDirective = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#defineDirective.
-CListener.prototype.exitDefineDirective = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#defineDirectiveNoVal.
-CListener.prototype.enterDefineDirectiveNoVal = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#defineDirectiveNoVal.
-CListener.prototype.exitDefineDirectiveNoVal = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#defineDirectiveNoParams.
-CListener.prototype.enterDefineDirectiveNoParams = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#defineDirectiveNoParams.
-CListener.prototype.exitDefineDirectiveNoParams = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#defineDirectiveWithParams.
-CListener.prototype.enterDefineDirectiveWithParams = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#defineDirectiveWithParams.
-CListener.prototype.exitDefineDirectiveWithParams = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#macroResult.
-CListener.prototype.enterMacroResult = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#macroResult.
-CListener.prototype.exitMacroResult = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#macroParamList.
-CListener.prototype.enterMacroParamList = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#macroParamList.
-CListener.prototype.exitMacroParamList = function(ctx) {
-};
-
-
 // Enter a parse tree produced by CParser#externalDeclaration.
 CListener.prototype.enterExternalDeclaration = function(ctx) {
 };

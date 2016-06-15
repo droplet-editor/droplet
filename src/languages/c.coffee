@@ -133,6 +133,31 @@ config.SHAPE_CALLBACK = (opts, node) ->
     return opts.knownFunctions[node.children[0].children[0].children[0].data.text].shape
   return null
 
+config.isComment = ->
+  text.match(/^(\s*\/\/.*)|(#.*)$/)?
+
+config.parseComment = ->
+  # Try standard comment
+  comment = text.match(/^(\s*\/\/)(.*)$/)
+  if comment?
+    return [
+      [comment[1].length, comment[1].length + comment[2].length]
+    ]
+
+  # Try #include or #ifdef directive
+  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:ifndef))\s*)(.*)$/)
+  if unary?
+    return [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+
+  # Try #define directive
+  binary = text.match(/^(#\s*(?:(?:define))\s*)(.*)$/)
+  if binary?
+    return [
+      [binary[1].length, binary[1].length + binary[2].length]
+    ]
+
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->
 #  while true

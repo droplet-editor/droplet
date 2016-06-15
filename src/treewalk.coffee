@@ -14,10 +14,13 @@ exports.createTreewalkParser = (parse, config, root) ->
       @lines = @text.split '\n'
 
     isComment: (text) ->
-      text.match(/^\s*\/\/.*$/)
+      if config?.isComment?
+        return config.isComment(text)
+      else
+        return false
 
-    indentAndCommentMarker: (text) ->
-      text.match(/^\s*\/\//)[0]
+    parseComment: (text) ->
+      return config.parseComment text
 
     markRoot: (context = root) ->
       parseTree = parse(context, @text)
