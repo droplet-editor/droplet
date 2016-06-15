@@ -165,6 +165,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
+              classes: rules
 
         for child in node.children
           @mark child, prefix, depth + 2, false

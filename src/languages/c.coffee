@@ -6,18 +6,28 @@
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
 
-INDENTS = ['compoundStatement']
+INDENTS = ['compoundStatement', 'structDeclarationsBlock']
 SKIPS = ['blockItemList',
+  'macroParamList',
   'compilationUnit',
+  'translationUnit',
+  'declarationSpecifiers',
+  'declarationSpecifier',
+  'typeSpecifier',
+  'structOrUnionSpecifier',
+  'structDeclarationList',
   'declarator',
   'directDeclarator',
   'parameterTypeList',
   'parameterList',
   'argumentExpressionList',
   'initDeclaratorList']
-PARENS = ['expressionStatement', 'primaryExpression']
-SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'Constant']
+PARENS = ['expressionStatement', 'primaryExpression', 'structDeclaration']
+SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'SharedIncludeLiteral', 'Constant']
 COLORS_FORWARD = {
+  'externalDeclaration': 'control'
+  'structDeclaration': 'command'
+  'declarationSpecifier': 'control'
   'statement': 'command'
   'selectionStatement': 'control'
   'iterationStatement': 'control'

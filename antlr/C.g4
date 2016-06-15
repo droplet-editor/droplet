@@ -238,13 +238,18 @@ typeSpecifier
     ;
 
 structOrUnionSpecifier
-    :   structOrUnion Identifier? '{' structDeclarationList '}'
+    :   structOrUnion Identifier? structDeclarationsBlock
     |   structOrUnion Identifier
     ;
 
 structOrUnion
     :   'struct'
     |   'union'
+    ;
+
+
+structDeclarationsBlock
+    :   '{' structDeclarationList '}'
     ;
 
 structDeclarationList
@@ -509,9 +514,43 @@ translationUnit
     |   translationUnit externalDeclaration
     ;
 
+includeDirective
+    :   '#' 'include' StringLiteral
+    |   '#' 'include' SharedIncludeLiteral
+    ;
+
+defineDirective
+    :   defineDirectiveWithParams
+    |   defineDirectiveNoParams
+    |   defineDirectiveNoVal
+    ;
+
+defineDirectiveNoVal
+    :   '#' 'define' Identifier
+    ;
+
+defineDirectiveNoParams
+    :   '#' 'define'  Identifier macroResult
+    ;
+
+defineDirectiveWithParams
+    :   '#' 'define' Identifier '(' macroParamList ')' macroResult
+    ;
+
+macroResult
+    :   expression
+    ;
+
+macroParamList
+    :   Identifier
+    |   macroParamList ',' Identifier
+    ;
+
 externalDeclaration
     :   functionDefinition
     |   declaration
+    |   includeDirective
+    |   defineDirective
     |   ';' // stray ;
     ;
 
@@ -840,6 +879,10 @@ HexadecimalEscapeSequence
 
 StringLiteral
     :   EncodingPrefix? '"' SCharSequence? '"'
+    ;
+
+SharedIncludeLiteral
+    :   '<' SCharSequence '>'
     ;
 
 fragment
