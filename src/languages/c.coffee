@@ -83,17 +83,20 @@ config = {
   INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD, SHAPES_FORWARD, SHAPES_BACKWARD
 }
 
-ADD_PARENS = (leading, trailing, node, context) ->
-  leading '(' + leading()
-  trailing trailing() + ')'
-
-config.parenRules = {
-  'primaryExpression': {
-    'expression': ADD_PARENS
-    'additiveExpression': ADD_PARENS
-    'multiplicativeExpression': ADD_PARENS
-    'assignmentExpression': ADD_PARENS
-    'postfixExpression': ADD_PARENS
+preConfig = {
+  INDENTS: {}, SKIPS: ['compilationUnit', 'line'], PARENS: [], SOCKET_TOKENS: ['Identifier', 'StringLiteral', 'SharedIncludeLiteral']
+  COLOR_CALLBACK: ->
+  SHAPE_CALLBACK: ->
+  SHOULD_SOCKET: -> true
+  COLORS_FORWARD: {
+    'preprocessorDirective': 'purple'
+  }
+  COLORS_BACKWARD: {}
+  SHAPES_FORWARD: {
+    'preprocessorDirective': 'block-only'
+  }
+  SHAPES_BACKWARD: {
+    'preprocessorDirective': 'value-only'
   }
 }
 
@@ -133,6 +136,23 @@ config.SHAPE_CALLBACK = (opts, node) ->
     return opts.knownFunctions[node.children[0].children[0].children[0].data.text].shape
   return null
 
+masterConfig = {}
+
+ADD_PARENS = (leading, trailing, node, context) ->
+  leading '(' + leading()
+  trailing trailing() + ')'
+
+masterConfig.parenRules = {
+  'primaryExpression': {
+    'expression': ADD_PARENS
+    'additiveExpression': ADD_PARENS
+    'multiplicativeExpression': ADD_PARENS
+    'assignmentExpression': ADD_PARENS
+    'postfixExpression': ADD_PARENS
+  }
+}
+
+
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->
 #  while true
@@ -145,4 +165,21 @@ config.SHAPE_CALLBACK = (opts, node) ->
 # DEBUG
 config.unParenWrap = null
 
-module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config
+removeSourceLines = (tree) ->
+  tree.children = tree.children.filter (child) ->
+    not (child.type is 'line' and child.children[0].type is 'sourceLine')
+  console.log 'Removed source lines, now tree is', tree
+  return tree
+
+module.exports = parser.wrapParser antlrHelper.createANTLRParser [
+  {
+    name: 'C_pre',
+    config: preConfig
+    postprocess: removeSourceLines
+  }
+  ,
+  {
+    name: 'C',
+    config
+  }
+], masterConfig

@@ -514,43 +514,9 @@ translationUnit
     |   translationUnit externalDeclaration
     ;
 
-includeDirective
-    :   '#' 'include' StringLiteral
-    |   '#' 'include' SharedIncludeLiteral
-    ;
-
-defineDirective
-    :   defineDirectiveWithParams
-    |   defineDirectiveNoParams
-    |   defineDirectiveNoVal
-    ;
-
-defineDirectiveNoVal
-    :   '#' 'define' Identifier
-    ;
-
-defineDirectiveNoParams
-    :   '#' 'define'  Identifier macroResult
-    ;
-
-defineDirectiveWithParams
-    :   '#' 'define' Identifier '(' macroParamList ')' macroResult
-    ;
-
-macroResult
-    :   expression
-    ;
-
-macroParamList
-    :   Identifier
-    |   macroParamList ',' Identifier
-    ;
-
 externalDeclaration
     :   functionDefinition
     |   declaration
-    |   includeDirective
-    |   defineDirective
     |   ';' // stray ;
     ;
 
@@ -904,13 +870,8 @@ SChar
     |   EscapeSequence
     ;
 
-LineDirective
-    :   '#' Whitespace? DecimalConstant Whitespace? StringLiteral ~[\r\n]*
-        -> skip
-    ;
-
-PragmaDirective
-    :   '#' Whitespace? 'pragma' Whitespace ~[\r\n]*
+PreprocessorDirective
+    :   '#' .*? ~[\r\n]*
         -> skip
     ;
 
