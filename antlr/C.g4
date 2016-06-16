@@ -476,9 +476,16 @@ blockItemList
     |   blockItemList blockItem
     ;
 
+// A block item can be a special kind of function call, which we
+// check before we check declarations to avoid conflicts with a (b);.
 blockItem
-    :   declaration
+    :   specialMethodCall
+    |   declaration
     |   statement
+    ;
+
+specialMethodCall
+    :   postfixExpression '(' assignmentExpression ')' ';'
     ;
 
 expressionStatement

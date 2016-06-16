@@ -217,7 +217,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   isComment: (str) ->
     str.match(/^\s*#.*$/)?
 
-  indentAndCommentMarker: (str) ->
+  parseComment: (str) ->
     {
       sockets: [[str.match(/^\s*#/)?[0].length, str.length]]
     }

@@ -2650,8 +2650,10 @@ Editor::getDropdownList = (socket) ->
     result = socket.dropdown
   if result.options
     result = result.options
-  return result.map (x) ->
-    if 'string' is typeof x then { text: x, display: x } else x
+  newresult = {}
+  for key, val of result
+    newresult = if 'string' is typeof val then { text: val, display: val } else val
+  return newresult
 
 Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
   @dropdownVisible = true

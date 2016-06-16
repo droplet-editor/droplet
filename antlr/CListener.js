@@ -695,6 +695,15 @@ CListener.prototype.exitBlockItem = function(ctx) {
 };
 
 
+// Enter a parse tree produced by CParser#specialMethodCall.
+CListener.prototype.enterSpecialMethodCall = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#specialMethodCall.
+CListener.prototype.exitSpecialMethodCall = function(ctx) {
+};
+
+
 // Enter a parse tree produced by CParser#expressionStatement.
 CListener.prototype.enterExpressionStatement = function(ctx) {
 };

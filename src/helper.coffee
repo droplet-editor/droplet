@@ -154,11 +154,16 @@ exports.string = (arr) ->
   return last
 
 exports.deepCopy = deepCopy = (a) ->
-  if a instanceof Object
+  if a instanceof Array
+    return a.map (el) -> deepCopy el
+  else if a instanceof Object
     newObject = {}
 
     for key, val of a
-      newObject[key] = deepCopy val
+      if val instanceof Function
+        newObject[key] = val
+      else
+        newObject[key] = deepCopy val
 
     return newObject
 

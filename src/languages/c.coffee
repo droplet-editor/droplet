@@ -25,6 +25,7 @@ SKIPS = ['blockItemList',
   'parameterTypeList',
   'parameterList',
   'argumentExpressionList',
+  'initializerList',
   'initDeclaratorList']
 PARENS = ['expressionStatement', 'primaryExpression', 'structDeclaration']
 SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'SharedIncludeLiteral', 'Constant']
@@ -44,6 +45,9 @@ COLORS_FORWARD = {
   'parameterDeclaration': 'command'
   'unaryExpression': 'value'
   'typeName': 'value'
+  'initializer': 'value'
+  'castExpression': 'value'
+  'postfixExpression': 'value'
 }
 COLORS_BACKWARD = {
   'iterationStatement': 'control'
@@ -68,6 +72,9 @@ SHAPES_FORWARD = {
   'parameterDeclaration': 'block-only'
   'unaryExpression': 'value-only'
   'typeName': 'value-only'
+  'initializer': 'value-only'
+  'castExpression': 'value-only'
+  'postfixExpression': 'value-only'
 }
 SHAPES_BACKWARD = {
   'equalityExpression': 'value-only'
@@ -103,7 +110,7 @@ config.SHOULD_SOCKET = (opts, node) ->
   # If it is a function call, and we are the first child
   if node.parent.type is 'primaryExpression' and
      node.parent.parent.type is 'postfixExpression' and
-     node.parent.parent.parent.type is 'postfixExpression' and
+     node.parent.parent.parent.type in ['postfixExpression', 'specialMethodCall'] and
      node.parent.parent.parent.children.length in [3, 4] and
      node.parent.parent.parent.children[1].type is 'LeftParen' and
      (node.parent.parent.parent.children[2].type is 'RightParen' or node.parent.parent.parent.children[3]?.type is 'RightParen') and
@@ -113,8 +120,8 @@ config.SHOULD_SOCKET = (opts, node) ->
   return true
 
 config.COLOR_CALLBACK = (opts, node) ->
-  if node.type is 'postfixExpression' and
-     node.children.length in [3, 4] and
+  if node.type in ['postfixExpression', 'specialMethodCall'] and
+     node.children.length in [4, 5] and
      node.children[1].type is 'LeftParen' and
      (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
      node.children[0].children[0].type is 'primaryExpression' and
@@ -124,8 +131,8 @@ config.COLOR_CALLBACK = (opts, node) ->
   return null
 
 config.SHAPE_CALLBACK = (opts, node) ->
-  if node.type is 'postfixExpression' and
-     node.children.length in [3, 4] and
+  if node.type in ['postfixExpression', 'specialMethodCall'] and
+     node.children.length in [4, 5] and
      node.children[1].type is 'LeftParen' and
      (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
      node.children[0].children[0].type is 'primaryExpression' and

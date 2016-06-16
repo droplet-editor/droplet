@@ -219,8 +219,6 @@ exports.Parser = class Parser
 
       lastPosition = 0
 
-      console.log sockets
-
       for socketPosition in sockets
         socket = new model.Socket '', 0, true
         socket.setParent block

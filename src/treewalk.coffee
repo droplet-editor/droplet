@@ -71,7 +71,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       for el, i in rules
         if el of config.COLORS_FORWARD
           return config.COLORS_FORWARD[el]
-      return 'violet'
+      return 'purple'
 
     getShape: (node, rules) ->
       shape = config.SHAPE_CALLBACK(@opts, node)
