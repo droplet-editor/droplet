@@ -180,6 +180,8 @@ exports.Editor = class Editor
     # element with all the necessary ICE editor components.
     @debugging = true
 
+    @options = helper.deepCopy @options
+
     # ### Wrapper
     # Create the div that will contain all the ICE Editor graphics
 

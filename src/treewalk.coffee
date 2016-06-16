@@ -198,6 +198,8 @@ exports.createTreewalkParser = (parse, config, root) ->
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'
+      if '__comment__' in context.classes
+        return helper.DISCOURAGE
       for c in context.classes
         if c in block.classes
           return helper.ENCOURAGE
