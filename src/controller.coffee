@@ -3215,6 +3215,8 @@ hook 'keydown', 0, (event, state) ->
       while head.type is 'newline'
         head = head.prev
 
+      newSocket.parseContext = head.parent.parseContext
+
       @spliceIn newBlock, head #MUTATION
 
       @redrawMain()

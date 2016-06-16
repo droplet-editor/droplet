@@ -212,7 +212,10 @@ exports.Parser = class Parser
 
       head = block.start
 
-      sockets = @parseComment(text)
+      {sockets, color} = @parseComment(text)
+
+      if color?
+        block.color = color
 
       lastPosition = 0
 

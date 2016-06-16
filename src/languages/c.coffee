@@ -140,35 +140,45 @@ config.parseComment = (text) ->
   # Try standard comment
   comment = text.match(/^(\s*\/\/)(.*)$/)
   if comment?
-    return [
+    ranges =  [
       [comment[1].length, comment[1].length + comment[2].length]
     ]
+    color = 'comment'
 
   if text.match(/^#\s*((?:else)|(?:endif))$/)
-    return []
+    ranges =  []
+    color = 'purple'
 
   # Try #include or #ifdef directive
   unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:ifndef)|(?:undef))\s*)(.*)$/)
   if unary?
-    return [
+    ranges =  [
       [unary[1].length, unary[1].length + unary[2].length]
     ]
+    color = 'purple'
 
   # Try #define directive
   binary = text.match(/^(#\s*(?:(?:define))\s*)([a-zA-Z_][0-9a-zA-Z_]*)(\s+)(.*)$/)
   if binary?
-    return [
+    ranges =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
+    color = 'purple'
 
   # Try functional #define directive.
   binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
   if binary?
-    return [
+    ranges =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
+    color = 'purple'
+
+  return {
+    sockets: ranges
+    color
+  }
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->
