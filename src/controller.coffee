@@ -868,6 +868,7 @@ class CapturePoint
 Editor::setFocusedText = (value) ->
   if @getCursor().type is 'socket'
     @populateSocket @getCursor(), value
+    @hiddenInput.value = value
     @redrawMain()
 
 # BASIC BLOCK MOVE SUPPORT
