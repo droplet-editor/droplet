@@ -323,7 +323,17 @@ alignmentSpecifier
     ;
 
 declarator
-    :   pointer? directDeclarator gccDeclaratorExtension*
+    :   pointer? rootDeclarator gccDeclaratorExtension*
+    ;
+
+rootDeclarator
+    :   Identifier
+    |   directDeclarator '[' typeQualifierList? assignmentExpression? ']'
+    |   directDeclarator '[' 'static' typeQualifierList? assignmentExpression ']'
+    |   directDeclarator '[' typeQualifierList 'static' assignmentExpression ']'
+    |   directDeclarator '[' typeQualifierList? '*' ']'
+    |   directDeclarator '(' parameterTypeList ')'
+    |   directDeclarator '(' identifierList? ')'
     ;
 
 directDeclarator
