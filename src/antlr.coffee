@@ -43,12 +43,15 @@ exports.createANTLRParser = (name, config, root) ->
       result.parent = parent
     else
       result.terminal = true
-      result.type = (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type]
       result.children = []
       result.bounds = getBounds node
       result.parent = parent
-      if node.symbol?.text
+      if node.symbol?
+        result.type = (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type]
         result.data = {text: node.symbol.text}
+      else
+        result.type = node.parser.ruleNames[node.ruleIndex]
+        result.data = {}
 
     return result
 
@@ -62,6 +65,17 @@ exports.createANTLRParser = (name, config, root) ->
         end: {
           line: node.stop.line - 1
           column: node.stop.column + node.stop.stop - node.stop.start + 1
+        }
+      }
+    else if node.start? and not node.symbol?
+      return {
+        start: {
+          line: node.start.line - 1
+          column: node.start.column
+        }
+        end: {
+          line: node.start.line - 1
+          column: node.start.column
         }
       }
     else

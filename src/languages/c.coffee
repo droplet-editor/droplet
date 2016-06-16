@@ -133,10 +133,10 @@ config.SHAPE_CALLBACK = (opts, node) ->
     return opts.knownFunctions[node.children[0].children[0].children[0].data.text].shape
   return null
 
-config.isComment = ->
+config.isComment = (text) ->
   text.match(/^(\s*\/\/.*)|(#.*)$/)?
 
-config.parseComment = ->
+config.parseComment = (text) ->
   # Try standard comment
   comment = text.match(/^(\s*\/\/)(.*)$/)
   if comment?
@@ -144,18 +144,30 @@ config.parseComment = ->
       [comment[1].length, comment[1].length + comment[2].length]
     ]
 
+  if text.match(/^#\s*((?:else)|(?:endif))$/)
+    return []
+
   # Try #include or #ifdef directive
-  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:ifndef))\s*)(.*)$/)
+  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:ifndef)|(?:undef))\s*)(.*)$/)
   if unary?
     return [
       [unary[1].length, unary[1].length + unary[2].length]
     ]
 
   # Try #define directive
-  binary = text.match(/^(#\s*(?:(?:define))\s*)(.*)$/)
+  binary = text.match(/^(#\s*(?:(?:define))\s*)([a-zA-Z_][0-9a-zA-Z_]*)(\s+)(.*)$/)
   if binary?
     return [
       [binary[1].length, binary[1].length + binary[2].length]
+      [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
+    ]
+
+  # Try functional #define directive.
+  binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
+  if binary?
+    return [
+      [binary[1].length, binary[1].length + binary[2].length]
+      [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
 
 # TODO Implement removing parentheses at some point

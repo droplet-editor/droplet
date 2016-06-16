@@ -206,34 +206,69 @@ exports.Parser = class Parser
   # text inside
   constructHandwrittenBlock: (text) ->
     block = new model.Block 0, 'comment', helper.ANY_DROP
-    socket = new model.Socket '', 0, true
-    socket.setParent block
-
     if @isComment text
-      posAfterIndentAndCommentMarker = @indentAndCommentMarker(text).length
-      if posAfterIndentAndCommentMarker
-        textPrefix = text[...posAfterIndentAndCommentMarker]
-        text = text[posAfterIndentAndCommentMarker..]
       block.socketLevel = helper.BLOCK_ONLY
       block.classes = ['__comment__', 'block-only']
-      socket.classes = ['__comment__']
+
+      head = block.start
+
+      sockets = @parseComment(text)
+
+      lastPosition = 0
+
+      console.log sockets
+
+      for socketPosition in sockets
+        socket = new model.Socket '', 0, true
+        socket.setParent block
+
+        socket.classes = ['__comment__']
+
+        padText = text[lastPosition...socketPosition[0]]
+
+        if padText.length > 0
+          padTextToken = new model.TextToken padText
+          padTextToken.setParent block
+
+          helper.connect head, padTextToken
+
+          head = padTextToken
+
+        textToken = new model.TextToken text[socketPosition[0]...socketPosition[1]]
+        textToken.setParent block
+
+        helper.connect head, socket.start
+        helper.connect socket.start, textToken
+        helper.connect textToken, socket.end
+
+        head = socket.end
+
+        lastPosition = socketPosition[1]
+
+      finalPadText = text[lastPosition...text.length]
+
+      if finalPadText.length > 0
+        finalPadTextToken = new model.TextToken finalPadText
+        finalPadTextToken.setParent block
+
+        helper.connect head, finalPadTextToken
+
+        head = finalPadTextToken
+
+      helper.connect head, block.end
+
     else
+      socket = new model.Socket '', 0, true
+      textToken = new model.TextToken text
+      textToken.setParent socket
+
       block.classes = ['__handwritten__', 'block-only']
-
-    textToken = new model.TextToken text
-    textToken.setParent block
-
-    if textPrefix
-      textPrefixToken = new model.TextToken textPrefix
-      textPrefixToken.setParent block
-      helper.connect block.start, textPrefixToken
-      helper.connect textPrefixToken, socket.start
-    else
       helper.connect block.start, socket.start
 
-    helper.connect socket.start, textToken
-    helper.connect textToken, socket.end
-    helper.connect socket.end, block.end
+      helper.connect socket.start, textToken
+      helper.connect textToken, socket.end
+      helper.connect socket.end, block.end
+
 
     return block
 

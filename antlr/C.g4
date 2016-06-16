@@ -507,6 +507,7 @@ jumpStatement
 
 compilationUnit
     :   translationUnit? EOF
+    |
     ;
 
 translationUnit
