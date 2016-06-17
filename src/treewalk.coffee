@@ -42,18 +42,20 @@ exports.createTreewalkParser = (parse, config, root) ->
           max = val
       return best
 
+    applyRule: (rule, node) ->
+      if 'string' is typeof rule
+        return {type: rule}
+      else if rule instanceof Function
+        return rule(node)
+      else
+        return rule
 
-    det: (rule) ->
-      if rule of config.INDENTS then return 'indent'
-      else if rule in config.SKIPS then return 'skip'
-      else if rule in config.PARENS then return 'parens'
-      else return 'block'
+    det: (node) ->
+      if node.type of config.RULES
+        return @applyRule(config.RULES[node.type], node).type
+      return 'block'
 
-    detNode: (node) -> if node.blockified then 'block' else @det(node.type)
-    detToken: (node) ->
-      if node.type?
-        if node.type in config.SOCKET_TOKENS then 'socket' else 'none'
-      else 'none'
+    detNode: (node) -> if node.blockified then 'block' else @det(node)
 
     getDropType: (context) -> ({
       'block': 'mostly-value'
@@ -65,25 +67,31 @@ exports.createTreewalkParser = (parse, config, root) ->
       color = config.COLOR_CALLBACK(@opts, node)
       if color?
         return color
-      for el, i in rules by -1
-        if el of config.COLORS_BACKWARD
-          return config.COLORS_BACKWARD[el]
-      for el, i in rules
-        if el of config.COLORS_FORWARD
-          return config.COLORS_FORWARD[el]
-      return 'purple'
+
+      # Apply the static rules set given in config
+      rulesSet = {}
+      rules.forEach (el) -> rulesSet[el] = true
+
+      for colorRule in config.COLOR_RULES
+        if colorRule[0] of rulesSet
+          return colorRule[1]
+
+      return 'comment'
 
     getShape: (node, rules) ->
       shape = config.SHAPE_CALLBACK(@opts, node)
       if shape?
         return shape
-      for el, i in rules by -1
-        if el of config.SHAPES_BACKWARD
-          return config.SHAPES_BACKWARD[el]
-      for el, i in rules
-        if el of config.SHAPES_FORWARD
-          return config.SHAPES_FORWARD[el]
-      return 'mostly-block'
+
+      # Apply the static rules set given in config
+      rulesSet = {}
+      rules.forEach (el) -> rulesSet[el] = true
+
+      for shapeRule in config.SHAPE_RULES
+        if shapeRule[0] of rulesSet
+          return shapeRule[1]
+
+      return 'comment'
 
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
@@ -156,7 +164,18 @@ exports.createTreewalkParser = (parse, config, root) ->
                 classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
                 parseContext: (if wrap? then wrap.type else rules[0])
 
-          when 'indent' then if @det(context) is 'block'
+          when 'indent'
+            # A lone indent needs to be wrapped in a block.
+            if @det(context) isnt 'block'
+              @addBlock
+                bounds: node.bounds
+                depth: depth
+                color: @getColor node, rules
+                classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
+                parseContext: (if wrap? then wrap.type else rules[0])
+
+              depth += 1
+
             start = origin = node.children[0].bounds.start
             for child, i in node.children
               if child.children.length > 0
@@ -184,12 +203,12 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
               classes: rules
-              parseContext: config.INDENTS[node.type]
+              parseContext: @applyRule(config.RULES[node.type], node).indentContext
 
         for child in node.children
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
-        if @detToken(node) is 'socket' and config.SHOULD_SOCKET(@opts, node)
+        if @det(node) is 'socket' and config.SHOULD_SOCKET(@opts, node)
           @addSocket
             bounds: node.bounds
             depth: depth

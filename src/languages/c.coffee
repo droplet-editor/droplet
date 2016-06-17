@@ -6,89 +6,108 @@
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
 
-INDENTS = {
-  'compoundStatement': 'blockItem',
-  'structDeclarationsBlock': 'structDeclaration'
-}
-SKIPS = ['blockItemList',
-  'macroParamList',
-  'compilationUnit',
-  'translationUnit',
-  'declarationSpecifiers',
-  'declarationSpecifier',
-  'typeSpecifier',
-  'structOrUnionSpecifier',
-  'structDeclarationList',
-  'declarator',
-  'directDeclarator',
-  'rootDeclarator',
-  'parameterTypeList',
-  'parameterList',
-  'argumentExpressionList',
-  'initializerList',
-  'initDeclaratorList']
-PARENS = ['expressionStatement', 'primaryExpression', 'structDeclaration']
-SOCKET_TOKENS = ['Identifier', 'StringLiteral', 'SharedIncludeLiteral', 'Constant']
-COLORS_FORWARD = {
-  'externalDeclaration': 'control'
-  'structDeclaration': 'command'
-  'declarationSpecifier': 'control'
-  'statement': 'command'
-  'selectionStatement': 'control'
-  'iterationStatement': 'control'
-  'functionDefinition': 'control'
-  'expressionStatement': 'command'
-  'expression': 'value'
-  'additiveExpression': 'value'
-  'multiplicativeExpression': 'value'
-  'declaration': 'command'
-  'parameterDeclaration': 'command'
-  'unaryExpression': 'value'
-  'typeName': 'value'
-  'initializer': 'value'
-  'castExpression': 'value'
-  'postfixExpression': 'value'
-}
-COLORS_BACKWARD = {
-  'iterationStatement': 'control'
-  'selectionStatement': 'control'
-  'assignmentExpression': 'command'
-  'relationalExpression': 'value'
-  'initDeclarator': 'command'
-}
-SHAPES_FORWARD = {
-  'externalDeclaration': 'block-only'
-  'structDeclaration': 'block-only'
-  'declarationSpecifier': 'block-only'
-  'statement': 'block-only'
-  'selectionStatement': 'block-only'
-  'iterationStatement': 'block-only'
-  'functionDefinition': 'block-only'
-  'expressionStatement': 'value-only'
-  'expression': 'value-only'
-  'additiveExpression': 'value-only'
-  'multiplicativeExpression': 'value-only'
-  'declaration': 'block-only'
-  'parameterDeclaration': 'block-only'
-  'unaryExpression': 'value-only'
-  'typeName': 'value-only'
-  'initializer': 'value-only'
-  'castExpression': 'value-only'
-  'postfixExpression': 'value-only'
-}
-SHAPES_BACKWARD = {
-  'equalityExpression': 'value-only'
-  'logicalAndExpression': 'value-only'
-  'logicalOrExpression': 'value-only'
-  'iterationStatement': 'block-only'
-  'selectionStatement': 'block-only'
-  'assignmentExpression': 'block-only'
-  'relationalExpression': 'value-only'
-  'initDeclarator': 'block-only'
+RULES = {
+  # Indents
+  'compoundStatement': {
+    'type': 'indent',
+    'indentContext': 'blockItem',
+  },
+  'structDeclarationsBlock': {
+    'type': 'indent',
+    'indentContext': 'structDeclaration'
+  },
+
+  # Parens
+  'expressionStatement': 'parens',
+  'primaryExpression': 'parens',
+  'structDeclaration': 'parens',
+
+  # Skips
+  'blockItemList': 'skip',
+  'macroParamList': 'skip',
+  'compilationUnit': 'skip',
+  'translationUnit': 'skip',
+  'declarationSpecifiers': 'skip',
+  'declarationSpecifier': 'skip',
+  'typeSpecifier': 'skip',
+  'structOrUnionSpecifier': 'skip',
+  'structDeclarationList': 'skip',
+  'declarator': 'skip',
+  'directDeclarator': 'skip',
+  'rootDeclarator': 'skip',
+  'parameterTypeList': 'skip',
+  'parameterList': 'skip',
+  'argumentExpressionList': 'skip',
+  'initializerList': 'skip',
+  'initDeclaratorList': 'skip',
+
+  # Sockets
+  'Identifier': 'socket',
+  'StringLiteral': 'socket',
+  'SharedIncludeLiteral': 'socket',
+  'Constant': 'socket'
 }
 
+COLOR_RULES = [
+  ['declaration', 'control'],
+  ['specialMethodCall', 'command'],
+  ['postfixExpression', 'command'],
+  ['iterationStatement', 'control'],
+  ['selectionStatement', 'control'],
+  ['assignmentExpression', 'command'],
+  ['relationalExpression', 'value'],
+  ['initDeclarator', 'command'],
+  ['blockItemList', 'control'],
+  ['compoundStatement', 'control'],
+  ['externalDeclaration', 'control'],
+  ['structDeclaration', 'command'],
+  ['declarationSpecifier', 'control'],
+  ['statement', 'command'],
+  ['selectionStatement', 'control'],
+  ['iterationStatement', 'control'],
+  ['functionDefinition', 'control'],
+  ['expressionStatement', 'command'],
+  ['expression', 'value'],
+  ['additiveExpression', 'value'],
+  ['multiplicativeExpression', 'value'],
+  ['parameterDeclaration', 'command'],
+  ['unaryExpression', 'value'],
+  ['typeName', 'value'],
+  ['initializer', 'value'],
+  ['castExpression', 'value'],
+]
+
+SHAPE_RULES = [
+  ['postfixExpression', 'block-only'],
+  ['equalityExpression', 'value-only'],
+  ['logicalAndExpression', 'value-only'],
+  ['logicalOrExpression', 'value-only'],
+  ['iterationStatement', 'block-only'],
+  ['selectionStatement', 'block-only'],
+  ['assignmentExpression', 'block-only'],
+  ['relationalExpression', 'value-only'],
+  ['initDeclarator', 'block-only'],
+  ['externalDeclaration', 'block-only'],
+  ['structDeclaration', 'block-only'],
+  ['declarationSpecifier', 'block-only'],
+  ['statement', 'block-only'],
+  ['selectionStatement', 'block-only'],
+  ['iterationStatement', 'block-only'],
+  ['functionDefinition', 'block-only'],
+  ['expressionStatement', 'value-only'],
+  ['expression', 'value-only'],
+  ['additiveExpression', 'value-only'],
+  ['multiplicativeExpression', 'value-only'],
+  ['declaration', 'block-only'],
+  ['parameterDeclaration', 'block-only'],
+  ['unaryExpression', 'value-only'],
+  ['typeName', 'value-only'],
+  ['initializer', 'value-only'],
+  ['castExpression', 'value-only']
+]
+
 config = {
-  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD, SHAPES_FORWARD, SHAPES_BACKWARD
+  RULES, COLOR_RULES, SHAPES_FORWARD, SHAPES_BACKWARD
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
@@ -121,7 +140,7 @@ config.SHOULD_SOCKET = (opts, node) ->
 
 config.COLOR_CALLBACK = (opts, node) ->
   if node.type in ['postfixExpression', 'specialMethodCall'] and
-     node.children.length in [4, 5] and
+     node.children.length in [3, 4, 5] and
      node.children[1].type is 'LeftParen' and
      (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
      node.children[0].children[0].type is 'primaryExpression' and
@@ -157,8 +176,8 @@ config.parseComment = (text) ->
     ranges =  []
     color = 'purple'
 
-  # Try #include or #ifdef directive
-  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:ifndef)|(?:undef))\s*)(.*)$/)
+  # Try any of the unary directives: #include, #if, #ifdef, #ifndef, #undef, #pragma
+  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
   if unary?
     ranges =  [
       [unary[1].length, unary[1].length + unary[2].length]
