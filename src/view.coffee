@@ -1142,8 +1142,13 @@ exports.View = class View
       for size, line in @dimensions
         child = @lineChildren[line][0]
         childView = @view.getViewNodeFor child.child
-        top = childView.bounds[line - child.startLine].y
+        oldY = childView.bounds[line - child.startLine].y
+        top = childView.bounds[line - child.startLine].y +
+          childView.distanceToBase[line - child.startLine].above -
+          @distanceToBase[line].above
         @computeBoundingBoxY top, line
+        unless childView.bounds[line - child.startLine].y is oldY # TODO make this a test.
+          throw new Error 'BAD!'
       @computePath()
       @computeDropAreas()
 
