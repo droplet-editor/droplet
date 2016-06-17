@@ -2397,7 +2397,6 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     originalText = list.textContent()
     originalUpdates = updates.map (location) ->
       count: location.count, type: location.type
-    @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
     # repopulate with the original text and try again.
@@ -2415,8 +2414,6 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     context = parent.parseContext
   else
     context = (list.start.container ? list.start.parent).parseContext
-
-  console.log 'USING CONTEXT', context
 
   try
     newList = @session.mode.parse list.stringifyInPlace(),{
