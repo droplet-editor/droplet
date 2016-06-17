@@ -445,8 +445,8 @@ var serializedATN = ["\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd",
     "\u046a\3\2\2\2\u046c\u046d\3\2\2\2\u046d\u0097\3\2\2\2\u046e\u046c\3",
     "\2\2\2\u046f\u0473\5\u009aN\2\u0470\u0473\5\62\32\2\u0471\u0473\5\u0090",
     "I\2\u0472\u046f\3\2\2\2\u0472\u0470\3\2\2\2\u0472\u0471\3\2\2\2\u0473",
-    "\u0099\3\2\2\2\u0474\u0475\5\n\6\2\u0475\u0476\7=\2\2\u0476\u0477\5",
-    "*\26\2\u0477\u0478\7>\2\2\u0478\u0479\7Y\2\2\u0479\u009b\3\2\2\2\u047a",
+    "\u0099\3\2\2\2\u0474\u0475\7k\2\2\u0475\u0476\7=\2\2\u0476\u0477\5*",
+    "\26\2\u0477\u0478\7>\2\2\u0478\u0479\7Y\2\2\u0479\u009b\3\2\2\2\u047a",
     "\u047c\5.\30\2\u047b\u047a\3\2\2\2\u047b\u047c\3\2\2\2\u047c\u047d\3",
     "\2\2\2\u047d\u047e\7Y\2\2\u047e\u009d\3\2\2\2\u047f\u0480\7 \2\2\u0480",
     "\u0481\7=\2\2\u0481\u0482\5.\30\2\u0482\u0483\7>\2\2\u0483\u0486\5\u0090",
@@ -8746,8 +8746,8 @@ function SpecialMethodCallContext(parser, parent, invokingState) {
 SpecialMethodCallContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 SpecialMethodCallContext.prototype.constructor = SpecialMethodCallContext;
 
-SpecialMethodCallContext.prototype.postfixExpression = function() {
-    return this.getTypedRuleContext(PostfixExpressionContext,0);
+SpecialMethodCallContext.prototype.Identifier = function() {
+    return this.getToken(CParser.Identifier, 0);
 };
 
 SpecialMethodCallContext.prototype.assignmentExpression = function() {
@@ -8778,7 +8778,7 @@ CParser.prototype.specialMethodCall = function() {
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 1138;
-        this.postfixExpression(0);
+        this.match(CParser.Identifier);
         this.state = 1139;
         this.match(CParser.LeftParen);
         this.state = 1140;

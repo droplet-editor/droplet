@@ -485,7 +485,7 @@ blockItem
     ;
 
 specialMethodCall
-    :   postfixExpression '(' assignmentExpression ')' ';'
+    :   Identifier '(' assignmentExpression ')' ';'
     ;
 
 expressionStatement
