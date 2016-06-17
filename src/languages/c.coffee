@@ -107,14 +107,14 @@ SHAPE_RULES = [
 ]
 
 config = {
-  RULES, COLOR_RULES, SHAPES_FORWARD, SHAPES_BACKWARD
+  RULES, COLOR_RULES, SHAPE_RULES
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
   leading '(' + leading()
   trailing trailing() + ')'
 
-config.parenRules = {
+config.PAREN_RULES = {
   'primaryExpression': {
     'expression': ADD_PARENS
     'additiveExpression': ADD_PARENS

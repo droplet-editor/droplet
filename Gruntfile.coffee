@@ -62,8 +62,17 @@ module.exports = (grunt) ->
             'http://localhost:8942/' + x)
 
     mochaTest:
+      c:
+        src: ['test/src/cParserTests.coffee']
+        bail: true
+        options:
+          reporter: 'list'
+          compilers:
+            'coffee': 'coffee-script/register'
+          timeout: 10000
       test:
         src: [
+          'test/src/cParserTests.coffee'
           'test/src/parserTests.coffee'
           'test/src/modelTests.coffee'
         ]

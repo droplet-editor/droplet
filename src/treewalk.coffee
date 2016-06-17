@@ -64,7 +64,7 @@ exports.createTreewalkParser = (parse, config, root) ->
     })[@detNode(context)]
 
     getColor: (node, rules) ->
-      color = config.COLOR_CALLBACK(@opts, node)
+      color = config.COLOR_CALLBACK?(@opts, node)
       if color?
         return color
 
@@ -79,7 +79,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       return 'comment'
 
     getShape: (node, rules) ->
-      shape = config.SHAPE_CALLBACK(@opts, node)
+      shape = config.SHAPE_CALLBACK?(@opts, node)
       if shape?
         return shape
 
@@ -185,7 +185,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
-            for child, i in node.children by -1
+            for child, i in node.children.reverse() # by -1
               if child.children.length > 0
                 end = child.bounds.end
                 break
@@ -224,9 +224,9 @@ exports.createTreewalkParser = (parse, config, root) ->
           return helper.ENCOURAGE
 
         # Check to see if we could paren-wrap this
-        if config.parenRules? and c of config.parenRules
+        if config.PAREN_RULES? and c of config.PAREN_RULES
           for m in block.classes
-            if m of config.parenRules[c]
+            if m of config.PAREN_RULES[c]
               return helper.ENCOURAGE
 
       return helper.DISCOURAGE
@@ -247,8 +247,8 @@ exports.createTreewalkParser = (parse, config, root) ->
         return
 
     # Otherwise, wrap according to the provided rule
-    for c in context.classes when c of config.parenRules
-      for m in node.classes when m of config.parenRules[c]
-        return config.parenRules[c][m] leading, trailing, node, context
+    for c in context.classes when c of config.PAREN_RULES
+      for m in node.classes when m of config.PAREN_RULES[c]
+        return config.PAREN_RULES[c][m] leading, trailing, node, context
 
   return TreewalkParser
