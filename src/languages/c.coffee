@@ -51,6 +51,8 @@ RULES = {
 COLOR_RULES = [
   ['declaration', 'control'],
   ['specialMethodCall', 'command'],
+  ['additiveExpression', 'value'],
+  ['multiplicativeExpression', 'value'],
   ['postfixExpression', 'command'],
   ['iterationStatement', 'control'],
   ['selectionStatement', 'control'],
@@ -68,8 +70,6 @@ COLOR_RULES = [
   ['functionDefinition', 'control'],
   ['expressionStatement', 'command'],
   ['expression', 'value'],
-  ['additiveExpression', 'value'],
-  ['multiplicativeExpression', 'value'],
   ['parameterDeclaration', 'command'],
   ['unaryExpression', 'value'],
   ['typeName', 'value'],
