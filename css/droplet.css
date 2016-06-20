@@ -153,6 +153,10 @@
 .droplet-main-scroller-stuffing {
   z-index: 10;
 }
+.main-scroller-intermediary {
+  z-index; 10;
+  width: 100%;
+}
 .droplet-palette-scroller-stuffing {
   /* Temporary hack to prevent bad side-scrolling
    * behaviour when dragging blocks out of the palette */
@@ -308,3 +312,4 @@
   letter-spacing: normal;
   pointer-events: none;
 }
+

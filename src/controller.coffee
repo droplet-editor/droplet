@@ -338,8 +338,11 @@ exports.Editor = class Editor
     # ## Tracker Events
     # We allow binding to the tracker element.
     dispatchMouseEvent = (event) =>
-      # ignore mouse clicks that are not the left-button
+      # Ignore mouse clicks that are not the left-button
       if event.type isnt 'mousemove' and event.which isnt 1 then return
+
+      # Ignore mouse clicks whose target is the scrollbar
+      if event.target is @mainScroller then return
 
       trackPoint = new @draw.Point(event.clientX, event.clientY)
 
@@ -3782,10 +3785,14 @@ hook 'populate', 2, ->
   @mainScroller = document.createElement 'div'
   @mainScroller.className = 'droplet-main-scroller'
 
+  @mainScrollerIntermediary = document.createElement 'div'
+  @mainScrollerIntermediary.className = 'droplet-main-scroller-intermediary'
+
   @mainScrollerStuffing = document.createElement 'div'
   @mainScrollerStuffing.className = 'droplet-main-scroller-stuffing'
 
-  @mainScroller.appendChild @mainScrollerStuffing
+  @mainScroller.appendChild @mainScrollerIntermediary
+  @mainScrollerIntermediary.appendChild @mainScrollerStuffing
   @dropletElement.appendChild @mainScroller
 
   # Prevent scrolling on wrapper element
