@@ -611,7 +611,9 @@ exports.wrapParser = (CustomParser) ->
       parser.emptyIndent = @emptyIndent
       return parser
 
-    stringFixer: -> CustomParser.stringFixer.apply @, arguments
+    stringFixer: ->
+      if CustomParser.stringFixer?
+        CustomParser.stringFixer.apply @, arguments
 
     parse: (text, opts) ->
       @opts.parseOptions = opts

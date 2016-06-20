@@ -126,11 +126,11 @@ class Session
       @mode = null
 
     # Instantiate an Droplet editor view
-    @view = new view.View standardViewSettings
-    @paletteView = new view.View helper.extend {}, standardViewSettings, {
+    @view = new view.View helper.extend standardViewSettings, @options.viewSettings ? {}
+    @paletteView = new view.View helper.extend {}, standardViewSettings, @options.viewSettings ? {}, {
       showDropdowns: @options.showDropdownInPalette ? false
     }
-    @dragView = new view.View standardViewSettings
+    @dragView = new view.View helper.extend {}, standardViewSettings, @options.viewSettings ? {}
 
     # ## Document initialization
     # We start of with an empty document
