@@ -695,6 +695,144 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
     )
   ]
 
+asyncTest 'Controller: Session switch test', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks 1'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 2'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 3'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 4'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 5'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 6'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+    ]
+  })
+
+  originalSession = editor.aceEditor.getSession()
+
+  editor.setEditorState(true)
+  editor.setValue('''
+  for i in [0..10]
+    if i % 2 is 0
+      fd 10
+    else
+      bk 10
+  ''')
+
+  equal editor.paletteHeader.childElementCount, 3, 'Palette header originally has three rows'
+
+  newSession = ace.createEditSession('''
+  for (var i = 0; i < 10; i++) {
+    if (i % 2 === 0) {
+      fd(10);
+    }
+    else {
+      bk(10);
+    }
+  }
+  ''', 'ace/mode/javascript')
+
+  executeAsyncSequence [
+    (->
+      editor.aceEditor.setSession newSession
+    ),
+    (->
+      editor.bindNewSession({
+        mode: 'javascript',
+        palette: []
+      })
+
+      editor.setEditorState(true)
+      equal editor.getValue(), '''
+      for (var i = 0; i < 10; i++) {
+        if (i % 2 === 0) {
+          fd(10);
+        }
+        else {
+          bk(10);
+        }
+      }\n
+      ''', 'Set value of new session'
+
+      equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+
+      equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks'
+      editor.setEditorState(false)
+
+      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+    ),
+    (->
+      editor.aceEditor.setSession originalSession
+    ),
+    (->
+      equal editor.getValue(), '''
+      for i in [0..10]
+        if i % 2 is 0
+          fd 10
+        else
+          bk 10\n
+      ''', 'Original text restored'
+
+      equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
+      equal editor.paletteHeader.childElementCount, 3, 'Original palette header size restored'
+    ),
+    (->
+      editor.aceEditor.setSession newSession
+    ),
+    (->
+      equal editor.getValue(), '''
+      for (var i = 0; i < 10; i++) {
+        if (i % 2 === 0) {
+          fd(10);
+        }
+        else {
+          bk(10);
+        }
+      }\n
+      ''', 'Set value of new session'
+
+      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+      equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+
+      start()
+    )
+  ]
+
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {

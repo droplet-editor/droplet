@@ -528,7 +528,7 @@ exports.Editor = class Editor
       @session = session
       @aceEditor.getSession()._dropletSession = @session
       @session.currentlyUsingBlocks = false
-      @setValue @getAceValue()
+      @setValue_raw @getAceValue()
       @setPalette @session.paletteGroups
       return session
 
@@ -3788,6 +3788,9 @@ hook 'populate', 2, ->
   @mainScroller = document.createElement 'div'
   @mainScroller.className = 'droplet-main-scroller'
 
+  # @mainScrollerIntermediary -- this is so that we can be certain that
+  # any event directly on @mainScroller is in fact on the @mainScroller scrollbar,
+  # so should not be captured by editor mouse event handlers.
   @mainScrollerIntermediary = document.createElement 'div'
   @mainScrollerIntermediary.className = 'droplet-main-scroller-intermediary'
 
@@ -4124,7 +4127,7 @@ Editor::setEditorState = (useBlocks) ->
       throw new ArgumentError 'cannot switch to blocks if a session has not been set up.'
 
     unless @session.currentlyUsingBlocks
-      @setValue @getAceValue()
+      @setValue_raw @getAceValue()
 
     @dropletElement.style.top = '0px'
     if @session.paletteEnabled
@@ -4390,6 +4393,8 @@ Editor::editorHasFocus = ->
   document.hasFocus()
 
 Editor::flash = ->
+  return unless @session?
+
   if @lassoSelection? or @draggingBlock? or
       (@cursorAtSocket() and @textInputHighlighted) or
       not @highlightsCurrentlyShown or
