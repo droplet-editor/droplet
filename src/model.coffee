@@ -500,6 +500,7 @@ exports.Container = class Container extends List
       type: @type
       precedence: @precedence
       classes: @classes
+      parseContext: @parseContext
     }
 
   setParent: (parent) ->

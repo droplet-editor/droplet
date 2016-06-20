@@ -228,8 +228,30 @@ exports.createTreewalkParser = (parse, config, root) ->
           for m in block.classes
             if m of config.PAREN_RULES[c]
               return helper.ENCOURAGE
+      return helper.DISCOURAGE
+
+    else if context.type is 'indent'
+      console.log context.parseContext, block.classes
+      if '__comment__' in block.classes
+        return helper.ENCOURAGE
+
+      if context.parseContext in block.classes
+        return helper.ENCOURAGE
 
       return helper.DISCOURAGE
+
+    else if context.type is 'document'
+      if '__comment__' in block.classes
+        return helper.ENCOURAGE
+
+      if 'externalDeclaration' in block.classes or
+         'translationUnit' in block.classes
+        return helper.ENCOURAGE
+
+      return helper.DISCOURAGE
+
+    return helper.DISCOURAGE
+
 
   # Doesn't yet deal with parens
   TreewalkParser.parens = (leading, trailing, node, context)->
