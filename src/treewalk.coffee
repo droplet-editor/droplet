@@ -232,7 +232,6 @@ exports.createTreewalkParser = (parse, config, root) ->
       return helper.DISCOURAGE
 
     else if context.type is 'indent'
-      console.log context.parseContext, parseClasses(block)
       if '__comment__' in parseClasses(block)
         return helper.ENCOURAGE
 

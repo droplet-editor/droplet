@@ -1130,7 +1130,15 @@ exports.View = class View
       @computeMargins()
       @computeBevels()
       @computeMinDimensions()
-      @computeDimensions 0, true
+      # Replacement for computeDimensions
+      for size, line in @minDimensions
+        @distanceToBase[line] = {
+          above: @lineChildren[line].map((child) => @view.getViewNodeFor(child.child).distanceToBase[line - child.startLine].above).reduce((a, b) -> Math.max(a, b))
+          below: @lineChildren[line].map((child) => @view.getViewNodeFor(child.child).distanceToBase[line - child.startLine].below).reduce((a, b) -> Math.max(a, b))
+        }
+        @dimensions[line] = new draw.Size @minDimensions[line].width, @minDimensions[line].height
+
+      #@computeDimensions false, true
       # Replacement for computeAllBoundingBoxX
       for size, line in @dimensions
         child = @lineChildren[line][0]
@@ -1147,8 +1155,6 @@ exports.View = class View
           childView.distanceToBase[line - child.startLine].above -
           @distanceToBase[line].above
         @computeBoundingBoxY top, line
-        unless childView.bounds[line - child.startLine].y is oldY # TODO make this a test.
-          throw new Error 'BAD!'
       @computePath()
       @computeDropAreas()
 
@@ -1715,7 +1721,7 @@ exports.View = class View
           path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
         if style.selected
           path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
-        path.bevel = true;
+        path.bevel = true
         path.draw ctx
         textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
         dx = rect.width - textElement.bounds().width

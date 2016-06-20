@@ -125,7 +125,7 @@ config.PAREN_RULES = {
 }
 
 config.SHOULD_SOCKET = (opts, node) ->
-  return true unless node.parent? and node.parent.parent? and node.parent.parent.parent?
+  return true unless opts.knownFunctions? and node.parent? and node.parent.parent? and node.parent.parent.parent?
   # If it is a function call, and we are the first child
   if (node.parent.type is 'primaryExpression' and
      node.parent.parent.type is 'postfixExpression' and
@@ -140,6 +140,8 @@ config.SHOULD_SOCKET = (opts, node) ->
   return true
 
 config.COLOR_CALLBACK = (opts, node) ->
+  return null unless opts.knownFunctions?
+
   if node.type is 'postfixExpression' and
      node.children.length in [3, 4] and
      node.children[1].type is 'LeftParen' and
@@ -153,6 +155,8 @@ config.COLOR_CALLBACK = (opts, node) ->
   return null
 
 config.SHAPE_CALLBACK = (opts, node) ->
+  return null unless opts.knwonFunctions?
+
   if node.type is 'postfixExpression' and
      node.children.length in [3, 4] and
      node.children[1].type is 'LeftParen' and

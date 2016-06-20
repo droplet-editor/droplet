@@ -6,11 +6,13 @@ controller = require '../../src/controller.coffee'
 
 parser = require '../../src/parser.coffee'
 Coffee = require '../../src/languages/coffee.coffee'
+C = require '../../src/languages/c.coffee'
 JavaScript = require '../../src/languages/javascript.coffee'
 
 droplet = require '../../dist/droplet-full.js'
 
 coffee = new Coffee()
+c = new C()
 
 asyncTest 'Parser success', ->
   window.dumpObj = []
@@ -417,6 +419,63 @@ asyncTest 'Controller: melt/freeze events', ->
       strictEqual states[0], false
       strictEqual states[1], true
       start()
+
+asyncTest 'View: absorbCache', ->
+  view_ = new view.View()
+
+  document = c.parse '''
+  int main() {
+    /* some comment
+    some comment */ puts("Hello"); /* more comments
+    more comments */
+    return 0;
+  }
+  '''
+
+  documentView = view_.getViewNodeFor document
+  documentView.layout()
+
+  start_ = document.getBlockOnLine(1).start
+  end = document.getBlockOnLine(3).end
+
+  list = new model.List start_, end
+
+  for i in [0...10]
+    oldY = [
+      view_.getViewNodeFor(document.getBlockOnLine(1)).bounds[1].y # some comment */
+      view_.getViewNodeFor(document.getFromTextLocation({ # return 0;
+        row: 2
+        col: 18
+        type: 'block'
+      })).bounds[0].y
+      view_.getViewNodeFor(document.getFromTextLocation({ # /* more comments
+        row: 2
+        col: 31
+        type: 'block'
+      })).bounds[0].y
+    ]
+
+    view_.getViewNodeFor(list).absorbCache()
+
+    newY = [
+      view_.getViewNodeFor(document.getBlockOnLine(1)).bounds[1].y # some comment */
+      view_.getViewNodeFor(document.getFromTextLocation({ # return 0;
+        row: 2
+        col: 18
+        type: 'block'
+      })).bounds[0].y
+      view_.getViewNodeFor(document.getFromTextLocation({ # /* more comments
+        row: 2
+        col: 31
+        type: 'block'
+      })).bounds[0].y
+    ]
+
+    equal newY[0], oldY[0], 'First block preserved'
+    equal newY[1], oldY[1], 'Second block preserved'
+    equal newY[2], oldY[2], 'Third block preserved'
+
+  start()
 
 asyncTest 'Controller: palette events', ->
   document.getElementById('test-main').innerHTML = ''
