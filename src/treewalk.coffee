@@ -192,7 +192,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 break
               else unless i is 0
                 end = child.bounds.start
-                if end.column is 0
+                if @lines[end.line][...end.column].trim().length is 0
                   end.line -= 1
                   end.column = @lines[end.line].length
 
