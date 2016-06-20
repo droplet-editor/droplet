@@ -93,18 +93,19 @@ exports.createTreewalkParser = (parse, config, root) ->
 
       return 'comment'
 
-    mark: (node, prefix, depth, pass, rules, context, wrap) ->
+    mark: (node, prefix, depth, pass, rules, context, wrap, wrapRules) ->
       unless pass
         context = node.parent
         while context? and @detNode(context) in ['skip', 'parens']
           context = context.parent
 
       rules ?= []
+      rules = rules.slice 0
       rules.push node.type
 
       # Pass through to child if single-child
       if node.children.length is 1
-        @mark node.children[0], prefix, depth, true, rules, context, wrap
+        @mark node.children[0], prefix, depth, true, rules, context, wrap, wrapRules
 
       else if node.children.length > 0
         switch @detNode node
@@ -118,14 +119,14 @@ exports.createTreewalkParser = (parse, config, root) ->
               @addSocket
                 bounds: bounds
                 depth: depth
-                classes: rules
+                classes: padRules(wrapRules ? rules)
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
             @addBlock
               bounds: bounds
               depth: depth + 1
               color: @getColor node, rules
-              classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
+              classes: padRules(wrapRules ? rules).concat(if context? then @getDropType(context) else @getShape(node, rules))
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'parens'
@@ -139,7 +140,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 else
                   child = el
             if ok
-              @mark child, prefix, depth, true, rules, context, wrap ? node
+              @mark child, prefix, depth, true, rules, context, wrap ? node, wrapRules ? rules
               return
 
             else
@@ -154,14 +155,14 @@ exports.createTreewalkParser = (parse, config, root) ->
                 @addSocket
                   bounds: bounds
                   depth: depth
-                  classes: rules
+                  classes: padRules(wrapRules ? rules)
                   parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
               @addBlock
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor node, rules
-                classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
+                classes: padRules(wrapRules ? rules).concat(if context? then @getDropType(context) else @getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'indent'
@@ -171,7 +172,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: node.bounds
                 depth: depth
                 color: @getColor node, rules
-                classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
+                classes: padRules(wrapRules ? rules).concat(if context? then @getDropType(context) else @getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
               depth += 1
@@ -202,7 +203,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
-              classes: rules
+              classes: padRules(wrapRules ? rules)
               parseContext: @applyRule(config.RULES[node.type], node).indentContext
 
         for child in node.children
@@ -212,40 +213,40 @@ exports.createTreewalkParser = (parse, config, root) ->
           @addSocket
             bounds: node.bounds
             depth: depth
-            classes: rules
+            classes: padRules(wrapRules ? rules)
             parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'
-      if '__comment__' in context.classes
+      if '__comment__' in parseClasses(context)
         return helper.DISCOURAGE
-      for c in context.classes
-        if c in block.classes
+      for c in parseClasses(context)
+        if c in parseClasses(block)
           return helper.ENCOURAGE
 
         # Check to see if we could paren-wrap this
         if config.PAREN_RULES? and c of config.PAREN_RULES
-          for m in block.classes
+          for m in parseClasses(block)
             if m of config.PAREN_RULES[c]
               return helper.ENCOURAGE
       return helper.DISCOURAGE
 
     else if context.type is 'indent'
-      console.log context.parseContext, block.classes
-      if '__comment__' in block.classes
+      console.log context.parseContext, parseClasses(block)
+      if '__comment__' in parseClasses(block)
         return helper.ENCOURAGE
 
-      if context.parseContext in block.classes
+      if context.parseContext in parseClasses(block)
         return helper.ENCOURAGE
 
       return helper.DISCOURAGE
 
     else if context.type is 'document'
-      if '__comment__' in block.classes
+      if '__comment__' in parseClasses(block)
         return helper.ENCOURAGE
 
-      if 'externalDeclaration' in block.classes or
-         'translationUnit' in block.classes
+      if 'externalDeclaration' in parseClasses(block) or
+         'translationUnit' in parseClasses(block)
         return helper.ENCOURAGE
 
       return helper.DISCOURAGE
@@ -264,13 +265,17 @@ exports.createTreewalkParser = (parse, config, root) ->
 
 
     # If we already match types, we're fine
-    for c in context.classes
-      if c in node.classes
+    for c in parseClasses(context)
+      if c in parseClasses(node)
         return
 
     # Otherwise, wrap according to the provided rule
-    for c in context.classes when c of config.PAREN_RULES
-      for m in node.classes when m of config.PAREN_RULES[c]
+    for c in parseClasses(context) when c of config.PAREN_RULES
+      for m in parseClasses(node) when m of config.PAREN_RULES[c]
         return config.PAREN_RULES[c][m] leading, trailing, node, context
 
   return TreewalkParser
+
+PARSE_PREFIX = "_parse_"
+padRules = (rules) -> rules.map (x) -> "#{PARSE_PREFIX}#{x}"
+parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..])
