@@ -119,14 +119,14 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: bounds
                 depth: depth
                 classes: rules
-                parseContext: (if wrap? then wrap.type else rules[0])
+                parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
             @addBlock
               bounds: bounds
               depth: depth + 1
               color: @getColor node, rules
               classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
-              parseContext: (if wrap? then wrap.type else rules[0])
+              parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'parens'
             # Parens are assumed to wrap the only child that has children
@@ -155,14 +155,14 @@ exports.createTreewalkParser = (parse, config, root) ->
                   bounds: bounds
                   depth: depth
                   classes: rules
-                  parseContext: (if wrap? then wrap.type else rules[0])
+                  parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
               @addBlock
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor node, rules
                 classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
-                parseContext: (if wrap? then wrap.type else rules[0])
+                parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'indent'
             # A lone indent needs to be wrapped in a block.
@@ -172,7 +172,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 depth: depth
                 color: @getColor node, rules
                 classes: rules.concat(if context? then @getDropType(context) else @getShape(node, rules))
-                parseContext: (if wrap? then wrap.type else rules[0])
+                parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
               depth += 1
 
@@ -213,7 +213,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             bounds: node.bounds
             depth: depth
             classes: rules
-            parseContext: (if wrap? then wrap.type else rules[0])
+            parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'
