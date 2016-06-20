@@ -327,9 +327,9 @@ exports.Parser = class Parser
               head = helper.connect head, stack.pop().end
               currentlyCommented = false
 
-          if not currentlyCommented and (
-                (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-              ) and line.length > 0
+          if not currentlyCommented and
+              ((opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent') and
+              line.length > 0
             placedSomething = true
             if isPrefix(line.trimLeft(), @startComment)
               currentlyCommented = true
@@ -438,9 +438,9 @@ exports.Parser = class Parser
               head = helper.connect head, stack.pop().end
               currentlyCommented = false
 
-          if not currentlyCommented and (
-                (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-              ) and line.length > 0
+          if not currentlyCommented and
+              ((opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent') and
+              line.length > 0
             if isPrefix(line[lastIndex...].trimLeft(), @startComment)
               currentlyCommented = true
               block = new model.Block 0, 'comment', helper.ANY_DROP

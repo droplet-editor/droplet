@@ -185,7 +185,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
-            for child, i in node.children.reverse() # by -1
+            for child, i in node.children by -1
               if child.children.length > 0
                 end = child.bounds.end
                 break

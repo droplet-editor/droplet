@@ -376,12 +376,12 @@ performTextOperation = (editor, text, cb) ->
     $(editor.hiddenInput).sendkeys(text.text)
     setTimeout (->
       # Unfocus
-      simulate('mousedown', editor.mainScroller, {
+      simulate('mousedown', editor.mainScrollerIntermediary, {
         location: editor.mainCanvas
         dx: editor.mainCanvas.offsetWidth - 1
         dy: editor.mainCanvas.offsetHeight - 1
       })
-      simulate('mouseup', editor.mainScroller, {
+      simulate('mouseup', editor.mainScrollerIntermediary, {
         location: editor.mainCanvas
         dx: editor.mainCanvas.offsetWidth - 1
         dy: editor.mainCanvas.offsetHeight - 1
@@ -405,19 +405,19 @@ performDragOperation = (editor, drag, cb) ->
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-  simulate('mouseup', editor.mainScroller, {
+  simulate('mouseup', editor.mainScrollerIntermediary, {
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
   # Unfocus the text input that may have been focused
   # when we dragged
   setTimeout (->
-    simulate('mousedown', editor.mainScroller, {
+    simulate('mousedown', editor.mainScrollerIntermediary, {
       location: editor.mainCanvas
       dx: editor.mainCanvas.offsetWidth - 1
       dy: editor.mainCanvas.offsetHeight - 1
     })
-    simulate('mouseup', editor.mainScroller, {
+    simulate('mouseup', editor.mainScrollerIntermediary, {
       location: editor.mainCanvas
       dx: editor.mainCanvas.offsetWidth - 1
       dy: editor.mainCanvas.offsetHeight - 1
@@ -446,7 +446,7 @@ dropLocation = (editor, document, location) ->
     dx: blockView.dropPoint.x + 5,
     dy: blockView.dropPoint.y + 5
   })
-  simulate('mouseup', editor.mainScroller, {
+  simulate('mouseup', editor.mainScrollerIntermediary, {
     dx: blockView.dropPoint.x + 5
     dy: blockView.dropPoint.y + 5
   })
