@@ -3,8 +3,11 @@
 # Copyright (c) 2015 Anthony Bau
 # MIT License
 
+helper = require '../helper.coffee'
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
+
+{fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
 
 RULES = {
   # Indents
@@ -49,6 +52,7 @@ RULES = {
 }
 
 COLOR_RULES = [
+  ['jumpStatement', 'return']
   ['declaration', 'control'],
   ['specialMethodCall', 'command'],
   ['additiveExpression', 'value'],
@@ -125,7 +129,9 @@ config.PAREN_RULES = {
 }
 
 config.SHOULD_SOCKET = (opts, node) ->
-  return true unless opts.knownFunctions? and node.parent? and node.parent.parent? and node.parent.parent.parent?
+  return true unless opts.knownFunctions? and (node.parent? and node.parent.parent? and node.parent.parent.parent?) or
+      node.parent?.type is 'specialMethodCall'
+
   # If it is a function call, and we are the first child
   if (node.parent.type is 'primaryExpression' and
      node.parent.parent.type is 'postfixExpression' and
@@ -215,6 +221,22 @@ config.parseComment = (text) ->
     sockets: ranges
     color
   }
+
+config.getDefaultSelectionRange = (string) ->
+  start = 0; end = string.length
+  if string.length > 1 and string[0] is string[string.length - 1] and string[0] is '"'
+    start += 1; end -= 1
+  if string.length > 1 and string[0] is '<' and string[string.length - 1] is '>'
+    start += 1; end -= 1
+  if string.length is 3 and string[0] is string[string.length - 1] is '\''
+    start += 1; end -= 1
+  return {start, end}
+
+config.stringFixer = (string) ->
+  if /^['"]|['"]$/.test string
+    return fixQuotedString [string]
+  else
+    return string
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->

@@ -181,8 +181,8 @@ exports.createTreewalkParser = (parse, config, root) ->
             for child, i in node.children
               if child.children.length > 0
                 break
-              else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0
-                #console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
+              else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0 or i is node.children.length - 1
+                console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
                 start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
@@ -190,6 +190,11 @@ exports.createTreewalkParser = (parse, config, root) ->
               if child.children.length > 0
                 end = child.bounds.end
                 break
+              else unless i is 0
+                end = child.bounds.start
+                if end.column is 0
+                  end.line -= 1
+                  end.column = @lines[end.line].length
 
             bounds = {
               start: start
@@ -218,7 +223,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'
-      if '__comment__' in parseClasses(context)
+      if '__comment__' in block.classes
         return helper.DISCOURAGE
       for c in parseClasses(context)
         if c in parseClasses(block)
@@ -232,7 +237,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       return helper.DISCOURAGE
 
     else if context.type is 'indent'
-      if '__comment__' in parseClasses(block)
+      if '__comment__' in block.classes
         return helper.ENCOURAGE
 
       if context.parseContext in parseClasses(block)
@@ -241,7 +246,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       return helper.DISCOURAGE
 
     else if context.type is 'document'
-      if '__comment__' in parseClasses(block)
+      if '__comment__' in block.classes
         return helper.ENCOURAGE
 
       if 'externalDeclaration' in parseClasses(block) or
@@ -273,8 +278,11 @@ exports.createTreewalkParser = (parse, config, root) ->
       for m in parseClasses(node) when m of config.PAREN_RULES[c]
         return config.PAREN_RULES[c][m] leading, trailing, node, context
 
+  TreewalkParser.stringFixer = config.stringFixer
+  TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
+
   return TreewalkParser
 
-PARSE_PREFIX = "_parse_"
+PARSE_PREFIX = "__parse__"
 padRules = (rules) -> rules.map (x) -> "#{PARSE_PREFIX}#{x}"
 parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..])

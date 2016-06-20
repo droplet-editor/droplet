@@ -184,3 +184,37 @@ exports.deepEquals = deepEquals = (a, b) ->
   else
     return a is b
 
+# To fix quoting errors, we first do a lenient C-unescape, then
+# we do a string C-escaping, to add backlsashes where needed, but
+# not where we already have good ones.
+exports.fixQuotedString = (lines) ->
+  line = lines[0]
+  quotechar = if /^"|"$/.test(line) then '"' else "'"
+  if line.charAt(0) is quotechar
+    line = line.substr(1)
+  if line.charAt(line.length - 1) is quotechar
+    line = line.substr(0, line.length - 1)
+  return lines[0] = quoteAndCEscape looseCUnescape(line), quotechar
+
+exports.looseCUnescape = looseCUnescape = (str) ->
+  codes =
+    '\\b': '\b'
+    '\\t': '\t'
+    '\\n': '\n'
+    '\\f': '\f'
+    '\\"': '"'
+    "\\'": "'"
+    "\\\\": "\\"
+    "\\0": "\0"
+  str.replace /\\[btnf'"\\0]|\\x[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}/g, (m) ->
+    if m.length is 2 then return codes[m]
+    return String.fromCharCode(parseInt(m.substr(1), 16))
+
+exports.quoteAndCEscape = quoteAndCEscape = (str, quotechar) ->
+  result = JSON.stringify(str)
+  if quotechar is "'"
+    return quotechar +
+      result.substr(1, result.length - 2).
+             replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
+      replace(/'/g, "\\'") + quotechar
+  return result
