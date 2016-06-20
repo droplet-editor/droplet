@@ -611,6 +611,8 @@ exports.wrapParser = (CustomParser) ->
       parser.emptyIndent = @emptyIndent
       return parser
 
+    stringFixer: -> CustomParser.stringFixer.apply @, arguments
+
     parse: (text, opts) ->
       @opts.parseOptions = opts
       opts ?= wrapAtRoot: true

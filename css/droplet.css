@@ -153,9 +153,10 @@
 .droplet-main-scroller-stuffing {
   z-index: 10;
 }
-.main-scroller-intermediary {
+.droplet-main-scroller-intermediary {
   z-index; 10;
-  width: 100%;
+  min-width: 100%;
+  min-height: 100%;
 }
 .droplet-palette-scroller-stuffing {
   /* Temporary hack to prevent bad side-scrolling

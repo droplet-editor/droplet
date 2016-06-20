@@ -1231,4 +1231,10 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
       start += 2; end -= 2
   return {start, end}
 
+CoffeeScriptParser.stringFixer = (string) ->
+  if /^['"]|['"]$/.test string
+    return fixQuotedString [string]
+  else
+    return string
+
 module.exports = parser.wrapParser CoffeeScriptParser

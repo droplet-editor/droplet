@@ -2401,7 +2401,10 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     originalUpdates = updates.map (location) ->
       count: location.count, type: location.type
 
-    # Try reparsing the parent again after the reparse. If it fails,
+    if @session.mode.stringFixer?
+      @populateSocket list, @session.mode.stringFixer list.textContent()
+
+    # Try reparsing the parent after beforetextfocus. If it fails,
     # repopulate with the original text and try again.
     unless @reparse list.parent, recovery, updates, originalTrigger
       @populateSocket list, originalText
