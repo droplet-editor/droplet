@@ -4178,7 +4178,7 @@ Editor::setEditorState = (useBlocks) ->
   else
     # Forbid melting if there is an empty socket. If there is,
     # highlight it in red.
-    if not @session.options.preserveEmpty and not @checkAndHighlightEmptySockets()
+    if @session? and not @session.options.preserveEmpty and not @checkAndHighlightEmptySockets()
       @redrawMain()
       return
 
