@@ -117,6 +117,9 @@ class Session
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
     @allowFloatingBlocks = @options.allowFloatingBlocks ? true
 
+    # By default, attempt to preserve empty sockets when round-tripping
+    @options.preserveEmpty ?= true
+
     # Mode
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
@@ -4039,7 +4042,10 @@ Editor::setValue_raw = (value) ->
   try
     if @trimWhitespace then value = value.trim()
 
-    newParse = @session.mode.parse value, wrapAtRoot: true
+    newParse = @session.mode.parse value, {
+      wrapAtRoot: true
+      preserveEmpty: @session.options.preserveEmpty
+    }
 
     unless @session.tree.start.next is @session.tree.end
       removal = new model.List @session.tree.start.next, @session.tree.end.prev
@@ -4083,7 +4089,9 @@ Editor::addEmptyLine = (str) ->
 
 Editor::getValue = ->
   if @session?.currentlyUsingBlocks
-    return @addEmptyLine @session.tree.stringify()
+    return @addEmptyLine @session.tree.stringify({
+      preserveEmpty: @session.options.preserveEmpty
+    })
   else
     @getAceValue()
 

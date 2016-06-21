@@ -10,6 +10,8 @@ NO = -> no
 NORMAL = default: helper.NORMAL
 FORBID = default: helper.FORBID
 
+DEFAULT_STRINGIFY_OPTS = {preserveEmpty: true}
+
 _id = 0
 
 # Getter/setter utility function
@@ -414,7 +416,7 @@ exports.List = class List
   # Get a string representation of us,
   # using the `stringify()` method on all of
   # the tokens that we contain.
-  stringify: (opts = {}) ->
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
     head = @start
     str = head.stringify(opts)
 
@@ -1018,8 +1020,8 @@ exports.SocketStartToken = class SocketStartToken extends StartToken
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
-  stringify: (opts = {}) ->
-    if not opts.preserveEmpty and @prev is @container.start or
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    if opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
     else ''
@@ -1070,8 +1072,8 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: (opts = {}) ->
-    if not opts.preserveEmpty and @prev.prev is @container.start
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
   serialize: -> "</indent>"

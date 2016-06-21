@@ -41,6 +41,7 @@ exports.Parser = class Parser
   _parse: (opts) ->
     opts = _extend opts, {
       wrapAtRoot: true
+      preserveEmpty: true
     }
     # Generate the list of tokens
     @markRoot opts.context
@@ -53,13 +54,13 @@ exports.Parser = class Parser
 
     @detectParenWrap document
 
-
     # Correct parent tree
     document.correctParentTree()
 
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
-    stripFlaggedBlocks document
+    if opts.preserveEmpty
+      stripFlaggedBlocks document
 
     return document
 
@@ -380,6 +381,10 @@ exports.Parser = class Parser
           lastIndex = indentDepth
 
         for mark in markupOnLines[i]
+          # If we are not supposed to be flagging to remove,
+          # ignore markup that flags stuff to be removed.
+          continue if mark.token.container? and mark.token.container.flagToRemove and not opts.preserveEmpty
+
           # Insert a text token for all the text up until this markup
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
