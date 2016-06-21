@@ -103,6 +103,14 @@ exports.Parser = class Parser
 
     @addMarkup block, opts.bounds, opts.depth
 
+  # flagToRemove
+  flagToRemove: (bounds, depth) ->
+    block = new model.Block()
+
+    block.flagToRemove = true
+
+    @addMarkup block, bounds, depth
+
   # ## addSocket ##
   # addSocket takes {
   #   bounds: {

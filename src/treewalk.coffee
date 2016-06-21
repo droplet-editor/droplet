@@ -182,7 +182,6 @@ exports.createTreewalkParser = (parse, config, root) ->
               if child.children.length > 0
                 break
               else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0 or i is node.children.length - 1
-                console.log 'excluding start', helper.clipLines(@lines, origin, child.bounds.end)
                 start = child.bounds.end
 
             end = node.children[node.children.length - 1].bounds.end
@@ -220,6 +219,9 @@ exports.createTreewalkParser = (parse, config, root) ->
             depth: depth
             classes: padRules(wrapRules ? rules)
             parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+
+          if config.empty? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
+            @flagToRemove node.bounds, depth + 1
 
   TreewalkParser.drop = (block, context, pred) ->
     if context.type is 'socket'
@@ -280,6 +282,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
   TreewalkParser.stringFixer = config.stringFixer
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
+  TreewalkParser.empty = config.empty
 
   return TreewalkParser
 

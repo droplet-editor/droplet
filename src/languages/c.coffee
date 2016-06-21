@@ -82,6 +82,8 @@ COLOR_RULES = [
 ]
 
 SHAPE_RULES = [
+  ['blockItem', 'block-only'],
+  ['expression', 'value-only'],
   ['postfixExpression', 'block-only'],
   ['equalityExpression', 'value-only'],
   ['logicalAndExpression', 'value-only'],
@@ -129,8 +131,9 @@ config.PAREN_RULES = {
 }
 
 config.SHOULD_SOCKET = (opts, node) ->
-  return true unless opts.knownFunctions? and (node.parent? and node.parent.parent? and node.parent.parent.parent?) or
-      node.parent?.type is 'specialMethodCall'
+  unless opts.knownFunctions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
+      node.parent?.type is 'specialMethodCall')
+    return true
 
   # If it is a function call, and we are the first child
   if (node.parent.type is 'primaryExpression' and
@@ -237,6 +240,8 @@ config.stringFixer = (string) ->
     return fixQuotedString [string]
   else
     return string
+
+config.empty = '__0_droplet__'
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->

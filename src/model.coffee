@@ -414,13 +414,13 @@ exports.List = class List
   # Get a string representation of us,
   # using the `stringify()` method on all of
   # the tokens that we contain.
-  stringify: ->
+  stringify: (opts = {}) ->
     head = @start
-    str = head.stringify()
+    str = head.stringify(opts)
 
     until head is @end
       head = head.next
-      str += head.stringify()
+      str += head.stringify(opts)
 
     return str
 
@@ -1018,8 +1018,8 @@ exports.SocketStartToken = class SocketStartToken extends StartToken
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
-  stringify: ->
-    if @prev is @container.start or
+  stringify: (opts = {}) ->
+    if not opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
     else ''
@@ -1070,8 +1070,8 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: ->
-    if @prev.prev is @container.start
+  stringify: (opts = {}) ->
+    if not opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
   serialize: -> "</indent>"
