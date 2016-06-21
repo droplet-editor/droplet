@@ -57,12 +57,6 @@ exports.createTreewalkParser = (parse, config, root) ->
 
     detNode: (node) -> if node.blockified then 'block' else @det(node)
 
-    getDropType: (context) -> ({
-      'block': 'mostly-value'
-      'indent': 'mostly-block'
-      'skip': 'mostly-block'
-    })[@detNode(context)]
-
     getColor: (node, rules) ->
       color = config.COLOR_CALLBACK?(@opts, node)
       if color?
@@ -91,7 +85,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         if shapeRule[0] of rulesSet
           return shapeRule[1]
 
-      return 'comment'
+      return 'any-drop'
 
     mark: (node, prefix, depth, pass, rules, context, wrap, wrapRules) ->
       unless pass
@@ -126,7 +120,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth + 1
               color: @getColor node, rules
-              classes: padRules(wrapRules ? rules).concat(if context? then @getDropType(context) else @getShape(node, rules))
+              classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'parens'
@@ -162,7 +156,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor node, rules
-                classes: padRules(wrapRules ? rules).concat(if context? then @getDropType(context) else @getShape(node, rules))
+                classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'indent'
@@ -172,7 +166,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: node.bounds
                 depth: depth
                 color: @getColor node, rules
-                classes: padRules(wrapRules ? rules).concat(if context? then @getDropType(context) else @getShape(node, rules))
+                classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
               depth += 1

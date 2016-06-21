@@ -32,7 +32,7 @@ exports.createANTLRParser = (name, config, root) ->
 
     # Build the actual parse tree
     parser.buildParseTrees = true
-    return transform parser[context]()
+    return transform parser[context + '_DropletFile']()
 
   # Transform an ANTLR tree into a treewalker-type tree
   transform = (node, parent = null) ->
@@ -54,6 +54,9 @@ exports.createANTLRParser = (name, config, root) ->
       else
         result.type = node.parser.ruleNames[node.ruleIndex]
         result.data = {}
+    if result.type? and result.type[-'_DropletFile'.length...] is '_DropletFile'
+      result.type = result.type[...-'_DropletFile'.length]
+      result.children.pop()
 
     return result
 

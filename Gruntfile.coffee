@@ -93,6 +93,7 @@ module.exports = (grunt) ->
           '''
       test:
         files:
+          'test/js/ctest.js': ['test/src/ctest.coffee']
           'test/js/tests.js': ['test/src/tests.coffee']
           'test/js/uitest.js': ['test/src/uitest.coffee']
           'test/js/jstest.js': ['test/src/jstest.coffee']
