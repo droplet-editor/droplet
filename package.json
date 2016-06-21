@@ -54,8 +54,9 @@
   "homepage": "https://github.com/dabbler0/droplet",
   "dependencies": {
     "acorn": "^1.2.2",
-    "sax": "^1.1.1",
     "antlr4": "latest",
-    "parse5": "latest"
+    "express": "^4.14.0",
+    "parse5": "latest",
+    "sax": "^1.1.1"
   }
 }

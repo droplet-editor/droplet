@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="droplet.css"/>
+  </head>
+  <body>
+    <div id="view-wrapper" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;">
+      <div id="left" style="position: absolute; top: 0; left: 0; right: 50%; bottom: 0; overflow: auto;">
+        <pre id="code"></pre>
+      </div>
+      <div id="right" style="position: absolute; top: 0; left: 50%; right: 0; bottom: 0;">
+        <div id="editor" style="position: absolute; top:0; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
+      </div>
+    </div>
+    <div id="control-panel" style="position: absolute; top: 0; right: 0; z-index: 9999;">
+      <button id="freeze">Freeze</button>
+      <button id="next">Next</button>
+    </div>
+    <script src="ace.js"></script>
+    <script src="droplet-full.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>
+
