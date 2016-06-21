@@ -324,6 +324,10 @@ exports.Parser = class Parser
         # If we have some text here that
         # is floating (not surrounded by a block),
         # wrap it in a generic block automatically.
+        #
+        # We will also send it through a pass through a comment parser here,
+        # for special handling of different forms of comments (or, e.g. in C mode, directives),
+        # and amalgamate multiline comments.
         placedSomething = false
         while line.length > 0
           if currentlyCommented
@@ -365,6 +369,7 @@ exports.Parser = class Parser
         if line.length is 0 and not placedSomething and stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
+          block.classes = ['__comment__', 'any-drop']
 
           head = helper.connect head, block.start
           head = helper.connect head, block.end
