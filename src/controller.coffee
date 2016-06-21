@@ -3388,8 +3388,27 @@ Editor::computePlaintextTranslationVectors = ->
     translationVectors: translationVectors
   }
 
+Editor::checkAndHighlightEmptySockets = ->
+  head = @session.tree.start
+  ok = true
+  until head is @session.tree.end
+    if (head.type is 'socketStart' and head.next is head.container.end or
+       head.type is 'socketStart' and head.next.type is 'text' and head.next.value is '') and
+       head.container.emptyString isnt ''
+      @markBlock head.container, {color: '#F00'}
+      ok = false
+    head = head.next
+  return ok
+
 Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
   if @session.currentlyUsingBlocks and not @currentlyAnimating
+
+    # Forbid melting if there is an empty socket. If there is,
+    # highlight it in red.
+    if not @session.options.preserveEmpty and not @checkAndHighlightEmptySockets()
+      @redrawMain()
+      return
+
     @hideDropdown()
 
     @fireEvent 'statechange', [false]
@@ -4157,6 +4176,12 @@ Editor::setEditorState = (useBlocks) ->
     @resizeBlockMode(); @redrawMain()
 
   else
+    # Forbid melting if there is an empty socket. If there is,
+    # highlight it in red.
+    if not @session.options.preserveEmpty and not @checkAndHighlightEmptySockets()
+      @redrawMain()
+      return
+
     @hideDropdown()
 
     paletteVisibleInNewState = @session?.paletteEnabled and @session.showPaletteInTextMode

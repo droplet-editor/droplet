@@ -28,6 +28,8 @@ exports.createANTLRParser = (name, config, root) ->
     tokens = new antlr4.CommonTokenStream(lexer)
     parser = new ANTLR_PARSER_COLLECTION["#{name}Parser"]["#{name}Parser"](tokens)
 
+    parser._errHandler = new antlr4.error.BailErrorStrategy()
+
     # Build the actual parse tree
     parser.buildParseTrees = true
     return transform parser[context]()
