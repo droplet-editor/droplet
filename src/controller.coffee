@@ -1571,6 +1571,15 @@ Editor::getAcceptLevel = (drag, drop) ->
       return helper.FORBID
     else
       return @session.mode.drop drag.getReader(), drop.getReader(), null, null
+
+  # If it's a list/selection, try all of its children
+  else if drag.type is 'list'
+    minimum = helper.ENCOURAGE
+    drag.traverseOneLevel (child) =>
+      if child instanceof model.Container
+        minimum = Math.min minimum, @getAcceptLevel child, drop
+    return minimum
+
   else if drop.type is 'block'
     if drop.parent.type is 'socket'
       return helper.FORBID

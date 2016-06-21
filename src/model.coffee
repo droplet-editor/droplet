@@ -110,6 +110,7 @@ class ReplaceOperation
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
+    @type = 'list'
 
   contains: (token) ->
     if token instanceof Container

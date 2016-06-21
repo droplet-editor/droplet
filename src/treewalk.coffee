@@ -218,6 +218,13 @@ exports.createTreewalkParser = (parse, config, root) ->
             @flagToRemove node.bounds, depth + 1
 
   TreewalkParser.drop = (block, context, pred) ->
+    if block instanceof model.List
+      console.log 'ya ya'
+      block.traverseOneLevel (child) ->
+        if child instanceof Container and TreewalkParser.drop(child, context, pred) isnt helper.ENCOURAGE
+          return helper.DISCOURAGE
+      return helper.ENCOURAGE
+
     if context.type is 'socket'
       if '__comment__' in block.classes
         return helper.DISCOURAGE
