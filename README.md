@@ -233,3 +233,32 @@ MyParser.handleButton = (text, command, block) ->
   # Return 'text' is you don't want to change anything
   return text
 ```
+
+View Options
+------------
+You can pass a `viewSettings` object into the options to configure various aspects of the renderer.
+
+```javascript
+{
+  viewSettings: {
+    padding: 5 // Padding around each block
+    indentWidth: 20 // Width of the left side of indent C-shaped blocks
+    indentTongueHeight: 20 // Height of the bottom of indent C-shaped blocks when there is no other text on that bottom line (used mainly in Python/Coffee modes) 
+    tabOffset: 10 // Distance from the left side of the puzzle-piece tab to the left side of the block
+    tabWidth: 15 // Width of the bottom of the tab (from top point to top point)
+    tabHeight: 4 // Height of the tab
+    tabSideWidth: 1 / 4 // Fraction the width that is taken up by the sides of the tab (larger means flatter/fatter slanted sides)
+    emptySocketWidth: 20 // Size of a socket with no text in it
+    emptyLineHeight: 25 // Height of a line with no blocks on it
+    shadowBlur: 5 // Blur factor for the drop shadow when dragging
+    colors: { // Color aliases used in various places elsewhere; changing these will change lots of colors
+      error: '#ff0000'
+      comment: '#c0c0c0'  // currently grayish
+      return: '#fff59d'   // currently yellowish
+      control: '#ffcc80'  // currently orangeish
+      value: '#a5d6a7'    // currently greenish
+      command: '#90caf9' // currently blueish
+    }
+  }
+}
+```
