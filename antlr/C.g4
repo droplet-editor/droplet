@@ -1364,10 +1364,6 @@ StringLiteral
     :   EncodingPrefix? '"' SCharSequence? '"'
     ;
 
-SharedIncludeLiteral
-    :   '<' SCharSequence '>'
-    ;
-
 fragment
 EncodingPrefix
     :   'u8'

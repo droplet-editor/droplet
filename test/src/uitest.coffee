@@ -332,6 +332,10 @@ getRandomDragOp = (editor, rng) ->
           }
     head = head.next
 
+  # If this block is not droppable, try again.
+  if dropPossibilities.length is 0
+    return getRandomDragOp(editor, rng)
+
   drop = dropPossibilities[Math.floor rng() * dropPossibilities.length]
 
   return {drag, drop}
@@ -895,6 +899,114 @@ asyncTest 'Controller: Random drag undo test', ->
     stateStack.push editor.getSerializedEditorState().toString()
 
     if rng() > 0.5
+      op = getRandomDragOp(editor, rng)
+      performDragOperation editor, op, cb
+    else
+      op = getRandomTextOp(editor, rng)
+      performTextOperation editor, op, cb
+
+  tick 100
+
+asyncTest 'Controller: ANTLR random drag reparse test', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'c_cpp',
+    modeOptions:
+      knownFunctions:
+        printf: {color: 'blue', shape: 'block-only'}
+        puts: {color: 'blue', shape: 'block-only'}
+        scanf: {color: 'blue', shape: 'block-only'}
+        malloc: {color: 'red', shape: 'value-only'}
+    palette: []
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('''
+    #include <stdio.h>
+    #include <stdlib.h>
+    #define MAXLEN 100
+
+    // Linked list
+    struct List {
+        long long data;
+        struct List *next;
+        struct List *prev;
+    };
+    typedef struct List List;
+
+    // Memoryless swap
+    void swap(long long *a, long long *b) {
+        *a ^= *b;
+        *b ^= *a;
+        *a ^= *b;
+    }
+
+    // Test if sorted
+    int sorted(List *head, int (*fn)(long long, long long)) {
+        for (List *cursor = head; cursor && cursor->next; cursor = cursor->next) {
+            if (!fn(cursor->data, cursor->next->data)) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    // Bubble sort
+    void sort(List *head, int (*fn)(long long, long long)) {
+        while (!sorted(head, fn)) {
+            for (List *cursor = head; cursor && cursor->next; cursor = cursor->next) {
+                if (!fn(cursor->data, cursor->next->data))
+                    swap(&cursor->data, &cursor->next->data);
+            }
+        }
+    }
+
+    // Comparator
+    int comparator(long long a, long long b) {
+       return (a > b);
+    }
+
+    // Main
+    int main(int n, char *args[]) {
+        // Arbitrary array initializer just o test that syntax
+        int arbitraryArray[] = {1, 2, 3, 4, 5};
+        int length;
+        scanf("%d", &length);
+        if (length > MAXLEN) {
+            puts("Error: list is too large");
+            return 1;
+        }
+        List *head = (List*)malloc(sizeof(List));
+        scanf("%d", &head->data);
+        head->prev = NULL;
+        List *cursor = head;
+        int temp;
+        for (int i = 0; i < length - 1; i++) {
+            cursor->next = (List*)malloc(sizeof(List));
+            cursor = cursor->next;
+            scanf("%d", &temp);
+            cursor->data = (long long)temp;
+        }
+        sort(head, comparator);
+        for (cursor = head; cursor; cursor = cursor->next) {
+            printf("%d ", cursor->data);
+        }
+        puts("\\n");
+        return 0;
+    }
+  ''')
+  rng = seedrandom('droplet')
+  stateStack = []
+
+  tick = (count) ->
+    cb = ->
+      if count is 0
+        start()
+      else
+        ok editor.session.mode.parse(editor.getValue()), 'Still in a parseable state'
+        setTimeout (-> tick count - 1), 0
+
+    if rng() > 0.1
       op = getRandomDragOp(editor, rng)
       performDragOperation editor, op, cb
     else
