@@ -499,3 +499,24 @@ asyncTest 'JS beginner mode loops', ->
       helper.xmlPrettyPrint(expectedSerialization),
       'Combines if-else')
   start()
+
+asyncTest 'JS object expression', ->
+  customJS = new JavaScript()
+  customSerialization = customJS.parse('{a: 1}').serialize()
+  expectedSerialization =
+    '<document><block ' +
+    'precedence=\"0\" ' +
+    'color=\"teal\" ' +
+    'socketLevel=\"0\" ' +
+    'classes=\"ObjectExpression mostly-value\">({<socket ' +
+    'precedence=\"0\" ' +
+    'handwritten=\"false\" ' +
+    'classes=\"\">a</socket>: <socket ' +
+    'precedence=\"0\" ' +
+    'handwritten=\"false\" ' +
+    'classes=\"\">1</socket>})</block></document>'
+  strictEqual(
+    helper.xmlPrettyPrint(customSerialization),
+    helper.xmlPrettyPrint(expectedSerialization),
+    'Parses bare object expression')
+  start()
