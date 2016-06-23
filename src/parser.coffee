@@ -449,9 +449,9 @@ exports.Parser = class Parser
           if currentlyCommented
             if line[lastIndex...].indexOf(@endComment) > -1
               head = helper.connect head,
-                new model.TextToken line[lastIndex...line.indexOf(@endComment) + @endComment.length]
+                new model.TextToken line[lastIndex...lastIndex + line[lastIndex...].indexOf(@endComment) + @endComment.length]
 
-              lastIndex += line.indexOf(@endComment) + @endComment.length
+              lastIndex += line[lastIndex...].indexOf(@endComment) + @endComment.length
 
               head = helper.connect head, stack.pop().end
               currentlyCommented = false

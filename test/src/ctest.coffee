@@ -91,7 +91,34 @@ asyncTest 'Parser: parser freeze test for C mode', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA, 'Match C parser freeze file as of 2016-06-23'
+  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-06-23'
+
+  start()
+
+asyncTest 'Parser: parser freeze test comment consolidation', ->
+  c = new C({
+    knownFunctions: {
+      puts: {color: 'blue'}
+      printf: {color: 'blue'}
+      scanf: {color: 'blue'}
+    }
+  })
+
+  result = c.parse '''
+    int main() {
+      puts("Hello"); /* start
+      middle
+      end */ puts("Hi"); /* interrupt */ /* start
+      end */ puts("Goodbye"); /* interrupt */ // end of line
+      /* start again
+      end again */ /* interrupt */ /* start
+      end */
+      /* interrupt */ // end of line
+      return 0;
+    }
+  '''
+
+  equal result.serialize(), FREEZE_DATA.commentConsolidation, 'C comment consolidation'
 
   start()
 
