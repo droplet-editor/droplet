@@ -121,7 +121,7 @@ hook = (event, priority, fn) ->
   }
 
 class Session
-  constructor: (@options, standardViewSettings) ->
+  constructor: (_main, _palette, _drag, @options, standardViewSettings) -> # TODO rearchitecture so that a session is independent of elements again
     # Option flags
     @readOnly = false
     @paletteGroups = @options.palette
@@ -142,11 +142,11 @@ class Session
       @mode = null
 
     # Instantiate an Droplet editor view
-    @view = new view.View helper.extend standardViewSettings, @options.viewSettings ? {}
-    @paletteView = new view.View helper.extend {}, standardViewSettings, @options.viewSettings ? {}, {
+    @view = new view.View _main, helper.extend standardViewSettings, @options.viewSettings ? {}
+    @paletteView = new view.View _palette, helper.extend {}, standardViewSettings, @options.viewSettings ? {}, {
       showDropdowns: @options.showDropdownInPalette ? false
     }
-    @dragView = new view.View helper.extend {}, standardViewSettings, @options.viewSettings ? {}
+    @dragView = new view.View _drag, helper.extend {}, standardViewSettings, @options.viewSettings ? {}
 
     # ## Document initialization
     # We start of with an empty document
@@ -251,17 +251,9 @@ exports.Editor = class Editor
     @dragCanvas.style.top = '0px'
     @dragCanvas.style.transform = 'translate(-9999px,-9999px)'
 
-    # Instantiate the Droplet views
-    @view = new view.View @mainCtx, @standardViewSettings
-    @paletteView = new view.View @paletteCtx, helper.extend {}, @standardViewSettings, {
-      showDropdowns: @options.showDropdownInPalette ? false
-    }
-    @dragView = new view.View @dragCtx, @standardViewSettings
     @draw = new draw.Draw(@mainCtx)
 
     @dropletElement.style.left = @paletteWrapper.clientWidth + 'px'
-
-    @draw = new draw.Draw()
 
     do @draw.refreshFontCapital
 
@@ -327,7 +319,7 @@ exports.Editor = class Editor
     @dropletElement.appendChild @transitionContainer
 
     if @options?
-      @session = new Session @options, @standardViewSettings
+      @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
       @sessions = new PairDict([
         [@aceEditor.getSession(), @session]
       ])
@@ -479,8 +471,8 @@ exports.Editor = class Editor
 
     #@resizeGutter()
 
-    @viewports.main.height = @dropletElement.clientHeight
-    @viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
+    @session.viewports.main.height = @dropletElement.clientHeight
+    @session.viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
 
     @mainCanvas.setAttribute 'width', @dropletElement.clientWidth - @gutter.clientWidth
 
@@ -494,8 +486,8 @@ exports.Editor = class Editor
     @resizeDragCanvas()
 
     # Re-scroll and redraw main
-    @viewports.main.y = @mainScroller.scrollTop
-    @viewports.main.x = @mainScroller.scrollLeft
+    @session.viewports.main.y = @mainScroller.scrollTop
+    @session.viewports.main.x = @mainScroller.scrollLeft
 
   resizePalette: ->
     for binding in editorBindings.resize_palette
@@ -534,7 +526,7 @@ exports.Editor = class Editor
     if @sessions.contains(@aceEditor.getSession())
       throw new ArgumentError 'Cannot bind a new session where one already exists.'
     else
-      session = new Session opts, @standardViewSettings
+      session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, opts, @standardViewSettings
       @sessions.set(@aceEditor.getSession(), session)
       @session = session
       @aceEditor.getSession()._dropletSession = @session
@@ -568,12 +560,12 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   points.push new @draw.Point @mainCanvas.clientWidth, -5
   points.push new @draw.Point @mainCanvas.clientWidth, height
 
-  points.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth, height
-  points.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * (1 - @view.opts.tabSideWidth),
-      @view.opts.tabHeight + height
-  points.push new @draw.Point @view.opts.tabOffset + @view.opts.tabWidth * @view.opts.tabSideWidth,
-      @view.opts.tabHeight + height
-  points.push new @draw.Point @view.opts.tabOffset, height
+  points.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth, height
+  points.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth * (1 - @session.view.opts.tabSideWidth),
+      @session.view.opts.tabHeight + height
+  points.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth * @session.view.opts.tabSideWidth,
+      @session.view.opts.tabHeight + height
+  points.push new @draw.Point @session.view.opts.tabOffset, height
 
   points.push new @draw.Point -5, height
   points.push new @draw.Point -5, -5
@@ -588,10 +580,10 @@ Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
 Editor::initializeFloatingBlock = (record, i) ->
-  record.renderGroup = new @view.draw.Group()
+  record.renderGroup = new @session.view.draw.Group()
 
-  record.grayBox = new @view.draw.NoRectangle()
-  record.grayBoxPath = new @view.draw.Path(
+  record.grayBox = new @session.view.draw.NoRectangle()
+  record.grayBoxPath = new @session.view.draw.Path(
     [], false, {
       fillColor: GRAY_BLOCK_COLOR
       strokeColor: GRAY_BLOCK_BORDER
@@ -600,17 +592,17 @@ Editor::initializeFloatingBlock = (record, i) ->
       cssClass: 'droplet-floating-container'
     }
   )
-  record.startText = new @view.draw.Text(
-    (new @view.draw.Point(0, 0)), @mode.startComment
+  record.startText = new @session.view.draw.Text(
+    (new @session.view.draw.Point(0, 0)), @mode.startComment
   )
-  record.endText = new @view.draw.Text(
-    (new @view.draw.Point(0, 0)), @mode.endComment
+  record.endText = new @session.view.draw.Text(
+    (new @session.view.draw.Point(0, 0)), @mode.endComment
   )
 
   for element in [record.grayBoxPath, record.startText, record.endText]
     element.setParent record.renderGroup
 
-  @view.getViewNodeFor(record.block).group.setParent record.renderGroup
+  @session.view.getViewNodeFor(record.block).group.setParent record.renderGroup
 
   # TODO maybe refactor into qualifiedFocus
   if i < @floatingBlocks.length
@@ -663,7 +655,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
     points.push new @session.view.draw.Point rectangle.x - startWidth, rectangle.y + 5
     points.push new @session.view.draw.Point rectangle.x - startWidth + 5, rectangle.y
 
-    points.push new @view.draw.Point rectangle.x, rectangle.y
+    points.push new @session.view.draw.Point rectangle.x, rectangle.y
 
     record.grayBoxPath.setPoints points
 
@@ -675,7 +667,7 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   record.grayBoxPath.update()
 
   record.startText.point.x = blockView.totalBounds.x - startWidth
-  record.startText.point.y = blockView.totalBounds.y + blockView.distanceToBase[0].above - @fontSize
+  record.startText.point.y = blockView.totalBounds.y + blockView.distanceToBase[0].above - @session.fontSize
   record.startText.update()
 
   record.endText.point.x = record.grayBox.right() - endWidth - 5
@@ -702,7 +694,7 @@ Editor::redrawMain = (opts = {}) ->
 
     @topNubbyPath.update()
 
-    rect = @viewports.main
+    rect = @session.viewports.main
 
     options = {
       grayscale: false
@@ -724,8 +716,8 @@ Editor::redrawMain = (opts = {}) ->
     @currentlyDrawnFloatingBlocks = []
 
     # Draw floating blocks
-    startWidth = @mode.startComment.length * @fontWidth
-    endWidth = @mode.endComment.length * @fontWidth
+    startWidth = @mode.startComment.length * @session.fontWidth
+    endWidth = @mode.endComment.length * @session.fontWidth
     for record in @session.floatingBlocks
       element = @drawFloatingBlock(record, startWidth, endWidth, rect, opts)
       @currentlyDrawnFloatingBlocks.push {
@@ -744,13 +736,13 @@ Editor::redrawMain = (opts = {}) ->
 
       @fireEvent 'change', []
 
-    @view.cleanupDraw()
+    @session.view.cleanupDraw()
 
     unless @alreadyScheduledCleanup
       @alreadyScheduledCleanup = true
       setTimeout (=>
         @alreadyScheduledCleanup = false
-        @view.garbageCollect()
+        @session.view.garbageCollect()
       ), 0
 
     return null
@@ -793,7 +785,7 @@ Editor::redrawPalette = ->
 
   @clearPalette()
 
-  @paletteView.beginDraw()
+  @session.paletteView.beginDraw()
 
   # We will construct a vertical layout
   # with padding for the palette blocks.
@@ -824,7 +816,7 @@ Editor::redrawPalette = ->
 
   @paletteCanvas.style.height = lastBottomEdge + 'px'
 
-  @paletteView.garbageCollect()
+  @session.paletteView.garbageCollect()
 
 Editor::rebuildPalette = ->
   return unless @session?.currentPaletteBlocks?
@@ -1468,12 +1460,12 @@ hook 'mousemove', 1, (point, event, state) ->
     # When we are dragging things, we draw the shadow.
     # Also, we translate the block 1x1 to the right,
     # so that we can see its borders.
-    @dragView.beginDraw()
-    draggingBlockView = @dragView.getViewNodeFor @draggingBlock
+    @session.dragView.beginDraw()
+    draggingBlockView = @session.dragView.getViewNodeFor @draggingBlock
     draggingBlockView.layout 1, 1
     draggingBlockView.root()
     draggingBlockView.draw()
-    @dragView.garbageCollect()
+    @session.dragView.garbageCollect()
 
     @dragCanvas.style.width = "#{Math.min draggingBlockView.totalBounds.width + 10, window.screen.width}px"
     @dragCanvas.style.height = "#{Math.min draggingBlockView.totalBounds.height + 10, window.screen.height}px"
@@ -1650,7 +1642,7 @@ hook 'mousemove', 0, (point, event, state) ->
     if head is @tree.end and @floatingBlocks.length is 0 and
         @session.viewports.main.right() > mainPoint.x > @session.viewports.main.x - @gutter.offsetWidth and
         @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y
-      @view.getViewNodeFor(@tree).highlightArea.update()
+      @session.view.getViewNodeFor(@tree).highlightArea.update()
       @lastHighlight = @tree
 
     else
@@ -2180,7 +2172,7 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mousemove', (event) =>
         palettePoint = @trackerPointToPalette new @draw.Point(
             event.clientX, event.clientY)
-        if @viewOrChildrenContains block, palettePoint, @session.paletteView
+        if @session.viewOrChildrenContains block, palettePoint, @session.paletteView
             @clearPaletteHighlightCanvas()
             @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @session.paletteView
             @paletteHighlightPath.draw @paletteHighlightCtx
@@ -2216,11 +2208,11 @@ hook 'populate', 1, ->
 
       bounds = @session.view.getViewNodeFor(@getCursor()).bounds[0]
       ###
-      inputLeft = bounds.x + @mainCanvas.offsetLeft - @viewports.main.x
+      inputLeft = bounds.x + @mainCanvas.offsetLeft - @session.viewports.main.x
       inputLeft = Math.min inputLeft, @dropletElement.clientWidth - 10
       inputLeft = Math.max @mainCanvas.offsetLeft, inputLeft
       @hiddenInput.style.left = inputLeft + 'px'
-      inputTop = bounds.y - @viewports.main.y
+      inputTop = bounds.y - @session.viewports.main.y
       inputTop = Math.min inputTop, @dropletElement.clientHeight - 10
       inputTop = Math.max 0, inputTop
       @hiddenInput.style.top = inputTop + 'px'
@@ -2350,11 +2342,11 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   lines = @getCursor().stringify().split '\n'
 
   startPosition = textFocusView.bounds[startRow].x + @session.view.opts.textPadding +
-    @fontWidth * last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n')).length +
+    @session.fontWidth * last_(@getCursor().stringify()[...@hiddenInput.selectionStart].split('\n')).length +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   endPosition = textFocusView.bounds[endRow].x + @session.view.opts.textPadding +
-    @fontWidth * last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n')).length +
+    @session.fontWidth * last_(@getCursor().stringify()[...@hiddenInput.selectionEnd].split('\n')).length +
     (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)
 
   # Now draw the highlight/typing cursor
@@ -2499,7 +2491,7 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
       if parent?
         return @reparse parent, recovery, updates, originalTrigger
       else
-        @view.getViewNodeFor(originalTrigger).mark {color: '#F00'}
+        @session.view.getViewNodeFor(originalTrigger).mark {color: '#F00'}
         return false
 
   return if newList.start.next is newList.end
@@ -2589,7 +2581,7 @@ Editor::getTextPosition = (point) ->
   row = Math.max row, 0
   row = Math.min row, textFocusView.lineLength - 1
 
-  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @session.view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @fontWidth)
+  column = Math.max 0, Math.round((point.x - textFocusView.bounds[row].x - @session.view.opts.textPadding - (if @getCursor().hasDropdown() then helper.DROPDOWN_ARROW_WIDTH else 0)) / @session.fontWidth)
 
   lines = @getCursor().stringify().split('\n')[..row]
   lines[lines.length - 1] = lines[lines.length - 1][...column]
@@ -2783,7 +2775,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.left = location.x - @session.scrollOffsets.palette.x + @paletteCanvas.offsetLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-    @dropdownElement.style.top = location.y + @fontSize - @session.viewports.main.y + 'px'
+    @dropdownElement.style.top = location.y + @session.fontSize - @session.viewports.main.y + 'px'
     @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
     @dropdownElement.style.minWidth = location.width + 'px'
   ), 0
@@ -3112,10 +3104,10 @@ Editor::getCursor = ->
 Editor::scrollCursorIntoPosition = ->
   axis = @determineCursorPosition().y
 
-  if axis < @viewports.main.y
+  if axis < @session.viewports.main.y
     @mainScroller.scrollTop = axis
-  else if axis > @viewports.main.bottom()
-    @mainScroller.scrollTop = axis - @viewports.main.height
+  else if axis > @session.viewports.main.bottom()
+    @mainScroller.scrollTop = axis - @session.viewports.main.height
 
   @mainScroller.scrollLeft = 0
 
@@ -3479,7 +3471,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.style.font = @session.fontSize + 'px ' + @session.fontFamily
 
       div.style.left = "#{textElement.bounds[0].x - @session.viewports.main.x}px"
-      div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y - @fontAscent}px"
+      div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y - @session.fontAscent}px"
 
       div.className = 'droplet-transitioning-element'
       div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
@@ -3508,9 +3500,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       div.innerText = div.textContent = line + 1
 
       div.style.left = 0
-      div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @fontAscent - @session.viewports.main.y}px"
+      div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent - @session.viewports.main.y}px"
 
-      div.style.font = @fontSize + 'px ' + @fontFamily
+      div.style.font = @session.fontSize + 'px ' + @session.fontFamily
       div.style.width = "#{@gutter.clientWidth}px"
 
       translatingElements.push div
@@ -3676,8 +3668,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         do (div, textElement) =>
           setTimeout (=>
             div.style.left = "#{textElement.bounds[0].x - @session.viewports.main.x}px"
-            div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y - @fontAscent}px"
-            div.style.fontSize = @fontSize + 'px'
+            div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y - @session.fontAscent}px"
+            div.style.fontSize = @session.fontSize + 'px'
           ), 0
 
       top = Math.max @aceEditor.getFirstVisibleRow(), 0
@@ -3713,7 +3705,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         do (div, line) =>
           setTimeout (=>
             div.style.left = 0
-            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @view.opts.textHeight - @session.fontAscent - @session.viewports.main.y}px"
+            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent - @session.viewports.main.y}px"
             div.style.fontSize = @session.fontSize + 'px'
           ), 0
 
@@ -3871,8 +3863,8 @@ Editor::resizeMainScroller = ->
 hook 'resize_palette', 0, ->
   @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
 
-  @viewports.palette.height = @paletteScroller.clientHeight
-  @viewports.palette.width = @paletteScroller.clientWidth
+  @session.viewports.palette.height = @paletteScroller.clientHeight
+  @session.viewports.palette.width = @paletteScroller.clientWidth
 
 hook 'redraw_main', 1, ->
   bounds = @session.view.getViewNodeFor(@session.tree).getBounds()
@@ -3907,20 +3899,20 @@ hook 'redraw_palette', 0, ->
 # MULTIPLE FONT SIZE SUPPORT
 # ================================
 hook 'populate', 0, ->
-  @fontSize = 15
-  @fontFamily = 'Courier New'
+  @session.fontSize = 15
+  @session.fontFamily = 'Courier New'
   @measureCtx.font = '15px Courier New'
-  @fontWidth = @measureCtx.measureText(' ').width
+  @session.fontWidth = @measureCtx.measureText(' ').width
 
-  metrics = helper.fontMetrics(@fontFamily, @fontSize)
-  @fontAscent = metrics.prettytop
-  @fontDescent = metrics.descent
+  metrics = helper.fontMetrics(@session.fontFamily, @session.fontSize)
+  @session.fontAscent = metrics.prettytop
+  @session.fontDescent = metrics.descent
 
 Editor::setFontSize_raw = (fontSize) ->
-  unless @fontSize is fontSize
-    @measureCtx.font = fontSize + ' px ' + @fontFamily
-    @fontWidth = @measureCtx.measureText(' ').width
-    @fontSize = fontSize
+  unless @session.fontSize is fontSize
+    @measureCtx.font = fontSize + ' px ' + @session.fontFamily
+    @session.fontWidth = @measureCtx.measureText(' ').width
+    @session.fontSize = fontSize
 
     @paletteHeader.style.fontSize = "#{fontSize}px"
     @gutter.style.fontSize = "#{fontSize}px"
@@ -3938,9 +3930,9 @@ Editor::setFontSize_raw = (fontSize) ->
     @session.paletteView.clearCache()
     @session.dragView.clearCache()
 
-    @view.draw.setGlobalFontSize @fontSize
-    @paletteView.draw.setGlobalFontSize @fontSize
-    @dragView.draw.setGlobalFontSize @fontSize
+    @session.view.draw.setGlobalFontSize @session.fontSize
+    @session.paletteView.draw.setGlobalFontSize @session.fontSize
+    @session.dragView.draw.setGlobalFontSize @session.fontSize
 
     @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
 
@@ -3948,7 +3940,7 @@ Editor::setFontSize_raw = (fontSize) ->
     @rebuildPalette()
 
 Editor::setFontFamily = (fontFamily) ->
-  @measureCtx.font = @fontSize + 'px ' + fontFamily
+  @measureCtx.font = @session.fontSize + 'px ' + fontFamily
   @draw.setGlobalFontFamily fontFamily
 
   @session.fontFamily = fontFamily
@@ -3984,12 +3976,12 @@ Editor::markLine = (line, style) ->
 
   block = @session.tree.getBlockOnLine line
 
-  @view.getViewNodeFor(block).mark style
+  @session.view.getViewNodeFor(block).mark style
 
 Editor::markBlock = (block, style) ->
   return unless @session?
 
-  @view.getViewNodeFor(block).mark style
+  @session.view.getViewNodeFor(block).mark style
 
 # ## Mark
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
@@ -4000,7 +3992,7 @@ Editor::mark = (location, style) ->
   block = @session.tree.getFromTextLocation location
   block = block.container ? block
 
-  @view.getViewNodeFor(block).mark style
+  @session.view.getViewNodeFor(block).mark style
 
   @redrawHighlights() # TODO MERGE investigate
 
@@ -4361,7 +4353,7 @@ hook 'populate', 0, ->
 # ================================
 hook 'populate', 0, ->
   @cursorCtx = document.createElementNS SVG_STANDARD, 'g'
-  @textCursorPath = new @view.draw.Path([], false, {
+  @textCursorPath = new @session.view.draw.Path([], false, {
     'strokeColor': '#000'
     'lineWidth': '2'
     'fillColor': 'rgba(0, 0, 256, 0.3)'
@@ -4374,11 +4366,11 @@ hook 'populate', 0, ->
   cursorElement.setAttribute 'stroke', '#000'
   cursorElement.setAttribute 'stroke-width', '3'
   cursorElement.setAttribute 'stroke-linecap', 'round'
-  cursorElement.setAttribute 'd', "M#{@view.opts.tabOffset + CURSOR_WIDTH_DECREASE / 2} 0 " +
-      "Q#{@view.opts.tabOffset + @view.opts.tabWidth / 2} #{@view.opts.tabHeight}" +
-      " #{@view.opts.tabOffset + @view.opts.tabWidth - CURSOR_WIDTH_DECREASE / 2} 0"
+  cursorElement.setAttribute 'd', "M#{@session.view.opts.tabOffset + CURSOR_WIDTH_DECREASE / 2} 0 " +
+      "Q#{@session.view.opts.tabOffset + @session.view.opts.tabWidth / 2} #{@session.view.opts.tabHeight}" +
+      " #{@session.view.opts.tabOffset + @session.view.opts.tabWidth - CURSOR_WIDTH_DECREASE / 2} 0"
 
-  @cursorPath = new @view.draw.ElementWrapper(cursorElement)
+  @cursorPath = new @session.view.draw.ElementWrapper(cursorElement)
   @cursorPath.setParent @mainCtx
 
   @mainCanvas.appendChild @cursorCtx
@@ -4454,7 +4446,7 @@ Editor::viewOrChildrenContains = (model, point, view = @session.view) ->
     return true
 
   for childObj in modelView.children
-    if @viewOrChildrenContains childObj.child, point, view
+    if @session.viewOrChildrenContains childObj.child, point, view
       return true
 
   return false
@@ -4597,7 +4589,7 @@ Editor::addLineNumberForLine = (line) ->
 
     lineDiv.style.top = "#{treeView.bounds[line].y}px"
 
-    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @view.opts.textHeight - @session.fontAscent}px"
+    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent}px"
     lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @session.fontDescent}"
 
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
@@ -4734,10 +4726,10 @@ hook 'keyup', 0, (point, event, state) ->
 # ================================
 
 Editor::overflowsX = ->
-  @documentDimensions().width > @viewportDimensions().width
+  @documentDimensions().width > @session.viewportDimensions().width
 
 Editor::overflowsY = ->
-  @documentDimensions().height > @viewportDimensions().height
+  @documentDimensions().height > @session.viewportDimensions().height
 
 Editor::documentDimensions = ->
   bounds = @session.view.getViewNodeFor(@session.tree).totalBounds
@@ -4747,7 +4739,7 @@ Editor::documentDimensions = ->
   }
 
 Editor::viewportDimensions = ->
-  return @viewports.main
+  return @session.viewports.main
 
 # LINE LOCATION API
 # =================

@@ -43,16 +43,16 @@ unless window.ALREADY_LOADED
   editor = null
 
 # Droplet itself
-<<<<<<< HEAD
+#<<<<<<< HEAD
   createEditor = (options) ->
     $('#droplet-editor').html ''
     editor = new droplet.Editor $('#droplet-editor')[0], options
-=======
-createEditor = (options) ->
-  $('#droplet-editor').html '<div id="ace-target"></div>'
-  aceEditor = ace.edit 'ace-target'
-  editor = new droplet.Editor aceEditor, options
->>>>>>> c_support
+#=======
+#createEditor = (options) ->
+#  $('#droplet-editor').html '<div id="ace-target"></div>'
+#  aceEditor = ace.edit 'ace-target'
+#  editor = new droplet.Editor aceEditor, options
+#>>>>>>> c_support
 
     editor.setEditorState localStorage.getItem('blocks') is 'yes'
     editor.aceEditor.getSession().setUseWrapMode true
@@ -71,7 +71,7 @@ createEditor = (options) ->
     editor.toggleBlocks()
     localStorage.setItem 'blocks', (if editor.currentlyUsingBlocks then 'yes' else 'no')
 
-# Stuff for testing convenience
+  # Stuff for testing convenience
   $('#update').on 'click', ->
     localStorage.setItem 'config', dropletConfig.getValue()
     createEditor eval dropletConfig.getValue()
