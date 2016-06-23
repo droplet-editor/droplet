@@ -44,6 +44,7 @@ DEFAULT_OPTIONS =
   dropAreaHeight: 20
   indentDropAreaMinWidth: 50
   minSocketWidth: 10
+  invisibleSocketWidth: 5
   textHeight: 15
   textPadding: 1
   emptyLineWidth: 50
@@ -52,6 +53,7 @@ DEFAULT_OPTIONS =
   shadowBlur: 5
   colors:
     error: '#ff0000'
+    comment: '#c0c0c0'  # gray
     return: '#fff59d'   # yellow
     control: '#ffcc80'  # orange
     value: '#a5d6a7'    # green
@@ -1227,7 +1229,15 @@ exports.View = class View
       @computeMargins()
       @computeBevels()
       @computeMinDimensions()
-      @computeDimensions 0, true
+      # Replacement for computeDimensions
+      for size, line in @minDimensions
+        @distanceToBase[line] = {
+          above: @lineChildren[line].map((child) => @view.getViewNodeFor(child.child).distanceToBase[line - child.startLine].above).reduce((a, b) -> Math.max(a, b))
+          below: @lineChildren[line].map((child) => @view.getViewNodeFor(child.child).distanceToBase[line - child.startLine].below).reduce((a, b) -> Math.max(a, b))
+        }
+        @dimensions[line] = new draw.Size @minDimensions[line].width, @minDimensions[line].height
+
+      #@computeDimensions false, true
       # Replacement for computeAllBoundingBoxX
       for size, line in @dimensions
         child = @lineChildren[line][0]
@@ -1239,7 +1249,10 @@ exports.View = class View
       for size, line in @dimensions
         child = @lineChildren[line][0]
         childView = @view.getViewNodeFor child.child
-        top = childView.bounds[line - child.startLine].y
+        oldY = childView.bounds[line - child.startLine].y
+        top = childView.bounds[line - child.startLine].y +
+          childView.distanceToBase[line - child.startLine].above -
+          @distanceToBase[line].above
         @computeBoundingBoxY top, line
       @computePath()
       @computeDropAreas()
@@ -1841,34 +1854,6 @@ exports.View = class View
     # not to have a tab.
     shouldAddTab: NO
 
-    # ## drawSelf
-    # Draw our path, with applied
-    # styles if necessary.
-    drawSelf: (style = {}) ->
-      # We might want to apply some
-      # temporary color changes,
-      # so store the old colors
-      oldFill = @path.style.fillColor
-      oldStroke = @path.style.strokeColor
-
-      if style.grayscale
-        @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
-        @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
-
-      if style.selected
-        @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
-        @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
-
-      @path.setMarkStyle @markStyle
-
-      @path.update()
-
-      # Unset all the things we changed
-      @path.style.fillColor = oldFill
-      @path.style.strokeColor = oldStroke
-
-      return null
-
   # # BlockViewNode
   class BlockViewNode extends ContainerViewNode
     constructor: ->
@@ -1992,6 +1977,9 @@ exports.View = class View
 
     shouldAddTab: NO
 
+    isInvisibleSocket: ->
+      '' is @model.emptyString and @model.start?.next is @model.end
+
     # ## computeDimensions (SocketViewNode)
     # Sockets have a couple exceptions to normal dimension computation.
     #
@@ -2013,8 +2001,11 @@ exports.View = class View
           @minDistanceToBase[0].above + @minDistanceToBase[0].below
 
       for dimension in @minDimensions
-        dimension.width =
-            Math.max(dimension.width, @view.opts.minSocketWidth)
+        dimension.width = Math.max(dimension.width,
+          if @isInvisibleSocket()
+            @view.opts.invisibleSocketWidth
+          else
+            @view.opts.minSocketWidth)
 
         if @model.hasDropdown() and @view.opts.showDropdowns
           dimension.width += helper.DROPDOWN_ARROW_WIDTH
@@ -2075,7 +2066,7 @@ exports.View = class View
 
       # If the socket is empty, make it invisible except
       # for mouseover
-      if @model.start.next is @model.end and @model.emptyString is ''
+      if '' is @model.emptyString and @model.start?.next is @model.end
         @path.style.cssClass = 'droplet-socket-path droplet-empty-socket-path'
       else
         @path.style.cssClass = 'droplet-socket-path'

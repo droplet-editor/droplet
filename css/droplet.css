@@ -82,7 +82,7 @@
   position: absolute;
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  /*overflow: hidden;*/
 }
 .droplet-palette-header {
   z-index: 257;
@@ -154,6 +154,11 @@
 }
 .droplet-main-scroller-stuffing {
   z-index: 10;
+}
+.droplet-main-scroller-intermediary {
+  z-index; 10;
+  min-width: 100%;
+  min-height: 100%;
 }
 .droplet-palette-scroller-stuffing {
   /* Temporary hack to prevent bad side-scrolling

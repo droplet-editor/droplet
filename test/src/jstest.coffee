@@ -168,12 +168,12 @@ asyncTest 'JS Custom Colors', ->
       socketLevel="0"
       classes="mostly-block AssignmentExpression"
     >(<socket
-      precedence="0"
+      precedence="100"
       handwritten="false"
       classes=""
     >a</socket
     > += <socket
-      precedence="0"
+      precedence="100"
       handwritten="false"
       classes=""
     ><block
@@ -228,7 +228,7 @@ asyncTest 'JS empty indents', ->
   customJS = new JavaScript()
   code = 'if (__) {\n\n}'
   customSerialization = customJS.parse('if (__) {\n\n}')
-  stringifiedJS = customSerialization.stringify(customJS)
+  stringifiedJS = customSerialization.stringify()
   strictEqual(stringifiedJS, code)
   start()
 
@@ -305,7 +305,11 @@ asyncTest 'JS omits unary +/- for literals', ->
       '  precedence="100"' +
       '  handwritten="false"' +
       '  classes=""' +
-      '>a</socket>()</block></socket></block>' +
+      '>a</socket>(<socket
+        precedence="100"
+        handwritten="false"
+        classes="mostly-value"
+      ></socket>)</block></socket></block>' +
       '</socket>);</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
@@ -485,7 +489,11 @@ asyncTest 'JS beginner mode loops', ->
     '  precedence="100"' +
     '  handwritten="false"' +
     '  classes=""' +
-    '>go</socket>();</block></indent>\n}</block></document>'
+    '>go</socket>(<socket
+      precedence="100"
+      handwritten="false"
+      classes="mostly-value"
+    ></socket>);</block></indent>\n}</block></document>'
   strictEqual(
       helper.xmlPrettyPrint(customSerialization),
       helper.xmlPrettyPrint(expectedSerialization),

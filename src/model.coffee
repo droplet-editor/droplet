@@ -10,6 +10,8 @@ NO = -> no
 NORMAL = default: helper.NORMAL
 FORBID = default: helper.FORBID
 
+DEFAULT_STRINGIFY_OPTS = {preserveEmpty: true}
+
 _id = 0
 
 # Getter/setter utility function
@@ -108,6 +110,7 @@ class ReplaceOperation
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
+    @type = 'list'
 
   hasParent: (x) -> false
 
@@ -176,13 +179,16 @@ exports.List = class List
     helper.connect list.end, after
     list.notifyChange()
 
-    # Make and return an undo operation
-    operation = new Operation 'insert', list
-    operation.location = location
+    if location?
+      # Make and return an undo operation
+      operation = new Operation 'insert', list
+      operation.location = location
 
-    # Preserve updates
-    updates.forEach (x, i) ->
-      x.set(updateTokens[i].getLocation())
+      # Preserve updates
+      updates.forEach (x, i) ->
+        x.set(updateTokens[i].getLocation())
+    else
+      operation = null
 
     return operation
 
@@ -413,13 +419,13 @@ exports.List = class List
   # Get a string representation of us,
   # using the `stringify()` method on all of
   # the tokens that we contain.
-  stringify: ->
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
     head = @start
-    str = head.stringify()
+    str = head.stringify(opts)
 
     until head is @end
       head = head.next
-      str += head.stringify()
+      str += head.stringify(opts)
 
     return str
 
@@ -499,6 +505,7 @@ exports.Container = class Container extends List
       type: @type
       precedence: @precedence
       classes: @classes
+      parseContext: @parseContext
     }
 
   setParent: (parent) ->
@@ -695,7 +702,7 @@ exports.Container = class Container extends List
   # ## getFromTextLocation ##
   # Given a TextLocation, find the token at that row, column, and length.
   getFromTextLocation: (location) ->
-    head = @start
+    head = @start.next # Move past the DocumentStartToken
     best = head
 
     row = 0
@@ -873,6 +880,9 @@ exports.Token = class Token
     head = @
     dropletDocument = @getDocument()
 
+    if not dropletDocument?
+      return null
+
     until head is dropletDocument.start
       head = head.prev
       count += 1
@@ -1013,14 +1023,14 @@ exports.SocketStartToken = class SocketStartToken extends StartToken
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
-  stringify: ->
-    if @prev is @container.start or
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    if opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
     else ''
 
 exports.Socket = class Socket extends Container
-  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null, @parseContext = null) ->
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -1041,7 +1051,7 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown, @parseContext
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
@@ -1065,14 +1075,14 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: ->
-    if @prev.prev is @container.start
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@emptyString, @prefix = '', @classes = []) ->
+  constructor: (@emptyString, @prefix = '', @classes = [], @parseContext = null) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -1082,7 +1092,7 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes, @parseContext
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<indent prefix=\"#{

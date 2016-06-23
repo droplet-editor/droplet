@@ -117,15 +117,20 @@ asyncTest 'Controller: palette block expansion', ->
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
+<<<<<<< HEAD
   equal(editor.getValue().trim(), 'pen red\na1 = b')
   simulate('mousedown', '[data-id=ftest]')
+=======
+  equal(editor.getValue().trim(), 'pen red\na3 = b')
+  simulate('mousedown', '[title=ftest]')
+>>>>>>> c_support
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 80 })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 80 })
-  equal(editor.getValue().trim(), 'pen red\na1 = b\na2 = b')
+  equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
   start()
 
 asyncTest 'Controller: reparse and undo reparse', ->
@@ -255,7 +260,16 @@ asyncTest 'Controller: does not throw on reparse error', ->
 
     ok(true, 'Does not throw on reparse')
 
+<<<<<<< HEAD
     after = $('[stroke=#F00]').length
+=======
+    foundErrorMark = false
+    for key, val of editor.session.markedBlocks
+      if val.model.stringify() is '18n' and
+          val.style.color is '#F00'
+        foundErrorMark = true
+        break
+>>>>>>> c_support
 
     ok(after > before, 'Marks block with a red line')
 
@@ -294,14 +308,14 @@ asyncTest 'Controller: Can replace a block where we found it', ->
 
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
-  head = editor.tree.start
+  head = editor.session.tree.start
   # Skip the first block if it is the entire document
-  if head.next.container?.end is editor.tree.end.prev
+  if head.next.container?.end is editor.session.tree.end.prev
     head = head.next.next
   dragPossibilities = []
-  until head is editor.tree.end
+  until head is editor.session.tree.end
     if head.type is 'blockStart'
-      bound = editor.view.getViewNodeFor(head.container).bounds[0]
+      bound = editor.session.view.getViewNodeFor(head.container).bounds[0]
       handle = {x: bound.x + 5, y: bound.y + 5}
       dragPossibilities.push {
         block: head.container
@@ -312,17 +326,17 @@ getRandomDragOp = (editor, rng) ->
   drag = dragPossibilities[Math.floor rng() * dragPossibilities.length]
 
   # Find all the drop areas
-  head = editor.tree.start
+  head = editor.session.tree.start
 
   # Disclude the main tree if we're dragging the first block
   if drag is dragPossibilities[0]
     head = head.next
   dropPossibilities = []
-  until head is editor.tree.end
+  until head is editor.session.tree.end
     if head is drag.block.start
       head = drag.block.end
     if head.type.match(/Start$/)?
-      dropPoint = editor.view.getViewNodeFor(head.container).dropPoint
+      dropPoint = editor.session.view.getViewNodeFor(head.container).dropPoint
       if dropPoint?
         if head.container.type is 'block'
           parent = head.container.parent
@@ -338,6 +352,10 @@ getRandomDragOp = (editor, rng) ->
           }
     head = head.next
 
+  # If this block is not droppable, try again.
+  if dropPossibilities.length is 0
+    return getRandomDragOp(editor, rng)
+
   drop = dropPossibilities[Math.floor rng() * dropPossibilities.length]
 
   return {drag, drop}
@@ -351,11 +369,11 @@ generateRandomAlphabetic = (rng) ->
   return str
 
 getRandomTextOp = (editor, rng) ->
-  head = editor.tree.start
+  head = editor.session.tree.start
   socketPossibilities = []
-  until head is editor.tree.end
+  until head is editor.session.tree.end
     if head.type is 'socketStart' and head.container.editable()
-      bound = editor.view.getViewNodeFor(head.container).bounds[0]
+      bound = editor.session.view.getViewNodeFor(head.container).bounds[0]
       handle = {x: bound.x + 5, y: bound.y + 5}
       socketPossibilities.push {
         block: head.container
@@ -379,6 +397,7 @@ performTextOperation = (editor, text, cb) ->
     dy: text.socket.handle.y
   })
   setTimeout (->
+<<<<<<< HEAD
     $(editor.hiddeninput).sendkeys(text.text)
 
     # unfocus
@@ -388,6 +407,23 @@ performTextOperation = (editor, text, cb) ->
     editor.dropletElement.dispatchEvent(evt)
 
     setTimeout cb, 0
+=======
+    $(editor.hiddenInput).sendkeys(text.text)
+    setTimeout (->
+      # Unfocus
+      simulate('mousedown', editor.mainScrollerIntermediary, {
+        location: editor.mainCanvas
+        dx: editor.mainCanvas.offsetWidth - 1
+        dy: editor.mainCanvas.offsetHeight - 1
+      })
+      simulate('mouseup', editor.mainScrollerIntermediary, {
+        location: editor.mainCanvas
+        dx: editor.mainCanvas.offsetWidth - 1
+        dy: editor.mainCanvas.offsetHeight - 1
+      })
+      setTimeout cb, 0
+    ), 0
+>>>>>>> c_support
   ), 0
 
 performDragOperation = (editor, drag, cb) ->
@@ -405,6 +441,7 @@ performDragOperation = (editor, drag, cb) ->
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
+<<<<<<< HEAD
   simulate('mouseup', editor.mainCanvas, {
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
@@ -423,6 +460,33 @@ pickUpLocation = (editor, document, location) ->
   bound = editor.view.getViewNodeFor(block).bounds[0]
   simulate('mousedown', editor.mainCanvas, {
     dx: bound.x + 5,
+=======
+  simulate('mouseup', editor.mainScrollerIntermediary, {
+    dx: drag.drop.point.x + 5
+    dy: drag.drop.point.y + 5
+  })
+  # Unfocus the text input that may have been focused
+  # when we dragged
+  setTimeout (->
+    simulate('mousedown', editor.mainScrollerIntermediary, {
+      location: editor.mainCanvas
+      dx: editor.mainCanvas.offsetWidth - 1
+      dy: editor.mainCanvas.offsetHeight - 1
+    })
+    simulate('mouseup', editor.mainScrollerIntermediary, {
+      location: editor.mainCanvas
+      dx: editor.mainCanvas.offsetWidth - 1
+      dy: editor.mainCanvas.offsetHeight - 1
+    })
+    setTimeout cb, 0
+  ), 0
+
+pickUpLocation = (editor, document, location) ->
+  block = editor.getDocument(document).getFromTextLocation(location)
+  bound = editor.session.view.getViewNodeFor(block).bounds[0]
+  simulate('mousedown', editor.mainScrollerStuffing, {
+    dx: bound.x + editor.gutter.offsetWidth + 5,
+>>>>>>> c_support
     dy: bound.y + 5
   })
   simulate('mousemove', editor.dragCover, {
@@ -433,13 +497,17 @@ pickUpLocation = (editor, document, location) ->
 
 dropLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
-  blockView = editor.view.getViewNodeFor block
+  blockView = editor.session.view.getViewNodeFor block
   simulate('mousemove', editor.dragCover, {
     location: editor.mainCanvas
     dx: blockView.dropPoint.x + 5,
     dy: blockView.dropPoint.y + 5
   })
+<<<<<<< HEAD
   simulate('mouseup', editor.mainCanvas, {
+=======
+  simulate('mouseup', editor.mainScrollerIntermediary, {
+>>>>>>> c_support
     dx: blockView.dropPoint.x + 5
     dy: blockView.dropPoint.y + 5
   })
@@ -605,8 +673,8 @@ asyncTest 'Controller: Quoted string selection', ->
   editor.setEditorState(true)
   editor.setValue('fd "hello"')
 
-  entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
-  {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
+  entity = editor.session.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
+  {x, y} = editor.session.view.getViewNodeFor(entity).bounds[0]
 
   simulate('mousedown', editor.mainCanvas, {
     dx: x + 5
@@ -655,8 +723,8 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
   editor.setEditorState(true)
   editor.setValue("fd 'hello'")
 
-  entity = editor.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
-  {x, y} = editor.view.getViewNodeFor(entity).bounds[0]
+  entity = editor.session.tree.getFromTextLocation({row: 0, col: 'fd '.length, type: 'socket'})
+  {x, y} = editor.session.view.getViewNodeFor(entity).bounds[0]
 
   executeAsyncSequence [
     (->
@@ -681,6 +749,144 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
       editor.dropletElement.dispatchEvent(evt)
     ), (->
       equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'\n"""
+      start()
+    )
+  ]
+
+asyncTest 'Controller: Session switch test', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: false}
+        bk: {command: true, value: false}
+    palette: [
+      {
+        name: 'Blocks 1'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 2'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 3'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 4'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 5'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+      {
+        name: 'Blocks 6'
+        blocks: [
+          {block: 'a is b'}
+        ]
+      }
+    ]
+  })
+
+  originalSession = editor.aceEditor.getSession()
+
+  editor.setEditorState(true)
+  editor.setValue('''
+  for i in [0..10]
+    if i % 2 is 0
+      fd 10
+    else
+      bk 10
+  ''')
+
+  equal editor.paletteHeader.childElementCount, 3, 'Palette header originally has three rows'
+
+  newSession = ace.createEditSession('''
+  for (var i = 0; i < 10; i++) {
+    if (i % 2 === 0) {
+      fd(10);
+    }
+    else {
+      bk(10);
+    }
+  }
+  ''', 'ace/mode/javascript')
+
+  executeAsyncSequence [
+    (->
+      editor.aceEditor.setSession newSession
+    ),
+    (->
+      editor.bindNewSession({
+        mode: 'javascript',
+        palette: []
+      })
+
+      editor.setEditorState(true)
+      equal editor.getValue(), '''
+      for (var i = 0; i < 10; i++) {
+        if (i % 2 === 0) {
+          fd(10);
+        }
+        else {
+          bk(10);
+        }
+      }\n
+      ''', 'Set value of new session'
+
+      equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+
+      equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks'
+      editor.setEditorState(false)
+
+      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+    ),
+    (->
+      editor.aceEditor.setSession originalSession
+    ),
+    (->
+      equal editor.getValue(), '''
+      for i in [0..10]
+        if i % 2 is 0
+          fd 10
+        else
+          bk 10\n
+      ''', 'Original text restored'
+
+      equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
+      equal editor.paletteHeader.childElementCount, 3, 'Original palette header size restored'
+    ),
+    (->
+      editor.aceEditor.setSession newSession
+    ),
+    (->
+      equal editor.getValue(), '''
+      for (var i = 0; i < 10; i++) {
+        if (i % 2 === 0) {
+          fd(10);
+        }
+        else {
+          bk(10);
+        }
+      }\n
+      ''', 'Set value of new session'
+
+      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+      equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+
       start()
     )
   ]
@@ -747,6 +953,114 @@ asyncTest 'Controller: Random drag undo test', ->
     stateStack.push editor.getSerializedEditorState().toString()
 
     if rng() > 0.5
+      op = getRandomDragOp(editor, rng)
+      performDragOperation editor, op, cb
+    else
+      op = getRandomTextOp(editor, rng)
+      performTextOperation editor, op, cb
+
+  tick 100
+
+asyncTest 'Controller: ANTLR random drag reparse test', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'c_cpp',
+    modeOptions:
+      knownFunctions:
+        printf: {color: 'blue', shape: 'block-only'}
+        puts: {color: 'blue', shape: 'block-only'}
+        scanf: {color: 'blue', shape: 'block-only'}
+        malloc: {color: 'red', shape: 'value-only'}
+    palette: []
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('''
+    #include <stdio.h>
+    #include <stdlib.h>
+    #define MAXLEN 100
+
+    // Linked list
+    struct List {
+        long long data;
+        struct List *next;
+        struct List *prev;
+    };
+    typedef struct List List;
+
+    // Memoryless swap
+    void swap(long long *a, long long *b) {
+        *a ^= *b;
+        *b ^= *a;
+        *a ^= *b;
+    }
+
+    // Test if sorted
+    int sorted(List *head, int (*fn)(long long, long long)) {
+        for (List *cursor = head; cursor && cursor->next; cursor = cursor->next) {
+            if (!fn(cursor->data, cursor->next->data)) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    // Bubble sort
+    void sort(List *head, int (*fn)(long long, long long)) {
+        while (!sorted(head, fn)) {
+            for (List *cursor = head; cursor && cursor->next; cursor = cursor->next) {
+                if (!fn(cursor->data, cursor->next->data))
+                    swap(&cursor->data, &cursor->next->data);
+            }
+        }
+    }
+
+    // Comparator
+    int comparator(long long a, long long b) {
+       return (a > b);
+    }
+
+    // Main
+    int main(int n, char *args[]) {
+        // Arbitrary array initializer just o test that syntax
+        int arbitraryArray[] = {1, 2, 3, 4, 5};
+        int length;
+        scanf("%d", &length);
+        if (length > MAXLEN) {
+            puts("Error: list is too large");
+            return 1;
+        }
+        List *head = (List*)malloc(sizeof(List));
+        scanf("%d", &head->data);
+        head->prev = NULL;
+        List *cursor = head;
+        int temp;
+        for (int i = 0; i < length - 1; i++) {
+            cursor->next = (List*)malloc(sizeof(List));
+            cursor = cursor->next;
+            scanf("%d", &temp);
+            cursor->data = (long long)temp;
+        }
+        sort(head, comparator);
+        for (cursor = head; cursor; cursor = cursor->next) {
+            printf("%d ", cursor->data);
+        }
+        puts("\\n");
+        return 0;
+    }
+  ''')
+  rng = seedrandom('droplet')
+  stateStack = []
+
+  tick = (count) ->
+    cb = ->
+      if count is 0
+        start()
+      else
+        ok editor.session.mode.parse(editor.getValue()), 'Still in a parseable state'
+        setTimeout (-> tick count - 1), 0
+
+    if rng() > 0.1
       op = getRandomDragOp(editor, rng)
       performDragOperation editor, op, cb
     else

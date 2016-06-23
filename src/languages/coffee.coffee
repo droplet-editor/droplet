@@ -7,6 +7,8 @@ helper = require '../helper.coffee'
 model = require '../model.coffee'
 parser = require '../parser.coffee'
 
+{fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
+
 {CoffeeScript} = require '../../vendor/coffee-script.js'
 
 ANY_DROP = ['any-drop']
@@ -216,6 +218,11 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   isComment: (str) ->
     str.match(/^\s*#.*$/)?
+
+  parseComment: (str) ->
+    {
+      sockets: [[str.match(/^\s*#/)?[0].length, str.length]]
+    }
 
   stripComments: ->
     # Preprocess comment lines:
@@ -530,6 +537,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # We will not add a socket around @variable when it
       # is only some text
       when 'Call'
+        hasCallParen = false
         if node.variable?
           namenodes = @functionNameNodes node
           known = @lookupFunctionName namenodes
@@ -542,6 +550,9 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             classes = ANY_DROP
           @csBlock node, depth, 0, wrappingParen, classes
 
+          variableBounds = @getBounds(node.variable)
+          hasCallParen = (@lines[variableBounds.end.line][variableBounds.end.column] == '(')
+
           # Some function names (like /// RegExps ///) are never editable.
           if @implicitName namenodes
             # do nothing
@@ -553,6 +564,29 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             # In the 'beginner' case of a simple method call with a
             # simple base object variable, let the variable be socketed.
             @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
+
+          if not known and node.args.length is 0 and not node.do
+            # The only way we can have zero arguments in CoffeeScript
+            # is for the parenthesis to open immediately after the function name.
+            start = {
+              line: variableBounds.end.line
+              column: variableBounds.end.column + 1
+            }
+            end = {
+              line: start.line
+              column: start.column
+            }
+            space = @lines[start.line][start.column..].match(/^(\s*)\)/)
+            if space?
+              end.column += space[1].length
+            @addSocket {
+              bounds: {start, end}
+              depth,
+              precedence: 0,
+              dropdown: null,
+              classes: ['mostly-value']
+              empty: ''
+            }
         else
           @csBlock node, depth, 0, wrappingParen, ANY_DROP
 
@@ -566,6 +600,8 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
               # Inline function definitions that appear as the last arg
               # of a function call will be melded into the parent block.
               @addCode arg, depth + 1, indentDepth
+            else if not known and hasCallParen and index is 0 and node.args.length is 1
+              @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index], ''
             else
               @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index]
 
@@ -615,7 +651,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Special case: "unless" keyword; in this case
       # we want to skip the Op that wraps the condition.
       when 'If'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: true}
+        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: '+'}
 
         # Check to see if we are an "unless".
         # We will deem that we are an unless if:
@@ -731,6 +767,34 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
             @csSocketAndMark property.value, depth + 1, 0, indentDepth
 
+
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and 'If' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = CoffeeScript.nodes(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).expressions[0]
+
+      lines = text.split '\n'
+
+      currentNode = node
+      elseLocation = null
+
+      while currentNode.isChain
+        currentNode = currentNode.elseBodyNode()
+
+      if currentNode.elseBody?
+        lines = text.split('\n')
+        elseLocation = {
+          line: currentNode.elseToken.last_line
+          column: currentNode.elseToken.last_column + 2
+        }
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+        return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
+      else
+        return text + '\nelse\n  ``'
 
   locationsAreIdentical: (a, b) ->
     return a.line is b.line and a.column is b.column
@@ -935,17 +999,17 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   # ## csSocket ##
   # A similar utility function for adding sockets.
-  csSocket: (node, depth, precedence, classes = [], dropdown) ->
+  csSocket: (node, depth, precedence, classes = [], dropdown, empty) ->
     @addSocket {
       bounds: @getBounds node
-      depth, precedence, dropdown
+      depth, precedence, dropdown, empty
       classes: getClassesFor(node).concat classes
     }
 
   # ## csSocketAndMark ##
   # Adds a socket for a node, and recursively @marks it.
-  csSocketAndMark: (node, depth, precedence, indentDepth, classes, dropdown) ->
-    socket = @csSocket node, depth, precedence, classes, dropdown
+  csSocketAndMark: (node, depth, precedence, indentDepth, classes, dropdown, empty) ->
+    socket = @csSocket node, depth, precedence, classes, dropdown, empty
     @mark node, depth + 1, precedence, null, indentDepth
     return socket
 
@@ -1038,41 +1102,6 @@ fixCoffeeScriptError = (lines, e) ->
 
   return null
 
-# To fix quoting errors, we first do a lenient C-unescape, then
-# we do a string C-escaping, to add backlsashes where needed, but
-# not where we already have good ones.
-fixQuotedString = (lines) ->
-  line = lines[0]
-  quotechar = if /^"|"$/.test(line) then '"' else "'"
-  if line.charAt(0) is quotechar
-    line = line.substr(1)
-  if line.charAt(line.length - 1) is quotechar
-    line = line.substr(0, line.length - 1)
-  return lines[0] = quoteAndCEscape looseCUnescape(line), quotechar
-
-looseCUnescape = (str) ->
-  codes =
-    '\\b': '\b'
-    '\\t': '\t'
-    '\\n': '\n'
-    '\\f': '\f'
-    '\\"': '"'
-    "\\'": "'"
-    "\\\\": "\\"
-    "\\0": "\0"
-  str.replace /\\[btnf'"\\0]|\\x[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}/g, (m) ->
-    if m.length is 2 then return codes[m]
-    return String.fromCharCode(parseInt(m.substr(1), 16))
-
-quoteAndCEscape = (str, quotechar) ->
-  result = JSON.stringify(str)
-  if quotechar is "'"
-    return quotechar +
-      result.substr(1, result.length - 2).
-             replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
-      replace(/'/g, "\\'") + quotechar
-  return result
-
 findUnmatchedLine = (lines, above) ->
   # Not done yet
   return null
@@ -1102,6 +1131,7 @@ CoffeeScriptParser.empty = "``"
 CoffeeScriptParser.emptyIndent = "``"
 CoffeeScriptParser.startComment = '###'
 CoffeeScriptParser.endComment = '###'
+CoffeeScriptParser.startSingleLineComment = '# '
 
 CoffeeScriptParser.drop = (block, context, pred) ->
   if context.type is 'socket'
@@ -1168,32 +1198,10 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
       start += 2; end -= 2
   return {start, end}
 
-CoffeeScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'If' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = CoffeeScript.nodes(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).expressions[0]
-
-    lines = text.split '\n'
-
-    currentNode = node
-    elseLocation = null
-
-    while currentNode.isChain
-      currentNode = currentNode.elseBodyNode()
-
-    if currentNode.elseBody?
-      lines = text.split('\n')
-      elseLocation = {
-        line: currentNode.elseToken.last_line
-        column: currentNode.elseToken.last_column + 2
-      }
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
-      return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
-    else
-      return text + '\nelse\n  ``'
+CoffeeScriptParser.stringFixer = (string) ->
+  if /^['"]|['"]$/.test string
+    return fixQuotedString [string]
+  else
+    return string
 
 module.exports = parser.wrapParser CoffeeScriptParser

@@ -105,52 +105,11 @@ exports.Draw = class Draw
 
     # ## Point ##
     # A point knows its x and y coordinate, and can do some vector operations.
-    @Point = class Point
-      constructor: (@x, @y) ->
-
-      clone: -> new Point @x, @y
-
-      magnitude: -> Math.sqrt @x * @x + @y * @y
-
-      times: (scalar) -> new Point @x * scalar, @y * scalar
-
-      normalize: -> @times 1 / @magnitude()
-
-      translate: (vector) ->
-        @x += vector.x; @y += vector.y
-
-      add: (x, y) -> @x += x; @y += y
-
-      dot: (other) -> @x * other.x + @y * other.y
-
-      plus: ({x, y}) -> new Point @x + x, @y + y
-
-      toMagnitude: (mag) ->
-        r = mag / @magnitude()
-        return new Point @x * r, @y * r
-
-      copy: (point) ->
-        @x = point.x; @y = point.y
-        return @
-
-      from: (point) -> new Point @x - point.x, @y - point.y
-
-      clear: -> @x = @y = 0
-
-      equals: (point) -> point.x is @x and point.y is @y
-
-      almostEquals: (point) ->
-        Math.abs(point.x - @x) < EPSILON and
-        Math.abs(point.y - @y) < EPSILON
+    @Point = Point
 
     # ## Size ##
     # A Size knows its width and height.
-    @Size = class Size
-      constructor: (@width, @height) ->
-      equals: (size) ->
-        @width is size.width and @height is size.height
-      @copy: (size) ->
-        new Size(size.width, size.height)
+    @Size = Size
 
     # ## Rectangle ##
     # A Rectangle knows its upper-left corner, width, and height,
@@ -774,3 +733,48 @@ exports.Draw = class Draw
     @refreshFontCapital()
 
   getGlobalFontSize:  -> @fontSize
+
+exports.Point = class Point
+  constructor: (@x, @y) ->
+
+  clone: -> new Point @x, @y
+
+  magnitude: -> Math.sqrt @x * @x + @y * @y
+
+  times: (scalar) -> new Point @x * scalar, @y * scalar
+
+  normalize: -> @times 1 / @magnitude()
+
+  translate: (vector) ->
+    @x += vector.x; @y += vector.y
+
+  add: (x, y) -> @x += x; @y += y
+
+  dot: (other) -> @x * other.x + @y * other.y
+
+  plus: ({x, y}) -> new Point @x + x, @y + y
+
+  toMagnitude: (mag) ->
+    r = mag / @magnitude()
+    return new Point @x * r, @y * r
+
+  copy: (point) ->
+    @x = point.x; @y = point.y
+    return @
+
+  from: (point) -> new Point @x - point.x, @y - point.y
+
+  clear: -> @x = @y = 0
+
+  equals: (point) -> point.x is @x and point.y is @y
+
+  almostEquals: (point) ->
+    Math.abs(point.x - @x) < EPSILON and
+    Math.abs(point.y - @y) < EPSILON
+
+exports.Size = class Size
+  constructor: (@width, @height) ->
+  equals: (size) ->
+    @width is size.width and @height is size.height
+  @copy: (size) ->
+    new Size(size.width, size.height)
