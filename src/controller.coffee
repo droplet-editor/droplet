@@ -1273,15 +1273,12 @@ Editor::toCrossDocumentLocation = (block) ->
 # We do not do anything until the user
 # drags their mouse five pixels
 hook 'mousedown', 1, (point, event, state) ->
-  console.log 'testing'
   # If someone else has already taken this click, pass.
   if state.consumedHitTest then return
 
-  console.log 'taking and testing main', @trackerPointIsInMain point
   # If it's not in the main pane, pass.
   if not @trackerPointIsInMain(point) then return
 
-  console.log 'on main pane'
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
 
@@ -1294,7 +1291,6 @@ hook 'mousedown', 1, (point, event, state) ->
       @setCursor @session.cursor, ((token) -> token.type isnt 'socketStart')
 
     hitTestResult = @hitTest mainPoint, dropletDocument
-    console.log 'Hit test result is', mainPoint, hitTestResult
 
     # Produce debugging output
     if @debugging and event.shiftKey
@@ -1397,8 +1393,7 @@ Editor::drawDraggingBlock = ->
   @dragCanvas.width = Math.min draggingBlockView.totalBounds.width + 10, window.screen.width
   @dragCanvas.height = Math.min draggingBlockView.totalBounds.height + 10, window.screen.height
 
-  draggingBlockView.drawShadow @dragCtx, 5, 5
-  draggingBlockView.draw @dragCtx, new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
+  draggingBlockView.draw new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
 
 Editor::wouldDelete = (position) ->
 
@@ -1671,13 +1666,11 @@ hook 'mousemove', 0, (point, event, state) ->
 
       # If the user's block is outside the main pane, delete it
       else if not @trackerPointIsInMain position
-        console.log 'Getting rid'
         @dragReplacing = false
         dropBlock= null
 
       # Otherwise, find the closest droppable block
       else
-        console.log 'Finding closest droppable block'
         @dragReplacing = false
         dropBlock = @getClosestDroppableBlock(mainPoint, event.shiftKey)
 
@@ -1789,7 +1782,6 @@ hook 'mouseup', 1, (point, event, state) ->
 
         @aceEditor.onTextInput text
     else if @lastHighlight?
-      console.log '@lastHighlight is present so dropping @lastHighlight and consuming'
       @undoCapture()
 
       # Remove the block from the tree.
@@ -1903,12 +1895,9 @@ hook 'mouseup', 0, (point, event, state) ->
     removeBlock = true
     addBlockAsFloatingBlock = true
 
-    console.log 'The main viewport is', @session.viewports.main
-
     # If we dropped it off in the palette, abort (so as to delete the block).
     unless @session.viewports.main.right() > renderPoint.x > @session.viewports.main.x - @gutter.clientWidth and
         @session.viewports.main.bottom() > renderPoint.y > @session.viewports.main.y
-      console.log 'Block should now be removed theoretically'
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
 
@@ -1923,7 +1912,6 @@ hook 'mouseup', 0, (point, event, state) ->
         removeBlock = false
 
     if removeBlock
-      console.log 'REMOVING THE BLOCK!'
       # Remove the block from the tree.
       @undoCapture()
       rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)
@@ -2171,54 +2159,6 @@ hook 'redraw_palette', 0, ->
   @clearPaletteHighlightCanvas()
   if @currentHighlightedPaletteBlock?
     @paletteHighlightPath.update()
-
-hook 'rebuild_palette', 1, ->
-  # Remove the existent blocks
-  @paletteScrollerStuffing.innerHTML = ''
-
-  @currentHighlightedPaletteBlock = null
-
-  # Add new blocks
-  for data in @session.currentPaletteMetadata
-    block = data.block
-
-    hoverDiv = document.createElement 'div'
-    hoverDiv.className = 'droplet-hover-div'
-
-    hoverDiv.title = data.title ? block.stringify()
-
-    if data.id?
-      hoverDiv.setAttribute 'data-id', data.id
-
-    bounds = @session.paletteView.getViewNodeFor(block).totalBounds
-
-    hoverDiv.style.top = "#{bounds.y}px"
-    hoverDiv.style.left = "#{bounds.x}px"
-
-    # Clip boxes to the width of the palette to prevent x-scrolling. TODO: fix x-scrolling behaviour.
-    hoverDiv.style.width = "#{Math.min(bounds.width, Infinity)}px"
-    hoverDiv.style.height = "#{bounds.height}px"
-
-    do (block) =>
-      hoverDiv.addEventListener 'mousemove', (event) =>
-        palettePoint = @trackerPointToPalette new @draw.Point(
-            event.clientX, event.clientY)
-        if @session.viewOrChildrenContains block, palettePoint, @session.paletteView
-            @clearPaletteHighlightCanvas()
-            @paletteHighlightPath = @getHighlightPath block, {color: '#FF0'}, @session.paletteView
-            @paletteHighlightPath.draw @paletteHighlightCtx
-            @currentHighlightedPaletteBlock = block
-        else if block is @currentHighlightedPaletteBlock
-          @currentHighlightedPaletteBlock = null
-          @clearPaletteHighlightCanvas()
-
-      hoverDiv.addEventListener 'mouseout', (event) =>
-        if block is @currentHighlightedPaletteBlock
-          @currentHighlightedPaletteBlock = null
-          @paletteHighlightCtx.clearRect @session.viewports.palette.x, @session.viewports.palette.y,
-            @paletteHighlightCanvas.width + @session.viewports.palette.x, @paletteHighlightCanvas.height + @session.viewports.palette.y
-
-    @paletteScrollerStuffing.appendChild hoverDiv
 
 # TEXT INPUT SUPPORT
 # ================================

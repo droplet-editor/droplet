@@ -117,13 +117,8 @@ asyncTest 'Controller: palette block expansion', ->
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
   simulate('mouseup', '.droplet-drag-cover',
     { location: '.droplet-main-scroller', dx: 40, dy: 50 })
-<<<<<<< HEAD
-  equal(editor.getValue().trim(), 'pen red\na1 = b')
-  simulate('mousedown', '[data-id=ftest]')
-=======
   equal(editor.getValue().trim(), 'pen red\na3 = b')
-  simulate('mousedown', '[title=ftest]')
->>>>>>> c_support
+  simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
@@ -260,16 +255,7 @@ asyncTest 'Controller: does not throw on reparse error', ->
 
     ok(true, 'Does not throw on reparse')
 
-<<<<<<< HEAD
     after = $('[stroke=#F00]').length
-=======
-    foundErrorMark = false
-    for key, val of editor.session.markedBlocks
-      if val.model.stringify() is '18n' and
-          val.style.color is '#F00'
-        foundErrorMark = true
-        break
->>>>>>> c_support
 
     ok(after > before, 'Marks block with a red line')
 
@@ -397,33 +383,15 @@ performTextOperation = (editor, text, cb) ->
     dy: text.socket.handle.y
   })
   setTimeout (->
-<<<<<<< HEAD
     $(editor.hiddeninput).sendkeys(text.text)
 
-    # unfocus
+    # Unfocus
     evt = document.createEvent 'Event'
     evt.initEvent 'keydown', true, true
     evt.keyCode = evt.which = 13
     editor.dropletElement.dispatchEvent(evt)
 
     setTimeout cb, 0
-=======
-    $(editor.hiddenInput).sendkeys(text.text)
-    setTimeout (->
-      # Unfocus
-      simulate('mousedown', editor.mainScrollerIntermediary, {
-        location: editor.mainCanvas
-        dx: editor.mainCanvas.offsetWidth - 1
-        dy: editor.mainCanvas.offsetHeight - 1
-      })
-      simulate('mouseup', editor.mainScrollerIntermediary, {
-        location: editor.mainCanvas
-        dx: editor.mainCanvas.offsetWidth - 1
-        dy: editor.mainCanvas.offsetHeight - 1
-      })
-      setTimeout cb, 0
-    ), 0
->>>>>>> c_support
   ), 0
 
 performDragOperation = (editor, drag, cb) ->
@@ -441,13 +409,12 @@ performDragOperation = (editor, drag, cb) ->
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
-<<<<<<< HEAD
   simulate('mouseup', editor.mainCanvas, {
     dx: drag.drop.point.x + 5
     dy: drag.drop.point.y + 5
   })
 
-  # unfocus
+  # Unfocus
   evt = document.createEvent 'Event'
   evt.initEvent 'keydown', true, true
   evt.keyCode = evt.which = 13
@@ -460,33 +427,6 @@ pickUpLocation = (editor, document, location) ->
   bound = editor.view.getViewNodeFor(block).bounds[0]
   simulate('mousedown', editor.mainCanvas, {
     dx: bound.x + 5,
-=======
-  simulate('mouseup', editor.mainScrollerIntermediary, {
-    dx: drag.drop.point.x + 5
-    dy: drag.drop.point.y + 5
-  })
-  # Unfocus the text input that may have been focused
-  # when we dragged
-  setTimeout (->
-    simulate('mousedown', editor.mainScrollerIntermediary, {
-      location: editor.mainCanvas
-      dx: editor.mainCanvas.offsetWidth - 1
-      dy: editor.mainCanvas.offsetHeight - 1
-    })
-    simulate('mouseup', editor.mainScrollerIntermediary, {
-      location: editor.mainCanvas
-      dx: editor.mainCanvas.offsetWidth - 1
-      dy: editor.mainCanvas.offsetHeight - 1
-    })
-    setTimeout cb, 0
-  ), 0
-
-pickUpLocation = (editor, document, location) ->
-  block = editor.getDocument(document).getFromTextLocation(location)
-  bound = editor.session.view.getViewNodeFor(block).bounds[0]
-  simulate('mousedown', editor.mainScrollerStuffing, {
-    dx: bound.x + editor.gutter.offsetWidth + 5,
->>>>>>> c_support
     dy: bound.y + 5
   })
   simulate('mousemove', editor.dragCover, {
@@ -503,11 +443,7 @@ dropLocation = (editor, document, location) ->
     dx: blockView.dropPoint.x + 5,
     dy: blockView.dropPoint.y + 5
   })
-<<<<<<< HEAD
   simulate('mouseup', editor.mainCanvas, {
-=======
-  simulate('mouseup', editor.mainScrollerIntermediary, {
->>>>>>> c_support
     dx: blockView.dropPoint.x + 5
     dy: blockView.dropPoint.y + 5
   })

@@ -14,10 +14,6 @@ SVG_STANDARD = helper.SVG_STANDARD
 # Signed area of the triangle formed by vectors [ab] and [ac]
 _area = (a, b, c) -> (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
 
-isWrong = (coord) ->
-  return Math.abs(coord.x) > 1000 or Math.abs(coord.y > 1000 or
-    coord.x isnt coord.x or coord.y isnt coord.y)
-
 # ## _intersects ##
 # Test the intersection of two line segments
 _intersects = (a, b, c, d) ->
@@ -241,14 +237,10 @@ exports.Draw = class Draw
                   if insetCoord?
                     outsidePoints.push @_points[i]
                     insidePoints.push insetCoord
-                    if isWrong insetCoord
-                      debugger
                 insetCoord = @getInsetCoordinate i + 1, BEVEL_SIZE
                 if insetCoord?
                   outsidePoints.push point
                   insidePoints.push insetCoord
-                  if isWrong insetCoord
-                    debugger
               else unless point.equals(@_points[i]) or outsidePoints.length is 0
                 subpaths.push(
                   'M' + outsidePoints.concat(insidePoints.reverse()).map((point) -> "#{point.x} #{point.y}").join(" L") + ' Z'
@@ -262,14 +254,10 @@ exports.Draw = class Draw
                 if insetCoord?
                   outsidePoints.push @_points[@_points.length - 1]
                   insidePoints.push insetCoord
-                  if isWrong insetCoord
-                    debugger
               insetCoord = @getInsetCoordinate 0, BEVEL_SIZE
               if insetCoord?
                 outsidePoints.push @_points[0]
                 insidePoints.push insetCoord
-                if isWrong insetCoord
-                  debugger
 
             if outsidePoints.length > 0
               subpaths.push(
@@ -457,14 +445,9 @@ exports.Draw = class Draw
           next = @_points[k %% @_points.length]
 
         vector = _bisector prev, @_points[i], next, length
-        if vector? and isWrong vector
-          debugger
         return null unless vector?
 
         point = @_points[i].plus vector
-
-        if isWrong point
-          debugger
 
         return point
 
