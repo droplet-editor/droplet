@@ -2,7 +2,6 @@
 #
 # Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License.
-# Test
 
 helper = require './helper.coffee'
 draw = require './draw.coffee'
@@ -280,6 +279,13 @@ exports.Editor = class Editor
     if @aceEditor instanceof Node
       @wrapperElement = @aceEditor
 
+      @wrapperElement.style.position = 'absolute'
+      @wrapperElement.style.right =
+        @wrapperElement.style.left =
+        @wrapperElement.style.top =
+        @wrapperElement.style.bottom = '0px'
+      @wrapperElement.style.overflow = 'hidden'
+
       @aceElement = document.createElement 'div'
       @aceElement.className = 'droplet-ace'
 
@@ -297,7 +303,10 @@ exports.Editor = class Editor
     else
       @wrapperElement = document.createElement 'div'
       @wrapperElement.style.position = 'absolute'
-      @wrapperElement.style.right = @wrapperElement.style.left = @wrapperElement.style.top = @wrapperElement.style.bottom = '0px'
+      @wrapperElement.style.right =
+        @wrapperElement.style.left =
+        @wrapperElement.style.top =
+        @wrapperElement.style.bottom = '0px'
       @wrapperElement.style.overflow = 'hidden'
 
       @aceElement = @aceEditor.container
@@ -462,13 +471,13 @@ exports.Editor = class Editor
 
     @resizeTextMode()
 
-    @dropletElement.style.height = "#{@wrapperElement.offsetHeight}px"
+    @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
     if @session.paletteEnabled
-      @dropletElement.style.left = "#{@paletteWrapper.offsetWidth}px"
-      @dropletElement.style.width = "#{@wrapperElement.offsetWidth - @paletteWrapper.offsetWidth}px"
+      @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
+      @dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.clientWidth}px"
     else
       @dropletElement.style.left = "0px"
-      @dropletElement.style.width = "#{@wrapperElement.offsetWidth}px"
+      @dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
 
     #@resizeGutter()
 
@@ -495,7 +504,7 @@ exports.Editor = class Editor
       binding.call this
 
     unless @session?.currentlyUsingBlocks or @session?.showPaletteInTextMode and @session?.paletteEnabled
-     @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+     @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
 
     @rebuildPalette()
 
@@ -606,8 +615,8 @@ Editor::initializeFloatingBlock = (record, i) ->
   @session.view.getViewNodeFor(record.block).group.setParent record.renderGroup
 
   # TODO maybe refactor into qualifiedFocus
-  if i < @floatingBlocks.length
-    @mainCtx.insertBefore record.renderGroup.element, @floatingBlocks[i].renderGroup.element
+  if i < @session.floatingBlocks.length
+    @mainCtx.insertBefore record.renderGroup.element, @session.floatingBlocks[i].renderGroup.element
   else
     @mainCtx.appendChild record.renderGroup
 
@@ -1640,8 +1649,8 @@ hook 'mousemove', 0, (point, event, state) ->
     while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
       head = head.next
 
-    if head is @tree.end and @floatingBlocks.length is 0 and
-        @session.viewports.main.right() > mainPoint.x > @session.viewports.main.x - @gutter.offsetWidth and
+    if head is @tree.end and @session.floatingBlocks.length is 0 and
+        @session.viewports.main.right() > mainPoint.x > @session.viewports.main.x - @gutter.clientWidth and
         @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y
       @session.view.getViewNodeFor(@tree).highlightArea.update()
       @lastHighlight = @tree
@@ -1686,9 +1695,9 @@ hook 'mousemove', 0, (point, event, state) ->
 
 Editor::qualifiedFocus = (node, path) ->
   documentIndex = @documentIndex node
-  if documentIndex < @floatingBlocks.length
+  if documentIndex < @session.floatingBlocks.length
     path.activate()
-    @mainCtx.insertBefore path.element, @floatingBlocks[documentIndex].renderGroup.element
+    @mainCtx.insertBefore path.element, @session.floatingBlocks[documentIndex].renderGroup.element
   else
     path.focus()
 
@@ -1918,7 +1927,7 @@ hook 'mouseup', 0, (point, event, state) ->
       renderPoint
     )
 
-    @initializeFloatingBlock record, @floatingBlocks.length - 1
+    @initializeFloatingBlock record, @session.floatingBlocks.length - 1
 
     @setCursor @draggingBlock.start
 
@@ -2133,7 +2142,7 @@ hook 'populate', 1, ->
   @paletteElement.appendChild @paletteHighlightCanvas
 
 Editor::resizePaletteHighlight = ->
-  @paletteHighlightCanvas.style.top = @paletteHeader.offsetHeight + 'px'
+  @paletteHighlightCanvas.style.top = @paletteHeader.clientHeight + 'px'
   @paletteHighlightCanvas.style.width = "#{@paletteCanvas.clientWidth}px"
   @paletteHighlightCanvas.style.height = "#{@paletteCanvas.clientHeight}px"
 
@@ -2252,7 +2261,7 @@ hook 'populate', 1, ->
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
   if @session?.showPaletteInTextMode and @session?.paletteEnabled
-    width -= @paletteWrapper.offsetWidth
+    width -= @paletteWrapper.clientWidth
 
   @aceElement.style.width = "#{width}px"
   @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
@@ -3530,8 +3539,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     # Kick off fade-out transition
 
     @mainCanvas.style.transition =
-      @highlightCanvas.style.transition =
-      @cursorCanvas.style.transition = "opacity #{fadeTime}ms linear"
+      @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
 
     @mainCanvas.style.opacity = 0
 
@@ -3862,7 +3870,7 @@ Editor::resizeMainScroller = ->
   @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
 
 hook 'resize_palette', 0, ->
-  @paletteScroller.style.top = "#{@paletteHeader.offsetHeight}px"
+  @paletteScroller.style.top = "#{@paletteHeader.clientHeight}px"
 
   @session.viewports.palette.height = @paletteScroller.clientHeight
   @session.viewports.palette.width = @paletteScroller.clientWidth
@@ -4146,7 +4154,7 @@ Editor::setEditorState = (useBlocks) ->
       @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
       @paletteWrapper.style.top = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
       @dropletElement.style.left = '0px'
 
     @aceElement.style.top = @aceElement.style.left = '-9999px'
@@ -4184,7 +4192,7 @@ Editor::setEditorState = (useBlocks) ->
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
     else
       @paletteWrapper.style.top = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.offsetWidth}px"
+      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
 
     @aceElement.style.top = '0px'
     if paletteVisibleInNewState
