@@ -115,83 +115,7 @@ exports.Draw = class Draw
     # A Rectangle knows its upper-left corner, width, and height,
     # and can do rectangular overlap, polygonal intersection,
     # and rectangle or point union (point union is called "swallow").
-    @Rectangle = class Rectangle
-      constructor: (@x, @y, @width, @height) ->
-
-      contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
-
-      equals: (other) ->
-        unless other instanceof Rectangle
-          return false
-        return @x is other.x and
-        @y is other.y and
-        @width is other.width and
-        @height is other.height
-
-      copy: (rect) ->
-        @x = rect.x; @y = rect.y
-        @width = rect.width; @height = rect.height
-        return @
-
-      clip: (ctx) ->
-        ctx.rect @x, @y, @width, @height
-        ctx.clip()
-
-      clearRect: (ctx) ->
-        ctx.clearRect @x, @y, @width, @height
-
-      clone: ->
-        rect = new Rectangle(0, 0, 0, 0)
-        rect.copy this
-        return rect
-
-      clear: -> @width = @height = 0; @x = @y = null
-
-      bottom: -> @y + @height
-      right: -> @x + @width
-
-      fill: (ctx, style) ->
-        ctx.fillStyle = style
-        ctx.fillRect @x, @y, @width, @height
-
-      unite: (rectangle) ->
-        unless @x? and @y? then @copy rectangle
-        else unless rectangle.x? and rectangle.y? then return
-        else
-          @width = max(@right(), rectangle.right()) - (@x = min @x, rectangle.x)
-          @height = max(@bottom(), rectangle.bottom()) - (@y = min @y, rectangle.y)
-
-      swallow: (point) ->
-        unless @x? and @y? then @copy new Rectangle point.x, point.y, 0, 0
-        else
-          @width = max(@right(), point.x) - (@x = min @x, point.x)
-          @height = max(@bottom(), point.y) - (@y = min @y, point.y)
-
-      overlap: (rectangle) -> @x? and @y? and not ((rectangle.right()) < @x or (rectangle.bottom() < @y) or (rectangle.x > @right()) or (rectangle.y > @bottom()))
-
-      translate: (vector) ->
-        @x += vector.x; @y += vector.y
-
-      stroke: (ctx, style) ->
-        ctx.strokeStyle = style
-        ctx.strokeRect @x, @y, @width, @height
-
-      fill: (ctx, style) ->
-        ctx.fillStyle = style
-        ctx.fillRect @x, @y, @width, @height
-
-      upperLeftCorner: -> new Point @x, @y
-
-      toPath: ->
-        path = new Path()
-        path.push new Point(point[0], point[1]) for point in [
-          [@x, @y]
-          [@x, @bottom()]
-          [@right(), @bottom()]
-          [@right(), @y]
-        ]
-        return path
-
+    @Rectangle = Rectangle
     # ## NoRectangle ##
     # NoRectangle is an alternate constructor for Rectangle which starts
     # the rectangle as nothing (without even a location). It can gain location and size
@@ -778,3 +702,62 @@ exports.Size = class Size
     @width is size.width and @height is size.height
   @copy: (size) ->
     new Size(size.width, size.height)
+
+exports.Rectangle = class Rectangle
+      constructor: (@x, @y, @width, @height) ->
+
+      contains: (point) -> @x? and @y? and not ((point.x < @x) or (point.x > @x + @width) or (point.y < @y) or (point.y > @y + @height))
+
+      equals: (other) ->
+        unless other instanceof Rectangle
+          return false
+        return @x is other.x and
+        @y is other.y and
+        @width is other.width and
+        @height is other.height
+
+      copy: (rect) ->
+        @x = rect.x; @y = rect.y
+        @width = rect.width; @height = rect.height
+        return @
+
+      clone: ->
+        rect = new Rectangle(0, 0, 0, 0)
+        rect.copy this
+        return rect
+
+      clear: -> @width = @height = 0; @x = @y = null
+
+      bottom: -> @y + @height
+      right: -> @x + @width
+
+      unite: (rectangle) ->
+        unless @x? and @y? then @copy rectangle
+        else unless rectangle.x? and rectangle.y? then return
+        else
+          @width = max(@right(), rectangle.right()) - (@x = min @x, rectangle.x)
+          @height = max(@bottom(), rectangle.bottom()) - (@y = min @y, rectangle.y)
+
+      swallow: (point) ->
+        unless @x? and @y? then @copy new Rectangle point.x, point.y, 0, 0
+        else
+          @width = max(@right(), point.x) - (@x = min @x, point.x)
+          @height = max(@bottom(), point.y) - (@y = min @y, point.y)
+
+      overlap: (rectangle) -> @x? and @y? and not ((rectangle.right()) < @x or (rectangle.bottom() < @y) or (rectangle.x > @right()) or (rectangle.y > @bottom()))
+
+      translate: (vector) ->
+        @x += vector.x; @y += vector.y
+
+      upperLeftCorner: -> new Point @x, @y
+
+      toPath: ->
+        path = new Path()
+        path.push new Point(point[0], point[1]) for point in [
+          [@x, @y]
+          [@x, @bottom()]
+          [@right(), @bottom()]
+          [@right(), @y]
+        ]
+        return path
+

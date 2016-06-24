@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License.
+# Test
 
 helper = require './helper.coffee'
 draw = require './draw.coffee'
@@ -169,11 +170,11 @@ class Session
     @cursor = new CrossDocumentLocation(0, new model.Location(0, 'documentStart'))
 
     # Scrolling
-    @scrollOffsets = {
-      main: new draw.Point 0, 0
-      palette: new draw.Point 0, 0
-    }
 
+    @viewports = {
+      main: new draw.Rectangle 0, 0, 0, 0
+      palette: new draw.Rectangle 0, 0, 0, 0
+    }
     # Block toggle
     @currentlyUsingBlocks = true
 
@@ -593,10 +594,10 @@ Editor::initializeFloatingBlock = (record, i) ->
     }
   )
   record.startText = new @session.view.draw.Text(
-    (new @session.view.draw.Point(0, 0)), @mode.startComment
+    (new @session.view.draw.Point(0, 0)), @session.mode.startComment
   )
   record.endText = new @session.view.draw.Text(
-    (new @session.view.draw.Point(0, 0)), @mode.endComment
+    (new @session.view.draw.Point(0, 0)), @session.mode.endComment
   )
 
   for element in [record.grayBoxPath, record.startText, record.endText]
@@ -716,8 +717,8 @@ Editor::redrawMain = (opts = {}) ->
     @currentlyDrawnFloatingBlocks = []
 
     # Draw floating blocks
-    startWidth = @mode.startComment.length * @session.fontWidth
-    endWidth = @mode.endComment.length * @session.fontWidth
+    startWidth = @session.mode.startComment.length * @session.fontWidth
+    endWidth = @session.mode.endComment.length * @session.fontWidth
     for record in @session.floatingBlocks
       element = @drawFloatingBlock(record, startWidth, endWidth, rect, opts)
       @currentlyDrawnFloatingBlocks.push {

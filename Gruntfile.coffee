@@ -1,4 +1,4 @@
-ldbrowserify = require 'browserify'
+browserify = require 'browserify'
 coffeeify = require 'coffeeify'
 watchify = require 'watchify'
 
@@ -74,29 +74,9 @@ module.exports = (grunt) ->
           timeout: 20000
 
     browserify:
-      testserver:
-        files:
-          'dist/droplet-full.js': ['./src/main.coffee']
-          'example/example-svg.js': ['./src/example-svg.coffee']
-        options:
-          transform: ['coffeeify']
-          browserifyOptions:
-            standalone: 'droplet'
-            noParse: NO_PARSE
-          banner: '''
-          /* Droplet.
-           * Copyright (c) <%=grunt.template.today('yyyy')%> Anthony Bau.
-           * MIT License.
-           *
-           * Date: <%=grunt.template.today('yyyy-mm-dd')%>
-           */
-          '''
-          watch: true
-          keepAlive: true
       build:
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
-          'example/example-svg.js': ['./src/example-svg.coffee']
         options:
           ignore: ignoredLanguages
           transform: ['coffeeify']
@@ -153,7 +133,7 @@ module.exports = (grunt) ->
       testserver:
         options:
           hostname: '0.0.0.0'
-          port: 8000
+          port: 8001
           middleware: serveNoDottedFiles
       qunitserver:
         options:
@@ -198,5 +178,49 @@ module.exports = (grunt) ->
       grunt.task.run 'qunit:all'
       grunt.task.run 'mochaTest'
 
+  grunt.task.registerTask 'watchify', ->
+    # Prevent the task from terminating
+    @async()
 
-  grunt.registerTask 'testserver', ['connect:testserver', 'browserify:testserver']
+    b = browserify {
+      cache: {}
+      packageCache: {}
+      noParse: NO_PARSE
+      delay: 100
+      standalone: 'droplet'
+    }
+
+    b.require './src/main.coffee'
+    b.transform coffeeify
+
+    w = watchify(b)
+
+    # Compile once through first
+    stream = fs.createWriteStream 'dist/droplet-full.js'
+    w.bundle().pipe stream
+
+    stream.once 'close', ->
+      console.log 'Initial bundle complete.'
+
+      lrserver = livereload()
+
+      lrserver.listen 35729, ->
+        console.log 'Livereload server listening on 35729'
+
+      w.on 'update', ->
+        console.log 'File changed...'
+        stream = fs.createWriteStream 'dist/droplet-full.js'
+        try
+          w.bundle().pipe stream
+          stream.once 'close', ->
+            console.log 'Rebuilt.'
+            lrserver.changed {
+              body: {
+                files: ['dist/droplet-full.js']
+              }
+            }
+        catch e
+          console.log 'BUILD FAILED.'
+          console.log e.stack
+
+  grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
