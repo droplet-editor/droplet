@@ -518,8 +518,8 @@ exports.Editor = class Editor
     return unless @session?
 
     # Force scroll into our position
-    offsetY =@session.scrollOffsets.main.y
-    offsetX = @session.scrollOffsets.main.x
+    offsetY = @session.viewports.main.y
+    offsetX = @session.viewports.main.x
 
     @setEditorState @session.currentlyUsingBlocks
 
@@ -856,23 +856,23 @@ Editor::absoluteOffset = (el) ->
 # Convert a point relative to the page into
 # a point relative to one of the two canvases.
 Editor::trackerPointToMain = (point) ->
-  if not @mainCanvas.offsetParent?
+  if not @mainCanvas.parentElement?
     return new @draw.Point(NaN, NaN)
   gbr = @mainCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @session.scrollOffsets.main.x,
-                  point.y - gbr.top + @session.scrollOffsets.main.y)
+  new @draw.Point(point.x - gbr.left + @session.viewports.main.x,
+                  point.y - gbr.top + @session.viewports.main.y)
 
 Editor::trackerPointToPalette = (point) ->
-  if not @paletteCanvas.offsetParent?
+  if not @paletteCanvas.parentElement?
     return new @draw.Point(NaN, NaN)
   gbr = @paletteCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @session.scrollOffsets.palette.x,
-                  point.y - gbr.top + @session.scrollOffsets.palette.y)
+  new @draw.Point(point.x - gbr.left + @session.viewports.palette.x,
+                  point.y - gbr.top + @session.viewports.palette.y)
 
 Editor::trackerPointIsInElement = (point, element) ->
   if not @session? or @session.readOnly
     return false
-  if not element.offsetParent?
+  if not element.parentElement?
     return false
   gbr = element.getBoundingClientRect()
   return point.x >= gbr.left and point.x < gbr.right and
@@ -1270,12 +1270,15 @@ Editor::toCrossDocumentLocation = (block) ->
 # We do not do anything until the user
 # drags their mouse five pixels
 hook 'mousedown', 1, (point, event, state) ->
+  console.log 'testing'
   # If someone else has already taken this click, pass.
   if state.consumedHitTest then return
 
+  console.log 'taking and testing main', @trackerPointIsInMain point
   # If it's not in the main pane, pass.
   if not @trackerPointIsInMain(point) then return
 
+  console.log 'on main pane'
   # Hit test against the tree.
   mainPoint = @trackerPointToMain(point)
 
@@ -1288,6 +1291,7 @@ hook 'mousedown', 1, (point, event, state) ->
       @setCursor @session.cursor, ((token) -> token.type isnt 'socketStart')
 
     hitTestResult = @hitTest mainPoint, dropletDocument
+    console.log 'Hit test result is', mainPoint, hitTestResult
 
     # Produce debugging output
     if @debugging and event.shiftKey
@@ -1649,11 +1653,11 @@ hook 'mousemove', 0, (point, event, state) ->
     while head.type in ['newline', 'cursor'] or head.type is 'text' and head.value is ''
       head = head.next
 
-    if head is @tree.end and @session.floatingBlocks.length is 0 and
+    if head is @session.tree.end and @session.floatingBlocks.length is 0 and
         @session.viewports.main.right() > mainPoint.x > @session.viewports.main.x - @gutter.clientWidth and
         @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y
-      @session.view.getViewNodeFor(@tree).highlightArea.update()
-      @lastHighlight = @tree
+      @session.view.getViewNodeFor(@session.tree).highlightArea.update()
+      @lastHighlight = @session.tree
 
     else
       # If the user is touching the original location,
@@ -1669,18 +1673,20 @@ hook 'mousemove', 0, (point, event, state) ->
 
       # Update highlight if necessary.
       if dropBlock isnt @lastHighlight
+        console.log 'Updating now!'
         # TODO if this becomes a performance issue,
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
 
         @lastHighlightPath?.deactivate?()
 
-        if best?
-          @lastHighlightPath = @session.view.getViewNodeFor(best).highlightArea
+        if dropBlock?
+          @lastHighlightPath = @session.view.getViewNodeFor(dropBlock).highlightArea
           @lastHighlightPath.update()
-          @qualifiedFocus best, @lastHighlightPath
 
-        @lastHighlight = dropBlock
+          @qualifiedFocus dropBlock, @lastHighlightPath
+
+          @lastHighlight = dropBlock
 
     palettePoint = @trackerPointToPalette position
 
@@ -1894,8 +1900,8 @@ hook 'mouseup', 0, (point, event, state) ->
 
       addBlockAsFloatingBlock = false
     else
-      if renderPoint.x - @session.scrollOffsets.main.x < 0
-        renderPoint.x = @session.scrollOffsets.main.x
+      if renderPoint.x - @session.viewports.main.x < 0
+        renderPoint.x = @session.viewports.main.x
 
       # If @session.allowFloatingBlocks is false, we end the drag without deleting the block.
       if not @session.allowFloatingBlocks
@@ -2194,8 +2200,8 @@ hook 'rebuild_palette', 1, ->
       hoverDiv.addEventListener 'mouseout', (event) =>
         if block is @currentHighlightedPaletteBlock
           @currentHighlightedPaletteBlock = null
-          @paletteHighlightCtx.clearRect @session.scrollOffsets.palette.x, @session.scrollOffsets.palette.y,
-            @paletteHighlightCanvas.width + @session.scrollOffsets.palette.x, @paletteHighlightCanvas.height + @session.scrollOffsets.palette.y
+          @paletteHighlightCtx.clearRect @session.viewports.palette.x, @session.viewports.palette.y,
+            @paletteHighlightCanvas.width + @session.viewports.palette.x, @paletteHighlightCanvas.height + @session.viewports.palette.y
 
     @paletteScrollerStuffing.appendChild hoverDiv
 
@@ -2782,7 +2788,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
     if inPalette
       location = @session.paletteView.getViewNodeFor(socket).bounds[0]
-      @dropdownElement.style.left = location.x - @session.scrollOffsets.palette.x + @paletteCanvas.offsetLeft + 'px'
+      @dropdownElement.style.left = location.x - @session.viewports.palette.x + @paletteCanvas.offsetLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
     @dropdownElement.style.top = location.y + @session.fontSize - @session.viewports.main.y + 'px'

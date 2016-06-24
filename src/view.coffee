@@ -1839,6 +1839,34 @@ exports.View = class View
 
     unmark: -> @markStyle = null
 
+    # ## drawSelf
+    # Draw our path, with applied
+    # styles if necessary.
+    drawSelf: (style = {}) ->
+      # We might want to apply some
+      # temporary color changes,
+      # so store the old colors
+      oldFill = @path.style.fillColor
+      oldStroke = @path.style.strokeColor
+
+      if style.grayscale
+        @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
+        @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
+
+      if style.selected
+        @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
+        @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
+
+      @path.setMarkStyle @markStyle
+
+      @path.update()
+
+      # Unset all the things we changed
+      @path.style.fillColor = oldFill
+      @path.style.strokeColor = oldStroke
+
+      return null
+
     # ## computeOwnDropArea
     # By default, we will not have a
     # drop area (not be droppable).
