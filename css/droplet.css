@@ -374,11 +374,15 @@ text {
   cursor: pointer;
 }
 .droplet-socket-path {
-  fill: #FFF;
+  /*fill: #FFF;*/
 }
 .droplet-empty-socket-path {
   opacity: 0;
 }
 .droplet-empty-socket-path:hover {
   opacity: 1;
+}
+.droplet-socket-selected {
+  fill: '#88F'
+  stroke: '#88F'
 }

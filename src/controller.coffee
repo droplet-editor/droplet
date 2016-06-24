@@ -329,7 +329,7 @@ exports.Editor = class Editor
     @dropletElement.appendChild @transitionContainer
 
     if @options?
-      @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
+      @session = new Session @mainCtx, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
       @sessions = new PairDict([
         [@aceEditor.getSession(), @session]
       ])
@@ -611,8 +611,11 @@ Editor::initializeFloatingBlock = (record, i) ->
 
   for element in [record.grayBoxPath, record.startText, record.endText]
     element.setParent record.renderGroup
+    element.activate()
 
   @session.view.getViewNodeFor(record.block).group.setParent record.renderGroup
+
+  record.renderGroup.activate()
 
   # TODO maybe refactor into qualifiedFocus
   if i < @session.floatingBlocks.length
@@ -859,15 +862,15 @@ Editor::trackerPointToMain = (point) ->
   if not @mainCanvas.parentElement?
     return new @draw.Point(NaN, NaN)
   gbr = @mainCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @session.viewports.main.x,
-                  point.y - gbr.top + @session.viewports.main.y)
+  new @draw.Point(point.x - gbr.left,
+                  point.y - gbr.top)
 
 Editor::trackerPointToPalette = (point) ->
   if not @paletteCanvas.parentElement?
     return new @draw.Point(NaN, NaN)
   gbr = @paletteCanvas.getBoundingClientRect()
-  new @draw.Point(point.x - gbr.left + @session.viewports.palette.x,
-                  point.y - gbr.top + @session.viewports.palette.y)
+  new @draw.Point(point.x - gbr.left,
+                  point.y - gbr.top)
 
 Editor::trackerPointIsInElement = (point, element) ->
   if not @session? or @session.readOnly
@@ -1663,17 +1666,23 @@ hook 'mousemove', 0, (point, event, state) ->
       # If the user is touching the original location,
       # assume they want to replace the block where they found it.
       if @hitTest mainPoint, @draggingBlock
-        dropBlock = null
         @dragReplacing = true
+        dropBlock = null
+
+      # If the user's block is outside the main pane, delete it
+      else if not @trackerPointIsInMain position
+        console.log 'Getting rid'
+        @dragReplacing = false
+        dropBlock= null
 
       # Otherwise, find the closest droppable block
       else
+        console.log 'Finding closest droppable block'
         @dragReplacing = false
         dropBlock = @getClosestDroppableBlock(mainPoint, event.shiftKey)
 
       # Update highlight if necessary.
       if dropBlock isnt @lastHighlight
-        console.log 'Updating now!'
         # TODO if this becomes a performance issue,
         # pull the drop highlights out into a new canvas.
         @redrawHighlights()
@@ -1686,7 +1695,7 @@ hook 'mousemove', 0, (point, event, state) ->
 
           @qualifiedFocus dropBlock, @lastHighlightPath
 
-          @lastHighlight = dropBlock
+        @lastHighlight = dropBlock
 
     palettePoint = @trackerPointToPalette position
 
@@ -1705,7 +1714,8 @@ Editor::qualifiedFocus = (node, path) ->
     path.activate()
     @mainCtx.insertBefore path.element, @session.floatingBlocks[documentIndex].renderGroup.element
   else
-    path.focus()
+    path.activate()
+    @mainCtx.appendChild path.element
 
 hook 'mouseup', 0, ->
   clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
@@ -1779,6 +1789,7 @@ hook 'mouseup', 1, (point, event, state) ->
 
         @aceEditor.onTextInput text
     else if @lastHighlight?
+      console.log '@lastHighlight is present so dropping @lastHighlight and consuming'
       @undoCapture()
 
       # Remove the block from the tree.
@@ -1892,9 +1903,12 @@ hook 'mouseup', 0, (point, event, state) ->
     removeBlock = true
     addBlockAsFloatingBlock = true
 
+    console.log 'The main viewport is', @session.viewports.main
+
     # If we dropped it off in the palette, abort (so as to delete the block).
     unless @session.viewports.main.right() > renderPoint.x > @session.viewports.main.x - @gutter.clientWidth and
         @session.viewports.main.bottom() > renderPoint.y > @session.viewports.main.y
+      console.log 'Block should now be removed theoretically'
       if @draggingBlock is @lassoSelection
         @lassoSelection = null
 
@@ -1909,6 +1923,7 @@ hook 'mouseup', 0, (point, event, state) ->
         removeBlock = false
 
     if removeBlock
+      console.log 'REMOVING THE BLOCK!'
       # Remove the block from the tree.
       @undoCapture()
       rememberedSocketOffsets = @spliceRememberedSocketOffsets(@draggingBlock)

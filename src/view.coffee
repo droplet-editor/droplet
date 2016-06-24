@@ -1850,12 +1850,16 @@ exports.View = class View
       oldStroke = @path.style.strokeColor
 
       if style.grayscale
-        @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
-        @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
+        if @path.style.fillColor isnt 'none'
+          @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
+        if @path.style.strokeColor isnt 'none'
+          @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
       if style.selected
-        @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
-        @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
+        if @path.style.fillColor isnt 'none'
+          @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
+        if @path.style.strokeColor isnt 'none'
+          @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
       @path.setMarkStyle @markStyle
 
@@ -2096,14 +2100,17 @@ exports.View = class View
       # for mouseover
       if '' is @model.emptyString and @model.start?.next is @model.end
         @path.style.cssClass = 'droplet-socket-path droplet-empty-socket-path'
+        @path.style.fillColor = 'none'
       else
         @path.style.cssClass = 'droplet-socket-path'
+        @path.style.fillColor = '#FFF'
 
       return @path
 
     # ## drawSelf (SocketViewNode)
-    drawSelf: (style) ->
+    drawSelf: (style = {}) ->
       super
+
       if @model.hasDropdown() and @view.opts.showDropdowns
         @dropdownElement.setPoints([new @view.draw.Point(@bounds[0].x + helper.DROPDOWN_ARROW_PADDING,
             @bounds[0].y + (@bounds[0].height - DROPDOWN_ARROW_HEIGHT) / 2),
