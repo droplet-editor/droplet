@@ -156,6 +156,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     @lines = @text.split '\n'
 
   markRoot: ->
+    # Socket reparse of `{a: 1}` should be treated as ObjectExpression.
+    @text = "(#{@text})" if @text[0] == '{'
+
     tree = acorn.parse(@text, {
       locations: true
       line: 0
