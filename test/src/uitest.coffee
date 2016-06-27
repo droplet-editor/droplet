@@ -106,25 +106,25 @@ asyncTest 'Controller: palette block expansion', ->
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ptest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-main-scroller' })
+    { location: '.droplet-main-canvas' })
   simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-main-scroller' })
+    { location: '.droplet-main-canvas' })
   equal(editor.getValue().trim(), 'pen red')
   simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-main-scroller', dx: 40, dy: 50 })
+    { location: '.droplet-main-canvas', dx: 45, dy: 50 })
   simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-main-scroller', dx: 40, dy: 50 })
+    { location: '.droplet-main-canvas', dx: 45, dy: 50 })
   equal(editor.getValue().trim(), 'pen red\na3 = b')
   simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-main-scroller', dx: 40, dy: 80 })
+    { location: '.droplet-main-canvas', dx: 45, dy: 80 })
   simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-main-scroller', dx: 40, dy: 80 })
+    { location: '.droplet-main-canvas', dx: 45, dy: 80 })
   equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
   start()
 
@@ -415,16 +415,17 @@ performDragOperation = (editor, drag, cb) ->
   })
 
   # Unfocus
-  evt = document.createEvent 'Event'
-  evt.initEvent 'keydown', true, true
-  evt.keyCode = evt.which = 13
-  editor.dropletElement.dispatchEvent(evt)
+  if editor.cursorAtSocket()
+    evt = document.createEvent 'Event'
+    evt.initEvent 'keydown', true, true
+    evt.keyCode = evt.which = 13
+    editor.dropletElement.dispatchEvent(evt)
 
   setTimeout cb, 0
 
 pickUpLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
-  bound = editor.view.getViewNodeFor(block).bounds[0]
+  bound = editor.session.view.getViewNodeFor(block).bounds[0]
   simulate('mousedown', editor.mainCanvas, {
     dx: bound.x + 5,
     dy: bound.y + 5

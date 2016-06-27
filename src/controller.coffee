@@ -755,7 +755,8 @@ Editor::redrawMain = (opts = {}) ->
       @alreadyScheduledCleanup = true
       setTimeout (=>
         @alreadyScheduledCleanup = false
-        @session.view.garbageCollect()
+        if @session?
+          @session.view.garbageCollect()
       ), 0
 
     return null
@@ -1406,6 +1407,7 @@ Editor::wouldDelete = (position) ->
 # we might want to transition to a dragging the block if the user
 # moved their mouse far enough.
 hook 'mousemove', 1, (point, event, state) ->
+  return unless @session?
   if not state.capturedPickup and @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
 
     # Signify that we are now dragging a block.
@@ -4351,6 +4353,8 @@ Editor::strokeCursor = (point) ->
   @qualifiedFocus @getCursor(), @cursorPath
 
 Editor::highlightFlashShow = ->
+  return unless @session?
+
   if @flashTimeout? then clearTimeout @flashTimeout
   if @cursorAtSocket()
     @textCursorPath.activate()
@@ -4360,6 +4364,8 @@ Editor::highlightFlashShow = ->
   @flashTimeout = setTimeout (=> @flash()), 500
 
 Editor::highlightFlashHide = ->
+  return unless @session?
+
   if @flashTimeout? then clearTimeout @flashTimeout
   if @cursorAtSocket()
     @textCursorPath.deactivate()
