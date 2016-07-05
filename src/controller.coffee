@@ -310,7 +310,7 @@ exports.Editor = class Editor
     @dropletElement.appendChild @transitionContainer
 
     if @options?
-      @session = new Session @options, @standardViewSettings
+      @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
       @sessions = new helper.PairDict([
         [@aceEditor.getSession(), @session]
       ])
