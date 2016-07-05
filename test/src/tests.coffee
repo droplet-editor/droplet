@@ -694,7 +694,7 @@ asyncTest 'Controller: arbitrary row/column marking', ->
     prompt 10 / 10
   '''
 
-  equal editor.tree.getFromTextLocation({row: 2, col: 9, type: 'block'}).stringify(), '10 - 10', 'Selected the right block'
+  equal editor.session.tree.getFromTextLocation({row: 2, col: 9, type: 'block'}).stringify(), '10 - 10', 'Selected the right block'
 
   before = $('[stroke=#F00]').length
 

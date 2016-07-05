@@ -2677,9 +2677,9 @@ Editor::getDropdownList = (socket) ->
     result = socket.dropdown
   if result.options
     result = result.options
-  newresult = {}
+  newresult = []
   for key, val of result
-    newresult = if 'string' is typeof val then { text: val, display: val } else val
+    newresult.push if 'string' is typeof val then { text: val, display: val } else val
   return newresult
 
 Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
@@ -2745,12 +2745,22 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
     if inPalette
       location = @session.paletteView.getViewNodeFor(socket).bounds[0]
-      @dropdownElement.style.left = location.x - @session.viewports.palette.x + @paletteCanvas.offsetLeft + 'px'
+      @dropdownElement.style.left = location.x - @session.viewports.palette.x + @paletteCanvas.clientLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-    @dropdownElement.style.top = location.y + @session.fontSize - @session.viewports.main.y + 'px'
-    @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @mainCanvas.offsetLeft + 'px'
-    @dropdownElement.style.minWidth = location.width + 'px'
+      dropdownTop = location.y + @session.fontSize - @session.viewports.palette.y + @paletteCanvas.clientTop
+      if dropdownTop + @dropdownElement.clientHeight > @paletteElement.clientHeight
+        dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
+      @dropdownElement.style.top = dropdownTop + 'px'
+    else
+      location = @session.view.getViewNodeFor(socket).bounds[0]
+      @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @gutter.clientWidth + 'px'
+      @dropdownElement.style.minWidth = location.width + 'px'
+
+      dropdownTop = location.y + @session.fontSize - @session.viewports.main.y
+      if dropdownTop + @dropdownElement.clientHeight > @dropletElement.clientHeight
+        dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
+      @dropdownElement.style.top = dropdownTop + 'px'
   ), 0
 
 Editor::hideDropdown = ->
