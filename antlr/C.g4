@@ -237,6 +237,9 @@ typeSpecifier
     |   '__typeof__' '(' constantExpression ')' // GCC extension
     ;
 
+/* Droplet: modifies this part of the grammar to add an additional tree node
+   around the { block } part of the specifier, so that we are able to make an Indent
+   block using that that entire range. */
 structOrUnionSpecifier
     :   structOrUnion Identifier? structDeclarationsBlock
     |   structOrUnion Identifier
@@ -246,7 +249,6 @@ structOrUnion
     :   'struct'
     |   'union'
     ;
-
 
 structDeclarationsBlock
     :   '{' structDeclarationList '}'
@@ -476,8 +478,16 @@ blockItemList
     |   blockItemList blockItem
     ;
 
-// A block item can be a special kind of function call, which we
-// check before we check declarations to avoid conflicts with a (b);.
+/* Droplet: In the standard C grammar, there is an ambiguity:
+   `a (b);`
+   could either be a method named `a` called with argument `b`, or a declaration
+   of a variable `b` with type `a`.
+
+   This ANTLR grammar always interpreted it as the latter, but for Droplet purposes
+   we want it interpreted as the former, as that is the more common use case.
+
+   We therefore have a new type of node, specialMethodCall, for just this case
+   which takes priority over declarations. */
 blockItem
     :   specialMethodCall
     |   declaration
@@ -537,6 +547,11 @@ declarationList
     |   declarationList declaration
     ;
 
+/* Droplet: ANTLR has trouble parsing a string when a rule doesn't
+   contain an EOF token at the end of it. To do live reparsing, we
+   have to define new duplicate rules for each intermediate node plus EOF
+   so that we can parse small parts of the program independently.
+  */
 primaryExpression_DropletFile
     :   Identifier EOF
     |   Constant EOF
@@ -1383,6 +1398,8 @@ SChar
     |   EscapeSequence
     ;
 
+/* Droplet: we parse all directives as if they were comments,
+   distinguishing between them later in parseComment. */
 Directive
     :   '#' [^\r\n]*? ~[\r\n]*
         -> skip
