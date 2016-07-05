@@ -242,6 +242,7 @@ config.stringFixer = (string) ->
     return string
 
 config.empty = '__0_droplet__'
+config.emptyIndent = ''
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->

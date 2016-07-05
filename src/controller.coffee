@@ -3209,7 +3209,7 @@ hook 'keydown', 0, (event, state) ->
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket @session.mode.empty, Infinity, true
+      newBlock = new model.Block(); newSocket = new model.Socket '', Infinity, true
       newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
@@ -3537,7 +3537,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       # Translate the ACE editor div into frame.
       @aceElement.style.top = '0px'
-      if @showPaletteInTextMode and @session.paletteEnabled
+      if @session.showPaletteInTextMode and @session.paletteEnabled
         @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
         @aceElement.style.left = '0px'
@@ -3577,7 +3577,6 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
     beforeTime = +(new Date())
     setValueResult = @copyAceEditor()
     afterTime = +(new Date())
-    console.log 'elapsed:', afterTime - beforeTime
 
     unless setValueResult.success
       if setValueResult.error

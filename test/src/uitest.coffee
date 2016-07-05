@@ -51,6 +51,9 @@ function simulate(type, target, options) {
       which: options.which || 1,
       relatedTarget: options.relatedTarget || null,
   }
+  //console.log(location.className);
+  //console.log(JSON.stringify(location.getBoundingClientRect()));
+  //console.log(JSON.stringify(opts, function(key, val) { if (key == '' || key == 'pageX' || key == 'pageY' || key == 'clientX' || key == 'clientY' || key == 'screenX' || key == 'screenY') return val; }));
   var evt
   try {
     // Modern API supported by IE9+
@@ -81,6 +84,34 @@ function sequence(delay) {
 }
 `
 
+pickUpLocation = (editor, document, location) ->
+  block = editor.getDocument(document).getFromTextLocation(location)
+  bound = editor.session.view.getViewNodeFor(block).bounds[0]
+  simulate('mousedown', editor.mainCanvas, {
+    location: editor.dropletElement,
+    dx: bound.x + 5 + editor.gutter.clientWidth,
+    dy: bound.y + 5
+  })
+  simulate('mousemove', editor.dragCover, {
+    location: editor.dropletElement,
+    dx: bound.x + 10 + editor.gutter.clientWidth,
+    dy: bound.y + 10
+  })
+
+dropLocation = (editor, document, location) ->
+  block = editor.getDocument(document).getFromTextLocation(location)
+  blockView = editor.session.view.getViewNodeFor block
+  simulate('mousemove', editor.dragCover, {
+    location: editor.dropletElement,
+    dx: blockView.dropPoint.x + 5 + editor.gutter.clientWidth,
+    dy: blockView.dropPoint.y + 5
+  })
+  simulate('mouseup', editor.mainCanvas, {
+    location: editor.dropletElement,
+    dx: blockView.dropPoint.x + 5 + editor.gutter.clientWidth,
+    dy: blockView.dropPoint.y + 5
+  })
+
 asyncTest 'Controller: palette block expansion', ->
   states = []
   document.getElementById('test-main').innerHTML = ''
@@ -102,29 +133,30 @@ asyncTest 'Controller: palette block expansion', ->
       ],
     }]
   })
+
   simulate('mousedown', '[data-id=ptest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ptest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-main-canvas' })
+    { location: '.droplet-wrapper-div' })
   simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-main-canvas' })
+    { location: '.droplet-wrapper-div' })
   equal(editor.getValue().trim(), 'pen red')
   simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-main-canvas', dx: 45, dy: 50 })
+    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 40 })
   simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-main-canvas', dx: 45, dy: 50 })
+    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 40 })
   equal(editor.getValue().trim(), 'pen red\na3 = b')
   simulate('mousedown', '[data-id=ftest]')
   simulate('mousemove', '.droplet-drag-cover',
     { location: '[data-id=ftest]', dx: 5 })
   simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-main-canvas', dx: 45, dy: 80 })
+    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 70 })
   simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-main-canvas', dx: 45, dy: 80 })
+    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 70 })
   equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
   start()
 
@@ -375,11 +407,13 @@ getRandomTextOp = (editor, rng) ->
 
 performTextOperation = (editor, text, cb) ->
   simulate('mousedown', editor.mainCanvas, {
-    dx: text.socket.handle.x,
+    location: editor.dropletElement
+    dx: text.socket.handle.x + editor.gutter.clientWidth,
     dy: text.socket.handle.y
   })
   simulate('mouseup', editor.mainCanvas, {
-    dx: text.socket.handle.x,
+    location: editor.dropletElement,
+    dx: text.socket.handle.x + editor.gutter.clientWidth,
     dy: text.socket.handle.y
   })
   setTimeout (->
@@ -396,21 +430,23 @@ performTextOperation = (editor, text, cb) ->
 
 performDragOperation = (editor, drag, cb) ->
   simulate('mousedown', editor.mainCanvas, {
-    dx: drag.drag.handle.x,
+    location: editor.dropletElement,
+    dx: drag.drag.handle.x + editor.gutter.clientWidth,
     dy: drag.drag.handle.y
   })
   simulate('mousemove', editor.dragCover, {
-    location: editor.mainCanvas
-    dx: drag.drag.handle.x + 5,
+    location: editor.dropletElement,
+    dx: drag.drag.handle.x + 5 + editor.gutter.clientWidth,
     dy: drag.drag.handle.y + 5
   })
   simulate('mousemove', editor.dragCover, {
-    location: editor.mainCanvas
-    dx: drag.drop.point.x + 5
+    location: editor.dropletElement,
+    dx: drag.drop.point.x + 5 + editor.gutter.clientWidth
     dy: drag.drop.point.y + 5
   })
   simulate('mouseup', editor.mainCanvas, {
-    dx: drag.drop.point.x + 5
+    location: editor.dropletElement,
+    dx: drag.drop.point.x + 5 + editor.gutter.clientWidth
     dy: drag.drop.point.y + 5
   })
 
@@ -422,32 +458,6 @@ performDragOperation = (editor, drag, cb) ->
     editor.dropletElement.dispatchEvent(evt)
 
   setTimeout cb, 0
-
-pickUpLocation = (editor, document, location) ->
-  block = editor.getDocument(document).getFromTextLocation(location)
-  bound = editor.session.view.getViewNodeFor(block).bounds[0]
-  simulate('mousedown', editor.mainCanvas, {
-    dx: bound.x + 5,
-    dy: bound.y + 5
-  })
-  simulate('mousemove', editor.dragCover, {
-    location: editor.mainCanvas
-    dx: bound.x + 10,
-    dy: bound.y + 10
-  })
-
-dropLocation = (editor, document, location) ->
-  block = editor.getDocument(document).getFromTextLocation(location)
-  blockView = editor.session.view.getViewNodeFor block
-  simulate('mousemove', editor.dragCover, {
-    location: editor.mainCanvas
-    dx: blockView.dropPoint.x + 5,
-    dy: blockView.dropPoint.y + 5
-  })
-  simulate('mouseup', editor.mainCanvas, {
-    dx: blockView.dropPoint.x + 5
-    dy: blockView.dropPoint.y + 5
-  })
 
 executeAsyncSequence = (sequence, i = 0) ->
   if i < sequence.length
@@ -614,11 +624,13 @@ asyncTest 'Controller: Quoted string selection', ->
   {x, y} = editor.session.view.getViewNodeFor(entity).bounds[0]
 
   simulate('mousedown', editor.mainCanvas, {
-    dx: x + 5
+    location: editor.dropletElement
+    dx: x + 5 + editor.gutter.clientWidth
     dy: y + 5
   })
   simulate('mouseup', editor.mainCanvas, {
-    dx: x + 5
+    location: editor.dropletElement
+    dx: x + 5 + editor.gutter.clientWidth
     dy: y + 5
   })
 
@@ -666,11 +678,13 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
   executeAsyncSequence [
     (->
       simulate('mousedown', editor.mainCanvas, {
-        dx: x + 5
+        location: editor.dropletElement
+        dx: x + 5 + editor.gutter.clientWidth
         dy: y + 5
       })
       simulate('mouseup', editor.mainCanvas, {
-        dx: x + 5
+        location: editor.dropletElement
+        dx: x + 5 + editor.gutter.clientWidth
         dy: y + 5
       })
     ), (->
@@ -1004,4 +1018,4 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
       op = getRandomTextOp(editor, rng)
       performTextOperation editor, op, cb
 
-  tick 100
+  tick 50
