@@ -51,25 +51,6 @@ isOSX = /OS X/.test(userAgent)
 command_modifiers = if isOSX then META_KEYS else CONTROL_KEYS
 command_pressed = (e) -> if isOSX then e.metaKey else e.ctrlKey
 
-class PairDict
-  constructor: (@pairs) ->
-
-  get: (index) ->
-    for el, i in @pairs
-      if el[0] is index
-        return el[1]
-
-  contains: (index) ->
-    @pairs.some (x) -> x[0] is index
-
-  set: (index, value) ->
-    for el, i in @pairs
-      if el[0] is index
-        el[1] = index
-        return true
-    @pairs.push [index, value]
-    return false
-
 # FOUNDATION
 # ================================
 
@@ -298,12 +279,12 @@ exports.Editor = class Editor
 
     if @options?
       @session = new Session @options, @standardViewSettings
-      @sessions = new PairDict([
+      @sessions = new helper.PairDict([
         [@aceEditor.getSession(), @session]
       ])
     else
       @session = null
-      @sessions = new PairDict []
+      @sessions = new helper.PairDict []
 
       @options = {
         extraBottomHeight: 10
@@ -2413,6 +2394,8 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     originalUpdates = updates.map (location) ->
       count: location.count, type: location.type
 
+    # If our language mode has a string-fixing feature (in most languages,
+    # this will simply autoescape quoted "strings"), apply it
     if @session.mode.stringFixer?
       @populateSocket list, @session.mode.stringFixer list.textContent()
 
@@ -3412,7 +3395,9 @@ Editor::checkAndHighlightEmptySockets = ->
 Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) ->
   if @session.currentlyUsingBlocks and not @currentlyAnimating
 
-    # Forbid melting if there is an empty socket. If there is,
+    # If the preserveEmpty option is turned off, we will not round-trip empty sockets.
+    #
+    # Therefore, forbid melting if there is an empty socket. If there is,
     # highlight it in red.
     if not @session.options.preserveEmpty and not @checkAndHighlightEmptySockets()
       @redrawMain()

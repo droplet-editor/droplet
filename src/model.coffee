@@ -1022,9 +1022,13 @@ exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
   stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # If preserveEmpty is turned on, substitute our placeholder string
+    # for an empty socket
     if opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
+
+    # Otherwise, do nothing, and allow the socket to stringify to ''
     else ''
 
 exports.Socket = class Socket extends Container
@@ -1074,6 +1078,8 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
   stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # As with sockets, substitute a placeholder string if preserveEmpty
+    # is turned on.
     if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
