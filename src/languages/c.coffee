@@ -137,7 +137,7 @@ getMethodName = (method) ->
      # Check to see whether the called method is a single identifier, like `puts` in
      # `getc()`, rather than `getFunctionPointer()()` or `a.b()`
      node.children[0].children[0].type is 'primaryExpression' and
-     node.children[0].children[0].children[0].type is 'Identifier' and
+     node.children[0].children[0].children[0].type is 'Identifier'
 
     # If all of these are true, we have a function name to give
     return node.children[0].children[0].children[0].data.text
