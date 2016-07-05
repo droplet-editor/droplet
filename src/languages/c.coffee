@@ -52,64 +52,59 @@ RULES = {
 }
 
 COLOR_RULES = [
-  ['jumpStatement', 'return']
-  ['declaration', 'control'],
-  ['specialMethodCall', 'command'],
-  ['additiveExpression', 'value'],
-  ['multiplicativeExpression', 'value'],
-  ['postfixExpression', 'command'],
-  ['iterationStatement', 'control'],
-  ['selectionStatement', 'control'],
-  ['assignmentExpression', 'command'],
-  ['relationalExpression', 'value'],
-  ['initDeclarator', 'command'],
-  ['blockItemList', 'control'],
-  ['compoundStatement', 'control'],
-  ['externalDeclaration', 'control'],
-  ['structDeclaration', 'command'],
-  ['declarationSpecifier', 'control'],
-  ['statement', 'command'],
-  ['selectionStatement', 'control'],
-  ['iterationStatement', 'control'],
-  ['functionDefinition', 'control'],
-  ['expressionStatement', 'command'],
-  ['expression', 'value'],
-  ['parameterDeclaration', 'command'],
-  ['unaryExpression', 'value'],
-  ['typeName', 'value'],
-  ['initializer', 'value'],
-  ['castExpression', 'value'],
+  ['jumpStatement', 'return'] # e.g. `return 0;`
+  ['declaration', 'control'], # e.g. `int a;`
+  ['specialMethodCall', 'command'], # e.g. `a(b);`
+  ['additiveExpression', 'value'], # e.g. `a + b`
+  ['multiplicativeExpression', 'value'], # e.g. `a * b`
+  ['postfixExpression', 'command'], # e.g. `a(b, c);` OR `a++`
+  ['iterationStatement', 'control'], # e.g. `for (int i = 0; i < 10; i++) { }`
+  ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
+  ['relationalExpression', 'value'], # e.g. `a < b`
+  ['initDeclarator', 'command'], # e.g. `a = b` when inside `int a = b;`
+  ['blockItemList', 'control'], # List of commands
+  ['compoundStatement', 'control'], # List of commands inside braces
+  ['externalDeclaration', 'control'], # e.g. `int a = b` when global
+  ['structDeclaration', 'command'], # e.g. `struct a { }`
+  ['declarationSpecifier', 'control'], # e.g. `int` when in `int a = b;`
+  ['statement', 'command'], # Any statement, like `return 0;`
+  ['functionDefinition', 'control'], # e.g. `int myMethod() { }`
+  ['expressionStatement', 'command'], # Statement that consists of an expression, like `a = b;`
+  ['expression', 'value'], # Any expression, like `a + b`
+  ['parameterDeclaration', 'command'], # e.g. `int a` when in `int myMethod(int a) { }`
+  ['unaryExpression', 'value'], # e.g. `sizeof(a)`
+  ['typeName', 'value'], # e.g. `int`
+  ['initializer', 'value'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
+  ['castExpression', 'value'], # e.g. `(b)a`
 ]
 
 SHAPE_RULES = [
-  ['blockItem', 'block-only'],
-  ['expression', 'value-only'],
-  ['postfixExpression', 'block-only'],
-  ['equalityExpression', 'value-only'],
-  ['logicalAndExpression', 'value-only'],
-  ['logicalOrExpression', 'value-only'],
-  ['iterationStatement', 'block-only'],
-  ['selectionStatement', 'block-only'],
-  ['assignmentExpression', 'block-only'],
-  ['relationalExpression', 'value-only'],
-  ['initDeclarator', 'block-only'],
-  ['externalDeclaration', 'block-only'],
-  ['structDeclaration', 'block-only'],
-  ['declarationSpecifier', 'block-only'],
-  ['statement', 'block-only'],
-  ['selectionStatement', 'block-only'],
-  ['iterationStatement', 'block-only'],
-  ['functionDefinition', 'block-only'],
-  ['expressionStatement', 'value-only'],
-  ['expression', 'value-only'],
-  ['additiveExpression', 'value-only'],
-  ['multiplicativeExpression', 'value-only'],
-  ['declaration', 'block-only'],
-  ['parameterDeclaration', 'block-only'],
-  ['unaryExpression', 'value-only'],
-  ['typeName', 'value-only'],
-  ['initializer', 'value-only'],
-  ['castExpression', 'value-only']
+  ['jumpStatement', 'block-only'] # e.g. `return 0;`
+  ['declaration', 'block-only'], # e.g. `int a;`
+  ['specialMethodCall', 'block-only'], # e.g. `a(b);`
+  ['additiveExpression', 'value-only'], # e.g. `a + b`
+  ['multiplicativeExpression', 'value-only'], # e.g. `a * b`
+  ['postfixExpression', 'block-only'], # e.g. `a(b, c);` OR `a++`
+  ['iterationStatement', 'block-only'], # e.g. `for (int i = 0; i < 10; i++) { }`
+  ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
+  ['relationalExpression', 'value-only'], # e.g. `a < b`
+  ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
+  ['blockItemList', 'block-only'], # List of commands
+  ['compoundStatement', 'block-only'], # List of commands inside braces
+  ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
+  ['structDeclaration', 'block-only'], # e.g. `struct a { }`
+  ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
+  ['statement', 'block-only'], # Any statement, like `return 0;`
+  ['functionDefinition', 'block-only'], # e.g. `int myMethod() { }`
+  ['expressionStatement', 'block-only'], # Statement that consists of an expression, like `a = b;`
+  ['expression', 'value-only'], # Any expression, like `a + b`
+  ['parameterDeclaration', 'block-only'], # e.g. `int a` when in `int myMethod(int a) { }`
+  ['unaryExpression', 'value-only'], # e.g. `sizeof(a)`
+  ['typeName', 'value-only'], # e.g. `int`
+  ['initializer', 'value-only'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
+  ['castExpression', 'value-only'], # e.g. `(b)a`
 ]
 
 config = {
@@ -130,53 +125,75 @@ config.PAREN_RULES = {
   }
 }
 
+# Test to see if a node is a method call
+getMethodName = (method) ->
+  if node.type is 'postfixExpression' and
+     # The children of a method call are either
+     # `(method) '(' (paramlist) ')'` OR `(method) '(' ')'`
+     node.children.length in [3, 4] and
+     # Check to make sure that the correct children are parentheses
+     node.children[1].type is 'LeftParen' and
+     (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
+     # Check to see whether the called method is a single identifier, like `puts` in
+     # `getc()`, rather than `getFunctionPointer()()` or `a.b()`
+     node.children[0].children[0].type is 'primaryExpression' and
+     node.children[0].children[0].children[0].type is 'Identifier' and
+
+    # If all of these are true, we have a function name to give
+    return node.children[0].children[0].children[0].data.text
+
+  # Alternatively, we could have the special `a(b)` node.
+  else if node.type is 'specialMethodCall'
+    return node.children[0].data.text
+
+  return null
+
 config.SHOULD_SOCKET = (opts, node) ->
+  # We will not socket if we are the identifier
+  # in a single-identifier function call like `a(b, c)`
+  # and `a` is in the known functions list.
+  #
+  # We can only be such an identifier if we have the appropriate number of parents;
+  # check.
   unless opts.knownFunctions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
       node.parent?.type is 'specialMethodCall')
     return true
 
-  # If it is a function call, and we are the first child
-  if (node.parent.type is 'primaryExpression' and
-     node.parent.parent.type is 'postfixExpression' and
-     node.parent.parent.parent.type is 'postfixExpression' and
-     node.parent.parent.parent.children.length in [3, 4] and
-     node.parent.parent.parent.children[1].type is 'LeftParen' and
-     (node.parent.parent.parent.children[2].type is 'RightParen' or node.parent.parent.parent.children[3]?.type is 'RightParen') and
-     node.parent.parent is node.parent.parent.parent.children[0] or
-     node.parent.type is 'specialMethodCall') and
+  # Check to see whether the thing we are in is a function
+  if node.parent?.type is 'specialMethodCall' or getMethodName(node.parent.parent.parent)? and
+     # Check to see whether we are the first child
+     node.parent.parent is node.parent.parent.parent.children[0] and
+     node.parent is node.parent.parent.children[0] and
+     node is node.parent.children[0]
+     # Finally, check to see if our name is a known function name
      node.data.text of opts.knownFunctions
+
+    # If the checks pass, do not socket.
     return false
+
   return true
 
+# Color and shape callbacks look up the method name
+# in the known functions list if available.
 config.COLOR_CALLBACK = (opts, node) ->
   return null unless opts.knownFunctions?
 
-  if node.type is 'postfixExpression' and
-     node.children.length in [3, 4] and
-     node.children[1].type is 'LeftParen' and
-     (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
-     node.children[0].children[0].type is 'primaryExpression' and
-     node.children[0].children[0].children[0].type is 'Identifier' and
-     node.children[0].children[0].children[0].data.text of opts.knownFunctions
-    return opts.knownFunctions[node.children[0].children[0].children[0].data.text].color
-  else if node.type is 'specialMethodCall' and node.children[0].data.text of opts.knownFunctions
-    return opts.knownFunctions[node.children[0].data.text].color
-  return null
+  name = getMethodName node
+
+  if name? and name of opts.knownFunctions
+    return opts.knownFunctions[name].color
+  else
+    return null
 
 config.SHAPE_CALLBACK = (opts, node) ->
-  return null unless opts.knwonFunctions?
+  return null unless opts.knownFunctions?
 
-  if node.type is 'postfixExpression' and
-     node.children.length in [3, 4] and
-     node.children[1].type is 'LeftParen' and
-     (node.children[2].type is 'RightParen' or node.children[3]?.type is 'RightParen') and
-     node.children[0].children[0].type is 'primaryExpression' and
-     node.children[0].children[0].children[0].type is 'Identifier' and
-     node.children[0].children[0].children[0].data.text of opts.knownFunctions
-    return opts.knownFunctions[node.children[0].children[0].children[0].data.text].shape
-  else if node.type is 'specialMethodCall'
-    return opts.knownFunctions[node.children[0].data.text].color
-  return null
+  name = getMethodName node
+
+  if name? and name of opts.knownFunctions
+    return opts.knownFunctions[name].shape
+  else
+    return null
 
 config.isComment = (text) ->
   text.match(/^(\s*\/\/.*)|(#.*)$/)?
