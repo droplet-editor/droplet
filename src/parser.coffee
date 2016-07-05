@@ -104,7 +104,11 @@ exports.Parser = class Parser
 
     @addMarkup block, opts.bounds, opts.depth
 
-  # flagToRemove
+  # flagToRemove, used for removing the placeholders that
+  # are placed when round-tripping empty sockets, so that, e.g. in CoffeeScript mode
+  # a + (empty socket) -> a + `` -> a + (empty socket).
+  #
+  # These are done by placing blocks around that text and then removing that block from the tree.
   flagToRemove: (bounds, depth) ->
     block = new model.Block()
 
@@ -287,6 +291,27 @@ exports.Parser = class Parser
 
   handleButton: (text, command, oldblock) ->
     return text
+
+  # applyMarkup
+  # -----------
+  #
+  # The parser adapter will throw out markup in arbitrary orders. `applyMarkup`'s job is to assemble
+  # a parse tree from this markup. `applyMarkup` also cleans up any leftover text that lies outside blocks or
+  # sockets by passing them through a comment-handling procedure.
+  #
+  # `applyMarkup` applies the generated markup by sorting it, then walking from the beginning to the end of the
+  # document, creating `TextToken`s and inserting the markup between them. It also keeps a stack
+  # of which containers it is currently in, for error detection and comment handling.
+  #
+  # Whenever the container is currently an `Indent` or a `Document` and we get some text, we handle it as a comment.
+  # If it contains block-comment tokens, like /* or */, we immediately make comment blocks around them, amalgamating multiline comments
+  # into single blocks. We do this by scanning forward and just toggling on or off a bit that says whether we're inside
+  # a block comment, refusing to put any markup while we're inside one.
+  #
+  # When outside a block-comment, we pass free text to the mode's comment parser. This comment parser
+  # will return a set of text ranges to put in sockets, usually the place where freeform text can be put in the comment.
+  # For instance, `//hello` in JavaScript should return (2, 6) to put a socket around 'hello'. In C, this is used
+  # to handle preprocessor directives.
 
   applyMarkup: (opts) ->
     # For convenience, will we
