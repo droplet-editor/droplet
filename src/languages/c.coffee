@@ -164,7 +164,7 @@ config.SHOULD_SOCKET = (opts, node) ->
      # Check to see whether we are the first child
      node.parent.parent is node.parent.parent.parent.children[0] and
      node.parent is node.parent.parent.children[0] and
-     node is node.parent.children[0]
+     node is node.parent.children[0] and
      # Finally, check to see if our name is a known function name
      node.data.text of opts.knownFunctions
 
