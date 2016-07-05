@@ -188,6 +188,9 @@ exports.deepEquals = deepEquals = (a, b) ->
 _guid = 0
 exports.generateGUID = -> (_guid++).toString(16)
 
+# General quoted-string-fixing functionality, for use in various
+# language modes' stringFixer functions.
+
 # To fix quoting errors, we first do a lenient C-unescape, then
 # we do a string C-escaping, to add backlsashes where needed, but
 # not where we already have good ones.
@@ -222,3 +225,28 @@ exports.quoteAndCEscape = quoteAndCEscape = (str, quotechar) ->
              replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
       replace(/'/g, "\\'") + quotechar
   return result
+
+# A naive dictionary mapping arbitrary objects to arbitrary objects, for use in
+# ace-to-droplet session matching.
+#
+# May replace with something more sophisticated if performance becomes an issue,
+# but we don't envision any use cases where sessions flip really fast, so this is unexpected.
+exports.PairDict = class PairDict
+  constructor: (@pairs) ->
+
+  get: (index) ->
+    for el, i in @pairs
+      if el[0] is index
+        return el[1]
+
+  contains: (index) ->
+    @pairs.some (x) -> x[0] is index
+
+  set: (index, value) ->
+    for el, i in @pairs
+      if el[0] is index
+        el[1] = index
+        return true
+    @pairs.push [index, value]
+    return false
+

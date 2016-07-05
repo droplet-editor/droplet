@@ -76,35 +76,35 @@ COLOR_RULES = [
   ['unaryExpression', 'value'], # e.g. `sizeof(a)`
   ['typeName', 'value'], # e.g. `int`
   ['initializer', 'value'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value'], # e.g. `(b)a`
+  ['castExpression', 'value'] # e.g. `(b)a`
 ]
 
 SHAPE_RULES = [
-  ['jumpStatement', 'block-only'] # e.g. `return 0;`
-  ['declaration', 'block-only'], # e.g. `int a;`
-  ['specialMethodCall', 'block-only'], # e.g. `a(b);`
-  ['additiveExpression', 'value-only'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value-only'], # e.g. `a * b`
+  ['blockItem', 'block-only'], # Any statement, like `return 0;`
+  ['expression', 'value-only'], # Any expression, like `a + b`
   ['postfixExpression', 'block-only'], # e.g. `a(b, c);` OR `a++`
+  ['equalityExpression', 'value-only'], # e.g. `a == b`
+  ['logicalAndExpression', 'value-only'], # e.g. `a && b`
+  ['logicalOrExpression', 'value-only'], # e.g. `a || b`
   ['iterationStatement', 'block-only'], # e.g. `for (int i = 0; i < 10; i++) { }`
   ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value-only'], # e.g. `a < b`
   ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
-  ['blockItemList', 'block-only'], # List of commands
-  ['compoundStatement', 'block-only'], # List of commands inside braces
   ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
   ['structDeclaration', 'block-only'], # e.g. `struct a { }`
   ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
   ['statement', 'block-only'], # Any statement, like `return 0;`
   ['functionDefinition', 'block-only'], # e.g. `int myMethod() { }`
   ['expressionStatement', 'block-only'], # Statement that consists of an expression, like `a = b;`
-  ['expression', 'value-only'], # Any expression, like `a + b`
+  ['additiveExpression', 'value-only'], # e.g. `a + b`
+  ['multiplicativeExpression', 'value-only'], # e.g. `a * b`
+  ['declaration', 'block-only'], # e.g. `int a;`
   ['parameterDeclaration', 'block-only'], # e.g. `int a` when in `int myMethod(int a) { }`
   ['unaryExpression', 'value-only'], # e.g. `sizeof(a)`
   ['typeName', 'value-only'], # e.g. `int`
   ['initializer', 'value-only'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value-only'], # e.g. `(b)a`
+  ['castExpression', 'value-only'] # e.g. `(b)a`
 ]
 
 config = {
@@ -126,7 +126,7 @@ config.PAREN_RULES = {
 }
 
 # Test to see if a node is a method call
-getMethodName = (method) ->
+getMethodName = (node) ->
   if node.type is 'postfixExpression' and
      # The children of a method call are either
      # `(method) '(' (paramlist) ')'` OR `(method) '(' ')'`
@@ -137,7 +137,7 @@ getMethodName = (method) ->
      # Check to see whether the called method is a single identifier, like `puts` in
      # `getc()`, rather than `getFunctionPointer()()` or `a.b()`
      node.children[0].children[0].type is 'primaryExpression' and
-     node.children[0].children[0].children[0].type is 'Identifier' and
+     node.children[0].children[0].children[0].type is 'Identifier'
 
     # If all of these are true, we have a function name to give
     return node.children[0].children[0].children[0].data.text
@@ -164,7 +164,7 @@ config.SHOULD_SOCKET = (opts, node) ->
      # Check to see whether we are the first child
      node.parent.parent is node.parent.parent.parent.children[0] and
      node.parent is node.parent.parent.children[0] and
-     node is node.parent.children[0]
+     node is node.parent.children[0] and
      # Finally, check to see if our name is a known function name
      node.data.text of opts.knownFunctions
 

@@ -1024,13 +1024,39 @@ exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
   stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # If preserveEmpty is turned on, substitute our placeholder string
+    # for an empty socket
     if opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
+
+    # Otherwise, do nothing, and allow the socket to stringify to ''
     else ''
 
 exports.Socket = class Socket extends Container
-  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null, @parseContext = null) ->
+  constructor: (
+      # @emptyString -- the string that this will stringify to when it is empty,
+      # used for round-tripping empty sockets
+      @emptyString,
+
+      # @precedence -- used to compare with `Block.precedence` to see if a block
+      # can drop in a socket or if it needs parentheses. Not used in ANTLR modes.
+      @precedence = 0,
+
+      # @handwritten -- whether this is a socket in a block that was created by pressing Enter in the editor.
+      # This determines whether it can be deleted again by pressing delete when the socket is empty.
+      @handwritten = false,
+
+      # @classes -- passed to mode callbacks for droppability and parentheses callbacks
+      @classes = [],
+
+      # @dropdown -- dropdown options, if they exist
+      @dropdown = null,
+
+      # @parseContext -- the interior node in the parse tree that this socket represents.
+      # Passed to the parser when doing live reparsing in this socket.
+      @parseContext = null) ->
+
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -1076,6 +1102,8 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
   stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # As with sockets, substitute a placeholder string if preserveEmpty
+    # is turned on.
     if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
