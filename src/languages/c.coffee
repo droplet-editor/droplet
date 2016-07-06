@@ -44,6 +44,22 @@ RULES = {
   'initializerList': 'skip',
   'initDeclaratorList': 'skip',
 
+  # Special: nested selection statement. Skip iff we are an if statement
+  # in the else clause of another if statement.
+  'selectionStatement': (node) ->
+    if node.children[0].data.text is 'if' and
+       # Check to make sure the parent is an if. Actually,
+       # our immediate parent is a 'statement'; the logical wrapping
+       # parent is parent.parent
+       node.parent.type is 'statement' and
+       node.parent.parent.type is 'selectionStatement' and
+       node.parent.parent.children[0].data.text is 'if' and
+       # This last one will only occur if we are the else clause
+       node.parent is node.parent.parent.children[6]
+      return 'skip'
+    else
+      return 'block'
+
   # Sockets
   'Identifier': 'socket',
   'StringLiteral': 'socket',
@@ -160,11 +176,11 @@ config.SHOULD_SOCKET = (opts, node) ->
     return true
 
   # Check to see whether the thing we are in is a function
-  if node.parent?.type is 'specialMethodCall' or getMethodName(node.parent.parent.parent)? and
+  if (node.parent?.type is 'specialMethodCall' or getMethodName(node.parent.parent.parent)? and
      # Check to see whether we are the first child
      node.parent.parent is node.parent.parent.parent.children[0] and
      node.parent is node.parent.parent.children[0] and
-     node is node.parent.children[0] and
+     node is node.parent.children[0]) and
      # Finally, check to see if our name is a known function name
      node.data.text of opts.knownFunctions
 

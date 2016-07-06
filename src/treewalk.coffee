@@ -43,10 +43,10 @@ exports.createTreewalkParser = (parse, config, root) ->
       return best
 
     applyRule: (rule, node) ->
+      if rule instanceof Function
+        rule = rule(node)
       if 'string' is typeof rule
         return {type: rule}
-      else if rule instanceof Function
-        return rule(node)
       else
         return rule
 
