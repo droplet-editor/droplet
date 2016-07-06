@@ -2314,8 +2314,8 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
     @qualifiedFocus @getCursor(), @textCursorPath
     points = [
-      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y),
-      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textHeight)
+      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textPadding),
+      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textPadding + @session.view.opts.textHeight)
     ]
 
     @textCursorPath.setPoints points
