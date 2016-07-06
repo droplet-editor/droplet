@@ -108,15 +108,15 @@ exports.fontMetrics = fontMetrics = (fontFamily, fontHeight) ->
 
 exports.clipLines = (lines, start, end) ->
   if start.line isnt end.line
-    console.log 'pieces:',
-      "'#{lines[start.line][start.column..]}'",
-      "'#{lines[start.line + 1...end.line].join('\n')}'",
-      "'#{lines[end.line][...end.column]}'"
+    #console.log 'pieces:',
+    #  "'#{lines[start.line][start.column..]}'",
+    #  "'#{lines[start.line + 1...end.line].join('\n')}'",
+    #  "'#{lines[end.line][...end.column]}'"
     return lines[start.line][start.column..] +
     lines[start.line + 1...end.line].join('\n') +
     lines[end.line][...end.column]
   else
-    console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
+    #console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
     return lines[start.line][start.column...end.column]
 
 exports.getFontHeight = (family, size) ->
@@ -154,11 +154,16 @@ exports.string = (arr) ->
   return last
 
 exports.deepCopy = deepCopy = (a) ->
-  if a instanceof Object
+  if a instanceof Array
+    return a.map (el) -> deepCopy el
+  else if a instanceof Object
     newObject = {}
 
     for key, val of a
-      newObject[key] = deepCopy val
+      if val instanceof Function
+        newObject[key] = val
+      else
+        newObject[key] = deepCopy val
 
     return newObject
 
@@ -178,4 +183,69 @@ exports.deepEquals = deepEquals = (a, b) ->
     return true
   else
     return a is b
+
+_guid = 0
+exports.generateGUID = -> (_guid++).toString(16)
+
+# General quoted-string-fixing functionality, for use in various
+# language modes' stringFixer functions.
+
+# To fix quoting errors, we first do a lenient C-unescape, then
+# we do a string C-escaping, to add backlsashes where needed, but
+# not where we already have good ones.
+exports.fixQuotedString = (lines) ->
+  line = lines[0]
+  quotechar = if /^"|"$/.test(line) then '"' else "'"
+  if line.charAt(0) is quotechar
+    line = line.substr(1)
+  if line.charAt(line.length - 1) is quotechar
+    line = line.substr(0, line.length - 1)
+  return lines[0] = quoteAndCEscape looseCUnescape(line), quotechar
+
+exports.looseCUnescape = looseCUnescape = (str) ->
+  codes =
+    '\\b': '\b'
+    '\\t': '\t'
+    '\\n': '\n'
+    '\\f': '\f'
+    '\\"': '"'
+    "\\'": "'"
+    "\\\\": "\\"
+    "\\0": "\0"
+  str.replace /\\[btnf'"\\0]|\\x[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}/g, (m) ->
+    if m.length is 2 then return codes[m]
+    return String.fromCharCode(parseInt(m.substr(1), 16))
+
+exports.quoteAndCEscape = quoteAndCEscape = (str, quotechar) ->
+  result = JSON.stringify(str)
+  if quotechar is "'"
+    return quotechar +
+      result.substr(1, result.length - 2).
+             replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
+      replace(/'/g, "\\'") + quotechar
+  return result
+
+# A naive dictionary mapping arbitrary objects to arbitrary objects, for use in
+# ace-to-droplet session matching.
+#
+# May replace with something more sophisticated if performance becomes an issue,
+# but we don't envision any use cases where sessions flip really fast, so this is unexpected.
+exports.PairDict = class PairDict
+  constructor: (@pairs) ->
+
+  get: (index) ->
+    for el, i in @pairs
+      if el[0] is index
+        return el[1]
+
+  contains: (index) ->
+    @pairs.some (x) -> x[0] is index
+
+  set: (index, value) ->
+    for el, i in @pairs
+      if el[0] is index
+        el[1] = index
+        return true
+    @pairs.push [index, value]
+    return false
 
