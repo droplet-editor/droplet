@@ -6,6 +6,8 @@ helper = require './helper.coffee'
 model = require './model.coffee'
 parser = require './parser.coffee'
 
+EMPTY_OBJECT = {}
+
 exports.createTreewalkParser = (parse, config, root) ->
   class TreewalkParser extends parser.Parser
     constructor: (@text, @opts = {}) ->
@@ -18,6 +20,10 @@ exports.createTreewalkParser = (parse, config, root) ->
         return config.isComment(text)
       else
         return false
+
+    handleButton: ->
+      if config.handleButton?
+        config.handleButton.apply @, arguments
 
     parseComment: (text) ->
       return config.parseComment text
@@ -54,6 +60,11 @@ exports.createTreewalkParser = (parse, config, root) ->
       if node.type of config.RULES
         return @applyRule(config.RULES[node.type], node).type
       return 'block'
+
+    getButtons: (node) ->
+      if node.type of config.RULES
+        return @applyRule(config.RULES[node.type], node).buttons ? EMPTY_OBJECT
+      return EMPTY_OBJECT
 
     detNode: (node) -> if node.blockified then 'block' else @det(node)
 
@@ -121,6 +132,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth + 1
               color: @getColor node, rules
               classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
+              buttons: @getButtons(node)
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           when 'parens'

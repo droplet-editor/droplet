@@ -1854,24 +1854,47 @@ exports.View = class View
       oldStroke = @path.style.strokeColor
 
       if style.grayscale
+        # Change path color
         if @path.style.fillColor isnt 'none'
           @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
         if @path.style.strokeColor isnt 'none'
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
+        # Change button color
+        if @addButtonPath?.active
+          if @addButtonPath.style.fillColor isnt 'none'
+            @addButtonPath.style.fillColor = avgColor @addButtonPath.style.fillColor, 0.5, '#888'
+          if @addButtonPath.style.strokeColor isnt 'none'
+            @addButtonPath.style.strokeColor = avgColor @addButtonPath.style.strokeColor, 0.5, '#888'
+
       if style.selected
+        # Change path color
         if @path.style.fillColor isnt 'none'
           @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         if @path.style.strokeColor isnt 'none'
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
+        # Change button color
+        if @addButtonPath?.active
+          if @addButtonPath.style.fillColor isnt 'none'
+            @addButtonPath.style.fillColor = avgColor @addButtonPath.style.fillColor, 0.7, '#00F'
+          if @addButtonPath.style.strokeColor isnt 'none'
+            @addButtonPath.style.strokeColor = avgColor @addButtonPath.style.strokeColor, 0.7, '#00F'
+
       @path.setMarkStyle @markStyle
 
       @path.update()
+      @addButtonPath?.update?()
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
+
+      if @addButtonPath?.active
+        @addButtonPath.style.fillColor = oldFill
+        @addButtonPath.style.strokeColor = oldStroke
+
+      # BUttons
 
       return null
 

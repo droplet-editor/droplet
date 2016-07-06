@@ -9,6 +9,8 @@ antlrHelper = require '../antlr.coffee'
 
 {fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
 
+ADD_BUTTON = {addButton: true}
+
 RULES = {
   # Indents
   'compoundStatement': {
@@ -57,6 +59,9 @@ RULES = {
        # This last one will only occur if we are the else clause
        node.parent is node.parent.parent.children[6]
       return 'skip'
+    # Otherwise, if we are an if statement, give us a mutation button
+    else if node.children[0].data.text is 'if'
+      return {type: 'block', buttons: ADD_BUTTON}
     else
       return 'block'
 
