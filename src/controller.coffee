@@ -165,6 +165,7 @@ class Session
     metrics = helper.fontMetrics(@fontFamily, @fontSize)
     @fontAscent = metrics.prettytop
     @fontDescent = metrics.descent
+    @fontWidth = @view.draw.measureCtx.measureText(' ').width
 
     # Remembered sockets
     @rememberedSockets = []

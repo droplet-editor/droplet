@@ -1748,12 +1748,9 @@ exports.View = class View
           @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset,
             @bounds[@lineLength - 1].bottom()
 
-      left = dedupe left
-      right = dedupe right
-
       # Reverse the left and concatenate it with the right
       # to make a counterclockwise path
-      path = left.reverse().concat right
+      path = dedupe left.reverse().concat right
 
       newPath = []
 
@@ -1770,7 +1767,9 @@ exports.View = class View
         prev = path[(i - 1) %% path.length]
 
         if (point.x is next.x) isnt (point.y is next.y) and
-           (point.x is prev.x) isnt (point.y is prev.y)
+           (point.x is prev.x) isnt (point.y is prev.y) and
+           point.from(prev).magnitude() >= @view.opts.bevelClip * 2 and
+           point.from(next).magnitude() >= @view.opts.bevelClip * 2
           newPath.push point.plus(point.from(prev).toMagnitude(-@view.opts.bevelClip))
           newPath.push point.plus(point.from(next).toMagnitude(-@view.opts.bevelClip))
         else
@@ -2095,7 +2094,7 @@ exports.View = class View
         return @path
 
       if @model.start.next.type is 'blockStart'
-        @path.style.fillColor = 'none'
+        @path.style.fill = 'none'
 
       # Otherwise, call super.
       else
@@ -2387,13 +2386,14 @@ avgColor = (a, factor, b) ->
   return toHex newRGB
 
 dedupe = (path) ->
-  return path.filter (x, i) ->
-    if i is 0
-      return true
-    else
-      if x.equals(path[i - 1])
-        return false
-      if i < path.length - 1 and x.from(path[i - 1]).normalize().almostEquals(path[i + 1].from(x).normalize())
-        return false
-      return true
+  path = path.filter((x, i) ->
+    not x.equals(path[(i - 1) %% path.length])
+  )
 
+  path = path.filter((x, i) ->
+    if x.x is 25
+      debugger
+    return not draw._collinear(path[(i - 1) %% path.length], x, path[(i + 1) %% path.length])
+  )
+
+  return path

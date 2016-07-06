@@ -763,3 +763,7 @@ exports.Rectangle = class Rectangle
         ]
         return path
 
+exports._collinear = _collinear = (a, b, c) ->
+  first = b.from(a).normalize()
+  second = c.from(b).normalize()
+  return first.almostEquals(second) or first.almostEquals(second.times(-1))
