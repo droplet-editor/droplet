@@ -326,13 +326,12 @@ exports.Editor = class Editor
     # on ace session change Droplet will also change sessions.
     @aceEditor.on 'changeSession', (e) =>
       if @sessions.contains(e.session)
-        @session = @sessions.get(e.session)
-        @updateNewSession()
+        @updateNewSession @sessions.get(e.session)
       else if e.session._dropletSession?
-        @session = e.session._dropletSession
+        @updateNewSession e.session._dropletSession
         @sessions.set(e.session, e.session._dropletSession)
       else
-        @session = null
+        @updateNewSession null
         @setEditorState false
 
     # Set up event bindings before creating a view
@@ -495,8 +494,13 @@ exports.Editor = class Editor
     else
       @resizeTextMode()
 
-  updateNewSession: ->
-    return unless @session?
+  updateNewSession: (session) ->
+    @session.view.clearFromCanvas()
+    @session.paletteView.clearFromCanvas()
+    @session.dragView.clearFromCanvas()
+    @session = session
+
+    return unless session?
 
     # Force scroll into our position
     offsetY = @session.viewports.main.y

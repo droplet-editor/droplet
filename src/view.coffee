@@ -126,6 +126,11 @@ exports.View = class View
     @beginDraw()
     @garbageCollect()
 
+  # Remove everything from the canvas
+  clearFromCanvas: ->
+    @beginDraw()
+    @cleanupDraw()
+
   # ## getViewNodeFor
   # Given a model object,
   # give the corresponding renderer object
