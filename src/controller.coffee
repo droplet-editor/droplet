@@ -199,10 +199,10 @@ exports.Editor = class Editor
 
     # Main canvas first
     @mainCanvas = document.createElementNS SVG_STANDARD, 'svg'
-    @mainCtxWrapper = document.createElementNS SVG_STANDARD, 'g'
-    @mainCtx = document.createElementNS SVG_STANDARD, 'g'
-    @mainCanvas.appendChild @mainCtxWrapper
-    @mainCtxWrapper.appendChild @mainCtx
+    #@mainCanvasWrapper = document.createElementNS SVG_STANDARD, 'g'
+    #@mainCanvas = document.createElementNS SVG_STANDARD, 'g'
+    #@mainCanvas.appendChild @mainCanvasWrapper
+    #@mainCanvasWrapper.appendChild @mainCanvas
     @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
     @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
@@ -232,7 +232,7 @@ exports.Editor = class Editor
     @dragCanvas.style.top = '0px'
     @dragCanvas.style.transform = 'translate(-9999px,-9999px)'
 
-    @draw = new draw.Draw(@mainCtx)
+    @draw = new draw.Draw(@mainCanvas)
 
     @dropletElement.style.left = @paletteWrapper.clientWidth + 'px'
 
@@ -544,7 +544,7 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
   @topNubbyPath ?= new @draw.Path([], true)
   @topNubbyPath.activate()
-  @topNubbyPath.setParent @mainCtx
+  @topNubbyPath.setParent @mainCanvas
 
   points = []
 
@@ -600,9 +600,9 @@ Editor::initializeFloatingBlock = (record, i) ->
 
   # TODO maybe refactor into qualifiedFocus
   if i < @session.floatingBlocks.length
-    @mainCtx.insertBefore record.renderGroup.element, @session.floatingBlocks[i].renderGroup.element
+    @mainCanvas.insertBefore record.renderGroup.element, @session.floatingBlocks[i].renderGroup.element
   else
-    @mainCtx.appendChild record.renderGroup
+    @mainCanvas.appendChild record.renderGroup
 
 Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
   blockView = @session.view.getViewNodeFor record.block
@@ -1688,10 +1688,10 @@ Editor::qualifiedFocus = (node, path) ->
   documentIndex = @documentIndex node
   if documentIndex < @session.floatingBlocks.length
     path.activate()
-    @mainCtx.insertBefore path.element, @session.floatingBlocks[documentIndex].renderGroup.element
+    @mainCanvas.insertBefore path.element, @session.floatingBlocks[documentIndex].renderGroup.element
   else
     path.activate()
-    @mainCtx.appendChild path.element
+    @mainCanvas.appendChild path.element
 
 hook 'mouseup', 0, ->
   clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
@@ -4325,7 +4325,7 @@ hook 'populate', 0, ->
     'fillColor': 'rgba(0, 0, 256, 0.3)'
     'cssClass': 'droplet-cursor-path'
   })
-  @textCursorPath.setParent @mainCtx
+  @textCursorPath.setParent @mainCanvas
 
   cursorElement = document.createElementNS SVG_STANDARD, 'path'
   cursorElement.setAttribute 'fill', 'none'
@@ -4337,7 +4337,7 @@ hook 'populate', 0, ->
       " #{@session.view.opts.tabOffset + @session.view.opts.tabWidth - CURSOR_WIDTH_DECREASE / 2} 0"
 
   @cursorPath = new @session.view.draw.ElementWrapper(cursorElement)
-  @cursorPath.setParent @mainCtx
+  @cursorPath.setParent @mainCanvas
 
   @mainCanvas.appendChild @cursorCtx
 
