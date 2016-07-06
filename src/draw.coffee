@@ -127,7 +127,7 @@ exports.Draw = class Draw
     @ElementWrapper = class ElementWrapper
       constructor: (@element) ->
         if @element?
-          @element.setAttribute 'visibility', 'hidden'
+          @element.style.display = 'none'
         @active = false
         @parent = @element?.parentElement ? self.ctx
 
@@ -137,18 +137,18 @@ exports.Draw = class Draw
           @getParentElement().appendChild @element
 
           unless @active
-            @element.setAttribute 'visibility', 'hidden'
+            @element.style.display = 'none'
 
       deactivate: ->
         if @active
           @active = false
-          @element?.setAttribute 'visibility', 'hidden'
+          @element?.style?.display = 'none'
 
       activate: ->
         @manifest()
         unless @active
           @active = true
-          @element?.setAttribute 'visibility', 'visible'
+          @element?.style?.display = ''
 
       focus: ->
         @activate()
@@ -763,3 +763,7 @@ exports.Rectangle = class Rectangle
         ]
         return path
 
+exports._collinear = _collinear = (a, b, c) ->
+  first = b.from(a).normalize()
+  second = c.from(b).normalize()
+  return first.almostEquals(second) or first.almostEquals(second.times(-1))

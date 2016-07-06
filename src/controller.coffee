@@ -165,6 +165,7 @@ class Session
     metrics = helper.fontMetrics(@fontFamily, @fontSize)
     @fontAscent = metrics.prettytop
     @fontDescent = metrics.descent
+    @fontWidth = @view.draw.measureCtx.measureText(' ').width
 
     # Remembered sockets
     @rememberedSockets = []
@@ -326,13 +327,12 @@ exports.Editor = class Editor
     # on ace session change Droplet will also change sessions.
     @aceEditor.on 'changeSession', (e) =>
       if @sessions.contains(e.session)
-        @session = @sessions.get(e.session)
-        @updateNewSession()
+        @updateNewSession @sessions.get(e.session)
       else if e.session._dropletSession?
-        @session = e.session._dropletSession
+        @updateNewSession e.session._dropletSession
         @sessions.set(e.session, e.session._dropletSession)
       else
-        @session = null
+        @updateNewSession null
         @setEditorState false
 
     # Set up event bindings before creating a view
@@ -495,8 +495,13 @@ exports.Editor = class Editor
     else
       @resizeTextMode()
 
-  updateNewSession: ->
-    return unless @session?
+  updateNewSession: (session) ->
+    @session.view.clearFromCanvas()
+    @session.paletteView.clearFromCanvas()
+    @session.dragView.clearFromCanvas()
+    @session = session
+
+    return unless session?
 
     # Force scroll into our position
     offsetY = @session.viewports.main.y
@@ -2309,8 +2314,8 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
   if @hiddenInput.selectionStart is @hiddenInput.selectionEnd
     @qualifiedFocus @getCursor(), @textCursorPath
     points = [
-      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y),
-      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textHeight)
+      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textPadding),
+      new @session.view.draw.Point(startPosition, textFocusView.bounds[startRow].y + @session.view.opts.textPadding + @session.view.opts.textHeight)
     ]
 
     @textCursorPath.setPoints points
