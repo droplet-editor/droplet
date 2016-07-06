@@ -1947,8 +1947,8 @@ exports.View = class View
 
     computeOwnDropArea: ->
       return unless @model.parent?.type in ['indent', 'document']
-      # Our drop area is a rectangle of
-      # height dropAreaHeight and a width
+      # Our drop area is a puzzle-piece shaped path
+      # of height opts.highlightAreaHeight and width
       # equal to our last line width,
       # positioned at the bottom of our last line.
       if @carriageArrow is CARRIAGE_ARROW_INDENT
@@ -2141,7 +2141,7 @@ exports.View = class View
         @highlightArea.setPoints @path._points
         @highlightArea.style.strokeColor = '#FF0'
         @highlightArea.style.fillColor = 'none'
-        @highlightArea.style.lineWidth = @view.opts.padding
+        @highlightArea.style.lineWidth = @view.opts.highlightAreaHeight / 2
         @highlightArea.update()
         @highlightArea.deactivate()
 
