@@ -111,6 +111,10 @@ exports.View = class View
       unless option of @opts
         @opts[option] = DEFAULT_OPTIONS[option]
 
+    for color of DEFAULT_OPTIONS.colors
+      unless color of @opts.colors
+        @opts.colors[color] = DEFAULT_OPTIONS.colors[color]
+
     # Do our measurement hack
     @draw.setCtx @opts.ctx
 
