@@ -115,6 +115,28 @@ ADD_PARENS = (leading, trailing, node, context) ->
   leading '(' + leading()
   trailing trailing() + ')'
 
+STATEMENT_TO_EXPRESSION = (leading, trailing, node, context) ->
+  matching = false
+  for c in node.classes when c[...'__parse__'.length] is '__parse__'
+    if c in context.classes
+      matching = true
+      break
+  if matching
+    leading '(' + leading()
+    trailing trailing().replace(/\s*;\s*$/, '') + ')'
+  else
+    trailing trailing().replace(/\s*;\s*$/, '')
+
+EXPRESSION_TO_STATEMENT = (leading, trailing, node, context) ->
+  while true
+    if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
+      leading leading().replace(/^\s*\(\s*/, '')
+      trailing trailing().replace(/\s*\)\s*$/, '')
+    else
+      break
+
+  trailing trailing() + ';'
+
 config.PAREN_RULES = {
   'primaryExpression': {
     'expression': ADD_PARENS
@@ -122,6 +144,15 @@ config.PAREN_RULES = {
     'multiplicativeExpression': ADD_PARENS
     'assignmentExpression': ADD_PARENS
     'postfixExpression': ADD_PARENS
+    'expressionStatement': STATEMENT_TO_EXPRESSION
+    'specialMethodCall': STATEMENT_TO_EXPRESSION
+  }
+  'blockItem': {
+    'expression': EXPRESSION_TO_STATEMENT
+    'additiveExpression': EXPRESSION_TO_STATEMENT
+    'multiplicativeExpression': EXPRESSION_TO_STATEMENT
+    'assignmentExpression': EXPRESSION_TO_STATEMENT
+    'postfixExpression': EXPRESSION_TO_STATEMENT
   }
 }
 
