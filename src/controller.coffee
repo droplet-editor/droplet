@@ -2079,6 +2079,7 @@ Editor::setPalette = (paletteGroups) ->
 
     clickHandler = =>
       do updatePalette
+      @paletteSearch.focus()
 
     paletteGroupHeader.addEventListener 'click', clickHandler
     paletteGroupHeader.addEventListener 'touchstart', clickHandler
