@@ -456,7 +456,7 @@ exports.View = class View
 
       if parenttype is 'block' and @model.type is 'indent'
         @margins =
-          top: 0 #padding
+          top: 0
           bottom: if @lineLength > 1 then @view.opts.indentTongueHeight else padding
 
           firstLeft: 0
@@ -482,12 +482,12 @@ exports.View = class View
 
       else if @model.type is 'text' and parenttype is 'block'
         if @model.prev?.type is 'newline' and @model.next?.type in ['newline', 'indentStart'] or @model.prev?.prev?.type is 'indentEnd'
-          textPadding = 0
+          textPadding = padding / 2
         else
           textPadding = padding
         @margins =
           top: textPadding
-          bottom: padding
+          bottom: textPadding #padding
 
           firstLeft: left
           midLeft: left
@@ -1086,7 +1086,7 @@ exports.View = class View
           # The first line of an indent is often empty; this is the desired behavior
           else if @model.type is 'indent'
             @minDistanceToBase[line].above = 0
-            @minDistanceToBase[line].below = @view.opts.padding
+            @minDistanceToBase[line].below = 0
 
           # Empty blocks should be the height of lines with text
           else
