@@ -33,6 +33,7 @@ DEFAULT_OPTIONS =
   buttonWidth: 15
   buttonHeight: 15
   buttonPadding: 6
+  minIndentTongueWidth: 150
   showDropdowns: true
   padding: 5
   indentWidth: 20
@@ -455,8 +456,8 @@ exports.View = class View
 
       if parenttype is 'block' and @model.type is 'indent'
         @margins =
-          top: @view.opts.padding
-          bottom: if @lineLength > 1 then @view.opts.indentTongueHeight else @view.opts.padding
+          top: 0 #padding
+          bottom: if @lineLength > 1 then @view.opts.indentTongueHeight else padding
 
           firstLeft: 0
           midLeft: @view.opts.indentWidth
@@ -480,8 +481,12 @@ exports.View = class View
           lastRight: @view.opts.textPadding
 
       else if @model.type is 'text' and parenttype is 'block'
+        if @model.prev?.type is 'newline' and @model.next?.type in ['newline', 'indentStart'] or @model.prev?.prev?.type is 'indentEnd'
+          textPadding = 0
+        else
+          textPadding = padding
         @margins =
-          top: padding
+          top: textPadding
           bottom: padding
 
           firstLeft: left
@@ -1070,10 +1075,20 @@ exports.View = class View
         if @lineChildren[line].length is 0
           # Socket should be shorter than other blocks
           if @model.type is 'socket'
-            @minDistanceToBase[line].above = @view.opts.textHeight * @view.opts.textPadding
-            @minDistanceToBase[line].above = @view.opts.textPadding
+            @minDistanceToBase[line].above = @view.opts.textHeight + @view.opts.textPadding
+            @minDistanceToBase[line].below = @view.opts.textPadding
 
-          # Other empty lines should be the height of a normal block.
+          # Text should not claim any padding
+          else if @model.type is 'text'
+            @minDistanceToBase[line].above = @view.opts.textHeight
+            @minDistanceToBase[line].below = 0
+
+          # The first line of an indent is often empty; this is the desired behavior
+          else if @model.type is 'indent'
+            @minDistanceToBase[line].above = 0
+            @minDistanceToBase[line].below = @view.opts.padding
+
+          # Empty blocks should be the height of lines with text
           else
             @minDistanceToBase[line].above = @view.opts.textHeight + @view.opts.padding
             @minDistanceToBase[line].below = @view.opts.padding
@@ -1086,11 +1101,18 @@ exports.View = class View
       # immediately after the end of an indent to
       # be as long as necessary
       for line in linesToExtend
-        @minDimensions[line].width = Math.max @minDimensions[line].width, @minDimensions[line - 1].width
+        @minDimensions[line].width = Math.max(
+          @minDimensions[line].width, Math.max(
+            @view.opts.minIndentTongueWidth,
+            @view.opts.indentWidth + @view.opts.tabWidth + @view.opts.tabOffset + @view.opts.bevelClip
+        ))
 
       for line in preIndentLines
-        @minDimensions[line].width = Math.max(@minDimensions[line].width,
-          @view.opts.indentWidth + @view.opts.tabWidth + @view.opts.tabOffset + @view.opts.bevelClip)
+        @minDimensions[line].width = Math.max(
+          @minDimensions[line].width, Math.max(
+            @view.opts.minIndentTongueWidth,
+            @view.opts.indentWidth + @view.opts.tabWidth + @view.opts.tabOffset + @view.opts.bevelClip
+        ))
 
       # Add space for carriage arrow
       for lineChild in @lineChildren[@lineLength - 1]
@@ -2391,9 +2413,7 @@ dedupe = (path) ->
   )
 
   path = path.filter((x, i) ->
-    if x.x is 25
-      debugger
-    return not draw._collinear(path[(i - 1) %% path.length], x, path[(i + 1) %% path.length])
+    not draw._collinear(path[(i - 1) %% path.length], x, path[(i + 1) %% path.length])
   )
 
   return path
