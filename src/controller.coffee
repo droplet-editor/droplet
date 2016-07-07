@@ -200,10 +200,6 @@ exports.Editor = class Editor
 
     # Main canvas first
     @mainCanvas = document.createElementNS SVG_STANDARD, 'svg'
-    #@mainCanvasWrapper = document.createElementNS SVG_STANDARD, 'g'
-    #@mainCanvas = document.createElementNS SVG_STANDARD, 'g'
-    #@mainCanvas.appendChild @mainCanvasWrapper
-    #@mainCanvasWrapper.appendChild @mainCanvas
     @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
     @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
@@ -372,7 +368,7 @@ exports.Editor = class Editor
 
       # Stop mousedown event default behavior so that
       # we don't get bad selections
-      if event.type is 'mousedown'
+      if event.type is 'mousedown' and event.target isnt @paletteSearch
         event.preventDefault?()
         event.returnValue = false
         return false
@@ -780,8 +776,8 @@ Editor::clearPalette = -> # TODO remove and remove all references to
 
 Editor::clearPaletteHighlightCanvas = -> # TODO remove and remove all references to
 
-Editor::redrawPalette = ->
-  return unless @session?.currentPaletteBlocks?
+Editor::redrawPalette = (garbageCollect = true) ->
+  return unless @session?.activePaletteBlocks?
 
   @clearPalette()
 
@@ -793,7 +789,7 @@ Editor::redrawPalette = ->
   # of the last bottom edge of a palette block.
   lastBottomEdge = PALETTE_TOP_MARGIN
 
-  for entry in @session.currentPaletteBlocks
+  for entry in @session.activePaletteBlocks
     # Layout this block
     paletteBlockView = @session.paletteView.getViewNodeFor entry.block
     paletteBlockView.layout PALETTE_LEFT_MARGIN, lastBottomEdge
@@ -816,7 +812,10 @@ Editor::redrawPalette = ->
 
   @paletteCanvas.style.height = lastBottomEdge + 'px'
 
-  @session.paletteView.garbageCollect()
+  if garbageCollect
+    @session.paletteView.garbageCollect()
+  else
+    @session.paletteView.cleanupDraw()
 
 Editor::rebuildPalette = ->
   return unless @session?.currentPaletteBlocks?
@@ -1986,11 +1985,37 @@ class FloatingOperation
 # This happens at population time.
 hook 'populate', 0, ->
   # Create the hierarchical menu element.
+  @paletteHeaderWrapper = document.createElement 'div'
+  @paletteHeaderWrapper.className = 'droplet-palette-header-wrapper'
+
   @paletteHeader = document.createElement 'div'
   @paletteHeader.className = 'droplet-palette-header'
 
   # Append the element.
-  @paletteElement.appendChild @paletteHeader
+  @paletteElement.appendChild @paletteHeaderWrapper
+  @paletteHeaderWrapper.appendChild @paletteHeader
+
+  # Search box
+  @paletteSearchWrapper = document.createElement 'div'
+  @paletteSearchWrapper.className = 'droplet-palette-search-wrapper'
+
+  @paletteSearch = document.createElement 'input'
+  @paletteSearch.className = 'droplet-palette-search'
+  @paletteSearch.setAttribute 'placeholder', 'Filter blocks'
+
+  @paletteSearch.style.paddingLeft = PALETTE_LEFT_MARGIN
+  @paletteSearch.style.fontFamily = @session.fontFamily
+  @paletteSearch.style.fontSize = @session.fontSize
+
+  @paletteSearch.addEventListener 'input', =>
+    @paletteScroller.scrollTop = 0
+    searchTerm = @paletteSearch.value
+    @session.activePaletteBlocks = @session.currentPaletteBlocks.filter (block) ->
+      block.block.stringify()[...searchTerm.length] is searchTerm
+    @redrawPalette false
+
+  @paletteHeaderWrapper.appendChild @paletteSearchWrapper
+  @paletteSearchWrapper.appendChild @paletteSearch
 
   if @session?
     @setPalette @session.paletteGroups
@@ -2080,6 +2105,7 @@ Editor::changePaletteGroup = (group) ->
   # Record that we are the selected group now
   @session.currentPaletteGroup = paletteGroup.name
   @session.currentPaletteBlocks = paletteGroup.parsedBlocks
+  @session.activePaletteBlocks = paletteGroup.parsedBlocks.slice 0
   @session.currentPaletteMetadata = paletteGroup.parsedBlocks
 
   # Unapply the "selected" style to the current palette group header
@@ -2114,7 +2140,7 @@ hook 'mousedown', 6, (point, event, state) ->
       state.consumedHitTest = true
       return
 
-    for entry in @session.currentPaletteBlocks
+    for entry in @session.activePaletteBlocks
       hitTestResult = @hitTest palettePoint, entry.block, @session.paletteView
 
       if hitTestResult?
@@ -3097,6 +3123,8 @@ Editor::scrollCursorToEndOfDocument = ->
 
 # Pressing the up-arrow moves the cursor up.
 hook 'keydown', 0, (event, state) ->
+  if event.target is @paletteSearch
+    return
   if event.which is UP_ARROW_KEY
     @clearLassoSelection()
     prev = @getCursor().prev ? @getCursor().start?.prev
@@ -3152,6 +3180,8 @@ hook 'keydown', 0, (event, state) ->
   if not @session? or @session.readOnly
     return
   if event.which isnt BACKSPACE_KEY
+    return
+  if event.target is @paletteSearch
     return
   if state.capturedBackspace
     return
@@ -3832,7 +3862,7 @@ Editor::resizeMainScroller = ->
   @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
 
 hook 'resize_palette', 0, ->
-  @paletteScroller.style.top = "#{@paletteHeader.clientHeight}px"
+  @paletteScroller.style.top = "#{@paletteHeaderWrapper.clientHeight}px"
 
   @session.viewports.palette.height = @paletteScroller.clientHeight
   @session.viewports.palette.width = @paletteScroller.clientWidth
@@ -4679,6 +4709,7 @@ hook 'populate', 1, ->
       @redrawMain()
 
 hook 'keydown', 0, (event, state) ->
+  return if event.target is @paletteSearch
   if event.which in command_modifiers
     unless @cursorAtSocket()
       x = document.body.scrollLeft
@@ -4691,6 +4722,7 @@ hook 'keydown', 0, (event, state) ->
       @copyPasteInput.setSelectionRange 0, @copyPasteInput.value.length
 
 hook 'keyup', 0, (point, event, state) ->
+  return if event.target is @paletteSearch
   if event.which in command_modifiers
     if @cursorAtSocket()
       @hiddenInput.focus()
