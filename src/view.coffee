@@ -2391,8 +2391,6 @@ dedupe = (path) ->
   )
 
   path = path.filter((x, i) ->
-    if x.x is 25
-      debugger
     return not draw._collinear(path[(i - 1) %% path.length], x, path[(i + 1) %% path.length])
   )
 
