@@ -33,16 +33,19 @@ exports.createTreewalkParser = (parse, config, root) ->
       return line[0...line.length - line.trimLeft().length]
 
     applyRule: (rule, node) ->
+      if rule instanceof Function
+        rule = rule(node)
       if 'string' is typeof rule
-        return {type: rule}
-      else if rule instanceof Function
-        return rule(node)
-      else
-        return rule
+        rule = {type: rule}
+      return rule
 
     det: (node) ->
       if node.type of config.RULES
-        return @applyRule(config.RULES[node.type], node).type
+        type = @applyRule(config.RULES[node.type], node).type
+        if type is 'block_explicit'
+          return 'block'
+        else
+          return type
       return 'block'
 
     detNode: (node) -> if node.blockified then 'block' else @det(node)
@@ -78,6 +81,8 @@ exports.createTreewalkParser = (parse, config, root) ->
       return 'any-drop'
 
     mark: (node, prefix, depth, pass, rules, context, wrap, wrapRules) ->
+      if node.type is 'recipe' #rule_collection'
+        debugger
       unless pass
         context = node.parent
         while context? and @detNode(context) in ['skip', 'parens']
@@ -88,7 +93,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       rules.push node.type
 
       # Pass through to child if single-child
-      if node.children.length is 1 and @detNode(node) isnt 'indent'
+      if node.children.length is 1 and @detNode(node) isnt 'indent' and (node.type not of config.RULES or @applyRule(config.RULES[node.type], node).type isnt 'block_explicit')
         @mark node.children[0], prefix, depth, true, rules, context, wrap, wrapRules
 
       else if node.children.length > 0
@@ -161,9 +166,14 @@ exports.createTreewalkParser = (parse, config, root) ->
 
               depth += 1
 
-            start = origin = node.children[0].bounds.start
+            start = origin =
+              line: node.children[0].bounds.start.line
+              column: node.children[0].bounds.start.column
             for child, i in node.children
               if child.children.length > 0
+                if i is 0
+                  start.line -= 1
+                  start.column = @lines[start.line].length
                 break
               else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0 or i is node.children.length - 1
                 start = child.bounds.end

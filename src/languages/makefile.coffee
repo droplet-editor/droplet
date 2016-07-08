@@ -1,4 +1,3 @@
-# Droplet Python mode
 #
 # Copyright (c) 2015 Anthony Bau
 # MIT License
@@ -9,7 +8,7 @@ parser = require '../parser.coffee'
 treewalk = require '../treewalk.coffee'
 
 # PARSER SECTION
-parse = (context, text, lineno = 0) ->
+_parse = (context = 'file', text, lineno = 0) ->
   # Root-level context
   if context is 'file'
     lines = text.split '\n'
@@ -21,14 +20,14 @@ parse = (context, text, lineno = 0) ->
     for line, i in lines
       if line[0] is '\t'
         if currentCollection?
-          currentCollection.push parse('recipe', line, lineno + i)
+          currentCollection.push _parse('recipe', line, lineno + i)
           endObj.line = lineno + i
           endObj.column = line.length
 
       else if line.match(/^\s*#/)?
         continue
 
-      else if line.indexOf(':') < line.indexOf('=') - 1
+      else if line.indexOf(':') isnt -1 and (line.indexOf('=') is -1 or line.indexOf(':') < line.indexOf('=') - 1)
         currentCollection = []
         endObj = {
           line: lineno + i
@@ -37,10 +36,17 @@ parse = (context, text, lineno = 0) ->
         rules.push {
           type: 'rule'
           children: [
-            parse('target_line', line, lineno + i),
+            _parse('target_line', line, lineno + i),
             {
               type: 'rule_collection'
               children: currentCollection
+              bounds: {
+                start: {
+                  line: lineno + i
+                  column: line.length
+                }
+                end: endObj
+              }
             }
           ]
           bounds: {
@@ -52,7 +58,7 @@ parse = (context, text, lineno = 0) ->
           }
         }
       else if line.indexOf('=') >= 0
-        rules.push parse('assignment', line, lineno + i)
+        rules.push _parse('assignment', line, lineno + i)
 
     return {
       type: 'file'
@@ -79,67 +85,89 @@ parse = (context, text, lineno = 0) ->
           children: []
           bounds: {
             start: {
-              text: lineno
-              column: 0
+              line: lineno
+              column: 1
             }
             end: {
-              text: lineno
+              line: lineno
               column: text.length
             }
           }
+        }
       ]
       bounds: {
         start: {
-          text: lineno
-          column: 0
+          line: lineno
+          column: 1
         }
         end: {
-          text: lineno
+          line: lineno
           column: text.length
         }
       }
     }
 
   # Target text -- like assignment, a left and a right side
-  else if context is 'target_text' or context is 'assignment'
-    if context is 'target_text'
-      colon = text.match(/\s*:\s*/)[0]
+  else if context is 'target_line' or context is 'assignment'
+    if context is 'target_line'
+      colon = text.match(/\s*:\s*/)
     else
-      colon = text.match(/\s*=\s*/)[0]
+      colon = text.match(/\s*=\s*/)
+    children = [
+      {
+        type: if context is 'target_line' then 'target_list' else 'assignee'
+        children: []
+        bounds: {
+          start: {
+            line: lineno
+            column: 0
+          }
+          end: {
+            line: lineno
+            column: colon.index
+          }
+        }
+      }
+    ]
+    if colon.index + colon[0].length < text.length
+      children.push {
+        type: if context is 'target_line' then 'target_deps' else 'assignand'
+        children: []
+        bounds: {
+          start: {
+            line: lineno
+            column: colon.index + colon[0].length
+          }
+          end: {
+            line: lineno
+            column: text.length
+          }
+        }
+      }
     return {
       type: context
-      children: [
-        {
-          type: if context is 'target_text' then 'target_list' else 'assignee'
-          children: []
-          bounds: {
-            start: {
-              text: lineno
-              column: 0
-            }
-            end: {
-              text: lineno
-              column: colon.index
-            }
-          }
+      children
+      bounds: {
+        start: {
+          line: lineno
+          column: 0
         }
-        {
-          type: if context is 'target_text' then 'target_deps' else 'assignand'
-          children: []
-          bounds: {
-            start: {
-              text: lineno
-              column: colon.index + colon[0].length
-            }
-            end: {
-              text: lineno
-              column: text.length
-            }
-          }
+        end: {
+          line: lineno
+          column: text.length
         }
-      ]
+      }
     }
 
+
+transform = (tree, parent = null) ->
+  tree.parent = parent
+  tree.children = tree.children.map (child) -> transform child, tree
+  return tree
+
+parse = (context, text) ->
+  console.log 'WHOLE TREE:', _parse context, text, 0
+  transform(_parse(context, text, 0))
 
 RULES = {
   'file': 'skip'
@@ -151,18 +179,30 @@ RULES = {
   'target_deps': 'socket'
   'assignee': 'socket'
   'assignand': 'socket'
-  'recipe': 'socket'
+
+  'recipe': 'block_explicit'
+
+  'recipe_contents': 'socket'
 }
 
-COLOR_RULES = []
+COLOR_RULES = [
+  ['assignment', 'command']
+  ['rule', 'control']
+  ['recipe', 'command']
+]
 SHAPE_RULES = []
 
-config = { RULES, COLOR_RJULES, SHAPE_RULES }
+config = { RULES, COLOR_RULES, SHAPE_RULES }
 
+config.isComment = (text) -> text.match(/^\s*#/)?
 config.parseComment = (text) ->
   return {
     color: 'comment'
-    ranges: [[text.match(/^\s*#/)[0].length, text.length]]
+    sockets: [[text.match(/^\s*#/)[0].length, text.length]]
   }
+
+config.PAREN_RULES = {}
+
+config.empty = config.emptyIndent = ''
 
 module.exports = parser.wrapParser treewalk.createTreewalkParser parse, config
