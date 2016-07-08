@@ -1628,8 +1628,9 @@ hook 'mousemove', 0, (point, event, state) ->
       head = head.next
 
     if head is @session.tree.end and @session.floatingBlocks.length is 0 and
-        @mainCanvas.width + @session.scrollOffsets.main.x > mainPoint.x > @session.scrollOffsets.main.x - @gutter.offsetWidth and
-        @mainCanvas.height + @session.scrollOffsets.main.y > mainPoint.y > @session.scrollOffsets.main.y
+        (@mainCanvas.width + @session.scrollOffsets.main.x > mainPoint.x > @session.scrollOffsets.main.x - @gutter.offsetWidth and
+        @mainCanvas.height + @session.scrollOffsets.main.y > mainPoint.y > @session.scrollOffsets.main.y) and
+        @getAcceptLevel(@draggingBlock, @session.tree) is helper.ENCOURAGE
       @session.view.getViewNodeFor(@session.tree).highlightArea.draw @highlightCtx
       @lastHighlight = @session.tree
 
