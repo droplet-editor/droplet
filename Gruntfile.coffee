@@ -77,6 +77,7 @@ module.exports = (grunt) ->
       build:
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
+          'dist/worker.js': ['./src/worker.js']
         options:
           ignore: ignoredLanguages
           transform: ['coffeeify']

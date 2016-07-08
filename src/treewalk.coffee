@@ -22,8 +22,13 @@ exports.createTreewalkParser = (parse, config, root) ->
     parseComment: (text) ->
       return config.parseComment text
 
-    markRoot: (context = root) ->
-      parseTree = parse(context, @text)
+    preparse: (context = root) -> parse(context, @text)
+
+    markRoot: (context = root, cachedParse = null) ->
+      if cachedParse?
+        parseTree = cachedParse
+      else
+        parseTree = parse(context, @text)
 
       # Parse
       @mark parseTree, '', 0
