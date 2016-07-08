@@ -2018,8 +2018,9 @@ hook 'populate', 0, ->
   @paletteSearch.addEventListener 'input', =>
     @paletteScroller.scrollTop = 0
     searchTerm = @paletteSearch.value
-    @session.activePaletteBlocks = @session.currentPaletteBlocks.filter (block) ->
-      block.block.stringify()[...searchTerm.length] is searchTerm
+    @session.activePaletteBlocks = @session.currentPaletteBlocks.filter((block) ->
+      block.block.stringify().indexOf(searchTerm) >= 0
+    )
     @redrawPalette false
 
   @paletteHeaderWrapper.appendChild @paletteSearchWrapper
