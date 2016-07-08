@@ -235,8 +235,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       if '__comment__' in block.classes
         return helper.ENCOURAGE
 
-      if 'externalDeclaration' in parseClasses(block) or
-         'translationUnit' in parseClasses(block)
+      if context.parseContext in parseClasses(block)
         return helper.ENCOURAGE
 
       return helper.DISCOURAGE
@@ -267,6 +266,8 @@ exports.createTreewalkParser = (parse, config, root) ->
   TreewalkParser.stringFixer = config.stringFixer
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
   TreewalkParser.empty = config.empty
+
+  TreewalkParser.rootContext = root
 
   return TreewalkParser
 
