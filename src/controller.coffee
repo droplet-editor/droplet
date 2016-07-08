@@ -563,7 +563,9 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
       @session.view.opts.tabHeight + height
   points.push new @draw.Point @session.view.opts.tabOffset, height
 
-  points.push new @draw.Point -5, height
+  points.push new @draw.Point @session.view.opts.bevelClip, height
+  points.push new @draw.Point 0, height + @session.view.opts.bevelClip
+  points.push new @draw.Point -5, height + @session.view.opts.bevelClip
   points.push new @draw.Point -5, -5
 
   @topNubbyPath.setPoints points
