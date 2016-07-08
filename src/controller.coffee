@@ -1079,6 +1079,11 @@ Editor::spliceOut = (node, container = null) ->
             @session.cursor.document -= 1
 
           @session.floatingBlocks.splice i, 1
+
+          for socket in @session.rememberedSockets
+            if socket.socket.document > i
+              socket.socket.document -= 1
+
           break
   else if container?
     # No document, so try to remove from container if it was supplied
