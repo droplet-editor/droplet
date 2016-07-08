@@ -559,7 +559,9 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
       @session.view.opts.tabHeight + height
   points.push new @draw.Point @session.view.opts.tabOffset, height
 
-  points.push new @draw.Point -5, height
+  points.push new @draw.Point @session.view.opts.bevelClip, height
+  points.push new @draw.Point 0, height + @session.view.opts.bevelClip
+  points.push new @draw.Point -5, height + @session.view.opts.bevelClip
   points.push new @draw.Point -5, -5
 
   @topNubbyPath.setPoints points
@@ -1097,6 +1099,11 @@ Editor::spliceOut = (node, container = null) ->
             @session.cursor.document -= 1
 
           @session.floatingBlocks.splice i, 1
+
+          for socket in @session.rememberedSockets
+            if socket.socket.document > i
+              socket.socket.document -= 1
+
           break
   else if container?
     # No document, so try to remove from container if it was supplied
@@ -1640,7 +1647,8 @@ hook 'mousemove', 0, (point, event, state) ->
 
     if head is @session.tree.end and @session.floatingBlocks.length is 0 and
         @session.viewports.main.right() > mainPoint.x > @session.viewports.main.x - @gutter.clientWidth and
-        @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y
+        @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y and
+        @getAcceptLevel(@draggingBlock, @session.tree) is helper.ENCOURAGE
       @session.view.getViewNodeFor(@session.tree).highlightArea.update()
       @lastHighlight = @session.tree
 
