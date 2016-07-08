@@ -1088,7 +1088,7 @@ exports.View = class View
             @minDistanceToBase[line].below = 0
 
           # The first line of an indent is often empty; this is the desired behavior
-          else if @model.type is 'indent'
+          else if @model.type is 'indent' and line is 0
             @minDistanceToBase[line].above = 0
             @minDistanceToBase[line].below = 0
 
