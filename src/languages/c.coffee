@@ -211,14 +211,6 @@ config.parseComment = (text) ->
     ranges =  []
     color = 'purple'
 
-  # Try any of the unary directives: #include, #if, #ifdef, #ifndef, #undef, #pragma
-  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
-  if unary?
-    ranges =  [
-      [unary[1].length, unary[1].length + unary[2].length]
-    ]
-    color = 'purple'
-
   # Try #define directive
   binary = text.match(/^(#\s*(?:(?:define))\s*)([a-zA-Z_][0-9a-zA-Z_]*)(\s+)(.*)$/)
   if binary?
@@ -234,6 +226,29 @@ config.parseComment = (text) ->
     ranges =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
+    ]
+    color = 'purple'
+
+  # Try any of the unary directives: #define, #if, #ifdef, #ifndef, #undef, #pragma
+  unary = text.match(/^(#\s*(?:(?:define)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
+  if unary?
+    ranges =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+  # Try #include, which must include the quotations
+  unary = text.match(/^(#\s*include\s*<)(.*)>\s*$/)
+  if unary?
+    ranges =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+  unary = text.match(/^(#\s*include\s*")(.*)"\s*$/)
+  if unary?
+    ranges =  [
+      [unary[1].length, unary[1].length + unary[2].length]
     ]
     color = 'purple'
 
