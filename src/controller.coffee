@@ -1648,7 +1648,8 @@ hook 'mousemove', 0, (point, event, state) ->
 
     if head is @session.tree.end and @session.floatingBlocks.length is 0 and
         @session.viewports.main.right() > mainPoint.x > @session.viewports.main.x - @gutter.clientWidth and
-        @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y
+        @session.viewports.main.bottom() > mainPoint.y > @session.viewports.main.y and
+        @getAcceptLevel(@draggingBlock, @session.tree) is helper.ENCOURAGE
       @session.view.getViewNodeFor(@session.tree).highlightArea.update()
       @lastHighlight = @session.tree
 
