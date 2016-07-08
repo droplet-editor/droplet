@@ -161,7 +161,7 @@ asyncTest 'Parser: parser freeze test for C mode', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-06-23'
+  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-07-08'
 
   start()
 
