@@ -29,6 +29,27 @@ BOTH_BUTTON = [
   }
 ]
 
+ADD_BUTTON_VERT = [
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
+
+BOTH_BUTTON_VERT = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25B2'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
+
 RULES = {
   # Indents
   'compoundStatement': {
@@ -99,7 +120,10 @@ RULES = {
       return 'skip'
     # Otherwise, if we are an if statement, give us a mutation button
     else if node.children[0].data.text is 'if'
-      return {type: 'block', buttons: ADD_BUTTON}
+      if node.children.length is 7
+        return {type: 'block', buttons: BOTH_BUTTON_VERT}
+      else
+        return {type: 'block', buttons: ADD_BUTTON_VERT}
     else
       return 'block'
 
@@ -352,6 +376,10 @@ config.empty = '__0_droplet__'
 config.emptyIndent = ''
 
 # Annotate if/else with the location of the "else" token
+
+# TODO computing relative boundaries does not actually work very well right now;
+# it will fail whenever something starts(
+# ) one one line and ends on the other like so.
 config.annotate = (node) ->
   if node.type is 'selectionStatement' and
      node.children[0].data.text is 'if' and
@@ -362,10 +390,20 @@ config.annotate = (node) ->
     while node.children[6].children[0].type is 'selectionStatement' and node.children[6].children[0].children.length is 7
       node = node.children[6].children[0]
       ncases += 1
-    return {
-      ncases,
-      elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
-    }
+
+    # Find the second-to-last else, if it exists
+    if node.parent?.parent?.type is 'selectionStatement' and node.parent.parent.children.length is 7 and node is node.parent.parent.children[6].children[0]
+      secondToLastNode = node.parent.parent
+      return {
+        ncases,
+        elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
+        elifLocation: helper.subtractBounds secondToLastNode.children[5].bounds, originalNode.bounds.start
+      }
+    else
+      return {
+        ncases,
+        elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
+      }
 
   if node.type is 'postfixExpression'
     if (
@@ -412,7 +450,18 @@ config.handleButton = (str, type, block) ->
     else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
       return str.replace(/(\s*;)?$/, ', __0_droplet__$1')
   else
-    if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+    if '__parse__selectionStatement' in block.classes
+      lines = str.split '\n'
+
+      if block.data.elifLocation
+        prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elifLocation.start
+        suffix = helper.clipLines lines, block.data.elseLocation.start, {line: lines.length - 1, column: lines.length}
+
+        return prefix + suffix
+      else
+        return helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
+
+    else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
       lines = str.split '\n'
       prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.lastParam.start
       suffix = str.match(/\s*\)\s*;?\s*$/g)[0]
