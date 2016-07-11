@@ -11,6 +11,13 @@ antlrHelper = require '../antlr.coffee'
 
 ADD_BUTTON = [
   {
+    key: 'add-button'
+    glyph: '\u25B6'
+    border: false
+  }
+]
+BOTH_BUTTON = [
+  {
     key: 'subtract-button'
     glyph: '\u25C0'
     border: false
@@ -108,7 +115,10 @@ RULES = {
          node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
          opts.knownFunctions[node.children[0].children[0].children[0].data.text].variableArgs
        )
-      return {type: 'block', buttons: ADD_BUTTON}
+      if node.children.length is 3
+        return {type: 'block', buttons: ADD_BUTTON}
+      else
+        return {type: 'block', buttons: BOTH_BUTTON}
     else
       return 'block'
 
@@ -118,7 +128,7 @@ RULES = {
         node.children[0].data.text not of opts.knownFunctions or
         opts.knownFunctions[node.children[0].data.text].variableArgs
        )
-      return {type: 'block', buttons: ADD_BUTTON}
+      return {type: 'block', buttons: BOTH_BUTTON}
     else
       return 'block'
 
@@ -356,30 +366,63 @@ config.annotate = (node) ->
       ncases,
       elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
     }
+
+  if node.type is 'postfixExpression'
+    if (
+        node.children.length is 3 and node.children[1].data?.text is '(' and node.children[2].data?.text is ')' or
+        node.children.length is 4 and node.children[1].data?.text is '(' and node.children[3].data?.text is ')'
+       )
+      if node.children.length is 4
+        param = node.children[2]
+        while param.type is 'argumentExpressionList'
+          param = param.children[param.children.length - 1]
+
+        return {
+          lastParam: helper.subtractBounds param.bounds, node.bounds.start
+        }
+
+  if node.type is 'specialMethodCall'
+    return {
+      lastParam: helper.subtractBounds node.children[2].bounds, node.bounds.start
+    }
+
   return null
 
 config.handleButton = (str, type, block) ->
   console.log str
-  if '__parse__selectionStatement' in block.classes
-    if block.data.elseLocation?
-      lines = str.split '\n'
-      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
-      suffix = str[prefix.length...]
+  if type is 'add-button'
+    if '__parse__selectionStatement' in block.classes
+      if block.data.elseLocation?
+        lines = str.split '\n'
+        prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
+        suffix = str[prefix.length...]
 
-      return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
-    else
-      return str + '\nelse\n{\n  \n}'
-  else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
-    if str.match(/\(\s*\)\s*;?$/)?
-      return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
-    else
-      return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
-  else if '__parse__initDeclaratorList' in block.classes
-    return str + ', __0_droplet__ = __0_droplet__'
-  else if '__parse__initializer' in block.classes
-    return str.replace(/(\s*}\s*)$/, ", __0_droplet__$1")
-  else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
-    return str.replace(/(\s*;)?$/, ', __0_droplet__$1')
+        return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
+      else
+        return str + '\nelse\n{\n  \n}'
+    else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+      if str.match(/\(\s*\)\s*;?$/)?
+        return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
+      else
+        return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
+    else if '__parse__initDeclaratorList' in block.classes
+      return str + ', __0_droplet__ = __0_droplet__'
+    else if '__parse__initializer' in block.classes
+      return str.replace(/(\s*}\s*)$/, ", __0_droplet__$1")
+    else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+      return str.replace(/(\s*;)?$/, ', __0_droplet__$1')
+  else
+    if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.lastParam.start
+      suffix = str.match(/\s*\)\s*;?\s*$/g)[0]
+
+      console.log 'PREFIX', prefix
+      console.log 'SUFFIX', suffix
+
+      prefix = prefix.replace /\s*,\s*$/, ''
+
+      return prefix + suffix
 
   return str
 
