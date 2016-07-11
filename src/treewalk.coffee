@@ -40,7 +40,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
     applyRule: (rule, node) ->
       if rule instanceof Function
-        rule = rule(node)
+        rule = rule(node, @opts)
       if 'string' is typeof rule
         return {type: rule}
       else
@@ -105,6 +105,8 @@ exports.createTreewalkParser = (parse, config, root) ->
       else if node.children.length > 0
         switch @detNode node
           when 'block'
+            paddedRules = padRules wrapRules, rules
+
             if wrap?
               bounds = wrap.bounds
             else
@@ -114,14 +116,14 @@ exports.createTreewalkParser = (parse, config, root) ->
               @addSocket
                 bounds: bounds
                 depth: depth
-                classes: padRules(wrapRules ? rules)
+                classes: paddedRules
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
             @addBlock
               bounds: bounds
               depth: depth + 1
               color: @getColor node, rules
-              classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
+              classes: paddedRules.concat @getShape node, rules
               buttons: @getButtons(node)
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
               data: config.annotate?(node) ? null
@@ -141,6 +143,8 @@ exports.createTreewalkParser = (parse, config, root) ->
               return
 
             else
+              paddedRules = padRules wrapRules, rules
+
               node.blockified = true
 
               if wrap?
@@ -152,25 +156,27 @@ exports.createTreewalkParser = (parse, config, root) ->
                 @addSocket
                   bounds: bounds
                   depth: depth
-                  classes: padRules(wrapRules ? rules)
+                  classes: paddedRules
                   parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
               @addBlock
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor node, rules
-                classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
+                classes: paddedRules
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
                 data: config.annotate?(node) ? null
 
           when 'indent'
+            paddedRules = padRules wrapRules, rules
+
             # A lone indent needs to be wrapped in a block.
             if @det(context) isnt 'block'
               @addBlock
                 bounds: node.bounds
                 depth: depth
                 color: @getColor node, rules
-                classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
+                classes: paddedRules.concat(@getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
                 data: config.annotate?(node) ? null
 
@@ -206,17 +212,18 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
-              classes: padRules(wrapRules ? rules)
+              classes: paddedRules
               parseContext: @applyRule(config.RULES[node.type], node).indentContext
 
         for child in node.children
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
         if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
+          paddedRules = padRules wrapRules, rules
           @addSocket
             bounds: node.bounds
             depth: depth
-            classes: padRules(wrapRules ? rules)
+            classes: paddedRules
             parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
 
           if config.empty? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
@@ -286,5 +293,10 @@ exports.createTreewalkParser = (parse, config, root) ->
   return TreewalkParser
 
 PARSE_PREFIX = "__parse__"
-padRules = (rules) -> rules.map (x) -> "#{PARSE_PREFIX}#{x}"
+PAREN_PREFIX = "__paren__"
+padRules = (wrap, rules) ->
+  if wrap?
+    return wrap.map((x) -> PARSE_PREFIX + x).concat rules.map((x) -> PAREN_PREFIX + x)
+  else
+    rules.map (x) -> PARSE_PREFIX + x
 parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..])

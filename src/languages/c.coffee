@@ -65,6 +65,33 @@ RULES = {
     else
       return 'block'
 
+  # Special: functions
+  'postfixExpression': (node, opts) ->
+    if (
+        node.children.length is 3 and node.children[1].data?.text is '(' and node.children[2].data?.text is ')' or
+        node.children.length is 4 and node.children[1].data?.text is '(' and node.children[3].data?.text is ')'
+       ) and
+       (
+         (not node.children[0].children[0]?.children?[0]?) or
+         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions?
+         node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
+         opts.knownFunctions[node.children[0].children[0].children[0].data.text].variableArgs
+       )
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'specialMethodCall': (node, opts) ->
+    if (
+        not opts.knownFunctions? or
+        node.children[0].data.text not of opts.knownFunctions or
+        opts.knownFunctions[node.children[0].data.text].variableArgs
+       )
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+
   # Sockets
   'Identifier': 'socket',
   'StringLiteral': 'socket',
@@ -308,6 +335,11 @@ config.handleButton = (str, type, block) ->
     suffix = str[prefix.length...]
 
     return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
+  else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+    if str.match(/\(\s*\)\s*;?$/)?
+      return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
+    else
+      return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
 
   return str
 
