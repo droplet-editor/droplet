@@ -191,7 +191,7 @@ asyncTest 'View: sockets caching', ->
   view_ = new view.View()
 
   document = coffee.parse '''
-  for i in [[[]]]
+  for i in a()()()
     alert 10
   '''
 
@@ -200,10 +200,10 @@ asyncTest 'View: sockets caching', ->
 
   socketView = view_.getViewNodeFor getNthToken(document, 8).container
 
-  strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
+  strictEqual socketView.model.stringify(), 'a()()()', 'Correct block selected'
 
   strictEqual socketView.dimensions[0].height,
-    view_.opts.textHeight + 6 * view_.opts.padding,
+    view_.opts.textHeight + 6 * view_.opts.padding + 2 * view_.opts.textPadding,
     'Original height is O.K.'
 
   document.remove (block = getNthToken(document, 9).container)
@@ -343,9 +343,11 @@ asyncTest 'View: indent carriage arrow', ->
 
   strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
   strictEqual blockView.dropPoint.y,
-    1 * view_.opts.textHeight +
-    4 * view_.opts.padding +
-    2 * view_.opts.textPadding, 'Drop point is further down'
+    Math.max(
+      1 * view_.opts.textHeight +
+      3 * view_.opts.padding +
+      2 * view_.opts.textPadding,
+    ), 'Drop point is further down'
 
   indent = block.start.prev.container
   indentView = view_.getViewNodeFor indent
