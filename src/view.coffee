@@ -486,7 +486,7 @@ exports.View = class View
 
       else if @model.type is 'text' and parenttype is 'block'
         if @model.prev?.type is 'newline' and @model.next?.type in ['newline', 'indentStart'] or @model.prev?.prev?.type is 'indentEnd'
-          textPadding = padding / 2
+          textPadding = padding# / 2
         else
           textPadding = padding
         @margins =
@@ -1058,9 +1058,26 @@ exports.View = class View
             bottomMargin = margins.bottom
 
 
+          topMargin = margins.top
+
+          unless @lineLength is 1
+            if desiredLine isnt 0 and (
+                @lineChildren[desiredLine].length is 1 and @lineChildren[desiredLine][0].child.type is 'text' or
+                @lineChildren[desiredLine].length is 2 and @lineChildren[desiredLine][0].child.type is 'text' and @lineChildren[desiredLine][1].child.type is 'indent' or
+                @lineChildren[desiredLine - 1].length is 1 and @lineChildren[desiredLine - 1][0].child.type is 'text'
+               )
+              topMargin /= 2
+
+            if desiredLine isnt @lineLength - 1 and (
+                @lineChildren[desiredLine].length is 1 and @lineChildren[desiredLine][0].child.type is 'text' or
+                @lineChildren[desiredLine + 1].length is 1 and @lineChildren[desiredLine + 1][0].child.type is 'text' or
+                @lineChildren[desiredLine + 1].length is 2 and @lineChildren[desiredLine + 1][0].child.type is 'text' and @lineChildren[desiredLine + 1][1].child.type is 'indent'
+               )
+              bottomMargin /= 2
+
           @minDistanceToBase[desiredLine].above = Math.max(
             @minDistanceToBase[desiredLine].above,
-            minDistanceToBase[line].above + margins.top)
+            minDistanceToBase[line].above + topMargin)
           @minDistanceToBase[desiredLine].below = Math.max(
             @minDistanceToBase[desiredLine].below,
             minDistanceToBase[line].below + Math.max(bottomMargin, (
@@ -1100,6 +1117,16 @@ exports.View = class View
         minDimension.height =
           @minDistanceToBase[line].above +
           @minDistanceToBase[line].below
+
+      if @model.type is 'block'
+        @extraWidth = 0
+        if @model.buttons.addButton
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        if @model.buttons.subtractButton
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        @minDistanceToBase[@lineLength - 1].width += @extraWidth
 
       # Go through and adjust the width of rectangles
       # immediately after the end of an indent to
@@ -1974,20 +2001,11 @@ exports.View = class View
 
       super
 
-      @extraWidth = 0
-      if @model.buttons.addButton
-        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
-      if @model.buttons.subtractButton
-        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
       # Blocks have a shape including a lego nubby "tab", and so
       # they need to be at least wide enough for tabWidth+tabOffset.
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
-
-      @minDimensions[@minDimensions.length - 1].width += @extraWidth
 
       return null
 
