@@ -1101,6 +1101,17 @@ exports.View = class View
           @minDistanceToBase[line].above +
           @minDistanceToBase[line].below
 
+      if @model.type is 'block'
+        @extraWidth = 0
+
+        if @model.buttons.addButton
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        if @model.buttons.subtractButton
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        @minDimensions[@minDimensions.length - 1].width += @extraWidth
+
       # Go through and adjust the width of rectangles
       # immediately after the end of an indent to
       # be as long as necessary
@@ -1974,20 +1985,11 @@ exports.View = class View
 
       super
 
-      @extraWidth = 0
-      if @model.buttons.addButton
-        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
-      if @model.buttons.subtractButton
-        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
       # Blocks have a shape including a lego nubby "tab", and so
       # they need to be at least wide enough for tabWidth+tabOffset.
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
-
-      @minDimensions[@minDimensions.length - 1].width += @extraWidth
 
       return null
 

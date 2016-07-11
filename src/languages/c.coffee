@@ -350,11 +350,14 @@ config.annotate = (node) ->
 config.handleButton = (str, type, block) ->
   console.log str
   if '__parse__selectionStatement' in block.classes
-    lines = str.split '\n'
-    prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
-    suffix = str[prefix.length...]
+    if block.data.elseLocation?
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
+      suffix = str[prefix.length...]
 
-    return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
+      return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
+    else
+      return str + '\nelse\n{\n  \n}'
   else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
     if str.match(/\(\s*\)\s*;?$/)?
       return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
