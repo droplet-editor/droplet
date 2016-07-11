@@ -76,6 +76,7 @@ COLOR_RULES = [
   ['jumpStatement', 'return'] # e.g. `return 0;`
   ['declaration', 'control'], # e.g. `int a;`
   ['specialMethodCall', 'command'], # e.g. `a(b);`
+  ['equalityExpression', 'value'] # e.g. `a == b`
   ['additiveExpression', 'value'], # e.g. `a + b`
   ['multiplicativeExpression', 'value'], # e.g. `a * b`
   ['postfixExpression', 'command'], # e.g. `a(b, c);` OR `a++`

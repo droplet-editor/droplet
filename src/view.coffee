@@ -121,6 +121,10 @@ exports.View = class View
       unless option of @opts
         @opts[option] = DEFAULT_OPTIONS[option]
 
+    for color of DEFAULT_OPTIONS.colors
+      unless color of @opts.colors
+        @opts.colors[color] = DEFAULT_OPTIONS.colors[color]
+
   # Simple method for clearing caches
   clearCache: ->
     @beginDraw()
@@ -1748,6 +1752,8 @@ exports.View = class View
           @addTab right, new @view.draw.Point @bounds[@lineLength - 1].x + @view.opts.tabOffset,
             @bounds[@lineLength - 1].bottom()
 
+      topLeftPoint = left[0]
+
       # Reverse the left and concatenate it with the right
       # to make a counterclockwise path
       path = dedupe left.reverse().concat right
@@ -1759,7 +1765,7 @@ exports.View = class View
           newPath.push point
           continue
 
-        if i is (left.length - 1) and not @bevels.top
+        if (not @bevels.top) and point.almostEquals(topLeftPoint)
           newPath.push point
           continue
 

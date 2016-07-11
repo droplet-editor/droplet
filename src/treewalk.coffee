@@ -35,18 +35,8 @@ exports.createTreewalkParser = (parse, config, root) ->
       @mark parseTree, '', 0
 
     guessPrefix: (bounds) ->
-      votes = {}
-      for i in [bounds.start.line + 1..bounds.end.line]
-        line = @lines[i]
-        prefix = line[0...line.length - line.trimLeft().length]
-        votes[prefix] ?= 0
-        votes[prefix] += 1
-      max = -Infinity; best = ''
-      for key, val of votes
-        if val > max
-          best = key
-          max = val
-      return best
+      line = @lines[bounds.start.line + 1]
+      return line[0...line.length - line.trimLeft().length]
 
     applyRule: (rule, node) ->
       if rule instanceof Function
@@ -109,7 +99,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       rules.push node.type
 
       # Pass through to child if single-child
-      if node.children.length is 1
+      if node.children.length is 1 and @detNode(node) isnt 'indent'
         @mark node.children[0], prefix, depth, true, rules, context, wrap, wrapRules
 
       else if node.children.length > 0
@@ -222,7 +212,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         for child in node.children
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
-        if @det(node) is 'socket' and config.SHOULD_SOCKET(@opts, node)
+        if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
           @addSocket
             bounds: node.bounds
             depth: depth
