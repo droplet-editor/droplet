@@ -44,7 +44,13 @@ RULES = {
   'parameterList': 'skip',
   'argumentExpressionList': 'skip',
   'initializerList': 'skip',
-  'initDeclaratorList': 'skip',
+  'initDeclarator': 'skip',
+
+  'initDeclaratorList': (node) ->
+    if node.parent?.type is 'initDeclaratorList'
+      'skip'
+    else
+      {type: 'block', buttons: ADD_BUTTON}
 
   # Special: nested selection statement. Skip iff we are an if statement
   # in the else clause of another if statement.
@@ -111,7 +117,7 @@ COLOR_RULES = [
   ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value'], # e.g. `a < b`
-  ['initDeclarator', 'command'], # e.g. `a = b` when inside `int a = b;`
+  ['initDeclaratorList', 'command'], # e.g. `a = b` when inside `int a = b;`
   ['blockItemList', 'control'], # List of commands
   ['compoundStatement', 'control'], # List of commands inside braces
   ['externalDeclaration', 'control'], # e.g. `int a = b` when global
@@ -139,7 +145,7 @@ SHAPE_RULES = [
   ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value-only'], # e.g. `a < b`
-  ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
+  ['initDeclaratorList', 'value-only'], # e.g. `a = b` when inside `int a = b;`
   ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
   ['structDeclaration', 'block-only'], # e.g. `struct a { }`
   ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
@@ -340,6 +346,8 @@ config.handleButton = (str, type, block) ->
       return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
     else
       return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
+  else if '__parse__initDeclaratorList' in block.classes
+    return str += ', __0_droplet__ = __0_droplet__'
 
   return str
 
