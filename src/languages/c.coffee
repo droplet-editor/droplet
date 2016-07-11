@@ -46,6 +46,20 @@ RULES = {
   'initializerList': 'skip',
   'initDeclarator': 'skip',
 
+  'initializer': (node) ->
+    if node.children[0].data?.text is '{'
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'expression': (node) ->
+    if node.parent?.type is 'expression'
+      'skip'
+    else if node.children[0].type is 'expression'
+      {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
   'initDeclaratorList': (node) ->
     if node.parent?.type is 'initDeclaratorList'
       'skip'
@@ -347,7 +361,11 @@ config.handleButton = (str, type, block) ->
     else
       return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
   else if '__parse__initDeclaratorList' in block.classes
-    return str += ', __0_droplet__ = __0_droplet__'
+    return str + ', __0_droplet__ = __0_droplet__'
+  else if '__parse__initializer' in block.classes
+    return str.replace(/(\s*}\s*)$/, ", __0_droplet__$1")
+  else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+    return str.replace(/(\s*;)?$/, ', __0_droplet__$1')
 
   return str
 
