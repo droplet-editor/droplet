@@ -233,7 +233,7 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   strictEqual testedBlockView.dimensions[0].height,
     2 * view_.opts.textPadding +
     1 * view_.opts.textHeight +
-    8 * view_.opts.padding -
+    10 * view_.opts.padding -
     1 * view_.opts.indentTongueHeight, 'Original height O.K.'
 
   block = document.getBlockOnLine 1
@@ -257,7 +257,7 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   strictEqual testedBlockView.dimensions[0].height,
     2 * view_.opts.textPadding +
     1 * view_.opts.textHeight +
-    8 * view_.opts.padding -
+    10 * view_.opts.padding -
     1 * view_.opts.indentTongueHeight, 'Dragging other block in works'
   start()
 
@@ -694,13 +694,16 @@ asyncTest 'Controller: arbitrary row/column marking', ->
     prompt 10 / 10
   '''
 
-  key = editor.mark {row: 2, col: 4}, {color: '#F00'}
+  equal editor.session.tree.getFromTextLocation({row: 2, col: 9, type: 'block'}).stringify(), '10 - 10', 'Selected the right block'
 
-  strictEqual editor.session.markedBlocks[key].model.stringify({}), '10 - 10'
-  strictEqual editor.session.markedBlocks[key].style.color, '#F00'
+  before = $('[stroke=#F00]').length
 
-  editor.unmark key
-  ok key not of editor.session.markedBlocks
+  key = editor.mark {row: 2, col: 9, type: 'block'}, {color: '#F00'}
+
+  after = $('[stroke=#F00]').length
+
+  ok after > before, 'Added a red mark'
+
   start()
 
 asyncTest 'Controller: dropdown menus', ->

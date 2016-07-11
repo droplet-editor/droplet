@@ -161,7 +161,7 @@ asyncTest 'Parser: parser freeze test for C mode', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-06-23'
+  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-07-08'
 
   start()
 
@@ -195,13 +195,13 @@ asyncTest 'Parser: parser freeze test comment consolidation', ->
 pickUpLocation = (editor, document, location) ->
   block = editor.getDocument(document).getFromTextLocation(location)
   bound = editor.session.view.getViewNodeFor(block).bounds[0]
-  simulate('mousedown', editor.mainScrollerStuffing, {
-    dx: bound.x + editor.gutter.offsetWidth + 5,
+  simulate('mousedown', editor.mainCanvas, {
+    dx: bound.x + 5,
     dy: bound.y + 5
   })
   simulate('mousemove', editor.dragCover, {
     location: editor.mainCanvas
-    dx: bound.x + editor.gutter.offsetWidth + 10,
+    dx: bound.x + 10,
     dy: bound.y + 10
   })
 
@@ -213,7 +213,7 @@ dropLocation = (editor, document, location) ->
     dx: blockView.dropPoint.x + 5,
     dy: blockView.dropPoint.y + 5
   })
-  simulate('mouseup', editor.mainScrollerIntermediary, {
+  simulate('mouseup', editor.mainCanvas, {
     dx: blockView.dropPoint.x + 5
     dy: blockView.dropPoint.y + 5
   })

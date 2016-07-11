@@ -55,6 +55,7 @@ COLOR_RULES = [
   ['jumpStatement', 'return'] # e.g. `return 0;`
   ['declaration', 'control'], # e.g. `int a;`
   ['specialMethodCall', 'command'], # e.g. `a(b);`
+  ['equalityExpression', 'value'] # e.g. `a == b`
   ['additiveExpression', 'value'], # e.g. `a + b`
   ['multiplicativeExpression', 'value'], # e.g. `a * b`
   ['postfixExpression', 'command'], # e.g. `a(b, c);` OR `a++`
@@ -283,6 +284,7 @@ config.stringFixer = (string) ->
     return string
 
 config.empty = '__0_droplet__'
+config.emptyIndent = ''
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->
