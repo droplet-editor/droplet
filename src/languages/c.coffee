@@ -9,7 +9,18 @@ antlrHelper = require '../antlr.coffee'
 
 {fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
 
-ADD_BUTTON = {addButton: true}
+ADD_BUTTON = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25C0'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25B6'
+    border: false
+  }
+]
 
 RULES = {
   # Indents

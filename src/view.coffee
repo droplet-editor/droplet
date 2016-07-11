@@ -30,9 +30,10 @@ DROP_TRIANGLE_COLOR = '#555'
 SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
-  buttonWidth: 15
+  buttonWidth: 10
   buttonHeight: 15
-  buttonPadding: 6
+  buttonVertPadding: 6
+  buttonHorizPadding: 3
   minIndentTongueWidth: 150
   showDropdowns: true
   padding: 5
@@ -1064,11 +1065,11 @@ exports.View = class View
           @minDistanceToBase[desiredLine].below = Math.max(
             @minDistanceToBase[desiredLine].below,
             minDistanceToBase[line].below + Math.max(bottomMargin, (
-              if (@model.buttons?.addButton or @model.buttons?.subtractButton) and
+              if @model.buttons? and @model.buttons.length > 0 and
                   desiredLine is @lineLength - 1 and
                   @multilineChildrenData[line] is MULTILINE_END and
                   @lineChildren[line].length is 1
-                @view.opts.buttonPadding + @view.opts.buttonHeight
+                @view.opts.buttonVertPadding + @view.opts.buttonHeight
               else
                 0
             )))
@@ -1104,11 +1105,8 @@ exports.View = class View
       if @model.type is 'block'
         @extraWidth = 0
 
-        if @model.buttons.addButton
-          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
-        if @model.buttons.subtractButton
-          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+        if @model.buttons? then for {key} in @model.buttons
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
 
         @minDimensions[@minDimensions.length - 1].width += @extraWidth
 
@@ -1819,29 +1817,34 @@ exports.View = class View
       if @model.type is 'block'
         @path.style.fillColor = @view.getColor @model.color
 
-      # Add the add button if necessary
-      if @model.buttons?.addButton
+      if @model.buttons?
+        # Add the add button if necessary
         lastLine = @bounds.length - 1
         lastRect = @bounds[lastLine]
-        start = lastRect.x + lastRect.width - @extraWidth
-        top = lastRect.y + lastRect.height/2 - @view.opts.buttonHeight/2
-        # Cases when last line is MULTILINE
-        if @multilineChildrenData[lastLine] is MULTILINE_END
-          multilineChild = @lineChildren[lastLine][0]
-          multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[lastLine - multilineChild.startLine]
-          # If it is a G-Shape
-          if @lineChildren[lastLine].length > 1
-            height = multilineBounds.bottom() - lastRect.y
-            top = lastRect.y + height/2 - @view.opts.buttonHeight/2
-          else
-            height = lastRect.bottom() - multilineBounds.bottom()
-            top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-        @addButtonPath.style.transform = "translate(#{start}, #{top})"
-        @addButtonPath.update()
-        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+        start = lastRect.x + lastRect.width - @extraWidth - @view.opts.padding / 2
+        top = lastRect.y + lastRect.height / 2 - @view.opts.buttonHeight / 2
+        for {key} in @model.buttons
+          # Cases when last line is MULTILINE
+          if @multilineChildrenData[lastLine] is MULTILINE_END
+            multilineChild = @lineChildren[lastLine][0]
+            multilineBounds = @view.getViewNodeFor(multilineChild.child).bounds[lastLine - multilineChild.startLine]
+            # If it is a G-Shape
+            if @lineChildren[lastLine].length > 1
+              height = multilineBounds.bottom() - lastRect.y
+              top = lastRect.y + height/2 - @view.opts.buttonHeight/2
+            else
+              height = lastRect.bottom() - multilineBounds.bottom()
+              top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-        @elements.push @addButtonPath
+          @buttonGroups[key].style.transform = "translate(#{start}, #{top})"
+          @buttonGroups[key].update()
+          @buttonPaths[key].update()
+          @buttonRects[key] = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+
+          @elements.push @buttonPaths[key]
+
+          start += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
 
       # Return it.
       return @path
@@ -1900,11 +1903,12 @@ exports.View = class View
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
         # Change button color
-        if @addButtonPath?.active
-          if @addButtonPath.style.fillColor isnt 'none'
-            @addButtonPath.style.fillColor = avgColor @addButtonPath.style.fillColor, 0.5, '#888'
-          if @addButtonPath.style.strokeColor isnt 'none'
-            @addButtonPath.style.strokeColor = avgColor @addButtonPath.style.strokeColor, 0.5, '#888'
+        if @model.buttons? then for {key} in @model.buttons
+          if @buttonPaths[key].active
+            if @buttonPaths[key].style.fillColor isnt 'none'
+              @buttonPaths[key].style.fillColor = avgColor @buttonPaths[key].style.fillColor, 0.5, '#888'
+            if @buttonPaths[key].style.strokeColor isnt 'none'
+              @buttonPaths[key].style.strokeColor = avgColor @buttonPaths[key].style.strokeColor, 0.5, '#888'
 
       if style.selected
         # Change path color
@@ -1914,26 +1918,28 @@ exports.View = class View
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
         # Change button color
-        if @addButtonPath?.active
-          if @addButtonPath.style.fillColor isnt 'none'
-            @addButtonPath.style.fillColor = avgColor @addButtonPath.style.fillColor, 0.7, '#00F'
-          if @addButtonPath.style.strokeColor isnt 'none'
-            @addButtonPath.style.strokeColor = avgColor @addButtonPath.style.strokeColor, 0.7, '#00F'
+        if @model.buttons? then for {key} in @model.buttons
+          if @buttonPaths[key].active
+            if @buttonPaths[key].style.fillColor isnt 'none'
+              @buttonPaths[key].style.fillColor = avgColor @buttonPaths[key].style.fillColor, 0.7, '#00F'
+            if @buttonPaths[key].style.strokeColor isnt 'none'
+              @buttonPaths[key].style.strokeColor = avgColor @buttonPaths[key].style.strokeColor, 0.7, '#00F'
 
       @path.setMarkStyle @markStyle
 
       @path.update()
-      @addButtonPath?.update?()
+      if @model.buttons? then for {key} in @model.buttons
+        @buttonPaths[key].update()
+        @buttonGroups[key].update()
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
 
-      if @addButtonPath?.active
-        @addButtonPath.style.fillColor = oldFill
-        @addButtonPath.style.strokeColor = oldStroke
-
-      # BUttons
+      if @model.buttons? then for {key} in @model.buttons
+        if @buttonPaths[key].active
+          @buttonPaths[key].style.fillColor = oldFill
+          @buttonPaths[key].style.strokeColor = oldStroke
 
       return null
 
@@ -1956,28 +1962,38 @@ exports.View = class View
   class BlockViewNode extends ContainerViewNode
     constructor: ->
       super
-      if @model.buttons?.addButton
-        @addButtonPath = new @view.draw.Path([
+
+      @buttonGroups = {}
+      @buttonPaths = {}
+      @buttonRects = {}
+
+      if @model.buttons? then for {key, glyph, border} in @model.buttons
+        @buttonGroups[key] = new @view.draw.Group()
+        @buttonPaths[key] = new @view.draw.Path([
             new @view.draw.Point 0, 0
             new @view.draw.Point 0 + @view.opts.buttonWidth, 0
             new @view.draw.Point 0 + @view.opts.buttonWidth, 0 + @view.opts.buttonHeight
             new @view.draw.Point 0, 0 + @view.opts.buttonHeight
-        ], true, {
+        ], border ? true, {
           fillColor: @view.getColor(@model.color)
           cssClass: 'droplet-button-path'
         })
 
+        @buttonGroups[key].style = {}
+
         textElement = new @view.draw.Text(new @view.draw.Point(
-          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText('+').width)/ 2,
+          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
           @view.opts.buttonHeight - @view.opts.textHeight
-        ), '+')
-        textElement.setParent @addButtonPath
+        ), glyph)
+        @buttonPaths[key].setParent @buttonGroups[key]
+        textElement.setParent @buttonGroups[key]
 
-        @addButtonPath.setParent @group
-        @elements.push @addButtonPath
+        @buttonGroups[key].setParent @group
+        @elements.push @buttonGroups[key]
 
+        @activeElements.push @buttonPaths[key]
         @activeElements.push textElement
-        @activeElements.push @addButtonPath
+        @activeElements.push @buttonGroups[key]
 
     computeMinDimensions: ->
       if @computedVersion is @model.version

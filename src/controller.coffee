@@ -1347,22 +1347,13 @@ hook 'mousedown', 4, (point, event, state) ->
     hitTestBlock = @session.view.getViewNodeFor hitTestResult
     str = hitTestResult.stringifyInPlace()
 
-    if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-      console.log 'ADD BUTTONING!'
-      line = @session.mode.handleButton str, 'add-button', hitTestResult.getReader()
-      console.log 'NEW LINE IS', line
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ### TODO
-    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'subtract-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ###
+    for key, button of hitTestBlock.buttonRects
+      if button.contains mainPoint
+        line = @session.mode.handleButton str, key, hitTestResult.getReader()
+        if line?.length >= 0
+          @populateBlock hitTestResult, line
+          @redrawMain()
+        state.consumedHitTest = true
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
