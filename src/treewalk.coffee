@@ -134,6 +134,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
               buttons: @getButtons(node)
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+              data: config.annotate?(node) ? null
 
           when 'parens'
             # Parens are assumed to wrap the only child that has children
@@ -170,6 +171,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 color: @getColor node, rules
                 classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+                data: config.annotate?(node) ? null
 
           when 'indent'
             # A lone indent needs to be wrapped in a block.
@@ -180,6 +182,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 color: @getColor node, rules
                 classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
                 parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+                data: config.annotate?(node) ? null
 
               depth += 1
 

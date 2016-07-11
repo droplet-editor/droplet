@@ -282,6 +282,34 @@ config.stringFixer = (string) ->
 config.empty = '__0_droplet__'
 config.emptyIndent = ''
 
+# Annotate if/else with the location of the "else" token
+config.annotate = (node) ->
+  if node.type is 'selectionStatement' and
+     node.children[0].data.text is 'if' and
+     node.children.length is 7
+    originalNode = node
+    # Find the true final 'else'
+    ncases = 1
+    while node.children[6].children[0].type is 'selectionStatement' and node.children[6].children[0].children.length is 7
+      node = node.children[6].children[0]
+      ncases += 1
+    return {
+      ncases,
+      elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
+    }
+  return null
+
+config.handleButton = (str, type, block) ->
+  console.log str
+  if '__parse__selectionStatement' in block.classes
+    lines = str.split '\n'
+    prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
+    suffix = str[prefix.length...]
+
+    return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
+
+  return str
+
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->
 #  while true
