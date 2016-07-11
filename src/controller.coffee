@@ -1348,7 +1348,9 @@ hook 'mousedown', 4, (point, event, state) ->
     str = hitTestResult.stringifyInPlace()
 
     if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
+      console.log 'ADD BUTTONING!'
       line = @session.mode.handleButton str, 'add-button', hitTestResult.getReader()
+      console.log 'NEW LINE IS', line
       if line?.length >= 0
         @populateBlock hitTestResult, line
         @redrawMain()
@@ -2513,7 +2515,10 @@ Editor::populateSocket = (socket, string) ->
     @spliceIn (new model.List(first, last)), socket.start
 
 Editor::populateBlock = (block, string) ->
-  newBlock = @session.mode.parse(string, wrapAtRoot: false).start.next.container
+  newBlock = @session.mode.parse(string, {
+    context: block.parseContext
+    wrapAtRoot: false
+  }).start.next.container
   if newBlock
     # Find the first token before the block
     # that will still be around after the

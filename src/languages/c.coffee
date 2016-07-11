@@ -9,6 +9,8 @@ antlrHelper = require '../antlr.coffee'
 
 {fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
 
+ADD_BUTTON = {addButton: true}
+
 RULES = {
   # Indents
   'compoundStatement': {
@@ -42,7 +44,73 @@ RULES = {
   'parameterList': 'skip',
   'argumentExpressionList': 'skip',
   'initializerList': 'skip',
-  'initDeclaratorList': 'skip',
+  'initDeclarator': 'skip',
+
+  'initializer': (node) ->
+    if node.children[0].data?.text is '{'
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'expression': (node) ->
+    if node.parent?.type is 'expression'
+      'skip'
+    else if node.children[0].type is 'expression'
+      {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'initDeclaratorList': (node) ->
+    if node.parent?.type is 'initDeclaratorList'
+      'skip'
+    else
+      {type: 'block', buttons: ADD_BUTTON}
+
+  # Special: nested selection statement. Skip iff we are an if statement
+  # in the else clause of another if statement.
+  'selectionStatement': (node) ->
+    if node.children[0].data.text is 'if' and
+       # Check to make sure the parent is an if. Actually,
+       # our immediate parent is a 'statement'; the logical wrapping
+       # parent is parent.parent
+       node.parent.type is 'statement' and
+       node.parent.parent.type is 'selectionStatement' and
+       node.parent.parent.children[0].data.text is 'if' and
+       # This last one will only occur if we are the else clause
+       node.parent is node.parent.parent.children[6]
+      return 'skip'
+    # Otherwise, if we are an if statement, give us a mutation button
+    else if node.children[0].data.text is 'if'
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  # Special: functions
+  'postfixExpression': (node, opts) ->
+    if (
+        node.children.length is 3 and node.children[1].data?.text is '(' and node.children[2].data?.text is ')' or
+        node.children.length is 4 and node.children[1].data?.text is '(' and node.children[3].data?.text is ')'
+       ) and
+       (
+         (not node.children[0].children[0]?.children?[0]?) or
+         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions?
+         node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
+         opts.knownFunctions[node.children[0].children[0].children[0].data.text].variableArgs
+       )
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'specialMethodCall': (node, opts) ->
+    if (
+        not opts.knownFunctions? or
+        node.children[0].data.text not of opts.knownFunctions or
+        opts.knownFunctions[node.children[0].data.text].variableArgs
+       )
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
 
   # Sockets
   'Identifier': 'socket',
@@ -63,7 +131,7 @@ COLOR_RULES = [
   ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value'], # e.g. `a < b`
-  ['initDeclarator', 'command'], # e.g. `a = b` when inside `int a = b;`
+  ['initDeclaratorList', 'command'], # e.g. `a = b` when inside `int a = b;`
   ['blockItemList', 'control'], # List of commands
   ['compoundStatement', 'control'], # List of commands inside braces
   ['externalDeclaration', 'control'], # e.g. `int a = b` when global
@@ -91,7 +159,7 @@ SHAPE_RULES = [
   ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value-only'], # e.g. `a < b`
-  ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
+  ['initDeclaratorList', 'value-only'], # e.g. `a = b` when inside `int a = b;`
   ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
   ['structDeclaration', 'block-only'], # e.g. `struct a { }`
   ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
@@ -261,6 +329,48 @@ config.stringFixer = (string) ->
 
 config.empty = '__0_droplet__'
 config.emptyIndent = ''
+
+# Annotate if/else with the location of the "else" token
+config.annotate = (node) ->
+  if node.type is 'selectionStatement' and
+     node.children[0].data.text is 'if' and
+     node.children.length is 7
+    originalNode = node
+    # Find the true final 'else'
+    ncases = 1
+    while node.children[6].children[0].type is 'selectionStatement' and node.children[6].children[0].children.length is 7
+      node = node.children[6].children[0]
+      ncases += 1
+    return {
+      ncases,
+      elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
+    }
+  return null
+
+config.handleButton = (str, type, block) ->
+  console.log str
+  if '__parse__selectionStatement' in block.classes
+    if block.data.elseLocation?
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
+      suffix = str[prefix.length...]
+
+      return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
+    else
+      return str + '\nelse\n{\n  \n}'
+  else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+    if str.match(/\(\s*\)\s*;?$/)?
+      return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
+    else
+      return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
+  else if '__parse__initDeclaratorList' in block.classes
+    return str + ', __0_droplet__ = __0_droplet__'
+  else if '__parse__initializer' in block.classes
+    return str.replace(/(\s*}\s*)$/, ", __0_droplet__$1")
+  else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+    return str.replace(/(\s*;)?$/, ', __0_droplet__$1')
+
+  return str
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->

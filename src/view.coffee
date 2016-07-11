@@ -1101,6 +1101,17 @@ exports.View = class View
           @minDistanceToBase[line].above +
           @minDistanceToBase[line].below
 
+      if @model.type is 'block'
+        @extraWidth = 0
+
+        if @model.buttons.addButton
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        if @model.buttons.subtractButton
+          @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
+
+        @minDimensions[@minDimensions.length - 1].width += @extraWidth
+
       # Go through and adjust the width of rectangles
       # immediately after the end of an indent to
       # be as long as necessary
@@ -1882,24 +1893,47 @@ exports.View = class View
       oldStroke = @path.style.strokeColor
 
       if style.grayscale
+        # Change path color
         if @path.style.fillColor isnt 'none'
           @path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
         if @path.style.strokeColor isnt 'none'
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
+        # Change button color
+        if @addButtonPath?.active
+          if @addButtonPath.style.fillColor isnt 'none'
+            @addButtonPath.style.fillColor = avgColor @addButtonPath.style.fillColor, 0.5, '#888'
+          if @addButtonPath.style.strokeColor isnt 'none'
+            @addButtonPath.style.strokeColor = avgColor @addButtonPath.style.strokeColor, 0.5, '#888'
+
       if style.selected
+        # Change path color
         if @path.style.fillColor isnt 'none'
           @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         if @path.style.strokeColor isnt 'none'
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
 
+        # Change button color
+        if @addButtonPath?.active
+          if @addButtonPath.style.fillColor isnt 'none'
+            @addButtonPath.style.fillColor = avgColor @addButtonPath.style.fillColor, 0.7, '#00F'
+          if @addButtonPath.style.strokeColor isnt 'none'
+            @addButtonPath.style.strokeColor = avgColor @addButtonPath.style.strokeColor, 0.7, '#00F'
+
       @path.setMarkStyle @markStyle
 
       @path.update()
+      @addButtonPath?.update?()
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
       @path.style.strokeColor = oldStroke
+
+      if @addButtonPath?.active
+        @addButtonPath.style.fillColor = oldFill
+        @addButtonPath.style.strokeColor = oldStroke
+
+      # BUttons
 
       return null
 
@@ -1951,20 +1985,11 @@ exports.View = class View
 
       super
 
-      @extraWidth = 0
-      if @model.buttons.addButton
-        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
-      if @model.buttons.subtractButton
-        @extraWidth += @view.opts.buttonWidth + @view.opts.buttonPadding
-
       # Blocks have a shape including a lego nubby "tab", and so
       # they need to be at least wide enough for tabWidth+tabOffset.
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
-
-      @minDimensions[@minDimensions.length - 1].width += @extraWidth
 
       return null
 
