@@ -202,60 +202,69 @@ config.parseComment = (text) ->
   # Try standard comment
   comment = text.match(/^(\s*\/\/)(.*)$/)
   if comment?
-    ranges =  [
+    sockets =  [
       [comment[1].length, comment[1].length + comment[2].length]
     ]
     color = 'comment'
 
+    return {sockets, color}
+
   if text.match(/^#\s*((?:else)|(?:endif))$/)
-    ranges =  []
+    sockets =  []
     color = 'purple'
+
+    return {sockets, color}
 
   # Try #define directive
   binary = text.match(/^(#\s*(?:(?:define))\s*)([a-zA-Z_][0-9a-zA-Z_]*)(\s+)(.*)$/)
   if binary?
-    ranges =  [
+    sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
     color = 'purple'
+
+    return {sockets, color}
 
   # Try functional #define directive.
   binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
   if binary?
-    ranges =  [
+    sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
     color = 'purple'
 
+    return {sockets, color}
+
   # Try any of the unary directives: #define, #if, #ifdef, #ifndef, #undef, #pragma
   unary = text.match(/^(#\s*(?:(?:define)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
   if unary?
-    ranges =  [
+    sockets =  [
       [unary[1].length, unary[1].length + unary[2].length]
     ]
     color = 'purple'
+
+    return {sockets, color}
 
   # Try #include, which must include the quotations
   unary = text.match(/^(#\s*include\s*<)(.*)>\s*$/)
   if unary?
-    ranges =  [
+    sockets =  [
       [unary[1].length, unary[1].length + unary[2].length]
     ]
     color = 'purple'
+
+    return {sockets, color}
 
   unary = text.match(/^(#\s*include\s*")(.*)"\s*$/)
   if unary?
-    ranges =  [
+    sockets =  [
       [unary[1].length, unary[1].length + unary[2].length]
     ]
     color = 'purple'
 
-  return {
-    sockets: ranges
-    color
-  }
+    return {sockets, color}
 
 config.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length
