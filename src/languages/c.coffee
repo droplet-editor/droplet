@@ -84,6 +84,14 @@ RULES = {
   'argumentExpressionList': 'skip',
   'initializerList': 'skip',
   'initDeclarator': 'skip',
+  'initDeclaratorList': 'skip'
+  'declaration': (node) ->
+    if node.children.length is 3 and node.children[1].children.length is 3
+      return {type: 'block', buttons: BOTH_BUTTON}
+    else if node.children.length >= 2
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
 
   'initializer': (node) ->
     if node.children[0].data?.text is '{'
@@ -98,12 +106,6 @@ RULES = {
       {type: 'block', buttons: ADD_BUTTON}
     else
       return 'block'
-
-  'initDeclaratorList': (node) ->
-    if node.parent?.type is 'initDeclaratorList'
-      'skip'
-    else
-      {type: 'block', buttons: ADD_BUTTON}
 
   # Special: nested selection statement. Skip iff we are an if statement
   # in the else clause of another if statement.
@@ -424,6 +426,15 @@ config.annotate = (node) ->
       lastParam: helper.subtractBounds node.children[2].bounds, node.bounds.start
     }
 
+  if node.type is 'declaration' and node.children.length is 3
+    lastDeclaration = node.children[1]
+    while lastDeclaration.type is 'initDeclaratorList' and lastDeclaration.children.length is 3
+      lastDeclaration = lastDeclaration.children[2]
+
+    return {
+      lastDeclaration: helper.subtractBounds lastDeclaration.bounds, node.bounds.start
+    }
+
   return null
 
 config.handleButton = (str, type, block) ->
@@ -440,15 +451,15 @@ config.handleButton = (str, type, block) ->
         return str + '\nelse\n{\n  \n}'
     else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
       if str.match(/\(\s*\)\s*;?$/)?
-        return str.replace(/(\s*\)\s*;?)$/, "#{config.empty}$1")
+        return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
       else
-        return str.replace(/(\s*\)\s*;?)$/, ", #{config.empty}$1")
-    else if '__parse__initDeclaratorList' in block.classes
-      return str + ', __0_droplet__ = __0_droplet__'
+        return str.replace(/(\s*\)\s*;?\s*)$/, ", #{config.empty}$1")
+    else if '__parse__declaration' in block.classes
+        return str.replace(/(\s*;?\s*)$/, ", #{config.empty} = #{config.empty}$1")
     else if '__parse__initializer' in block.classes
-      return str.replace(/(\s*}\s*)$/, ", __0_droplet__$1")
+      return str.replace(/(\s*}\s*)$/, ", #{config.empty}$1")
     else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
-      return str.replace(/(\s*;)?$/, ', __0_droplet__$1')
+      return str.replace(/(\s*;\s*)?$/, ", #{config.empty}$1")
   else
     if '__parse__selectionStatement' in block.classes
       lines = str.split '\n'
@@ -464,15 +475,20 @@ config.handleButton = (str, type, block) ->
     else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
       lines = str.split '\n'
       prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.lastParam.start
-      suffix = str.match(/\s*\)\s*;?\s*$/g)[0]
-
-      console.log 'PREFIX', prefix
-      console.log 'SUFFIX', suffix
+      suffix = str.match(/\s*\)\s*;?\s*$/)[0]
 
       prefix = prefix.replace /\s*,\s*$/, ''
 
       return prefix + suffix
 
+    else if '__parse__declaration' in block.classes
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.lastDeclaration.start
+      suffix = str.match(/\s*;?\s*$/)[0]
+
+      prefix = prefix.replace /\s*,\s*$/, ''
+
+      return prefix + suffix
   return str
 
 # TODO Implement removing parentheses at some point

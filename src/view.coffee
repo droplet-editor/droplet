@@ -1970,10 +1970,17 @@ exports.View = class View
       if @model.buttons? then for {key, glyph, border} in @model.buttons
         @buttonGroups[key] = new @view.draw.Group()
         @buttonPaths[key] = new @view.draw.Path([
-            new @view.draw.Point 0, 0
-            new @view.draw.Point 0 + @view.opts.buttonWidth, 0
-            new @view.draw.Point 0 + @view.opts.buttonWidth, 0 + @view.opts.buttonHeight
-            new @view.draw.Point 0, 0 + @view.opts.buttonHeight
+            new @view.draw.Point 0, @view.opts.bevelClip
+            new @view.draw.Point @view.opts.bevelClip, 0
+
+            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
+            new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
+
+            new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
+            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
+
+            new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
+            new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
         ], border ? true, {
           fillColor: @view.getColor(@model.color)
           cssClass: 'droplet-button-path'
