@@ -184,6 +184,13 @@ exports.Draw = class Draw
       makeElement: ->
         return document.createElementNS SVG_STANDARD, 'g'
 
+      activate: ->
+        super()
+
+        if @style? and @style.transform?
+          @_lastTransform = @style.transform
+          @element.setAttribute 'transform', @style.transform
+
       update: ->
         return unless @element?
 

@@ -30,7 +30,7 @@ DROP_TRIANGLE_COLOR = '#555'
 SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
-  buttonWidth: 10
+  buttonWidth: 15
   buttonHeight: 15
   buttonVertPadding: 6
   buttonHorizPadding: 3
