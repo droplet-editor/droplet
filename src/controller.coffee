@@ -1350,7 +1350,8 @@ hook 'mousedown', 4, (point, event, state) ->
     for key, button of hitTestBlock.buttonRects
       if button.contains mainPoint
         line = @session.mode.handleButton str, key, hitTestResult.getReader()
-        if line?.length >= 0
+        if line?.length >= 0 and line isnt str
+          @undoCapture()
           @populateBlock hitTestResult, line
           @redrawMain()
         state.consumedHitTest = true
