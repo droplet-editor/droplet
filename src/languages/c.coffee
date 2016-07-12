@@ -97,7 +97,10 @@ RULES = {
 
   'initializer': (node) ->
     if node.children[0].data?.text is '{'
-      return {type: 'block', buttons: ADD_BUTTON}
+      if node.children[1].children.length > 2
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
     else
       return 'block'
 
@@ -394,66 +397,6 @@ config.stringFixer = (string) ->
 config.empty = '__0_droplet__'
 config.emptyIndent = ''
 
-# Annotate if/else with the location of the "else" token
-
-# TODO computing relative boundaries does not actually work very well right now;
-# it will fail whenever something starts(
-# ) one one line and ends on the other like so.
-config.annotate = (node) ->
-  if node.type is 'selectionStatement' and
-     node.children[0].data.text is 'if' and
-     node.children.length is 7
-    originalNode = node
-    # Find the true final 'else'
-    ncases = 1
-    while node.children[6].children[0].type is 'selectionStatement' and node.children[6].children[0].children.length is 7
-      node = node.children[6].children[0]
-      ncases += 1
-
-    # Find the second-to-last else, if it exists
-    if node.parent?.parent?.type is 'selectionStatement' and node.parent.parent.children.length is 7 and node is node.parent.parent.children[6].children[0]
-      secondToLastNode = node.parent.parent
-      return {
-        ncases,
-        elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
-        elifLocation: helper.subtractBounds secondToLastNode.children[5].bounds, originalNode.bounds.start
-      }
-    else
-      return {
-        ncases,
-        elseLocation: helper.subtractBounds node.children[5].bounds, originalNode.bounds.start
-      }
-
-  if node.type is 'postfixExpression'
-    if (
-        node.children.length is 3 and node.children[1].data?.text is '(' and node.children[2].data?.text is ')' or
-        node.children.length is 4 and node.children[1].data?.text is '(' and node.children[3].data?.text is ')'
-       )
-      if node.children.length is 4
-        param = node.children[2]
-        while param.type is 'argumentExpressionList'
-          param = param.children[param.children.length - 1]
-
-        return {
-          lastParam: helper.subtractBounds param.bounds, node.bounds.start
-        }
-
-  if node.type is 'specialMethodCall'
-    return {
-      lastParam: helper.subtractBounds node.children[2].bounds, node.bounds.start
-    }
-
-  if node.type is 'declaration' and node.children.length is 3
-    lastDeclaration = node.children[1]
-    while lastDeclaration.type is 'initDeclaratorList' and lastDeclaration.children.length is 3
-      lastDeclaration = lastDeclaration.children[2]
-
-    return {
-      lastDeclaration: helper.subtractBounds lastDeclaration.bounds, node.bounds.start
-    }
-
-  return null
-
 insertAfterLastSocket = (str, block, insert) ->
 
   {string: suffix} = model.stringThrough(
@@ -485,8 +428,6 @@ removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
   if prefixClip?
     prefix = prefix.replace prefixClip, ''
 
-  console.log prefix, suffix
-
   return prefix + suffix
 
 config.handleButton = (str, type, block) ->
@@ -494,12 +435,9 @@ config.handleButton = (str, type, block) ->
     if '__parse__selectionStatement' in block.classes
       indents = []
       block.traverseOneLevel (child) ->
-        console.log child
         if child.type is 'indent'
           indents.push child
       indents = indents[-3...]
-
-      console.log indents
 
       if indents.length is 1
         return str + '\nelse\n{\n  \n}\n'
@@ -513,9 +451,6 @@ config.handleButton = (str, type, block) ->
 
         suffix = str[prefix.length + 1...]
 
-        console.log 'PREFIX', prefix
-        console.log 'SUFFIX', suffix
-
         return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
 
       else if indents.length is 3
@@ -526,9 +461,6 @@ config.handleButton = (str, type, block) ->
         )
 
         suffix = str[prefix.length + 1...]
-
-        console.log 'PREFIX', prefix
-        console.log 'SUFFIX', suffix
 
         return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
 
@@ -547,12 +479,9 @@ config.handleButton = (str, type, block) ->
     if '__parse__selectionStatement' in block.classes
       indents = []
       block.traverseOneLevel (child) ->
-        console.log child
         if child.type is 'indent'
           indents.push child
       indents = indents[-3...]
-
-      console.log indents
 
       if indents.length < 3
         return str
@@ -569,22 +498,17 @@ config.handleButton = (str, type, block) ->
           true
         )
 
-        console.log 'DELETING PREFIX', prefix
-        console.log 'DELETING SUFFIX', suffix
-
         return prefix + suffix
 
     else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
       return removeLastSocketAnd str, block, /\s*,\s*$/
-
     else if '__parse__declaration' in block.classes
-      lines = str.split '\n'
-      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.lastDeclaration.start
-      suffix = str.match(/\s*;?\s*$/)[0]
+      return removeLastSocketAnd str, block, /((\s*,\s*)|(\s*\=\s*))$/
+    else if '__parse__initializer' in block.classes
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+      return removeLastSocketAnd str, block, /\s*,\s*$/
 
-      prefix = prefix.replace /\s*,\s*$/, ''
-
-      return prefix + suffix
   return str
 
 # TODO Implement removing parentheses at some point
