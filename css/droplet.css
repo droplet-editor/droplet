@@ -373,6 +373,8 @@ text {
   cursor: grab;
 }
 .droplet-dropdown-arrow, .droplet-button-path {
+  fill: #FFF;
+  opacity: 0;
   cursor: pointer;
 }
 .droplet-button-path:hover {
@@ -391,4 +393,7 @@ text {
 .droplet-socket-selected {
   fill: '#88F'
   stroke: '#88F'
+}
+.droplet-buttonContainer-path {
+  display: none;
 }

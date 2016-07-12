@@ -107,7 +107,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       rules.push node.type
 
       # Pass through to child if single-child
-      if node.children.length is 1 and @detNode(node) isnt 'indent'
+      if node.children.length is 1 and @detNode(node) not in ['indent', 'buttonContainer']
         @mark node.children[0], prefix, depth, true, rules, context, wrap, wrapRules
 
       else if node.children.length > 0
@@ -120,7 +120,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             else
               bounds = node.bounds
 
-            if context? and @detNode(context) is 'block'
+            if context? and @detNode(context) in ['block', 'buttonContainer']
               @addSocket
                 bounds: bounds
                 depth: depth
@@ -135,6 +135,21 @@ exports.createTreewalkParser = (parse, config, root) ->
               buttons: @getButtons(node)
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
               data: config.annotate?(node) ? null
+
+          when 'buttonContainer'
+            paddedRules = padRules wrapRules, rules
+
+            if wrap?
+              bounds = wrap.bounds
+            else
+              bounds = node.bounds
+
+            @addButtonContainer
+              bounds: bounds
+              depth: depth + 1
+              parseContext: rules[0]
+              classes: paddedRules
+              buttons: @getButtons(node)
 
           when 'parens'
             # Parens are assumed to wrap the only child that has children
@@ -160,7 +175,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               else
                 bounds = node.bounds
 
-              if context? and @detNode(context) is 'block'
+              if context? and @detNode(context) in ['block', 'buttonContainer']
                 @addSocket
                   bounds: bounds
                   depth: depth
@@ -225,7 +240,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
         for child in node.children
           @mark child, prefix, depth + 2, false
-      else if context? and @detNode(context) is 'block'
+      else if context? and @detNode(context) in ['block', 'buttonContainer']
         if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
           paddedRules = padRules wrapRules, rules
           @addSocket

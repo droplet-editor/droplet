@@ -1341,20 +1341,34 @@ hook 'mousedown', 4, (point, event, state) ->
   #Buttons aren't clickable in a selection
   if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
 
-  hitTestResult = @hitTest mainPoint, @session.tree
+  head = @session.tree.start
+  seek = @session.tree.end
+  result = null
 
-  if hitTestResult?
-    hitTestBlock = @session.view.getViewNodeFor hitTestResult
-    str = hitTestResult.stringifyInPlace()
+  until head is seek
+    if head.type in ['blockStart', 'buttonContainerStart']
+      viewNode = @session.view.getViewNodeFor(head.container)
+      result = head.container
 
-    for key, button of hitTestBlock.buttonRects
-      if button.contains mainPoint
-        line = @session.mode.handleButton str, key, hitTestResult #.getReader() # TODO getReader() that allows tree walking
-        if line?.length >= 0 and line isnt str
-          @undoCapture()
-          @populateBlock hitTestResult, line
-          @redrawMain()
-        state.consumedHitTest = true
+      for key, button of viewNode.buttonRects
+        if button.contains mainPoint
+          str = result.stringifyInPlace()
+          line = @session.mode.handleButton str, key, result #.getReader() # TODO getReader() that allows tree walking
+          if line?.length >= 0 and line isnt str
+            @undoCapture()
+            @populateBlock result, line
+            @redrawMain()
+          state.consumedHitTest = true
+
+          return
+
+      if viewNode.path.contains mainPoint
+        seek = head.container.end
+
+    head = head.next
+
+  # If we had a child hit, return it.
+  return result
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -1498,7 +1512,7 @@ hook 'mousemove', 1, (point, event, state) ->
         if head is @draggingBlock.start
           head = @draggingBlock.end
 
-        if head instanceof model.StartToken
+        if head instanceof model.StartToken and head.type isnt 'buttonContainerStart'
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
             dropPoint = @session.view.getViewNodeFor(head.container).dropPoint

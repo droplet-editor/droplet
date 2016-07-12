@@ -240,6 +240,7 @@ exports.View = class View
       when 'block' then new BlockViewNode entity, this
       when 'indent' then new IndentViewNode entity, this
       when 'socket' then new SocketViewNode entity, this
+      when 'buttonContainer' then new ContainerViewNode entity, this
       when 'document' then new DocumentViewNode entity, this
 
   # Looks up a color name, or passes through a #hex color.
@@ -464,7 +465,7 @@ exports.View = class View
           top: 0
           bottom: if @lineLength > 1 then @view.opts.indentTongueHeight else padding
 
-          firstLeft: 0
+          firstLeft: padding
           midLeft: @view.opts.indentWidth
           lastLeft: @view.opts.indentWidth
 
@@ -1102,7 +1103,7 @@ exports.View = class View
           @minDistanceToBase[line].above +
           @minDistanceToBase[line].below
 
-      if @model.type is 'block'
+      if @model.type in ['block', 'buttonContainer']
         @extraWidth = 0
 
         if @model.buttons? then for {key} in @model.buttons
@@ -1391,6 +1392,46 @@ exports.View = class View
         lineWidth: 1
       })
       @highlightArea.deactivate()
+
+      @buttonGroups = {}
+      @buttonPaths = {}
+      @buttonRects = {}
+
+      if @model.buttons? then for {key, glyph} in @model.buttons
+        @buttonGroups[key] = new @view.draw.Group()
+        @buttonPaths[key] = new @view.draw.Path([
+            new @view.draw.Point 0, @view.opts.bevelClip
+            new @view.draw.Point @view.opts.bevelClip, 0
+
+            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
+            new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
+
+            new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
+            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
+
+            new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
+            new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
+        ], false, {
+          fillColor: 'none'
+          cssClass: 'droplet-button-path'
+        })
+
+        @buttonGroups[key].style = {}
+
+        textElement = new @view.draw.Text(new @view.draw.Point(
+          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
+          @view.opts.buttonHeight - @view.opts.textHeight
+        ), glyph)
+        @buttonPaths[key].setParent @buttonGroups[key]
+        textElement.setParent @buttonGroups[key]
+
+        @buttonGroups[key].setParent @group
+        @elements.push @buttonGroups[key]
+
+        @activeElements.push @buttonPaths[key]
+        @activeElements.push textElement
+        @activeElements.push @buttonGroups[key]
+
 
       @elements.push @group
       @elements.push @path
@@ -1822,7 +1863,11 @@ exports.View = class View
         lastLine = @bounds.length - 1
         lastRect = @bounds[lastLine]
 
-        start = lastRect.x + lastRect.width - @extraWidth - @view.opts.padding / 2
+        if @model.type is 'block'
+          start = lastRect.x + lastRect.width - @extraWidth - @view.opts.buttonHorizPadding
+        else
+          start = lastRect.x + lastRect.width - @extraWidth + @view.opts.buttonHorizPadding
+
         top = lastRect.y + lastRect.height / 2 - @view.opts.buttonHeight / 2
         for {key} in @model.buttons
           # Cases when last line is MULTILINE
@@ -1902,28 +1947,12 @@ exports.View = class View
         if @path.style.strokeColor isnt 'none'
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.5, '#888'
 
-        # Change button color
-        if @model.buttons? then for {key} in @model.buttons
-          if @buttonPaths[key].active
-            if @buttonPaths[key].style.fillColor isnt 'none'
-              @buttonPaths[key].style.fillColor = avgColor @buttonPaths[key].style.fillColor, 0.5, '#888'
-            if @buttonPaths[key].style.strokeColor isnt 'none'
-              @buttonPaths[key].style.strokeColor = avgColor @buttonPaths[key].style.strokeColor, 0.5, '#888'
-
       if style.selected
         # Change path color
         if @path.style.fillColor isnt 'none'
           @path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
         if @path.style.strokeColor isnt 'none'
           @path.style.strokeColor = avgColor @path.style.strokeColor, 0.7, '#00F'
-
-        # Change button color
-        if @model.buttons? then for {key} in @model.buttons
-          if @buttonPaths[key].active
-            if @buttonPaths[key].style.fillColor isnt 'none'
-              @buttonPaths[key].style.fillColor = avgColor @buttonPaths[key].style.fillColor, 0.7, '#00F'
-            if @buttonPaths[key].style.strokeColor isnt 'none'
-              @buttonPaths[key].style.strokeColor = avgColor @buttonPaths[key].style.strokeColor, 0.7, '#00F'
 
       @path.setMarkStyle @markStyle
 
@@ -1962,45 +1991,6 @@ exports.View = class View
   class BlockViewNode extends ContainerViewNode
     constructor: ->
       super
-
-      @buttonGroups = {}
-      @buttonPaths = {}
-      @buttonRects = {}
-
-      if @model.buttons? then for {key, glyph, border} in @model.buttons
-        @buttonGroups[key] = new @view.draw.Group()
-        @buttonPaths[key] = new @view.draw.Path([
-            new @view.draw.Point 0, @view.opts.bevelClip
-            new @view.draw.Point @view.opts.bevelClip, 0
-
-            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
-            new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
-
-            new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
-            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
-
-            new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
-            new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
-        ], border ? true, {
-          fillColor: @view.getColor(@model.color)
-          cssClass: 'droplet-button-path'
-        })
-
-        @buttonGroups[key].style = {}
-
-        textElement = new @view.draw.Text(new @view.draw.Point(
-          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
-          @view.opts.buttonHeight - @view.opts.textHeight
-        ), glyph)
-        @buttonPaths[key].setParent @buttonGroups[key]
-        textElement.setParent @buttonGroups[key]
-
-        @buttonGroups[key].setParent @group
-        @elements.push @buttonGroups[key]
-
-        @activeElements.push @buttonPaths[key]
-        @activeElements.push textElement
-        @activeElements.push @buttonGroups[key]
 
     computeMinDimensions: ->
       if @computedVersion is @model.version
@@ -2169,11 +2159,7 @@ exports.View = class View
           not @changedBoundingBox
         return @path
 
-      if @model.start.next.type is 'blockStart'
-        @path.style.fill = 'none'
-
-      # Otherwise, call super.
-      else
+      unless @model.start.next.type is 'blockStart'
         super
 
       # If the socket is empty, make it invisible except
@@ -2183,7 +2169,10 @@ exports.View = class View
         @path.style.fillColor = 'none'
       else
         @path.style.cssClass = 'droplet-socket-path'
-        @path.style.fillColor = '#FFF'
+        if @model.start.next.type is 'blockStart'
+          @path.style.fillColor = 'none'
+        else
+          @path.style.fillColor = '#FFF'
 
       return @path
 

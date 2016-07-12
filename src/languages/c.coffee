@@ -82,8 +82,14 @@ RULES = {
   'directDeclarator': 'skip',
   'rootDeclarator': 'skip',
   'parameterTypeList': 'skip',
-  'parameterList': 'skip',
-  'argumentExpressionList': 'skip',
+  'parameterList': (node) ->
+    if node.parent?.type is 'parameterList'
+      return 'skip'
+    else if node.children.length is 1 and node.children[0].children[0].children[0].children[0].children[0].type is 'Void'
+      {type: 'buttonContainer', buttons: ADD_BUTTON}
+    else
+      {type: 'buttonContainer', buttons: BOTH_BUTTON}
+  'argumentExpressionList': 'skip'
   'initializerList': 'skip',
   'initDeclarator': 'skip',
   'initDeclaratorList': 'skip'
@@ -119,9 +125,9 @@ RULES = {
        # Check to make sure the parent is an if. Actually,
        # our immediate parent is a 'statement'; the logical wrapping
        # parent is parent.parent
-       node.parent.type is 'statement' and
-       node.parent.parent.type is 'selectionStatement' and
-       node.parent.parent.children[0].data.text is 'if' and
+       node.parent?.type is 'statement' and
+       node.parent.parent?.type is 'selectionStatement' and
+       node.parent.parent.children[0].data?.text is 'if' and
        # This last one will only occur if we are the else clause
        node.parent is node.parent.parent.children[6]
       return 'skip'
@@ -469,6 +475,10 @@ config.handleButton = (str, type, block) ->
         return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
       else
         return str.replace(/(\s*\)\s*;?\s*)$/, ", #{config.empty}$1")
+    else if '__parse__parameterList' in block.classes
+      if str.match(/^\s*void\s*$/)
+        return "type param"
+      return str + ", type param"
     else if '__parse__declaration' in block.classes
         return str.replace(/(\s*;?\s*)$/, ", #{config.empty} = #{config.empty}$1")
     else if '__parse__initializer' in block.classes
@@ -514,6 +524,13 @@ config.handleButton = (str, type, block) ->
       return prefix + suffix
     else if '__parse__initializer' in block.classes
       return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if '__parse__parameterList' in block.classes
+      count = 0
+      block.traverseOneLevel (x) -> if x.type is 'socket' then count++
+      if count is 1
+        return 'void'
+      else
+        return removeLastSocketAnd str, block, /\s*,\s*$/
     else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
       return removeLastSocketAnd str, block, /\s*,\s*$/
 

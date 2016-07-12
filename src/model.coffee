@@ -456,7 +456,7 @@ exports.List = class List
 # A generic XML-style container from which
 # all other containers (Block, Indent, Socket) will extend.
 exports.Container = class Container extends List
-  constructor: ->
+  constructor: () ->
     unless @start? or @end?
       @start = new StartToken this
       @end = new EndToken this
@@ -972,6 +972,23 @@ exports.EndToken = class EndToken extends Token
     return token
 
   serialize: -> '</container>'
+
+exports.ButtonContainer = class ButtonContainer extends Container
+  constructor: (@classes = [], @parseContext, @buttons = {}, @data = {}) ->
+    @start = new ButtonContainerStartToken this
+    @end = new ButtonContainerEndToken this
+
+    @type = 'buttonContainer'
+
+    super
+
+  _cloneEmpty: -> new ButtonContainer @classes, @parseContext, @buttons, @data
+
+exports.ButtonContainerStartToken = class ButtonContainerStartToken extends StartToken
+  constructor: -> super; @type = 'buttonContainerStart'
+
+exports.ButtonContainerEndToken = class ButtonContainerEndToken extends EndToken
+  constructor: -> super; @type = 'buttonContainerEnd'
 
 # Block
 # ==================
