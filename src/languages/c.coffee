@@ -7,7 +7,50 @@ helper = require '../helper.coffee'
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
 
+model = require '../model.coffee'
+
 {fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
+
+ADD_BUTTON = [
+  {
+    key: 'add-button'
+    glyph: '\u25B6'
+    border: false
+  }
+]
+BOTH_BUTTON = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25C0'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25B6'
+    border: false
+  }
+]
+
+ADD_BUTTON_VERT = [
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
+
+BOTH_BUTTON_VERT = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25B2'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
 
 RULES = {
   # Indents
@@ -42,7 +85,99 @@ RULES = {
   'parameterList': 'skip',
   'argumentExpressionList': 'skip',
   'initializerList': 'skip',
-  'initDeclaratorList': 'skip',
+  'initDeclarator': 'skip',
+  'initDeclaratorList': 'skip'
+  'declaration': (node) ->
+    if node.children.length is 3 and node.children[1].children.length is 3
+      return {type: 'block', buttons: BOTH_BUTTON}
+    else if node.children.length >= 2
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'initializer': (node) ->
+    if node.children[0].data?.text is '{'
+      if node.children[1].children.length > 2
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'expression': (node) ->
+    if node.parent?.type is 'expression'
+      'skip'
+    else if node.children[0].type is 'expression'
+      {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  # Special: nested selection statement. Skip iff we are an if statement
+  # in the else clause of another if statement.
+  'selectionStatement': (node) ->
+    if node.children[0].data.text is 'if' and
+       # Check to make sure the parent is an if. Actually,
+       # our immediate parent is a 'statement'; the logical wrapping
+       # parent is parent.parent
+       node.parent.type is 'statement' and
+       node.parent.parent.type is 'selectionStatement' and
+       node.parent.parent.children[0].data.text is 'if' and
+       # This last one will only occur if we are the else clause
+       node.parent is node.parent.parent.children[6]
+      return 'skip'
+    # Otherwise, if we are an if statement, give us a mutation button
+    else if node.children[0].data.text is 'if'
+      if node.children.length is 7
+        return {type: 'block', buttons: BOTH_BUTTON_VERT}
+      else
+        return {type: 'block', buttons: ADD_BUTTON_VERT}
+    else
+      return 'block'
+
+  # Special: functions
+  'postfixExpression': (node, opts) ->
+    if (
+        node.children.length is 3 and node.children[1].data?.text is '(' and node.children[2].data?.text is ')' or
+        node.children.length is 4 and node.children[1].data?.text is '(' and node.children[3].data?.text is ')'
+       ) and
+       (
+         (not node.children[0].children[0]?.children?[0]?) or
+         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions?
+         node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
+         opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs?
+       )
+      if node.children.length is 3
+        return {type: 'block', buttons: ADD_BUTTON}
+      else if opts.knownFunctions? and node.children[0].children[0].children[0].data.text of opts.knownFunctions
+        minimum = opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs
+        nargs = 0
+        param = node.children[2]
+        while param.type is 'argumentExpressionList'
+          nargs += 1
+          param = param.children[0]
+        if nargs > minimum
+          return {type: 'block', buttons: BOTH_BUTTON}
+        else
+          return {type: 'block', buttons: ADD_BUTTON}
+      else
+        return {type: 'block', buttons: BOTH_BUTTON}
+    else
+      return 'block'
+
+  'specialMethodCall': (node, opts) ->
+    if (
+        not opts.knownFunctions? or
+        node.children[0].data.text not of opts.knownFunctions
+       )
+      return {type: 'block', buttons: BOTH_BUTTON}
+    else if opts.knownFunctions[node.children[0].data.text].minArgs?
+      if opts.knownFunctions[node.children[0].data.text].minArgs is 0
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
 
   # Sockets
   'Identifier': 'socket',
@@ -54,7 +189,7 @@ RULES = {
 COLOR_RULES = [
   ['jumpStatement', 'return'] # e.g. `return 0;`
   ['declaration', 'control'], # e.g. `int a;`
-  ['specialMethodCall', 'command'], # e.g. `a(b);`
+  ['specialMethodCall', 'value'], # e.g. `a(b);`
   ['equalityExpression', 'value'] # e.g. `a == b`
   ['additiveExpression', 'value'], # e.g. `a + b`
   ['multiplicativeExpression', 'value'], # e.g. `a * b`
@@ -63,7 +198,7 @@ COLOR_RULES = [
   ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value'], # e.g. `a < b`
-  ['initDeclarator', 'command'], # e.g. `a = b` when inside `int a = b;`
+  ['initDeclaratorList', 'command'], # e.g. `a = b` when inside `int a = b;`
   ['blockItemList', 'control'], # List of commands
   ['compoundStatement', 'control'], # List of commands inside braces
   ['externalDeclaration', 'control'], # e.g. `int a = b` when global
@@ -91,7 +226,7 @@ SHAPE_RULES = [
   ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
   ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
   ['relationalExpression', 'value-only'], # e.g. `a < b`
-  ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
+  ['initDeclaratorList', 'value-only'], # e.g. `a = b` when inside `int a = b;`
   ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
   ['structDeclaration', 'block-only'], # e.g. `struct a { }`
   ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
@@ -261,6 +396,128 @@ config.stringFixer = (string) ->
 
 config.empty = '__0_droplet__'
 config.emptyIndent = ''
+
+insertAfterLastSocket = (str, block, insert) ->
+
+  {string: suffix} = model.stringThrough(
+    block.end,
+    ((token) -> token.parent is block and token.type is 'socketEnd'),
+    ((token) -> token.prev)
+  )
+
+  prefix = str[...-suffix.length]
+
+  return prefix + insert + suffix
+
+removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
+  {string: suffix, token: socketToken} = model.stringThrough(
+    block.end,
+    ((token) -> token.parent is block and token.type is 'socketEnd'),
+    true
+  )
+
+  if suffixClip?
+    suffix = suffix.replace suffixClip, ''
+
+  {string: prefix} = model.stringThrough(
+    block.start,
+    ((token) -> token.container is socketToken.container),
+    false
+  )
+
+  if prefixClip?
+    prefix = prefix.replace prefixClip, ''
+
+  return prefix + suffix
+
+config.handleButton = (str, type, block) ->
+  if type is 'add-button'
+    if '__parse__selectionStatement' in block.classes
+      indents = []
+      block.traverseOneLevel (child) ->
+        if child.type is 'indent'
+          indents.push child
+      indents = indents[-3...]
+
+      if indents.length is 1
+        return str + '\nelse\n{\n  \n}\n'
+
+      else if indents.length is 2
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[0].end),
+          false
+        )
+
+        suffix = str[prefix.length + 1...]
+
+        return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
+
+      else if indents.length is 3
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[1].end),
+          false
+        )
+
+        suffix = str[prefix.length + 1...]
+
+        return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
+
+    else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+      if str.match(/\(\s*\)\s*;?$/)?
+        return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
+      else
+        return str.replace(/(\s*\)\s*;?\s*)$/, ", #{config.empty}$1")
+    else if '__parse__declaration' in block.classes
+        return str.replace(/(\s*;?\s*)$/, ", #{config.empty} = #{config.empty}$1")
+    else if '__parse__initializer' in block.classes
+      return str.replace(/(\s*}\s*)$/, ", #{config.empty}$1")
+    else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+      return str.replace(/(\s*;\s*)?$/, ", #{config.empty}$1")
+  else
+    if '__parse__selectionStatement' in block.classes
+      indents = []
+      block.traverseOneLevel (child) ->
+        if child.type is 'indent'
+          indents.push child
+      indents = indents[-3...]
+
+      if indents.length < 3
+        return str
+      else
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[0].end),
+          false
+        )
+
+        {string: suffix} = model.stringThrough(
+          block.end,
+          ((token) -> token is indents[1].end),
+          true
+        )
+
+        return prefix + suffix
+
+    else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if '__parse__declaration' in block.classes
+      reparsed = config.__antlrParse 'declaration', str
+
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, reparsed.children[1].children[2].bounds.start
+      suffix = str.match(/\s*;?\s*$/)[0]
+
+      prefix = prefix.replace /\s*,\s*$/, ''
+
+      return prefix + suffix
+    else if '__parse__initializer' in block.classes
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+
+  return str
 
 # TODO Implement removing parentheses at some point
 #config.unParenWrap = (leading, trailing, node, context) ->

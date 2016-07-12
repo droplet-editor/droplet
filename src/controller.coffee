@@ -1347,20 +1347,14 @@ hook 'mousedown', 4, (point, event, state) ->
     hitTestBlock = @session.view.getViewNodeFor hitTestResult
     str = hitTestResult.stringifyInPlace()
 
-    if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'add-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ### TODO
-    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'subtract-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ###
+    for key, button of hitTestBlock.buttonRects
+      if button.contains mainPoint
+        line = @session.mode.handleButton str, key, hitTestResult #.getReader() # TODO getReader() that allows tree walking
+        if line?.length >= 0 and line isnt str
+          @undoCapture()
+          @populateBlock hitTestResult, line
+          @redrawMain()
+        state.consumedHitTest = true
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -2513,7 +2507,10 @@ Editor::populateSocket = (socket, string) ->
     @spliceIn (new model.List(first, last)), socket.start
 
 Editor::populateBlock = (block, string) ->
-  newBlock = @session.mode.parse(string, wrapAtRoot: false).start.next.container
+  newBlock = @session.mode.parse(string, {
+    context: block.parseContext
+    wrapAtRoot: false
+  }).start.next.container
   if newBlock
     # Find the first token before the block
     # that will still be around after the
