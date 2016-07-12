@@ -1420,7 +1420,7 @@ exports.View = class View
 
         textElement = new @view.draw.Text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
-          @view.opts.buttonHeight - @view.opts.textHeight
+          (@view.opts.buttonHeight - @view.opts.textHeight) / 2
         ), glyph)
         @buttonPaths[key].setParent @buttonGroups[key]
         textElement.setParent @buttonGroups[key]
