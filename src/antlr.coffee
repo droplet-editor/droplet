@@ -95,4 +95,6 @@ exports.createANTLRParser = (name, config, root) ->
         }
       }
 
+  config.__antlrParse = parse
+
   return treewalk.createTreewalkParser parse, config, root

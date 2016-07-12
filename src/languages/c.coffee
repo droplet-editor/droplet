@@ -503,7 +503,15 @@ config.handleButton = (str, type, block) ->
     else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
       return removeLastSocketAnd str, block, /\s*,\s*$/
     else if '__parse__declaration' in block.classes
-      return removeLastSocketAnd str, block, /((\s*,\s*)|(\s*\=\s*))$/
+      reparsed = config.__antlrParse 'declaration', str
+
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, reparsed.children[1].children[2].bounds.start
+      suffix = str.match(/\s*;?\s*$/)[0]
+
+      prefix = prefix.replace /\s*,\s*$/, ''
+
+      return prefix + suffix
     else if '__parse__initializer' in block.classes
       return removeLastSocketAnd str, block, /\s*,\s*$/
     else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
