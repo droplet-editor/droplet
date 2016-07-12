@@ -38,22 +38,30 @@ exports.createTreewalkParser = (parse, config, root) ->
       line = @lines[bounds.start.line + 1]
       return line[0...line.length - line.trimLeft().length]
 
-    applyRule: (rule, node) ->
+    applyRule: (node) ->
+      if node._cachedApplication?
+        return node._cachedApplication
+
+      rule = config.RULES[node.type]
+
       if rule instanceof Function
         rule = rule(node, @opts)
+
       if 'string' is typeof rule
-        return {type: rule}
-      else
-        return rule
+        rule = {type: rule}
+
+      node._cachedApplication = rule
+
+      return rule
 
     det: (node) ->
       if node.type of config.RULES
-        return @applyRule(config.RULES[node.type], node).type
+        return @applyRule(node).type
       return 'block'
 
     getButtons: (node) ->
       if node.type of config.RULES
-        return @applyRule(config.RULES[node.type], node).buttons ? EMPTY_OBJECT
+        return @applyRule(node).buttons ? EMPTY_OBJECT
       return EMPTY_OBJECT
 
     detNode: (node) -> if node.blockified then 'block' else @det(node)
@@ -213,7 +221,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
               classes: paddedRules
-              parseContext: @applyRule(config.RULES[node.type], node).indentContext
+              parseContext: @applyRule(node).indentContext
 
         for child in node.children
           @mark child, prefix, depth + 2, false

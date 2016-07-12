@@ -7,6 +7,8 @@ helper = require '../helper.coffee'
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
 
+model = require '../model.coffee'
+
 {fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
 
 ADD_BUTTON = [
@@ -139,10 +141,21 @@ RULES = {
          (not node.children[0].children[0]?.children?[0]?) or
          node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions?
          node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
-         opts.knownFunctions[node.children[0].children[0].children[0].data.text].variableArgs
+         opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs?
        )
       if node.children.length is 3
         return {type: 'block', buttons: ADD_BUTTON}
+      else if opts.knownFunctions? and node.children[0].children[0].children[0].data.text of opts.knownFunctions
+        minimum = opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs
+        nargs = 0
+        param = node.children[2]
+        while param.type is 'argumentExpressionList'
+          nargs += 1
+          param = param.children[0]
+        if nargs > minimum
+          return {type: 'block', buttons: BOTH_BUTTON}
+        else
+          return {type: 'block', buttons: ADD_BUTTON}
       else
         return {type: 'block', buttons: BOTH_BUTTON}
     else
@@ -151,10 +164,14 @@ RULES = {
   'specialMethodCall': (node, opts) ->
     if (
         not opts.knownFunctions? or
-        node.children[0].data.text not of opts.knownFunctions or
-        opts.knownFunctions[node.children[0].data.text].variableArgs
+        node.children[0].data.text not of opts.knownFunctions
        )
       return {type: 'block', buttons: BOTH_BUTTON}
+    else if opts.knownFunctions[node.children[0].data.text].minArgs?
+      if opts.knownFunctions[node.children[0].data.text].minArgs is 0
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
     else
       return 'block'
 
@@ -437,18 +454,84 @@ config.annotate = (node) ->
 
   return null
 
+insertAfterLastSocket = (str, block, insert) ->
+
+  {string: suffix} = model.stringThrough(
+    block.end,
+    ((token) -> token.parent is block and token.type is 'socketEnd'),
+    ((token) -> token.prev)
+  )
+
+  prefix = str[...-suffix.length]
+
+  return prefix + insert + suffix
+
+removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
+  {string: suffix, token: socketToken} = model.stringThrough(
+    block.end,
+    ((token) -> token.parent is block and token.type is 'socketEnd'),
+    true
+  )
+
+  if suffixClip?
+    suffix = suffix.replace suffixClip, ''
+
+  {string: prefix} = model.stringThrough(
+    block.start,
+    ((token) -> token.container is socketToken.container),
+    false
+  )
+
+  if prefixClip?
+    prefix = prefix.replace prefixClip, ''
+
+  console.log prefix, suffix
+
+  return prefix + suffix
+
 config.handleButton = (str, type, block) ->
-  console.log str
   if type is 'add-button'
     if '__parse__selectionStatement' in block.classes
-      if block.data.elseLocation?
-        lines = str.split '\n'
-        prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
-        suffix = str[prefix.length...]
+      indents = []
+      block.traverseOneLevel (child) ->
+        console.log child
+        if child.type is 'indent'
+          indents.push child
+      indents = indents[-3...]
 
-        return prefix + "else if (case#{block.data.ncases})\n{\n  \n}\n" + suffix
-      else
-        return str + '\nelse\n{\n  \n}'
+      console.log indents
+
+      if indents.length is 1
+        return str + '\nelse\n{\n  \n}\n'
+
+      else if indents.length is 2
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[0].end),
+          false
+        )
+
+        suffix = str[prefix.length + 1...]
+
+        console.log 'PREFIX', prefix
+        console.log 'SUFFIX', suffix
+
+        return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
+
+      else if indents.length is 3
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[1].end),
+          false
+        )
+
+        suffix = str[prefix.length + 1...]
+
+        console.log 'PREFIX', prefix
+        console.log 'SUFFIX', suffix
+
+        return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
+
     else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
       if str.match(/\(\s*\)\s*;?$/)?
         return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
@@ -462,24 +545,37 @@ config.handleButton = (str, type, block) ->
       return str.replace(/(\s*;\s*)?$/, ", #{config.empty}$1")
   else
     if '__parse__selectionStatement' in block.classes
-      lines = str.split '\n'
+      indents = []
+      block.traverseOneLevel (child) ->
+        console.log child
+        if child.type is 'indent'
+          indents.push child
+      indents = indents[-3...]
 
-      if block.data.elifLocation
-        prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.elifLocation.start
-        suffix = helper.clipLines lines, block.data.elseLocation.start, {line: lines.length - 1, column: lines.length}
+      console.log indents
+
+      if indents.length < 3
+        return str
+      else
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[0].end),
+          false
+        )
+
+        {string: suffix} = model.stringThrough(
+          block.end,
+          ((token) -> token is indents[1].end),
+          true
+        )
+
+        console.log 'DELETING PREFIX', prefix
+        console.log 'DELETING SUFFIX', suffix
 
         return prefix + suffix
-      else
-        return helper.clipLines lines, {line: 0, column: 0}, block.data.elseLocation.start
 
     else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
-      lines = str.split '\n'
-      prefix = helper.clipLines lines, {line: 0, column: 0}, block.data.lastParam.start
-      suffix = str.match(/\s*\)\s*;?\s*$/)[0]
-
-      prefix = prefix.replace /\s*,\s*$/, ''
-
-      return prefix + suffix
+      return removeLastSocketAnd str, block, /\s*,\s*$/
 
     else if '__parse__declaration' in block.classes
       lines = str.split '\n'

@@ -1349,7 +1349,7 @@ hook 'mousedown', 4, (point, event, state) ->
 
     for key, button of hitTestBlock.buttonRects
       if button.contains mainPoint
-        line = @session.mode.handleButton str, key, hitTestResult.getReader()
+        line = @session.mode.handleButton str, key, hitTestResult #.getReader() # TODO getReader() that allows tree walking
         if line?.length >= 0 and line isnt str
           @undoCapture()
           @populateBlock hitTestResult, line
