@@ -982,6 +982,9 @@ exports.ButtonContainer = class ButtonContainer extends Container
 
     super
 
+  _serialize_header: -> '<buttonContainer>'
+  _serialize_footer: -> '</buttonContainer>'
+
   _cloneEmpty: -> new ButtonContainer @classes, @parseContext, @buttons, @data
 
 exports.ButtonContainerStartToken = class ButtonContainerStartToken extends StartToken
@@ -1128,7 +1131,7 @@ exports.IndentEndToken = class IndentEndToken extends EndToken
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@emptyString, @prefix = '', @classes = [], @parseContext = null) ->
+  constructor: (@emptyString, @prefix = '', @classes = [], @indentContext = null, @parseContext = null) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -1138,7 +1141,18 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes, @parseContext
+  getReader: ->
+    {
+      id: @id
+      type: @type
+      precedence: @precedence
+      classes: @classes
+      parseContext: @parseContext
+      indentContext: @indentContext
+      data: @data
+    }
+
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes, @indentContext
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<indent prefix=\"#{

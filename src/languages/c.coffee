@@ -279,6 +279,10 @@ EXPRESSION_TO_STATEMENT = (leading, trailing, node, context) ->
 
   trailing trailing() + ';'
 
+parenWrapClasses = (classes) -> classes.map (x) -> x.replace /^__parse__/, '__paren__'
+unParenWrapClasses = (classes) -> classes.filter((x) -> not x.match(/^__parse__/)).map (x) -> x.replace /^__paren__/, '__parse__'
+firstParenWrappedClass = (classes) -> classes.filter((x) -> x.match(/^__paren__/))[0][9..]
+
 config.PAREN_RULES = {
   'primaryExpression': {
     'expression': ADD_PARENS

@@ -1102,7 +1102,7 @@ Editor::spliceOut = (node, container = null) ->
           @session.floatingBlocks.splice i, 1
 
           for socket in @session.rememberedSockets
-            if socket.socket.document > i
+            if socket.socket.document > i + 1
               socket.socket.document -= 1
 
           break
@@ -1110,9 +1110,9 @@ Editor::spliceOut = (node, container = null) ->
     # No document, so try to remove from container if it was supplied
     container.remove node
 
-  @prepareNode node, null
+  #@prepareNode node, null (possible TODO)
   @correctCursor()
-  return operation
+  return {operation}
 
 Editor::spliceIn = (node, location) ->
   # Track changes in the cursor by temporarily
@@ -1135,13 +1135,13 @@ Editor::spliceIn = (node, location) ->
 
   dropletDocument = location.getDocument()
 
-  @prepareNode node, container
+  node = @prepareNode node, container
 
   if dropletDocument?
     operation = dropletDocument.insert location, node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     @correctCursor()
-    return operation
+    return {node, operation}
   else
     # No document, so just insert into container
     container.insert location, node
@@ -1162,7 +1162,7 @@ Editor::replace = (before, after, updates = []) ->
     operation = dropletDocument.replace before, after, updates.concat(@getPreserves(dropletDocument))
     @pushUndo {operation, document: @documentIndex(dropletDocument)}
     @correctCursor()
-    return operation
+    return {operation}
   else
     return null
 
@@ -1192,11 +1192,25 @@ Editor::prepareNode = (node, context) ->
     else
       trailing = node.getTrailingText()
 
-    [leading, trailing, classes] = @session.mode.parens leading, trailing, node.getReader(),
+    oldLeading = leading
+    oldTrailing = trailing
+
+    [leading, trailing, classes, parseContext] = @session.mode.parens leading, trailing, node.getReader(),
       context?.getReader?() ? null
 
-    node.setLeadingText leading; node.setTrailingText trailing
-
+    if oldLeading is leading and oldTrailing is trailing
+      return node
+    else
+      node.setLeadingText leading; node.setTrailingText trailing
+      if (
+          context.type is 'indent' and ('__parse__' + context.indentContext) in node.classes or
+          context.type is 'socket' and helper.typeIntersects(node.classes, context.classes)
+        )
+        return node
+      else
+        return parseBlock @session.mode, node.stringifyInPlace(), context.indentContext ? context.parseContext
+  else
+    return node
 
 # At population-time, we will
 # want to set up a few fields.
@@ -1580,6 +1594,9 @@ Editor::getClosestDroppableBlockFromPosition = (position, isDebugMode) ->
   @getClosestDroppableBlock(mainPoint, isDebugMode)
 
 Editor::getAcceptLevel = (drag, drop) ->
+  if drop.type is 'buttonCOntainer'
+    return helper.FORBID
+
   if drop.type is 'socket'
     if drag.type is 'list'
       return helper.FORBID
@@ -1809,12 +1826,12 @@ hook 'mouseup', 1, (point, event, state) ->
       # We will need to log undo operations here too.
       switch @lastHighlight.type
         when 'indent', 'socket'
-          @spliceIn @draggingBlock, @lastHighlight.start
+          {node: @draggingBlock} = @spliceIn @draggingBlock, @lastHighlight.start
         when 'block'
-          @spliceIn @draggingBlock, @lastHighlight.end
+          {node: @draggingBlock} = @spliceIn @draggingBlock, @lastHighlight.end
         else
           if @lastHighlight.type is 'document'
-            @spliceIn @draggingBlock, @lastHighlight.start
+            {node: @draggingBlock} = @spliceIn @draggingBlock, @lastHighlight.start
 
       # TODO as above
       hasTextToken = @draggingBlock.start.next.type is 'text'
@@ -1826,6 +1843,9 @@ hook 'mouseup', 1, (point, event, state) ->
           x.offset += 1
 
       futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
+
+      if futureCursorLocation.document < 0
+        debugger
 
       # Reparse the parent if we are
       # in a socket
@@ -1932,7 +1952,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    newDocument = new model.Document(oldParent?.parseContext ? @session.mode.rootContext, {roundedSingletons: true})
+    newDocument = new model.Document(oldParent?.indentContext ? oldParent?.parseContext ? @session.mode.rootContext, {roundedSingletons: true})
     newDocument.insert newDocument.start, @draggingBlock
     @pushUndo new FloatingOperation @session.floatingBlocks.length, newDocument, renderPoint, 'create'
 
@@ -2452,9 +2472,18 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
   parent = list.start.parent
 
-  if parent?.type is 'indent' and not list.start.container?.parseContext?
-    context = parent.parseContext
+
+  if parent? and (
+      parent.type is 'indent' and ('__parse__' + parent.indentContext) not in list.start.container.classes or
+      parent.type is 'socket' and not helper.typeIntersects(list.start.container.classes, parent.classes)
+    )
+    console.log 'using parent context because of type mismatch'
+    context = parent.indentContext ? parent.parseContext
+  else if parent?.type is 'indent' and not list.start.container?.parseContext?
+    console.log 'using parent context because I do not know my own'
+    context = parent.indentContext
   else
+    console.log 'using own context.'
     context = (list.start.container ? list.start.parent).parseContext
 
   try
@@ -2486,9 +2515,9 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
   # Exclude the document start and end tags
   newList = new model.List newList.start.next, newList.end.prev
 
-  # Prepare the new node for insertion
-  newList.traverseOneLevel (head) =>
-    @prepareNode head, parent
+  # Prepare the new node for insertion TODO
+  #newList.traverseOneLevel (head) =>
+  #  @prepareNode head, parent
 
   @replace list, newList, updates
 
@@ -4697,7 +4726,7 @@ hook 'populate', 1, ->
       return unless blocks?
 
       @undoCapture()
-      @spliceIn blocks, @getCursor()
+      {node: blocks} = @spliceIn blocks, @getCursor()
       @setCursor blocks.end
 
       @redrawMain()

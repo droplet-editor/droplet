@@ -262,3 +262,9 @@ exports.PairDict = class PairDict
     @pairs.push [index, value]
     return false
 
+
+exports.typeIntersects = (a, b) ->
+  for el, i in b when el[...9] is '__parse__'
+    if el in a
+      return true
+  return false

@@ -236,7 +236,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
               classes: paddedRules
-              parseContext: @applyRule(node).indentContext
+              indentContext: @applyRule(node).indentContext
 
         for child in node.children
           @mark child, prefix, depth + 2, false
@@ -265,37 +265,36 @@ exports.createTreewalkParser = (parse, config, root) ->
           for m in parseClasses(block)
             if m of config.PAREN_RULES[c]
               return helper.ENCOURAGE
-      return helper.DISCOURAGE
+      return helper.FORBID
 
     else if context.type is 'indent'
       if '__comment__' in block.classes
         return helper.ENCOURAGE
 
-      if context.parseContext in parseClasses(block)
+      if context.indentContext in parseClasses(block)
         return helper.ENCOURAGE
 
       # Check to see if we could paren-wrap this
-      if config.PAREN_RULES? and context.parseContext of config.PAREN_RULES
+      if config.PAREN_RULES? and context.indentContext of config.PAREN_RULES
         for m in parseClasses(block)
-          if m of config.PAREN_RULES[context.parseContext]
+          if m of config.PAREN_RULES[context.indentContext]
             return helper.ENCOURAGE
 
-      return helper.DISCOURAGE
+      return helper.FORBID
 
     else if context.type is 'document'
       if '__comment__' in block.classes
         return helper.ENCOURAGE
 
-      if context.parseContext in parseClasses(block)
+      if context.indentContext in parseClasses(block)
         return helper.ENCOURAGE
 
-      return helper.DISCOURAGE
+      return helper.FORBID
 
-    return helper.DISCOURAGE
-
+    return helper.FORBID
 
   # Doesn't yet deal with parens
-  TreewalkParser.parens = (leading, trailing, node, context)->
+  TreewalkParser.parens = (leading, trailing, node, context) ->
     # If we're moving to null, remove parens (where possible)
     unless context?
       if config.unParenWrap?
@@ -329,4 +328,10 @@ padRules = (wrap, rules) ->
     return wrap.map((x) -> PARSE_PREFIX + x).concat rules.map((x) -> PAREN_PREFIX + x)
   else
     rules.map (x) -> PARSE_PREFIX + x
-parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..]).concat(node.parseContext)
+parseClasses = (node) ->
+  result = node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..])
+  if node.parseContext? and node.parseContext not in result
+    result.push node.parseContext
+  if node.type is 'indent'
+    result.push node.indentContext
+  return result
