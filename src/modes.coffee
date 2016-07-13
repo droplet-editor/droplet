@@ -10,6 +10,7 @@ module.exports = {
   'coffee': coffee
   'coffeescript': coffee
   'c': c
+  'c_cpp': c
   'java': java
   'python': python
   'html': html

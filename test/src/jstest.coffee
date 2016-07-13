@@ -168,12 +168,12 @@ asyncTest 'JS Custom Colors', ->
       socketLevel="0"
       classes="mostly-block AssignmentExpression"
     >(<socket
-      precedence="0"
+      precedence="100"
       handwritten="false"
       classes=""
     >a</socket
     > += <socket
-      precedence="0"
+      precedence="100"
       handwritten="false"
       classes=""
     ><block
@@ -228,7 +228,7 @@ asyncTest 'JS empty indents', ->
   customJS = new JavaScript()
   code = 'if (__) {\n\n}'
   customSerialization = customJS.parse('if (__) {\n\n}')
-  stringifiedJS = customSerialization.stringify(customJS)
+  stringifiedJS = customSerialization.stringify()
   strictEqual(stringifiedJS, code)
   start()
 

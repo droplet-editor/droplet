@@ -53,6 +53,7 @@ DEFAULT_OPTIONS =
   ctx: document.createElement('canvas').getContext('2d')
   colors:
     error: '#ff0000'
+    comment: '#c0c0c0'  # gray
     return: '#fff59d'   # yellow
     control: '#ffcc80'  # orange
     value: '#a5d6a7'    # green
@@ -1129,7 +1130,15 @@ exports.View = class View
       @computeMargins()
       @computeBevels()
       @computeMinDimensions()
-      @computeDimensions 0, true
+      # Replacement for computeDimensions
+      for size, line in @minDimensions
+        @distanceToBase[line] = {
+          above: @lineChildren[line].map((child) => @view.getViewNodeFor(child.child).distanceToBase[line - child.startLine].above).reduce((a, b) -> Math.max(a, b))
+          below: @lineChildren[line].map((child) => @view.getViewNodeFor(child.child).distanceToBase[line - child.startLine].below).reduce((a, b) -> Math.max(a, b))
+        }
+        @dimensions[line] = new draw.Size @minDimensions[line].width, @minDimensions[line].height
+
+      #@computeDimensions false, true
       # Replacement for computeAllBoundingBoxX
       for size, line in @dimensions
         child = @lineChildren[line][0]
@@ -1141,7 +1150,10 @@ exports.View = class View
       for size, line in @dimensions
         child = @lineChildren[line][0]
         childView = @view.getViewNodeFor child.child
-        top = childView.bounds[line - child.startLine].y
+        oldY = childView.bounds[line - child.startLine].y
+        top = childView.bounds[line - child.startLine].y +
+          childView.distanceToBase[line - child.startLine].above -
+          @distanceToBase[line].above
         @computeBoundingBoxY top, line
       @computePath()
       @computeDropAreas()
@@ -1709,7 +1721,7 @@ exports.View = class View
           path.style.fillColor = avgColor @path.style.fillColor, 0.5, '#888'
         if style.selected
           path.style.fillColor = avgColor @path.style.fillColor, 0.7, '#00F'
-        path.bevel = true;
+        path.bevel = true
         path.draw ctx
         textElement = new @view.draw.Text(new @view.draw.Point(0, 0), text)
         dx = rect.width - textElement.bounds().width
@@ -1721,9 +1733,9 @@ exports.View = class View
         textElement.draw ctx
 
       if @model.buttons.addButton
-        drawButton '+', @addButtonRect, ctx
+        drawButton @model.buttons.addButton, @addButtonRect, ctx
       if @model.buttons.subtractButton
-        drawButton '-', @subtractButtonRect, ctx
+        drawButton @model.buttons.subtractButton, @subtractButtonRect, ctx
 
     shouldAddTab: ->
       if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
@@ -1752,11 +1764,11 @@ exports.View = class View
           height = lastRect.bottom() - multilineBounds.bottom()
           top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-      if @model.buttons.addButton
-        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
-        start += @view.opts.buttonWidth + @view.opts.buttonPadding
       if @model.buttons.subtractButton
         @subtractButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+        start += @view.opts.buttonWidth + @view.opts.buttonPadding
+      if @model.buttons.addButton
+        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
 
     computeOwnPath: ->
       super

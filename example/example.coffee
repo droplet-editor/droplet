@@ -42,8 +42,9 @@ editor = null
 
 # Droplet itself
 createEditor = (options) ->
-  $('#droplet-editor').html ''
-  editor = new droplet.Editor $('#droplet-editor')[0], options
+  $('#droplet-editor').html '<div id="ace-target"></div>'
+  aceEditor = ace.edit 'ace-target'
+  editor = new droplet.Editor aceEditor, options
 
   editor.setEditorState localStorage.getItem('blocks') is 'yes'
   editor.aceEditor.getSession().setUseWrapMode true

@@ -25,8 +25,8 @@ parse = (context, text) ->
 getBounds = (node, lines) ->
   bounds = {
     start: {
-      line: node.lineno - 1
-      column: node.col_offset
+      line: node.lineno - 1 ? 1
+      column: node.col_offset ? 0
     }
   }
   if node.children? and node.children.length > 0
@@ -129,50 +129,64 @@ transform = (node, lines, parent = null) ->
 
 # CONFIG SECTION
 config = {
-  INDENTS: ['suite']
-  SKIPS: [
-    'file_input'
-    'parameters'
-    'compound_stmt'
-    'small_stmt'
-    'simple_stmt'
-    'trailer'
-    'arglist'
-    'testlist_comp'
-    'with_item'
-    'listmaker'
-    'list_for'
-  ]
-  PARENS : [
-    'stmt'
-  ]
-  SOCKET_TOKENS : [
-    'T_NAME', 'T_NUMBER', 'T_STRING'
-  ]
-  COLORS_FORWARD : {
-    'term': 'value'
-    'funcdef': 'control'
-    'for_stmt': 'control'
-    'while_stmt': 'control'
-    'with_stmt': 'control'
-    'if_stmt': 'control'
-    'try_stmt': 'control'
-    'import_stmt': 'command'
-    'print_stmt': 'command'
-    'expr_stmt': 'command'
-    'return_stmt': 'return'
-    'testlist': 'value'
-    'comparison': 'value'
-    'test': 'value'
-    'expr': 'value'
+  RULES: {
+    # Indents
+#    'suite': 'indent',
+    'suite': {
+      'type': 'indent',
+      'indentContext': 'blockItem'
+    }
+
+    # Parens
+    'stmt': 'parens',
+
+    # Skips
+    'file_input': 'skip',
+    'parameters': 'skip',
+    'compound_stmt': 'skip',
+    'small_stmt': 'skip',
+    'simple_stmt': 'skip',
+    'trailer': 'skip',
+    'arglist': 'skip',
+    'testlist_comp': 'skip',
+    'with_item': 'skip',
+    'listmaker': 'skip',
+    'list_for': 'skip',
+
+    # Sockets
+    'T_NAME': 'socket',
+    'T_NUMBER': 'socket',
+    'T_STRING': 'socket'
   }
-  COLORS_BACKWARD : {}
+
   BLOCK_TOKENS: [], PLAIN_SOCKETS: [], VALUE_TYPES: [], BLOCK_TYPES: []
-  DROPDOWN_CB: getDropdown
-  COLOR_CB: getColor
-  BUTTON_CB: insertButton
-  HANDLE_BUTTON_CB: handelButton
+  DROPDOWN_CALLBACK: getDropdown
+  COLOR_CALLBACK: getColor
+  BUTTON_CALLBACK: insertButton
+  HANDLE_BUTTON_CALLBACK: handelButton
+
+  COLOR_RULES: [
+    ['term', 'value'],
+    ['funcdef', 'control'],
+    ['for_stmt', 'control'],
+    ['while_stmt', 'control'],
+    ['with_stmt', 'control'],
+    ['if_stmt', 'control'],
+    ['try_stmt', 'control'],
+    ['import_stmt', 'command'],
+    ['print_stmt', 'command'],
+    ['expr_stmt', 'command'],
+    ['return_stmt', 'return'],
+    ['testlist', 'value'],
+    ['comparison', 'value'],
+    ['test', 'value'],
+    ['expr', 'value']
+  ]
+  SHAPE_RULES: []
 }
+
+config.SHOULD_SOCKET = (opts, node) ->
+  return node.meta.value not in Object.keys(opts.functions) or getArgNum(node) isnt null
 
 result = treewalk.createTreewalkParser parse, config
 result.canParse = (node) ->

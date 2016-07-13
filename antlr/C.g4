@@ -237,14 +237,21 @@ typeSpecifier
     |   '__typeof__' '(' constantExpression ')' // GCC extension
     ;
 
+/* Droplet: modifies this part of the grammar to add an additional tree node
+   around the { block } part of the specifier, so that we are able to make an Indent
+   block using that that entire range. */
 structOrUnionSpecifier
-    :   structOrUnion Identifier? '{' structDeclarationList '}'
+    :   structOrUnion Identifier? structDeclarationsBlock
     |   structOrUnion Identifier
     ;
 
 structOrUnion
     :   'struct'
     |   'union'
+    ;
+
+structDeclarationsBlock
+    :   '{' structDeclarationList '}'
     ;
 
 structDeclarationList
@@ -471,9 +478,24 @@ blockItemList
     |   blockItemList blockItem
     ;
 
+/* Droplet: In the standard C grammar, there is an ambiguity:
+   `a (b);`
+   could either be a method named `a` called with argument `b`, or a declaration
+   of a variable `b` with type `a`.
+
+   This ANTLR grammar always interpreted it as the latter, but for Droplet purposes
+   we want it interpreted as the former, as that is the more common use case.
+
+   We therefore have a new type of node, specialMethodCall, for just this case
+   which takes priority over declarations. */
 blockItem
-    :   declaration
+    :   specialMethodCall
+    |   declaration
     |   statement
+    ;
+
+specialMethodCall
+    :   Identifier '(' assignmentExpression ')' ';'
     ;
 
 expressionStatement
@@ -502,6 +524,7 @@ jumpStatement
 
 compilationUnit
     :   translationUnit? EOF
+    |   EOF
     ;
 
 translationUnit
@@ -522,6 +545,520 @@ functionDefinition
 declarationList
     :   declaration
     |   declarationList declaration
+    ;
+
+/* Droplet: ANTLR has trouble parsing a string when a rule doesn't
+   contain an EOF token at the end of it. To do live reparsing, we
+   have to define new duplicate rules for each intermediate node plus EOF
+   so that we can parse small parts of the program independently.
+  */
+primaryExpression_DropletFile
+    :   Identifier EOF
+    |   Constant EOF
+    |   StringLiteral+ EOF
+    |   '(' expression ')' EOF
+    |   genericSelection EOF
+    |   '__extension__'? '(' compoundStatement ')' // Blocks (GCC extension) EOF
+    |   '__builtin_va_arg' '(' unaryExpression ',' typeName ')' EOF
+    |   '__builtin_offsetof' '(' typeName ',' unaryExpression ')' EOF
+    ;
+
+genericSelection_DropletFile
+    :   '_Generic' '(' assignmentExpression ',' genericAssocList ')' EOF
+    ;
+
+genericAssocList_DropletFile
+    :   genericAssociation EOF
+    |   genericAssocList ',' genericAssociation EOF
+    ;
+
+genericAssociation_DropletFile
+    :   typeName ':' assignmentExpression EOF
+    |   'default' ':' assignmentExpression EOF
+    ;
+
+postfixExpression_DropletFile
+    :   primaryExpression EOF
+    |   postfixExpression '[' expression ']' EOF
+    |   postfixExpression '(' argumentExpressionList? ')' EOF
+    |   postfixExpression '.' Identifier EOF
+    |   postfixExpression '->' Identifier EOF
+    |   postfixExpression '++' EOF
+    |   postfixExpression '--' EOF
+    |   '(' typeName ')' '{' initializerList '}' EOF
+    |   '(' typeName ')' '{' initializerList ',' '}' EOF
+    |   '__extension__' '(' typeName ')' '{' initializerList '}' EOF
+    |   '__extension__' '(' typeName ')' '{' initializerList ',' '}' EOF
+    ;
+
+argumentExpressionList_DropletFile
+    :   assignmentExpression EOF
+    |   argumentExpressionList ',' assignmentExpression EOF
+    ;
+
+unaryExpression_DropletFile
+    :   postfixExpression EOF
+    |   '++' unaryExpression EOF
+    |   '--' unaryExpression EOF
+    |   unaryOperator castExpression EOF
+    |   'sizeof' unaryExpression EOF
+    |   'sizeof' '(' typeName ')' EOF
+    |   '_Alignof' '(' typeName ')' EOF
+    |   '&&' Identifier // GCC extension address of label EOF
+    ;
+
+unaryOperator_DropletFile
+    :   '&' | '*' | '+' | '-' | '~' | '!' EOF
+    ;
+
+castExpression_DropletFile
+    :   unaryExpression EOF
+    |   '(' typeName ')' castExpression EOF
+    |   '__extension__' '(' typeName ')' castExpression EOF
+    ;
+
+multiplicativeExpression_DropletFile
+    :   castExpression EOF
+    |   multiplicativeExpression '*' castExpression EOF
+    |   multiplicativeExpression '/' castExpression EOF
+    |   multiplicativeExpression '%' castExpression EOF
+    ;
+
+additiveExpression_DropletFile
+    :   multiplicativeExpression EOF
+    |   additiveExpression '+' multiplicativeExpression EOF
+    |   additiveExpression '-' multiplicativeExpression EOF
+    ;
+
+shiftExpression_DropletFile
+    :   additiveExpression EOF
+    |   shiftExpression '<<' additiveExpression EOF
+    |   shiftExpression '>>' additiveExpression EOF
+    ;
+
+relationalExpression_DropletFile
+    :   shiftExpression EOF
+    |   relationalExpression '<' shiftExpression EOF
+    |   relationalExpression '>' shiftExpression EOF
+    |   relationalExpression '<=' shiftExpression EOF
+    |   relationalExpression '>=' shiftExpression EOF
+    ;
+
+equalityExpression_DropletFile
+    :   relationalExpression EOF
+    |   equalityExpression '==' relationalExpression EOF
+    |   equalityExpression '!=' relationalExpression EOF
+    ;
+
+andExpression_DropletFile
+    :   equalityExpression EOF
+    |   andExpression '&' equalityExpression EOF
+    ;
+
+exclusiveOrExpression_DropletFile
+    :   andExpression EOF
+    |   exclusiveOrExpression '^' andExpression EOF
+    ;
+
+inclusiveOrExpression_DropletFile
+    :   exclusiveOrExpression EOF
+    |   inclusiveOrExpression '|' exclusiveOrExpression EOF
+    ;
+
+logicalAndExpression_DropletFile
+    :   inclusiveOrExpression EOF
+    |   logicalAndExpression '&&' inclusiveOrExpression EOF
+    ;
+
+logicalOrExpression_DropletFile
+    :   logicalAndExpression EOF
+    |   logicalOrExpression '||' logicalAndExpression EOF
+    ;
+
+conditionalExpression_DropletFile
+    :   logicalOrExpression ('?' expression ':' conditionalExpression)? EOF
+    ;
+
+assignmentExpression_DropletFile
+    :   conditionalExpression EOF
+    |   unaryExpression assignmentOperator assignmentExpression EOF
+    ;
+
+assignmentOperator_DropletFile
+    :   '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|=' EOF
+    ;
+
+expression_DropletFile
+    :   assignmentExpression EOF
+    |   expression ',' assignmentExpression EOF
+    ;
+
+constantExpression_DropletFile
+    :   conditionalExpression EOF
+    ;
+
+declaration_DropletFile
+    :   declarationSpecifiers initDeclaratorList? ';' EOF
+    |   staticAssertDeclaration EOF
+    ;
+
+declarationSpecifiers_DropletFile
+    :   declarationSpecifier+ EOF
+    ;
+
+declarationSpecifiers2_DropletFile
+    :   declarationSpecifier+ EOF
+    ;
+
+declarationSpecifier_DropletFile
+    :   storageClassSpecifier EOF
+    |   typeSpecifier EOF
+    |   typeQualifier EOF
+    |   functionSpecifier EOF
+    |   alignmentSpecifier EOF
+    ;
+
+initDeclaratorList_DropletFile
+    :   initDeclarator EOF
+    |   initDeclaratorList ',' initDeclarator EOF
+    ;
+
+initDeclarator_DropletFile
+    :   declarator EOF
+    |   declarator '=' initializer EOF
+    ;
+
+storageClassSpecifier_DropletFile
+    :   'typedef' EOF
+    |   'extern' EOF
+    |   'static' EOF
+    |   '_Thread_local' EOF
+    |   'auto' EOF
+    |   'register' EOF
+    ;
+
+typeSpecifier_DropletFile
+    :   ('void' EOF
+    |   'char' EOF
+    |   'short' EOF
+    |   'int' EOF
+    |   'long' EOF
+    |   'float' EOF
+    |   'double' EOF
+    |   'signed' EOF
+    |   'unsigned' EOF
+    |   '_Bool' EOF
+    |   '_Complex' EOF
+    |   '__m128' EOF
+    |   '__m128d' EOF
+    |   '__m128i') EOF
+    |   '__extension__' '(' ('__m128' | '__m128d' | '__m128i') ')' EOF
+    |   atomicTypeSpecifier EOF
+    |   structOrUnionSpecifier EOF
+    |   enumSpecifier EOF
+    |   typedefName EOF
+    |   '__typeof__' '(' constantExpression ')' // GCC extension EOF
+    ;
+
+structOrUnionSpecifier_DropletFile
+    :   structOrUnion Identifier? structDeclarationsBlock EOF
+    |   structOrUnion Identifier EOF
+    ;
+
+structOrUnion_DropletFile
+    :   'struct' EOF
+    |   'union' EOF
+    ;
+
+
+structDeclarationsBlock_DropletFile
+    :   '{' structDeclarationList '}' EOF
+    ;
+
+structDeclarationList_DropletFile
+    :   structDeclaration EOF
+    |   structDeclarationList structDeclaration EOF
+    ;
+
+structDeclaration_DropletFile
+    :   specifierQualifierList structDeclaratorList? ';' EOF
+    |   staticAssertDeclaration EOF
+    ;
+
+specifierQualifierList_DropletFile
+    :   typeSpecifier specifierQualifierList? EOF
+    |   typeQualifier specifierQualifierList? EOF
+    ;
+
+structDeclaratorList_DropletFile
+    :   structDeclarator EOF
+    |   structDeclaratorList ',' structDeclarator EOF
+    ;
+
+structDeclarator_DropletFile
+    :   declarator EOF
+    |   declarator? ':' constantExpression EOF
+    ;
+
+enumSpecifier_DropletFile
+    :   'enum' Identifier? '{' enumeratorList '}' EOF
+    |   'enum' Identifier? '{' enumeratorList ',' '}' EOF
+    |   'enum' Identifier EOF
+    ;
+
+enumeratorList_DropletFile
+    :   enumerator EOF
+    |   enumeratorList ',' enumerator EOF
+    ;
+
+enumerator_DropletFile
+    :   enumerationConstant EOF
+    |   enumerationConstant '=' constantExpression EOF
+    ;
+
+enumerationConstant_DropletFile
+    :   Identifier EOF
+    ;
+
+atomicTypeSpecifier_DropletFile
+    :   '_Atomic' '(' typeName ')' EOF
+    ;
+
+typeQualifier_DropletFile
+    :   'const' EOF
+    |   'restrict' EOF
+    |   'volatile' EOF
+    |   '_Atomic' EOF
+    ;
+
+functionSpecifier_DropletFile
+    :   ('inline' EOF
+    |   '_Noreturn' EOF
+    |   '__inline__' // GCC extension EOF
+    |   '__stdcall') EOF
+    |   gccAttributeSpecifier EOF
+    |   '__declspec' '(' Identifier ')' EOF
+    ;
+
+alignmentSpecifier_DropletFile
+    :   '_Alignas' '(' typeName ')' EOF
+    |   '_Alignas' '(' constantExpression ')' EOF
+    ;
+
+declarator_DropletFile
+    :   pointer? directDeclarator gccDeclaratorExtension* EOF
+    ;
+
+directDeclarator_DropletFile
+    :   Identifier EOF
+    |   '(' declarator ')' EOF
+    |   directDeclarator '[' typeQualifierList? assignmentExpression? ']' EOF
+    |   directDeclarator '[' 'static' typeQualifierList? assignmentExpression ']' EOF
+    |   directDeclarator '[' typeQualifierList 'static' assignmentExpression ']' EOF
+    |   directDeclarator '[' typeQualifierList? '*' ']' EOF
+    |   directDeclarator '(' parameterTypeList ')' EOF
+    |   directDeclarator '(' identifierList? ')' EOF
+    ;
+
+gccDeclaratorExtension_DropletFile
+    :   '__asm' '(' StringLiteral+ ')' EOF
+    |   gccAttributeSpecifier EOF
+    ;
+
+gccAttributeSpecifier_DropletFile
+    :   '__attribute__' '(' '(' gccAttributeList ')' ')' EOF
+    ;
+
+gccAttributeList_DropletFile
+    :   gccAttribute (',' gccAttribute)* EOF
+    |   // empty EOF
+    ;
+
+gccAttribute_DropletFile
+    :   ~(',' | '(' | ')') // relaxed def for "identifier or reserved word" EOF
+        ('(' argumentExpressionList? ')')?
+    |   // empty EOF
+    ;
+
+nestedParenthesesBlock_DropletFile
+    :   (   ~('(' | ')') EOF
+        |   '(' nestedParenthesesBlock ')' EOF
+        )*
+    ;
+
+pointer_DropletFile
+    :   '*' typeQualifierList? EOF
+    |   '*' typeQualifierList? pointer EOF
+    |   '^' typeQualifierList? // Blocks language extension EOF
+    |   '^' typeQualifierList? pointer // Blocks language extension EOF
+    ;
+
+typeQualifierList_DropletFile
+    :   typeQualifier EOF
+    |   typeQualifierList typeQualifier EOF
+    ;
+
+parameterTypeList_DropletFile
+    :   parameterList EOF
+    |   parameterList ',' '...' EOF
+    ;
+
+parameterList_DropletFile
+    :   parameterDeclaration EOF
+    |   parameterList ',' parameterDeclaration EOF
+    ;
+
+parameterDeclaration_DropletFile
+    :   declarationSpecifiers declarator EOF
+    |   declarationSpecifiers2 abstractDeclarator? EOF
+    ;
+
+identifierList_DropletFile
+    :   Identifier EOF
+    |   identifierList ',' Identifier EOF
+    ;
+
+typeName_DropletFile
+    :   specifierQualifierList abstractDeclarator? EOF
+    ;
+
+abstractDeclarator_DropletFile
+    :   pointer EOF
+    |   pointer? directAbstractDeclarator gccDeclaratorExtension* EOF
+    ;
+
+directAbstractDeclarator_DropletFile
+    :   '(' abstractDeclarator ')' gccDeclaratorExtension* EOF
+    |   '[' typeQualifierList? assignmentExpression? ']' EOF
+    |   '[' 'static' typeQualifierList? assignmentExpression ']' EOF
+    |   '[' typeQualifierList 'static' assignmentExpression ']' EOF
+    |   '[' '*' ']' EOF
+    |   '(' parameterTypeList? ')' gccDeclaratorExtension* EOF
+    |   directAbstractDeclarator '[' typeQualifierList? assignmentExpression? ']' EOF
+    |   directAbstractDeclarator '[' 'static' typeQualifierList? assignmentExpression ']' EOF
+    |   directAbstractDeclarator '[' typeQualifierList 'static' assignmentExpression ']' EOF
+    |   directAbstractDeclarator '[' '*' ']' EOF
+    |   directAbstractDeclarator '(' parameterTypeList? ')' gccDeclaratorExtension* EOF
+    ;
+
+typedefName_DropletFile
+    :   Identifier EOF
+    ;
+
+initializer_DropletFile
+    :   assignmentExpression EOF
+    |   '{' initializerList '}' EOF
+    |   '{' initializerList ',' '}' EOF
+    ;
+
+initializerList_DropletFile
+    :   designation? initializer EOF
+    |   initializerList ',' designation? initializer EOF
+    ;
+
+designation_DropletFile
+    :   designatorList '=' EOF
+    ;
+
+designatorList_DropletFile
+    :   designator EOF
+    |   designatorList designator EOF
+    ;
+
+designator_DropletFile
+    :   '[' constantExpression ']' EOF
+    |   '.' Identifier EOF
+    ;
+
+staticAssertDeclaration_DropletFile
+    :   '_Static_assert' '(' constantExpression ',' StringLiteral+ ')' ';' EOF
+    ;
+
+statement_DropletFile
+    :   labeledStatement EOF
+    |   compoundStatement EOF
+    |   expressionStatement EOF
+    |   selectionStatement EOF
+    |   iterationStatement EOF
+    |   jumpStatement EOF
+    |   ('__asm' | '__asm__') ('volatile' | '__volatile__') '(' (logicalOrExpression (',' logicalOrExpression)*)? (':' (logicalOrExpression (',' logicalOrExpression)*)?)* ')' ';' EOF
+    ;
+
+labeledStatement_DropletFile
+    :   Identifier ':' statement EOF
+    |   'case' constantExpression ':' statement EOF
+    |   'default' ':' statement EOF
+    ;
+
+compoundStatement_DropletFile
+    :   '{' blockItemList? '}' EOF
+    ;
+
+blockItemList_DropletFile
+    :   blockItem EOF
+    |   blockItemList blockItem EOF
+    ;
+
+// A block item can be a special kind of function call, which we
+// check before we check declarations to avoid conflicts with a (b);.
+blockItem_DropletFile
+    :   specialMethodCall EOF
+    |   declaration EOF
+    |   statement EOF
+    |   EOF
+    ;
+
+specialMethodCall_DropletFile
+    :   Identifier '(' assignmentExpression ')' ';' EOF
+    ;
+
+expressionStatement_DropletFile
+    :   expression? ';' EOF
+    ;
+
+selectionStatement_DropletFile
+    :   'if' '(' expression ')' statement ('else' statement)? EOF
+    |   'switch' '(' expression ')' statement EOF
+    ;
+
+iterationStatement_DropletFile
+    :   'while' '(' expression ')' statement EOF
+    |   'do' statement 'while' '(' expression ')' ';' EOF
+    |   'for' '(' expression? ';' expression? ';' expression? ')' statement EOF
+    |   'for' '(' declaration expression? ';' expression? ')' statement EOF
+    ;
+
+jumpStatement_DropletFile
+    :   'goto' Identifier ';' EOF
+    |   'continue' ';' EOF
+    |   'break' ';' EOF
+    |   'return' expression? ';' EOF
+    |   'goto' unaryExpression ';' // GCC extension EOF
+    ;
+
+compilationUnit_DropletFile
+    :   translationUnit? EOF
+    |   EOF
+    ;
+
+translationUnit_DropletFile
+    :   externalDeclaration EOF
+    |   translationUnit externalDeclaration EOF
+    ;
+
+externalDeclaration_DropletFile
+    :   functionDefinition EOF
+    |   declaration EOF
+    |   ';' // stray ; EOF
+    ;
+
+functionDefinition_DropletFile
+    :   declarationSpecifiers? declarator declarationList? compoundStatement EOF
+    ;
+
+declarationList_DropletFile
+    :   declaration EOF
+    |   declarationList declaration EOF
     ;
 
 Auto : 'auto';
@@ -861,13 +1398,10 @@ SChar
     |   EscapeSequence
     ;
 
-LineDirective
-    :   '#' Whitespace? DecimalConstant Whitespace? StringLiteral ~[\r\n]*
-        -> skip
-    ;
-
-PragmaDirective
-    :   '#' Whitespace? 'pragma' Whitespace ~[\r\n]*
+/* Droplet: we parse all directives as if they were comments,
+   distinguishing between them later in parseComment. */
+Directive
+    :   '#' [^\r\n]*? ~[\r\n]*
         -> skip
     ;
 

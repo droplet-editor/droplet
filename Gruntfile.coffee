@@ -7,6 +7,9 @@ livereload = require 'tiny-lr'
 path = require 'path'
 fs = require 'fs'
 
+if process.env.LANGUAGE
+  ignoredLanguages = ["./src/languages/!(#{process.env.LANGUAGE}).coffee"]
+
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
   middlewares.unshift (req, res, next) ->
@@ -68,13 +71,14 @@ module.exports = (grunt) ->
           reporter: 'list'
           compilers:
             'coffee': 'coffee-script/register'
-          timeout: 10000
+          timeout: 20000
 
     browserify:
       build:
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
         options:
+          ignore: ignoredLanguages
           transform: ['coffeeify']
           browserifyOptions:
             standalone: 'droplet'
@@ -89,6 +93,7 @@ module.exports = (grunt) ->
           '''
       test:
         files:
+          'test/js/ctest.js': ['test/src/ctest.coffee']
           'test/js/tests.js': ['test/src/tests.coffee']
           'test/js/uitest.js': ['test/src/uitest.coffee']
           'test/js/jstest.js': ['test/src/jstest.coffee']

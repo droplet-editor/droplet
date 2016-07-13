@@ -164,10 +164,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
 
     @mark 0, tree, 0, null
 
-  fullFunctionNameArray: (node) ->
-    if node.type isnt 'CallExpression' and node.type isnt 'NewExpression'
-      throw new Error
-    obj = node.callee
+  fullNameArray: (obj) ->
     props = []
     while obj.type is 'MemberExpression'
       props.unshift obj.property.name
@@ -178,10 +175,17 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       props.unshift '*'
     props
 
-  lookupFunctionName: (node) ->
-    fname = @fullFunctionNameArray node
+  lookupKnownName: (node) ->
+    if node.type is 'CallExpression' or node.type is 'NewExpression'
+      identifier = false
+    else if node.type is 'Identifier' or node.type is 'MemberExpression'
+      identifier = true
+    else
+      throw new Error
+    fname = @fullNameArray if identifier then node else node.callee
     full = fname.join '.'
-    if full of @opts.functions
+    fn = @opts.functions[full]
+    if fn and ((identifier and fn.property) || (not identifier and not fn.property))
       return name: full, anyobj: false, fn: @opts.functions[full]
     last = fname[fname.length - 1]
     if fname.length > 1 and (wildcard = '*.' + last) not of @opts.functions
@@ -189,7 +193,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     if not wildcard and (wildcard = '?.' + last) not of @opts.functions
       wildcard = null  # no match for '?.foo'
     if wildcard isnt null
-      return name: last, anyobj: true, fn: @opts.functions[wildcard]
+      fn = @opts.functions[wildcard]
+      if fn and ((identifier and fn.property) || (not identifier and not fn.property))
+        return name: last, anyobj: true, fn: @opts.functions[wildcard]
     return null
 
   getAcceptsRule: (node) -> default: helper.NORMAL
@@ -197,8 +203,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     if node.type of CLASS_EXCEPTIONS
       return CLASS_EXCEPTIONS[node.type].concat([node.type])
     else
-      if node.type is 'CallExpression'
-        known = @lookupFunctionName node
+      if node.type is 'CallExpression' or node.type is 'NewExpression' or node.type is 'Identifier'
+        known = @lookupKnownName node
         if not known or (known.fn.value and known.fn.command)
           return [node.type, 'any-drop']
         if known.fn.value
@@ -251,19 +257,15 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     switch node.type
       when 'ExpressionStatement'
         return @getColor node.expression
-      when 'CallExpression'
-        known = @lookupFunctionName node
-        if not known
-          return @opts.categories.command.color
-        else if known.fn.color
-          return known.fn.color
-        else if known.fn.value and not known.fn.command
-          return @opts.categories.value.color
-        else
-          return @opts.categories.command.color
-      else
-        category = @lookupCategory node
-        return category?.color or 'command'
+      when 'CallExpression', 'NewExpression', 'MemberExpression', 'Identifier'
+        known = @lookupKnownName node
+        if known
+          if known.fn.color
+            return known.fn.color
+          else if known.fn.value and not known.fn.command
+            return @opts.categories.value.color
+    category = @lookupCategory node
+    return category?.color or 'command'
 
   getSocketLevel: (node) -> helper.ANY_DROP
 
@@ -341,7 +343,78 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       return line[indentDepth...(line.length - line.trimLeft().length)]
 
   isComment: (text) ->
-    text.match(/^\s*\/\/.*$/)
+    text.match(/^\s*\/\/.*$/)?
+
+  parseComment: (text) ->
+    {
+      sockets: [[text.match(/^\s*\/\//)[0].length, text.length]]
+    }
+
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and 'IfStatement' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = acorn.parse(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      currentElif = node
+      elseLocation = null
+      while true
+        if currentElif.type is 'IfStatement'
+          if currentElif.alternate?
+            elseLocation = {
+              line: currentElif.alternate.loc.start.line
+              column: currentElif.alternate.loc.start.column
+            }
+            currentElif = currentElif.alternate
+          else
+            elseLocation = null
+            break
+        else
+          break
+
+      if elseLocation?
+        lines = text.split('\n')
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
+        return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
+          __
+        }'''
+      else
+        return text + ''' else {
+          __
+        }'''
+    else if 'CallExpression' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = acorn.parse(text, {
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      known = @lookupKnownName node.expression
+      argCount = node.expression.arguments.length
+      if button is 'add-button'
+        maxArgs = known?.fn.maxArgs
+        maxArgs ?= Infinity
+        if argCount >= maxArgs
+          return
+        if argCount
+          lastArgPosition = node.expression.arguments[argCount - 1].end
+          return text[...lastArgPosition].trimRight() + ', __' + text[lastArgPosition..].trimLeft()
+        else
+          lastArgPosition = node.expression.end - 1
+          return text[...lastArgPosition].trimRight() + '__' + text[lastArgPosition..].trimLeft()
+      else if button is 'subtract-button'
+        minArgs = known?.fn.minArgs
+        minArgs ?= 0
+        if argCount <= minArgs
+          return
+        if argCount > 0
+          lastArgPosition = node.expression.arguments[argCount - 1].end
+          if argCount is 1
+            newLastArgPosition = node.expression.arguments[0].start
+          else
+            newLastArgPosition = node.expression.arguments[argCount - 2].end
+          return text[...newLastArgPosition].trimRight() + text[lastArgPosition..].trimLeft()
 
   mark: (indentDepth, node, depth, bounds) ->
     switch node.type
@@ -371,7 +444,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
-        else if @opts.zeroParamFunctions
+        else unless @opts.lockZeroParamFunctions
           nodeBoundsStart = @getBounds(node.id).end
           match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
           if match?
@@ -409,7 +482,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             classes: ['no-drop']
             empty: ''
           }
-        else if @opts.zeroParamFunctions
+        else unless @opts.lockZeroParamFunctions
           if node.id?
             nodeBoundsStart = @getBounds(node.id).end
             match = @lines[nodeBoundsStart.line][nodeBoundsStart.column..].match(/^(\s*\()(\s*)\)/)
@@ -437,14 +510,14 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             }
       when 'AssignmentExpression'
         @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.left, depth + 1, null
-        @jsSocketAndMark indentDepth, node.right, depth + 1, null
+        @jsSocketAndMark indentDepth, node.left, depth + 1, NEVER_PAREN
+        @jsSocketAndMark indentDepth, node.right, depth + 1, NEVER_PAREN
       when 'ReturnStatement'
         @jsBlock node, depth, bounds
         if node.argument?
           @jsSocketAndMark indentDepth, node.argument, depth + 1, null
       when 'IfStatement', 'ConditionalExpression'
-        @jsBlock node, depth, bounds, {addButton: true}
+        @jsBlock node, depth, bounds, {addButton: '+'}
         @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
         @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
 
@@ -517,18 +590,38 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.name is '__'
           block = @jsBlock node, depth, bounds
           block.flagToRemove = true
+        else if @lookupKnownName node
+          @jsBlock node, depth, bounds
       when 'CallExpression', 'NewExpression'
-        @jsBlock node, depth, bounds
-        known = @lookupFunctionName node
+        known = @lookupKnownName node
+        blockOpts = {}
+        argCount = node.arguments.length
+        if known?.fn
+          showButtons = known.fn.minArgs? or known.fn.maxArgs?
+          minArgs = known.fn.minArgs ? 0
+          maxArgs = known.fn.maxArgs ? Infinity
+        else
+          showButtons = @opts.paramButtonsForUnknownFunctions and
+              (argCount isnt 0 or not @opts.lockZeroParamFunctions)
+          minArgs = 0
+          maxArgs = Infinity
+
+        if showButtons
+          if argCount < maxArgs
+            blockOpts.addButton = '\u21A0'
+          if argCount > minArgs
+            blockOpts.subtractButton = '\u219E'
+        @jsBlock node, depth, bounds, blockOpts
+
         if not known
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
-          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN
+          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
         for argument, i in node.arguments
-          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i], (
-            if i is 0 and node.arguments.length is 1 then '' else undefined
-          )
-        if not known and node.arguments.length is 0
+          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
+        if not known and argCount is 0 and not @opts.lockZeroParamFunctions
+          # Create a special socket that can be used for inserting the first parameter
+          # (NOTE: this socket may not be visible if the bounds start/end are the same)
           position = {
             line: node.callee.loc.end.line
             column: node.callee.loc.end.column
@@ -555,8 +648,11 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           }
       when 'MemberExpression'
         @jsBlock node, depth, bounds
-        @jsSocketAndMark indentDepth, node.object, depth + 1
-        @jsSocketAndMark indentDepth, node.property, depth + 1
+        known = @lookupKnownName node
+        if not known
+          @jsSocketAndMark indentDepth, node.property, depth + 1
+        if not known or known.anyobj
+          @jsSocketAndMark indentDepth, node.object, depth + 1
       when 'UpdateExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1
@@ -737,6 +833,7 @@ isStandardForLoop = (node) ->
       node.test.operator is '<' and
       node.test.left.type is 'Identifier' and
       node.test.left.name is variableName and
+      node.test.right.type in ['Literal', 'Identifier'] and
       node.update.type is 'UpdateExpression' and
       node.update.operator is '++' and
       node.update.argument.type is 'Identifier' and
@@ -746,41 +843,7 @@ JavaScriptParser.empty = "__"
 JavaScriptParser.emptyIndent = ""
 JavaScriptParser.startComment = '/*'
 JavaScriptParser.endComment = '*/'
-
-JavaScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'IfStatement' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = acorn.parse(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).body[0]
-    currentElif = node
-    elseLocation = null
-    while true
-      if currentElif.type is 'IfStatement'
-        if currentElif.alternate?
-          elseLocation = {
-            line: currentElif.alternate.loc.start.line
-            column: currentElif.alternate.loc.start.column
-          }
-          currentElif = currentElif.alternate
-        else
-          elseLocation = null
-          break
-      else
-        break
-
-    if elseLocation?
-      lines = text.split('\n')
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
-      return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
-        __
-      }'''
-    else
-      return text + ''' else {
-        __
-      }'''
+JavaScriptParser.startSingleLineComment = '//'
 
 JavaScriptParser.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length

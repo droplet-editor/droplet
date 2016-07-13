@@ -7,6 +7,8 @@ helper = require '../helper.coffee'
 model = require '../model.coffee'
 parser = require '../parser.coffee'
 
+{fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
+
 {CoffeeScript} = require '../../vendor/coffee-script.js'
 
 ANY_DROP = ['any-drop']
@@ -216,6 +218,11 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   isComment: (str) ->
     str.match(/^\s*#.*$/)?
+
+  parseComment: (str) ->
+    {
+      sockets: [[str.match(/^\s*#/)?[0].length, str.length]]
+    }
 
   stripComments: ->
     # Preprocess comment lines:
@@ -644,7 +651,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Special case: "unless" keyword; in this case
       # we want to skip the Op that wraps the condition.
       when 'If'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: true}
+        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: '+'}
 
         # Check to see if we are an "unless".
         # We will deem that we are an unless if:
@@ -760,6 +767,34 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
             @csSocketAndMark property.value, depth + 1, 0, indentDepth
 
+
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and 'If' in oldBlock.classes
+      # Parse to find the last "else" or "else if"
+      node = CoffeeScript.nodes(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).expressions[0]
+
+      lines = text.split '\n'
+
+      currentNode = node
+      elseLocation = null
+
+      while currentNode.isChain
+        currentNode = currentNode.elseBodyNode()
+
+      if currentNode.elseBody?
+        lines = text.split('\n')
+        elseLocation = {
+          line: currentNode.elseToken.last_line
+          column: currentNode.elseToken.last_column + 2
+        }
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+        return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
+      else
+        return text + '\nelse\n  ``'
 
   locationsAreIdentical: (a, b) ->
     return a.line is b.line and a.column is b.column
@@ -1067,41 +1102,6 @@ fixCoffeeScriptError = (lines, e) ->
 
   return null
 
-# To fix quoting errors, we first do a lenient C-unescape, then
-# we do a string C-escaping, to add backlsashes where needed, but
-# not where we already have good ones.
-fixQuotedString = (lines) ->
-  line = lines[0]
-  quotechar = if /^"|"$/.test(line) then '"' else "'"
-  if line.charAt(0) is quotechar
-    line = line.substr(1)
-  if line.charAt(line.length - 1) is quotechar
-    line = line.substr(0, line.length - 1)
-  return lines[0] = quoteAndCEscape looseCUnescape(line), quotechar
-
-looseCUnescape = (str) ->
-  codes =
-    '\\b': '\b'
-    '\\t': '\t'
-    '\\n': '\n'
-    '\\f': '\f'
-    '\\"': '"'
-    "\\'": "'"
-    "\\\\": "\\"
-    "\\0": "\0"
-  str.replace /\\[btnf'"\\0]|\\x[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}/g, (m) ->
-    if m.length is 2 then return codes[m]
-    return String.fromCharCode(parseInt(m.substr(1), 16))
-
-quoteAndCEscape = (str, quotechar) ->
-  result = JSON.stringify(str)
-  if quotechar is "'"
-    return quotechar +
-      result.substr(1, result.length - 2).
-             replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
-      replace(/'/g, "\\'") + quotechar
-  return result
-
 findUnmatchedLine = (lines, above) ->
   # Not done yet
   return null
@@ -1131,6 +1131,7 @@ CoffeeScriptParser.empty = "``"
 CoffeeScriptParser.emptyIndent = "``"
 CoffeeScriptParser.startComment = '###'
 CoffeeScriptParser.endComment = '###'
+CoffeeScriptParser.startSingleLineComment = '# '
 
 CoffeeScriptParser.drop = (block, context, pred) ->
   if context.type is 'socket'
@@ -1197,32 +1198,10 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
       start += 2; end -= 2
   return {start, end}
 
-CoffeeScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'If' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = CoffeeScript.nodes(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).expressions[0]
-
-    lines = text.split '\n'
-
-    currentNode = node
-    elseLocation = null
-
-    while currentNode.isChain
-      currentNode = currentNode.elseBodyNode()
-
-    if currentNode.elseBody?
-      lines = text.split('\n')
-      elseLocation = {
-        line: currentNode.elseToken.last_line
-        column: currentNode.elseToken.last_column + 2
-      }
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
-      return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
-    else
-      return text + '\nelse\n  ``'
+CoffeeScriptParser.stringFixer = (string) ->
+  if /^['"]|['"]$/.test string
+    return fixQuotedString [string]
+  else
+    return string
 
 module.exports = parser.wrapParser CoffeeScriptParser
