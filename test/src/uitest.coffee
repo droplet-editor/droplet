@@ -689,7 +689,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
       ''')
     ), (->
       # Move a block from floating block 1 to 2 so as to destroy floating block 1,
-      # potentially messing up the undo stack
+      # potentially messing up the undo stack and rememberedSocket records
       pickUpLocation editor, 1, {
         row: 0
         col: 0
@@ -701,6 +701,34 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
         col: 6
         type: 'socket'
       }
+    ), (->
+      equal(editor.session.floatingBlocks.length, 1)
+      equal(editor.session.floatingBlocks[0].block.stringify(), '''
+      fd fd fd 10
+      ''')
+    ), (->
+      # Remove the block we just placed to invoke rememberedSocket lookup
+      pickUpLocation editor, 1, {
+        row: 0
+        col: 6
+        type: 'block'
+      }
+      # Drop in main document
+      dropLocation editor, 0, {
+        row: 0
+        col: 0
+        type: 'document'
+      }
+    ), (->
+      equal(editor.session.floatingBlocks.length, 1)
+      equal(editor.session.floatingBlocks[0].block.stringify(), '''
+      fd fd 30
+      ''')
+      equal(editor.getValue(), '''
+      fd 10\n
+      ''')
+    ), (->
+      editor.undo()
     ), (->
       equal(editor.session.floatingBlocks.length, 1)
       equal(editor.session.floatingBlocks[0].block.stringify(), '''
