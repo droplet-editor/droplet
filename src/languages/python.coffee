@@ -134,7 +134,7 @@ config = {
 #    'suite': 'indent',
     'suite': {
       'type': 'indent',
-      'indentContext': 'blockItem'
+      'indentContext': 'small_stmt'
     }
 
     # Parens
@@ -158,6 +158,8 @@ config = {
     'T_NUMBER': 'socket',
     'T_STRING': 'socket'
   }
+
+  PAREN_RULES: {}
 
   BLOCK_TOKENS: [], PLAIN_SOCKETS: [], VALUE_TYPES: [], BLOCK_TYPES: []
   DROPDOWN_CALLBACK: getDropdown
