@@ -1085,6 +1085,11 @@ Editor::spliceOut = (node, container = null) ->
             @session.cursor.document -= 1
 
           @session.floatingBlocks.splice i, 1
+
+          for socket in @session.rememberedSockets
+            if socket.socket.document > i
+              socket.socket.document -= 1
+
           break
   else if container?
     # No document, so try to remove from container if it was supplied
@@ -1629,8 +1634,9 @@ hook 'mousemove', 0, (point, event, state) ->
       head = head.next
 
     if head is @session.tree.end and @session.floatingBlocks.length is 0 and
-        @mainCanvas.width + @session.scrollOffsets.main.x > mainPoint.x > @session.scrollOffsets.main.x - @gutter.offsetWidth and
-        @mainCanvas.height + @session.scrollOffsets.main.y > mainPoint.y > @session.scrollOffsets.main.y
+        (@mainCanvas.width + @session.scrollOffsets.main.x > mainPoint.x > @session.scrollOffsets.main.x - @gutter.offsetWidth and
+        @mainCanvas.height + @session.scrollOffsets.main.y > mainPoint.y > @session.scrollOffsets.main.y) and
+        @getAcceptLevel(@draggingBlock, @session.tree) is helper.ENCOURAGE
       @session.view.getViewNodeFor(@session.tree).highlightArea.draw @highlightCtx
       @lastHighlight = @session.tree
 
