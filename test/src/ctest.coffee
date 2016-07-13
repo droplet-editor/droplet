@@ -284,6 +284,60 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
     )
   ]
 
+asyncTest 'Controller: ANTLR paren wrap rules for C semicolons', ->
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'c',
+    palette: []
+  })
+
+  editor.setValue '''
+    int main() {
+      puts("Hello");
+      puts("World");
+    }
+  '''
+
+  executeAsyncSequence [
+    (->
+      pickUpLocation editor, 0, {
+        row: 1
+        col: 2
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 2
+        col: 7
+        type: 'socket'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        puts(puts("Hello"));
+      }\n
+      ''', 'Removed semicolon dropping function into other function'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 1
+        col: 7
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 1
+        col: 2
+        type: 'block'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        puts("World");
+        puts("Hello");
+      }\n
+      ''', 'Added semicolon dropping function into block'
+
+      start()
+    )
+  ]
+
 asyncTest 'Controller: ANTLR reparse rules', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
