@@ -456,7 +456,7 @@ exports.List = class List
 # A generic XML-style container from which
 # all other containers (Block, Indent, Socket) will extend.
 exports.Container = class Container extends List
-  constructor: ->
+  constructor: () ->
     unless @start? or @end?
       @start = new StartToken this
       @end = new EndToken this
@@ -506,6 +506,7 @@ exports.Container = class Container extends List
       precedence: @precedence
       classes: @classes
       parseContext: @parseContext
+      data: @data
     }
 
   setParent: (parent) ->
@@ -972,6 +973,23 @@ exports.EndToken = class EndToken extends Token
 
   serialize: -> '</container>'
 
+exports.ButtonContainer = class ButtonContainer extends Container
+  constructor: (@classes = [], @parseContext, @buttons = {}, @data = {}) ->
+    @start = new ButtonContainerStartToken this
+    @end = new ButtonContainerEndToken this
+
+    @type = 'buttonContainer'
+
+    super
+
+  _cloneEmpty: -> new ButtonContainer @classes, @parseContext, @buttons, @data
+
+exports.ButtonContainerStartToken = class ButtonContainerStartToken extends StartToken
+  constructor: -> super; @type = 'buttonContainerStart'
+
+exports.ButtonContainerEndToken = class ButtonContainerEndToken extends EndToken
+  constructor: -> super; @type = 'buttonContainerEnd'
+
 # Block
 # ==================
 
@@ -983,7 +1001,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}) ->
+  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}, @data = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -1001,7 +1019,7 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons
+    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons, @data
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
@@ -1198,3 +1216,42 @@ traverseOneLevel = (head, fn, tail) ->
       return
 
     head = head.next
+
+exports.stringThrough  = (start, terminating, backward = false) ->
+  str = ''
+
+  indent = []
+
+  head = start
+  while true
+    if terminating head
+      break
+
+    if head instanceof IndentStartToken
+      if backward
+        indent.pop()
+      else
+        indent.push head.container.prefix
+    else if head instanceof IndentEndToken
+      if backward
+        indent.push head.container.prefix
+      else
+        indent.pop()
+
+    if head instanceof NewlineToken
+      if backward
+        str = '\n' + (head.specialIndent ? indent.join('')) + str
+      else
+        str += '\n' + (head.specialIndent ? indent.join(''))
+    else
+      if backward
+        str = head.stringify() + str
+      else
+        str += head.stringify()
+
+    if backward
+      head = head.prev
+    else
+      head = head.next
+
+  return {string: str, token: head}

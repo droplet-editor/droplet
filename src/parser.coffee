@@ -100,9 +100,18 @@ exports.Parser = class Parser
       opts.socketLevel,
       opts.classes,
       opts.parseContext,
-      opts.buttons
+      opts.buttons,
+      opts.data
 
     @addMarkup block, opts.bounds, opts.depth
+
+  addButtonContainer: (opts) ->
+    container= new model.ButtonContainer opts.classes,
+      opts.parseContext,
+      opts.buttons,
+      opts.data
+
+    @addMarkup container, opts.bounds, opts.depth
 
   # flagToRemove, used for removing the placeholders that
   # are placed when round-tripping empty sockets, so that, e.g. in CoffeeScript mode
@@ -438,19 +447,19 @@ exports.Parser = class Parser
             when 'indentStart'
               # An Indent is only allowed to be
               # directly inside a block; if not, then throw.
-              unless stack?[stack.length - 1]?.type is 'block'
+              unless stack?[stack.length - 1]?.type in ['block', 'buttonContainer']
                 throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
               indentDepth += mark.token.container.prefix.length
 
             when 'blockStart'
               # If the a block is embedded
               # directly in another block, throw.
-              if stack[stack.length - 1]?.type is 'block'
+              if stack[stack.length - 1]?.type in ['block', 'buttonContainer']
                 throw new Error 'Improper parser: block cannot nest immediately inside another block.'
 
             when 'socketStart'
               # A socket is only allowed to be directly inside a block.
-              unless stack[stack.length - 1]?.type is 'block'
+              unless stack[stack.length - 1]?.type in ['block', 'buttonContainer']
                 throw new Error 'Improper parser: socket must be immediately inside a block.'
 
             when 'indentEnd'

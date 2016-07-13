@@ -175,11 +175,28 @@ exports.Draw = class Draw
             @element.parentElement.removeChild @element
 
     @Group = class Group extends ElementWrapper
-      constructor: ->
+      constructor: (@style) ->
         super()
+
+        if @style?
+          @_lastTransform = @style.transform
 
       makeElement: ->
         return document.createElementNS SVG_STANDARD, 'g'
+
+      activate: ->
+        super()
+
+        if @style? and @style.transform?
+          @_lastTransform = @style.transform
+          @element.setAttribute 'transform', @style.transform
+
+      update: ->
+        return unless @element?
+
+        if @style? and @style.transform? and @style.transform isnt @_lastTransform
+          @_lastTransform = @style.transform
+          @element.setAttribute 'transform', @style.transform
 
     # ## Path ##
     # This is called Path, but is forced to be closed so is actually a polygon.

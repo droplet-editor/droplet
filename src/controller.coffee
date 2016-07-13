@@ -1341,26 +1341,34 @@ hook 'mousedown', 4, (point, event, state) ->
   #Buttons aren't clickable in a selection
   if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
 
-  hitTestResult = @hitTest mainPoint, @session.tree
+  head = @session.tree.start
+  seek = @session.tree.end
+  result = null
 
-  if hitTestResult?
-    hitTestBlock = @session.view.getViewNodeFor hitTestResult
-    str = hitTestResult.stringifyInPlace()
+  until head is seek
+    if head.type in ['blockStart', 'buttonContainerStart']
+      viewNode = @session.view.getViewNodeFor(head.container)
+      result = head.container
 
-    if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'add-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ### TODO
-    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'subtract-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ###
+      for key, button of viewNode.buttonRects
+        if button.contains mainPoint
+          str = result.stringifyInPlace()
+          line = @session.mode.handleButton str, key, result #.getReader() # TODO getReader() that allows tree walking
+          if line?.length >= 0 and line isnt str
+            @undoCapture()
+            @populateBlock result, line
+            @redrawMain()
+          state.consumedHitTest = true
+
+          return
+
+      if viewNode.path.contains mainPoint
+        seek = head.container.end
+
+    head = head.next
+
+  # If we had a child hit, return it.
+  return result
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -1504,7 +1512,7 @@ hook 'mousemove', 1, (point, event, state) ->
         if head is @draggingBlock.start
           head = @draggingBlock.end
 
-        if head instanceof model.StartToken
+        if head instanceof model.StartToken and head.type isnt 'buttonContainerStart'
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
             dropPoint = @session.view.getViewNodeFor(head.container).dropPoint
@@ -2523,7 +2531,10 @@ Editor::populateSocket = (socket, string) ->
     @spliceIn (new model.List(first, last)), socket.start
 
 Editor::populateBlock = (block, string) ->
-  newBlock = @session.mode.parse(string, wrapAtRoot: false).start.next.container
+  newBlock = @session.mode.parse(string, {
+    context: block.parseContext
+    wrapAtRoot: false
+  }).start.next.container
   if newBlock
     # Find the first token before the block
     # that will still be around after the
