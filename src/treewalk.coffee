@@ -249,6 +249,11 @@ exports.createTreewalkParser = (parse, config, root) ->
          'translationUnit' in parseClasses(block)
         return helper.ENCOURAGE
 
+      # Python-specific?
+      if 'small_stmt' in parseClasses(block) or
+         'compound_stmt' in parseClasses(block)
+        return helper.ENCOURAGE
+
       return helper.DISCOURAGE
 
     return helper.DISCOURAGE
