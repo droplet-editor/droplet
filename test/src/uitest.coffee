@@ -589,6 +589,153 @@ asyncTest 'Controller: remembered sockets', ->
     )
   ]
 
+asyncTest 'Controller: floating blocks with remembered sockets', ->
+  document.getElementById('test-main').innerHTML = ''
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    modeOptions:
+      functions:
+        fd: {command: true, value: true}
+    palette: [
+      {
+        name: 'Blocks'
+        blocks: [
+          {block: 'a is b'}
+          {block: 'fd 10'}
+          {block: 'bk 10'}
+          {block: '''
+          for i in [0..10]
+            ``
+          '''}
+          {block: '''
+          if a is b
+            ``
+          '''}
+        ]
+      }
+    ]
+  })
+
+  editor.setEditorState(true)
+  editor.setValue('''
+  fd 10
+  fd 20
+  fd 30
+  ''')
+
+  executeAsyncSequence [
+    (->
+      pickUpLocation editor, 0, {
+        row: 0
+        col: 0
+        type: 'block'
+      }
+
+      # Create a floating block
+      simulate('mousemove', editor.dragCover, {
+        location: editor.dropletElement,
+        dx: 600 + 5 + editor.gutter.clientWidth,
+        dy: 10 + 5
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: 600 + 5 + editor.gutter.clientWidth,
+        dy: 10 + 5
+      })
+    ), (->
+      equal(editor.getValue(), '''
+      fd 20
+      fd 30\n
+      ''')
+
+      equal(editor.session.floatingBlocks.length, 1)
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 0
+        col: 0
+        type: 'block'
+      }
+
+      simulate('mousemove', editor.dragCover, {
+        location: editor.dropletElement,
+        dx: 450 + 5 + editor.gutter.clientWidth,
+        dy: 10 + 5
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: 450 + 5 + editor.gutter.clientWidth,
+        dy: 10 + 5
+      })
+    ), (->
+      equal(editor.session.floatingBlocks.length, 2)
+      equal(editor.getValue(), '''
+      fd 30\n
+      ''')
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 0
+        col: 0
+        type: 'block'
+      }
+      # Drop in floating block
+      dropLocation editor, 2, {
+        row: 0
+        col: 3
+        type: 'socket'
+      }
+    ), (->
+      equal(editor.session.floatingBlocks[1].block.stringify(), '''
+      fd fd 30
+      ''')
+    ), (->
+      # Move a block from floating block 1 to 2 so as to destroy floating block 1,
+      # potentially messing up the undo stack
+      pickUpLocation editor, 1, {
+        row: 0
+        col: 0
+        type: 'block'
+      }
+      # Drop in floating block
+      dropLocation editor, 2, {
+        row: 0
+        col: 6
+        type: 'socket'
+      }
+    ), (->
+      equal(editor.session.floatingBlocks.length, 1)
+      equal(editor.session.floatingBlocks[0].block.stringify(), '''
+      fd fd fd 10
+      ''')
+    ), (->
+      editor.undo()
+    ), (->
+      # Ensure that the undo worked
+      equal(editor.session.floatingBlocks.length, 2)
+      equal(editor.session.floatingBlocks[0].block.stringify(), '''
+      fd 10
+      ''')
+      equal(editor.session.floatingBlocks[1].block.stringify(), '''
+      fd fd 30
+      ''')
+    ), (->
+      editor.undo()
+    ), (->
+      # Ensure that the undo worked
+      equal(editor.session.floatingBlocks.length, 2)
+      equal(editor.session.floatingBlocks[0].block.stringify(), '''
+      fd 10
+      ''')
+      equal(editor.session.floatingBlocks[1].block.stringify(), '''
+      fd 20
+      ''')
+      equal(editor.getValue(), '''
+      fd 30\n
+      ''')
+
+      start()
+    )
+  ]
+
 asyncTest 'Controller: Quoted string selection', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
