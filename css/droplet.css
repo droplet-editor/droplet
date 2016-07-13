@@ -9,6 +9,8 @@
   margin-top: -2px;
   margin-left: -1px;
   opacity: 0.85;
+  -webkit-filter: drop-shadow( 5px 5px 5px #888 );
+  filter: drop-shadow( 5px 5px 5px #888 ); /* Same syntax as box-shadow */
 }
 .droplet-palette-canvas {
   z-index: 1;
@@ -135,14 +137,16 @@
 
 .droplet-hidden-input {
   position: absolute;
-  z-index: -999;
-  opacity: 0;
+  top: 0px;
+  left: 0px;
   -webkit-touch-callout: none;
   width: 1px;
   height: 1px;
   padding: 0;
   border: 0;
   margin: 0;
+  z-index: -1;
+  opacity: 0;
 }
 .droplet-hover-div {
   position: absolute;
@@ -191,10 +195,14 @@
   position: absolute;
   top: 0; bottom: 0; right: 0; left: 0;
   z-index: 9999;
+  cursor: -webkit-grabbing;
+  cursor: -moz-grabbing;
+  cursor: grabbing;
 }
 .droplet-transitioning-element {
   position: absolute;
   white-space: pre;
+  vertical-align: text-top;
   z-index: 256;
 }
 .droplet-transitioning-gutter {
@@ -313,4 +321,70 @@
   letter-spacing: normal;
   pointer-events: none;
 }
+text {
+  white-space: pre;
+  pointer-events: none;
+}
+.droplet-block-path {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
+.droplet-socket-path {
+  cursor: text;
+}
+.droplet-main-canvas text {
+  fill: #000;
+}
+/*
+.droplet-block-path:hover ~ text {
+  fill: #000;
+}
+*/
+.droplet-block-path:hover .droplet-background-path {/*
+  stroke: #FF0;
+  stroke-width: 2px;
+  stroke-alignment: inner;*/
+  /*filter: url(#saturate);*/
+}/*
+.droplet-block-path:hover .droplet-light-bevel-path, .droplet-block-path:hover .droplet-dark-bevel-path {
+  fill: #FF0;
+}*/
+.droplet-palette-canvas .droplet-socket-path {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
+.droplet-palette-canvas>g:hover>.droplet-block-path>.droplet-light-bevel-path, .droplet-palette-canvas>g:hover>.droplet-block-path>.droplet-dark-bevel-path {
+  fill: #FF0;
+}
 
+.droplet-palette-canvas>g:hover>.droplet-block-path>.droplet-background-path {
+  stroke: #FF0;
+  stroke-width: 2px;
+}
+
+.droplet-cursor-path {
+  cursor: text;
+}
+.droplet-floating-container {
+  cursor: -webkit-grab;
+  cursor: -moz-grab;
+  cursor: grab;
+}
+.droplet-dropdown-arrow, .droplet-button-path {
+  cursor: pointer;
+}
+.droplet-socket-path {
+  /*fill: #FFF;*/
+}
+.droplet-empty-socket-path {
+  opacity: 0;
+}
+.droplet-empty-socket-path:hover {
+  opacity: 1;
+}
+.droplet-socket-selected {
+  fill: '#88F'
+  stroke: '#88F'
+}

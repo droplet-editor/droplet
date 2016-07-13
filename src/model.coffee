@@ -112,6 +112,8 @@ exports.List = class List
     @id = ++_id
     @type = 'list'
 
+  hasParent: (x) -> false
+
   contains: (token) ->
     if token instanceof Container
       token = token.start

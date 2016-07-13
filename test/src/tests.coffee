@@ -191,7 +191,7 @@ asyncTest 'View: sockets caching', ->
   view_ = new view.View()
 
   document = coffee.parse '''
-  for i in [[[]]]
+  for i in a()()()
     alert 10
   '''
 
@@ -200,10 +200,10 @@ asyncTest 'View: sockets caching', ->
 
   socketView = view_.getViewNodeFor getNthToken(document, 8).container
 
-  strictEqual socketView.model.stringify(), '[[[]]]', 'Correct block selected'
+  strictEqual socketView.model.stringify(), 'a()()()', 'Correct block selected'
 
   strictEqual socketView.dimensions[0].height,
-    view_.opts.textHeight + 6 * view_.opts.padding,
+    view_.opts.textHeight + 6 * view_.opts.padding + 2 * view_.opts.textPadding,
     'Original height is O.K.'
 
   document.remove (block = getNthToken(document, 9).container)
@@ -233,7 +233,7 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   strictEqual testedBlockView.dimensions[0].height,
     2 * view_.opts.textPadding +
     1 * view_.opts.textHeight +
-    8 * view_.opts.padding -
+    10 * view_.opts.padding -
     1 * view_.opts.indentTongueHeight, 'Original height O.K.'
 
   block = document.getBlockOnLine 1
@@ -257,7 +257,7 @@ asyncTest 'View: bottomLineSticksToTop bug', ->
   strictEqual testedBlockView.dimensions[0].height,
     2 * view_.opts.textPadding +
     1 * view_.opts.textHeight +
-    8 * view_.opts.padding -
+    10 * view_.opts.padding -
     1 * view_.opts.indentTongueHeight, 'Dragging other block in works'
   start()
 
@@ -343,9 +343,11 @@ asyncTest 'View: indent carriage arrow', ->
 
   strictEqual blockView.dropPoint.x, view_.opts.indentWidth, 'Drop point is on the left'
   strictEqual blockView.dropPoint.y,
-    1 * view_.opts.textHeight +
-    4 * view_.opts.padding +
-    2 * view_.opts.textPadding, 'Drop point is further down'
+    Math.max(
+      1 * view_.opts.textHeight +
+      3 * view_.opts.padding +
+      2 * view_.opts.textPadding,
+    ), 'Drop point is further down'
 
   indent = block.start.prev.container
   indentView = view_.getViewNodeFor indent
@@ -694,13 +696,16 @@ asyncTest 'Controller: arbitrary row/column marking', ->
     prompt 10 / 10
   '''
 
-  key = editor.mark {row: 2, col: 4}, {color: '#F00'}
+  equal editor.session.tree.getFromTextLocation({row: 2, col: 9, type: 'block'}).stringify(), '10 - 10', 'Selected the right block'
 
-  strictEqual editor.session.markedBlocks[key].model.stringify({}), '10 - 10'
-  strictEqual editor.session.markedBlocks[key].style.color, '#F00'
+  before = $('[stroke=#F00]').length
 
-  editor.unmark key
-  ok key not of editor.session.markedBlocks
+  key = editor.mark {row: 2, col: 9, type: 'block'}, {color: '#F00'}
+
+  after = $('[stroke=#F00]').length
+
+  ok after > before, 'Added a red mark'
+
   start()
 
 asyncTest 'Controller: dropdown menus', ->
