@@ -130,8 +130,8 @@ class Session
     @dragView = new view.View _drag, helper.extend {}, standardViewSettings, @options.viewSettings ? {}
 
     # ## Document initialization
-    # We start of with an empty document
-    @tree = new model.Document()
+    # We start off with an empty document
+    @tree = new model.Document(@rootContext)
 
     # Line markings
     @markedLines = {}
@@ -1878,6 +1878,8 @@ Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDo
 # blocks without a highlight.
 hook 'mouseup', 0, (point, event, state) ->
   if @draggingBlock? and not @lastHighlight? and not @dragReplacing
+    oldParent = @draggingBlock.parent
+
     # Before we put this block into our list of floating blocks,
     # we need to figure out where on the main canvas
     # we are going to render it.
@@ -1922,7 +1924,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    newDocument = new model.Document({roundedSingletons: true})
+    newDocument = new model.Document(oldParent?.parseContext ? @session.mode.rootContext, {roundedSingletons: true})
     newDocument.insert newDocument.start, @draggingBlock
     @pushUndo new FloatingOperation @session.floatingBlocks.length, newDocument, renderPoint, 'create'
 
