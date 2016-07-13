@@ -130,8 +130,8 @@ class Session
     @dragView = new view.View _drag, helper.extend {}, standardViewSettings, @options.viewSettings ? {}
 
     # ## Document initialization
-    # We start of with an empty document
-    @tree = new model.Document()
+    # We start off with an empty document
+    @tree = new model.Document(@rootContext)
 
     # Line markings
     @markedLines = {}
@@ -1886,6 +1886,8 @@ Editor::inDisplay = (block) -> (block.container ? block).getDocument() in @getDo
 # blocks without a highlight.
 hook 'mouseup', 0, (point, event, state) ->
   if @draggingBlock? and not @lastHighlight? and not @dragReplacing
+    oldParent = @draggingBlock.parent
+
     # Before we put this block into our list of floating blocks,
     # we need to figure out where on the main canvas
     # we are going to render it.
@@ -1930,7 +1932,7 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    newDocument = new model.Document({roundedSingletons: true})
+    newDocument = new model.Document(oldParent?.parseContext ? @session.mode.rootContext, {roundedSingletons: true})
     newDocument.insert newDocument.start, @draggingBlock
     @pushUndo new FloatingOperation @session.floatingBlocks.length, newDocument, renderPoint, 'create'
 
@@ -1968,6 +1970,10 @@ Editor::performFloatingOperation = (op, direction) ->
     if @session.cursor.document > op.index
       @session.cursor.document += 1
 
+    for socket in @session.rememberedSockets
+      if socket.socket.document > op.index
+        socket.socket.document += 1
+
     @session.floatingBlocks.splice op.index, 0, record = new FloatingBlockRecord(
       op.block.clone()
       op.position
@@ -1979,6 +1985,10 @@ Editor::performFloatingOperation = (op, direction) ->
     # put it back in the main tree.
     if @session.cursor.document is op.index + 1
       @setCursor @session.tree.start
+
+    for socket in @session.rememberedSockets
+      if socket.socket.document > op.index + 1
+        socket.socket.document -= 1
 
     @session.floatingBlocks.splice op.index, 1
 

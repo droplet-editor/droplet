@@ -274,14 +274,19 @@ exports.createTreewalkParser = (parse, config, root) ->
       if context.parseContext in parseClasses(block)
         return helper.ENCOURAGE
 
+      # Check to see if we could paren-wrap this
+      if config.PAREN_RULES? and context.parseContext of config.PAREN_RULES
+        for m in parseClasses(block)
+          if m of config.PAREN_RULES[context.parseContext]
+            return helper.ENCOURAGE
+
       return helper.DISCOURAGE
 
     else if context.type is 'document'
       if '__comment__' in block.classes
         return helper.ENCOURAGE
 
-      if 'externalDeclaration' in parseClasses(block) or
-         'translationUnit' in parseClasses(block)
+      if context.parseContext in parseClasses(block)
         return helper.ENCOURAGE
 
       return helper.DISCOURAGE
@@ -298,7 +303,6 @@ exports.createTreewalkParser = (parse, config, root) ->
       else
         return
 
-
     # If we already match types, we're fine
     for c in parseClasses(context)
       if c in parseClasses(node)
@@ -313,13 +317,16 @@ exports.createTreewalkParser = (parse, config, root) ->
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
   TreewalkParser.empty = config.empty
 
+  TreewalkParser.rootContext = root
+
   return TreewalkParser
 
 PARSE_PREFIX = "__parse__"
 PAREN_PREFIX = "__paren__"
+
 padRules = (wrap, rules) ->
   if wrap?
     return wrap.map((x) -> PARSE_PREFIX + x).concat rules.map((x) -> PAREN_PREFIX + x)
   else
     rules.map (x) -> PARSE_PREFIX + x
-parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..])
+parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..]).concat(node.parseContext)
