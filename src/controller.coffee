@@ -1962,6 +1962,10 @@ Editor::performFloatingOperation = (op, direction) ->
     if @session.cursor.document > op.index
       @session.cursor.document += 1
 
+    for socket in @session.rememberedSockets
+      if socket.socket.document > op.index
+        socket.socket.document += 1
+
     @session.floatingBlocks.splice op.index, 0, record = new FloatingBlockRecord(
       op.block.clone()
       op.position
@@ -1973,6 +1977,10 @@ Editor::performFloatingOperation = (op, direction) ->
     # put it back in the main tree.
     if @session.cursor.document is op.index + 1
       @setCursor @session.tree.start
+
+    for socket in @session.rememberedSockets
+      if socket.socket.document > op.index + 1
+        socket.socket.document -= 1
 
     @session.floatingBlocks.splice op.index, 1
 
