@@ -191,6 +191,8 @@ exports.createTreewalkParser = (parse, config, root) ->
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
         if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
+          if rules[0] is 'unaryExpression'
+            debugger
           @addSocket
             bounds: node.bounds
             depth: depth
