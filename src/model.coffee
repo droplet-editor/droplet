@@ -1079,6 +1079,8 @@ exports.Socket = class Socket extends Container
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
+    }\" parseContext=\"#{
+      @parseContext
     }\" handwritten=\"#{
       @handwritten
     }\" #{
@@ -1139,7 +1141,7 @@ exports.DocumentEndToken = class DocumentEndToken extends EndToken
   serialize: -> "</document>"
 
 exports.Document = class Document extends Container
-  constructor: (@opts = {}, @indentContext = null) ->
+  constructor: (@indentContext, @opts = {}) ->
     @start = new DocumentStartToken this
     @end = new DocumentEndToken this
 

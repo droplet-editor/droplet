@@ -131,7 +131,7 @@ class Session
 
     # ## Document initialization
     # We start of with an empty document
-    @tree = new model.Document()
+    @tree = new model.Document(@mode.rootContext)
 
     # Line markings
     @markedLines = {}
@@ -1192,11 +1192,14 @@ Editor::prepareNode = (node, context) ->
     else
       trailing = node.getTrailingText()
 
-    [leading, trailing] = @session.mode.parens leading, trailing, node.getReader(),
-      context?.getReader?() ? null
+    [leading, trailing, parseContext] = @session.mode.parens(
+      leading, trailing,
+      node.getReader(), context?.getReader?() ? null
+    )
 
     node.setLeadingText leading; node.setTrailingText trailing
 
+    node.parseContext = parseContext
 
 # At population-time, we will
 # want to set up a few fields.
@@ -1921,7 +1924,10 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    newDocument = new model.Document({roundedSingletons: true})
+    newDocument = new model.Document(
+      (@draggingBlock.parent?.indentContext ? @draggingBlock.parseContext),
+      {roundedSingletons: true}
+    )
     newDocument.insert newDocument.start, @draggingBlock
     @pushUndo new FloatingOperation @session.floatingBlocks.length, newDocument, renderPoint, 'create'
 

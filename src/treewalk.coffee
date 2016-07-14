@@ -49,35 +49,27 @@ exports.createTreewalkParser = (parse, config, root) ->
 
     detNode: (node) -> if node.blockified then 'block' else @det(node)
 
-    getColor: (node, rules) ->
+    getColor: (node) ->
       color = config.COLOR_CALLBACK?(@opts, node)
       if color?
         return color
 
-      # Apply the static rules set given in config
-      rulesSet = {}
-      rules.forEach (el) -> rulesSet[el] = true
+      else if node.type of config.COLOR_RULES
+        return config.COLOR_RULES[node.type]
 
-      for colorRule in config.COLOR_RULES
-        if colorRule[0] of rulesSet
-          return colorRule[1]
-
-      return 'comment'
+      else
+        return 'comment'
 
     getShape: (node, rules) ->
       shape = config.SHAPE_CALLBACK?(@opts, node)
       if shape?
         return shape
 
-      # Apply the static rules set given in config
-      rulesSet = {}
-      rules.forEach (el) -> rulesSet[el] = true
+      else if node.type of config.SHAPE_RULES
+        return config.SHAPE_RULES[node.type]
 
-      for shapeRule in config.SHAPE_RULES
-        if shapeRule[0] of rulesSet
-          return shapeRule[1]
-
-      return helper.ANY_DROP
+      else
+        return helper.ANY_DROP
 
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
@@ -112,8 +104,8 @@ exports.createTreewalkParser = (parse, config, root) ->
             @addBlock
               bounds: bounds
               depth: depth + 1
-              color: @getColor node, rules
-              shape: @getShape node, rules
+              color: @getColor node
+              shape: @getShape node
               parseContext: rules[rules.length - 1]
 
           when 'parens'
@@ -147,8 +139,8 @@ exports.createTreewalkParser = (parse, config, root) ->
               @addBlock
                 bounds: bounds
                 depth: depth + 1
-                color: @getColor node, rules
-                shape: @getShape node, rules
+                color: @getColor node
+                shape: @getShape node
                 parseContext: rules[rules.length - 1]
 
           when 'indent'
@@ -157,8 +149,8 @@ exports.createTreewalkParser = (parse, config, root) ->
               @addBlock
                 bounds: node.bounds
                 depth: depth
-                color: @getColor node, rules
-                shape: @getShape node, rules
+                color: @getColor node
+                shape: @getShape node
                 parseContext: rules[rules.length - 1]
 
               depth += 1
@@ -209,20 +201,43 @@ exports.createTreewalkParser = (parse, config, root) ->
 
   if config.droppabilityGraph?
     droppabilityGraph = new Graph(config.droppabilityGraph)
+    parenGraph = new Graph(config.parenGraph)
+
     TreewalkParser.drop = (block, context, pred) ->
       parseContext = context.indentContext ? context.parseContext
-      if helper.dfs(droppabilityGraph, parseContext, block.parseContext)
+      if helper.dfs(parenGraph, parseContext, block.parseContext)
         return helper.ENCOURAGE
       else
         return helper.FORBID
 
+    TreewalkParser.parens = (leading, trailing, node, context) ->
+      if context is null
+        return [leading, trailing, node.parseContext]
+
+      parseContext = context.indentContext ? context.parseContext
+      if helper.dfs(droppabilityGraph, parseContext, node.parseContext)
+        return [leading, trailing, node.parseContext]
+
+      else
+        path = parenGraph.shortestPath(parseContext, node.parseContext, {reverse: true})
+        console.log 'Paren wrap required in path', path
+        for element, i in path when i > 0
+          if config.PAREN_RULES[path[i]]?[path[i - 1]]?
+
+            console.log 'Applying paren to form', path[i], 'from', path[i - 1]
+
+            [leading, trailing] = config.PAREN_RULES[path[i]][path[i - 1]](leading, trailing, node, context)
+
+            node.parseContext = path[i]
+
+        return [leading, trailing, node.parseContext]
+
   else if config.drop?
     TreewalkParser.drop = config.drop
-
-  # Doesn't yet deal with parens
-  TreewalkParser.parens = (leading, trailing, node, context)->
+    TreewalkParser.parens = config.parens ? ->
 
   TreewalkParser.stringFixer = config.stringFixer
+  TreewalkParser.rootContext = config.rootContext
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
   TreewalkParser.empty = config.empty
 

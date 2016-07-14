@@ -51,78 +51,95 @@ RULES = {
   'Constant': 'socket'
 }
 
-COLOR_RULES = [
-  ['jumpStatement', 'return'] # e.g. `return 0;`
-  ['declaration', 'control'], # e.g. `int a;`
-  ['specialMethodCall', 'command'], # e.g. `a(b);`
-  ['equalityExpression', 'value'] # e.g. `a == b`
-  ['additiveExpression', 'value'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value'], # e.g. `a * b`
-  ['postfixExpression', 'command'], # e.g. `a(b, c);` OR `a++`
-  ['iterationStatement', 'control'], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', 'value'], # e.g. `a < b`
-  ['initDeclarator', 'command'], # e.g. `a = b` when inside `int a = b;`
-  ['blockItemList', 'control'], # List of commands
-  ['compoundStatement', 'control'], # List of commands inside braces
-  ['externalDeclaration', 'control'], # e.g. `int a = b` when global
-  ['structDeclaration', 'command'], # e.g. `struct a { }`
-  ['declarationSpecifier', 'control'], # e.g. `int` when in `int a = b;`
-  ['statement', 'command'], # Any statement, like `return 0;`
-  ['functionDefinition', 'control'], # e.g. `int myMethod() { }`
-  ['expressionStatement', 'command'], # Statement that consists of an expression, like `a = b;`
-  ['expression', 'value'], # Any expression, like `a + b`
-  ['parameterDeclaration', 'command'], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', 'value'], # e.g. `sizeof(a)`
-  ['typeName', 'value'], # e.g. `int`
-  ['initializer', 'value'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value'] # e.g. `(b)a`
-]
+COLOR_RULES = {
+  'jumpStatement': 'return' # e.g. `return 0;`
+  'declaration': 'control', # e.g. `int a;`
+  'specialMethodCall': 'command', # e.g. `a(b);`
+  'equalityExpression': 'value' # e.g. `a == b`
+  'additiveExpression': 'value', # e.g. `a + b`
+  'multiplicativeExpression': 'value', # e.g. `a * b`
+  'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
+  'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  'assignmentExpression': 'command', # e.g. `a = b;` OR `a = b`
+  'relationalExpression': 'value', # e.g. `a < b`
+  'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
+  'blockItemList': 'control', # List of commands
+  'compoundStatement': 'control', # List of commands inside braces
+  'externalDeclaration': 'control', # e.g. `int a = b` when global
+  'structDeclaration': 'command', # e.g. `struct a { }`
+  'declarationSpecifier': 'control', # e.g. `int` when in `int a = b;`
+  'statement': 'command', # Any statement, like `return 0;`
+  'functionDefinition': 'control', # e.g. `int myMethod() { }`
+  'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
+  'expression': 'value', # Any expression, like `a + b`
+  'parameterDeclaration': 'command', # e.g. `int a` when in `int myMethod(int a) { }`
+  'unaryExpression': 'value', # e.g. `sizeof(a)`
+  'typeName': 'value', # e.g. `int`
+  'initializer': 'value', # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
+  'castExpression': 'value' # e.g. `(b)a`
+}
 
-SHAPE_RULES = [
-  ['blockItem', helper.BLOCK_ONLY], # Any statement, like `return 0;`
-  ['expression', helper.VALUE_ONLY], # Any expression, like `a + b`
-  ['postfixExpression', helper.BLOCK_ONLY], # e.g. `a(b, c);` OR `a++`
-  ['equalityExpression', helper.VALUE_ONLY], # e.g. `a == b`
-  ['logicalAndExpression', helper.VALUE_ONLY], # e.g. `a && b`
-  ['logicalOrExpression', helper.VALUE_ONLY], # e.g. `a || b`
-  ['iterationStatement', helper.BLOCK_ONLY], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', helper.BLOCK_ONLY], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', helper.BLOCK_ONLY], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', helper.VALUE_ONLY], # e.g. `a < b`
-  ['initDeclarator', helper.BLOCK_ONLY], # e.g. `a = b` when inside `int a = b;`
-  ['externalDeclaration', helper.BLOCK_ONLY], # e.g. `int a = b` when global
-  ['structDeclaration', helper.BLOCK_ONLY], # e.g. `struct a { }`
-  ['declarationSpecifier', helper.BLOCK_ONLY], # e.g. `int` when in `int a = b;`
-  ['statement', helper.BLOCK_ONLY], # Any statement, like `return 0;`
-  ['functionDefinition', helper.BLOCK_ONLY], # e.g. `int myMethod() { }`
-  ['expressionStatement', helper.BLOCK_ONLY], # Statement that consists of an expression, like `a = b;`
-  ['additiveExpression', helper.VALUE_ONLY], # e.g. `a + b`
-  ['multiplicativeExpression', helper.VALUE_ONLY], # e.g. `a * b`
-  ['declaration', helper.BLOCK_ONLY], # e.g. `int a;`
-  ['parameterDeclaration', helper.BLOCK_ONLY], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', helper.VALUE_ONLY], # e.g. `sizeof(a)`
-  ['typeName', helper.VALUE_ONLY], # e.g. `int`
-  ['initializer', helper.VALUE_ONLY], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', helper.VALUE_ONLY] # e.g. `(b)a`
-]
+SHAPE_RULES = {
+  'blockItem': helper.BLOCK_ONLY, # Any statement, like `return 0;`
+  'expression': helper.VALUE_ONLY, # Any expression, like `a + b`
+  'postfixExpression': helper.BLOCK_ONLY, # e.g. `a(b, c);` OR `a++`
+  'equalityExpression': helper.VALUE_ONLY, # e.g. `a == b`
+  'logicalAndExpression': helper.VALUE_ONLY, # e.g. `a && b`
+  'logicalOrExpression': helper.VALUE_ONLY, # e.g. `a || b`
+  'iterationStatement': helper.BLOCK_ONLY, # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': helper.BLOCK_ONLY, # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  'assignmentExpression': helper.BLOCK_ONLY, # e.g. `a = b;` OR `a = b`
+  'relationalExpression': helper.VALUE_ONLY, # e.g. `a < b`
+  'initDeclarator': helper.BLOCK_ONLY, # e.g. `a = b` when inside `int a = b;`
+  'externalDeclaration': helper.BLOCK_ONLY, # e.g. `int a = b` when global
+  'structDeclaration': helper.BLOCK_ONLY, # e.g. `struct a { }`
+  'declarationSpecifier': helper.BLOCK_ONLY, # e.g. `int` when in `int a = b;`
+  'statement': helper.BLOCK_ONLY, # Any statement, like `return 0;`
+  'functionDefinition': helper.BLOCK_ONLY, # e.g. `int myMethod() { }`
+  'expressionStatement': helper.BLOCK_ONLY, # Statement that consists of an expression, like `a = b;`
+  'additiveExpression': helper.VALUE_ONLY, # e.g. `a + b`
+  'multiplicativeExpression': helper.VALUE_ONLY, # e.g. `a * b`
+  'declaration': helper.BLOCK_ONLY, # e.g. `int a;`
+  'parameterDeclaration': helper.BLOCK_ONLY, # e.g. `int a` when in `int myMethod(int a) { }`
+  'unaryExpression': helper.VALUE_ONLY, # e.g. `sizeof(a)`
+  'typeName': helper.VALUE_ONLY, # e.g. `int`
+  'initializer': helper.VALUE_ONLY, # e.g. `{a, b, c}` when in `int x[ = {a, b, c};`
+  'castExpression': helper.VALUE_ONLY # e.g. `(b)a`
+}
 
 config = {
   RULES, COLOR_RULES, SHAPE_RULES
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
-  leading '(' + leading()
-  trailing trailing() + ')'
+  leading = '(' + leading
+  trailing = trailing + ')'
+
+  return [leading, trailing]
+
+ADD_SEMICOLON = (leading, trailing, node, context) ->
+  while leading.match(/^\s*\(/) and trailing.match(/\)\s*$/)
+    leading = leading.replace /^\s*\(/, ''
+    trailing = trailing.replace /\)\s*$/, ''
+  trailing = trailing + ';'
+
+  return [leading, trailing]
+
+REMOVE_SEMICOLON = (leading, trailing, node, context) ->
+  trailing = trailing.replace /\s*;\s*$/, ''
+
+  return [leading, trailing]
 
 config.PAREN_RULES = {
   'primaryExpression': {
     'expression': ADD_PARENS
-    'additiveExpression': ADD_PARENS
-    'multiplicativeExpression': ADD_PARENS
-    'assignmentExpression': ADD_PARENS
-    'postfixExpression': ADD_PARENS
+  },
+  'expressionStatement': {
+    'expression': ADD_SEMICOLON
+  }
+  'expression': {
+    'expressionStatement': REMOVE_SEMICOLON
   }
 }
 
@@ -285,15 +302,7 @@ config.stringFixer = (string) ->
 
 config.empty = '__0_droplet__'
 config.emptyIndent = ''
-
-# TODO Implement removing parentheses at some point
-#config.unParenWrap = (leading, trailing, node, context) ->
-#  while true
-#   if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-#     leading leading().replace(/^\s*\(\s*/, '')
-#      trailing trailing().replace(/\s*\)\s*$/, '')
-#    else
-#      break
+config.rootContext = 'translationUnit'
 
 # DEBUG
 config.unParenWrap = null

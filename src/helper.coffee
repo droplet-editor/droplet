@@ -251,9 +251,13 @@ exports.PairDict = class PairDict
     return false
 
 dfs = (graph, a, b, visited = {}) ->
+  if visited[a]
+    return false
+  visited[a] = true
+
   if a is b
     return true
-  visited[a] = true
+
   for out_edge of graph.vertices[a]
     if dfs(graph, out_edge, b, visited)
       return true

@@ -95,6 +95,8 @@ exports.Parser = class Parser
   #   parenWrapped: Boolean
   # }
   addBlock: (opts) ->
+    unless opts.parseContext?
+      debugger
     block = new model.Block opts.precedence,
       opts.color,
       opts.shape,
@@ -326,7 +328,7 @@ exports.Parser = class Parser
 
     indentDepth = 0
     stack = []
-    document = new model.Document(); head = document.start
+    document = new model.Document(@rootContext); head = document.start
 
     currentlyCommented = false
 
@@ -639,6 +641,7 @@ exports.wrapParser = (CustomParser) ->
       @emptyIndent = CustomParser.emptyIndent
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
+      @rootContext = CustomParser.rootContext
       @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
 
@@ -650,6 +653,7 @@ exports.wrapParser = (CustomParser) ->
       parser.endComment = @endComment
       parser.empty = @empty
       parser.emptyIndent = @emptyIndent
+      parser.rootContext = @rootContext
       return parser
 
     stringFixer: (string) ->
@@ -664,26 +668,7 @@ exports.wrapParser = (CustomParser) ->
       return @createParser(text)._parse opts
 
     parens: (leading, trailing, node, context) ->
-      # leadingFn is always a getter/setter for leading
-      leadingFn = (value) ->
-        if value?
-          leading = value
-        return leading
-
-      # trailingFn may either get/set leading or trailing;
-      # will point to leading if leading is the only token,
-      # but will point to trailing otherwise.
-      if trailing?
-        trailingFn = (value) ->
-          if value?
-            trailing = value
-          return trailing
-      else
-        trailingFn = leadingFn
-
-      CustomParser.parens leadingFn, trailingFn, node, context
-
-      return [leading, trailing]
+      return CustomParser.parens leading, trailing, node, context
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 

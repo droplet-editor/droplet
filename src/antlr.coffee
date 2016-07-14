@@ -101,10 +101,16 @@ exports.createANTLRParser = (name, config, root) ->
   droppabilityGraph = ANTLR_PARSER_COLLECTION["#{name}DroppabilityGraph"]
   if droppabilityGraph?
     config.droppabilityGraph = {}
+    config.parenGraph = {}
     for rule, edges of droppabilityGraph
       config.droppabilityGraph[rule] ={}
+      config.parenGraph[rule] = {}
       for outEdge in edges when outEdge isnt 0
-        config.droppabilityGraph[rule][outEdge] = 1
-  console.log 'set droppability graph', droppabilityGraph
+        config.droppabilityGraph[rule][outEdge] = 0
+        config.parenGraph[rule][outEdge] = 0
+
+    for dest of config.PAREN_RULES
+      for source of config.PAREN_RULES[dest]
+        config.parenGraph[dest][source] = 1
 
   return treewalk.createTreewalkParser parse, config, root
