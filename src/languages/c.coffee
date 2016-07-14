@@ -81,31 +81,31 @@ COLOR_RULES = [
 ]
 
 SHAPE_RULES = [
-  ['blockItem', 'block-only'], # Any statement, like `return 0;`
-  ['expression', 'value-only'], # Any expression, like `a + b`
-  ['postfixExpression', 'block-only'], # e.g. `a(b, c);` OR `a++`
-  ['equalityExpression', 'value-only'], # e.g. `a == b`
-  ['logicalAndExpression', 'value-only'], # e.g. `a && b`
-  ['logicalOrExpression', 'value-only'], # e.g. `a || b`
-  ['iterationStatement', 'block-only'], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', 'value-only'], # e.g. `a < b`
-  ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
-  ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
-  ['structDeclaration', 'block-only'], # e.g. `struct a { }`
-  ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
-  ['statement', 'block-only'], # Any statement, like `return 0;`
-  ['functionDefinition', 'block-only'], # e.g. `int myMethod() { }`
-  ['expressionStatement', 'block-only'], # Statement that consists of an expression, like `a = b;`
-  ['additiveExpression', 'value-only'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value-only'], # e.g. `a * b`
-  ['declaration', 'block-only'], # e.g. `int a;`
-  ['parameterDeclaration', 'block-only'], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', 'value-only'], # e.g. `sizeof(a)`
-  ['typeName', 'value-only'], # e.g. `int`
-  ['initializer', 'value-only'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value-only'] # e.g. `(b)a`
+  ['blockItem', helper.BLOCK_ONLY], # Any statement, like `return 0;`
+  ['expression', helper.VALUE_ONLY], # Any expression, like `a + b`
+  ['postfixExpression', helper.BLOCK_ONLY], # e.g. `a(b, c);` OR `a++`
+  ['equalityExpression', helper.VALUE_ONLY], # e.g. `a == b`
+  ['logicalAndExpression', helper.VALUE_ONLY], # e.g. `a && b`
+  ['logicalOrExpression', helper.VALUE_ONLY], # e.g. `a || b`
+  ['iterationStatement', helper.BLOCK_ONLY], # e.g. `for (int i = 0; i < 10; i++) { }`
+  ['selectionStatement', helper.BLOCK_ONLY], # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  ['assignmentExpression', helper.BLOCK_ONLY], # e.g. `a = b;` OR `a = b`
+  ['relationalExpression', helper.VALUE_ONLY], # e.g. `a < b`
+  ['initDeclarator', helper.BLOCK_ONLY], # e.g. `a = b` when inside `int a = b;`
+  ['externalDeclaration', helper.BLOCK_ONLY], # e.g. `int a = b` when global
+  ['structDeclaration', helper.BLOCK_ONLY], # e.g. `struct a { }`
+  ['declarationSpecifier', helper.BLOCK_ONLY], # e.g. `int` when in `int a = b;`
+  ['statement', helper.BLOCK_ONLY], # Any statement, like `return 0;`
+  ['functionDefinition', helper.BLOCK_ONLY], # e.g. `int myMethod() { }`
+  ['expressionStatement', helper.BLOCK_ONLY], # Statement that consists of an expression, like `a = b;`
+  ['additiveExpression', helper.VALUE_ONLY], # e.g. `a + b`
+  ['multiplicativeExpression', helper.VALUE_ONLY], # e.g. `a * b`
+  ['declaration', helper.BLOCK_ONLY], # e.g. `int a;`
+  ['parameterDeclaration', helper.BLOCK_ONLY], # e.g. `int a` when in `int myMethod(int a) { }`
+  ['unaryExpression', helper.VALUE_ONLY], # e.g. `sizeof(a)`
+  ['typeName', helper.VALUE_ONLY], # e.g. `int`
+  ['initializer', helper.VALUE_ONLY], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
+  ['castExpression', helper.VALUE_ONLY] # e.g. `(b)a`
 ]
 
 config = {

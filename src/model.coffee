@@ -370,7 +370,7 @@ exports.List = class List
     return @end.next in [@parent?.end, @parent?.parent?.end, null] or
       @end.next?.type in ['newline', 'indentStart', 'indentEnd']
 
-  getReader: -> {type: 'document', classes: []}
+  getReader: -> {type: 'document', indentContext: @indentContext}
 
   setParent: (parent) ->
     traverseOneLevel @start, ((head)->
@@ -504,7 +504,8 @@ exports.Container = class Container extends List
       id: @id
       type: @type
       precedence: @precedence
-      classes: @classes
+      shape: @shape
+      indentContext: @indentContext
       parseContext: @parseContext
     }
 
@@ -983,7 +984,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}) ->
+  constructor: (@precedence = 0, @color = 'blank', @shape = helper.ANY_DROP, @parseContext, @buttons = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -1001,16 +1002,16 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons
+    clone = new Block @precedence, @color, @shape, @parseContext, @buttons
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
 
   _serialize_header: -> "<block precedence=\"#{
     @precedence}\" color=\"#{
-    @color}\" socketLevel=\"#{
-    @socketLevel}\" classes=\"#{
-    @classes?.join?(' ') ? ''}\"
+    @color}\" shape=\"#{
+    @shape}\" parseContext=\"#{
+    @parseContext}\"
   >"
   _serialize_footer: -> "</block>"
 
@@ -1047,9 +1048,6 @@ exports.Socket = class Socket extends Container
       # This determines whether it can be deleted again by pressing delete when the socket is empty.
       @handwritten = false,
 
-      # @classes -- passed to mode callbacks for droppability and parentheses callbacks
-      @classes = [],
-
       # @dropdown -- dropdown options, if they exist
       @dropdown = null,
 
@@ -1077,15 +1075,13 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown, @parseContext
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @dropdown, @parseContext
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
     }\" handwritten=\"#{
       @handwritten
-    }\" classes=\"#{
-      @classes?.join?(' ') ? ''
-    }\"#{
+    }\" #{
       if @dropdown?
         " dropdown=\"#{@dropdown?.join?(' ') ? ''}\""
       else ''
@@ -1110,7 +1106,7 @@ exports.IndentEndToken = class IndentEndToken extends EndToken
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@emptyString, @prefix = '', @classes = [], @parseContext = null) ->
+  constructor: (@emptyString, @prefix = '', @indentContext = null) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -1120,13 +1116,13 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes, @parseContext
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @indentContext
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<indent prefix=\"#{
     @prefix
-  }\" classes=\"#{
-    @classes?.join?(' ') ? ''
+  }\" indentContext=\"#{
+    @indentContext
   }\">"
   _serialize_footer: -> "</indent>"
 
@@ -1143,10 +1139,9 @@ exports.DocumentEndToken = class DocumentEndToken extends EndToken
   serialize: -> "</document>"
 
 exports.Document = class Document extends Container
-  constructor: (@opts = {}) ->
+  constructor: (@opts = {}, @indentContext = null) ->
     @start = new DocumentStartToken this
     @end = new DocumentEndToken this
-    @classes = ['__document__']
 
     @type = 'document'
 

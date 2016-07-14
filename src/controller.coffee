@@ -1192,7 +1192,7 @@ Editor::prepareNode = (node, context) ->
     else
       trailing = node.getTrailingText()
 
-    [leading, trailing, classes] = @session.mode.parens leading, trailing, node.getReader(),
+    [leading, trailing] = @session.mode.parens leading, trailing, node.getReader(),
       context?.getReader?() ? null
 
     node.setLeadingText leading; node.setTrailingText trailing
@@ -1428,8 +1428,7 @@ hook 'mousemove', 1, (point, event, state) ->
       if 'function' is typeof @clickedBlockPaletteEntry.expansion
         # Any block generated from an expansion function should be treated as
         # any-drop because it can change with subsequent expansion() calls.
-        if 'mostly-value' in @draggingBlock.classes
-          @draggingBlock.classes.push 'any-drop'
+        @draggingBlock.shape = helper.ANY_DROP
 
         # Attach expansion() function and lastExpansionText to @draggingBlock.
         @draggingBlock.lastExpansionText = expansion
@@ -1617,8 +1616,8 @@ hook 'mousemove', 0, (point, event, state) ->
         newBlock = parseBlock(@session.mode, expansionText)
         newBlock.lastExpansionText = expansionText
         newBlock.expansion = @draggingBlock.expansion
-        if 'any-drop' in @draggingBlock.classes
-          newBlock.classes.push 'any-drop'
+        newBlock.shape = @draggingBlock.shape
+
         @draggingBlock = newBlock
         @drawDraggingBlock()
 
@@ -3026,7 +3025,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @session.cursor.is(destination)
     socket = @getCursor()
-    if '__comment__' not in socket.classes
+    if '__comment__' isnt socket.parseContext
       @reparse socket, null, (if destination.document is @session.cursor.document then [destination.location] else [])
       @hiddenInput.blur()
       @dropletElement.focus()
@@ -3230,15 +3229,15 @@ hook 'keydown', 0, (event, state) ->
       @dropletElement.focus()
       @setCursor @session.cursor, (token) -> token.type isnt 'socketStart'
       @redrawMain()
-      if '__comment__' in socket.classes and @session.mode.startSingleLineComment
+      if '__comment__' is socket.parseContext and @session.mode.startSingleLineComment
         # Create another single line comment block just below
-        newBlock = new model.Block 0, 'blank', helper.ANY_DROP
-        newBlock.classes = ['__comment__', 'block-only']
+        newBlock = new model.Block 0, 'blank', helper.BLOCK_ONLY
+        newBlock.parseContext = '__comment__'
         newBlock.socketLevel = helper.BLOCK_ONLY
         newTextMarker = new model.TextToken @session.mode.startSingleLineComment
         newTextMarker.setParent newBlock
         newSocket = new model.Socket '', 0, true
-        newSocket.classes = ['__comment__']
+        newSocket.parseContext = '__comment__'
         newSocket.setParent newBlock
 
         helper.connect newBlock.start, newTextMarker

@@ -97,8 +97,7 @@ exports.Parser = class Parser
   addBlock: (opts) ->
     block = new model.Block opts.precedence,
       opts.color,
-      opts.socketLevel,
-      opts.classes,
+      opts.shape,
       opts.parseContext,
       opts.buttons
 
@@ -129,7 +128,6 @@ exports.Parser = class Parser
   addSocket: (opts) ->
     socket = new model.Socket opts.empty ? @empty, opts.precedence,
       false,
-      opts.classes,
       opts.dropdown,
       opts.parseContext
 
@@ -145,7 +143,7 @@ exports.Parser = class Parser
   #   prefix: String
   # }
   addIndent: (opts) ->
-    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes, opts.parseContext
+    indent = new model.Indent @emptyIndent, opts.prefix, opts.indentContext
 
     @addMarkup indent, opts.bounds, opts.depth
 
@@ -223,7 +221,8 @@ exports.Parser = class Parser
     block = new model.Block 0, 'comment', helper.ANY_DROP
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
-      block.classes = ['__comment__', 'block-only']
+      block.shape = helper.BLOCK_ONLY
+      block.parseContext = '__comment__'
 
       head = block.start
 
@@ -238,8 +237,6 @@ exports.Parser = class Parser
         for socketPosition in sockets
           socket = new model.Socket '', 0, true
           socket.setParent block
-
-          socket.classes = ['__comment__']
 
           padText = text[lastPosition...socketPosition[0]]
 
@@ -279,7 +276,7 @@ exports.Parser = class Parser
       textToken = new model.TextToken text
       textToken.setParent socket
 
-      block.classes = ['__handwritten__', 'block-only']
+      block.shape = helper.BLOCK_ONLY
       helper.connect block.start, socket.start
 
       helper.connect socket.start, textToken
@@ -394,7 +391,8 @@ exports.Parser = class Parser
         if line.length is 0 and not placedSomething and stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
-          block.classes = ['__comment__', 'any-drop']
+          block.shape = helper.ANY_DROP
+          block.parseContext = '__comment__'
 
           head = helper.connect head, block.start
           head = helper.connect head, block.end
@@ -540,12 +538,11 @@ exports.parseXML = (xml) ->
     switch node.name
       when 'block'
         container = new model.Block attributes.precedence, attributes.color,
-          attributes.socketLevel, attributes.classes?.split?(' ')
+          attributes.shape, attributes.parseContext
       when 'socket'
-        container = new model.Socket '', attributes.precedence, attributes.handritten,
-          attributes.classes?.split?(' ')
+        container = new model.Socket '', attributes.precedence, attributes.handritten, attributes.parseContext
       when 'indent'
-        container = new model.Indent '', attributes.prefix, attributes.classes?.split?(' ')
+        container = new model.Indent '', attributes.prefix, attributes.indentContext
       when 'document'
         # Root is optional
         unless stack.length is 0

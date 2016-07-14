@@ -6,6 +6,8 @@ helper = require './helper.coffee'
 model = require './model.coffee'
 parser = require './parser.coffee'
 
+Graph = require 'node-dijkstra'
+
 exports.createTreewalkParser = (parse, config, root) ->
   class TreewalkParser extends parser.Parser
     constructor: (@text, @opts = {}) ->
@@ -75,9 +77,9 @@ exports.createTreewalkParser = (parse, config, root) ->
         if shapeRule[0] of rulesSet
           return shapeRule[1]
 
-      return 'any-drop'
+      return helper.ANY_DROP
 
-    mark: (node, prefix, depth, pass, rules, context, wrap, wrapRules) ->
+    mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
         context = node.parent
         while context? and @detNode(context) in ['skip', 'parens']
@@ -85,11 +87,13 @@ exports.createTreewalkParser = (parse, config, root) ->
 
       rules ?= []
       rules = rules.slice 0
-      rules.push node.type
+
+      unless wrap?
+        rules.push node.type
 
       # Pass through to child if single-child
       if node.children.length is 1 and @detNode(node) isnt 'indent'
-        @mark node.children[0], prefix, depth, true, rules, context, wrap, wrapRules
+        @mark node.children[0], prefix, depth, true, rules, context, wrap
 
       else if node.children.length > 0
         switch @detNode node
@@ -103,15 +107,14 @@ exports.createTreewalkParser = (parse, config, root) ->
               @addSocket
                 bounds: bounds
                 depth: depth
-                classes: padRules(wrapRules ? rules)
-                parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+                parseContext: rules[0]
 
             @addBlock
               bounds: bounds
               depth: depth + 1
               color: @getColor node, rules
-              classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
-              parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+              shape: @getShape node, rules
+              parseContext: rules[rules.length - 1]
 
           when 'parens'
             # Parens are assumed to wrap the only child that has children
@@ -124,7 +127,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 else
                   child = el
             if ok
-              @mark child, prefix, depth, true, rules, context, wrap ? node, wrapRules ? rules
+              @mark child, prefix, depth, true, rules, context, wrap ? node
               return
 
             else
@@ -139,15 +142,14 @@ exports.createTreewalkParser = (parse, config, root) ->
                 @addSocket
                   bounds: bounds
                   depth: depth
-                  classes: padRules(wrapRules ? rules)
-                  parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+                  parseContext: rules[0]
 
               @addBlock
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor node, rules
-                classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
-                parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+                shape: @getShape node, rules
+                parseContext: rules[rules.length - 1]
 
           when 'indent'
             # A lone indent needs to be wrapped in a block.
@@ -156,8 +158,8 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: node.bounds
                 depth: depth
                 color: @getColor node, rules
-                classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
-                parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+                shape: @getShape node, rules
+                parseContext: rules[rules.length - 1]
 
               depth += 1
 
@@ -191,8 +193,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth
               prefix: prefix[oldPrefix.length...prefix.length]
-              classes: padRules(wrapRules ? rules)
-              parseContext: @applyRule(config.RULES[node.type], node).indentContext
+              indentContext: @applyRule(config.RULES[node.type], node).indentContext
 
         for child in node.children
           @mark child, prefix, depth + 2, false
@@ -201,75 +202,28 @@ exports.createTreewalkParser = (parse, config, root) ->
           @addSocket
             bounds: node.bounds
             depth: depth
-            classes: padRules(wrapRules ? rules)
-            parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
+            parseContext: rules[0]
 
           if config.empty? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
             @flagToRemove node.bounds, depth + 1
 
-  TreewalkParser.drop = (block, context, pred) ->
-    if context.type is 'socket'
-      if '__comment__' in block.classes
-        return helper.DISCOURAGE
-      for c in parseClasses(context)
-        if c in parseClasses(block)
-          return helper.ENCOURAGE
-
-        # Check to see if we could paren-wrap this
-        if config.PAREN_RULES? and c of config.PAREN_RULES
-          for m in parseClasses(block)
-            if m of config.PAREN_RULES[c]
-              return helper.ENCOURAGE
-      return helper.DISCOURAGE
-
-    else if context.type is 'indent'
-      if '__comment__' in block.classes
+  if config.droppabilityGraph?
+    droppabilityGraph = new Graph(config.droppabilityGraph)
+    TreewalkParser.drop = (block, context, pred) ->
+      parseContext = context.indentContext ? context.parseContext
+      if helper.dfs(droppabilityGraph, parseContext, block.parseContext)
         return helper.ENCOURAGE
+      else
+        return helper.FORBID
 
-      if context.parseContext in parseClasses(block)
-        return helper.ENCOURAGE
-
-      return helper.DISCOURAGE
-
-    else if context.type is 'document'
-      if '__comment__' in block.classes
-        return helper.ENCOURAGE
-
-      if 'externalDeclaration' in parseClasses(block) or
-         'translationUnit' in parseClasses(block)
-        return helper.ENCOURAGE
-
-      return helper.DISCOURAGE
-
-    return helper.DISCOURAGE
-
+  else if config.drop?
+    TreewalkParser.drop = config.drop
 
   # Doesn't yet deal with parens
   TreewalkParser.parens = (leading, trailing, node, context)->
-    # If we're moving to null, remove parens (where possible)
-    unless context?
-      if config.unParenWrap?
-        return config.unParenWrap leading, trailing, node, context
-      else
-        return
-
-
-    # If we already match types, we're fine
-    for c in parseClasses(context)
-      if c in parseClasses(node)
-        return
-
-    # Otherwise, wrap according to the provided rule
-    for c in parseClasses(context) when c of config.PAREN_RULES
-      for m in parseClasses(node) when m of config.PAREN_RULES[c]
-        return config.PAREN_RULES[c][m] leading, trailing, node, context
 
   TreewalkParser.stringFixer = config.stringFixer
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
   TreewalkParser.empty = config.empty
 
   return TreewalkParser
-
-PARSE_PREFIX = "__parse__"
-padRules = (rules) -> rules.map (x) -> "#{PARSE_PREFIX}#{x}"
-parseClasses = (node) -> node.classes.filter((x) -> x[...PARSE_PREFIX.length] is PARSE_PREFIX).map((x) -> x[PARSE_PREFIX.length..])

@@ -250,3 +250,17 @@ exports.PairDict = class PairDict
     @pairs.push [index, value]
     return false
 
+dfs = (graph, a, b, visited = {}) ->
+  console.log 'DFS', a
+  visited[a] = true
+  for out_edge of graph.vertices[a]
+    if out_edge is b
+      console.log 'AND', b
+      console.log '--SUCCESS--'
+      return true
+    else if dfs(graph, out_edge, b, visited)
+      return true
+  console.log '--DEAD END--'
+  return false
+
+exports.dfs = dfs

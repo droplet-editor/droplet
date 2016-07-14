@@ -12,8 +12,11 @@ antlr4 = require 'antlr4'
 ANTLR_PARSER_COLLECTION = {
   'JavaLexer': require('../antlr/JavaLexer'),
   'JavaParser': require('../antlr/JavaParser'),
+
   'CLexer': require('../antlr/CLexer'),
   'CParser': require('../antlr/CParser'),
+  'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),
+
   'jvmBasicLexer': require('../antlr/jvmBasicLexer'),
   'jvmBasicParser': require('../antlr/jvmBasicParser'),
 }
@@ -94,5 +97,14 @@ exports.createANTLRParser = (name, config, root) ->
           column: node.symbol.column + node.symbol.stop - node.symbol.start + 1
         }
       }
+
+  droppabilityGraph = ANTLR_PARSER_COLLECTION["#{name}DroppabilityGraph"]
+  if droppabilityGraph?
+    config.droppabilityGraph = {}
+    for rule, edges of droppabilityGraph
+      config.droppabilityGraph[rule] ={}
+      for outEdge in edges when outEdge isnt 0
+        config.droppabilityGraph[rule][outEdge] = 1
+  console.log 'set droppability graph', droppabilityGraph
 
   return treewalk.createTreewalkParser parse, config, root
