@@ -52,12 +52,15 @@ RULES = {
 }
 
 COLOR_RULES = {
-  'jumpStatement': 'return' # e.g. `return 0;`
+  'jumpStatement': 'return', # e.g. `return 0;`
+  'specifierQualifierList': 'command',# e.g `int a;` when inside `struct {}`
   'declaration': 'control', # e.g. `int a;`
   'specialMethodCall': 'command', # e.g. `a(b);`
   'equalityExpression': 'value' # e.g. `a == b`
   'additiveExpression': 'value', # e.g. `a + b`
   'multiplicativeExpression': 'value', # e.g. `a * b`
+  'logicalAndExpression': 'value', # e.g. `a && b`
+  'logicalOrExpression': 'value', # e.g. `a || b`
   'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
   'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
   'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`

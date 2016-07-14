@@ -206,6 +206,11 @@ exports.createTreewalkParser = (parse, config, root) ->
     parenGraph = new Graph(config.parenGraph)
 
     TreewalkParser.drop = (block, context, pred) ->
+      if block.parseContext is '__comment__' and context.type in ['indent', 'document']
+        return helper.ENCOURAGE
+      else if context.parseContext is '__comment__'
+        return helper.DISCOURAGE
+
       parseContext = context.indentContext ? context.parseContext
       if helper.dfs(parenGraph, parseContext, block.parseContext)
         return helper.ENCOURAGE
@@ -213,7 +218,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         return helper.FORBID
 
     TreewalkParser.parens = (leading, trailing, node, context) ->
-      if context is null
+      if context is null or node.parseContext is '__comment__' or context.parseContext is '__comment__'
         return [leading, trailing, node.parseContext]
 
       parseContext = context.indentContext ? context.parseContext
@@ -222,11 +227,8 @@ exports.createTreewalkParser = (parse, config, root) ->
 
       else
         path = parenGraph.shortestPath(parseContext, node.parseContext, {reverse: true})
-        console.log 'Paren wrap required in path', path
         for element, i in path when i > 0
           if config.PAREN_RULES[path[i]]?[path[i - 1]]?
-
-            console.log 'Applying paren to form', path[i], 'from', path[i - 1]
 
             [leading, trailing] = config.PAREN_RULES[path[i]][path[i - 1]](leading, trailing, node, context)
 
