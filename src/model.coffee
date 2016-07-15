@@ -512,7 +512,6 @@ exports.Container = class Container extends List
     {
       id: @id
       type: @type
-      precedence: @precedence
       shape: @shape
       indentContext: @indentContext
       parseContext: @parseContext
@@ -994,7 +993,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @shape = helper.ANY_DROP, @parseContext = '__comment__', @nodeContext = COMMENT_CONTEXT, @buttons = {}) ->
+  constructor: (@color = 'blank', @shape = helper.ANY_DROP, @parseContext = '__comment__', @nodeContext = COMMENT_CONTEXT, @buttons = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -1012,13 +1011,12 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @shape, @parseContext, @buttons
+    clone = new Block @color, @shape, @parseContext, @nodeContext, @buttons
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
 
-  _serialize_header: -> "<block precedence=\"#{
-    @precedence}\" color=\"#{
+  _serialize_header: -> "<block color=\"#{
     @color}\" shape=\"#{
     @shape}\" parseContext=\"#{
     @parseContext}\" nodeContext=\"#{
@@ -1051,10 +1049,6 @@ exports.Socket = class Socket extends Container
       # used for round-tripping empty sockets
       @emptyString,
 
-      # @precedence -- used to compare with `Block.precedence` to see if a block
-      # can drop in a socket or if it needs parentheses. Not used in ANTLR modes.
-      @precedence = 0,
-
       # @handwritten -- whether this is a socket in a block that was created by pressing Enter in the editor.
       # This determines whether it can be deleted again by pressing delete when the socket is empty.
       @handwritten = false,
@@ -1086,11 +1080,9 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @dropdown, @parseContext
+  _cloneEmpty: -> new Socket @emptyString, @handwritten, @dropdown, @parseContext
 
-  _serialize_header: -> "<socket precedence=\"#{
-      @precedence
-    }\" parseContext=\"#{
+  _serialize_header: -> "<socket parseContext=\"#{
       @parseContext
     }\" handwritten=\"#{
       @handwritten
@@ -1160,10 +1152,10 @@ exports.Document = class Document extends Container
 
     super
 
-  _cloneEmpty: -> new Document(@opts)
+  _cloneEmpty: -> new Document(@indentContext, @opts)
   firstChild: -> return @_firstChild()
 
-  _serialize_header: -> "<document>"
+  _serialize_header: -> "<document indentContext=#{@indentContext}>"
   _serialize_footer: -> "</document>"
 
 

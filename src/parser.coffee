@@ -7,6 +7,18 @@
 helper = require './helper.coffee'
 model = require './model.coffee'
 
+exports.PreNodeContext = class PreNodeContext
+  constructor: (@type, @preParenLength, @postParenLength) ->
+
+  apply: (node) ->
+    trailingText = node.getTrailingText()
+    trailingText = trailingText[0...trailingText.length - @postParenLength]
+
+    leadingText = node.getLeadingText()
+    leadingText = leadingText[@preParenLength...leadingText.length]
+
+    return new model.NodeContext @type, leadingText, trailingText
+
 sax = require 'sax'
 
 _extend = (opts, defaults) ->
@@ -52,10 +64,16 @@ exports.Parser = class Parser
     # Generate a document from the markup
     document = @applyMarkup opts
 
-    @detectParenWrap document
-
     # Correct parent tree
     document.correctParentTree()
+
+    # Add node context annotations from PreNodeContext
+    # annotations
+    head = document.start
+    until head is document.end
+      if head.type is 'blockStart' and head.container._preNodeContext?
+        head.container.nodeContext = head.container._preNodeContext.apply head.container
+      head = head.next
 
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
@@ -65,21 +83,6 @@ exports.Parser = class Parser
     return document
 
   markRoot: ->
-
-  isParenWrapped: (block) ->
-    (block.start.next.type is 'text' and
-      block.start.next.value[0] is '(' and
-      block.end.prev.type is 'text' and
-      block.end.prev.value[block.end.prev.value.length - 1] is ')')
-
-  detectParenWrap: (document) ->
-    head = document.start
-    until head is document.end
-      head = head.next
-      if head.type is 'blockStart' and
-          @isParenWrapped head.container
-        head.container.currentlyParenWrapped = true
-    return document
 
   # ## addBlock ##
   # addBlock takes {
@@ -95,12 +98,13 @@ exports.Parser = class Parser
   #   parenWrapped: Boolean
   # }
   addBlock: (opts) ->
-    block = new model.Block opts.precedence,
-      opts.color,
+    block = new model.Block opts.color,
       opts.shape,
       opts.parseContext,
-      opts.nodeContext,
+      null
       opts.buttons
+
+    block._preNodeContext = opts.nodeContext
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -127,7 +131,7 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket opts.empty ? @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty,
       false,
       opts.dropdown,
       opts.parseContext
@@ -236,7 +240,7 @@ exports.Parser = class Parser
 
       if sockets?
         for socketPosition in sockets
-          socket = new model.Socket '', 0, true, null, '__comment__'
+          socket = new model.Socket '', true, null, '__comment__'
           socket.setParent block
 
           padText = text[lastPosition...socketPosition[0]]
@@ -273,7 +277,7 @@ exports.Parser = class Parser
       helper.connect head, block.end
 
     else
-      socket = new model.Socket '', 0, true
+      socket = new model.Socket '', true
       textToken = new model.TextToken text
       textToken.setParent socket
 
@@ -538,10 +542,10 @@ exports.parseXML = (xml) ->
     attributes = node.attributes
     switch node.name
       when 'block'
-        container = new model.Block attributes.precedence, attributes.color,
+        container = new model.Block attributes.color,
           attributes.shape, attributes.parseContext
       when 'socket'
-        container = new model.Socket '', attributes.precedence, attributes.handritten, attributes.parseContext
+        container = new model.Socket '', attributes.handritten, attributes.parseContext
       when 'indent'
         container = new model.Indent '', attributes.prefix, attributes.indentContext
       when 'document'

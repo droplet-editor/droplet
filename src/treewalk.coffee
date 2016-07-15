@@ -71,54 +71,14 @@ exports.createTreewalkParser = (parse, config, root) ->
       else
         return helper.ANY_DROP
 
-    firstElement: (node) ->
-      if node.children.length is 0
-        if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
-          return node
-        else
-          return null
+    getNodeContext: (node, wrap) ->
+      if wrap?
+        new parser.PreNodeContext(node.type,
+          helper.clipLines(@lines, wrap.bounds.start, node.bounds.start).length,
+          helper.clipLines(@lines, node.bounds.end, wrap.bounds.end).length
+        )
       else
-        for child in node.children
-          if child.children.length > 1 and @detNode(child) isnt 'skip'
-            return child
-
-          element = @firstElement child
-          if element?
-            return element
-        return null
-
-    lastElement: (node) ->
-      if node.children.length is 0
-        if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
-          return node
-        else
-          return null
-      else
-        for child in node.children by -1
-          if child.children.length > 1 and @detNode(child) isnt 'skip'
-            return child
-
-          element = @lastElement child
-          if element?
-            return element
-        return null
-
-    prefix: (node) ->
-      firstElement = @firstElement node
-      if firstElement?
-        helper.clipLines @lines, node.bounds.start, firstElement.bounds.start
-      else
-        helper.clipLines @lines, node.bounds.start, node.bounds.end
-
-    suffix: (node) ->
-      lastElement = @lastElement node
-      if lastElement?
-        helper.clipLines @lines, lastElement.bounds.end, node.bounds.end
-      else
-        helper.clipLines @lines, node.bounds.start, node.bounds.end
-
-    getNodeContext: (node) ->
-      new model.NodeContext node.type, @prefix(node), @suffix(node)
+        return new parser.PreNodeContext node.type, 0, 0
 
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
@@ -155,7 +115,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth + 1
               color: @getColor node
               shape: @getShape node
-              nodeContext: @getNodeContext node
+              nodeContext: @getNodeContext node, wrap
               parseContext: rules[rules.length - 1]
 
           when 'parens'
@@ -191,7 +151,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 depth: depth + 1
                 color: @getColor node
                 shape: @getShape node
-                nodeContext: @getNodeContext node
+                nodeContext: @getNodeContext node, wrap
                 parseContext: rules[rules.length - 1]
 
           when 'indent'
@@ -202,7 +162,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 depth: depth
                 color: @getColor node
                 shape: @getShape node
-                nodeContext: @getNodeContext node
+                nodeContext: @getNodeContext node, warp
                 parseContext: rules[rules.length - 1]
 
               depth += 1
@@ -268,13 +228,27 @@ exports.createTreewalkParser = (parse, config, root) ->
         return helper.FORBID
 
     TreewalkParser.parens = (leading, trailing, node, context) ->
+      # Comments never get paren-wrapped
       if context is null or node.parseContext is '__comment__' or context.parseContext is '__comment__'
         return node.parseContext
 
       parseContext = context.indentContext ? context.parseContext
-      if helper.dfs(droppabilityGraph, parseContext, node.parseContext)
+
+      # Check to see if we can unwrap all our parentheses
+      if helper.dfs(droppabilityGraph, parseContext, node.nodeContext.type)
+        leading node.nodeContext.prefix
+        trailing node.nodeContext.suffix
+
+        return node.nodeContext.type
+
+      # Otherwise, for performance reasons,
+      # check to see if we can drop without modifying our parentheses
+      if node.parseContext isnt node.nodeContext and helper.dfs(droppabilityGraph, parseContext, node.parseContext)
         return node.parseContext
 
+      # Otherwise, do a full paren-wrap traversal. We find the shortest rule-inheritance path
+      # from the bottom-most type of the block to the top-most type of the socket, applying
+      # any paren rules we encounter along the way.
       else
         path = parenGraph.shortestPath(parseContext, node.nodeContext.type, {reverse: true})
 
