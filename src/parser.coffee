@@ -614,17 +614,6 @@ stripFlaggedBlocks = (document) ->
       head = head.next
 
 Parser.parens = (leading, trailing, node, context) ->
-  if context is null or context.type isnt 'socket' or
-      context?.precedence < node.precedence
-    while true
-      if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-        leading leading().replace(/^\s*\(\s*/, '')
-        trailing trailing().replace(/^\s*\)\s*/, '')
-      else
-        break
-  else
-    leading '(' + leading()
-    trailing trailing() + ')'
 
 Parser.drop = (block, context, pred, next) ->
   if block.type is 'document' and context.type is 'socket'
