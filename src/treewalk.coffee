@@ -71,6 +71,55 @@ exports.createTreewalkParser = (parse, config, root) ->
       else
         return helper.ANY_DROP
 
+    firstElement: (node) ->
+      if node.children.length is 0
+        if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
+          return node
+        else
+          return null
+      else
+        for child in node.children
+          if child.children.length > 1 and @detNode(child) isnt 'skip'
+            return child
+
+          element = @firstElement child
+          if element?
+            return element
+        return null
+
+    lastElement: (node) ->
+      if node.children.length is 0
+        if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
+          return node
+        else
+          return null
+      else
+        for child in node.children by -1
+          if child.children.length > 1 and @detNode(child) isnt 'skip'
+            return child
+
+          element = @lastElement child
+          if element?
+            return element
+        return null
+
+    prefix: (node) ->
+      firstElement = @firstElement node
+      if firstElement?
+        helper.clipLines @lines, node.bounds.start, firstElement.bounds.start
+      else
+        helper.clipLines @lines, node.bounds.start, node.bounds.end
+
+    suffix: (node) ->
+      lastElement = @lastElement node
+      if lastElement?
+        helper.clipLines @lines, lastElement.bounds.end, node.bounds.end
+      else
+        helper.clipLines @lines, node.bounds.start, node.bounds.end
+
+    getNodeContext: (node) ->
+      new model.NodeContext node.type, @prefix(node), @suffix(node)
+
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
         context = node.parent
@@ -106,6 +155,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth + 1
               color: @getColor node
               shape: @getShape node
+              nodeContext: @getNodeContext node
               parseContext: rules[rules.length - 1]
 
           when 'parens'
@@ -141,6 +191,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 depth: depth + 1
                 color: @getColor node
                 shape: @getShape node
+                nodeContext: @getNodeContext node
                 parseContext: rules[rules.length - 1]
 
           when 'indent'
@@ -151,6 +202,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 depth: depth
                 color: @getColor node
                 shape: @getShape node
+                nodeContext: @getNodeContext node
                 parseContext: rules[rules.length - 1]
 
               depth += 1
@@ -191,8 +243,6 @@ exports.createTreewalkParser = (parse, config, root) ->
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) is 'block'
         if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
-          if rules[0] is 'unaryExpression'
-            debugger
           @addSocket
             bounds: node.bounds
             depth: depth
@@ -212,29 +262,33 @@ exports.createTreewalkParser = (parse, config, root) ->
         return helper.DISCOURAGE
 
       parseContext = context.indentContext ? context.parseContext
-      if helper.dfs(parenGraph, parseContext, block.parseContext)
+      if helper.dfs(parenGraph, parseContext, block.nodeContext.type)
         return helper.ENCOURAGE
       else
         return helper.FORBID
 
     TreewalkParser.parens = (leading, trailing, node, context) ->
       if context is null or node.parseContext is '__comment__' or context.parseContext is '__comment__'
-        return [leading, trailing, node.parseContext]
+        return node.parseContext
 
       parseContext = context.indentContext ? context.parseContext
       if helper.dfs(droppabilityGraph, parseContext, node.parseContext)
-        return [leading, trailing, node.parseContext]
+        return node.parseContext
 
       else
-        path = parenGraph.shortestPath(parseContext, node.parseContext, {reverse: true})
+        path = parenGraph.shortestPath(parseContext, node.nodeContext.type, {reverse: true})
+
+        leading node.nodeContext.prefix
+        trailing node.nodeContext.suffix
+
         for element, i in path when i > 0
           if config.PAREN_RULES[path[i]]?[path[i - 1]]?
 
-            [leading, trailing] = config.PAREN_RULES[path[i]][path[i - 1]](leading, trailing, node, context)
+            config.PAREN_RULES[path[i]][path[i - 1]](leading, trailing, node, context)
 
             node.parseContext = path[i]
 
-        return [leading, trailing, node.parseContext]
+        return node.parseContext
 
   else if config.drop?
     TreewalkParser.drop = config.drop

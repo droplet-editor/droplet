@@ -95,12 +95,11 @@ exports.Parser = class Parser
   #   parenWrapped: Boolean
   # }
   addBlock: (opts) ->
-    unless opts.parseContext?
-      debugger
     block = new model.Block opts.precedence,
       opts.color,
       opts.shape,
       opts.parseContext,
+      opts.nodeContext,
       opts.buttons
 
     @addMarkup block, opts.bounds, opts.depth
@@ -668,7 +667,31 @@ exports.wrapParser = (CustomParser) ->
       return @createParser(text)._parse opts
 
     parens: (leading, trailing, node, context) ->
-      return CustomParser.parens leading, trailing, node, context
+      # We do this function thing so that if leading and trailing are the same
+      # (i.e. there is only one text token), parser adapter functions can still treat
+      # it as if they are two different things.
+
+      # leadingFn is always a getter/setter for leading
+      leadingFn = (value) ->
+        if value?
+          leading = value
+        return leading
+
+      # trailingFn may either get/set leading or trailing;
+      # will point to leading if leading is the only token,
+      # but will point to trailing otherwise.
+      if trailing?
+        trailingFn = (value) ->
+          if value?
+            trailing = value
+          return trailing
+      else
+        trailingFn = leadingFn
+
+      context = CustomParser.parens leadingFn, trailingFn, node, context
+
+      return [leading, trailing, context]
+
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 

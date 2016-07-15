@@ -116,23 +116,14 @@ config = {
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
-  leading = '(' + leading
-  trailing = trailing + ')'
-
-  return [leading, trailing]
+  leading '(' + leading()
+  trailing trailing() + ')'
 
 ADD_SEMICOLON = (leading, trailing, node, context) ->
-  while leading.match(/^\s*\(/) and trailing.match(/\)\s*$/)
-    leading = leading.replace /^\s*\(/, ''
-    trailing = trailing.replace /\)\s*$/, ''
-  trailing = trailing + ';'
-
-  return [leading, trailing]
+  trailing trailing() + ';'
 
 REMOVE_SEMICOLON = (leading, trailing, node, context) ->
-  trailing = trailing.replace /\s*;\s*$/, ''
-
-  return [leading, trailing]
+  trailing trailing().replace /\s*;\s*$/, ''
 
 config.PAREN_RULES = {
   'primaryExpression': {
@@ -141,8 +132,8 @@ config.PAREN_RULES = {
   'expressionStatement': {
     'expression': ADD_SEMICOLON
   }
-  'expression': {
-    'expressionStatement': REMOVE_SEMICOLON
+  'postfixExpression': {
+    'specialMethodCall': REMOVE_SEMICOLON
   }
 }
 

@@ -55,6 +55,7 @@
   "dependencies": {
     "acorn": "^1.2.2",
     "antlr4": "latest",
+    "json-stable-stringify": "^1.0.1",
     "node-dijkstra": "^1.1.3",
     "parse5": "latest",
     "sax": "^1.1.1"

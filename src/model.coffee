@@ -3,6 +3,7 @@
 # Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License
 helper = require './helper.coffee'
+stableStringify = require 'json-stable-stringify'
 
 YES = -> yes
 NO = -> no
@@ -11,6 +12,14 @@ NORMAL = default: helper.NORMAL
 FORBID = default: helper.FORBID
 
 DEFAULT_STRINGIFY_OPTS = {preserveEmpty: true}
+
+# A NodeContext represents the default (bottom-most) paren-wrap state that a block
+# can revert to when paren-wrapping. e.g. in C, the 'blockItem' node (myfun()); would have nodeContext 'postfixExpression', 'myfun()', 'myfun()', whie
+# a++ would have nodeContext 'postfixExpression', '', '++'
+exports.NodeContext = class NodeContext
+  constructor: (@type, @prefix, @suffix) ->
+
+COMMENT_CONTEXT = new NodeContext '__comment__', '', ''
 
 _id = 0
 
@@ -507,6 +516,7 @@ exports.Container = class Container extends List
       shape: @shape
       indentContext: @indentContext
       parseContext: @parseContext
+      nodeContext: @nodeContext
     }
 
   setParent: (parent) ->
@@ -984,7 +994,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @shape = helper.ANY_DROP, @parseContext, @buttons = {}) ->
+  constructor: (@precedence = 0, @color = 'blank', @shape = helper.ANY_DROP, @parseContext = '__comment__', @nodeContext = COMMENT_CONTEXT, @buttons = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -1011,7 +1021,8 @@ exports.Block = class Block extends Container
     @precedence}\" color=\"#{
     @color}\" shape=\"#{
     @shape}\" parseContext=\"#{
-    @parseContext}\"
+    @parseContext}\" nodeContext=\"#{
+    stableStringify(@nodeContext)}\"
   >"
   _serialize_footer: -> "</block>"
 
