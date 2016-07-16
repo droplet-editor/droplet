@@ -35,12 +35,13 @@ exports.createTreewalkParser = (parse, config, root) ->
       return line[0...line.length - line.trimLeft().length]
 
     applyRule: (rule, node) ->
+      if rule instanceof Function
+        rule = rule(node)
+
       if 'string' is typeof rule
-        return {type: rule}
-      else if rule instanceof Function
-        return rule(node)
-      else
-        return rule
+        rule = {type: rule}
+
+      return rule
 
     det: (node) ->
       if node.type of config.RULES
@@ -119,15 +120,19 @@ exports.createTreewalkParser = (parse, config, root) ->
               parseContext: rules[rules.length - 1]
 
           when 'parens'
-            # Parens are assumed to wrap the only child that has children
-            child = null; ok = true
-            for el, i in node.children
-              if el.children.length > 0
-                if child?
-                  ok = false
-                  break
-                else
-                  child = el
+            type = @applyRule(config.RULES[node.type], node).parenType
+
+            if type?
+              children = node.children.filter((x) -> x.type is type)
+            else
+              children = node.children.filter((x) -> x.children.length > 0)
+
+            if children.length is 1
+              ok = true
+              child = children[0]
+            else
+              ok = false
+
             if ok
               @mark child, prefix, depth, true, rules, context, wrap ? node
               return
@@ -156,23 +161,28 @@ exports.createTreewalkParser = (parse, config, root) ->
 
           when 'indent'
             # A lone indent needs to be wrapped in a block.
-            if @det(context) isnt 'block'
+            if @detNode(context) isnt 'block'
               @addBlock
                 bounds: node.bounds
                 depth: depth
                 color: @getColor node
                 shape: @getShape node
-                nodeContext: @getNodeContext node, warp
+                nodeContext: @getNodeContext node, wrap
                 parseContext: rules[rules.length - 1]
 
               depth += 1
 
+            # TODO: possibly refactor into getIndentBounds
             start = origin = node.children[0].bounds.start
             for child, i in node.children
               if child.children.length > 0
                 break
               else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0 or i is node.children.length - 1
                 start = child.bounds.end
+
+            if @lines[start.line][...start.column].trim().length is 0
+              start.line -= 1
+              start.column = @lines[start.line].length
 
             end = node.children[node.children.length - 1].bounds.end
             for child, i in node.children by -1

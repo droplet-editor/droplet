@@ -17,8 +17,9 @@ ANTLR_PARSER_COLLECTION = {
   'CParser': require('../antlr/CParser'),
   'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),
 
-  'jvmBasicLexer': require('../antlr/jvmBasicLexer'),
-  'jvmBasicParser': require('../antlr/jvmBasicParser'),
+  'ECMAScriptLexer': require('../antlr/ECMAScriptLexer'),
+  'ECMAScriptParser': require('../antlr/ECMAScriptParser'),
+  'ECMAScriptDroppabilityGraph': require('../antlr/ECMAScriptDroppabilityGraph.json')
 }
 
 exports.createANTLRParser = (name, config, root) ->
@@ -35,7 +36,7 @@ exports.createANTLRParser = (name, config, root) ->
 
     # Build the actual parse tree
     parser.buildParseTrees = true
-    return transform parser[context + '_DropletFile']()
+    return transform (parser[context + '_DropletFile'] ? parser[context]).call parser
 
   # Transform an ANTLR tree into a treewalker-type tree
   transform = (node, parent = null) ->
