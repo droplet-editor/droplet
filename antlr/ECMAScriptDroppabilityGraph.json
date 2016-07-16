@@ -1,0 +1,111 @@
+{
+  "program": [],
+  "catchProduction": [],
+  "sourceElement": [
+    "statement",
+    "functionDeclaration"
+  ],
+  "breakStatement": [],
+  "throwStatement": [],
+  "literal": [
+    "numericLiteral"
+  ],
+  "variableDeclarationList": [
+    "variableDeclaration"
+  ],
+  "labelledStatement": [],
+  "arguments": [],
+  "expressionStatement": [
+    "expressionSequence"
+  ],
+  "formalParameterList": [],
+  "keyword": [],
+  "functionBody": [
+    0,
+    "sourceElements"
+  ],
+  "objectLiteral": [],
+  "sourceElements": [
+    "sourceElement"
+  ],
+  "setter": [],
+  "identifierName": [
+    "reservedWord"
+  ],
+  "propertyAssignment": [],
+  "propertyName": [
+    "numericLiteral",
+    "identifierName"
+  ],
+  "ifStatement": [],
+  "functionDeclaration": [],
+  "eos": [],
+  "defaultClause": [],
+  "initialiser": [],
+  "propertyNameAndValueList": [
+    "propertyAssignment"
+  ],
+  "caseClause": [],
+  "singleExpression": [
+    "arrayLiteral",
+    "objectLiteral",
+    "literal"
+  ],
+  "emptyStatement": [],
+  "variableStatement": [],
+  "elision": [],
+  "argumentList": [
+    "singleExpression"
+  ],
+  "statement": [
+    "returnStatement",
+    "throwStatement",
+    "debuggerStatement",
+    "emptyStatement",
+    "variableStatement",
+    "breakStatement",
+    "switchStatement",
+    "continueStatement",
+    "tryStatement",
+    "ifStatement",
+    "withStatement",
+    "block",
+    "labelledStatement",
+    "iterationStatement",
+    "expressionStatement"
+  ],
+  "variableDeclaration": [],
+  "arrayLiteral": [],
+  "eof": [],
+  "block": [],
+  "numericLiteral": [],
+  "propertySetParameterList": [],
+  "tryStatement": [],
+  "assignmentOperator": [],
+  "futureReservedWord": [],
+  "debuggerStatement": [],
+  "elementList": [
+    "singleExpression"
+  ],
+  "statementList": [
+    "statement"
+  ],
+  "switchStatement": [],
+  "returnStatement": [],
+  "continueStatement": [],
+  "getter": [],
+  "finallyProduction": [],
+  "withStatement": [],
+  "expressionSequence": [
+    "singleExpression"
+  ],
+  "iterationStatement": [],
+  "reservedWord": [
+    "keyword",
+    "futureReservedWord"
+  ],
+  "caseBlock": [],
+  "caseClauses": [
+    "caseClause"
+  ]
+}
