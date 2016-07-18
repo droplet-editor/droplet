@@ -787,7 +787,10 @@ JavaScriptParser.drop = (block, context, pred) ->
     return helper.FORBID
 
   if context.type is 'socket'
-    if context.parseContext in ['Lvalue', 'ForEachLHS']
+    if context.parseContext is 'Identifier'
+      return helper.FORBID
+
+    else if context.parseContext in ['Lvalue', 'ForEachLHS']
       if block.nodeContext.type is 'ObjectExpression'
         return helper.ENCOURAGE
       else
