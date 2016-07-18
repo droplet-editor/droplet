@@ -11,14 +11,13 @@ parser = require '../parser.coffee'
 
 {CoffeeScript} = require '../../vendor/coffee-script.js'
 
-ANY_DROP = ['any-drop']
-BLOCK_ONLY = ['block-only']
-MOSTLY_BLOCK = ['mostly-block']
-MOSTLY_VALUE = ['mostly-value']
-VALUE_ONLY = ['value-only']
-LVALUE = ['lvalue']
-FORBID_ALL = ['forbid-all']
-PROPERTY_ACCESS = ['prop-access']
+{
+  ANY_DROP
+  BLOCK_ONLY
+  MOSTLY_BLOCK
+  MOSTLY_VALUE
+  VALUE_ONLY
+} = helper
 
 KNOWN_FUNCTIONS =
   'alert'       : {}
@@ -501,7 +500,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           @csSocketAndMark node.base, depth + 1, 0, indentDepth
           for property in node.properties
             if property.nodeType() is 'Access'
-              @csSocketAndMark property.name, depth + 1, 'Identifier', indentDepth, PROPERTY_ACCESS
+              @csSocketAndMark property.name, depth + 1, 'Identifier', indentDepth
             else if property.nodeType() is 'Index'
               @csSocketAndMark property.index, depth + 1, 'Expression', indentDepth
 
@@ -603,9 +602,9 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
               # of a function call will be melded into the parent block.
               @addCode arg, depth + 1, indentDepth
             else if not known and hasCallParen and index is 0 and node.args.length is 1
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index], ''
+              @csSocketAndMark arg, depth + 1, precedence, indentDepth, known?.fn?.dropdown?[index], ''
             else
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index]
+              @csSocketAndMark arg, depth + 1, precedence, indentDepth, known?.fn?.dropdown?[index]
 
       # ### Code ###
       # Function definition. Color VALUE, sockets @params,
@@ -618,7 +617,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Color COMMAND, sockets @variable and @value.
       when 'Assign'
         @csBlock node, depth, 'Assign', wrappingParen, MOSTLY_BLOCK
-        @csSocketAndMark node.variable, depth + 1, 'Lvalue', indentDepth, LVALUE
+        @csSocketAndMark node.variable, depth + 1, 'Lvalue', indentDepth
 
         if node.value.nodeType() is 'Code'
           @addCode node.value, depth + 1, indentDepth
@@ -635,7 +634,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           if node[childName]? then @csSocketAndMark node[childName], depth + 1, 'ForModifier', indentDepth
 
         for childName in ['index', 'name']
-          if node[childName]? then @csSocketAndMark node[childName], depth + 1, 'Lvalue', indentDepth, FORBID_ALL
+          if node[childName]? then @csSocketAndMark node[childName], depth + 1, 'Lvalue', indentDepth
 
         @mark node.body, depth + 1, null, indentDepth
 
@@ -752,7 +751,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       when 'Class'
         @csBlock node, depth, 'Class', wrappingParen, ANY_DROP
 
-        if node.variable? then @csSocketAndMark node.variable, depth + 1, 'Identifier', indentDepth, FORBID_ALL
+        if node.variable? then @csSocketAndMark node.variable, depth + 1, 'Identifier', indentDepth
         if node.parent? then @csSocketAndMark node.parent, depth + 1, 'Expression', indentDepth
 
         if node.body? then @mark node.body, depth + 1, null, indentDepth
@@ -766,12 +765,12 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
         for property in node.properties
           if property.nodeType() is 'Assign'
-            @csSocketAndMark property.variable, depth + 1, 'Identifier', indentDepth, FORBID_ALL
+            @csSocketAndMark property.variable, depth + 1, 'Identifier', indentDepth
             @csSocketAndMark property.value, depth + 1, 'Expression', indentDepth
 
 
   handleButton: (text, button, oldBlock) ->
-    if button is 'add-button' and 'If' in oldBlock.classes
+    if button is 'add-button' and oldBlock.nodeContext.type is 'If'
       # Parse to find the last "else" or "else if"
       node = CoffeeScript.nodes(text, {
         locations: true
@@ -957,13 +956,14 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   # ## csBlock ##
   # A general utility function for adding an Droplet editor
   # block around a given node.
-  csBlock: (node, depth, type, wrappingParen, buttons) ->
+  csBlock: (node, depth, type, wrappingParen, shape, buttons) ->
     @addBlock {
       bounds: @getBounds (wrappingParen ? node)
       depth: depth
       precedence: precedence
       color: @getColor(node)
       buttons: buttons
+      shape: shape
 
       nodeContext: @getNodeContext type, node, wrappingParen
     }
@@ -1014,8 +1014,8 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   # ## csSocketAndMark ##
   # Adds a socket for a node, and recursively @marks it.
-  csSocketAndMark: (node, depth, type, indentDepth, classes, dropdown, empty) ->
-    socket = @csSocket node, depth, type, classes, dropdown, empty
+  csSocketAndMark: (node, depth, type, indentDepth, dropdown, empty) ->
+    socket = @csSocket node, depth, type, dropdown, empty
     @mark node, depth + 1, null, indentDepth
     return socket
 

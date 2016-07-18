@@ -349,7 +349,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     }
 
   handleButton: (text, button, oldBlock) ->
-    if button is 'add-button' and 'IfStatement' in oldBlock.classes
+    if button is 'add-button' and oldBlock.nodeContext.type is 'IfStatement'
       # Parse to find the last "else" or "else if"
       node = acorn.parse(text, {
         locations: true
@@ -382,7 +382,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         return text + ''' else {
           __
         }'''
-    else if 'CallExpression' in oldBlock.classes
+    else if oldBlock.nodeContext.type is 'CallExpression'
       # Parse to find the last "else" or "else if"
       node = acorn.parse(text, {
         line: 0
