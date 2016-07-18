@@ -193,7 +193,9 @@ module.exports = (grunt) ->
     b.require './src/main.coffee'
     b.transform coffeeify
 
-    w = watchify(b)
+    w = watchify(b, {
+      poll: true
+    })
 
     # Compile once through first
     stream = fs.createWriteStream 'dist/droplet-full.js'
