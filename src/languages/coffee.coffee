@@ -1000,7 +1000,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   csIndentAndMark: (indentDepth, nodes, depth) ->
     trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth
     for node in nodes
-      @mark node, depth + 1, 0, null, trueDepth
+      @mark node, depth + 1, null, trueDepth
 
   # ## csSocket ##
   # A similar utility function for adding sockets.

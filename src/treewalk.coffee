@@ -208,7 +208,8 @@ exports.createTreewalkParser = (parse, config, root) ->
             depth: depth
             parseContext: rules[0]
 
-          if config.empty? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
+          if config.EMPTY_STRINGS? and not @opts.preserveEmpty and
+              helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.EMPTY_STRINGSconfig.empty
             @flagToRemove node.bounds, depth + 1
 
   if config.droppabilityGraph?

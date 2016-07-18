@@ -628,13 +628,19 @@ exports.Container = class Container extends List
   # Simple debugging output representation
   # of the tokens in this Container. Like XML.
   serialize: ->
-    str = @_serialize_header()
+    result = [@_serialize_header()]
     @traverseOneLevel (child) ->
-      str += child.serialize()
-    str += @_serialize_footer()
+      result = result.concat child.serialize()
+    result.push @_serialize_footer()
 
-  _serialize_header: "<container>"
-  _serialize_header: "</container>"
+    return result
+
+  _serialize_header: {
+    type: 'start'
+  }
+  _serialize_header: {
+    type: 'end'
+  }
 
   # ## contents ##
   # Get a cloned version of a
@@ -1016,13 +1022,21 @@ exports.Block = class Block extends Container
 
     return clone
 
-  _serialize_header: -> "<block color=\"#{
-    @color}\" shape=\"#{
-    @shape}\" parseContext=\"#{
-    @parseContext}\" nodeContext=\"#{
-    stableStringify(@nodeContext)}\"
-  >"
-  _serialize_footer: -> "</block>"
+  _serialize_header: -> {
+    type: 'blockStart'
+    color: @color
+    shape: @shape
+    parseContext: @parseContext
+    nodeContext: {
+      type: @nodeContext.type
+      prefix: @nodeContext.prefix
+      suffix: @nodeContext.suffix
+    }
+  }
+
+  _serialize_footer: -> {
+    type: 'blockEnd'
+  }
 
 # Socket
 # ==================
@@ -1082,17 +1096,16 @@ exports.Socket = class Socket extends Container
 
   _cloneEmpty: -> new Socket @emptyString, @handwritten, @dropdown, @parseContext
 
-  _serialize_header: -> "<socket parseContext=\"#{
-      @parseContext
-    }\" handwritten=\"#{
-      @handwritten
-    }\" #{
-      if @dropdown?
-        " dropdown=\"#{@dropdown?.join?(' ') ? ''}\""
-      else ''
-    }>"
+  _serialize_header: -> {
+    type: 'socketStart'
+    parseContext: @parseContext
+    handwritten: @handwritten
+    dropdown: @dropdown?
+  }
 
-  _serialize_footer: -> "</socket>"
+  _serialize_footer: -> {
+    type: 'socketEnd'
+  }
 
 # Indent
 # ==================
@@ -1108,7 +1121,6 @@ exports.IndentEndToken = class IndentEndToken extends EndToken
     if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
-  serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
   constructor: (@emptyString, @prefix = '', @indentContext = null) ->
@@ -1124,12 +1136,15 @@ exports.Indent = class Indent extends Container
   _cloneEmpty: -> new Indent @emptyString, @prefix, @indentContext
   firstChild: -> return @_firstChild()
 
-  _serialize_header: -> "<indent prefix=\"#{
-    @prefix
-  }\" indentContext=\"#{
-    @indentContext
-  }\">"
-  _serialize_footer: -> "</indent>"
+  _serialize_header: -> {
+    type: 'indentStart'
+    prefix: @prefix
+    indentContext: @indentContext
+  }
+
+  _serialize_footer: -> {
+    type: 'indentEnd'
+  }
 
 
 # Document
@@ -1137,11 +1152,9 @@ exports.Indent = class Indent extends Container
 
 exports.DocumentStartToken = class DocumentStartToken extends StartToken
   constructor: (@container) -> super; @type = 'documentStart'
-  serialize: -> "<document>"
 
 exports.DocumentEndToken = class DocumentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'documentEnd'
-  serialize: -> "</document>"
 
 exports.Document = class Document extends Container
   constructor: (@indentContext, @opts = {}) ->
@@ -1155,8 +1168,14 @@ exports.Document = class Document extends Container
   _cloneEmpty: -> new Document(@indentContext, @opts)
   firstChild: -> return @_firstChild()
 
-  _serialize_header: -> "<document indentContext=#{@indentContext}>"
-  _serialize_footer: -> "</document>"
+  _serialize_header: -> {
+    type: 'documentStart'
+    indentContext: @indentContext
+  }
+
+  _serialize_footer: -> {
+    type: 'documentEnd'
+  }
 
 
 # Text
@@ -1173,14 +1192,19 @@ exports.TextToken = class TextToken extends Token
     @notifyChange()
 
   stringify: -> @_value
-  serialize: -> helper.escapeXMLText @_value
+  serialize: -> @_value
 
   clone: -> new TextToken @_value
 
 exports.NewlineToken = class NewlineToken extends Token
   constructor: (@specialIndent) -> super; @type = 'newline'
   stringify: -> '\n' + (@specialIndent ? @getIndent())
-  serialize: -> '\n'
+
+  serialize: -> {
+    type: 'newline'
+    specialIndent: @specialIndent
+  }
+
   clone: -> new NewlineToken @specialIndent
 
 # Utility function for traversing all

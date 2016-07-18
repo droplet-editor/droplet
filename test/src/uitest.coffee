@@ -267,11 +267,11 @@ asyncTest 'Controller: does not throw on reparse error', ->
   editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 220, dy: 30})
-  simulate('mouseup', '.droplet-main-canvas', {dx: 220, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 15, dy: 15})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 15, dy: 15})
 
   ok(editor.getCursor(), 'Has text focus')
-  equal(editor.getCursor().stringify(), 'a')
+  equal(editor.getCursor().stringify(), 'hello')
 
   $('.droplet-hidden-input').sendkeys('18n')
 
