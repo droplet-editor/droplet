@@ -50,7 +50,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "CalleeObject",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "x",
     {
@@ -61,7 +62,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "100",
     {
@@ -91,7 +93,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "blue",
@@ -109,7 +112,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "green",
@@ -127,7 +131,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "blue",
@@ -144,7 +149,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "log",
     {
@@ -155,7 +161,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "green",
@@ -172,7 +179,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "CalleeObject",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "x",
     {
@@ -183,7 +191,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "green",
@@ -201,7 +210,8 @@ asyncTest 'JS dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "red",
@@ -307,7 +317,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "cyan",
@@ -324,7 +335,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator!=",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "b",
     {
@@ -335,7 +347,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator!=",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "#777",
@@ -353,7 +366,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Lvalue",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "a",
     {
@@ -364,7 +378,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "#666",
@@ -381,7 +396,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "#666",
@@ -399,7 +415,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "#444",
@@ -416,7 +433,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator+",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "c",
     {
@@ -427,7 +445,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator+",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "d",
     {
@@ -451,7 +470,8 @@ asyncTest 'JS Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "0",
     {
@@ -523,7 +543,8 @@ asyncTest 'JS LogicalExpressions', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator&&",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "a",
     {
@@ -534,7 +555,8 @@ asyncTest 'JS LogicalExpressions', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator&&",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "b",
     {
@@ -578,7 +600,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "foo",
     {
@@ -589,7 +612,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "+1",
     {
@@ -600,7 +624,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "-1",
     {
@@ -611,7 +636,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "green",
@@ -629,7 +655,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "blue",
@@ -646,7 +673,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "a",
     {
@@ -657,7 +685,8 @@ asyncTest 'JS omits unary +/- for literals', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": null,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     {
       "type": "socketEnd"
@@ -722,7 +751,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "cyan",
@@ -739,7 +769,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "a",
     {
@@ -750,7 +781,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "0",
     {
@@ -787,7 +819,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "fd",
     {
@@ -798,7 +831,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "0",
     {
@@ -820,7 +854,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "cyan",
@@ -837,7 +872,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "a",
     {
@@ -848,7 +884,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "1",
     {
@@ -885,7 +922,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "fd",
     {
@@ -896,7 +934,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "100",
     {
@@ -918,7 +957,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     {
       "color": "cyan",
@@ -935,7 +975,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "a",
     {
@@ -946,7 +987,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "2",
     {
@@ -983,7 +1025,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "fd",
     {
@@ -994,7 +1037,8 @@ asyncTest 'JS Elif', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "200",
     {
@@ -1057,7 +1101,8 @@ asyncTest 'JS beginner mode loops', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "program",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "10",
     {
@@ -1088,7 +1133,8 @@ asyncTest 'JS beginner mode loops', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "__"
     },
     "go",
     {
@@ -1099,7 +1145,8 @@ asyncTest 'JS beginner mode loops', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": null,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     {
       "type": "socketEnd"

@@ -291,10 +291,6 @@ asyncTest 'Controller: ANTLR reparse rules', ->
     palette: []
   })
 
-  # Note: this test very deliberately does not contain any unnecessary parentheses,
-  # because those get removed by high-level editor.reparse().
-  #
-  # TODO: possibly add a second test testing that case.
   editor.setValue '''
     #include <stdio.h>
     #include <stdlib.h>
@@ -337,7 +333,7 @@ asyncTest 'Controller: ANTLR reparse rules', ->
 
     // Comparator
     int comparator(long long a, long long b) {
-       return a > b;
+       return (a > b);
     }
 
     // Main

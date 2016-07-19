@@ -113,7 +113,8 @@ asyncTest 'Basic Document parsing', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "text",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "Hello",
     {
@@ -180,7 +181,8 @@ asyncTest 'Basic Document parsing', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "text",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "Welcome to my page!",
     {
@@ -293,7 +295,8 @@ asyncTest 'Removal of Empty nodes', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "text",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "Welcome to my world",
     {
@@ -401,7 +404,8 @@ asyncTest 'Optional Closing tags', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "text",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "Item1",
     {
@@ -452,7 +456,8 @@ asyncTest 'Optional Closing tags', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "text",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "Item2",
     {
@@ -518,7 +523,8 @@ asyncTest 'Attribute Sockets', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "blockTag",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "background=\"red\"",
     {
@@ -585,7 +591,8 @@ asyncTest 'Scoket empty attribute values', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "blockTag",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "background = \"\"",
     {
@@ -654,7 +661,8 @@ asyncTest 'Check overrides', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "blockTag",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "background = \"\"",
     {
@@ -741,7 +749,8 @@ asyncTest 'Trailing Space', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "text",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "Hello",
     {

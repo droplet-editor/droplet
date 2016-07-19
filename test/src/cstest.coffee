@@ -48,7 +48,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "purplish",
@@ -66,7 +67,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "10",
     {
@@ -100,7 +102,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "alert",
     {
@@ -111,7 +114,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "blue",
@@ -128,7 +132,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Callee",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "random",
     {
@@ -139,7 +144,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "100",
     {
@@ -174,7 +180,8 @@ asyncTest 'Parser configurability', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "20",
     {
@@ -239,7 +246,8 @@ asyncTest 'Dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "green",
@@ -257,7 +265,8 @@ asyncTest 'Dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "green",
@@ -275,7 +284,8 @@ asyncTest 'Dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "green",
@@ -292,7 +302,8 @@ asyncTest 'Dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "PropertyAccess",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "x",
     {
@@ -303,7 +314,8 @@ asyncTest 'Dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "blue",
@@ -320,7 +332,8 @@ asyncTest 'Dotted methods', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "PropertyAccess",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "log",
     {
@@ -413,7 +426,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Lvalue",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "x",
     {
@@ -424,7 +438,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "__comment__",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": ""
     },
     "y",
     {
@@ -435,7 +450,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": 0,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "green",
@@ -452,7 +468,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator*",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "y",
     {
@@ -463,7 +480,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator*",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "y",
     {
@@ -498,7 +516,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": 0,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "'clickme'",
     {
@@ -530,7 +549,8 @@ asyncTest 'Merged code blocks', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": -1,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "'ouch'",
     {
@@ -594,7 +614,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "cyan",
@@ -611,7 +632,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator!==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "b",
     {
@@ -622,7 +644,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator!==",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "#777",
@@ -640,7 +663,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Lvalue",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "a",
     {
@@ -651,7 +675,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "FunctionBody",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "#aaa",
@@ -668,7 +693,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": 0,
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     {
       "color": "#666",
@@ -702,7 +728,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator+",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "c",
     {
@@ -713,7 +740,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Operator+",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "d",
     {
@@ -737,7 +765,8 @@ asyncTest 'Custom Colors', ->
       "dropdown": false,
       "handwritten": false,
       "parseContext": "Expression",
-      "type": "socketStart"
+      "type": "socketStart",
+      "emptyString": "``"
     },
     "0",
     {
