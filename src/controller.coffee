@@ -1826,8 +1826,10 @@ hook 'mouseup', 1, (point, event, state) ->
       #
       # TODO "reparseable" property (or absent contexts), bubble up
       # TODO performance on large programs
-      if @lastHighlight.type is 'socket'
-        @reparse @draggingBlock.parent.parent
+      #
+      # TODO Consider whether to add this back?
+      #if @lastHighlight.type is 'socket'
+      #  @reparse @draggingBlock.parent.parent
 
       # Now that we've done that, we can annul stuff.
       @endDrag()
@@ -2013,6 +2015,26 @@ parseBlock = (mode, code, context = null) =>
   block.start.prev = block.end.next = null
   block.setParent null
   return block
+
+parseSocketBlock = (mode, code, context) =>
+  contextCandidates = [context]
+
+  if mode.getParenCandidates?
+    contextCandidates = contextCandidates.concat mode.getParenCandidates context
+
+  for candidate in contextCandidates
+    try
+      block = mode.parse(code, {context: candidate, wrapAtRoot: false}).start.next.container
+
+      if block? and block.type is 'block'
+        block.start.prev = block.end.next = null
+        block.setParent null
+
+        return block
+
+      else
+        return null
+  return null
 
 Editor::setPalette = (paletteGroups) ->
   @paletteHeader.innerHTML = ''
@@ -2386,6 +2408,29 @@ hook 'mousedown', 7, ->
   @hideDropdown()
 
 
+Editor::reparseSocket = (socket, updates = []) ->
+  if socket.handwritten
+    return @reparse socket.parent, updates
+
+  text = socket.textContent()
+
+  # If our language mode has a string-fixing feature (in most languages,
+  # this will simply autoescape quoted "strings"), apply it
+  if @session.mode.stringFixer?
+    @populateSocket socket, @session.mode.stringFixer(text)
+    text = socket.textContent()
+
+    block = parseSocketBlock(@session.mode, text, socket.parseContext)
+    if block?
+      @prepareNode block, socket
+
+      replaceList = new model.List socket.start.next, socket.end.prev
+
+      @replace replaceList, block, updates
+
+    else
+      @reparse socket, updates
+
 # If we can, try to reparse the focus
 # value.
 #
@@ -2411,7 +2456,7 @@ hook 'mousedown', 7, ->
 #   -> Fall back to raw reparsing the parent with unparenthesized text
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
-Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
+Editor::reparse = (list, updates = [], originalTrigger = list) ->
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -2429,12 +2474,12 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
     # Try reparsing the parent after beforetextfocus. If it fails,
     # repopulate with the original text and try again.
-    unless @reparse list.parent, recovery, updates, originalTrigger
+    unless @reparse list.parent, updates, originalTrigger
       @populateSocket list, originalText
       originalUpdates.forEach (location, i) ->
         updates[i].count = location.count
         updates[i].type = location.type
-      @reparse list.parent, recovery, updates, originalTrigger
+      @reparse list.parent, updates, originalTrigger
     return
 
   parent = list.start.parent
@@ -2463,7 +2508,7 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
       # Attempt to bubble up to the parent
       if parent?
-        return @reparse parent, recovery, updates, originalTrigger
+        return @reparse parent, updates, originalTrigger
       else
         @session.view.getViewNodeFor(originalTrigger).mark {color: '#F00'}
         return false
@@ -2472,10 +2517,6 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
   # Exclude the document start and end tags
   newList = new model.List newList.start.next, newList.end.prev
-
-  # Prepare the new node for insertion
-  newList.traverseOneLevel (head) =>
-    @prepareNode head, parent
 
   @replace list, newList, updates
 
@@ -2515,7 +2556,7 @@ Editor::populateSocket = (socket, string) ->
       last = helper.connect last, new model.NewlineToken()
       last = helper.connect last, new model.TextToken line
 
-    @spliceIn (new model.List(first, last)), socket.start
+    @spliceIn new model.List(first, last), socket.start
 
 Editor::populateBlock = (block, string) ->
   newBlock = @session.mode.parse(string, wrapAtRoot: false).start.next.container
@@ -3032,7 +3073,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   if @cursorAtSocket() and not @session.cursor.is(destination)
     socket = @getCursor()
     if '__comment__' isnt socket.parseContext
-      @reparse socket, null, (if destination.document is @session.cursor.document then [destination.location] else [])
+      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else []) # TODO proper socket insertion
       @hiddenInput.blur()
       @dropletElement.focus()
 
@@ -3210,7 +3251,7 @@ hook 'keydown', 0, (event, state) ->
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket '', Infinity, true
+      newBlock = new model.Block(); newSocket = new model.Socket '', true
       newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
@@ -3242,7 +3283,7 @@ hook 'keydown', 0, (event, state) ->
         newBlock.socketLevel = helper.BLOCK_ONLY
         newTextMarker = new model.TextToken @session.mode.startSingleLineComment
         newTextMarker.setParent newBlock
-        newSocket = new model.Socket '', 0, true
+        newSocket = new model.Socket '', true
         newSocket.parseContext = '__comment__'
         newSocket.setParent newBlock
 
@@ -4222,6 +4263,7 @@ Editor::endDrag = ->
   @clearDrag()
   @draggingBlock = null
   @draggingOffset = null
+  @dragReplacing = false
   @lastHighlightPath?.deactivate?()
   @lastHighlight = @lastHighlightPath = null
 

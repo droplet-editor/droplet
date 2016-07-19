@@ -1098,6 +1098,7 @@ exports.Socket = class Socket extends Container
 
   _serialize_header: -> {
     type: 'socketStart'
+    emptyString: @emptyString
     parseContext: @parseContext
     handwritten: @handwritten
     dropdown: @dropdown?

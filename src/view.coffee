@@ -2120,8 +2120,10 @@ exports.View = class View
           not @changedBoundingBox
         return @path
 
+      @path.style.fillColor = '#FFF'
+
       if @model.start.next.type is 'blockStart'
-        @path.style.fill = 'none'
+        @path.style.fillColor = 'none'
 
       # Otherwise, call super.
       else
@@ -2134,7 +2136,6 @@ exports.View = class View
         @path.style.fillColor = 'none'
       else
         @path.style.cssClass = 'droplet-socket-path'
-        @path.style.fillColor = '#FFF'
 
       return @path
 

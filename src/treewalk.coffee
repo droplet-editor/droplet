@@ -96,6 +96,21 @@ exports.createTreewalkParser = (parse, config, root) ->
       if node.children.length is 1 and @detNode(node) isnt 'indent'
         @mark node.children[0], prefix, depth, true, rules, context, wrap
 
+      # Check to see if this AST type is part of the special empty strings map.
+      # If so, check to see if it is the special empty string for its type,
+      # and null it out if it is.
+      #
+      # TODO this may be a place where we need to optimize performance.
+      else if context? and @detNode(context) is 'block' and config.EMPTY_STRINGS? and
+            node.type of config.EMPTY_STRINGS and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.EMPTY_STRINGS[node.type]
+          @addSocket
+            empty: config.EMPTY_STRINGS[node.type]
+            bounds: node.bounds
+            depth: depth
+            parseContext: rules[0]
+
+          @flagToRemove node.bounds, depth + 1
+
       else if node.children.length > 0
         switch @detNode node
           when 'block'
@@ -106,6 +121,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
             if context? and @detNode(context) is 'block'
               @addSocket
+                empty: config.EMPTY_STRINGS?[rules[0]] ? config.empty
                 bounds: bounds
                 depth: depth
                 parseContext: rules[0]
@@ -201,15 +217,16 @@ exports.createTreewalkParser = (parse, config, root) ->
 
         for child in node.children
           @mark child, prefix, depth + 2, false
+
       else if context? and @detNode(context) is 'block'
         if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
           @addSocket
+            empty: config.EMPTY_STRINGS?[node.type] ? config.empty
             bounds: node.bounds
             depth: depth
             parseContext: rules[0]
 
-          if config.EMPTY_STRINGS? and not @opts.preserveEmpty and
-              helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.EMPTY_STRINGSconfig.empty
+          if config.EMPTY_STRINGS? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
             @flagToRemove node.bounds, depth + 1
 
   if config.droppabilityGraph?
@@ -265,9 +282,18 @@ exports.createTreewalkParser = (parse, config, root) ->
 
         return node.parseContext
 
+    TreewalkParser.getParenCandidates = (context) ->
+      result = []
+      for dest, sources of config.PAREN_RULES
+        if helper.dfs(parenGraph, context, dest)
+          for source of sources when source not in result
+            result.push source
+      return result
+
   else if config.drop?
     TreewalkParser.drop = config.drop
     TreewalkParser.parens = config.parens ? ->
+
 
   TreewalkParser.stringFixer = config.stringFixer
   TreewalkParser.rootContext = config.rootContext
