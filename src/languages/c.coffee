@@ -192,62 +192,65 @@ RULES = {
   'Constant': 'socket'
 }
 
-COLOR_RULES = [
-  ['jumpStatement', 'return'] # e.g. `return 0;`
-  ['declaration', 'control'], # e.g. `int a;`
-  ['specialMethodCall', 'value'], # e.g. `a(b);`
-  ['equalityExpression', 'value'] # e.g. `a == b`
-  ['additiveExpression', 'value'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value'], # e.g. `a * b`
-  ['postfixExpression', 'command'], # e.g. `a(b, c);` OR `a++`
-  ['iterationStatement', 'control'], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', 'value'], # e.g. `a < b`
-  ['initDeclaratorList', 'command'], # e.g. `a = b` when inside `int a = b;`
-  ['blockItemList', 'control'], # List of commands
-  ['compoundStatement', 'control'], # List of commands inside braces
-  ['externalDeclaration', 'control'], # e.g. `int a = b` when global
-  ['structDeclaration', 'command'], # e.g. `struct a { }`
-  ['declarationSpecifier', 'control'], # e.g. `int` when in `int a = b;`
-  ['statement', 'command'], # Any statement, like `return 0;`
-  ['functionDefinition', 'control'], # e.g. `int myMethod() { }`
-  ['expressionStatement', 'command'], # Statement that consists of an expression, like `a = b;`
-  ['expression', 'value'], # Any expression, like `a + b`
-  ['parameterDeclaration', 'command'], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', 'value'], # e.g. `sizeof(a)`
-  ['typeName', 'value'], # e.g. `int`
-  ['initializer', 'value'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value'] # e.g. `(b)a`
-]
+COLOR_RULES = {
+  'jumpStatement': 'return', # e.g. `return 0;`
+  'specifierQualifierList': 'command',# e.g `int a;` when inside `struct {}`
+  'declaration': 'control', # e.g. `int a;`
+  'specialMethodCall': 'command', # e.g. `a(b);`
+  'equalityExpression': 'value' # e.g. `a == b`
+  'additiveExpression': 'value', # e.g. `a + b`
+  'multiplicativeExpression': 'value', # e.g. `a * b`
+  'logicalAndExpression': 'value', # e.g. `a && b`
+  'logicalOrExpression': 'value', # e.g. `a || b`
+  'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
+  'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  'assignmentExpression': 'command', # e.g. `a = b;` OR `a = b`
+  'relationalExpression': 'value', # e.g. `a < b`
+  'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
+  'blockItemList': 'control', # List of commands
+  'compoundStatement': 'control', # List of commands inside braces
+  'externalDeclaration': 'control', # e.g. `int a = b` when global
+  'structDeclaration': 'command', # e.g. `struct a { }`
+  'declarationSpecifier': 'control', # e.g. `int` when in `int a = b;`
+  'statement': 'command', # Any statement, like `return 0;`
+  'functionDefinition': 'control', # e.g. `int myMethod() { }`
+  'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
+  'expression': 'value', # Any expression, like `a + b`
+  'parameterDeclaration': 'command', # e.g. `int a` when in `int myMethod(int a) { }`
+  'unaryExpression': 'value', # e.g. `sizeof(a)`
+  'typeName': 'value', # e.g. `int`
+  'initializer': 'value', # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
+  'castExpression': 'value' # e.g. `(b)a`
+}
 
-SHAPE_RULES = [
-  ['blockItem', 'block-only'], # Any statement, like `return 0;`
-  ['expression', 'value-only'], # Any expression, like `a + b`
-  ['postfixExpression', 'block-only'], # e.g. `a(b, c);` OR `a++`
-  ['equalityExpression', 'value-only'], # e.g. `a == b`
-  ['logicalAndExpression', 'value-only'], # e.g. `a && b`
-  ['logicalOrExpression', 'value-only'], # e.g. `a || b`
-  ['iterationStatement', 'block-only'], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', 'value-only'], # e.g. `a < b`
-  ['initDeclaratorList', 'value-only'], # e.g. `a = b` when inside `int a = b;`
-  ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
-  ['structDeclaration', 'block-only'], # e.g. `struct a { }`
-  ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
-  ['statement', 'block-only'], # Any statement, like `return 0;`
-  ['functionDefinition', 'block-only'], # e.g. `int myMethod() { }`
-  ['expressionStatement', 'block-only'], # Statement that consists of an expression, like `a = b;`
-  ['additiveExpression', 'value-only'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value-only'], # e.g. `a * b`
-  ['declaration', 'block-only'], # e.g. `int a;`
-  ['parameterDeclaration', 'block-only'], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', 'value-only'], # e.g. `sizeof(a)`
-  ['typeName', 'value-only'], # e.g. `int`
-  ['initializer', 'value-only'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value-only'] # e.g. `(b)a`
-]
+SHAPE_RULES = {
+  'blockItem': helper.BLOCK_ONLY, # Any statement, like `return 0;`
+  'expression': helper.VALUE_ONLY, # Any expression, like `a + b`
+  'postfixExpression': helper.BLOCK_ONLY, # e.g. `a(b, c);` OR `a++`
+  'equalityExpression': helper.VALUE_ONLY, # e.g. `a == b`
+  'logicalAndExpression': helper.VALUE_ONLY, # e.g. `a && b`
+  'logicalOrExpression': helper.VALUE_ONLY, # e.g. `a || b`
+  'iterationStatement': helper.BLOCK_ONLY, # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': helper.BLOCK_ONLY, # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  'assignmentExpression': helper.BLOCK_ONLY, # e.g. `a = b;` OR `a = b`
+  'relationalExpression': helper.VALUE_ONLY, # e.g. `a < b`
+  'initDeclarator': helper.BLOCK_ONLY, # e.g. `a = b` when inside `int a = b;`
+  'externalDeclaration': helper.BLOCK_ONLY, # e.g. `int a = b` when global
+  'structDeclaration': helper.BLOCK_ONLY, # e.g. `struct a { }`
+  'declarationSpecifier': helper.BLOCK_ONLY, # e.g. `int` when in `int a = b;`
+  'statement': helper.BLOCK_ONLY, # Any statement, like `return 0;`
+  'functionDefinition': helper.BLOCK_ONLY, # e.g. `int myMethod() { }`
+  'expressionStatement': helper.BLOCK_ONLY, # Statement that consists of an expression, like `a = b;`
+  'additiveExpression': helper.VALUE_ONLY, # e.g. `a + b`
+  'multiplicativeExpression': helper.VALUE_ONLY, # e.g. `a * b`
+  'declaration': helper.BLOCK_ONLY, # e.g. `int a;`
+  'parameterDeclaration': helper.BLOCK_ONLY, # e.g. `int a` when in `int myMethod(int a) { }`
+  'unaryExpression': helper.VALUE_ONLY, # e.g. `sizeof(a)`
+  'typeName': helper.VALUE_ONLY, # e.g. `int`
+  'initializer': helper.VALUE_ONLY, # e.g. `{a, b, c}` when in `int x[ = {a, b, c};`
+  'castExpression': helper.VALUE_ONLY # e.g. `(b)a`
+}
 
 config = {
   RULES, COLOR_RULES, SHAPE_RULES
@@ -257,44 +260,21 @@ ADD_PARENS = (leading, trailing, node, context) ->
   leading '(' + leading()
   trailing trailing() + ')'
 
-STATEMENT_TO_EXPRESSION = (leading, trailing, node, context) ->
-  matching = false
-  for c in node.classes when c[...'__parse__'.length] is '__parse__'
-    if c in context.classes
-      matching = true
-      break
-  if matching
-    leading '(' + leading()
-    trailing trailing().replace(/\s*;\s*$/, '') + ')'
-  else
-    trailing trailing().replace(/\s*;\s*$/, '')
-
-EXPRESSION_TO_STATEMENT = (leading, trailing, node, context) ->
-  while true
-    if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-      leading leading().replace(/^\s*\(\s*/, '')
-      trailing trailing().replace(/\s*\)\s*$/, '')
-    else
-      break
-
+ADD_SEMICOLON = (leading, trailing, node, context) ->
   trailing trailing() + ';'
+
+REMOVE_SEMICOLON = (leading, trailing, node, context) ->
+  trailing trailing().replace /\s*;\s*$/, ''
 
 config.PAREN_RULES = {
   'primaryExpression': {
     'expression': ADD_PARENS
-    'additiveExpression': ADD_PARENS
-    'multiplicativeExpression': ADD_PARENS
-    'assignmentExpression': ADD_PARENS
-    'postfixExpression': ADD_PARENS
-    'expressionStatement': STATEMENT_TO_EXPRESSION
-    'specialMethodCall': STATEMENT_TO_EXPRESSION
+  },
+  'expressionStatement': {
+    'expression': ADD_SEMICOLON
   }
-  'blockItem': {
-    'expression': EXPRESSION_TO_STATEMENT
-    'additiveExpression': EXPRESSION_TO_STATEMENT
-    'multiplicativeExpression': EXPRESSION_TO_STATEMENT
-    'assignmentExpression': EXPRESSION_TO_STATEMENT
-    'postfixExpression': EXPRESSION_TO_STATEMENT
+  'postfixExpression': {
+    'specialMethodCall': REMOVE_SEMICOLON
   }
 }
 
@@ -375,45 +355,69 @@ config.parseComment = (text) ->
   # Try standard comment
   comment = text.match(/^(\s*\/\/)(.*)$/)
   if comment?
-    ranges =  [
+    sockets =  [
       [comment[1].length, comment[1].length + comment[2].length]
     ]
     color = 'comment'
 
+    return {sockets, color}
+
   if text.match(/^#\s*((?:else)|(?:endif))$/)
-    ranges =  []
+    sockets =  []
     color = 'purple'
 
-  # Try any of the unary directives: #include, #if, #ifdef, #ifndef, #undef, #pragma
-  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
-  if unary?
-    ranges =  [
-      [unary[1].length, unary[1].length + unary[2].length]
-    ]
-    color = 'purple'
+    return {sockets, color}
 
   # Try #define directive
   binary = text.match(/^(#\s*(?:(?:define))\s*)([a-zA-Z_][0-9a-zA-Z_]*)(\s+)(.*)$/)
   if binary?
-    ranges =  [
+    sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
     color = 'purple'
+
+    return {sockets, color}
 
   # Try functional #define directive.
   binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
   if binary?
-    ranges =  [
+    sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
     color = 'purple'
 
-  return {
-    sockets: ranges
-    color
-  }
+    return {sockets, color}
+
+  # Try any of the unary directives: #define, #if, #ifdef, #ifndef, #undef, #pragma
+  unary = text.match(/^(#\s*(?:(?:define)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
+  if unary?
+    sockets =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+    return {sockets, color}
+
+  # Try #include, which must include the quotations
+  unary = text.match(/^(#\s*include\s*<)(.*)>\s*$/)
+  if unary?
+    sockets =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+    return {sockets, color}
+
+  unary = text.match(/^(#\s*include\s*")(.*)"\s*$/)
+  if unary?
+    sockets =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+    return {sockets, color}
 
 config.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length
@@ -432,6 +436,10 @@ config.stringFixer = (string) ->
     return string
 
 config.empty = '__0_droplet__'
+config.EMPTY_STRINGS = {
+  'Identifier': '__0_droplet__',
+  'declaration': '__0_droplet__ __0_droplet__;'
+}
 config.emptyIndent = ''
 
 insertAfterLastSocket = (str, block, insert) ->
@@ -469,7 +477,7 @@ removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
 
 config.handleButton = (str, type, block) ->
   if type is 'add-button'
-    if '__parse__selectionStatement' in block.classes
+    if block.nodeContext.type is 'selectionStatement'
       indents = []
       block.traverseOneLevel (child) ->
         if child.type is 'indent'
@@ -501,23 +509,23 @@ config.handleButton = (str, type, block) ->
 
         return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
 
-    else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+    else if block.nodeContext.type is 'postfixExpression' or block.nodeContext.type is 'specialMethodCall'
       if str.match(/\(\s*\)\s*;?$/)?
         return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
       else
         return str.replace(/(\s*\)\s*;?\s*)$/, ", #{config.empty}$1")
-    else if '__parse__parameterList' in block.classes
+    else if block.nodeContext.type is 'parameterList'
       if str.match(/^\s*void\s*$/)
         return "type param"
       return str + ", type param"
-    else if '__parse__declaration' in block.classes
+    else if block.nodeContext.type is 'declaration'
         return str.replace(/(\s*;?\s*)$/, ", #{config.empty} = #{config.empty}$1")
-    else if '__parse__initializer' in block.classes
+    else if block.nodeContext.type is 'initializer'
       return str.replace(/(\s*}\s*)$/, ", #{config.empty}$1")
-    else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+    else if block.nodeContext.type is 'expression'
       return str.replace(/(\s*;\s*)?$/, ", #{config.empty}$1")
   else
-    if '__parse__selectionStatement' in block.classes
+    if block.nodeContext.type is 'selectionStatement'
       indents = []
       block.traverseOneLevel (child) ->
         if child.type is 'indent'
@@ -541,9 +549,9 @@ config.handleButton = (str, type, block) ->
 
         return prefix + suffix
 
-    else if '__parse__postfixExpression' in block.classes or '__paren__postfixExpression' in block.classes or '__parse__specialMethodCall' in block.classes
+    else if block.nodeContext.type is 'postfixExpression' or block.nodeContext.type is 'specialMethodCall'
       return removeLastSocketAnd str, block, /\s*,\s*$/
-    else if '__parse__declaration' in block.classes
+    else if block.nodeContext.type is 'declaration'
       reparsed = config.__antlrParse 'declaration', str
 
       lines = str.split '\n'
@@ -553,30 +561,20 @@ config.handleButton = (str, type, block) ->
       prefix = prefix.replace /\s*,\s*$/, ''
 
       return prefix + suffix
-    else if '__parse__initializer' in block.classes
+    else if block.nodeContext.type is 'initializer'
       return removeLastSocketAnd str, block, /\s*,\s*$/
-    else if '__parse__parameterList' in block.classes
+    else if block.nodeContext.type is 'parameterList'
       count = 0
       block.traverseOneLevel (x) -> if x.type is 'socket' then count++
       if count is 1
         return 'void'
       else
         return removeLastSocketAnd str, block, /\s*,\s*$/
-    else if '__parse__expression' in block.classes or '__paren__expression' in block.classes
+    else if block.nodeContext.type is 'expression'
       return removeLastSocketAnd str, block, /\s*,\s*$/
 
   return str
 
-# TODO Implement removing parentheses at some point
-#config.unParenWrap = (leading, trailing, node, context) ->
-#  while true
-#   if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-#     leading leading().replace(/^\s*\(\s*/, '')
-#      trailing trailing().replace(/\s*\)\s*$/, '')
-#    else
-#      break
-
-# DEBUG
-config.unParenWrap = null
+config.rootContext = 'externalDeclaration'
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config

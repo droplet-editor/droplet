@@ -579,7 +579,7 @@ exports.Draw = class Draw
               @darkPathElement.setAttribute 'visibility', 'visible'
             else
               @element.setAttribute 'stroke', @style.strokeColor
-              @backgroundPathElement.setAttribute 'line-width', @style.lineWidth
+              @element.setAttribute 'line-width', @style.lineWidth
 
         if @_updateFlag
           @_updateFlag = false

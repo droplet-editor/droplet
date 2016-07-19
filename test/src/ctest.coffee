@@ -161,7 +161,7 @@ asyncTest 'Parser: parser freeze test for C mode', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-07-08'
+  deepEqual result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-07-08'
 
   start()
 
@@ -188,7 +188,7 @@ asyncTest 'Parser: parser freeze test comment consolidation', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA.commentConsolidation, 'C comment consolidation'
+  deepEqual result.serialize(), FREEZE_DATA.commentConsolidation, 'C comment consolidation'
 
   start()
 
@@ -392,7 +392,7 @@ asyncTest 'Controller: ANTLR reparse rules', ->
 
     // Main
     int main(int n, char *args[]) {
-        // Arbitrary array initializer just o test that syntax
+        // Arbitrary array initializer just to test that syntax
         int arbitraryArray[] = {1, 2, 3, 4, 5};
         int length;
         scanf("%d", &length);
@@ -425,7 +425,7 @@ asyncTest 'Controller: ANTLR reparse rules', ->
       start()
       return
 
-    if head.type is 'blockStart' and head.container.stringify().length > 0
+    if head.type is 'blockStart' and head.container.parseContext isnt '__comment__' and head.container.stringify().length > 0
       before = head.prev
 
       oldLocalSerialize = head.container.serialize()
@@ -435,8 +435,8 @@ asyncTest 'Controller: ANTLR reparse rules', ->
       newLocalSerialize = before.next.container.serialize()
 
       notEqual before.next.id, head.id, "Reparsing did indeed replace the block ('#{head.container.stringify()}', #{head.container.parseContext})."
-      equal oldLocalSerialize, newLocalSerialize, "Reparsing did not change the local structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
-      equal oldSerialize, newSerialize, "Reparsing did not change the tree structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
+      deepEqual oldLocalSerialize, newLocalSerialize, "Reparsing did not change the local structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
+      deepEqual oldSerialize, newSerialize, "Reparsing did not change the tree structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
 
       head = before.next
 

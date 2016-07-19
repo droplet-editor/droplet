@@ -2012,8 +2012,7 @@ exports.View = class View
           @model.start.prev is @model.parent.start and @model.end.next is @model.parent.end)
         return @model.parent?.type isnt 'socket'
       else
-        return not ('mostly-value' in @model.classes or
-          'value-only' in @model.classes)
+        return not (@model.shape in [helper.MOSTLY_VALUE, helper.VALUE_ONLY])
 
     computeOwnDropArea: ->
       return unless @model.parent?.type in ['indent', 'document']
@@ -2159,7 +2158,13 @@ exports.View = class View
           not @changedBoundingBox
         return @path
 
-      unless @model.start.next.type is 'blockStart'
+      @path.style.fillColor = '#FFF'
+
+      if @model.start.next.type is 'blockStart'
+        @path.style.fillColor = 'none'
+
+      # Otherwise, call super.
+      else
         super
 
       # If the socket is empty, make it invisible except
@@ -2169,10 +2174,6 @@ exports.View = class View
         @path.style.fillColor = 'none'
       else
         @path.style.cssClass = 'droplet-socket-path'
-        if @model.start.next.type is 'blockStart'
-          @path.style.fillColor = 'none'
-        else
-          @path.style.fillColor = '#FFF'
 
       return @path
 

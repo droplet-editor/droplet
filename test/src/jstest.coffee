@@ -30,94 +30,252 @@ asyncTest 'JS dotted methods', ->
     '''
   ).serialize()
 
-  expectedSerialization = '''<document><block
-      precedence="2"
-      color="red"
-      socketLevel="0"
-      classes="CallExpression mostly-block"><socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    >x</socket
-    >.pos(<socket
-      precedence="100"
-      handwritten="false"
-      classes="">100</socket>);</block>\n<block
-      precedence="0"
-      color="yellow"
-      socketLevel="0"
-      classes="ReturnStatement mostly-block"
-    >return <socket
-      precedence="0"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="2"
-      color="blue"
-      socketLevel="0"
-      classes="CallExpression mostly-block"
-    >console.log(<socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="2"
-      color="green"
-      socketLevel="0"
-      classes="CallExpression mostly-value"
-    >Math.log(<socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="2"
-      color="blue"
-      socketLevel="0"
-      classes="CallExpression any-drop"
-    ><socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    >log</socket>(<socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="2"
-      color="green"
-      socketLevel="0"
-      classes="CallExpression mostly-value"
-    ><socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    >x</socket>.toString(<socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="4"
-      color="green"
-      socketLevel="0"
-      classes="UnaryExpression mostly-value"
-    >~<socket
-      precedence="4"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="2"
-      color="red"
-      socketLevel="0"
-      classes="CallExpression mostly-block"
-    >pos()</block></socket></block></socket
-    >)</block></socket
-    >)</block></socket
-    >)</block></socket
-    >)</block></socket
-    >;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "red",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 2,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "CalleeObject",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "x",
+    {
+      "type": "socketEnd"
+    },
+    ".pos(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "100",
+    {
+      "type": "socketEnd"
+    },
+    ");",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "yellow",
+      "nodeContext": {
+        "prefix": "return ",
+        "suffix": ";",
+        "type": "ReturnStatement"
+      },
+      "parseContext": "program",
+      "shape": 2,
+      "type": "blockStart"
+    },
+    "return ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "console.log(",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 2,
+      "type": "blockStart"
+    },
+    "console.log(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "green",
+      "nodeContext": {
+        "prefix": "Math.log(",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    "Math.log(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "log",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "green",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "CalleeObject",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "x",
+    {
+      "type": "socketEnd"
+    },
+    ".toString(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "green",
+      "nodeContext": {
+        "prefix": "~",
+        "suffix": "",
+        "type": "Operator~"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    "~",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "red",
+      "nodeContext": {
+        "prefix": "pos()",
+        "suffix": "pos()",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 2,
+      "type": "blockStart"
+    },
+    "pos()",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ")",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ")",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ")",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ")",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ";",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'Dotted known functions work')
   start()
 
@@ -138,89 +296,218 @@ asyncTest 'JS Custom Colors', ->
   })
   customSerialization = customJS.parse(
       'return b != (a += [c + d][0]);').serialize()
-  expectedSerialization = '''<document
-    ><block
-      precedence="0"
-      color="#222"
-      socketLevel="0"
-      classes="ReturnStatement mostly-block"
-    >return <socket
-      precedence="0"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="9"
-      color="cyan"
-      socketLevel="0"
-      classes="BinaryExpression mostly-value"
-    ><socket
-      precedence="9"
-      handwritten="false"
-      classes=""
-    >b</socket
-    > != <socket
-      precedence="9"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="0"
-      color="#777"
-      socketLevel="0"
-      classes="mostly-block AssignmentExpression"
-    >(<socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    >a</socket
-    > += <socket
-      precedence="100"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="1"
-      color="#666"
-      socketLevel="0"
-      classes="MemberExpression mostly-value"
-    ><socket
-      precedence="0"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="0"
-      color="#666"
-      socketLevel="0"
-      classes="ArrayExpression mostly-value"
-    >[<socket
-      precedence="0"
-      handwritten="false"
-      classes=""
-    ><block
-      precedence="6"
-      color="#444"
-      socketLevel="0"
-      classes="BinaryExpression mostly-value"
-    ><socket
-      precedence="6"
-      handwritten="false"
-      classes=""
-    >c</socket
-    > + <socket
-      precedence="6"
-      handwritten="false"
-      classes=""
-    >d</socket></block></socket
-    >]</block></socket
-    >[<socket
-      precedence="0"
-      handwritten="false"
-      classes=""
-    >0</socket
-    >]</block></socket
-    >)</block></socket></block></socket
-    >;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "#222",
+      "nodeContext": {
+        "prefix": "return ",
+        "suffix": ";",
+        "type": "ReturnStatement"
+      },
+      "parseContext": "program",
+      "shape": 2,
+      "type": "blockStart"
+    },
+    "return ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "cyan",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "Operator!="
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator!=",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "b",
+    {
+      "type": "socketEnd"
+    },
+    " != ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator!=",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "#777",
+      "nodeContext": {
+        "prefix": "(",
+        "suffix": ")",
+        "type": "AssignmentExpression"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Lvalue",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "a",
+    {
+      "type": "socketEnd"
+    },
+    " += ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "#666",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "]",
+        "type": "MemberExpression"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "#666",
+      "nodeContext": {
+        "prefix": "[",
+        "suffix": "]",
+        "type": "ArrayExpression"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    "[",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "#444",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "Operator+"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator+",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "c",
+    {
+      "type": "socketEnd"
+    },
+    " + ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator+",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "d",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    "]",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    "[",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "0",
+    {
+      "type": "socketEnd"
+    },
+    "]",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ")",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ";",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'JS Custom colors work')
   start()
 
@@ -229,31 +516,63 @@ asyncTest 'JS empty indents', ->
   code = 'if (__) {\n\n}'
   customSerialization = customJS.parse('if (__) {\n\n}')
   stringifiedJS = customSerialization.stringify()
-  strictEqual(stringifiedJS, code)
+  deepEqual(stringifiedJS, code)
   start()
 
 asyncTest 'JS LogicalExpressions', ->
   customJS = new JavaScript()
   customSerialization = customJS.parse(
       'a && b').serialize()
-  expectedSerialization = '''<document
-      ><block
-        precedence="13"
-        color="cyan"
-        socketLevel="0"
-        classes="LogicalExpression mostly-value"
-      ><socket
-        precedence="13"
-        handwritten="false"
-        classes=""
-      >a</socket> &amp;&amp; <socket
-        precedence="13"
-        handwritten="false"
-        classes=""
-      >b</socket></block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "cyan",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "Operator&&"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator&&",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "a",
+    {
+      "type": "socketEnd"
+    },
+    " && ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator&&",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "b",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'Logical expression precedences are assigned.')
   start()
 
@@ -261,59 +580,141 @@ asyncTest 'JS omits unary +/- for literals', ->
   customJS = new JavaScript()
   customSerialization = customJS.parse(
       'foo(+1, -1, +a());').serialize()
-  expectedSerialization =
-      '<document' +
-      '><block' +
-      '  precedence="2"' +
-      '  color="blue"' +
-      '  socketLevel="0"' +
-      '  classes="CallExpression any-drop"' +
-      '><socket' +
-      '  precedence="100"' +
-      '  handwritten="false"' +
-      '  classes=""' +
-      '>foo</socket>(' +
-      '<socket' +
-      '  precedence="100"' +
-      '  handwritten="false"' +
-      '  classes=""' +
-      '>+1</socket>, ' +
-      '<socket' +
-      '  precedence="100"' +
-      '  handwritten="false"' +
-      '  classes=""' +
-      '>-1</socket>, ' +
-      '<socket' +
-      '  precedence="100"' +
-      '  handwritten="false"' +
-      '  classes=""' +
-      '><block '  +
-      '  precedence="6"' +
-      '  color="green"' +
-      '  socketLevel="0"' +
-      '  classes="UnaryExpression mostly-value"' +
-      '>+<socket ' +
-      '  precedence="6"' +
-      '  handwritten="false"' +
-      '  classes=""' +
-      '><block ' +
-      '  precedence="2"' +
-      '  color="blue"' +
-      '  socketLevel="0"' +
-      '  classes="CallExpression any-drop"' +
-      '><socket ' +
-      '  precedence="100"' +
-      '  handwritten="false"' +
-      '  classes=""' +
-      '>a</socket>(<socket
-        precedence="100"
-        handwritten="false"
-        classes="mostly-value"
-      ></socket>)</block></socket></block>' +
-      '</socket>);</block></document>'
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "foo",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "+1",
+    {
+      "type": "socketEnd"
+    },
+    ", ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "-1",
+    {
+      "type": "socketEnd"
+    },
+    ", ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "green",
+      "nodeContext": {
+        "prefix": "+",
+        "suffix": "",
+        "type": "Operator+"
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    "+",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "a",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": null,
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    {
+      "type": "socketEnd"
+    },
+    ")",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ");",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'Unary literal +/- are not parsed, but unary nonliteral operators are')
   start()
 
@@ -329,129 +730,342 @@ asyncTest 'JS Elif', ->
       '  fd(200);\n' +
       '}'
   ).serialize()
-  expectedSerialization =
-    '<document' +
-    '><block' +
-    '  precedence="0"' +
-    '  color="orange"' +
-    '  socketLevel="0"' +
-    '  classes="ends-with-brace block-only IfStatement"' +
-    '>if (' +
-    '<socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '><block' +
-    '  precedence="9"' +
-    '  color="cyan"' +
-    '  socketLevel="0"' +
-    '  classes="BinaryExpression mostly-value"' +
-    '><socket' +
-    '  precedence="9"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>a</socket> == ' +
-    '<socket' +
-    '  precedence="9"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>0</socket></block></socket>) {' +
-    '<indent' +
-    '  prefix="  "' +
-    '  classes=""' +
-    '>\n<block' +
-    '  precedence="2"' +
-    '  color="blue"' +
-    '  socketLevel="0"' +
-    '  classes="CallExpression any-drop"' +
-    '><socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>fd</socket>(<socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>0</socket>);</block></indent>' +
-    '\n} else if (' +
-    '<socket' +
-    '  precedence="0"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '><block ' +
-    '  precedence="9"' +
-    '  color="cyan"' +
-    '  socketLevel="0"' +
-    '  classes="BinaryExpression mostly-value"' +
-    '><socket' +
-    '  precedence="9"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>a</socket> == ' +
-    '<socket' +
-    '  precedence="9"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>1</socket></block></socket>) {' +
-    '<indent' +
-    '  prefix="  "'+
-    '  classes=""' +
-    '>\n<block' +
-    '  precedence="2"' +
-    '  color="blue"' +
-    '  socketLevel="0"' +
-    '  classes="CallExpression any-drop"' +
-    '><socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>fd</socket>(' +
-    '<socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>100</socket>);</block></indent>' +
-    '\n} else if (' +
-    '<socket' +
-    '  precedence="0"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '><block' +
-    '  precedence="9"' +
-    '  color="cyan"' +
-    '  socketLevel="0"' +
-    '  classes="BinaryExpression mostly-value"' +
-    '><socket' +
-    '  precedence="9"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>a</socket> == ' +
-    '<socket' +
-    '  precedence="9"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>2</socket></block></socket>) {' +
-    '<indent prefix="  "' +
-    '  classes=""' +
-    '>\n<block' +
-    '  precedence="2"' +
-    '  color="blue"' +
-    '  socketLevel="0"' +
-    '  classes="CallExpression any-drop"' +
-    '><socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>fd</socket>(' +
-    '<socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>200</socket>);</block></indent>\n' +
-    '}</block></document>'
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "orange",
+      "nodeContext": {
+        "prefix": "if (",
+        "suffix": "}",
+        "type": "IfStatement"
+      },
+      "parseContext": "program",
+      "shape": 1,
+      "type": "blockStart"
+    },
+    "if (",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "cyan",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "Operator=="
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator==",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "a",
+    {
+      "type": "socketEnd"
+    },
+    " == ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator==",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "0",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ") {",
+    {
+      "indentContext": null,
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "fd",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "0",
+    {
+      "type": "socketEnd"
+    },
+    ");",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "} else if (",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "cyan",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "Operator=="
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator==",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "a",
+    {
+      "type": "socketEnd"
+    },
+    " == ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator==",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "1",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ") {",
+    {
+      "indentContext": null,
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "fd",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "100",
+    {
+      "type": "socketEnd"
+    },
+    ");",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "} else if (",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    {
+      "color": "cyan",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "Operator=="
+      },
+      "parseContext": "program",
+      "shape": 3,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator==",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "a",
+    {
+      "type": "socketEnd"
+    },
+    " == ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Operator==",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "2",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "socketEnd"
+    },
+    ") {",
+    {
+      "indentContext": null,
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "fd",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Expression",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "200",
+    {
+      "type": "socketEnd"
+    },
+    ");",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "}",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'Combines if-else')
   start()
 
@@ -466,36 +1080,98 @@ asyncTest 'JS beginner mode loops', ->
     }
     '''
   ).serialize()
-  expectedSerialization =
-    '<document' +
-    '><block' +
-    '  precedence="0"' +
-    '  color="green"' +
-    '  socketLevel="0"' +
-    '  classes="ends-with-brace block-only ForStatement"' +
-    '>for (var i = 0; i &amp;lt; <socket' +
-    '  precedence="0"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>10</socket>; i++) {<indent' +
-    '  prefix="  "' +
-    '  classes=""' +
-    '>\n<block' +
-    '  precedence="2"' +
-    '  color="blue"' +
-    '  socketLevel="0"' +
-    '  classes="CallExpression any-drop"' +
-    '><socket' +
-    '  precedence="100"' +
-    '  handwritten="false"' +
-    '  classes=""' +
-    '>go</socket>(<socket
-      precedence="100"
-      handwritten="false"
-      classes="mostly-value"
-    ></socket>);</block></indent>\n}</block></document>'
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "green",
+      "nodeContext": {
+        "prefix": "for (var i = 0; i < ",
+        "suffix": "}",
+        "type": "ForStatement"
+      },
+      "parseContext": "program",
+      "shape": 1,
+      "type": "blockStart"
+    },
+    "for (var i = 0; i < ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "program",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "10",
+    {
+      "type": "socketEnd"
+    },
+    "; i++) {",
+    {
+      "indentContext": null,
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "blue",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": ")",
+        "type": "CallExpression"
+      },
+      "parseContext": "program",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "Callee",
+      "type": "socketStart",
+      "emptyString": "__"
+    },
+    "go",
+    {
+      "type": "socketEnd"
+    },
+    "(",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": null,
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    {
+      "type": "socketEnd"
+    },
+    ");",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "}",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'Combines if-else')
   start()

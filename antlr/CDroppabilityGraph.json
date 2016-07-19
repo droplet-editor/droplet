@@ -1,0 +1,301 @@
+{
+  "assignmentExpression": [
+    "conditionalExpression"
+  ],
+  "typeSpecifier": [
+    "atomicTypeSpecifier",
+    "typedefName",
+    "enumSpecifier",
+    "structOrUnionSpecifier"
+  ],
+  "gccDeclaratorExtension": [
+    "gccAttributeSpecifier"
+  ],
+  "unaryOperator_DropletFile": [],
+  "structOrUnion_DropletFile": [],
+  "initializer": [
+    "assignmentExpression"
+  ],
+  "selectionStatement_DropletFile": [],
+  "additiveExpression": [
+    "multiplicativeExpression"
+  ],
+  "parameterTypeList": [
+    "parameterList"
+  ],
+  "storageClassSpecifier_DropletFile": [],
+  "gccDeclaratorExtension_DropletFile": [],
+  "abstractDeclarator": [
+    "pointer",
+    "directAbstractDeclarator"
+  ],
+  "externalDeclaration": [
+    "declaration",
+    "functionDefinition"
+  ],
+  "enumerator": [
+    "enumerationConstant"
+  ],
+  "structOrUnionSpecifier": [],
+  "alignmentSpecifier_DropletFile": [],
+  "declarationSpecifiers2": [
+    "declarationSpecifier"
+  ],
+  "compoundStatement_DropletFile": [],
+  "declarationSpecifiers": [
+    "declarationSpecifier"
+  ],
+  "translationUnit": [
+    "externalDeclaration"
+  ],
+  "structOrUnionSpecifier_DropletFile": [],
+  "shiftExpression_DropletFile": [],
+  "initDeclarator_DropletFile": [],
+  "multiplicativeExpression": [
+    "castExpression"
+  ],
+  "structDeclaratorList_DropletFile": [],
+  "exclusiveOrExpression_DropletFile": [],
+  "structOrUnion": [],
+  "enumerationConstant_DropletFile": [],
+  "expressionStatement_DropletFile": [],
+  "designation_DropletFile": [],
+  "abstractDeclarator_DropletFile": [],
+  "directDeclarator": [],
+  "jumpStatement": [],
+  "labeledStatement_DropletFile": [],
+  "unaryExpression": [
+    "postfixExpression"
+  ],
+  "declarationSpecifier": [
+    "typeQualifier",
+    "functionSpecifier",
+    "alignmentSpecifier",
+    "typeSpecifier",
+    "storageClassSpecifier"
+  ],
+  "typedefName": [],
+  "relationalExpression": [
+    "shiftExpression"
+  ],
+  "structDeclarationList": [
+    "structDeclaration"
+  ],
+  "primaryExpression_DropletFile": [],
+  "specialMethodCall_DropletFile": [],
+  "gccAttribute_DropletFile": [],
+  "blockItemList_DropletFile": [],
+  "genericSelection": [],
+  "logicalAndExpression_DropletFile": [],
+  "structDeclaration_DropletFile": [],
+  "enumSpecifier": [],
+  "statement_DropletFile": [],
+  "functionSpecifier_DropletFile": [],
+  "genericAssocList": [
+    "genericAssociation"
+  ],
+  "designatorList_DropletFile": [],
+  "parameterDeclaration_DropletFile": [],
+  "declaration": [
+    "staticAssertDeclaration"
+  ],
+  "parameterTypeList_DropletFile": [],
+  "iterationStatement": [],
+  "logicalOrExpression_DropletFile": [],
+  "declarationSpecifiers2_DropletFile": [],
+  "nestedParenthesesBlock_DropletFile": [
+    0
+  ],
+  "declarator": [
+    "directDeclarator"
+  ],
+  "compilationUnit": [],
+  "initDeclaratorList_DropletFile": [],
+  "exclusiveOrExpression": [
+    "andExpression"
+  ],
+  "jumpStatement_DropletFile": [],
+  "specifierQualifierList": [
+    "typeQualifier",
+    "typeSpecifier"
+  ],
+  "typeName": [
+    "specifierQualifierList"
+  ],
+  "enumerationConstant": [],
+  "relationalExpression_DropletFile": [],
+  "genericAssociation": [],
+  "expression_DropletFile": [],
+  "declarator_DropletFile": [],
+  "iterationStatement_DropletFile": [],
+  "postfixExpression_DropletFile": [],
+  "structDeclaratorList": [
+    "structDeclarator"
+  ],
+  "initializerList": [
+    "initializer"
+  ],
+  "enumeratorList_DropletFile": [],
+  "gccAttributeSpecifier": [],
+  "externalDeclaration_DropletFile": [],
+  "typeQualifierList": [
+    "typeQualifier"
+  ],
+  "primaryExpression": [
+    "genericSelection"
+  ],
+  "structDeclarationsBlock_DropletFile": [],
+  "structDeclaration": [
+    "staticAssertDeclaration"
+  ],
+  "inclusiveOrExpression": [
+    "exclusiveOrExpression"
+  ],
+  "andExpression": [
+    "equalityExpression"
+  ],
+  "designatorList": [
+    "designator"
+  ],
+  "designation": [],
+  "structDeclarationsBlock": [],
+  "initDeclaratorList": [
+    "initDeclarator"
+  ],
+  "logicalAndExpression": [
+    "inclusiveOrExpression"
+  ],
+  "multiplicativeExpression_DropletFile": [],
+  "assignmentOperator": [],
+  "structDeclarationList_DropletFile": [],
+  "expression": [
+    "assignmentExpression"
+  ],
+  "directAbstractDeclarator": [],
+  "specialMethodCall": [],
+  "structDeclarator_DropletFile": [],
+  "initDeclarator": [
+    "declarator"
+  ],
+  "structDeclarator": [
+    "declarator"
+  ],
+  "gccAttributeList_DropletFile": [],
+  "staticAssertDeclaration": [],
+  "compoundStatement": [],
+  "enumeratorList": [
+    "enumerator"
+  ],
+  "assignmentExpression_DropletFile": [],
+  "directDeclarator_DropletFile": [],
+  "gccAttribute": [],
+  "statement": [
+    "expressionStatement",
+    "selectionStatement",
+    "compoundStatement",
+    "jumpStatement",
+    "iterationStatement",
+    "labeledStatement"
+  ],
+  "typeQualifier": [],
+  "declaration_DropletFile": [],
+  "equalityExpression": [
+    "relationalExpression"
+  ],
+  "typeQualifier_DropletFile": [],
+  "constantExpression_DropletFile": [],
+  "atomicTypeSpecifier_DropletFile": [],
+  "inclusiveOrExpression_DropletFile": [],
+  "storageClassSpecifier": [],
+  "blockItemList": [
+    "blockItem"
+  ],
+  "gccAttributeSpecifier_DropletFile": [],
+  "gccAttributeList": [
+    "gccAttribute"
+  ],
+  "declarationSpecifiers_DropletFile": [],
+  "postfixExpression": [
+    "primaryExpression"
+  ],
+  "castExpression": [
+    "unaryExpression"
+  ],
+  "andExpression_DropletFile": [],
+  "selectionStatement": [],
+  "genericSelection_DropletFile": [],
+  "shiftExpression": [
+    "additiveExpression"
+  ],
+  "identifierList": [],
+  "parameterList_DropletFile": [],
+  "alignmentSpecifier": [],
+  "typeQualifierList_DropletFile": [],
+  "typeSpecifier_DropletFile": [],
+  "conditionalExpression": [
+    "logicalOrExpression"
+  ],
+  "parameterDeclaration": [
+    "declarationSpecifiers2"
+  ],
+  "translationUnit_DropletFile": [],
+  "functionSpecifier": [
+    "gccAttributeSpecifier"
+  ],
+  "castExpression_DropletFile": [],
+  "functionDefinition": [],
+  "argumentExpressionList_DropletFile": [],
+  "genericAssocList_DropletFile": [],
+  "blockItem": [
+    "specialMethodCall",
+    "declaration",
+    "statement"
+  ],
+  "designator_DropletFile": [],
+  "expressionStatement": [],
+  "pointer": [],
+  "atomicTypeSpecifier": [],
+  "constantExpression": [
+    "conditionalExpression"
+  ],
+  "argumentExpressionList": [
+    "assignmentExpression"
+  ],
+  "unaryOperator": [],
+  "additiveExpression_DropletFile": [],
+  "logicalOrExpression": [
+    "logicalAndExpression"
+  ],
+  "declarationList": [
+    "declaration"
+  ],
+  "declarationList_DropletFile": [],
+  "labeledStatement": [],
+  "directAbstractDeclarator_DropletFile": [],
+  "typeName_DropletFile": [],
+  "assignmentOperator_DropletFile": [],
+  "equalityExpression_DropletFile": [],
+  "blockItem_DropletFile": [],
+  "declarationSpecifier_DropletFile": [],
+  "identifierList_DropletFile": [],
+  "compilationUnit_DropletFile": [],
+  "enumerator_DropletFile": [],
+  "pointer_DropletFile": [],
+  "functionDefinition_DropletFile": [],
+  "conditionalExpression_DropletFile": [],
+  "typedefName_DropletFile": [],
+  "staticAssertDeclaration_DropletFile": [],
+  "unaryExpression_DropletFile": [],
+  "enumSpecifier_DropletFile": [],
+  "specifierQualifierList_DropletFile": [],
+  "initializerList_DropletFile": [],
+  "parameterList": [
+    "parameterDeclaration"
+  ],
+  "genericAssociation_DropletFile": [],
+  "designator": [],
+  "initializer_DropletFile": [],
+  "nestedParenthesesBlock": [
+    0
+  ]
+}
