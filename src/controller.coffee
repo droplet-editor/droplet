@@ -2421,6 +2421,7 @@ Editor::reparseSocket = (socket, updates = []) ->
     text = socket.textContent()
 
     block = parseSocketBlock(@session.mode, text, socket.parseContext)
+
     if block?
       @prepareNode block, socket
 
@@ -2429,7 +2430,18 @@ Editor::reparseSocket = (socket, updates = []) ->
       @replace replaceList, block, updates
 
     else
-      @reparse socket, updates
+      # First see if the string just checks out normally
+      # but doesn't have a block
+      #
+      # TODO if performance becomes an issue, reuse parse from
+      # parseSocketBlock
+      try
+        # If it checks out, we're done
+        @session.mode.parse text, {wrapAtRoot: false, context: socket.parseContext}
+        @session.view.getViewNodeFor(socket).unmark() # If it was error-marked, note that it is no longer so.
+      catch e
+        # Otherwise, try reparsing the parent.
+        @reparse socket, updates
 
 # If we can, try to reparse the focus
 # value.
@@ -2490,7 +2502,7 @@ Editor::reparse = (list, updates = [], originalTrigger = list) ->
     context = (list.start.container ? list.start.parent).parseContext
 
   try
-    newList = @session.mode.parse list.stringifyInPlace(),{
+    newList = @session.mode.parse list.stringifyInPlace(), {
       wrapAtRoot: parent.type isnt 'socket'
       context: context
     }
