@@ -740,7 +740,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
         if node.subject? then @csSocketAndMark node.subject, depth + 1, 'Expression', indentDepth
 
         for switchCase in node.cases
-          if switchCase[0].constructor is rrray
+          if switchCase[0].constructor is Array
             for condition in switchCase[0]
               @csSocketAndMark condition, depth + 1, 'Expression', indentDepth # (condition)
           else
