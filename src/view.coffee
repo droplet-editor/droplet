@@ -1385,7 +1385,7 @@ exports.View = class View
       # *Seventh pass variables*
       # computeDropAreas
       # each one is a @view.draw.Path (or null)
-      @dropArea = null
+      @dropPoint = null
       @highlightArea = new @view.draw.Path([], false, {
         fillColor: '#FF0'
         strokeColor: '#FF0'
@@ -1976,7 +1976,7 @@ exports.View = class View
     # By default, we will not have a
     # drop area (not be droppable).
     computeOwnDropArea: ->
-      @dropArea = null
+      @dropPoint = null
       if @highlightArea?
         @elements = @elements.filter (x) -> x isnt @highlightArea
         @highlightArea.destroy()
@@ -2015,7 +2015,10 @@ exports.View = class View
         return not (@model.shape in [helper.MOSTLY_VALUE, helper.VALUE_ONLY])
 
     computeOwnDropArea: ->
-      return unless @model.parent?.type in ['indent', 'document']
+      unless @model.parent?.type in ['indent', 'document']
+        @dropPoint = null
+        return
+
       # Our drop area is a puzzle-piece shaped path
       # of height opts.highlightAreaHeight and width
       # equal to our last line width,
@@ -2204,7 +2207,7 @@ exports.View = class View
     # things.
     computeOwnDropArea: ->
       if @model.start.next.type is 'blockStart'
-        @dropArea = null
+        @dropPoint = null
         @highlightArea.deactivate()
       else
         @dropPoint = @bounds[0].upperLeftCorner()

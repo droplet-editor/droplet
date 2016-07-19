@@ -1080,7 +1080,7 @@ Editor::spliceOut = (node, container = null) ->
     if parent?.type is 'socket' and node.start.type is 'blockStart'
       for socket, i in @session.rememberedSockets
         if @fromCrossDocumentLocation(socket.socket) is parent
-          @session.rememberedSockets.splice i, 0
+          @session.rememberedSockets.splice i, 1
           @populateSocket parent, socket.text
           break
 

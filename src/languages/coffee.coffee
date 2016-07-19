@@ -154,6 +154,7 @@ PRECEDENCES = {
   'While': -4
   'Expression' : 0
   'Call': 0
+  'Callee': 100
   'LastCallArg': -1
 }
 

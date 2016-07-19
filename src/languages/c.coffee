@@ -154,7 +154,7 @@ RULES = {
        )
       if node.children.length is 3
         return {type: 'block', buttons: ADD_BUTTON}
-      else if opts.knownFunctions? and node.children[0].children[0].children[0].data.text of opts.knownFunctions
+      else if opts.knownFunctions? and node.children[0].children[0].children[0].data?.text of opts.knownFunctions
         minimum = opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs
         nargs = 0
         param = node.children[2]

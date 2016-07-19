@@ -471,8 +471,6 @@ exports.Draw = class Draw
       getLightBevelPath: -> @_clearCache(); @_lightBevelPath
       getDarkBevelPath: ->
         @_clearCache()
-        unless @_darkBevelPath?
-          debugger
         return @_darkBevelPath
 
       # TODO unhackify
