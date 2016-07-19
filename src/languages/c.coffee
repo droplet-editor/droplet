@@ -148,7 +148,7 @@ RULES = {
        ) and
        (
          (not node.children[0].children[0]?.children?[0]?) or
-         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions?
+         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions? or
          node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
          opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs?
        )
@@ -476,8 +476,11 @@ removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
   return prefix + suffix
 
 config.handleButton = (str, type, block) ->
+  blockType = block.nodeContext?.type ? block.parseContext
+
   if type is 'add-button'
-    if block.nodeContext.type is 'selectionStatement'
+
+    if blockType is 'selectionStatement'
       indents = []
       block.traverseOneLevel (child) ->
         if child.type is 'indent'
@@ -509,23 +512,26 @@ config.handleButton = (str, type, block) ->
 
         return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
 
-    else if block.nodeContext.type is 'postfixExpression' or block.nodeContext.type is 'specialMethodCall'
+    else if blockType is 'postfixExpression' or blockType is 'specialMethodCall'
       if str.match(/\(\s*\)\s*;?$/)?
         return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
       else
         return str.replace(/(\s*\)\s*;?\s*)$/, ", #{config.empty}$1")
-    else if block.nodeContext.type is 'parameterList'
+    else if blockType is 'parameterList'
       if str.match(/^\s*void\s*$/)
         return "type param"
       return str + ", type param"
-    else if block.nodeContext.type is 'declaration'
+    else if blockType is 'declaration'
         return str.replace(/(\s*;?\s*)$/, ", #{config.empty} = #{config.empty}$1")
-    else if block.nodeContext.type is 'initializer'
+    else if blockType is 'initializer'
       return str.replace(/(\s*}\s*)$/, ", #{config.empty}$1")
-    else if block.nodeContext.type is 'expression'
+    else if blockType is 'expression'
       return str.replace(/(\s*;\s*)?$/, ", #{config.empty}$1")
-  else
-    if block.nodeContext.type is 'selectionStatement'
+
+
+  else if type is 'subtract-button'
+
+    if blockType is 'selectionStatement'
       indents = []
       block.traverseOneLevel (child) ->
         if child.type is 'indent'
@@ -549,9 +555,9 @@ config.handleButton = (str, type, block) ->
 
         return prefix + suffix
 
-    else if block.nodeContext.type is 'postfixExpression' or block.nodeContext.type is 'specialMethodCall'
+    else if blockType is 'postfixExpression' or blockType is 'specialMethodCall'
       return removeLastSocketAnd str, block, /\s*,\s*$/
-    else if block.nodeContext.type is 'declaration'
+    else if blockType is 'declaration'
       reparsed = config.__antlrParse 'declaration', str
 
       lines = str.split '\n'
@@ -561,16 +567,16 @@ config.handleButton = (str, type, block) ->
       prefix = prefix.replace /\s*,\s*$/, ''
 
       return prefix + suffix
-    else if block.nodeContext.type is 'initializer'
+    else if blockType is 'initializer'
       return removeLastSocketAnd str, block, /\s*,\s*$/
-    else if block.nodeContext.type is 'parameterList'
+    else if blockType is 'parameterList'
       count = 0
       block.traverseOneLevel (x) -> if x.type is 'socket' then count++
       if count is 1
         return 'void'
       else
         return removeLastSocketAnd str, block, /\s*,\s*$/
-    else if block.nodeContext.type is 'expression'
+    else if blockType is 'expression'
       return removeLastSocketAnd str, block, /\s*,\s*$/
 
   return str

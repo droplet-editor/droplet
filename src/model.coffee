@@ -998,6 +998,16 @@ exports.ButtonContainer = class ButtonContainer extends Container
 
     super
 
+  _serialize_header: -> {
+    type: 'buttonContainerStart'
+    parseContext: @parseContext
+    buttons: @buttons
+  }
+
+  _serialize_footer: -> {
+    type: 'buttonContainerEnd'
+  }
+
   _cloneEmpty: -> new ButtonContainer @parseContext, @buttons, @data
 
 exports.ButtonContainerStartToken = class ButtonContainerStartToken extends StartToken

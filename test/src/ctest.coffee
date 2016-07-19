@@ -341,7 +341,7 @@ asyncTest 'Controller: ANTLR paren wrap rules for C semicolons', ->
 asyncTest 'Controller: ANTLR reparse rules', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
-    mode: 'c',
+    mode: 'c_cpp',
     palette: []
   })
 

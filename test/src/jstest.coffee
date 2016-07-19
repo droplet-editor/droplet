@@ -684,7 +684,7 @@ asyncTest 'JS omits unary +/- for literals', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": null,
+      "parseContext": "Expression"
       "type": "socketStart",
       "emptyString": ""
     },
@@ -1144,7 +1144,7 @@ asyncTest 'JS beginner mode loops', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": null,
+      "parseContext": "Expression",
       "type": "socketStart",
       "emptyString": ""
     },

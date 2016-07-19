@@ -129,13 +129,10 @@ exports.createTreewalkParser = (parse, config, root) ->
             parseContext: rules[0]
 
           @flagToRemove node.bounds, depth + 1
->>>>>>> graph-based-droppability
 
       else if node.children.length > 0
         switch @detNode node
           when 'block'
-            paddedRules = padRules wrapRules, rules
-
             if wrap?
               bounds = wrap.bounds
             else
@@ -153,12 +150,11 @@ exports.createTreewalkParser = (parse, config, root) ->
               depth: depth + 1
               color: @getColor node
               shape: @getShape node
+              buttons: @getButtons node
               nodeContext: @getNodeContext node, wrap
               parseContext: rules[rules.length - 1]
 
           when 'buttonContainer'
-            paddedRules = padRules wrapRules, rules
-
             if wrap?
               bounds = wrap.bounds
             else
@@ -168,7 +164,6 @@ exports.createTreewalkParser = (parse, config, root) ->
               bounds: bounds
               depth: depth + 1
               parseContext: rules[0]
-              classes: paddedRules
               buttons: @getButtons(node)
               color: @getColor node
               shape: @getShape node
@@ -189,8 +184,6 @@ exports.createTreewalkParser = (parse, config, root) ->
               return
 
             else
-              paddedRules = padRules wrapRules, rules
-
               node.blockified = true
 
               if wrap?
@@ -208,13 +201,12 @@ exports.createTreewalkParser = (parse, config, root) ->
                 bounds: bounds
                 depth: depth + 1
                 color: @getColor node
+                buttons: @getButtons node
                 shape: @getShape node
                 nodeContext: @getNodeContext node, wrap
                 parseContext: rules[rules.length - 1]
 
           when 'indent'
-            paddedRules = padRules wrapRules, rules
-
             # A lone indent needs to be wrapped in a block.
             if @det(context) isnt 'block'
               @addBlock
@@ -222,6 +214,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 depth: depth
                 color: @getColor node
                 shape: @getShape node
+                buttons: @getButtons node
                 nodeContext: @getNodeContext node, warp
                 parseContext: rules[rules.length - 1]
 
@@ -263,7 +256,6 @@ exports.createTreewalkParser = (parse, config, root) ->
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) in ['block', 'buttonContainer']
         if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
-          paddedRules = padRules wrapRules, rules
           @addSocket
             empty: config.EMPTY_STRINGS?[node.type] ? config.empty
             bounds: node.bounds

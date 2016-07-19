@@ -1185,7 +1185,7 @@ Editor::correctCursor = ->
     @session.cursor = @toCrossDocumentLocation cursor
 
 Editor::prepareNode = (node, context) ->
-  if node instanceof model.Container
+  if node.type is 'block'
     leading = node.getLeadingText()
     if node.start.next is node.end.prev
       trailing = null
@@ -1355,6 +1355,7 @@ hook 'mousedown', 4, (point, event, state) ->
 
       for key, button of viewNode.buttonRects
         if button.contains mainPoint
+          console.log 'HIT BUTTON', key
           str = result.stringifyInPlace()
           line = @session.mode.handleButton str, key, result #.getReader() # TODO getReader() that allows tree walking
           if line?.length >= 0 and line isnt str
