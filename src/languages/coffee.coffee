@@ -146,11 +146,14 @@ OPERATOR_PRECEDENCES =
   '%%': 7
 
 PRECEDENCES = {
-  'Semicolon': -2
+  'Semicolon': -3
   'Range': 100
   'Arr': 100
-  'For': -3
-  'While': -3
+  'For': -4
+  'While': -4
+  'Expression' : 0
+  'Call': 0
+  'LastCallArg': -1
 }
 
 for operator, precedence of OPERATOR_PRECEDENCES
@@ -601,10 +604,12 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
               # Inline function definitions that appear as the last arg
               # of a function call will be melded into the parent block.
               @addCode arg, depth + 1, indentDepth
+            else if last
+              @csSocketAndMark arg, depth + 1, 'LastCallArg', indentDepth, known?.fn?.dropdown?[index]
             else if not known and hasCallParen and index is 0 and node.args.length is 1
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth, known?.fn?.dropdown?[index], ''
+              @csSocketAndMark arg, depth + 1, 'Expression', indentDepth, known?.fn?.dropdown?[index], ''
             else
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth, known?.fn?.dropdown?[index]
+              @csSocketAndMark arg, depth + 1, 'Expression', indentDepth, known?.fn?.dropdown?[index]
 
       # ### Code ###
       # Function definition. Color VALUE, sockets @params,
@@ -1181,9 +1186,8 @@ CoffeeScriptParser.parens = (leading, trailing, node, context) ->
       trailing trailing().replace(/\s*\)\s*$/, '')
     else
       break
-  if context is null or context.type isnt 'socket' or
+  unless context is null or context.type isnt 'socket' or
       getPrecedence(context.parseContext) < getPrecedence(node.nodeContext.type)
-  else
     console.log 'adding as the result of', context.parseContext, node.nodeContext.type, getPrecedence(context.parseContext), getPrecedence(node.nodeContext.type)
     leading '(' + leading()
     trailing trailing() + ')'

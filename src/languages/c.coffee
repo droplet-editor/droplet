@@ -300,7 +300,7 @@ config.EMPTY_STRINGS = {
   'declaration': '__0_droplet__ __0_droplet__;'
 }
 config.emptyIndent = ''
-config.rootContext = 'translationUnit'
+config.rootContext = 'externalDeclaration'
 
 # DEBUG
 config.unParenWrap = null

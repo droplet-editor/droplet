@@ -2,7 +2,7 @@ window.FREEZE_DATA = {};
 
 window.FREEZE_DATA.freezeTest = [
   {
-    "indentContext": "translationUnit",
+    "indentContext": "externalDeclaration",
     "type": "documentStart"
   },
   {
@@ -5091,7 +5091,7 @@ window.FREEZE_DATA.freezeTest = [
 
 window.FREEZE_DATA.commentConsolidation = [
   {
-    "indentContext": "translationUnit",
+    "indentContext": "externalDeclaration",
     "type": "documentStart"
   },
   {

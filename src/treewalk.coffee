@@ -300,6 +300,4 @@ exports.createTreewalkParser = (parse, config, root) ->
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
   TreewalkParser.empty = config.empty
 
-  TreewalkParser.rootContext = root
-
   return TreewalkParser
