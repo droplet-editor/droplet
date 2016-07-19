@@ -636,11 +636,7 @@ exports.wrapParser = (CustomParser) ->
       @rootContext = CustomParser.rootContext
       @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
-<<<<<<< HEAD
       @getParenCandidates = CustomParser.getParenCandidates
-=======
-      @rootContext = CustomParser.rootContext
->>>>>>> 4f4900d4928083f5d3b770ee2cd4188e7ca91ccf
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
