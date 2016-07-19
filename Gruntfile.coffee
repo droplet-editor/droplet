@@ -2,6 +2,7 @@ browserify = require 'browserify'
 coffeeify = require 'coffeeify'
 watchify = require 'watchify'
 
+
 livereload = require 'tiny-lr'
 
 path = require 'path'
@@ -225,4 +226,7 @@ module.exports = (grunt) ->
             }
           }
 
+
+  grunt.loadNpmTasks 'grunt-keepalive'
   grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
+  grunt.registerTask 'serve', ['connect:testserver', 'keepalive']

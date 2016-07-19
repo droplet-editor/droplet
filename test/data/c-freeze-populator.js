@@ -462,12 +462,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -923,12 +923,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -1018,12 +1018,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -1740,12 +1740,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -1835,12 +1835,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -2823,12 +2823,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -3077,12 +3077,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
