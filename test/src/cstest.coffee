@@ -47,7 +47,7 @@ asyncTest 'Parser configurability', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -66,7 +66,7 @@ asyncTest 'Parser configurability', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -113,7 +113,7 @@ asyncTest 'Parser configurability', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -143,7 +143,7 @@ asyncTest 'Parser configurability', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -179,7 +179,7 @@ asyncTest 'Parser configurability', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -245,7 +245,7 @@ asyncTest 'Dotted methods', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -264,7 +264,7 @@ asyncTest 'Dotted methods', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -283,7 +283,7 @@ asyncTest 'Dotted methods', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -313,7 +313,7 @@ asyncTest 'Dotted methods', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -449,7 +449,7 @@ asyncTest 'Merged code blocks', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": 0,
+      "parseContext": "Block",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -515,7 +515,7 @@ asyncTest 'Merged code blocks', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": 0,
+      "parseContext": "Expression",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -548,7 +548,7 @@ asyncTest 'Merged code blocks', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": -1,
+      "parseContext": "LastCallArg",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -674,7 +674,7 @@ asyncTest 'Custom Colors', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": "FunctionBody",
+      "parseContext": "Expression",
       "type": "socketStart",
       "emptyString": "``"
     },
@@ -692,7 +692,7 @@ asyncTest 'Custom Colors', ->
     {
       "dropdown": false,
       "handwritten": false,
-      "parseContext": 0,
+      "parseContext": "PropertyAccess",
       "type": "socketStart",
       "emptyString": "``"
     },

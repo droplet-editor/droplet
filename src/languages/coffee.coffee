@@ -149,6 +149,7 @@ PRECEDENCES = {
   'Semicolon': -3
   'Range': 100
   'Arr': 100
+  'PropertyAccess': 100
   'For': -4
   'While': -4
   'Expression' : 0
@@ -389,7 +390,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           shouldBeOneLine = true
 
         if shouldBeOneLine
-          @csSocket node, depth, 0
+          @csSocket node, depth, 'Block'
 
         # Otherwise, wrap in an indent.
         else
@@ -482,13 +483,13 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           @csSocketAndMark node.second, depth + 1, 'Operator' + node.operator, indentDepth
 
       # ### Existence ###
-      # Color VALUE, socket @expression, precedence 100
+      # Color VALUE, socket @expression
       when 'Existence'
         @csBlock node, depth, 'Existence', wrappingParen, VALUE_ONLY
         @csSocketAndMark node.expression, depth + 1, 'Existence', indentDepth
 
       # ### In ###
-      # Color VALUE, sockets @object and @array, precedence 100
+      # Color VALUE, sockets @object and @array
       when 'In'
         @csBlock node, depth, 'In', wrappingParen, VALUE_ONLY
         @csSocketAndMark node.object, depth + 1, 'In', indentDepth
@@ -500,7 +501,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       when 'Value'
         if node.properties? and node.properties.length > 0
           @csBlock node, depth, 'PropertyAccess', wrappingParen, MOSTLY_VALUE
-          @csSocketAndMark node.base, depth + 1, 0, indentDepth
+          @csSocketAndMark node.base, depth + 1, 'PropertyAccess', indentDepth
           for property in node.properties
             if property.nodeType() is 'Access'
               @csSocketAndMark property.name, depth + 1, 'Identifier', indentDepth
@@ -599,7 +600,6 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             last = index is node.args.length - 1
             # special case: the last argument slot of a function
             # gathers anything inside it, without parens needed.
-            precedence = if last then -1 else 0
             if last and arg.nodeType() is 'Code'
               # Inline function definitions that appear as the last arg
               # of a function call will be melded into the parent block.
@@ -627,7 +627,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
         if node.value.nodeType() is 'Code'
           @addCode node.value, depth + 1, indentDepth
         else
-          @csSocketAndMark node.value, depth + 1, 'FunctionBody', indentDepth
+          @csSocketAndMark node.value, depth + 1, 'Expression', indentDepth
 
       # ### For ###
       # Color CONTROL, options sockets @index, @source, @name, @from.
@@ -740,7 +740,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
         if node.subject? then @csSocketAndMark node.subject, depth + 1, 'Expression', indentDepth
 
         for switchCase in node.cases
-          if switchCase[0].constructor is Array
+          if switchCase[0].constructor is rrray
             for condition in switchCase[0]
               @csSocketAndMark condition, depth + 1, 'Expression', indentDepth # (condition)
           else
@@ -965,7 +965,6 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     @addBlock {
       bounds: @getBounds (wrappingParen ? node)
       depth: depth
-      precedence: precedence
       color: @getColor(node)
       buttons: buttons
       shape: shape
