@@ -97,7 +97,7 @@ RULES = {
   'declaration': (node) ->
     if node.children.length is 3 and node.children[1].children.length is 3
       return {type: 'block', buttons: BOTH_BUTTON}
-    else if node.children.length >= 2
+    else if node.children.length is 3
       return {type: 'block', buttons: ADD_BUTTON}
     else
       return 'block'
