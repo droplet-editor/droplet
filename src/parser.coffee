@@ -329,7 +329,7 @@ exports.Parser = class Parser
 
     indentDepth = 0
     stack = []
-    document = new model.Document(); head = document.start
+    document = new model.Document(opts.context ? @rootContext); head = document.start
 
     currentlyCommented = false
 
@@ -644,6 +644,7 @@ exports.wrapParser = (CustomParser) ->
       @endComment = CustomParser.endComment ? '*/'
       @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
+      @rootContext = CustomParser.rootContext
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
