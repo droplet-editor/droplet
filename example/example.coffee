@@ -54,7 +54,7 @@ unless window.ALREADY_LOADED
 #  editor = new droplet.Editor aceEditor, options
 #>>>>>>> c_support
 
-    editor.setEditorState localStorage.getItem('blocks') is 'yes'
+    #editor.setEditorState localStorage.getItem('blocks') is 'yes'
     editor.aceEditor.getSession().setUseWrapMode true
 
     # Initialize to starting text

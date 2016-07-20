@@ -69,6 +69,7 @@ RULES = {
   'structDeclaration': 'parens',
 
   # Skips
+  'structDeclaratorList': 'skip',
   'blockItemList': 'skip',
   'macroParamList': 'skip',
   'compilationUnit': 'skip',
@@ -148,14 +149,14 @@ RULES = {
        ) and
        (
          (not node.children[0].children[0]?.children?[0]?) or
-         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.knownFunctions? or
-         node.children[0].children[0].children[0].data.text not of opts.knownFunctions or
-         opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs?
+         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.functions? or
+         node.children[0].children[0].children[0].data.text not of opts.functions or
+         opts.functions[node.children[0].children[0].children[0].data.text].minArgs?
        )
       if node.children.length is 3
         return {type: 'block', buttons: ADD_BUTTON}
-      else if opts.knownFunctions? and node.children[0].children[0].children[0].data?.text of opts.knownFunctions
-        minimum = opts.knownFunctions[node.children[0].children[0].children[0].data.text].minArgs
+      else if opts.functions? and node.children[0].children[0].children[0].data?.text of opts.functions
+        minimum = opts.functions[node.children[0].children[0].children[0].data.text].minArgs
         nargs = 0
         param = node.children[2]
         while param.type is 'argumentExpressionList'
@@ -172,12 +173,12 @@ RULES = {
 
   'specialMethodCall': (node, opts) ->
     if (
-        not opts.knownFunctions? or
-        node.children[0].data.text not of opts.knownFunctions
+        not opts.functions? or
+        node.children[0].data.text not of opts.functions
        )
       return {type: 'block', buttons: BOTH_BUTTON}
-    else if opts.knownFunctions[node.children[0].data.text].minArgs?
-      if opts.knownFunctions[node.children[0].data.text].minArgs is 0
+    else if opts.functions[node.children[0].data.text].minArgs?
+      if opts.functions[node.children[0].data.text].minArgs is 0
         return {type: 'block', buttons: BOTH_BUTTON}
       else
         return {type: 'block', buttons: ADD_BUTTON}
@@ -192,11 +193,16 @@ RULES = {
   'Constant': 'socket'
 }
 
+COLOR_DEFAULTS = {
+  'declaration': 'purple'
+  'function': 'indigo'
+}
+
 COLOR_RULES = {
   'jumpStatement': 'return', # e.g. `return 0;`
-  'specifierQualifierList': 'command',# e.g `int a;` when inside `struct {}`
-  'declaration': 'control', # e.g. `int a;`
-  'specialMethodCall': 'command', # e.g. `a(b);`
+  'specifierQualifierList': 'declaration',# e.g `int a;` when inside `struct {}`
+  'declaration': 'declaration', # e.g. `int a;`
+  'specialMethodCall': 'value', # e.g. `a(b);`
   'equalityExpression': 'value' # e.g. `a == b`
   'additiveExpression': 'value', # e.g. `a + b`
   'multiplicativeExpression': 'value', # e.g. `a * b`
@@ -210,14 +216,14 @@ COLOR_RULES = {
   'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
   'blockItemList': 'control', # List of commands
   'compoundStatement': 'control', # List of commands inside braces
-  'externalDeclaration': 'control', # e.g. `int a = b` when global
-  'structDeclaration': 'command', # e.g. `struct a { }`
+  'externalDeclaration': 'declaration', # e.g. `int a = b` when global
+  'structDeclaration': 'declaration', # e.g. `struct a { }`
   'declarationSpecifier': 'control', # e.g. `int` when in `int a = b;`
   'statement': 'command', # Any statement, like `return 0;`
-  'functionDefinition': 'control', # e.g. `int myMethod() { }`
+  'functionDefinition': 'function', # e.g. `int myMethod() { }`
   'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
   'expression': 'value', # Any expression, like `a + b`
-  'parameterDeclaration': 'command', # e.g. `int a` when in `int myMethod(int a) { }`
+  'parameterDeclaration': 'declaration', # e.g. `int a` when in `int myMethod(int a) { }`
   'unaryExpression': 'value', # e.g. `sizeof(a)`
   'typeName': 'value', # e.g. `int`
   'initializer': 'value', # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
@@ -253,7 +259,7 @@ SHAPE_RULES = {
 }
 
 config = {
-  RULES, COLOR_RULES, SHAPE_RULES
+  RULES, COLOR_RULES, SHAPE_RULES, COLOR_DEFAULTS
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
@@ -308,7 +314,7 @@ config.SHOULD_SOCKET = (opts, node) ->
   #
   # We can only be such an identifier if we have the appropriate number of parents;
   # check.
-  unless opts.knownFunctions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
+  unless opts.functions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
       node.parent?.type is 'specialMethodCall')
     return true
 
@@ -319,7 +325,7 @@ config.SHOULD_SOCKET = (opts, node) ->
      node.parent is node.parent.parent.children[0] and
      node is node.parent.children[0]) and
      # Finally, check to see if our name is a known function name
-     node.data.text of opts.knownFunctions
+     node.data.text of opts.functions
 
     # If the checks pass, do not socket.
     return false
@@ -329,22 +335,22 @@ config.SHOULD_SOCKET = (opts, node) ->
 # Color and shape callbacks look up the method name
 # in the known functions list if available.
 config.COLOR_CALLBACK = (opts, node) ->
-  return null unless opts.knownFunctions?
+  return null unless opts.functions?
 
   name = getMethodName node
 
-  if name? and name of opts.knownFunctions
-    return opts.knownFunctions[name].color
+  if name? and name of opts.functions
+    return opts.functions[name].color
   else
     return null
 
 config.SHAPE_CALLBACK = (opts, node) ->
-  return null unless opts.knownFunctions?
+  return null unless opts.functions?
 
   name = getMethodName node
 
-  if name? and name of opts.knownFunctions
-    return opts.knownFunctions[name].shape
+  if name? and name of opts.functions
+    return opts.functions[name].shape
   else
     return null
 

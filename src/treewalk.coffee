@@ -71,13 +71,20 @@ exports.createTreewalkParser = (parse, config, root) ->
     getColor: (node) ->
       color = config.COLOR_CALLBACK?(@opts, node)
       if color?
-        return color
+        color = color
 
       else if node.type of config.COLOR_RULES
-        return config.COLOR_RULES[node.type]
+        color = config.COLOR_RULES[node.type]
 
       else
-        return 'comment'
+        color = 'comment'
+
+      if @opts.categories? and color of @opts.categories
+        return @opts.categories[color]
+      else if color of config.COLOR_DEFAULTS
+        return config.COLOR_DEFAULTS[color]
+      else
+        return color
 
     getShape: (node, rules) ->
       shape = config.SHAPE_CALLBACK?(@opts, node)
