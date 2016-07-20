@@ -6,7 +6,7 @@
     <style>
       #container {
         position: absolute;
-        top: 45; bottom: 25; right: 25; left: 25;
+        top: 45px; bottom: 25px; right: 25px; left: 25px;
       }
       #left-panel {
         position: absolute;
@@ -14,11 +14,11 @@
       }
       #droplet-config {
         position: absolute;
-        top: 25; bottom: 0; left: 0; right: 0;
+        top: 25px; bottom: 0; left: 0; right: 0;
       }
-      #droplet-editor {
+      #droplet-editor-wrapper {
         position: absolute;
-        top: 25; bottom: 0; right: 0; left: 0;
+        top: 25px; bottom: 0; right: 0; left: 0;
         overflow: hidden;
       }
       #right-panel {
@@ -46,9 +46,7 @@
   <body>
     <div id="left-panel">
       <div id="update">
-        <div id="update">
-          Update
-        </div>
+        Update
       </div>
       <div id="droplet-config">
       </div>
@@ -59,7 +57,9 @@
       <div id="toggle">
         Toggle
       </div>
-      <div id="droplet-editor">
+      <div id="droplet-editor-wrapper">
+        <div id="droplet-editor">
+        </div>
       </div>
     </div>
 
