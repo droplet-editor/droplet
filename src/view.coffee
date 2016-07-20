@@ -1394,6 +1394,7 @@ exports.View = class View
       @highlightArea.deactivate()
 
       @buttonGroups = {}
+      @buttonTexts = {}
       @buttonPaths = {}
       @buttonRects = {}
 
@@ -1418,20 +1419,19 @@ exports.View = class View
 
         @buttonGroups[key].style = {}
 
-        textElement = new @view.draw.Text(new @view.draw.Point(
+        @buttonTexts[key] = new @view.draw.Text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
           (@view.opts.buttonHeight - @view.opts.textHeight) / 2
         ), glyph)
         @buttonPaths[key].setParent @buttonGroups[key]
-        textElement.setParent @buttonGroups[key]
+        @buttonTexts[key].setParent @buttonGroups[key]
 
         @buttonGroups[key].setParent @group
         @elements.push @buttonGroups[key]
 
         @activeElements.push @buttonPaths[key]
-        @activeElements.push textElement
+        @activeElements.push @buttonTexts[key]
         @activeElements.push @buttonGroups[key]
-
 
       @elements.push @group
       @elements.push @path
@@ -1960,6 +1960,10 @@ exports.View = class View
       if @model.buttons? then for {key} in @model.buttons
         @buttonPaths[key].update()
         @buttonGroups[key].update()
+
+        for element in [@buttonPaths[key], @buttonGroups[key], @buttonTexts[key]]
+          unless element in @activeElements # TODO unlikely but might be performance chokehold?
+            @activeElements.push element    # Possibly replace activeElements with a more set-like structure.
 
       # Unset all the things we changed
       @path.style.fillColor = oldFill
