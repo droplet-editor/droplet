@@ -2082,6 +2082,7 @@ exports.View = class View
         @dropdownElement.setParent @group
 
         @elements.push @dropdownElement
+        @activeElements.push @dropdownElement
 
     shouldAddTab: NO
 
@@ -2198,7 +2199,8 @@ exports.View = class View
         ])
         @dropdownElement.update()
 
-        @activeElements.push @dropdownElement
+        unless @dropdownElement in @activeElements
+          @activeElements.push @dropdownElement
 
       else if @dropdownElement?
         @activeElements = @activeElements.filter (x) -> x isnt @dropdownElement

@@ -372,7 +372,10 @@ text {
   cursor: -moz-grab;
   cursor: grab;
 }
-.droplet-dropdown-arrow, .droplet-button-path {
+.droplet-dropdown-arrow {
+  cursor: pointer;
+}
+.droplet-button-path {
   fill: #FFF;
   opacity: 0;
   cursor: pointer;

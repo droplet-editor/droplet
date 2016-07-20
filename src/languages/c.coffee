@@ -68,6 +68,15 @@ RULES = {
   'primaryExpression': 'parens',
   'structDeclaration': 'parens',
 
+
+  'directDeclarator': (node) ->
+    if (node.parent?.type is 'declarator' and
+       node.parent.parent?.type isnt 'functionDefinition' and
+       node.parent.children.length is 1)
+      'block'
+    else
+      'skip'
+
   # Skips
   'structDeclaratorList': 'skip',
   'blockItemList': 'skip',
@@ -79,8 +88,6 @@ RULES = {
   'typeSpecifier': 'skip',
   'structOrUnionSpecifier': 'skip',
   'structDeclarationList': 'skip',
-  'declarator': 'skip',
-  'directDeclarator': 'skip',
   'rootDeclarator': 'skip',
   'parameterTypeList': 'skip',
   'parameterList': (node) ->
@@ -187,6 +194,12 @@ RULES = {
 
 
   # Sockets
+  'Int': 'socket'
+  'Long': 'socket'
+  'Short': 'socket'
+  'Double': 'socket'
+  'Char': 'socket'
+
   'Identifier': 'socket',
   'StringLiteral': 'socket',
   'SharedIncludeLiteral': 'socket',
@@ -194,40 +207,49 @@ RULES = {
 }
 
 COLOR_DEFAULTS = {
-  'declaration': 'purple'
+  'declaration': 'teal'
   'function': 'indigo'
+  'logic': 'lightblue'
 }
 
 COLOR_RULES = {
-  'jumpStatement': 'return', # e.g. `return 0;`
+  'declarator': 'declaration',
+  'directDeclarator': 'declaration',
   'specifierQualifierList': 'declaration',# e.g `int a;` when inside `struct {}`
   'declaration': 'declaration', # e.g. `int a;`
-  'specialMethodCall': 'value', # e.g. `a(b);`
-  'equalityExpression': 'value' # e.g. `a == b`
-  'additiveExpression': 'value', # e.g. `a + b`
-  'multiplicativeExpression': 'value', # e.g. `a * b`
-  'logicalAndExpression': 'value', # e.g. `a && b`
-  'logicalOrExpression': 'value', # e.g. `a || b`
-  'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
-  'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
-  'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  'assignmentExpression': 'command', # e.g. `a = b;` OR `a = b`
-  'relationalExpression': 'value', # e.g. `a < b`
-  'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
-  'blockItemList': 'control', # List of commands
-  'compoundStatement': 'control', # List of commands inside braces
+  'parameterDeclaration': 'declaration', # e.g. `int a` when in `int myMethod(int a) { }`
   'externalDeclaration': 'declaration', # e.g. `int a = b` when global
   'structDeclaration': 'declaration', # e.g. `struct a { }`
-  'declarationSpecifier': 'control', # e.g. `int` when in `int a = b;`
-  'statement': 'command', # Any statement, like `return 0;`
+
   'functionDefinition': 'function', # e.g. `int myMethod() { }`
-  'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
+
   'expression': 'value', # Any expression, like `a + b`
-  'parameterDeclaration': 'declaration', # e.g. `int a` when in `int myMethod(int a) { }`
+  'additiveExpression': 'value', # e.g. `a + b`
+  'multiplicativeExpression': 'value', # e.g. `a * b`
   'unaryExpression': 'value', # e.g. `sizeof(a)`
   'typeName': 'value', # e.g. `int`
   'initializer': 'value', # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
   'castExpression': 'value' # e.g. `(b)a`
+
+  'equalityExpression': 'logic' # e.g. `a == b`
+  'relationalExpression': 'logic' # e.g. `a == b`
+  'logicalAndExpression': 'logic', # e.g. `a && b`
+  'logicalOrExpression': 'logic', # e.g. `a || b`
+
+  'jumpStatement': 'return', # e.g. `return 0;`
+
+  'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
+  'assignmentExpression': 'command', # e.g. `a = b;` OR `a = b`
+  'specialMethodCall': 'command', # e.g. `a(b);`
+  #'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
+  'statement': 'command', # Any statement, like `return 0;`
+  'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
+
+  'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  #'blockItemList': 'control', # List of commands
+  'compoundStatement': 'control', # List of commands inside braces
+  'declarationSpecifier': 'control', # e.g. `int` when in `int a = b;`
 }
 
 SHAPE_RULES = {
@@ -258,8 +280,17 @@ SHAPE_RULES = {
   'castExpression': helper.VALUE_ONLY # e.g. `(b)a`
 }
 
+DROPDOWNS = {
+  'declarationSpecifiers': [
+    'char'
+    'int'
+    'long'
+    'double'
+  ]
+}
+
 config = {
-  RULES, COLOR_RULES, SHAPE_RULES, COLOR_DEFAULTS
+  RULES, COLOR_RULES, SHAPE_RULES, COLOR_DEFAULTS, DROPDOWNS
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->

@@ -133,6 +133,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             empty: config.EMPTY_STRINGS[node.type]
             bounds: node.bounds
             depth: depth
+            dropdown: config.DROPDOWNS?[rules[0]] ? null
             parseContext: rules[0]
 
           @flagToRemove node.bounds, depth + 1
@@ -150,6 +151,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 empty: config.EMPTY_STRINGS?[rules[0]] ? config.empty
                 bounds: bounds
                 depth: depth
+                dropdown: config.DROPDOWNS?[rules[0]] ? null
                 parseContext: rules[0]
 
             @addBlock
@@ -202,6 +204,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 @addSocket
                   bounds: bounds
                   depth: depth
+                  dropdown: config.DROPDOWNS?[rules[0]] ? null
                   parseContext: rules[0]
 
               @addBlock
@@ -268,6 +271,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             bounds: node.bounds
             depth: depth
             parseContext: rules[0]
+            dropdown: config.DROPDOWNS?[rules[0]] ? null
 
           if config.EMPTY_STRINGS? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
             @flagToRemove node.bounds, depth + 1
