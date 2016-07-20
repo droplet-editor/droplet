@@ -236,6 +236,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
       int y = 1 * 2;
       int x = 1 + 2;
       int a = 1 + 2 * 3;
+      printf("Hello");
     }
   '''
 
@@ -257,8 +258,13 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int y = 1 * (1 + 2);
         int x = __0_droplet__;
         int a = 1 + 2 * 3;
+        printf("Hello");
       }\n
       ''', 'Paren-wrapped + block dropping into * block'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 1, col: 14, type: 'block'
+      }).parseContext, 'primaryExpression', 'Changed parse context when adding parens'
     ), (->
       pickUpLocation editor, 0, {
         row: 1
@@ -277,8 +283,80 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int y = __0_droplet__;
         int x = __0_droplet__;
         int a = 1 * (1 + 2) + 2 * 3;
+        printf("Hello");
       }\n
       ''', 'Did not paren-wrap * block dropping into + block'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 3
+        col: 14
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 2
+        col: 10
+        type: 'socket'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        int y = __0_droplet__;
+        int x = 1 + 2;
+        int a = 1 * 2 + 2 * 3;
+        printf("Hello");
+      }\n
+      ''', 'Un-paren-wrapped when dropping into place where parens are unnecessary'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 2, col: 10, type: 'block'
+      }).parseContext, 'additiveExpression', 'Changed parse context when removing parens'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 4
+        col: 2
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 1
+        col: 10
+        type: 'socket'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        int y = printf("Hello");
+        int x = 1 + 2;
+        int a = 1 * 2 + 2 * 3;
+      }\n
+      ''', 'Removed semicolon'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 1, col: 10, type: 'block'
+      }).parseContext, 'postfixExpression', 'Changed parse context when removing semicolon'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 1
+        col: 10
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 3
+        col: 2
+        type: 'block'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        int y = __0_droplet__;
+        int x = 1 + 2;
+        int a = 1 * 2 + 2 * 3;
+        printf("Hello");
+      }\n
+      ''', 'Added semicolon back'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 4, col: 2, type: 'block'
+      }).parseContext, 'expressionStatement', 'Changed parse context when adding semicolon'
 
       start()
     )
