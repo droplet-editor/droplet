@@ -467,7 +467,6 @@ exports.Editor = class Editor
     @transitionContainer.style.left = "#{@gutter.clientWidth}px"
 
     @resizePalette()
-    @resizePaletteHighlight()
     @resizeNubby()
     @resizeMainScroller()
     @resizeDragCanvas()
@@ -510,7 +509,7 @@ exports.Editor = class Editor
     @mainScroller.scrollTop = offsetY
     @mainScroller.scrollLeft = offsetX
 
-    @setPalette @session.paletteGroups
+    @rebuildPaletteHeaders() #setPalette @session.paletteGroups
 
   hasSessionFor: (aceSession) -> @sessions.contains(aceSession)
 
@@ -775,8 +774,6 @@ Editor::redrawCursors = ->
 Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
 Editor::clearPalette = -> # TODO remove and remove all references to
-
-Editor::clearPaletteHighlightCanvas = -> # TODO remove and remove all references to
 
 Editor::redrawPalette = (garbageCollect = true) ->
   return unless @session?.activePaletteBlocks?
@@ -2081,12 +2078,8 @@ parseSocketBlock = (mode, code, context) =>
         return null
   return null
 
-Editor::setPalette = (paletteGroups) ->
+Editor::rebuildPaletteHeaders = ->
   @paletteHeader.innerHTML = ''
-  @session.paletteGroups = paletteGroups
-
-  @session.currentPaletteBlocks = []
-  @session.currentPaletteMetadata = []
 
   paletteHeaderRow = null
 
@@ -2112,21 +2105,6 @@ Editor::setPalette = (paletteGroups) ->
 
     paletteHeaderRow.appendChild paletteGroupHeader
 
-    newPaletteBlocks = []
-
-    # Parse all the blocks in this palette and clone them
-    for data in paletteGroup.blocks
-      newBlock = parseBlock(@session.mode, data.block, data.context)
-      expansion = data.expansion or null
-      newPaletteBlocks.push
-        block: newBlock
-        expansion: expansion
-        context: data.context
-        title: data.title
-        id: data.id
-
-    paletteGroup.parsedBlocks = newPaletteBlocks
-
     # When we click this element,
     # we should switch to it in the palette.
     updatePalette = =>
@@ -2144,7 +2122,32 @@ Editor::setPalette = (paletteGroups) ->
       do updatePalette
 
   @resizePalette()
-  @resizePaletteHighlight()
+
+Editor::setPalette = (paletteGroups) ->
+  @session.paletteGroups = paletteGroups
+
+  @session.currentPaletteBlocks = []
+  @session.currentPaletteMetadata = []
+
+  paletteHeaderRow = null
+
+  for paletteGroup, i in @session.paletteGroups then do (paletteGroup, i) =>
+    newPaletteBlocks = []
+
+    # Parse all the blocks in this palette and clone them
+    for data in paletteGroup.blocks
+      newBlock = parseBlock(@session.mode, data.block, data.context)
+      expansion = data.expansion or null
+      newPaletteBlocks.push
+        block: newBlock
+        expansion: expansion
+        context: data.context
+        title: data.title
+        id: data.id
+
+    paletteGroup.parsedBlocks = newPaletteBlocks
+
+  @rebuildPaletteHeaders()
 
 # Change which palette group is selected.
 # group argument can be object, id (string), or name (string)
@@ -2209,24 +2212,9 @@ hook 'mousedown', 6, (point, event, state) ->
 
   @clickedBlockPaletteEntry = null
 
-# PALETTE HIGHLIGHT CODE
-# ================================
-hook 'populate', 1, ->
-  @paletteHighlightCanvas = @paletteHighlightCtx = document.createElementNS SVG_STANDARD, 'svg'
-  @paletteHighlightCanvas.setAttribute 'class',  'droplet-palette-highlight-canvas'
-
-  @paletteHighlightPath = null
-  @currentHighlightedPaletteBlock = null
-
-  @paletteElement.appendChild @paletteHighlightCanvas
-
-Editor::resizePaletteHighlight = ->
-  @paletteHighlightCanvas.style.top = @paletteHeader.clientHeight + 'px'
-  @paletteHighlightCanvas.style.width = "#{@paletteCanvas.clientWidth}px"
-  @paletteHighlightCanvas.style.height = "#{@paletteCanvas.clientHeight}px"
-
+# PALETTE HIGHLIGHTING
+# ====================
 hook 'redraw_palette', 0, ->
-  @clearPaletteHighlightCanvas()
   if @currentHighlightedPaletteBlock?
     @paletteHighlightPath.update()
 
