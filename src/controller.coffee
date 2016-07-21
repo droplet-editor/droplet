@@ -522,7 +522,6 @@ exports.Editor = class Editor
       @session = session
       @aceEditor.getSession()._dropletSession = @session
       @session.currentlyUsingBlocks = false
-      @setValue_raw @getAceValue()
       @setPalette @session.paletteGroups
       return session
 
