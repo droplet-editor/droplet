@@ -230,7 +230,21 @@ exports.createTreewalkParser = (parse, config, root) ->
             @flagToRemove node.bounds, depth + 1
 
   if config.droppabilityGraph?
+    # DroppabilityGraph contains all the rules for what things can be
+    # other things (strictly) in the grammar. For instance a * b is a multiplicativeExpression in C,
+    # but can also play the role of an additiveExpression, or an expression. In this case,
+    # the graph would contain edges pointing from expression to additiveExpression, and additiveExpression to multiplicativeExpression.
+    #
+    # This allows us to do a graph search to determine whether A can, transitively, be dropped in B.
     droppabilityGraph = new Graph(config.droppabilityGraph)
+
+    # parenGraph is DroppabilityGraph with paren rules added.
+    #
+    # Paren edges point from things like primaryExpression -> expression, indicating that you can
+    # from a primaryExpression from an expression by adding parentheses. In this case, it would be adding '(' and ')'.
+    #
+    # When we do paren wrapping, we walk through the graph and add any necessary parentheses to get from our AST context
+    # to the desintation.
     parenGraph = new Graph(config.parenGraph)
 
     TreewalkParser.drop = (block, context, pred) ->
