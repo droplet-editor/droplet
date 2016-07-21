@@ -10,35 +10,30 @@ import sys
 
 EMPTY = 0
 
-class DirectedGraphNode():
-    def __init__(self, label = None):
-        self.label = label
-        self.out_edges = set()
-        self.in_edges = set()
-
-    def connect_out(self, other):
-        other.in_edges.append(self)
-        self.out_edges.append(other)
-
-    def connect_in(self, other):
-        other.connect_out(self)
-
-class DirectedGraph():
-    def __init__(self):
-        self.nodes = dict()
-
-    def append(self, label):
-        self.nodes[label] = DirectedGraphNode(label = label)
-
-    def add_connection(self, source, dest):
-        self.nodes[source].connect_out(self.nodes[dest])
-
-# EBNF SUFFIXES have the following properties:
+# Generates a graph of which nodes can be dropped in which
+# other nodes by inspecting an ANTLR4 grammar.
 #
-# QUESTION -> ONE OR ZERO
-# STAR -> ONE OR ZERO
-# PLUS -> ONE
+# To do this, we build an evaluable parse tree which can
+# compute which rules can be single children of which other rules.
+#
+# For instance, given the rule
+#   `a : b c? | d e |`
+# we do the following:
+#   1. The options for `a` is the union of the options for `b c?`, `d e`, and ``.
+#   2. The options for `b c?` is `b`, because `c?` can be empty.
+#   3. There are no options for `d e`, since neither `d` nor `e` can be empty.
+#   4. The options for `` are (empty).
+# We then update `a <- {b, (empty)}`.
+#
+# To deal with the fact that some rules *can* be empty, but we don't know at first,
+# we then go over it again and treat any rule that now has (empty) as an option
+# as possibly empty in our evaluation.
+#
+# We repeat this until no options change after a pass.
 
+# Expressions are a sequence of pipe-separated Alternatives `a b | c d | e f`.
+# they could be any of their options, so the options for an Expression
+# is the union of the options of each of its Alternatives
 class Expression():
     def __init__(self, alt_list):
         self.alternatives = [Alternative(alternative) for alternative in alt_list]
@@ -51,6 +46,8 @@ class Expression():
 
         return result
 
+# Alternative: one of the elements like `a b` in `a b | c d | e f`.
+# It is a string of Elements.
 class Alternative():
     def __init__(self, alternative):
         self.elements = [Element(el) for el in alternative.filter_children('element')]
@@ -60,8 +57,9 @@ class Alternative():
 
         number_zeroable = sum(1 for element in element_options if EMPTY in element)
 
-        # If everything can be the empty string,
-        # Then we could take on the value of any of our children
+        # If everything could be the empty string,
+        # then we could take on the value of any of our children
+        # by discarding everything else.
         if number_zeroable == len(element_options):
             result = set()
             for options in element_options:
@@ -78,6 +76,11 @@ class Alternative():
         else:
             return set()
 
+# An Element is one of four things:
+#  - An atom, which could be a rule reference or a token. If it's a rule reference, count it in our options, otherwise not.
+#  - An EBNF expresssion like `(a | b c)`, in which case we recurse back to Expression
+#      EBNF can also have a suffix, one of `*`, `+`, or `?`. If the suffix is
+#      '*' or '?', we add the empty string as a possibility for this node.
 class Element():
     def __init__(self, element):
         suffix = element.find_child('ebnfSuffix')
@@ -86,6 +89,9 @@ class Element():
         else:
             self.add_zero = False
 
+        # Some Elements are 'labeledElement' nodes, which just means
+        # an Element with a '#label' on it. Continue to the element beneath
+        # the label without worrying about the label.
         child = element.find_child('labeledElement')
         if child is not None:
             atom = child.find_child('atom')
@@ -95,7 +101,13 @@ class Element():
 
             block = child.find_child('block')
             if block is not None:
-                self.child = Expression(block.find_child('altList').filter_children('alternative'))
+                # EBNF can also have a suffix
+                suffix = child.find_child('blockSuffix')
+                if suffix is not None and suffix.find_child('ebnfSuffix').children[0].type in ['QUESTION', 'STAR']:
+                    self.add_zero = True
+
+                # EBNF contains an additional expression
+                self.child = Expression(child.find_child('block').find_child('altList').filter_children('alternative'))
                 return
 
         child = element.find_child('atom')
@@ -110,7 +122,7 @@ class Element():
             if suffix is not None and suffix.find_child('ebnfSuffix').children[0].type in ['QUESTION', 'STAR']:
                 self.add_zero = True
 
-            # EBNF contains and additional expression
+            # EBNF contains an additional expression
             self.child = Expression(child.find_child('block').find_child('altList').filter_children('alternative'))
             return
 
@@ -124,6 +136,7 @@ class Element():
             return result
         else:
             return set()
+
 
 class Atom():
     def __init__(self, atom):
@@ -152,8 +165,7 @@ def process(grammarSpec):
         if child.type == 'rules':
             rules = child
 
-    # How many rules did we extract?
-    # Get the array of rule names
+    # Process each rule
     rule_names = set()
     rule_expressions = dict()
     for rule in rules.children:
