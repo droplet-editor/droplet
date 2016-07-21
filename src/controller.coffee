@@ -44,6 +44,13 @@ GRAY_BLOCK_HANDLE_HEIGHT = 30
 GRAY_BLOCK_COLOR = 'rgba(256, 256, 256, 0.5)'
 GRAY_BLOCK_BORDER = '#AAA'
 
+if Worker?
+  WORKER = new Worker 'worker.js'
+else
+  WORKER = null
+
+PREPARSE_POLL_TIME = 10
+
 userAgent = ''
 if typeof(window) isnt 'undefined' and window.navigator?.userAgent
   userAgent = window.navigator.userAgent
@@ -103,6 +110,9 @@ hook = (event, priority, fn) ->
 
 class Session
   constructor: (_main, _palette, _drag, @options, standardViewSettings) -> # TODO rearchitecture so that a session is independent of elements again
+
+    @_id = Session.id++
+
     # Option flags
     @readOnly = false
     @paletteGroups = @options.palette
@@ -116,6 +126,8 @@ class Session
 
     # Mode
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
+
+    @_preparse = null
 
     if @options.mode of modes
       @mode = new modes[@options.mode] @options.modeOptions
@@ -170,7 +182,18 @@ class Session
     # Remembered sockets
     @rememberedSockets = []
 
-# ## The Editor Class
+    # The preparsing loop.
+    if WORKER?
+      WORKER.postMessage {
+        'command': 'initMode'
+        'id': @id
+        'mode': @options.mode
+        'modeOptions': @options.modeOptions
+      }
+
+
+Session.id = 0
+
 exports.Editor = class Editor
   constructor: (@aceEditor, @options) ->
     # ## DOM Population
@@ -403,9 +426,40 @@ exports.Editor = class Editor
 
     # If we were given an unrecognized mode or asked to start in text mode,
     # flip into text mode here
-    useBlockMode = @session?.mode? && !@options.textModeAtStart
+    useBlockMode = @session?.mode? and not @options.textModeAtStart
     # Always call @setEditorState to ensure palette is positioned properly
     @setEditorState useBlockMode
+
+    # Preparse loop
+    if WORKER?
+      @_lastPreparseText = null
+      @_waitingForPreparse = false
+
+      checkPreparse = =>
+        unless @session.currentlyUsingBlocks or @_waitingForPreparse
+          session = @session
+
+          text = @aceEditor.getValue()
+          if text isnt session._lastPreparseText
+            session._lastPreparseText = text
+            WORKER.postMessage {
+              'command': 'preparse'
+              'id': session.id
+              'text': text
+              'context': null
+            }
+
+            WORKER.onmessage = (data) =>
+              console.log 'PREPARSED'
+              @_waitingForPreparse = false
+              session._preparse = data.data
+
+            @_waitingForPreparse = true
+
+
+        setTimeout checkPreparse, PREPARSE_POLL_TIME
+
+      setTimeout checkPreparse, PREPARSE_POLL_TIME
 
     return this
 
@@ -4128,10 +4182,16 @@ Editor::setValue_raw = (value) ->
   try
     if @trimWhitespace then value = value.trim()
 
-    newParse = @session.mode.parse value, {
-      wrapAtRoot: true
-      preserveEmpty: @session.options.preserveEmpty
-    }
+    if value is @session._lastPreparseText and not @session._waitingForPreparse and @session._preparse?
+      newParse = @session.mode.parse value, {
+        wrapAtRoot: true
+        preserveEmpty: @session.options.preserveEmpty
+      }, @session._preparse
+    else
+      newParse = @session.mode.parse value, {
+        wrapAtRoot: true
+        preserveEmpty: @session.options.preserveEmpty
+      }
 
     unless @session.tree.start.next is @session.tree.end
       removal = new model.List @session.tree.start.next, @session.tree.end.prev

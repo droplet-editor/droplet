@@ -50,13 +50,13 @@ exports.Parser = class Parser
     @markup = []
 
   # ## parse ##
-  _parse: (opts) ->
+  _parse: (opts, cachedParse) ->
     opts = _extend opts, {
       wrapAtRoot: true
       preserveEmpty: true
     }
     # Generate the list of tokens
-    @markRoot opts.context
+    @markRoot opts.context, cachedParse
 
     # Sort by position and depth
     do @sortMarkup
@@ -662,10 +662,13 @@ exports.wrapParser = (CustomParser) ->
       else
         return string
 
-    parse: (text, opts) ->
+    preparse: (text, context) ->
+      return @createParser(text).preparse context
+
+    parse: (text, opts, cachedParse = null) ->
       @opts.parseOptions = opts
       opts ?= wrapAtRoot: true
-      return @createParser(text)._parse opts
+      return @createParser(text)._parse opts, cachedParse
 
     parens: (leading, trailing, node, context) ->
       # We do this function thing so that if leading and trailing are the same
