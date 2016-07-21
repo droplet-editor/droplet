@@ -2590,10 +2590,16 @@ Editor::populateSocket = (socket, string) ->
     @spliceIn new model.List(first, last), socket.start
 
 Editor::populateBlock = (block, string) ->
+  if block.type is 'block'
+    context = block.parent.indentContext ? block.parent.parseContext ? block.parseContext
+  else
+    context = block.parseContext
+
   newBlock = @session.mode.parse(string, {
-    context: block.parseContext
+    context: context
     wrapAtRoot: false
   }).start.next.container
+
   if newBlock
     # Find the first token before the block
     # that will still be around after the
