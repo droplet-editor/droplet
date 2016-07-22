@@ -43,16 +43,9 @@ unless window.ALREADY_LOADED
   editor = null
 
 # Droplet itself
-#<<<<<<< HEAD
   createEditor = (options) ->
     $('#droplet-editor').html ''
-    editor = new droplet.Editor $('#droplet-editor')[0], options
-#=======
-#createEditor = (options) ->
-#  $('#droplet-editor').html '<div id="ace-target"></div>'
-#  aceEditor = ace.edit 'ace-target'
-#  editor = new droplet.Editor aceEditor, options
-#>>>>>>> c_support
+    editor = new droplet.Editor $('#droplet-editor')[0], options#, new Worker 'worker.js'
 
     editor.aceEditor.getSession().setUseWrapMode true
 

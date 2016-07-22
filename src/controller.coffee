@@ -44,10 +44,6 @@ GRAY_BLOCK_HANDLE_HEIGHT = 30
 GRAY_BLOCK_COLOR = 'rgba(256, 256, 256, 0.5)'
 GRAY_BLOCK_BORDER = '#AAA'
 
-if Worker?
-  WORKER = new Worker 'worker.js'
-else
-  WORKER = null
 
 PREPARSE_POLL_TIME = 10
 
@@ -109,7 +105,7 @@ hook = (event, priority, fn) ->
   }
 
 class Session
-  constructor: (_main, _palette, _drag, @options, standardViewSettings) -> # TODO rearchitecture so that a session is independent of elements again
+  constructor: (_main, _palette, _drag, @options, standardViewSettings, @worker = null) -> # TODO rearchitecture so that a session is independent of elements again
 
     @_id = Session.id++
 
@@ -183,10 +179,10 @@ class Session
     @rememberedSockets = []
 
     # The preparsing loop.
-    if WORKER?
-      WORKER.postMessage {
+    if @worker?
+      @worker.postMessage {
         'command': 'initMode'
-        'id': @id
+        'id': @_id
         'mode': @options.mode
         'modeOptions': @options.modeOptions
       }
@@ -195,7 +191,7 @@ class Session
 Session.id = 0
 
 exports.Editor = class Editor
-  constructor: (@aceEditor, @options) ->
+  constructor: (@aceEditor, @options, @worker = null) ->
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
     # element with all the necessary ICE editor components.
@@ -330,7 +326,7 @@ exports.Editor = class Editor
     @dropletElement.appendChild @transitionContainer
 
     if @options?
-      @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
+      @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings, @worker
       @sessions = new helper.PairDict([
         [@aceEditor.getSession(), @session]
       ])
@@ -431,25 +427,27 @@ exports.Editor = class Editor
     @setEditorState useBlockMode
 
     # Preparse loop
-    if WORKER?
+    if @worker?
+      console.log 'Starting reparse loop'
       @_lastPreparseText = null
       @_waitingForPreparse = false
 
       checkPreparse = =>
         unless @session.currentlyUsingBlocks or @_waitingForPreparse
+          console.log 'TELLING WORKER TO REPARSE'
           session = @session
 
           text = @aceEditor.getValue()
           if text isnt session._lastPreparseText
             session._lastPreparseText = text
-            WORKER.postMessage {
+            @worker.postMessage {
               'command': 'preparse'
-              'id': session.id
+              'id': session._id
               'text': text
               'context': null
             }
 
-            WORKER.onmessage = (data) =>
+            @worker.onmessage = (data) =>
               console.log 'PREPARSED'
               @_waitingForPreparse = false
               session._preparse = data.data
@@ -2184,21 +2182,29 @@ Editor::setPalette = (paletteGroups) ->
 
   paletteHeaderRow = null
 
-  for paletteGroup, i in @session.paletteGroups then do (paletteGroup, i) =>
-    newPaletteBlocks = []
+  session = @session
 
-    # Parse all the blocks in this palette and clone them
-    for data in paletteGroup.blocks
-      newBlock = parseBlock(@session.mode, data.block, data.context)
-      expansion = data.expansion or null
-      newPaletteBlocks.push
-        block: newBlock
-        expansion: expansion
-        context: data.context
-        title: data.title
-        id: data.id
+  for paletteGroup, i in session.paletteGroups then do (paletteGroup, i) =>
+    paletteGroup.parsedBlocks = null
 
-    paletteGroup.parsedBlocks = newPaletteBlocks
+    # Don't actually parse all of the palettes right away, because
+    # this can be slow. This callback will be called to generate
+    # the palette blocks the first time the palette header is clicked.
+    paletteGroup.generateParsedBlocks = =>
+      newPaletteBlocks = []
+
+      # Parse all the blocks in this palette and clone them
+      for data in paletteGroup.blocks
+        newBlock = parseBlock(session.mode, data.block, data.context)
+        expansion = data.expansion or null
+        newPaletteBlocks.push
+          block: newBlock
+          expansion: expansion
+          context: data.context
+          title: data.title
+          id: data.id
+
+      paletteGroup.parsedBlocks = newPaletteBlocks
 
   @rebuildPaletteHeaders()
 
@@ -2213,6 +2219,9 @@ Editor::changePaletteGroup = (group) ->
 
   if not paletteGroup
     return
+
+  unless group.parsedBlocks?
+    group.generateParsedBlocks()
 
   # Record that we are the selected group now
   @session.currentPaletteGroup = paletteGroup.name
