@@ -7,6 +7,18 @@
 helper = require './helper.coffee'
 model = require './model.coffee'
 
+exports.PreNodeContext = class PreNodeContext
+  constructor: (@type, @preParenLength, @postParenLength) ->
+
+  apply: (node) ->
+    trailingText = node.getTrailingText()
+    trailingText = trailingText[0...trailingText.length - @postParenLength]
+
+    leadingText = node.getLeadingText()
+    leadingText = leadingText[@preParenLength...leadingText.length]
+
+    return new model.NodeContext @type, leadingText, trailingText
+
 sax = require 'sax'
 
 _extend = (opts, defaults) ->
@@ -52,10 +64,16 @@ exports.Parser = class Parser
     # Generate a document from the markup
     document = @applyMarkup opts
 
-    @detectParenWrap document
-
     # Correct parent tree
     document.correctParentTree()
+
+    # Add node context annotations from PreNodeContext
+    # annotations
+    head = document.start
+    until head is document.end
+      if head.type is 'blockStart' and head.container._preNodeContext?
+        head.container.nodeContext = head.container._preNodeContext.apply head.container
+      head = head.next
 
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
@@ -65,21 +83,6 @@ exports.Parser = class Parser
     return document
 
   markRoot: ->
-
-  isParenWrapped: (block) ->
-    (block.start.next.type is 'text' and
-      block.start.next.value[0] is '(' and
-      block.end.prev.type is 'text' and
-      block.end.prev.value[block.end.prev.value.length - 1] is ')')
-
-  detectParenWrap: (document) ->
-    head = document.start
-    until head is document.end
-      head = head.next
-      if head.type is 'blockStart' and
-          @isParenWrapped head.container
-        head.container.currentlyParenWrapped = true
-    return document
 
   # ## addBlock ##
   # addBlock takes {
@@ -95,12 +98,13 @@ exports.Parser = class Parser
   #   parenWrapped: Boolean
   # }
   addBlock: (opts) ->
-    block = new model.Block opts.precedence,
-      opts.color,
-      opts.socketLevel,
-      opts.classes,
+    block = new model.Block opts.color,
+      opts.shape,
       opts.parseContext,
+      null
       opts.buttons
+
+    block._preNodeContext = opts.nodeContext
 
     @addMarkup block, opts.bounds, opts.depth
 
@@ -127,9 +131,8 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket opts.empty ? @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty,
       false,
-      opts.classes,
       opts.dropdown,
       opts.parseContext
 
@@ -145,7 +148,7 @@ exports.Parser = class Parser
   #   prefix: String
   # }
   addIndent: (opts) ->
-    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes, opts.parseContext
+    indent = new model.Indent @emptyIndent, opts.prefix, opts.indentContext
 
     @addMarkup indent, opts.bounds, opts.depth
 
@@ -223,7 +226,8 @@ exports.Parser = class Parser
     block = new model.Block 0, 'comment', helper.ANY_DROP
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
-      block.classes = ['__comment__', 'block-only']
+      block.shape = helper.BLOCK_ONLY
+      block.parseContext = '__comment__'
 
       head = block.start
 
@@ -236,10 +240,8 @@ exports.Parser = class Parser
 
       if sockets?
         for socketPosition in sockets
-          socket = new model.Socket '', 0, true
+          socket = new model.Socket '', true, null, '__comment__'
           socket.setParent block
-
-          socket.classes = ['__comment__']
 
           padText = text[lastPosition...socketPosition[0]]
 
@@ -275,11 +277,11 @@ exports.Parser = class Parser
       helper.connect head, block.end
 
     else
-      socket = new model.Socket '', 0, true
+      socket = new model.Socket '', true
       textToken = new model.TextToken text
       textToken.setParent socket
 
-      block.classes = ['__handwritten__', 'block-only']
+      block.shape = helper.BLOCK_ONLY
       helper.connect block.start, socket.start
 
       helper.connect socket.start, textToken
@@ -394,7 +396,8 @@ exports.Parser = class Parser
         if line.length is 0 and not placedSomething and stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
-          block.classes = ['__comment__', 'any-drop']
+          block.shape = helper.ANY_DROP
+          block.parseContext = '__comment__'
 
           head = helper.connect head, block.start
           head = helper.connect head, block.end
@@ -539,13 +542,12 @@ exports.parseXML = (xml) ->
     attributes = node.attributes
     switch node.name
       when 'block'
-        container = new model.Block attributes.precedence, attributes.color,
-          attributes.socketLevel, attributes.classes?.split?(' ')
+        container = new model.Block attributes.color,
+          attributes.shape, attributes.parseContext
       when 'socket'
-        container = new model.Socket '', attributes.precedence, attributes.handritten,
-          attributes.classes?.split?(' ')
+        container = new model.Socket '', attributes.handritten, attributes.parseContext
       when 'indent'
-        container = new model.Indent '', attributes.prefix, attributes.classes?.split?(' ')
+        container = new model.Indent '', attributes.prefix, attributes.indentContext
       when 'document'
         # Root is optional
         unless stack.length is 0
@@ -612,17 +614,6 @@ stripFlaggedBlocks = (document) ->
       head = head.next
 
 Parser.parens = (leading, trailing, node, context) ->
-  if context is null or context.type isnt 'socket' or
-      context?.precedence < node.precedence
-    while true
-      if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-        leading leading().replace(/^\s*\(\s*/, '')
-        trailing trailing().replace(/^\s*\)\s*/, '')
-      else
-        break
-  else
-    leading '(' + leading()
-    trailing trailing() + ')'
 
 Parser.drop = (block, context, pred, next) ->
   if block.type is 'document' and context.type is 'socket'
@@ -642,9 +633,10 @@ exports.wrapParser = (CustomParser) ->
       @emptyIndent = CustomParser.emptyIndent
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
+      @rootContext = CustomParser.rootContext
       @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
-      @rootContext = CustomParser.rootContext
+      @getParenCandidates = CustomParser.getParenCandidates
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
@@ -654,6 +646,7 @@ exports.wrapParser = (CustomParser) ->
       parser.endComment = @endComment
       parser.empty = @empty
       parser.emptyIndent = @emptyIndent
+      parser.rootContext = @rootContext
       return parser
 
     stringFixer: (string) ->
@@ -668,6 +661,10 @@ exports.wrapParser = (CustomParser) ->
       return @createParser(text)._parse opts
 
     parens: (leading, trailing, node, context) ->
+      # We do this function thing so that if leading and trailing are the same
+      # (i.e. there is only one text token), parser adapter functions can still treat
+      # it as if they are two different things.
+
       # leadingFn is always a getter/setter for leading
       leadingFn = (value) ->
         if value?
@@ -685,9 +682,10 @@ exports.wrapParser = (CustomParser) ->
       else
         trailingFn = leadingFn
 
-      CustomParser.parens leadingFn, trailingFn, node, context
+      context = CustomParser.parens leadingFn, trailingFn, node, context
 
-      return [leading, trailing]
+      return [leading, trailing, context]
+
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 
