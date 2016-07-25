@@ -138,6 +138,7 @@ exports.Draw = class Draw
 
           unless @active
             @element.style.display = 'none'
+
         else unless @element.parentElement?
           @getParentElement().appendChild @element
 

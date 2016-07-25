@@ -4,7 +4,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" type="text/css" href="../css/droplet.css"/>
     <link href='http://fonts.googleapis.com/css?family=VT323' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="tooltipster/dist/css/tooltipster.bundle.min.css" />
     <style>
+      .tooltipster-sidetip.tooltipster-noir.tooltipster-noir-customized .tooltipster-box {
+        background: #FFF;
+      }
+
+      .tooltipster-sidetip.tooltipster-noir.tooltipster-noir-customized .tooltipster-content {
+        color: #000;
+      }
+
+      .tooltipster-sidetip.tooltipster-noir.tooltipster-noir-customized .tooltipster-content code {
+        font-size: 0.9375em;
+        padding: 1px 3px 0;
+        white-space: nowrap;
+        background-color: #f2f2f2;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
+        text-shadow: none;
+
+        font-weight: normal;
+        color: #6d180b;
+      }
       #container {
         position: absolute;
         top: 45; bottom: 25; right: 25; left: 25;
@@ -66,13 +87,15 @@
       </div>
     </div>
 
-    <script src="lib/jquery.min.js"></script>
-    <!--<script src="lib/coffee-script.js"></script>-->
+    <!--<script src="lib/jquery.min.js"></script>-->
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
+    <script type="text/javascript" src="tooltipster/dist/js/tooltipster.bundle.min.js"></script>
+    <!--<script type="text/javascript" src="tooltipster/dist/js/plugins/tooltipster/SVG/tooltipster-SVG.min.js"></script>-->
+    <script src="lib/coffee-script.js"></script>
     <script src="../vendor/ace/ace.js"></script>
     <script src="../dist/droplet-full.js"></script>
 
-    <!--<script src="example.coffee" type="text/coffeescript"></script>-->
-    <script src="example.js"></script>
-    <!--<script src="//localhost:35729/livereload.js"></script>-->
+    <script src="example.coffee" type="text/coffeescript"></script>
+    <script src="//localhost:35729/livereload.js"></script>
   </body>
 </html>

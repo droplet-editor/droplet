@@ -10,15 +10,9 @@ treewalk = require './treewalk.coffee'
 antlr4 = require 'antlr4'
 
 ANTLR_PARSER_COLLECTION = {
-  'JavaLexer': require('../antlr/JavaLexer'),
-  'JavaParser': require('../antlr/JavaParser'),
-
   'CLexer': require('../antlr/CLexer'),
   'CParser': require('../antlr/CParser'),
   'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),
-
-  'jvmBasicLexer': require('../antlr/jvmBasicLexer'),
-  'jvmBasicParser': require('../antlr/jvmBasicParser'),
 }
 
 exports.createANTLRParser = (name, config, root) ->
