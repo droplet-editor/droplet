@@ -83,7 +83,7 @@ insertButton = (opts, node) ->
   else
     return null
 
-handelButton = (text, button, oldBlocks) ->
+handleButton = (text, button, oldBlocks) ->
   checkElif = (node) ->
     res = 'init'
     if node.type is 'if_stmt'
@@ -165,7 +165,7 @@ config = {
   DROPDOWN_CALLBACK: getDropdown
   COLOR_CALLBACK: getColor
   BUTTON_CALLBACK: insertButton
-  HANDLE_BUTTON_CALLBACK: handelButton
+  HANDLE_BUTTON_CALLBACK: handleButton
 
   COLOR_RULES: [
     ['term', 'value'],
