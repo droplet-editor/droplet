@@ -596,7 +596,7 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
 
-  @topNubbyPath ?= new @draw.Path([], true)
+  @topNubbyPath ?= @draw.path([], true)
   @topNubbyPath.activate()
   @topNubbyPath.setParent @mainCanvas
 
@@ -627,10 +627,10 @@ Editor::resizeNubby = ->
   @setTopNubbyStyle @nubbyHeight, @nubbyColor
 
 Editor::initializeFloatingBlock = (record, i) ->
-  record.renderGroup = new @draw.Group()
+  record.renderGroup = @draw.group()
 
   record.grayBox = new @draw.NoRectangle()
-  record.grayBoxPath = new @draw.Path(
+  record.grayBoxPath = @draw.path(
     [], false, {
       fillColor: GRAY_BLOCK_COLOR
       strokeColor: GRAY_BLOCK_BORDER
@@ -639,10 +639,10 @@ Editor::initializeFloatingBlock = (record, i) ->
       cssClass: 'droplet-floating-container'
     }
   )
-  record.startText = new @draw.Text(
+  record.startText = @draw.text(
     (new @draw.Point(0, 0)), @session.mode.startComment
   )
-  record.endText = new @draw.Text(
+  record.endText = @draw.text(
     (new @draw.Point(0, 0)), @session.mode.endComment
   )
 
@@ -4579,7 +4579,7 @@ hook 'populate', 0, ->
   opts = if @session? then @session.view.opts else @standardViewSettings
 
   @cursorCtx = document.createElementNS SVG_STANDARD, 'g'
-  @textCursorPath = new @draw.Path([], false, {
+  @textCursorPath = @draw.path([], false, {
     'strokeColor': '#000'
     'lineWidth': '2'
     'fillColor': 'rgba(0, 0, 256, 0.3)'
@@ -4596,7 +4596,7 @@ hook 'populate', 0, ->
       "Q#{opts.tabOffset + opts.tabWidth / 2} #{opts.tabHeight}" +
       " #{opts.tabOffset + opts.tabWidth - CURSOR_WIDTH_DECREASE / 2} 0"
 
-  @cursorPath = new @draw.ElementWrapper(cursorElement)
+  @cursorPath = @draw.elementWrapper(cursorElement)
   @cursorPath.setParent @mainCanvas
 
   @mainCanvas.appendChild @cursorCtx

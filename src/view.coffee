@@ -1368,14 +1368,14 @@ exports.View = class View
 
       # *Sixth pass variables*
       # computePath
-      @group = new @view.draw.Group('droplet-container-group')
+      @group = @view.draw.group('droplet-container-group')
 
       if @model.type is 'block'
-        @path = new @view.draw.Path([], true, {
+        @path = @view.draw.path([], true, {
           cssClass: 'droplet-block-path'
         })
       else
-        @path = new @view.draw.Path([], false, {
+        @path = @view.draw.path([], false, {
           cssClass: "droplet-#{@model.type}-path"
         })
       @totalBounds = new @view.draw.NoRectangle()
@@ -1386,7 +1386,7 @@ exports.View = class View
       # computeDropAreas
       # each one is a @view.draw.Path (or null)
       @dropPoint = null
-      @highlightArea = new @view.draw.Path([], false, {
+      @highlightArea = @view.draw.path([], false, {
         fillColor: '#FF0'
         strokeColor: '#FF0'
         lineWidth: 1
@@ -1399,8 +1399,8 @@ exports.View = class View
       @buttonRects = {}
 
       if @model.buttons? then for {key, glyph} in @model.buttons
-        @buttonGroups[key] = new @view.draw.Group()
-        @buttonPaths[key] = new @view.draw.Path([
+        @buttonGroups[key] = @view.draw.group()
+        @buttonPaths[key] = @view.draw.path([
             new @view.draw.Point 0, @view.opts.bevelClip
             new @view.draw.Point @view.opts.bevelClip, 0
 
@@ -1419,7 +1419,7 @@ exports.View = class View
 
         @buttonGroups[key].style = {}
 
-        @buttonTexts[key] = new @view.draw.Text(new @view.draw.Point(
+        @buttonTexts[key] = @view.draw.text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
           (@view.opts.buttonHeight - @view.opts.textHeight) / 2
         ), glyph)
@@ -2076,7 +2076,7 @@ exports.View = class View
     constructor: ->
       super
       if @view.opts.showDropdowns and @model.dropdown?
-        @dropdownElement ?= new @view.draw.Path([], false, {fillColor: DROP_TRIANGLE_COLOR, cssClass: 'droplet-dropdown-arrow'})
+        @dropdownElement ?= @view.draw.path([], false, {fillColor: DROP_TRIANGLE_COLOR, cssClass: 'droplet-dropdown-arrow'})
         @dropdownElement.deactivate()
 
         @dropdownElement.setParent @group
@@ -2373,7 +2373,7 @@ exports.View = class View
   class TextViewNode extends GenericViewNode
     constructor: (@model, @view) ->
       super
-      @textElement = new @view.draw.Text(
+      @textElement = @view.draw.text(
         new @view.draw.Point(0, 0),
         @model.value
       )
