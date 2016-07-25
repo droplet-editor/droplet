@@ -118,7 +118,7 @@ exports.createTreewalkParser = (parse, config, root) ->
               color: @getColor node, rules
               classes: padRules(wrapRules ? rules).concat(@getShape(node, rules))
               parseContext: rules[0] #(if wrap? then wrap.type else rules[0])
-              buttons: config.BUTTON_CALLBACK(@opts, node) ? null
+              buttons: if config.BUTTON_CALLBACK then config.BUTTON_CALLBACK(@opts, node) ? null else null
 
           when 'parens'
             # Parens are assumed to wrap the only child that has children
@@ -183,8 +183,8 @@ exports.createTreewalkParser = (parse, config, root) ->
               else unless i is 0
                 end = child.bounds.start
 
-                # @lines[end.line] was breaking in python mode (index out of range)
-                if @lines[end.line-1][...end.column].trim().length is 0
+                # For C mode, etc., end.line may be +1 longer than Python mode, etc., including the ending bracket
+                if end.line < @lines.length and @lines[end.line][...end.column].trim().length is 0
                   end.line -= 1
                   end.column = @lines[end.line].length
 
