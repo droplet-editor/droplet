@@ -2580,6 +2580,10 @@ Editor::reparseSocket = (socket, updates = []) ->
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
 Editor::reparse = (list, updates = [], originalTrigger = list) ->
+  # Never reparse just Indents.
+  if list.start.type is 'indentStart'
+    return @reparse list.start.parent
+
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -2626,7 +2630,7 @@ Editor::reparse = (list, updates = [], originalTrigger = list) ->
     catch e
       # Seek a parent that is not a socket
       # (since we should never reparse just a socket)
-      while parent? and parent.type is 'socket'
+      while parent? and parent.type in ['socket', 'indent']
         parent = parent.parent
 
       # Attempt to bubble up to the parent
@@ -3386,8 +3390,10 @@ hook 'keydown', 0, (event, state) ->
     return
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
+      context = @getCursor().parent.indentContext ? @getCursor().parseContext
+
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket '', true
+      newBlock = new model.Block(null, null, context); newSocket = new model.Socket '', true, null, context
       newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
