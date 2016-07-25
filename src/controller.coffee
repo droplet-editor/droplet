@@ -2086,7 +2086,6 @@ hook 'populate', 0, ->
 
   # Append the element.
   @paletteElement.appendChild @paletteHeaderWrapper
-  @paletteHeaderWrapper.appendChild @paletteHeader
 
   # Search box
   @paletteSearchWrapper = document.createElement 'div'
@@ -2100,21 +2099,36 @@ hook 'populate', 0, ->
   @paletteSearch.style.fontFamily = @session?.fontFamily ? 'Courier New'
   @paletteSearch.style.fontSize = @session?.fontSize ? 15
 
-  @paletteSearch.addEventListener 'input', =>
-    return unless @session?
-
-    @paletteScroller.scrollTop = 0
-    searchTerm = @paletteSearch.value
-    @session.activePaletteBlocks = @session.currentPaletteBlocks.filter((block) ->
-      block.block.stringify().indexOf(searchTerm) >= 0
-    )
-    @redrawPalette false
+  @paletteSearch.addEventListener 'input', => @reapplySearch()
 
   @paletteHeaderWrapper.appendChild @paletteSearchWrapper
   @paletteSearchWrapper.appendChild @paletteSearch
+  @paletteHeaderWrapper.appendChild @paletteHeader
 
   if @session?
     @setPalette @session.paletteGroups
+
+Editor::reapplySearch = ->
+  return unless @session?
+
+  @paletteScroller.scrollTop = 0
+  searchTerm = @paletteSearch.value
+  @session.activePaletteBlocks = @session.currentPaletteBlocks.filter((block) ->
+    block.block.stringify().indexOf(searchTerm) >= 0
+  )
+
+  for group, i in @session.paletteGroups
+    found = false
+    for block in group.blocks
+      if block.block.indexOf(searchTerm) >= 0
+        found = true
+        break
+    if found
+      group._headerElement.style.opacity = 1
+    else
+      group._headerElement.style.opacity = 0.3 # TODO magic number
+
+  @redrawPalette false
 
 parseBlock = (mode, code, context = null) =>
   block = mode.parse(code, {context}).start.next.container
@@ -2180,6 +2194,8 @@ Editor::rebuildPaletteHeaders = ->
 
     paletteGroupHeader.addEventListener 'click', clickHandler
     paletteGroupHeader.addEventListener 'touchstart', clickHandler
+
+    paletteGroup._headerElement = paletteGroupHeader
 
     # If we are the first element, make us the selected palette group.
     if i is 0
@@ -2257,6 +2273,10 @@ Editor::changePaletteGroup = (group) ->
 
   # Redraw the palette.
   @rebuildPalette()
+
+  # Reapply the palette search box search
+  @reapplySearch()
+
   @fireEvent 'selectpalette', [paletteGroup.name]
   @fireEvent 'palettechange'
 

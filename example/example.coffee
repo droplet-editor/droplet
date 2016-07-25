@@ -59,20 +59,21 @@ unless window.ALREADY_LOADED
       $(editor.paletteCanvas.children).each((index) ->
         title = Array.from(@children).filter((child) -> child.tagName is 'title')[0]
 
-        @removeChild title
+        if title?
+          @removeChild title
 
-        element = $('<div>').html(title.textContent)[0]
+          element = $('<div>').html(title.textContent)[0]
 
-        console.log title.textContent, element
+          console.log title.textContent, element
 
-        $(@).tooltipster({
-          position: 'right'
-          interactive: true
-          content: element
-          contentCloning: true
-          maxWidth: 300
-          theme: ['tooltipster-noir', 'tooltipster-noir-customized']
-        })
+          $(@).tooltipster({
+            position: 'right'
+            interactive: true
+            content: element
+            contentCloning: true
+            maxWidth: 300
+            theme: ['tooltipster-noir', 'tooltipster-noir-customized']
+          })
       )
 
     window.editor = editor
