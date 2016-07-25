@@ -448,9 +448,13 @@ exports.Editor = class Editor
               'context': null
             }
 
-            @worker.onmessage = (data) =>
-              @_waitingForPreparse = false
-              session._preparse = data.data
+            callback = (data) =>
+              if data.data.id is session._id
+                @_waitingForPreparse = false
+                session._preparse = data.data.result
+                @worker.removeEventListener 'message', callback
+
+            @worker.addEventListener 'message', callback
 
             @_waitingForPreparse = true
 
@@ -4222,11 +4226,14 @@ Editor::setValue_raw = (value) ->
 
 hook 'populate', 0, ->
   @loadingGlyph = document.createElement 'div'
-
+  loadingGlyphWrapper = document.createElement 'div'
   loadingGlyphInner = document.createElement 'div'
-  @loadingGlyph.appendChild loadingGlyphInner
 
-  @loadingGlyph.className = 'droplet-loading-glyph-wrapper'
+  loadingGlyphWrapper.appendChild loadingGlyphInner
+  @loadingGlyph.appendChild loadingGlyphWrapper
+
+  @loadingGlyph.className = 'droplet-loading-glyph-cover'
+  loadingGlyphWrapper.className = 'droplet-loading-glyph-wrapper'
   loadingGlyphInner.className = 'droplet-loading-glyph'
 
   @loadingGlyph.style.display = 'none'
@@ -4257,15 +4264,20 @@ Editor::setValueAsync = (value, cb) ->
         'context': null
       }
 
-      @worker.onmessage = (data) =>
-        @_waitingForPreparse = false
-        @session._preparse = data.data
+      callback = (data) =>
+        if data.data.id is @session._id
+          @_waitingForPreparse = false
+          @session._preparse = data.data.result
 
-        @setValue_raw value
+          @setValue_raw value
 
-        @hideLoadingGlyph()
+          @hideLoadingGlyph()
 
-        cb?()
+          @worker.removeEventListener 'message', callback
+
+          cb?()
+
+      @worker.addEventListener 'message', callback
 
     else
       setTimeout (=>

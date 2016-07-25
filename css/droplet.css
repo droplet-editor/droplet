@@ -420,8 +420,14 @@ text {
   height: 150px; width: 150px;
   border-radius: 1em;
   position: absolute;
-  top: 50%; left: 50%; margin-top: -6.5em; margin-left: 1em;
+  top: 50%; left: 50%; margin-top: -6.5em; margin-left: -6.5em;
   z-index: 256;
+}
+.droplet-loading-glyph-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 300;
+  background-color: rgba(0, 0, 0, 0.3);
 }
 .droplet-loading-glyph {
   font-size: 10px;
