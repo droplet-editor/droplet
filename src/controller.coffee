@@ -193,6 +193,7 @@ Session.id = 0
 
 exports.Editor = class Editor
   constructor: (@aceEditor, @options, @worker = null) ->
+    console.log 'Constructing.'
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
     # element with all the necessary ICE editor components.
@@ -423,9 +424,10 @@ exports.Editor = class Editor
 
     # If we were given an unrecognized mode or asked to start in text mode,
     # flip into text mode here
+    console.log 'Calling setEditorState as part of construction'
     useBlockMode = @session?.mode? and not @options.textModeAtStart
     if useBlockMode
-      @setEditorState useBlockMode, true
+      @setEditorState useBlockMode, false, true
     else
       @setEditorState useBlockMode, false, false, false
 
@@ -2946,7 +2948,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.left = location.x - @session.viewports.palette.x + @paletteCanvas.clientLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-      dropdownTop = location.y + @session.fontSize - @session.viewports.palette.y + @paletteCanvas.clientTop
+      dropdownTop = location.y + @session.fontSize - @session.viewports.palette.y + @paletteHeaderWrapper.clientHeight
       if dropdownTop + @dropdownElement.clientHeight > @paletteElement.clientHeight
         dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
       @dropdownElement.style.top = dropdownTop + 'px'
@@ -3622,8 +3624,10 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     top = @findLineNumberAtCoordinate @session.viewports.main.y
 
-    @aceEditor.scrollToLine top
+    # Scroll to the line with no animation
+    @aceEditor.scrollToLine top, false, false
 
+    # Force resize to recompute layout
     @aceEditor.resize true
 
     @redrawMain noText: true
@@ -4383,11 +4387,13 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
   @mainCanvas.style.transition = @paletteWrapper.style.transition =
     @highlightCanvas.style.transition = ''
 
+  console.log 'setEditorState called', useBlocks, @session.currentlyUsingBlocks, force
   if useBlocks
     if not @session?
       throw new ArgumentError 'cannot switch to blocks if a session has not been set up.'
 
     unless @session.currentlyUsingBlocks and not force
+      console.log 'Actively switching to blocks'
       cb = =>
         @redrawMain()
 
@@ -4406,6 +4412,7 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
         @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
         @dropletElement.style.left = '0px'
 
+      console.log 'Shooing aceElement away NOW.'
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @session.currentlyUsingBlocks = true
 
