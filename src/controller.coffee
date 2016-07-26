@@ -4965,7 +4965,7 @@ hook 'populate', 1, ->
       str = str.replace /^\n*|\n*$/g, ''
 
       try
-        blocks = @session.mode.parse str, {context: @getCursor().parent.parseContext}
+        blocks = @session.mode.parse str, {context: @getCursor().parent.indentContext ? @getCursor().parseContext ? @getCursor().parent.parseContext}
         blocks = new model.List blocks.start.next, blocks.end.prev
       catch e
         blocks = null

@@ -56,7 +56,7 @@ RULES = {
   # Indents
   'compoundStatement': {
     'type': 'indent',
-    'indentContext': 'blockItem',
+    'indentContext': 'blockItemList',
   },
   'structDeclarationsBlock': {
     'type': 'indent',
@@ -575,8 +575,9 @@ config.handleButton = (str, type, block) ->
           indents.push child
       indents = indents[-3...]
 
-      if indents.length < 3
+      if indents.length is 1
         return str
+
       else
         {string: prefix} = model.stringThrough(
           block.start,
@@ -618,6 +619,6 @@ config.handleButton = (str, type, block) ->
 
   return str
 
-config.rootContext = 'externalDeclaration'
+config.rootContext = 'translationUnit'
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config
