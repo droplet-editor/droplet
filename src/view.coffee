@@ -198,7 +198,10 @@ exports.View = class View
       delete @flaggedToDelete[id]
 
     for id, el of @flaggedToDelete when id of @map
+      console.log 'hiding id', id
       @map[id].hide()
+
+    @oldRoots = @newRoots
 
   flag: (auxiliaryNode) ->
     @flaggedToDelete[auxiliaryNode.model.id] = auxiliaryNode
@@ -215,8 +218,6 @@ exports.View = class View
 
     for id, el of @newRoots
       el.update()
-
-    @oldRoots = @newRoots
 
   destroy: (id) ->
     for child in @map[id].children

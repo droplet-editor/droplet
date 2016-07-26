@@ -833,7 +833,7 @@ Editor::drawCursor = -> @strokeCursor @determineCursorPosition()
 
 Editor::clearPalette = -> # TODO remove and remove all references to
 
-Editor::redrawPalette = (garbageCollect = true) ->
+Editor::redrawPalette = (garbageCollect = false) ->
   return unless @session?.activePaletteBlocks?
 
   @clearPalette()
@@ -1116,7 +1116,7 @@ Editor::getPreserves = (dropletDocument) ->
     location.document is dropletDocument
   ).map((location) -> location.location)
 
-Editor::spliceOut = (node, container = null) ->
+Editor::spliceOut = (node, container = null, preserveForReplacement = false) ->
   # Make an empty list if we haven't been
   # passed one
   unless node instanceof model.List
@@ -1144,7 +1144,7 @@ Editor::spliceOut = (node, container = null) ->
 
     # Remove the floating dropletDocument if it is now
     # empty
-    if dropletDocument.start.next is dropletDocument.end
+    if dropletDocument.start.next is dropletDocument.end and not preserveForReplacement
       for record, i in @session.floatingBlocks
         if record.block is dropletDocument
           @pushUndo new FloatingOperation i, record.block, record.position, 'delete'
@@ -2742,7 +2742,7 @@ Editor::populateBlock = (block, string) ->
           position.prev?.type is 'indentStart' and
           position.prev.container.end is block.end.next)
       position = position.prev
-    @spliceOut block
+    @spliceOut block, null, true # Preserve for replacement; otherwise floating block can be destroyed
     @spliceIn newBlock, position
     return true
   return false

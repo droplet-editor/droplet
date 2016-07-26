@@ -323,6 +323,10 @@ exports.Parser = class Parser
   # to handle preprocessor directives.
 
   applyMarkup: (opts) ->
+    # DEBUGGING
+    if @markup.length is 0
+      debugger
+
     # For convenience, will we
     # separate the markup by the line on which it is placed.
     markupOnLines = {}
