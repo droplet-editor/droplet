@@ -193,6 +193,7 @@ RULES = {
 
   # Special: declarationSpecifiers (type names) should be surrounded by single sockets
   'declarationSpecifiers': 'socket'
+  'declarationSpecifiers2': 'socket'
 
   # Sockets
   'Int': 'socket'
@@ -287,6 +288,8 @@ DROPDOWNS = {
     'int'
     'long long'
     'double'
+    'unsigned char'
+    'unsigned int'
   ]
 }
 
