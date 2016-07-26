@@ -63,7 +63,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
     det: (node) ->
       if node.type of config.RULES
-        type = @applyRule(config.RULES[node.type], node).type
+        type = @applyRule(node).type
         if type is 'block_explicit'
           return 'block'
         else
@@ -130,7 +130,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       # Pass through to child if single-child
       if node.children.length is 1 and
           @detNode(node) not in ['indent', 'buttonContainer'] and
-          (node.type not of config.RULES or @applyRule(config.RULES[node.type], node).type isnt 'block_explicit')
+          (node.type not of config.RULES or @applyRule(node).type isnt 'block_explicit')
         @mark node.children[0], prefix, depth, true, rules, context, wrap
 
       # Check to see if this AST type is part of the special empty strings map.
@@ -148,7 +148,6 @@ exports.createTreewalkParser = (parse, config, root) ->
             parseContext: rules[0]
 
           @flagToRemove node.bounds, depth + 1
->>>>>>> cs50
 
       else if node.children.length > 0
         switch @detNode node

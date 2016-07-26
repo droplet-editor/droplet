@@ -198,7 +198,6 @@ exports.View = class View
       delete @flaggedToDelete[id]
 
     for id, el of @flaggedToDelete when id of @map
-      console.log 'hiding id', id
       @map[id].hide()
 
     @oldRoots = @newRoots
