@@ -1402,35 +1402,36 @@ hook 'mousedown', 4, (point, event, state) ->
   #Buttons aren't clickable in a selection
   if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
 
-  head = @session.tree.start
-  seek = @session.tree.end
-  result = null
+  for document in @getDocuments() by -1
+    head = document.start
+    seek = document.end
+    result = null
 
-  until head is seek
-    if head.type in ['blockStart', 'buttonContainerStart']
-      viewNode = @session.view.getViewNodeFor(head.container)
-      result = head.container
+    until head is seek
+      if head.type in ['blockStart', 'buttonContainerStart']
+        viewNode = @session.view.getViewNodeFor(head.container)
+        result = head.container
 
-      for key, button of viewNode.buttonRects
-        if button.contains mainPoint
-          console.log 'HIT BUTTON', key
-          str = result.stringifyInPlace()
-          line = @session.mode.handleButton str, key, result #.getReader() # TODO getReader() that allows tree walking
-          if line?.length >= 0 and line isnt str
-            @undoCapture()
-            @populateBlock result, line
-            @redrawMain()
-          state.consumedHitTest = true
+        for key, button of viewNode.buttonRects
+          if button.contains mainPoint
+            str = result.stringifyInPlace()
+            line = @session.mode.handleButton str, key, result #.getReader() # TODO getReader() that allows tree walking
+            if line?.length >= 0 and line isnt str
+              @undoCapture()
+              @populateBlock result, line
+              @redrawMain()
+            state.consumedHitTest = true
 
-          return
+            return
 
-      if viewNode.path.contains mainPoint
-        seek = head.container.end
+        if viewNode.path.contains mainPoint
+          seek = head.container.end
 
-    head = head.next
+      head = head.next
 
-  # If we had a child hit, return it.
-  return result
+    # If we had a child hit, return it.
+    if result?
+      return result
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
