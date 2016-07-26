@@ -2,6 +2,7 @@ browserify = require 'browserify'
 coffeeify = require 'coffeeify'
 watchify = require 'watchify'
 
+
 livereload = require 'tiny-lr'
 
 path = require 'path'
@@ -77,6 +78,7 @@ module.exports = (grunt) ->
       build:
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
+          'dist/worker.js': ['./src/worker.js']
         options:
           ignore: ignoredLanguages
           transform: ['coffeeify']
@@ -193,7 +195,9 @@ module.exports = (grunt) ->
     b.require './src/main.coffee'
     b.transform coffeeify
 
-    w = watchify(b)
+    w = watchify(b, {
+      poll: true
+    })
 
     # Compile once through first
     stream = fs.createWriteStream 'dist/droplet-full.js'
@@ -210,17 +214,20 @@ module.exports = (grunt) ->
       w.on 'update', ->
         console.log 'File changed...'
         stream = fs.createWriteStream 'dist/droplet-full.js'
-        try
-          w.bundle().pipe stream
-          stream.once 'close', ->
-            console.log 'Rebuilt.'
-            lrserver.changed {
-              body: {
-                files: ['dist/droplet-full.js']
-              }
-            }
-        catch e
-          console.log 'BUILD FAILED.'
-          console.log e.stack
 
+        w.bundle().on('error', (e) ->
+          console.log 'ERROR'
+          console.log '-----'
+          console.log e
+        ).pipe(stream).once 'close', ->
+          console.log 'Rebuilt.'
+          lrserver.changed {
+            body: {
+              files: ['dist/droplet-full.js']
+            }
+          }
+
+
+  grunt.loadNpmTasks 'grunt-keepalive'
   grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
+  grunt.registerTask 'serve', ['connect:testserver', 'keepalive']

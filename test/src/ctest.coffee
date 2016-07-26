@@ -161,7 +161,7 @@ asyncTest 'Parser: parser freeze test for C mode', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-06-23'
+  deepEqual result.serialize(), FREEZE_DATA.freezeTest, 'Match C parser freeze file as of 2016-07-08'
 
   start()
 
@@ -188,7 +188,7 @@ asyncTest 'Parser: parser freeze test comment consolidation', ->
     }
   '''
 
-  equal result.serialize(), FREEZE_DATA.commentConsolidation, 'C comment consolidation'
+  deepEqual result.serialize(), FREEZE_DATA.commentConsolidation, 'C comment consolidation'
 
   start()
 
@@ -236,6 +236,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
       int y = 1 * 2;
       int x = 1 + 2;
       int a = 1 + 2 * 3;
+      printf("Hello");
     }
   '''
 
@@ -257,8 +258,13 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int y = 1 * (1 + 2);
         int x = __0_droplet__;
         int a = 1 + 2 * 3;
+        printf("Hello");
       }\n
       ''', 'Paren-wrapped + block dropping into * block'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 1, col: 14, type: 'block'
+      }).parseContext, 'primaryExpression', 'Changed parse context when adding parens'
     ), (->
       pickUpLocation editor, 0, {
         row: 1
@@ -277,8 +283,134 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int y = __0_droplet__;
         int x = __0_droplet__;
         int a = 1 * (1 + 2) + 2 * 3;
+        printf("Hello");
       }\n
       ''', 'Did not paren-wrap * block dropping into + block'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 3
+        col: 14
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 2
+        col: 10
+        type: 'socket'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        int y = __0_droplet__;
+        int x = 1 + 2;
+        int a = 1 * 2 + 2 * 3;
+        printf("Hello");
+      }\n
+      ''', 'Un-paren-wrapped when dropping into place where parens are unnecessary'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 2, col: 10, type: 'block'
+      }).parseContext, 'additiveExpression', 'Changed parse context when removing parens'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 4
+        col: 2
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 1
+        col: 10
+        type: 'socket'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        int y = printf("Hello");
+        int x = 1 + 2;
+        int a = 1 * 2 + 2 * 3;
+      }\n
+      ''', 'Removed semicolon'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 1, col: 10, type: 'block'
+      }).parseContext, 'postfixExpression', 'Changed parse context when removing semicolon'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 1
+        col: 10
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 3
+        col: 2
+        type: 'block'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        int y = __0_droplet__;
+        int x = 1 + 2;
+        int a = 1 * 2 + 2 * 3;
+        printf("Hello");
+      }\n
+      ''', 'Added semicolon back'
+
+      equal editor.session.tree.getFromTextLocation({
+        row: 4, col: 2, type: 'block'
+      }).parseContext, 'expressionStatement', 'Changed parse context when adding semicolon'
+
+      start()
+    )
+  ]
+
+asyncTest 'Controller: ANTLR paren wrap rules for C semicolons', ->
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'c',
+    palette: []
+  })
+
+  editor.setValue '''
+    int main() {
+      puts("Hello");
+      puts("World");
+    }
+  '''
+
+  executeAsyncSequence [
+    (->
+      pickUpLocation editor, 0, {
+        row: 1
+        col: 2
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 2
+        col: 7
+        type: 'socket'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        puts(puts("Hello"));
+      }\n
+      ''', 'Removed semicolon dropping function into other function'
+    ), (->
+      pickUpLocation editor, 0, {
+        row: 1
+        col: 7
+        type: 'block'
+      }
+      dropLocation editor, 0, {
+        row: 1
+        col: 2
+        type: 'block'
+      }
+    ), (->
+      equal editor.getValue(), '''
+      int main() {
+        puts("World");
+        puts("Hello");
+      }\n
+      ''', 'Added semicolon dropping function into block'
 
       start()
     )
@@ -287,7 +419,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
 asyncTest 'Controller: ANTLR reparse rules', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
-    mode: 'c',
+    mode: 'c_cpp',
     palette: []
   })
 
@@ -338,7 +470,7 @@ asyncTest 'Controller: ANTLR reparse rules', ->
 
     // Main
     int main(int n, char *args[]) {
-        // Arbitrary array initializer just o test that syntax
+        // Arbitrary array initializer just to test that syntax
         int arbitraryArray[] = {1, 2, 3, 4, 5};
         int length;
         scanf("%d", &length);
@@ -371,7 +503,7 @@ asyncTest 'Controller: ANTLR reparse rules', ->
       start()
       return
 
-    if head.type is 'blockStart' and head.container.stringify().length > 0
+    if head.type is 'blockStart' and head.container.parseContext isnt '__comment__' and head.container.stringify().length > 0
       before = head.prev
 
       oldLocalSerialize = head.container.serialize()
@@ -381,8 +513,8 @@ asyncTest 'Controller: ANTLR reparse rules', ->
       newLocalSerialize = before.next.container.serialize()
 
       notEqual before.next.id, head.id, "Reparsing did indeed replace the block ('#{head.container.stringify()}', #{head.container.parseContext})."
-      equal oldLocalSerialize, newLocalSerialize, "Reparsing did not change the local structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
-      equal oldSerialize, newSerialize, "Reparsing did not change the tree structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
+      deepEqual oldLocalSerialize, newLocalSerialize, "Reparsing did not change the local structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
+      deepEqual oldSerialize, newSerialize, "Reparsing did not change the tree structure ('#{head.container.stringify()}, #{head.container.parseContext}')."
 
       head = before.next
 

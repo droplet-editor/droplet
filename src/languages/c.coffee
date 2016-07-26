@@ -7,13 +7,56 @@ helper = require '../helper.coffee'
 parser = require '../parser.coffee'
 antlrHelper = require '../antlr.coffee'
 
+model = require '../model.coffee'
+
 {fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
+
+ADD_BUTTON = [
+  {
+    key: 'add-button'
+    glyph: '\u25B6'
+    border: false
+  }
+]
+BOTH_BUTTON = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25C0'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25B6'
+    border: false
+  }
+]
+
+ADD_BUTTON_VERT = [
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
+
+BOTH_BUTTON_VERT = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25B2'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
 
 RULES = {
   # Indents
   'compoundStatement': {
     'type': 'indent',
-    'indentContext': 'blockItem',
+    'indentContext': 'blockItemList',
   },
   'structDeclarationsBlock': {
     'type': 'indent',
@@ -25,7 +68,17 @@ RULES = {
   'primaryExpression': 'parens',
   'structDeclaration': 'parens',
 
+
+  'directDeclarator': (node) ->
+    if (node.parent?.type is 'declarator' and
+       node.parent.parent?.type isnt 'functionDefinition' and
+       node.parent.children.length is 1)
+      'block'
+    else
+      'skip'
+
   # Skips
+  'structDeclaratorList': 'skip',
   'blockItemList': 'skip',
   'macroParamList': 'skip',
   'compilationUnit': 'skip',
@@ -35,94 +88,230 @@ RULES = {
   'typeSpecifier': 'skip',
   'structOrUnionSpecifier': 'skip',
   'structDeclarationList': 'skip',
-  'declarator': 'skip',
-  'directDeclarator': 'skip',
   'rootDeclarator': 'skip',
   'parameterTypeList': 'skip',
-  'parameterList': 'skip',
-  'argumentExpressionList': 'skip',
+  'parameterList': (node) ->
+    if node.parent?.type is 'parameterList'
+      return 'skip'
+    else if node.children.length is 1 and node.children[0].children[0].children[0].children[0].children[0].type is 'Void'
+      {type: 'buttonContainer', buttons: ADD_BUTTON}
+    else
+      {type: 'buttonContainer', buttons: BOTH_BUTTON}
+  'argumentExpressionList': 'skip'
   'initializerList': 'skip',
-  'initDeclaratorList': 'skip',
+  'initDeclarator': 'skip',
+  'initDeclaratorList': 'skip'
+  'declaration': (node) ->
+    if node.children.length is 3 and node.children[1].children.length is 3
+      return {type: 'block', buttons: BOTH_BUTTON}
+    else if node.children.length is 3
+      return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'initializer': (node) ->
+    if node.children[0].data?.text is '{'
+      if node.children[1].children.length > 2
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  'expression': (node) ->
+    if node.parent?.type is 'expression'
+      'skip'
+    else if node.children[0].type is 'expression'
+      {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
+  # Special: nested selection statement. Skip iff we are an if statement
+  # in the else clause of another if statement.
+  'selectionStatement': (node) ->
+    if node.children[0].data.text is 'if' and
+       # Check to make sure the parent is an if. Actually,
+       # our immediate parent is a 'statement'; the logical wrapping
+       # parent is parent.parent
+       node.parent?.type is 'statement' and
+       node.parent.parent?.type is 'selectionStatement' and
+       node.parent.parent.children[0].data?.text is 'if' and
+       # This last one will only occur if we are the else clause
+       node.parent is node.parent.parent.children[6]
+      return 'skip'
+    # Otherwise, if we are an if statement, give us a mutation button
+    else if node.children[0].data.text is 'if'
+      if node.children.length is 7
+        return {type: 'block', buttons: BOTH_BUTTON_VERT}
+      else
+        return {type: 'block', buttons: ADD_BUTTON_VERT}
+    else
+      return 'block'
+
+  # Special: functions
+  'postfixExpression': (node, opts) ->
+    if (
+        node.children.length is 3 and node.children[1].data?.text is '(' and node.children[2].data?.text is ')' or
+        node.children.length is 4 and node.children[1].data?.text is '(' and node.children[3].data?.text is ')'
+       ) and
+       (
+         (not node.children[0].children[0]?.children?[0]?) or
+         node.children[0].children[0].children[0].type isnt 'Identifier' or not opts.functions? or
+         node.children[0].children[0].children[0].data.text not of opts.functions or
+         opts.functions[node.children[0].children[0].children[0].data.text].minArgs?
+       )
+      if node.children.length is 3
+        return {type: 'block', buttons: ADD_BUTTON}
+      else if opts.functions? and node.children[0].children[0].children[0].data?.text of opts.functions
+        minimum = opts.functions[node.children[0].children[0].children[0].data.text].minArgs
+        nargs = 0
+        param = node.children[2]
+        while param.type is 'argumentExpressionList'
+          nargs += 1
+          param = param.children[0]
+        if nargs > minimum
+          return {type: 'block', buttons: BOTH_BUTTON}
+        else
+          return {type: 'block', buttons: ADD_BUTTON}
+      else
+        return {type: 'block', buttons: BOTH_BUTTON}
+    else
+      return 'block'
+
+  'specialMethodCall': (node, opts) ->
+    if (
+        not opts.functions? or
+        node.children[0].data.text not of opts.functions
+       )
+      return {type: 'block', buttons: BOTH_BUTTON}
+    else if opts.functions[node.children[0].data.text].minArgs?
+      if opts.functions[node.children[0].data.text].minArgs is 0
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
+    else
+      return 'block'
+
 
   # Sockets
+  'Int': 'socket'
+  'Long': 'socket'
+  'Short': 'socket'
+  'Double': 'socket'
+  'Char': 'socket'
+
   'Identifier': 'socket',
   'StringLiteral': 'socket',
   'SharedIncludeLiteral': 'socket',
   'Constant': 'socket'
 }
 
-COLOR_RULES = [
-  ['jumpStatement', 'return'] # e.g. `return 0;`
-  ['declaration', 'control'], # e.g. `int a;`
-  ['specialMethodCall', 'command'], # e.g. `a(b);`
-  ['equalityExpression', 'value'] # e.g. `a == b`
-  ['additiveExpression', 'value'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value'], # e.g. `a * b`
-  ['postfixExpression', 'command'], # e.g. `a(b, c);` OR `a++`
-  ['iterationStatement', 'control'], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', 'control'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', 'command'], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', 'value'], # e.g. `a < b`
-  ['initDeclarator', 'command'], # e.g. `a = b` when inside `int a = b;`
-  ['blockItemList', 'control'], # List of commands
-  ['compoundStatement', 'control'], # List of commands inside braces
-  ['externalDeclaration', 'control'], # e.g. `int a = b` when global
-  ['structDeclaration', 'command'], # e.g. `struct a { }`
-  ['declarationSpecifier', 'control'], # e.g. `int` when in `int a = b;`
-  ['statement', 'command'], # Any statement, like `return 0;`
-  ['functionDefinition', 'control'], # e.g. `int myMethod() { }`
-  ['expressionStatement', 'command'], # Statement that consists of an expression, like `a = b;`
-  ['expression', 'value'], # Any expression, like `a + b`
-  ['parameterDeclaration', 'command'], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', 'value'], # e.g. `sizeof(a)`
-  ['typeName', 'value'], # e.g. `int`
-  ['initializer', 'value'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value'] # e.g. `(b)a`
-]
+COLOR_DEFAULTS = {
+  'declaration': 'teal'
+  'function': 'indigo'
+  'logic': 'lightblue'
+}
 
-SHAPE_RULES = [
-  ['blockItem', 'block-only'], # Any statement, like `return 0;`
-  ['expression', 'value-only'], # Any expression, like `a + b`
-  ['postfixExpression', 'block-only'], # e.g. `a(b, c);` OR `a++`
-  ['equalityExpression', 'value-only'], # e.g. `a == b`
-  ['logicalAndExpression', 'value-only'], # e.g. `a && b`
-  ['logicalOrExpression', 'value-only'], # e.g. `a || b`
-  ['iterationStatement', 'block-only'], # e.g. `for (int i = 0; i < 10; i++) { }`
-  ['selectionStatement', 'block-only'], # e.g. if `(a) { } else { }` OR `switch (a) { }`
-  ['assignmentExpression', 'block-only'], # e.g. `a = b;` OR `a = b`
-  ['relationalExpression', 'value-only'], # e.g. `a < b`
-  ['initDeclarator', 'block-only'], # e.g. `a = b` when inside `int a = b;`
-  ['externalDeclaration', 'block-only'], # e.g. `int a = b` when global
-  ['structDeclaration', 'block-only'], # e.g. `struct a { }`
-  ['declarationSpecifier', 'block-only'], # e.g. `int` when in `int a = b;`
-  ['statement', 'block-only'], # Any statement, like `return 0;`
-  ['functionDefinition', 'block-only'], # e.g. `int myMethod() { }`
-  ['expressionStatement', 'block-only'], # Statement that consists of an expression, like `a = b;`
-  ['additiveExpression', 'value-only'], # e.g. `a + b`
-  ['multiplicativeExpression', 'value-only'], # e.g. `a * b`
-  ['declaration', 'block-only'], # e.g. `int a;`
-  ['parameterDeclaration', 'block-only'], # e.g. `int a` when in `int myMethod(int a) { }`
-  ['unaryExpression', 'value-only'], # e.g. `sizeof(a)`
-  ['typeName', 'value-only'], # e.g. `int`
-  ['initializer', 'value-only'], # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
-  ['castExpression', 'value-only'] # e.g. `(b)a`
-]
+COLOR_RULES = {
+  'declarator': 'declaration',
+  'directDeclarator': 'declaration',
+  'specifierQualifierList': 'declaration',# e.g `int a;` when inside `struct {}`
+  'declaration': 'declaration', # e.g. `int a;`
+  'parameterDeclaration': 'declaration', # e.g. `int a` when in `int myMethod(int a) { }`
+  'externalDeclaration': 'declaration', # e.g. `int a = b` when global
+  'structDeclaration': 'declaration', # e.g. `struct a { }`
+
+  'functionDefinition': 'function', # e.g. `int myMethod() { }`
+
+  'expression': 'value', # Any expression, like `a + b`
+  'additiveExpression': 'value', # e.g. `a + b`
+  'multiplicativeExpression': 'value', # e.g. `a * b`
+  'unaryExpression': 'value', # e.g. `sizeof(a)`
+  'typeName': 'value', # e.g. `int`
+  'initializer': 'value', # e.g. `{a, b, c}` when in `int x[] = {a, b, c};`
+  'castExpression': 'value' # e.g. `(b)a`
+
+  'equalityExpression': 'logic' # e.g. `a == b`
+  'relationalExpression': 'logic' # e.g. `a == b`
+  'logicalAndExpression': 'logic', # e.g. `a && b`
+  'logicalOrExpression': 'logic', # e.g. `a || b`
+
+  'jumpStatement': 'return', # e.g. `return 0;`
+
+  'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
+  'assignmentExpression': 'command', # e.g. `a = b;` OR `a = b`
+  'specialMethodCall': 'command', # e.g. `a(b);`
+  #'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
+  'statement': 'command', # Any statement, like `return 0;`
+  'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
+
+  'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  #'blockItemList': 'control', # List of commands
+  'compoundStatement': 'control', # List of commands inside braces
+  'declarationSpecifier': 'control', # e.g. `int` when in `int a = b;`
+}
+
+SHAPE_RULES = {
+  'blockItem': helper.BLOCK_ONLY, # Any statement, like `return 0;`
+  'expression': helper.VALUE_ONLY, # Any expression, like `a + b`
+  'postfixExpression': helper.BLOCK_ONLY, # e.g. `a(b, c);` OR `a++`
+  'equalityExpression': helper.VALUE_ONLY, # e.g. `a == b`
+  'logicalAndExpression': helper.VALUE_ONLY, # e.g. `a && b`
+  'logicalOrExpression': helper.VALUE_ONLY, # e.g. `a || b`
+  'iterationStatement': helper.BLOCK_ONLY, # e.g. `for (int i = 0; i < 10; i++) { }`
+  'selectionStatement': helper.BLOCK_ONLY, # e.g. if `(a) { } else { }` OR `switch (a) { }`
+  'assignmentExpression': helper.BLOCK_ONLY, # e.g. `a = b;` OR `a = b`
+  'relationalExpression': helper.VALUE_ONLY, # e.g. `a < b`
+  'initDeclarator': helper.BLOCK_ONLY, # e.g. `a = b` when inside `int a = b;`
+  'externalDeclaration': helper.BLOCK_ONLY, # e.g. `int a = b` when global
+  'structDeclaration': helper.BLOCK_ONLY, # e.g. `struct a { }`
+  'declarationSpecifier': helper.BLOCK_ONLY, # e.g. `int` when in `int a = b;`
+  'statement': helper.BLOCK_ONLY, # Any statement, like `return 0;`
+  'functionDefinition': helper.BLOCK_ONLY, # e.g. `int myMethod() { }`
+  'expressionStatement': helper.BLOCK_ONLY, # Statement that consists of an expression, like `a = b;`
+  'additiveExpression': helper.VALUE_ONLY, # e.g. `a + b`
+  'multiplicativeExpression': helper.VALUE_ONLY, # e.g. `a * b`
+  'declaration': helper.BLOCK_ONLY, # e.g. `int a;`
+  'parameterDeclaration': helper.BLOCK_ONLY, # e.g. `int a` when in `int myMethod(int a) { }`
+  'unaryExpression': helper.VALUE_ONLY, # e.g. `sizeof(a)`
+  'typeName': helper.VALUE_ONLY, # e.g. `int`
+  'initializer': helper.VALUE_ONLY, # e.g. `{a, b, c}` when in `int x[ = {a, b, c};`
+  'castExpression': helper.VALUE_ONLY # e.g. `(b)a`
+}
+
+DROPDOWNS = {
+  'declarationSpecifiers': [
+    'char'
+    'int'
+    'long'
+    'double'
+  ]
+}
 
 config = {
-  RULES, COLOR_RULES, SHAPE_RULES
+  RULES, COLOR_RULES, SHAPE_RULES, COLOR_DEFAULTS, DROPDOWNS
 }
 
 ADD_PARENS = (leading, trailing, node, context) ->
   leading '(' + leading()
   trailing trailing() + ')'
 
+ADD_SEMICOLON = (leading, trailing, node, context) ->
+  trailing trailing() + ';'
+
+REMOVE_SEMICOLON = (leading, trailing, node, context) ->
+  trailing trailing().replace /\s*;\s*$/, ''
+
 config.PAREN_RULES = {
   'primaryExpression': {
     'expression': ADD_PARENS
-    'additiveExpression': ADD_PARENS
-    'multiplicativeExpression': ADD_PARENS
-    'assignmentExpression': ADD_PARENS
-    'postfixExpression': ADD_PARENS
+  },
+  'expressionStatement': {
+    'expression': ADD_SEMICOLON
+  }
+  'postfixExpression': {
+    'specialMethodCall': REMOVE_SEMICOLON
   }
 }
 
@@ -156,7 +345,7 @@ config.SHOULD_SOCKET = (opts, node) ->
   #
   # We can only be such an identifier if we have the appropriate number of parents;
   # check.
-  unless opts.knownFunctions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
+  unless opts.functions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
       node.parent?.type is 'specialMethodCall')
     return true
 
@@ -167,7 +356,7 @@ config.SHOULD_SOCKET = (opts, node) ->
      node.parent is node.parent.parent.children[0] and
      node is node.parent.children[0]) and
      # Finally, check to see if our name is a known function name
-     node.data.text of opts.knownFunctions
+     node.data.text of opts.functions
 
     # If the checks pass, do not socket.
     return false
@@ -177,22 +366,22 @@ config.SHOULD_SOCKET = (opts, node) ->
 # Color and shape callbacks look up the method name
 # in the known functions list if available.
 config.COLOR_CALLBACK = (opts, node) ->
-  return null unless opts.knownFunctions?
+  return null unless opts.functions?
 
   name = getMethodName node
 
-  if name? and name of opts.knownFunctions
-    return opts.knownFunctions[name].color
+  if name? and name of opts.functions
+    return opts.functions[name].color
   else
     return null
 
 config.SHAPE_CALLBACK = (opts, node) ->
-  return null unless opts.knownFunctions?
+  return null unless opts.functions?
 
   name = getMethodName node
 
-  if name? and name of opts.knownFunctions
-    return opts.knownFunctions[name].shape
+  if name? and name of opts.functions
+    return opts.functions[name].shape
   else
     return null
 
@@ -203,45 +392,69 @@ config.parseComment = (text) ->
   # Try standard comment
   comment = text.match(/^(\s*\/\/)(.*)$/)
   if comment?
-    ranges =  [
+    sockets =  [
       [comment[1].length, comment[1].length + comment[2].length]
     ]
     color = 'comment'
 
+    return {sockets, color}
+
   if text.match(/^#\s*((?:else)|(?:endif))$/)
-    ranges =  []
+    sockets =  []
     color = 'purple'
 
-  # Try any of the unary directives: #include, #if, #ifdef, #ifndef, #undef, #pragma
-  unary = text.match(/^(#\s*(?:(?:include)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
-  if unary?
-    ranges =  [
-      [unary[1].length, unary[1].length + unary[2].length]
-    ]
-    color = 'purple'
+    return {sockets, color}
 
   # Try #define directive
   binary = text.match(/^(#\s*(?:(?:define))\s*)([a-zA-Z_][0-9a-zA-Z_]*)(\s+)(.*)$/)
   if binary?
-    ranges =  [
+    sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
     color = 'purple'
+
+    return {sockets, color}
 
   # Try functional #define directive.
   binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
   if binary?
-    ranges =  [
+    sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
       [binary[1].length + binary[2].length + binary[3].length, binary[1].length + binary[2].length + binary[3].length + binary[4].length]
     ]
     color = 'purple'
 
-  return {
-    sockets: ranges
-    color
-  }
+    return {sockets, color}
+
+  # Try any of the unary directives: #define, #if, #ifdef, #ifndef, #undef, #pragma
+  unary = text.match(/^(#\s*(?:(?:define)|(?:ifdef)|(?:if)|(?:ifndef)|(?:undef)|(?:pragma))\s*)(.*)$/)
+  if unary?
+    sockets =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+    return {sockets, color}
+
+  # Try #include, which must include the quotations
+  unary = text.match(/^(#\s*include\s*<)(.*)>\s*$/)
+  if unary?
+    sockets =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+    return {sockets, color}
+
+  unary = text.match(/^(#\s*include\s*")(.*)"\s*$/)
+  if unary?
+    sockets =  [
+      [unary[1].length, unary[1].length + unary[2].length]
+    ]
+    color = 'purple'
+
+    return {sockets, color}
 
 config.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length
@@ -260,18 +473,152 @@ config.stringFixer = (string) ->
     return string
 
 config.empty = '__0_droplet__'
+config.EMPTY_STRINGS = {
+  'Identifier': '__0_droplet__',
+  'declaration': '__0_droplet__ __0_droplet__;'
+}
 config.emptyIndent = ''
 
-# TODO Implement removing parentheses at some point
-#config.unParenWrap = (leading, trailing, node, context) ->
-#  while true
-#   if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-#     leading leading().replace(/^\s*\(\s*/, '')
-#      trailing trailing().replace(/\s*\)\s*$/, '')
-#    else
-#      break
+insertAfterLastSocket = (str, block, insert) ->
 
-# DEBUG
-config.unParenWrap = null
+  {string: suffix} = model.stringThrough(
+    block.end,
+    ((token) -> token.parent is block and token.type is 'socketEnd'),
+    ((token) -> token.prev)
+  )
+
+  prefix = str[...-suffix.length]
+
+  return prefix + insert + suffix
+
+removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
+  {string: suffix, token: socketToken} = model.stringThrough(
+    block.end,
+    ((token) -> token.parent is block and token.type is 'socketEnd'),
+    true
+  )
+
+  if suffixClip?
+    suffix = suffix.replace suffixClip, ''
+
+  {string: prefix} = model.stringThrough(
+    block.start,
+    ((token) -> token.container is socketToken.container),
+    false
+  )
+
+  if prefixClip?
+    prefix = prefix.replace prefixClip, ''
+
+  return prefix + suffix
+
+config.handleButton = (str, type, block) ->
+  blockType = block.nodeContext?.type ? block.parseContext
+
+  if type is 'add-button'
+
+    if blockType is 'selectionStatement'
+      indents = []
+      block.traverseOneLevel (child) ->
+        if child.type is 'indent'
+          indents.push child
+      indents = indents[-3...]
+
+      if indents.length is 1
+        return str + '\nelse\n{\n  \n}\n'
+
+      else if indents.length is 2
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[0].end),
+          false
+        )
+
+        suffix = str[prefix.length + 1...]
+
+        return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
+
+      else if indents.length is 3
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[1].end),
+          false
+        )
+
+        suffix = str[prefix.length + 1...]
+
+        return prefix + '\n}\nelse if (a == b)\n{\n  \n' + suffix
+
+    else if blockType is 'postfixExpression' or blockType is 'specialMethodCall'
+      if str.match(/\(\s*\)\s*;?$/)?
+        return str.replace(/(\s*\)\s*;?\s*)$/, "#{config.empty}$1")
+      else
+        return str.replace(/(\s*\)\s*;?\s*)$/, ", #{config.empty}$1")
+    else if blockType is 'parameterList'
+      if str.match(/^\s*void\s*$/)
+        return "type param"
+      return str + ", type param"
+    else if blockType is 'declaration'
+        return str.replace(/(\s*;?\s*)$/, ", #{config.empty} = #{config.empty}$1")
+    else if blockType is 'initializer'
+      return str.replace(/(\s*}\s*)$/, ", #{config.empty}$1")
+    else if blockType is 'expression'
+      return str.replace(/(\s*;\s*)?$/, ", #{config.empty}$1")
+
+
+  else if type is 'subtract-button'
+
+    if blockType is 'selectionStatement'
+      indents = []
+      block.traverseOneLevel (child) ->
+        if child.type is 'indent'
+          indents.push child
+      indents = indents[-3...]
+
+      if indents.length is 1
+        return str
+
+      else
+        {string: prefix} = model.stringThrough(
+          block.start,
+          ((token) -> token is indents[0].end),
+          false
+        )
+
+        {string: suffix} = model.stringThrough(
+          block.end,
+          ((token) -> token is indents[1].end),
+          true
+        )
+
+        return prefix + suffix
+
+    else if blockType is 'postfixExpression' or blockType is 'specialMethodCall'
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if blockType is 'declaration'
+      reparsed = config.__antlrParse 'declaration', str
+
+      lines = str.split '\n'
+      prefix = helper.clipLines lines, {line: 0, column: 0}, reparsed.children[1].children[2].bounds.start
+      suffix = str.match(/\s*;?\s*$/)[0]
+
+      prefix = prefix.replace /\s*,\s*$/, ''
+
+      return prefix + suffix
+    else if blockType is 'initializer'
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if blockType is 'parameterList'
+      count = 0
+      block.traverseOneLevel (x) -> if x.type is 'socket' then count++
+      if count is 1
+        return 'void'
+      else
+        return removeLastSocketAnd str, block, /\s*,\s*$/
+    else if blockType is 'expression'
+      return removeLastSocketAnd str, block, /\s*,\s*$/
+
+  return str
+
+config.rootContext = 'translationUnit'
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config

@@ -10,12 +10,9 @@ treewalk = require './treewalk.coffee'
 antlr4 = require 'antlr4'
 
 ANTLR_PARSER_COLLECTION = {
-  'JavaLexer': require('../antlr/JavaLexer'),
-  'JavaParser': require('../antlr/JavaParser'),
   'CLexer': require('../antlr/CLexer'),
   'CParser': require('../antlr/CParser'),
-  'jvmBasicLexer': require('../antlr/jvmBasicLexer'),
-  'jvmBasicParser': require('../antlr/jvmBasicParser'),
+  'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),
 }
 
 exports.createANTLRParser = (name, config, root) ->
@@ -94,5 +91,22 @@ exports.createANTLRParser = (name, config, root) ->
           column: node.symbol.column + node.symbol.stop - node.symbol.start + 1
         }
       }
+
+  config.__antlrParse = parse
+
+  droppabilityGraph = ANTLR_PARSER_COLLECTION["#{name}DroppabilityGraph"]
+  if droppabilityGraph?
+    config.droppabilityGraph = {}
+    config.parenGraph = {}
+    for rule, edges of droppabilityGraph
+      config.droppabilityGraph[rule] ={}
+      config.parenGraph[rule] = {}
+      for outEdge in edges when outEdge isnt 0
+        config.droppabilityGraph[rule][outEdge] = 0
+        config.parenGraph[rule][outEdge] = 0
+
+    for dest of config.PAREN_RULES
+      for source of config.PAREN_RULES[dest]
+        config.parenGraph[dest][source] = 1
 
   return treewalk.createTreewalkParser parse, config, root

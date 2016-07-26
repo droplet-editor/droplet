@@ -201,11 +201,11 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     @lines = @text.split '\n'
 
-  getPrecedence: (node) -> 1
+  getNodeContext: (node) -> new parser.PreNodeContext node.type, 0 ,0
 
-  getClasses: (node) ->
-    classes = [node.nodeName]
-    return classes
+  getParseContext: (node) -> node.type
+
+  getIndentContext: (node) -> node.type
 
   getButtons: (node) ->
     buttons = {}
@@ -417,26 +417,28 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
 
     return bounds
 
-  getSocketLevel: (node) -> helper.ANY_DROP
+  getShape: (node) -> helper.ANY_DROP
 
   htmlBlock: (node, depth, bounds) ->
     @addBlock
       bounds: bounds ? @getBounds node
       depth: depth
-      precedence: @getPrecedence node
       color: @getColor node
-      classes: @getClasses node
-      socketLevel: @getSocketLevel node
       parseContext: node.nodeName
       buttons: @getButtons node
+
+      parseContext: @getParseContext node
+      nodeContext: @getNodeContext node
+      shape: @getShape node
 
   htmlSocket: (node, depth, precedence, bounds, classes, noDropdown) ->
     @addSocket
       bounds: bounds ? @getBounds node
       depth: depth
       precedence: precedence
-      classes: classes ? @getClasses node
       dropdown: if noDropdown then null else @getDropdown node
+
+      parseContext: @getParseContext node
 
   getIndentPrefix: (bounds, indentDepth, depth) ->
     if bounds.end.line - bounds.start.line < 1
@@ -563,7 +565,7 @@ exports.HTMLParser = class HTMLParser extends parser.Parser
               bounds: indentBounds
               depth: depth
               prefix: prefix
-              classes: @getClasses node
+              indentContext: @getIndentContext node
             lastChild = null
           else
             unless TAGS[node.nodeName]?.content is 'optional' or
@@ -599,10 +601,10 @@ HTMLParser.parens = (leading, trailing, node, context) ->
 
 HTMLParser.drop = (block, context, pred, next) ->
 
-  blockType = block.classes[0]
-  contextType = context.classes[0]
-  predType = pred?.classes[0]
-  nextType = next?.classes[0]
+  blockType = block.parseContext
+  contextType = context.indentContext ? context.parseContext
+  predType = pred?.parseContext
+  nextType = next?.parseContext
 
   check = (blockType, allowList, forbidList = []) ->
     if blockType in allowList and blockType not in forbidList

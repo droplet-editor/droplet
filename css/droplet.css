@@ -84,17 +84,19 @@
   width: 100%;
   /*overflow: hidden;*/
 }
-.droplet-palette-header {
+.droplet-palette-header-wrapper {
   z-index: 257;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   background-color: #FFF;
-  line-height: 10px;
   border-spacing: 4px;
-  border-bottom: 2px solid #000;
+}
+.droplet-palette-header {
   display: table;
+  width: 100%;
+  line-height: 10px;
 }
 .droplet-palette-header-row {
   display: table-row;
@@ -137,14 +139,16 @@
 
 .droplet-hidden-input {
   position: absolute;
-  top: -9999px;
-  left: -9999px;
+  top: 0px;
+  left: 0px;
   -webkit-touch-callout: none;
   width: 1px;
   height: 1px;
   padding: 0;
   border: 0;
   margin: 0;
+  z-index: -1;
+  opacity: 0;
 }
 .droplet-hover-div {
   position: absolute;
@@ -370,8 +374,17 @@ text {
   cursor: -moz-grab;
   cursor: grab;
 }
-.droplet-dropdown-arrow, .droplet-button-path {
+.droplet-dropdown-arrow {
   cursor: pointer;
+}
+.droplet-button-path {
+  fill: #FFF;
+  opacity: 0;
+  cursor: pointer;
+}
+.droplet-button-path:hover {
+  fill: #FFF;
+  opacity: 0.5;
 }
 .droplet-socket-path {
   /*fill: #FFF;*/
@@ -386,3 +399,97 @@ text {
   fill: '#88F'
   stroke: '#88F'
 }
+.droplet-buttonContainer-path {
+  display: none;
+}
+.droplet-palette-search-wrapper {
+  height: 30px;
+  width: 100%;
+}
+.droplet-palette-search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  border-right: none;
+  border-left: none;
+  border-top: 1px solid #888;
+  border-bottom: 1px solid #888;
+}
+.droplet-loading-glyph-wrapper {
+  background: #DDD;
+  height: 150px; width: 150px;
+  border-radius: 1em;
+  position: absolute;
+  top: 50%; left: 50%; margin-top: -6.5em; margin-left: -6.5em;
+  z-index: 256;
+}
+.droplet-loading-glyph-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 300;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+.droplet-loading-glyph {
+  font-size: 10px;
+  margin: 25px 25px;
+  text-indent: -9999em;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #ffffff;
+  background: -moz-linear-gradient(left, #ffffff 10%, rgba(255, 255, 255, 0) 42%);
+  background: -webkit-linear-gradient(left, #ffffff 10%, rgba(255, 255, 255, 0) 42%);
+  background: -o-linear-gradient(left, #ffffff 10%, rgba(255, 255, 255, 0) 42%);
+  background: -ms-linear-gradient(left, #ffffff 10%, rgba(255, 255, 255, 0) 42%);
+  background: linear-gradient(to right, #ffffff 10%, rgba(255, 255, 255, 0) 42%);
+  position: relative;
+  -webkit-animation: load3 1.4s infinite linear;
+  animation: load3 1.4s infinite linear;
+  -webkit-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+}
+.droplet-loading-glyph:before {
+  width: 50%;
+  height: 50%;
+  background: #ffffff;
+  border-radius: 100% 0 0 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  content: '';
+}
+.droplet-loading-glyph:after {
+  background: #DDD;
+  width: 75%;
+  height: 75%;
+  border-radius: 50%;
+  content: '';
+  margin: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+}
+@-webkit-keyframes load3 {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes load3 {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
