@@ -83,7 +83,6 @@ RULES = {
   'macroParamList': 'skip',
   'compilationUnit': 'skip',
   'translationUnit': 'skip',
-  'declarationSpecifiers': 'skip',
   'declarationSpecifier': 'skip',
   'typeSpecifier': 'skip',
   'structOrUnionSpecifier': 'skip',
@@ -192,6 +191,8 @@ RULES = {
     else
       return 'block'
 
+  # Special: declarationSpecifiers (type names) should be surrounded by single sockets
+  'declarationSpecifiers': 'socket'
 
   # Sockets
   'Int': 'socket'
@@ -284,7 +285,7 @@ DROPDOWNS = {
   'declarationSpecifiers': [
     'char'
     'int'
-    'long'
+    'long long'
     'double'
   ]
 }

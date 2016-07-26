@@ -269,6 +269,15 @@ exports.createTreewalkParser = (parse, config, root) ->
               prefix: prefix[oldPrefix.length...prefix.length]
               indentContext: @applyRule(node).indentContext
 
+          when 'socket'
+            if context? and @detNode(context) in ['block', 'buttonContainer']
+              @addSocket
+                empty: config.EMPTY_STRINGS?[node.type] ? config.empty
+                bounds: node.bounds
+                depth: depth
+                parseContext: rules[0]
+                dropdown: config.DROPDOWNS?[rules[0]] ? null
+
         for child in node.children
           @mark child, prefix, depth + 2, false
       else if context? and @detNode(context) in ['block', 'buttonContainer']
