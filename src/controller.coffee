@@ -193,7 +193,6 @@ Session.id = 0
 
 exports.Editor = class Editor
   constructor: (@aceEditor, @options, @worker = null) ->
-    console.log 'Constructing.'
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
     # element with all the necessary ICE editor components.
@@ -424,7 +423,6 @@ exports.Editor = class Editor
 
     # If we were given an unrecognized mode or asked to start in text mode,
     # flip into text mode here
-    console.log 'Calling setEditorState as part of construction'
     useBlockMode = @session?.mode? and not @options.textModeAtStart
     if useBlockMode
       @setEditorState useBlockMode, false, true
@@ -1485,6 +1483,8 @@ hook 'mousemove', 1, (point, event, state) ->
     # NOTE: this really falls under "PALETTE SUPPORT", but must
     # go here. Try to organise this better.
     if @clickedBlockPaletteEntry
+      @draggingPalette = true
+
       @draggingOffset = @session.paletteView.getViewNodeFor(@draggingBlock).bounds[0].upperLeftCorner().from(
         @trackerPointToPalette(@clickedPoint))
 
@@ -1782,7 +1782,7 @@ hook 'mouseup', 0, ->
 
 hook 'mouseup', 1, (point, event, state) ->
   if @dragReplacing
-    @endDrag()
+    @endDrag false
 
   # We will consume this event iff we dropped it successfully
   # in the root tree.
@@ -1901,7 +1901,7 @@ hook 'mouseup', 1, (point, event, state) ->
       #  @reparse @draggingBlock.parent.parent
 
       # Now that we've done that, we can annul stuff.
-      @endDrag()
+      @endDrag true
 
       @setCursor(futureCursorLocation) if futureCursorLocation?
 
@@ -1989,7 +1989,7 @@ hook 'mouseup', 0, (point, event, state) ->
       @spliceOut @draggingBlock
 
     if not addBlockAsFloatingBlock
-      @endDrag()
+      @endDrag false
       return
 
     else if renderPoint.x - @session.viewports.main.x < 0
@@ -2025,13 +2025,7 @@ hook 'mouseup', 0, (point, event, state) ->
       )
 
     # Now that we've done that, we can annul stuff.
-    @clearDrag()
-    @draggingBlock = null
-    @draggingOffset = null
-    @lastHighlightPath?.destroy?()
-    @lastHighlight = @lastHighlightPath = null
-
-    @redrawMain()
+    @endDrag true
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
@@ -2102,6 +2096,9 @@ hook 'populate', 0, ->
   @paletteSearch.style.fontSize = @session?.fontSize ? 15
 
   @paletteSearch.addEventListener 'input', => @reapplySearch()
+  @paletteSearch.addEventListener 'focus', =>
+    @paletteSearch.value = ''
+    @reapplySearch()
 
   @paletteHeaderWrapper.appendChild @paletteSearchWrapper
   @paletteSearchWrapper.appendChild @paletteSearch
@@ -2119,6 +2116,8 @@ Editor::reapplySearch = ->
     block.block.stringify().indexOf(searchTerm) >= 0
   )
 
+  firstMatchingGroup = null
+
   for group, i in @session.paletteGroups
     found = false
     for block in group.blocks
@@ -2126,9 +2125,16 @@ Editor::reapplySearch = ->
         found = true
         break
     if found
+      firstMatchingGroup ?= group
       group._headerElement.style.opacity = 1
+      group._containsSearchTerm = true
     else
       group._headerElement.style.opacity = 0.3 # TODO magic number
+      group._containsSearchTerm = false
+
+  if @session.activePaletteBlocks.length is 0 and firstMatchingGroup?
+    @changePaletteGroup firstMatchingGroup
+
 
   @redrawPalette false
 
@@ -2191,8 +2197,11 @@ Editor::rebuildPaletteHeaders = ->
       @changePaletteGroup paletteGroup
 
     clickHandler = =>
-      do updatePalette
-      @paletteSearch.focus()
+      if paletteGroup._containsSearchTerm
+        do updatePalette
+
+        if @paletteSearch.value is ''
+          @paletteSearch.focus()
 
     paletteGroupHeader.addEventListener 'click', clickHandler
     paletteGroupHeader.addEventListener 'touchstart', clickHandler
@@ -2234,6 +2243,10 @@ Editor::setPalette = (paletteGroups) ->
           context: data.context
           title: data.title
           id: data.id
+
+      # Does this contain the search term currently typed in the palette search box?
+      # used to prevent clicking things with no results.
+      paletteGroup._containsSearchTerm = true
 
       paletteGroup.parsedBlocks = newPaletteBlocks
 
@@ -2305,6 +2318,7 @@ hook 'mousedown', 6, (point, event, state) ->
         @clickedPoint = point
         @clickedBlockPaletteEntry = entry
         state.consumedHitTest = true
+
         @fireEvent 'pickblock', [entry.id]
         return
 
@@ -4037,10 +4051,6 @@ hook 'populate', 2, ->
   @paletteScroller.className = 'droplet-palette-scroller'
   @paletteScroller.appendChild @paletteCanvas
 
-  @paletteScrollerStuffing = document.createElement 'div'
-  @paletteScrollerStuffing.className = 'droplet-palette-scroller-stuffing'
-
-  @paletteScroller.appendChild @paletteScrollerStuffing
   @paletteElement.appendChild @paletteScroller
 
   @paletteScroller.addEventListener 'scroll', =>
@@ -4076,16 +4086,6 @@ hook 'redraw_main', 1, ->
     @lastHeight = height
     @mainCanvas.setAttribute 'height', height
     @mainCanvas.style.height = "#{height}px"
-
-hook 'redraw_palette', 0, ->
-  bounds = new @draw.NoRectangle()
-  for entry in @session.currentPaletteBlocks
-    bounds.unite @session.paletteView.getViewNodeFor(entry.block).getBounds()
-
-  # For now, we will comment out this line
-  # due to bugs
-  #@paletteScrollerStuffing.style.width = "#{bounds.right()}px"
-  @paletteScrollerStuffing.style.height = "#{bounds.bottom()}px"
 
 # MULTIPLE FONT SIZE SUPPORT
 # ================================
@@ -4280,7 +4280,6 @@ Editor::hideLoadingGlyph = ->
   @mainCanvas.style.cursor = ''
 
 Editor::setValueAsync = (value, cb) ->
-  console.log 'Setting value asynchronously'
   if @session?.currentlyUsingBlocks
     @showLoadingGlyph()
 
@@ -4387,13 +4386,11 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
   @mainCanvas.style.transition = @paletteWrapper.style.transition =
     @highlightCanvas.style.transition = ''
 
-  console.log 'setEditorState called', useBlocks, @session.currentlyUsingBlocks, force
   if useBlocks
     if not @session?
       throw new ArgumentError 'cannot switch to blocks if a session has not been set up.'
 
     unless @session.currentlyUsingBlocks and not force
-      console.log 'Actively switching to blocks'
       cb = =>
         @redrawMain()
 
@@ -4412,7 +4409,6 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
         @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
         @dropletElement.style.left = '0px'
 
-      console.log 'Shooing aceElement away NOW.'
       @aceElement.style.top = @aceElement.style.left = '-9999px'
       @session.currentlyUsingBlocks = true
 
@@ -4496,12 +4492,20 @@ hook 'mouseup', 0, ->
 
 hook 'mousedown', 10, ->
   if @draggingBlock?
-    @endDrag()
+    @endDrag true
 
-Editor::endDrag = ->
+Editor::endDrag = (successfulDrop) ->
   # Ensure that the cursor is not in a socket.
   if @cursorAtSocket()
     @setCursor @session.cursor, (x) -> x.type isnt 'socketStart'
+
+  ###
+  # TODO usability question
+  if @draggingPalette and successfulDrop
+    @paletteSearch.value = ''
+    @reapplySearch()
+  @draggingPalette = false
+  ###
 
   @clearDrag()
   @draggingBlock = null

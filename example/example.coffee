@@ -64,8 +64,6 @@ unless window.ALREADY_LOADED
 
           element = $('<div>').html(title.textContent)[0]
 
-          console.log title.textContent, element
-
           $(@).tooltipster({
             position: 'right'
             interactive: true
