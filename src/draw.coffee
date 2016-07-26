@@ -747,7 +747,7 @@ exports.Path = class Path extends ElementWrapper
 # accomplished via ctx.measureText().
 exports.Text = class Text extends ElementWrapper
   constructor: (@draw, @point, @value) ->
-    @__lastValue = @value
+    @__lastValue = @__boundsValue = @value
     @__lastPoint = @point.clone()
 
     @_bounds = new Rectangle @point.x, @point.y, @draw.measureCtx.measureText(@value).width, @draw.fontSize
@@ -757,7 +757,15 @@ exports.Text = class Text extends ElementWrapper
   clone: -> new Text @point, @value
   equals: (other) -> other? and @point.equals(other.point) and @value is other.value
 
-  bounds: -> @_bounds
+  _clearCache: ->
+    if @value is @__boundsValue
+      return
+    else
+      @__boundsValue = @value
+
+      @_bounds = new Rectangle @point.x, @point.y, @draw.measureCtx.measureText(@value).width, @draw.fontSize
+
+  bounds: -> @_clearCache(); @_bounds
   contains: (point) -> @_bounds.contains point
 
   setPosition: (point) -> @translate point.from @point

@@ -1217,8 +1217,9 @@ exports.TextToken = class TextToken extends Token
   # of TextToken, which is meant to be mutable but
   # also causes content change.
   @trigger 'value', (-> @_value), (value) ->
-    @_value = value
-    @notifyChange()
+    if value isnt @_value
+      @_value = value
+      @notifyChange()
 
   stringify: -> @_value
   serialize: -> @_value
