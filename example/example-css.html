@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <title>Droplet Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" type="text/css" href="../css/droplet.css"/>
+    <style>
+      #container {
+        position: absolute;
+        top: 45; bottom: 25; right: 25; left: 25;
+      }
+      #left-panel {
+        position: absolute;
+        top: 0; bottom: 0; width: 500px; left: 0;
+      }
+      #droplet-config {
+        position: absolute;
+        top: 25; bottom: 0; left: 0; right: 0;
+      }
+      #droplet-editor {
+        position: absolute;
+        top: 25; bottom: 0; right: 0; left: 0;
+        overflow: hidden;
+      }
+      #right-panel {
+        position: absolute;
+        top: 0; bottom: 0; left: 525px; right: 0;
+      }
+      #toggle, #update {
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 25px;
+        cursor: pointer;
+        background-color: #DDD;
+        text-align: center;
+      }
+      #close {
+        position: absolute;
+        left: -25px;
+        width: 25px;
+        top: 0;
+        bottom: 0;
+        background-color: #FDD;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="left-panel">
+      <div id="update">
+        <div id="update">
+          Update
+        </div>
+      </div>
+      <div id="droplet-config">
+      </div>
+    </div>
+    <div id="right-panel">
+      <div id="close">
+      </div>
+      <div id="toggle">
+        Toggle
+      </div>
+      <div id="droplet-editor">
+      </div>
+    </div>
+
+    <script src="lib/jquery.min.js"></script>
+    <script src="lib/coffee-script.js"></script>
+    <script src="../vendor/ace/ace.js"></script>
+    <script src="../dist/droplet-full.js"></script>
+
+    <script src="example-css.coffee" type="text/coffeescript"></script>
+    <script src="//localhost:35729/livereload.js"></script>
+  </body>
+</html>
