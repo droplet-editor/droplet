@@ -83,9 +83,9 @@ RULES = {
   'macroParamList': 'skip',
   'compilationUnit': 'skip',
   'translationUnit': 'skip',
-  'declarationSpecifier': 'skip',
-  'typeSpecifier': 'skip',
-  'structOrUnionSpecifier': 'skip',
+  #'declarationSpecifier': 'skip',
+  #'typeSpecifier': 'skip',
+  #'structOrUnionSpecifier': 'skip',
   'structDeclarationList': 'skip',
   'rootDeclarator': 'skip',
   'parameterTypeList': 'skip',
@@ -105,7 +105,11 @@ RULES = {
       return {type: 'block', buttons: BOTH_BUTTON}
     else if node.children.length is 3
       return {type: 'block', buttons: ADD_BUTTON}
+    else if node.children[0].children[0].children[0].type is 'typeSpecifier' and node.children[0].children[0].children[0].children[0].type is 'structOrUnionSpecifier'
+      console.log 'saying parens'
+      return 'parens'
     else
+      console.log node.children[0].children[0].children[0]
       return 'block'
 
   'initializer': (node) ->
@@ -192,8 +196,8 @@ RULES = {
       return 'block'
 
   # Special: declarationSpecifiers (type names) should be surrounded by single sockets
-  'declarationSpecifiers': 'socket'
-  'declarationSpecifiers2': 'socket'
+  'declarationSpecifiers': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
+  'declarationSpecifiers2': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
 
   # Sockets
   'Int': 'socket'
@@ -215,6 +219,7 @@ COLOR_DEFAULTS = {
 }
 
 COLOR_RULES = {
+  'structOrUnionSpecifier': 'declaration'
   'declarator': 'declaration',
   'directDeclarator': 'declaration',
   'specifierQualifierList': 'declaration',# e.g `int a;` when inside `struct {}`
@@ -316,6 +321,9 @@ config.PAREN_RULES = {
   }
   'postfixExpression': {
     'specialMethodCall': REMOVE_SEMICOLON
+  }
+  'declaration': {
+    'declarationSpecifiers': ADD_SEMICOLON
   }
 }
 
