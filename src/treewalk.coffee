@@ -230,7 +230,7 @@ exports.createTreewalkParser = (parse, config, root) ->
                 color: @getColor node
                 shape: @getShape node
                 buttons: @getButtons node
-                nodeContext: @getNodeContext node, warp
+                nodeContext: @getNodeContext node, wrap
                 parseContext: rules[rules.length - 1]
 
               depth += 1
