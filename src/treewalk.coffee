@@ -123,16 +123,13 @@ exports.createTreewalkParser = (parse, config, root) ->
       unless wrap?
         rules.push node.type
 
-      # Pass through to child if single-child
-      if node.children.length is 1 and @detNode(node) not in ['indent', 'buttonContainer']
-        @mark node.children[0], prefix, depth, true, rules, context, wrap
 
       # Check to see if this AST type is part of the special empty strings map.
       # If so, check to see if it is the special empty string for its type,
       # and null it out if it is.
       #
       # TODO this may be a place where we need to optimize performance.
-      else if context? and @detNode(context) is 'block' and config.EMPTY_STRINGS? and
+      if context? and @detNode(context) is 'block' and config.EMPTY_STRINGS? and
             node.type of config.EMPTY_STRINGS and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.EMPTY_STRINGS[node.type]
           @addSocket
             empty: config.EMPTY_STRINGS[node.type]
@@ -142,6 +139,10 @@ exports.createTreewalkParser = (parse, config, root) ->
             parseContext: rules[0]
 
           @flagToRemove node.bounds, depth + 1
+
+      # Pass through to child if single-child
+      else if node.children.length is 1 and @detNode(node) not in ['indent', 'buttonContainer']
+        @mark node.children[0], prefix, depth, true, rules, context, wrap
 
       else if node.children.length > 0
         switch @detNode node
@@ -289,7 +290,8 @@ exports.createTreewalkParser = (parse, config, root) ->
             parseContext: rules[0]
             dropdown: config.DROPDOWNS?[rules[0]] ? null
 
-          if config.EMPTY_STRINGS? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
+          if config.EMPTY_STRINGS? and not @opts.preserveEmpty and
+              helper.clipLines(@lines, node.bounds.start, node.bounds.end) is (config.EMPTY_STRINGS[node.type] ? config.empty)
             @flagToRemove node.bounds, depth + 1
 
   if config.droppabilityGraph?

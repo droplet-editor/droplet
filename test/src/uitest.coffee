@@ -134,31 +134,32 @@ asyncTest 'Controller: palette block expansion', ->
     }]
   })
 
-  simulate('mousedown', '[data-id=ptest]')
-  simulate('mousemove', '.droplet-drag-cover',
-    { location: '[data-id=ptest]', dx: 5 })
-  simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-wrapper-div' })
-  simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-wrapper-div' })
-  equal(editor.getValue().trim(), 'pen red')
-  simulate('mousedown', '[data-id=ftest]')
-  simulate('mousemove', '.droplet-drag-cover',
-    { location: '[data-id=ftest]', dx: 5 })
-  simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 40 })
-  simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 40 })
-  equal(editor.getValue().trim(), 'pen red\na3 = b')
-  simulate('mousedown', '[data-id=ftest]')
-  simulate('mousemove', '.droplet-drag-cover',
-    { location: '[data-id=ftest]', dx: 5 })
-  simulate('mousemove', '.droplet-drag-cover',
-    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 70 })
-  simulate('mouseup', '.droplet-drag-cover',
-    { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 70 })
-  equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
-  start()
+  editor.on 'changepalette', ->
+    simulate('mousedown', '[data-id=ptest]')
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '[data-id=ptest]', dx: 5 })
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div' })
+    simulate('mouseup', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div' })
+    equal(editor.getValue().trim(), 'pen red')
+    simulate('mousedown', '[data-id=ftest]')
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '[data-id=ftest]', dx: 5 })
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 40 })
+    simulate('mouseup', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 40 })
+    equal(editor.getValue().trim(), 'pen red\na3 = b')
+    simulate('mousedown', '[data-id=ftest]')
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '[data-id=ftest]', dx: 5 })
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 70 })
+    simulate('mouseup', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div', dx: 45 + 43, dy: 70 })
+    equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
+    start()
 
 asyncTest 'Controller: reparse and undo reparse', ->
   states = []
@@ -938,84 +939,92 @@ asyncTest 'Controller: Session switch test', ->
       bk 10
   ''')
 
-  equal editor.paletteHeader.childElementCount, 3, 'Palette header originally has three rows'
+  done = false
 
-  newSession = ace.createEditSession('''
-  for (var i = 0; i < 10; i++) {
-    if (i % 2 === 0) {
-      fd(10);
+  editor.on 'palettechange', ->
+    if done
+      return
+
+    done = true
+
+    equal editor.paletteHeader.childElementCount, 3, 'Palette header originally has three rows'
+
+    newSession = ace.createEditSession('''
+    for (var i = 0; i < 10; i++) {
+      if (i % 2 === 0) {
+        fd(10);
+      }
+      else {
+        bk(10);
+      }
     }
-    else {
-      bk(10);
-    }
-  }
-  ''', 'ace/mode/javascript')
+    ''', 'ace/mode/javascript')
 
-  executeAsyncSequence [
-    (->
-      editor.aceEditor.setSession newSession
-    ),
-    (->
-      editor.bindNewSession({
-        mode: 'javascript',
-        palette: []
-      })
+    executeAsyncSequence [
+      (->
+        editor.aceEditor.setSession newSession
+      ),
+      (->
+        editor.bindNewSession({
+          mode: 'javascript',
+          palette: []
+        })
 
-      editor.setEditorState(true)
-      equal editor.getValue(), '''
-      for (var i = 0; i < 10; i++) {
-        if (i % 2 === 0) {
-          fd(10);
-        }
-        else {
-          bk(10);
-        }
-      }\n
-      ''', 'Set value of new session'
+        editor.setEditorState(true)
+        equal editor.getValue(), '''
+        for (var i = 0; i < 10; i++) {
+          if (i % 2 === 0) {
+            fd(10);
+          }
+          else {
+            bk(10);
+          }
+        }\n
+        ''', 'Set value of new session'
 
-      equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+        equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
 
-      equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks'
-      editor.setEditorState(false)
+        equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks'
+        editor.setEditorState(false)
 
-      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
-    ),
-    (->
-      editor.aceEditor.setSession originalSession
-    ),
-    (->
-      equal editor.getValue(), '''
-      for i in [0..10]
-        if i % 2 is 0
-          fd 10
-        else
-          bk 10\n
-      ''', 'Original text restored'
+        equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+      ),
+      (->
+        editor.aceEditor.setSession originalSession
+      ),
+      (->
+        equal editor.getValue(), '''
+        for i in [0..10]
+          if i % 2 is 0
+            fd 10
+          else
+            bk 10\n
+        ''', 'Original text restored'
 
-      equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
-      equal editor.paletteHeader.childElementCount, 3, 'Original palette header size restored'
-    ),
-    (->
-      editor.aceEditor.setSession newSession
-    ),
-    (->
-      equal editor.getValue(), '''
-      for (var i = 0; i < 10; i++) {
-        if (i % 2 === 0) {
-          fd(10);
-        }
-        else {
-          bk(10);
-        }
-      }\n
-      ''', 'Set value of new session'
+        equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
+        equal editor.paletteHeader.childElementCount, 3, 'Original palette header size restored'
+      ),
+      (->
+        editor.aceEditor.setSession newSession
+      ),
+      (->
+        equal editor.getValue(), '''
+        for (var i = 0; i < 10; i++) {
+          if (i % 2 === 0) {
+            fd(10);
+          }
+          else {
+            bk(10);
+          }
+        }\n
+        ''', 'Set value of new session'
 
-      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
-      equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+        equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+        equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
 
-      start()
-    )
-  ]
+        start()
+      )
+    ]
 
 asyncTest 'Controller: Random drag undo test', ->
   document.getElementById('test-main').innerHTML = ''
@@ -1182,9 +1191,10 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
     cb = ->
       if count is 0
         start()
-      else if count % 10 is 0
-        ok editor.session.mode.parse(editor.getValue()), 'Still in a parseable state'
-      setTimeout (-> tick count - 1), 0
+      else
+        if count % 10 is 0
+          ok editor.session.mode.parse(editor.getValue()), 'Still in a parseable state'
+        setTimeout (-> tick count - 1), 0
 
     if rng() > 0.1
       op = getRandomDragOp(editor, rng)

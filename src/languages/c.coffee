@@ -495,7 +495,8 @@ config.stringFixer = (string) ->
 config.empty = '__0_droplet__'
 config.EMPTY_STRINGS = {
   'Identifier': '__0_droplet__',
-  'declaration': '__0_droplet__ __0_droplet__;'
+  'declaration': '__0_droplet__ __0_droplet__;',
+  'statement': '__0_droplet__;'
 }
 config.emptyIndent = ''
 
