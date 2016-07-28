@@ -70,7 +70,7 @@ RULES = {
 
 
   'directDeclarator': (node) ->
-    if (node.parent?.type is 'declarator' and
+    if not node.parent? or (node.parent.type is 'declarator' and
        node.parent.parent?.type isnt 'functionDefinition' and
        node.parent.children.length is 1)
       'block'
@@ -105,11 +105,9 @@ RULES = {
       return {type: 'block', buttons: BOTH_BUTTON}
     else if node.children.length is 3
       return {type: 'block', buttons: ADD_BUTTON}
-    else if node.children[0].children[0].children[0].type is 'typeSpecifier' and node.children[0].children[0].children[0].children[0].type is 'structOrUnionSpecifier'
-      console.log 'saying parens'
+    else if node.children.length is 2 and node.children[1].type is 'Semi'
       return 'parens'
     else
-      console.log node.children[0].children[0].children[0]
       return 'block'
 
   'initializer': (node) ->
@@ -196,8 +194,8 @@ RULES = {
       return 'block'
 
   # Special: declarationSpecifiers (type names) should be surrounded by single sockets
-  'declarationSpecifiers': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
-  'declarationSpecifiers2': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
+  #'declarationSpecifiers': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
+  #'declarationSpecifiers2': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
 
   # Sockets
   'Int': 'socket'
@@ -216,10 +214,14 @@ COLOR_DEFAULTS = {
   'declaration': 'teal'
   'function': 'indigo'
   'logic': 'lightblue'
+  'type': '#DDD8AA' # Pale goldenrod
 }
 
 COLOR_RULES = {
-  'structOrUnionSpecifier': 'declaration'
+  'declarationSpecifiers': 'type'
+  'declarationSpecifiers2': 'type'
+  'structOrUnionSpecifier': 'type'
+
   'declarator': 'declaration',
   'directDeclarator': 'declaration',
   'specifierQualifierList': 'declaration',# e.g `int a;` when inside `struct {}`
@@ -325,6 +327,9 @@ config.PAREN_RULES = {
   'declaration': {
     'declarationSpecifiers': ADD_SEMICOLON
   }
+  'structDeclaration': {
+    'specifierQualifierList': ADD_SEMICOLON
+  }
 }
 
 # Test to see if a node is a method call
@@ -379,6 +384,9 @@ config.SHOULD_SOCKET = (opts, node) ->
 # in the known functions list if available.
 config.COLOR_CALLBACK = (opts, node) ->
   return null unless opts.functions?
+
+  if node.type is 'declarationSpecifiers' and node.children[0].children[0].children[0].type is 'Typedef'
+    return 'declaration'
 
   name = getMethodName node
 

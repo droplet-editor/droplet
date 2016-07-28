@@ -425,7 +425,7 @@ exports.Editor = class Editor
     # flip into text mode here
     useBlockMode = @session?.mode? and not @options.textModeAtStart
     if useBlockMode
-      @setEditorState useBlockMode, false, true
+      @setEditorState useBlockMode, false, true, false
     else
       @setEditorState useBlockMode, false, false, false
 
@@ -453,6 +453,10 @@ exports.Editor = class Editor
                 @_waitingForPreparse = false
                 session._preparse = data.data.result
                 @worker.removeEventListener 'message', callback
+
+                if @_afterPreparseCallback?
+                  @_afterPreparseCallback()
+                  @_afterPreparseCallback = null
 
             @worker.addEventListener 'message', callback
 
@@ -547,6 +551,11 @@ exports.Editor = class Editor
       @resizeTextMode()
 
   updateNewSession: (session) ->
+    # Defer to the end of our current animation sequence
+    if @currentlyAnimating
+      @_animationCallback = => @updateNewSession session
+      return
+
     if @session?
       @session.view.clearFromCanvas()
       @session.paletteView.clearFromCanvas()
@@ -571,6 +580,11 @@ exports.Editor = class Editor
   hasSessionFor: (aceSession) -> @sessions.contains(aceSession)
 
   bindNewSession: (opts) ->
+    # Defer to the end of our current animation sequence
+    if @currentlyAnimating
+      @_animationCallback = => @bindNewSession session
+      return
+
     if @sessions.contains(@aceEditor.getSession())
       throw new ArgumentError 'Cannot bind a new session where one already exists.'
     else
@@ -2617,6 +2631,10 @@ Editor::reparseSocket = (socket, updates = []) ->
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
 Editor::reparse = (list, updates = [], originalTrigger = list) ->
+
+  if list.stringify() is '(*fn)(long long, long long)'
+    debugger
+
   # Never reparse just Indents.
   if list.start.type is 'indentStart'
     return @reparse list.start.parent
@@ -2681,6 +2699,9 @@ Editor::reparse = (list, updates = [], originalTrigger = list) ->
 
   # Exclude the document start and end tags
   newList = new model.List newList.start.next, newList.end.prev
+
+  if newList.start.container isnt newList.end.container
+    debugger
 
   @replace list, newList, updates
 
@@ -2879,8 +2900,8 @@ hook 'populate', 0, ->
 # the current text focus font and size.
 Editor::formatDropdown = (socket = @getCursor(), view = @session.view) ->
   @dropdownElement.style.fontFamily = @session?.fontFamily ? 'Courier New'
-  @dropdownElement.style.fontSize = @session?.fontSize ? 15
-  @dropdownElement.style.minWidth = view.getViewNodeFor(socket).bounds[0].width
+  @dropdownElement.style.fontSize = (@session?.fontSize ? 15) + 'px'
+  @dropdownElement.style.minWidth = view.getViewNodeFor(socket).bounds[0].width + 'px'
 
 Editor::getDropdownList = (socket) ->
   result = socket.dropdown
@@ -2914,7 +2935,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
     dropdownItems.push div
 
-    div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH
+    div.style.paddingLeft = helper.DROPDOWN_ARROW_WIDTH + 'px'
 
     setText = (text) =>
       @undoCapture()
@@ -3508,6 +3529,11 @@ Editor::copyAceEditor = ->
   @resizeBlockMode()
   return @setValue_raw @getAceValue()
 
+Editor::copyAceEditorAsync = (cb) ->
+  @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
+  @resizeBlockMode()
+  @setValueAsync_raw @getAceValue(), cb
+
 # For animation and ace editor,
 # we will need a couple convenience functions
 # for getting the "absolute"-esque position
@@ -3788,6 +3814,10 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
 
+      if @_animationCallback?
+        @_animationCallback()
+        @_animationCallback = null
+
       if cb? then do cb
     ), fadeTime + translateTime
 
@@ -3800,158 +3830,167 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
   return unless @session?
   if not @session.currentlyUsingBlocks and not @currentlyAnimating
     beforeTime = +(new Date())
-    setValueResult = @copyAceEditor()
-    afterTime = +(new Date())
+    @copyAceEditorAsync (setValueResult) =>
+      @showLoadingGlyph()
 
-    unless setValueResult.success
-      if setValueResult.error
-        @fireEvent 'parseerror', [setValueResult.error]
-      return setValueResult
+      afterTime = +(new Date())
 
-    if @aceEditor.getFirstVisibleRow() is 0
-      @mainScroller.scrollTop = 0
-    else
-      @mainScroller.scrollTop = @session.view.getViewNodeFor(@session.tree).bounds[@aceEditor.getFirstVisibleRow()].y
+      unless setValueResult.success
+        if setValueResult.error
+          @fireEvent 'parseerror', [setValueResult.error]
+        return setValueResult
 
-    @session.currentlyUsingBlocks = true
-    @currentlyAnimating = true
-    @fireEvent 'statechange', [true]
-
-    setTimeout (=>
-      # Hide scrollbars and increase width
-      @mainScroller.style.overflow = 'hidden'
-      @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
-
-      @redrawMain noText: true
-
-      @currentlyAnimating_suppressRedraw = true
-
-      @aceElement.style.top = "-9999px"
-      @aceElement.style.left = "-9999px"
-
-      paletteAppearingWithFreeze = @session.paletteEnabled and not @session.showPaletteInTextMode
-
-      if paletteAppearingWithFreeze
-        @paletteWrapper.style.top = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
-        @paletteHeader.style.zIndex = 0
-
-      @dropletElement.style.top = "0px"
-      if @session.paletteEnabled and not paletteAppearingWithFreeze
-        @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
+      if @aceEditor.getFirstVisibleRow() is 0
+        @mainScroller.scrollTop = 0
       else
-        @dropletElement.style.left = "0px"
+        @mainScroller.scrollTop = @session.view.getViewNodeFor(@session.tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
-      {textElements, translationVectors} = @computePlaintextTranslationVectors()
-
-      translatingElements = []
-
-      for textElement, i in textElements
-
-        # Skip anything that's
-        # off the screen the whole time.
-        unless 0 < textElement.bounds[0].bottom() - @session.viewports.main.y + translationVectors[i].y and
-                 textElement.bounds[0].y - @session.viewports.main.y + translationVectors[i].y < @session.viewports.main.height
-          continue
-
-        div = document.createElement 'div'
-        div.style.whiteSpace = 'pre'
-
-        div.innerText = div.textContent = textElement.model.value
-
-        div.style.font = @aceFontSize() + ' ' + @session.fontFamily
-        div.style.position = 'absolute'
-
-        div.style.left = "#{textElement.bounds[0].x - @session.viewports.main.x + translationVectors[i].x}px"
-        div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y + translationVectors[i].y}px"
-
-        div.className = 'droplet-transitioning-element'
-        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
-        translatingElements.push div
-
-        @transitionContainer.appendChild div
-
-        do (div, textElement) =>
-          setTimeout (=>
-            div.style.left = "#{textElement.bounds[0].x - @session.viewports.main.x}px"
-            div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y - @session.fontAscent}px"
-            div.style.fontSize = @session.fontSize + 'px'
-          ), 0
-
-      top = Math.max @aceEditor.getFirstVisibleRow(), 0
-      bottom = Math.min @aceEditor.getLastVisibleRow(), @session.view.getViewNodeFor(@session.tree).lineLength - 1
-
-      treeView = @session.view.getViewNodeFor @session.tree
-      lineHeight = @aceEditor.renderer.layerConfig.lineHeight
-
-      aceScrollTop = @aceEditor.session.getScrollTop()
-
-      for line in [top..bottom]
-        div = document.createElement 'div'
-        div.style.whiteSpace = 'pre'
-
-        div.innerText = div.textContent = line + 1
-
-        div.style.font = @aceFontSize() + ' ' + @session.fontFamily
-        div.style.width = "#{@aceEditor.renderer.$gutter.clientWidth}px"
-
-        div.style.left = 0
-        div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
-            lineHeight - aceScrollTop}px"
-
-        div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
-        # Add annotation
-        if @annotations[line]?
-          div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
-        div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
-        translatingElements.push div
-
-        @dropletElement.appendChild div
-
-        do (div, line) =>
-          setTimeout (=>
-            div.style.left = 0
-            div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent - @session.viewports.main.y}px"
-            div.style.fontSize = @session.fontSize + 'px'
-          ), 0
-
-      @mainCanvas.style.opacity = 0
+      @session.currentlyUsingBlocks = true
+      @currentlyAnimating = true
+      @fireEvent 'statechange', [true]
 
       setTimeout (=>
-        @mainCanvas.style.transition = "opacity #{fadeTime}ms linear"
-        @mainCanvas.style.opacity = 1
-      ), translateTime
+        # Hide scrollbars and increase width
+        @mainScroller.style.overflow = 'hidden'
+        @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
-      @dropletElement.style.transition = "left #{fadeTime}ms"
+        @redrawMain noText: true
 
-      if paletteAppearingWithFreeze
-        @paletteWrapper.style.transition = @dropletElement.style.transition
-        @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
-        @paletteWrapper.style.left = '0px'
+        @currentlyAnimating_suppressRedraw = true
 
-      setTimeout (=>
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = ''
+        @aceElement.style.top = "-9999px"
+        @aceElement.style.left = "-9999px"
 
-        # Show scrollbars again
-        @mainScroller.style.overflow = 'auto'
+        paletteAppearingWithFreeze = @session.paletteEnabled and not @session.showPaletteInTextMode
 
-        @currentlyAnimating = false
-        @lineNumberWrapper.style.display = 'block'
-        @redrawMain()
-        @paletteHeader.style.zIndex = 257
+        if paletteAppearingWithFreeze
+          @paletteWrapper.style.top = '0px'
+          @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
+          @paletteHeader.style.zIndex = 0
 
-        for div in translatingElements
-          div.parentNode.removeChild div
+        @dropletElement.style.top = "0px"
+        if @session.paletteEnabled and not paletteAppearingWithFreeze
+          @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
+        else
+          @dropletElement.style.left = "0px"
 
-        @resizeBlockMode()
+        {textElements, translationVectors} = @computePlaintextTranslationVectors()
 
-        @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
+        translatingElements = []
 
-        if cb? then do cb
-      ), translateTime + fadeTime
+        for textElement, i in textElements
 
-    ), 0
+          # Skip anything that's
+          # off the screen the whole time.
+          unless 0 < textElement.bounds[0].bottom() - @session.viewports.main.y + translationVectors[i].y and
+                   textElement.bounds[0].y - @session.viewports.main.y + translationVectors[i].y < @session.viewports.main.height
+            continue
+
+          div = document.createElement 'div'
+          div.style.whiteSpace = 'pre'
+
+          div.innerText = div.textContent = textElement.model.value
+
+          div.style.font = @aceFontSize() + ' ' + @session.fontFamily
+          div.style.position = 'absolute'
+
+          div.style.left = "#{textElement.bounds[0].x - @session.viewports.main.x + translationVectors[i].x}px"
+          div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y + translationVectors[i].y}px"
+
+          div.className = 'droplet-transitioning-element'
+          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
+          translatingElements.push div
+
+          @transitionContainer.appendChild div
+
+          do (div, textElement) =>
+            setTimeout (=>
+              div.style.left = "#{textElement.bounds[0].x - @session.viewports.main.x}px"
+              div.style.top = "#{textElement.bounds[0].y - @session.viewports.main.y - @session.fontAscent}px"
+              div.style.fontSize = @session.fontSize + 'px'
+            ), 0
+
+        top = Math.max @aceEditor.getFirstVisibleRow(), 0
+        bottom = Math.min @aceEditor.getLastVisibleRow(), @session.view.getViewNodeFor(@session.tree).lineLength - 1
+
+        treeView = @session.view.getViewNodeFor @session.tree
+        lineHeight = @aceEditor.renderer.layerConfig.lineHeight
+
+        aceScrollTop = @aceEditor.session.getScrollTop()
+
+        for line in [top..bottom]
+          div = document.createElement 'div'
+          div.style.whiteSpace = 'pre'
+
+          div.innerText = div.textContent = line + 1
+
+          div.style.font = @aceFontSize() + ' ' + @session.fontFamily
+          div.style.width = "#{@aceEditor.renderer.$gutter.clientWidth}px"
+
+          div.style.left = 0
+          div.style.top = "#{@aceEditor.session.documentToScreenRow(line, 0) *
+              lineHeight - aceScrollTop}px"
+
+          div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
+          # Add annotation
+          if @annotations[line]?
+            div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
+          div.style.transition = "left #{translateTime}ms, top #{translateTime}ms, font-size #{translateTime}ms"
+          translatingElements.push div
+
+          @dropletElement.appendChild div
+
+          do (div, line) =>
+            setTimeout (=>
+              div.style.left = 0
+              div.style.top = "#{treeView.bounds[line].y + treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent - @session.viewports.main.y}px"
+              div.style.fontSize = @session.fontSize + 'px'
+            ), 0
+
+        @mainCanvas.style.opacity = 0
+
+        setTimeout (=>
+          @mainCanvas.style.transition = "opacity #{fadeTime}ms linear"
+          @mainCanvas.style.opacity = 1
+        ), translateTime
+
+        @dropletElement.style.transition = "left #{fadeTime}ms"
+
+        if paletteAppearingWithFreeze
+          @paletteWrapper.style.transition = @dropletElement.style.transition
+          @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
+          @paletteWrapper.style.left = '0px'
+
+        @hideLoadingGlyph()
+
+        setTimeout (=>
+          @dropletElement.style.transition =
+            @paletteWrapper.style.transition = ''
+
+          # Show scrollbars again
+          @mainScroller.style.overflow = 'auto'
+
+          @currentlyAnimating = false
+
+          @lineNumberWrapper.style.display = 'block'
+          @redrawMain()
+          @paletteHeader.style.zIndex = 257
+
+          for div in translatingElements
+            div.parentNode.removeChild div
+
+          @resizeBlockMode()
+
+          @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
+
+          if cb? then do cb
+
+          if @_animationCallback?
+            @_animationCallback()
+            @_animationCallback = null
+        ), translateTime + fadeTime
+
+      ), 0
 
     return success: true
 
@@ -3986,6 +4025,10 @@ Editor::enablePalette = (enabled) ->
         @currentlyAnimating = false
 
         @fireEvent 'palettetoggledone', [@session.paletteEnabled]
+
+        if @_animationCallback?
+          @_animationCallback()
+          @_animationCallback = null
       ), 500
 
     else
@@ -4009,6 +4052,10 @@ Editor::enablePalette = (enabled) ->
           @currentlyAnimating = false
 
           @fireEvent 'palettetoggledone', [@session.paletteEnabled]
+
+          if @_animationCallback?
+            @_animationCallback()
+            @_animationCallback = null
         ), 500
       ), 0
 
@@ -4280,41 +4327,60 @@ Editor::hideLoadingGlyph = ->
   @mainCanvas.style.backgroundColor = ''
   @mainCanvas.style.cursor = ''
 
+Editor::setValueAsync_raw = (value, cb) ->
+  @showLoadingGlyph()
+
+  if @worker? and value isnt @session._lastPreparseText and not @_waitingForPreparse
+    @_waitingForPreparse = true
+
+    @worker.postMessage {
+      'command': 'preparse'
+      'id': @session._id
+      'text': value
+      'context': null
+    }
+
+    callback = (data) =>
+      if data.data.id is @session._id
+        @_waitingForPreparse = false
+        @session._preparse = data.data.result
+        @session._lastPreparseText = value
+
+        result = @setValue_raw value
+
+        @hideLoadingGlyph()
+
+        @worker.removeEventListener 'message', callback
+
+        cb?(result)
+
+    @worker.addEventListener 'message', callback
+
+  else if @_waitingForPreparse and value is @session._lastPreparseText
+    @_afterPreparseCallback = =>
+      result = @setValue_raw value
+
+      @hideLoadingGlyph()
+
+      @worker.removeEventListener 'message', callback
+
+      cb?(result)
+
+  else if @_waitingForPreparse
+    @_afterPreparseCallback = =>
+      @setValueAsync_raw value, cb
+
+  else
+    console.log 'NOT RECOMPUTING, because', @worker, value is @session._lastPreparseText, 'new lines', value.split('\n').length, 'old lines', @session._lastPreparseText.split('\n').length
+    setTimeout (=>
+      result = @setValue_raw value
+      @hideLoadingGlyph()
+      cb?(result)
+    ), 0
+
 Editor::setValueAsync = (value, cb) ->
   if @session?.currentlyUsingBlocks
-    @showLoadingGlyph()
-
-    if @worker?
-      @_waitingForPreparse = true
-
-      @worker.postMessage {
-        'command': 'preparse'
-        'id': @session._id
-        'text': value
-        'context': null
-      }
-
-      callback = (data) =>
-        if data.data.id is @session._id
-          @_waitingForPreparse = false
-          @session._preparse = data.data.result
-
-          @setValue_raw value
-
-          @hideLoadingGlyph()
-
-          @worker.removeEventListener 'message', callback
-
-          cb?()
-
-      @worker.addEventListener 'message', callback
-
-    else
-      setTimeout (=>
-        @setValue value
-        @hideLoadingGlyph()
-        cb?()
-      ), 0
+    @setValueAsync_raw value, cb
   else
     @aceEditor.setValue value
     cb?()
