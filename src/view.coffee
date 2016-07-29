@@ -32,6 +32,7 @@ SVG_STANDARD = helper.SVG_STANDARD
 DEFAULT_OPTIONS =
   buttonWidth: 15
   buttonHeight: 15
+  extraLeft: 0
   buttonVertPadding: 6
   buttonHorizPadding: 3
   minIndentTongueWidth: 150
@@ -1809,6 +1810,7 @@ exports.View = class View
 
               @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                 @view.opts.indentWidth +
+                @view.opts.extraLeft +
                 @view.opts.tabOffset, glueTop), true
           else
             right.push new @view.draw.Point multilineBounds.x, glueTop
@@ -2007,8 +2009,16 @@ exports.View = class View
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
+        if @model.parent.type in ['indent', 'document']
+          size.width += @view.opts.extraLeft
 
       return null
+
+    computeBoundingBoxX: (left, line, offset = 0) ->
+      if @model.parent.type in ['indent', 'document']
+        super left, line, offset + @view.opts.extraLeft
+      else
+        super left, line, offset
 
     shouldAddTab: ->
       if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
