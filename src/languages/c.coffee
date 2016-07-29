@@ -63,10 +63,10 @@ RULES = {
     'indentContext': 'structDeclaration'
   },
   'switchBlockItemList': (node) ->
-    if node.parent?.type is 'switchCase' then debugger; {
+    if node.parent?.type is 'switchCase' then {
       'type': 'indent',
       'indentContext': 'switchBlockItemList'
-    } else 'block'
+    } else 'skip'
 
   'switchCompoundStatement': 'skip'
   'switchCaseList': 'skip'
@@ -222,6 +222,18 @@ RULES = {
   # Special: declarationSpecifiers (type names) should be surrounded by single sockets
   #'declarationSpecifiers': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
   #'declarationSpecifiers2': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
+
+  'declarationSpecifiers': (node) ->
+    if node.children.every((child) -> child.children[0].type isnt 'typeSpecifier' or child.children[0].children[0].children.length is 0)
+      'socket'
+    else
+      'block'
+
+  'declarationSpecifiers2': (node) ->
+    if node.children.every((child) -> child.children[0].type isnt 'typeSpecifier' or child.children[0].children[0].children.length is 0)
+      'socket'
+    else
+      'block'
 
   # Sockets
   'Int': 'socket'
