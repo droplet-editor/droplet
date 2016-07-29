@@ -435,7 +435,7 @@ exports.Editor = class Editor
       @_waitingForPreparse = false
 
       checkPreparse = =>
-        unless (not @session?) or @session.currentlyUsingBlocks or @_waitingForPreparse
+        unless (not @session?) or @session.currentlyUsingBlocks or @session._waitingForPreparse
           session = @session
 
           text = @aceEditor.getValue()
@@ -450,12 +450,13 @@ exports.Editor = class Editor
 
             callback = (data) =>
               if data.data.id is session._id
-                @_waitingForPreparse = false
+                session._waitingForPreparse = false
                 session._preparse = data.data.result
                 @worker.removeEventListener 'message', callback
 
                 if @_afterPreparseCallback?
-                  @_afterPreparseCallback()
+                  if @_afterPreparseCallback.id is session._id
+                    @_afterPreparseCallback.fn()
                   @_afterPreparseCallback = null
 
             @worker.addEventListener 'message', callback
@@ -593,6 +594,10 @@ exports.Editor = class Editor
       @session = session
       @aceEditor.getSession()._dropletSession = @session
       @session.currentlyUsingBlocks = false
+
+      if opts.textModeAtStart? and not opts.textModeAtStart
+        @setEditorState true, true, true, true
+
       @setPalette @session.paletteGroups
       return session
 
@@ -2632,9 +2637,6 @@ Editor::reparseSocket = (socket, updates = []) ->
 #   -> Finsihed.
 Editor::reparse = (list, updates = [], originalTrigger = list) ->
 
-  if list.stringify() is '(*fn)(long long, long long)'
-    debugger
-
   # Never reparse just Indents.
   if list.start.type is 'indentStart'
     return @reparse list.start.parent
@@ -2699,9 +2701,6 @@ Editor::reparse = (list, updates = [], originalTrigger = list) ->
 
   # Exclude the document start and end tags
   newList = new model.List newList.start.next, newList.end.prev
-
-  if newList.start.container isnt newList.end.container
-    debugger
 
   @replace list, newList, updates
 
@@ -4330,8 +4329,12 @@ Editor::hideLoadingGlyph = ->
 Editor::setValueAsync_raw = (value, cb) ->
   @showLoadingGlyph()
 
-  if @worker? and value isnt @session._lastPreparseText and not @_waitingForPreparse
-    @_waitingForPreparse = true
+  console.log 'setValueAsync_raw SETTING TO', value
+
+  if @worker? and not @session._waitingForPreparse and (not @session._lastPreparseText? or value isnt @session._lastPreparseText)
+    console.log 'POSTING'
+    session = @session
+    session._waitingForPreparse = true
 
     @worker.postMessage {
       'command': 'preparse'
@@ -4341,10 +4344,11 @@ Editor::setValueAsync_raw = (value, cb) ->
     }
 
     callback = (data) =>
-      if data.data.id is @session._id
-        @_waitingForPreparse = false
-        @session._preparse = data.data.result
-        @session._lastPreparseText = value
+      console.log 'STANDARD POST REPARSE CALLED'
+      if data.data.id is session._id
+        session._waitingForPreparse = false
+        session._preparse = data.data.result
+        session._lastPreparseText = value
 
         result = @setValue_raw value
 
@@ -4352,23 +4356,37 @@ Editor::setValueAsync_raw = (value, cb) ->
 
         @worker.removeEventListener 'message', callback
 
+        if @_afterPreparseCallback? and @_afterPreparseCallback.id is session._id
+          @_afterPreparseCallback.fn()
+        @_afterPreparseCallback = null
+
         cb?(result)
 
     @worker.addEventListener 'message', callback
 
-  else if @_waitingForPreparse and value is @session._lastPreparseText
-    @_afterPreparseCallback = =>
-      result = @setValue_raw value
+  else if @session._waitingForPreparse and value is @session._lastPreparseText
+    console.log 'BINDING TO EXISTING PREPARSE'
+    @_afterPreparseCallback = {
+      id: @session._id
+      fn: =>
+        console.log 'EXISTING PREPARSE CALLBACK CALLED'
+        result = @setValue_raw value
 
-      @hideLoadingGlyph()
+        @hideLoadingGlyph()
 
-      @worker.removeEventListener 'message', callback
+        @worker.removeEventListener 'message', callback
 
-      cb?(result)
+        cb?(result)
+    }
 
-  else if @_waitingForPreparse
-    @_afterPreparseCallback = =>
-      @setValueAsync_raw value, cb
+  else if @session._waitingForPreparse
+    console.log 'SCHEDULING ADDITIONAL PREPARSE'
+    @_afterPreparseCallback = {
+      id: @session._id
+      fn: =>
+        console.log 'CALLBACK CALLED'
+        @setValueAsync_raw value, cb
+    }
 
   else
     console.log 'NOT RECOMPUTING, because', @worker, value is @session._lastPreparseText, 'new lines', value.split('\n').length, 'old lines', @session._lastPreparseText.split('\n').length
@@ -4461,6 +4479,8 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
       cb = =>
         @redrawMain()
 
+      @session.currentlyUsingBlocks = true
+
       if updateValue
         if async
           @setValueAsync @getAceValue(), cb
@@ -4477,7 +4497,6 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
         @dropletElement.style.left = '0px'
 
       @aceElement.style.top = @aceElement.style.left = '-9999px'
-      @session.currentlyUsingBlocks = true
 
       @lineNumberWrapper.style.display = 'block'
 

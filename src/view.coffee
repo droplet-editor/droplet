@@ -461,6 +461,11 @@ exports.View = class View
       left = if @model.isFirstOnLine() or @lineLength > 1 then padding else 0
       right = if @model.isLastOnLine() or @lineLength > 1 then padding else 0
 
+      if @model.type is 'block' and @model.parent?.type in ['indent', 'document', undefined]
+        @extraLeft = @view.opts.extraLeft
+      else
+        @extraLeft = 0
+
       if parenttype is 'block' and @model.type is 'indent'
         @margins =
           top: 0
@@ -1810,7 +1815,7 @@ exports.View = class View
 
               @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                 @view.opts.indentWidth +
-                @view.opts.extraLeft +
+                @extraLeft +
                 @view.opts.tabOffset, glueTop), true
           else
             right.push new @view.draw.Point multilineBounds.x, glueTop
@@ -2009,16 +2014,12 @@ exports.View = class View
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
-        if @model.parent.type in ['indent', 'document']
-          size.width += @view.opts.extraLeft
+        size.width += @extraLeft
 
       return null
 
     computeBoundingBoxX: (left, line, offset = 0) ->
-      if @model.parent.type in ['indent', 'document']
-        super left, line, offset + @view.opts.extraLeft
-      else
-        super left, line, offset
+      super left, line, offset + @extraLeft
 
     shouldAddTab: ->
       if @model.parent? and @view.hasViewNodeFor(@model.parent) and not
