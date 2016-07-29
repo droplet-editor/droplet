@@ -161,6 +161,49 @@ asyncTest 'Controller: palette block expansion', ->
     equal(editor.getValue().trim(), 'pen red\na3 = b\na6 = b')
     start()
 
+asyncTest 'Controller: palette to floating drag no-throw', ->
+  states = []
+  document.getElementById('test-main').innerHTML = ''
+  varcount = 0
+  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+    mode: 'coffeescript',
+    palette: [{
+      name: 'Draw',
+      color: 'blue',
+      blocks: [{
+        block: 'pen()',
+        expansion: 'pen red',
+        id: 'ptest'
+      }, {
+        block: 'a = b',
+        expansion: -> return 'a' + (++varcount) + ' = b'
+        id: 'ftest'
+      },
+      ],
+    }]
+  })
+
+  editor.on 'changepalette', ->
+    simulate('mousedown', '[data-id=ptest]')
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '[data-id=ptest]', dx: 5 })
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div' , dx: 400, dy: 600})
+    simulate('mouseup', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div' , dx: 400, dy: 600})
+
+    simulate('mousedown', '[data-id=ptest]')
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '[data-id=ptest]', dx: 5 })
+    simulate('mousemove', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div' , dx: 400, dy: 600})
+    simulate('mouseup', '.droplet-drag-cover',
+      { location: '.droplet-wrapper-div' , dx: 400, dy: 600})
+
+    equal(editor.session.floatingBlocks.length, 1, 'Floating block created')
+
+    start()
+
 asyncTest 'Controller: reparse and undo reparse', ->
   states = []
   document.getElementById('test-main').innerHTML = ''

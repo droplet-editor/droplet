@@ -62,6 +62,15 @@ RULES = {
     'type': 'indent',
     'indentContext': 'structDeclaration'
   },
+  'switchBlockItemList': {
+    'type': 'indent',
+    'indentContext': 'switchBlockItemList'
+  },
+
+  'switchCompoundStatement': 'skip'
+  'switchCaseList': 'skip'
+  'switchCase': 'skip'
+  'switchLabel': 'skip'
 
   # Parens
   'expressionStatement': 'parens',

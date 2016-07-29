@@ -465,8 +465,11 @@ statement
 
 labeledStatement
     :   Identifier ':' statement
-    |   'case' constantExpression ':' statement
-    |   'default' ':' statement
+    ;
+
+switchLabel
+    :   'case' constantExpression ':'
+    |   'default' ':'
     ;
 
 compoundStatement
@@ -504,7 +507,25 @@ expressionStatement
 
 selectionStatement
     :   'if' '(' expression ')' statement ('else' statement)?
-    |   'switch' '(' expression ')' statement
+    |   'switch' '(' expression ')' switchCompoundStatement
+    ;
+
+switchCase
+    :   switchLabel switchBlockItemList
+    ;
+
+switchBlockItemList
+    :   blockItemList
+    ;
+
+switchCaseList
+    :   switchCase
+    |   switchCaseList switchCase
+    ;
+
+switchCompoundStatement
+    :   '{' switchCaseList? '}'
+    |   statement
     ;
 
 iterationStatement
@@ -986,7 +1007,10 @@ statement_DropletFile
 
 labeledStatement_DropletFile
     :   Identifier ':' statement EOF
-    |   'case' constantExpression ':' statement EOF
+    ;
+
+switchLabeledStatement_DropletFile
+    :   'case' constantExpression ':' statement EOF
     |   'default' ':' statement EOF
     ;
 

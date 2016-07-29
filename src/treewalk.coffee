@@ -243,6 +243,12 @@ exports.createTreewalkParser = (parse, config, root) ->
               else unless helper.clipLines(@lines, origin, child.bounds.end).trim().length is 0 or i is node.children.length - 1
                 start = child.bounds.end
 
+            if @lines[start.line][...start.column].trim().length is 0
+              start = {
+                line: start.line - 1
+                column: @lines[start.line - 1].length
+              }
+
             end = node.children[node.children.length - 1].bounds.end
             for child, i in node.children by -1
               if child.children.length > 0

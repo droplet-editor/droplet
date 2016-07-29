@@ -668,6 +668,15 @@ CListener.prototype.exitLabeledStatement = function(ctx) {
 };
 
 
+// Enter a parse tree produced by CParser#switchLabel.
+CListener.prototype.enterSwitchLabel = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchLabel.
+CListener.prototype.exitSwitchLabel = function(ctx) {
+};
+
+
 // Enter a parse tree produced by CParser#compoundStatement.
 CListener.prototype.enterCompoundStatement = function(ctx) {
 };
@@ -719,6 +728,42 @@ CListener.prototype.enterSelectionStatement = function(ctx) {
 
 // Exit a parse tree produced by CParser#selectionStatement.
 CListener.prototype.exitSelectionStatement = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchCase.
+CListener.prototype.enterSwitchCase = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchCase.
+CListener.prototype.exitSwitchCase = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchBlockItemList.
+CListener.prototype.enterSwitchBlockItemList = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchBlockItemList.
+CListener.prototype.exitSwitchBlockItemList = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchCaseList.
+CListener.prototype.enterSwitchCaseList = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchCaseList.
+CListener.prototype.exitSwitchCaseList = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchCompoundStatement.
+CListener.prototype.enterSwitchCompoundStatement = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchCompoundStatement.
+CListener.prototype.exitSwitchCompoundStatement = function(ctx) {
 };
 
 
@@ -1439,6 +1484,15 @@ CListener.prototype.enterLabeledStatement_DropletFile = function(ctx) {
 
 // Exit a parse tree produced by CParser#labeledStatement_DropletFile.
 CListener.prototype.exitLabeledStatement_DropletFile = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchLabeledStatement_DropletFile.
+CListener.prototype.enterSwitchLabeledStatement_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchLabeledStatement_DropletFile.
+CListener.prototype.exitSwitchLabeledStatement_DropletFile = function(ctx) {
 };
 
 
