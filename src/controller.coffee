@@ -3837,6 +3837,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       unless setValueResult.success
         if setValueResult.error
           @fireEvent 'parseerror', [setValueResult.error]
+        @hideLoadingGlyph()
         return setValueResult
 
       if @aceEditor.getFirstVisibleRow() is 0

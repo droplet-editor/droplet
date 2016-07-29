@@ -1550,6 +1550,42 @@ CListener.prototype.exitSelectionStatement_DropletFile = function(ctx) {
 };
 
 
+// Enter a parse tree produced by CParser#switchCase_DropletFile.
+CListener.prototype.enterSwitchCase_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchCase_DropletFile.
+CListener.prototype.exitSwitchCase_DropletFile = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchBlockItemList_DropletFile.
+CListener.prototype.enterSwitchBlockItemList_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchBlockItemList_DropletFile.
+CListener.prototype.exitSwitchBlockItemList_DropletFile = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchCaseList_DropletFile.
+CListener.prototype.enterSwitchCaseList_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchCaseList_DropletFile.
+CListener.prototype.exitSwitchCaseList_DropletFile = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#switchCompoundStatement_DropletFile.
+CListener.prototype.enterSwitchCompoundStatement_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#switchCompoundStatement_DropletFile.
+CListener.prototype.exitSwitchCompoundStatement_DropletFile = function(ctx) {
+};
+
+
 // Enter a parse tree produced by CParser#iterationStatement_DropletFile.
 CListener.prototype.enterIterationStatement_DropletFile = function(ctx) {
 };

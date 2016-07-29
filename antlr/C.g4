@@ -1042,7 +1042,25 @@ expressionStatement_DropletFile
 
 selectionStatement_DropletFile
     :   'if' '(' expression ')' statement ('else' statement)? EOF
-    |   'switch' '(' expression ')' statement EOF
+    |   'switch' '(' expression ')' switchCompoundStatement EOF
+    ;
+
+switchCase_DropletFile
+    :   switchLabel switchBlockItemList EOF
+    ;
+
+switchBlockItemList_DropletFile
+    :   blockItemList EOF
+    ;
+
+switchCaseList_DropletFile
+    :   switchCase EOF
+    |   switchCaseList switchCase EOF
+    ;
+
+switchCompoundStatement_DropletFile
+    :   '{' switchCaseList? '}' EOF
+    |   statement EOF
     ;
 
 iterationStatement_DropletFile

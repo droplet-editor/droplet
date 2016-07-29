@@ -62,10 +62,11 @@ RULES = {
     'type': 'indent',
     'indentContext': 'structDeclaration'
   },
-  'switchBlockItemList': {
-    'type': 'indent',
-    'indentContext': 'switchBlockItemList'
-  },
+  'switchBlockItemList': (node) ->
+    if node.parent?.type is 'switchCase' then debugger; {
+      'type': 'indent',
+      'indentContext': 'switchBlockItemList'
+    } else 'block'
 
   'switchCompoundStatement': 'skip'
   'switchCaseList': 'skip'
@@ -78,13 +79,14 @@ RULES = {
   'structDeclaration': 'parens',
 
 
-  'directDeclarator': (node) ->
+  'directDeclarator': 'skip'
+  ###(node) ->
     if not node.parent? or (node.parent.type is 'declarator' and
        node.parent.parent?.type isnt 'functionDefinition' and
        node.parent.children.length is 1)
       'block'
     else
-      'skip'
+      'skip'###
 
   # Skips
   'structDeclaratorList': 'skip',
@@ -155,6 +157,21 @@ RULES = {
         return {type: 'block', buttons: BOTH_BUTTON_VERT}
       else
         return {type: 'block', buttons: ADD_BUTTON_VERT}
+    else if node.children[0].data.text is 'switch'
+      return {
+        type: 'block', buttons: [
+          {
+            key: 'subtract-button-switch'
+            glyph: '\u25B2'
+            border: false
+          },
+          {
+            key: 'add-button-switch'
+            glyph: '\u25BC'
+            border: false
+          }
+        ]
+      }
     else
       return 'block'
 
@@ -544,6 +561,81 @@ removeLastSocketAnd = (str, block, prefixClip = null, suffixClip = null) ->
 
 config.handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
+
+  if type is 'add-button-switch'
+
+    indents = []
+    block.traverseOneLevel (child) ->
+      if child.type is 'indent'
+        indents.push child
+    indent = indents[indents.length - 1]
+    preindent = indents[indents.length - 2]
+
+    console.log indent, preindent
+
+    # Determine if the last indent is a default
+    # or a case
+    if preindent?
+      {string: infix} = model.stringThrough(
+        preindent.end,
+        ((token) -> token is indent.start),
+        false
+      )
+
+      # If it's a case, go ahead and append
+      # at the end. Otherwise, append
+      # before the end.
+      if infix.indexOf('case') is -1
+        indent = preindent
+
+    {string: prefix} = model.stringThrough(
+      block.start,
+      ((token) -> token is indent.end),
+      false
+    )
+
+    suffix = str[prefix.length + 1...]
+
+    console.log 'PREFIX', '\n', prefix
+    console.log 'SUFFIX', '\n', suffix
+    console.log prefix + '\n  case n:\n    break;\n' + suffix
+
+    return prefix + '\n  case n:\n    break;\n' + suffix
+
+  else if type is 'subtract-button-switch'
+
+    indents = []
+    block.traverseOneLevel (child) ->
+      if child.type is 'indent'
+        indents.push child
+    indents = indents[-3...]
+
+    if indents.length is 1
+      return str
+
+    if indents.length is 3
+      {string: infix} = model.stringThrough(
+        indents[1].end,
+        ((token) -> token is indents[2].start),
+        false
+      )
+
+      if infix.indexOf('case') >= 0
+        indents.shift()
+
+    {string: prefix} = model.stringThrough(
+      block.start,
+      ((token) -> token is indents[0].end),
+      false
+    )
+
+    {string: suffix} = model.stringThrough(
+      block.end,
+      ((token) -> token is indents[1].end),
+      true
+    )
+
+    return prefix + suffix
 
   if type is 'add-button'
 
