@@ -260,7 +260,7 @@ structDeclarationList
     ;
 
 structDeclaration
-    :   specifierQualifierList structDeclaratorList? ';'
+    :   specifierQualifierList structDeclaratorList ';'
     |   staticAssertDeclaration
     ;
 
@@ -802,7 +802,7 @@ structDeclarationList_DropletFile
     ;
 
 structDeclaration_DropletFile
-    :   specifierQualifierList structDeclaratorList? ';' EOF
+    :   specifierQualifierList structDeclaratorList ';' EOF
     |   staticAssertDeclaration EOF
     ;
 

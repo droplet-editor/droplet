@@ -329,12 +329,24 @@ SHAPE_RULES = {
 
 DROPDOWNS = {
   'declarationSpecifiers': [
-    'char'
     'int'
-    'long long'
+    'char'
     'double'
-    'unsigned char'
-    'unsigned int'
+    'long long'
+    'string'
+    'bool'
+    'FILE'
+    'float'
+  ],
+  'declarationSpecifiers2': [
+    'int'
+    'char'
+    'double'
+    'long long'
+    'string'
+    'bool'
+    'FILE'
+    'float'
   ]
 }
 
