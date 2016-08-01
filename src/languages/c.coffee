@@ -235,6 +235,12 @@ RULES = {
     else
       'block'
 
+  'specifierQualifierList': (node) ->
+    if node.children.every((child) -> child.children[0].type isnt 'typeSpecifier' or child.children[0].children[0].children.length is 0)
+      'socket'
+    else
+      'block'
+
   # Sockets
   'Int': 'socket'
   'Long': 'socket'
@@ -328,6 +334,16 @@ SHAPE_RULES = {
 }
 
 DROPDOWNS = {
+  'specifierQualifierList': [
+    'int'
+    'char'
+    'double'
+    'long long'
+    'string'
+    'bool'
+    'FILE'
+    'float'
+  ],
   'declarationSpecifiers': [
     'int'
     'char'

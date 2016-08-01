@@ -2362,6 +2362,10 @@ hook 'populate', 1, ->
 
   @hiddenInput.addEventListener 'focus', =>
     if @cursorAtSocket()
+      # Always show the dropdown
+      if @getCursor().hasDropdown()
+        @showDropdown()
+
       # Must ensure that @hiddenInput is within the client area
       # or else the other divs under @dropletElement will scroll out of
       # position when @hiddenInput receives keystrokes with focus
@@ -2408,6 +2412,12 @@ hook 'populate', 1, ->
         # the new length, if it is visible.
         if @dropdownVisible
           @formatDropdown()
+
+  deleteKeyPressed = false
+  @hiddenInput.addEventListener 'keydown', (e) => deleteKeyPressed or= e.which is BACKSPACE_KEY
+  @hiddenInput.addEventListener 'keyup', (e) => deleteKeyPressed and= e.which isnt BACKSPACE_KEY
+  @hiddenInput.addEventListener 'input', =>
+    @filterDropdown(not deleteKeyPressed)
 
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
@@ -2917,8 +2927,32 @@ Editor::getDropdownList = (socket) ->
     newresult.push if 'string' is typeof val then { text: val, display: val } else val
   return newresult
 
+Editor::filterDropdown = (autofill) ->
+  if @dropdownVisible
+    searchText = @dropdownSocket.textContent()
+    firstFound = null
+
+    for {element, text} in @dropdownList
+      textToSearch = if typeof text is 'string' then text else element.innerText
+
+      if textToSearch[...searchText.length] is searchText
+        if not firstFound?
+          firstFound = textToSearch
+          element.style.backgroundColor = '#CCC'
+        else
+          element.style.backgroundColor = ''
+        element.style.display = ''
+      else
+        element.style.display = 'none'
+
+    if firstFound? and autofill
+      @hiddenInput.value = firstFound
+      @hiddenInput.setSelectionRange searchText.length, firstFound.length
+      @redrawTextInput()
+
 Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
   @dropdownVisible = true
+  @dropdownSocket = socket
 
   dropdownItems = []
 
@@ -2927,10 +2961,14 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
   @formatDropdown socket, if inPalette then @session.paletteView else @session.view
 
-  for el, i in @getDropdownList(socket) then do (el) =>
+  @dropdownList = @getDropdownList socket
+
+  for el, i in @dropdownList then do (el) =>
     div = document.createElement 'div'
     div.innerHTML = el.display
     div.className = 'droplet-dropdown-item'
+
+    el.element = div
 
     dropdownItems.push div
 
@@ -3269,6 +3307,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
       @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else []) # TODO proper socket insertion
       @hiddenInput.blur()
       @dropletElement.focus()
+      if @dropdownVisible
+        @hideDropdown()
 
   @session.cursor = destination
 
