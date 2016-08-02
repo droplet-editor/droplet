@@ -790,6 +790,10 @@ config.handleButton = (str, type, block) ->
 
 config.rootContext = 'translationUnit'
 
-config.lockedSocketCallback = (socketstr, parentstr) -> parentstr
+config.lockedSocketCallback = (opts, socketText, parentText) ->
+  if socketText of opts.functions and 'prototype' of opts.functions[socketText]
+    return opts.functions[socketText].prototype
+  else
+    return parentText
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config

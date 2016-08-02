@@ -432,7 +432,7 @@ exports.Editor = class Editor
     # Preparse loop
     if @worker?
       @_lastPreparseText = null
-      @_waitingForPreparse = false
+      @session._waitingForPreparse = false
 
       checkPreparse = =>
         unless (not @session?) or @session.currentlyUsingBlocks or @session._waitingForPreparse
@@ -452,6 +452,8 @@ exports.Editor = class Editor
               if data.data.id is session._id
                 session._waitingForPreparse = false
                 session._preparse = data.data.result
+                console.log 'Successfully preparsed to', data.data.result, text
+
                 @worker.removeEventListener 'message', callback
 
                 if @_afterPreparseCallback?
@@ -461,7 +463,7 @@ exports.Editor = class Editor
 
             @worker.addEventListener 'message', callback
 
-            @_waitingForPreparse = true
+            @session._waitingForPreparse = true
 
 
         setTimeout checkPreparse, PREPARSE_POLL_TIME
@@ -1135,7 +1137,7 @@ Editor::getPreserves = (dropletDocument) ->
     location.document is dropletDocument
   ).map((location) -> location.location)
 
-Editor::spliceOut = (node, container = null, preserveForReplacement = false) ->
+Editor::spliceOut = (node, container = null, preserveForReplacement = false, updates = []) ->
   # Make an empty list if we haven't been
   # passed one
   unless node instanceof model.List
@@ -1152,7 +1154,7 @@ Editor::spliceOut = (node, container = null, preserveForReplacement = false) ->
   @spliceRememberedSocketOffsets node
 
   if dropletDocument?
-    operation = node.getDocument().remove node, @getPreserves(dropletDocument)
+    operation = node.getDocument().remove node, @getPreserves(dropletDocument).concat(updates)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
 
     # If we are removing a block from a socket, and the socket is in our
@@ -1195,7 +1197,7 @@ Editor::spliceOut = (node, container = null, preserveForReplacement = false) ->
   @correctCursor()
   return operation
 
-Editor::spliceIn = (node, location) ->
+Editor::spliceIn = (node, location, updates = []) ->
   # Track changes in the cursor by temporarily
   # using a pointer to it
   container = location.container ? location.parent
@@ -1219,7 +1221,7 @@ Editor::spliceIn = (node, location) ->
   @prepareNode node, container
 
   if dropletDocument?
-    operation = dropletDocument.insert location, node, @getPreserves(dropletDocument)
+    operation = dropletDocument.insert location, node, @getPreserves(dropletDocument).concat(updates)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
     @correctCursor()
     return operation
@@ -2780,7 +2782,7 @@ Editor::populateSocket = (socket, string) ->
 
     @spliceIn new model.List(first, last), socket.start
 
-Editor::populateBlock = (block, string) ->
+Editor::populateBlock = (block, string, updates = []) ->
   if block.type is 'block'
     context = block.parent.indentContext ? block.parent.parseContext ? block.parseContext
   else
@@ -2800,8 +2802,8 @@ Editor::populateBlock = (block, string) ->
           position.prev?.type is 'indentStart' and
           position.prev.container.end is block.end.next)
       position = position.prev
-    @spliceOut block, null, true # Preserve for replacement; otherwise floating block can be destroyed
-    @spliceIn newBlock, position
+    @spliceOut block, null, true, updates # Preserve for replacement; otherwise floating block can be destroyed
+    @spliceIn newBlock, position, updates
     return true
   return false
 
@@ -3358,7 +3360,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     if socket.fromLocked
       @populateBlock socket.parent, @session.mode.lockedSocketCallback(
         socket.stringifyInPlace(), socket.parent.stringifyInPlace()
-      )
+      ), [destination.location]
 
     else if '__comment__' isnt socket.parseContext
       @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
@@ -4453,12 +4455,14 @@ Editor::setValueAsync_raw = (value, cb) ->
       'text': value
       'context': null
     }
+    session._lastPreparseText = value
 
     callback = (data) =>
       if data.data.id is session._id
         session._waitingForPreparse = false
         session._preparse = data.data.result
-        session._lastPreparseText = value
+
+        console.log 'Successfully preparsed to', data.data.result, value
 
         result = @setValue_raw value
 

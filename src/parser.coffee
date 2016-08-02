@@ -651,7 +651,12 @@ exports.wrapParser = (CustomParser) ->
       @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
       @getParenCandidates = CustomParser.getParenCandidates
-      @lockedSocketCallback = CustomParser.lockedSocketCallback
+
+    lockedSocketCallback: (socketText, blockText) ->
+      if CustomParser.lockedSocketCallback?
+        return CustomParser.lockedSocketCallback @opts, socketText, blockText
+      else
+        return blockText
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
