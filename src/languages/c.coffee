@@ -793,7 +793,7 @@ config.rootContext = 'translationUnit'
 
 config.lockedSocketCallback = (opts, socketText, parentText, parseContext) ->
   if socketText of opts.functions and 'prototype' of opts.functions[socketText]
-    if parseContext is 'expressionStatement'
+    if parseContext in ['expressionStatement', 'specialMethodCall']
       return opts.functions[socketText].prototype
     else
       return opts.functions[socketText].prototype.replace /;$/, ''

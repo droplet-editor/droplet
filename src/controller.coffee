@@ -1451,6 +1451,8 @@ hook 'mousedown', 4, (point, event, state) ->
           textToken.parent = newSocket
 
           # Replace it with an appropriate socket
+          @undoCapture()
+
           loc = head.prev
           @spliceOut head.container
           @spliceIn newSocket, loc
@@ -2895,11 +2897,11 @@ Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
       if @getCursor().hasDropdown() and
           mainPoint.x - @session.view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH
         @showDropdown()
+      else
+        @setTextInputAnchor mainPoint
+        @redrawTextInput()
 
-      @setTextInputAnchor mainPoint
-      @redrawTextInput()
-
-      @textInputSelecting = true
+        @textInputSelecting = true
 
     # Now that we have focused the text element
     # in the Droplet model, focus the hidden input.
@@ -3043,6 +3045,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
           return
         @populateSocket @getCursor(), text
         @hiddenInput.value = text
+        console.log 'just set text'
         @redrawMain()
 
         @filterDropdown(true)
@@ -3397,9 +3400,13 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   if @cursorAtSocket()
     if @getCursor()?.id of @session.extraMarks
       delete @session.extraMarks[focus?.id]
-    @undoCapture()
+
+    unless @getCursor().fromLocked
+      @undoCapture()
+
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
+
     {start, end} = @session.mode.getDefaultSelectionRange @hiddenInput.value
     @setTextSelectionRange start, end
 
