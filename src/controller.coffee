@@ -106,6 +106,7 @@ hook = (event, priority, fn) ->
 
 class Session
   constructor: (_main, _palette, _drag, @options, standardViewSettings, @worker = null) -> # TODO rearchitecture so that a session is independent of elements again
+    @_waitingForPreparse = false
 
     @_id = Session.id++
 
@@ -432,7 +433,6 @@ exports.Editor = class Editor
     # Preparse loop
     if @worker?
       @_lastPreparseText = null
-      @session._waitingForPreparse = false
 
       checkPreparse = =>
         unless (not @session?) or @session.currentlyUsingBlocks or @session._waitingForPreparse
@@ -452,7 +452,6 @@ exports.Editor = class Editor
               if data.data.id is session._id
                 session._waitingForPreparse = false
                 session._preparse = data.data.result
-                console.log 'Successfully preparsed to', data.data.result, text
 
                 @worker.removeEventListener 'message', callback
 
@@ -597,7 +596,7 @@ exports.Editor = class Editor
       @aceEditor.getSession()._dropletSession = @session
       @session.currentlyUsingBlocks = false
 
-      if opts.textModeAtStart? and not opts.textModeAtStart
+      unless opts.textModeAtStart
         @setEditorState true, true, true, true
 
       @setPalette @session.paletteGroups
@@ -1456,6 +1455,8 @@ hook 'mousedown', 4, (point, event, state) ->
           @spliceOut head.container
           @spliceIn newSocket, loc
 
+          @setCursor newSocket.start
+
           return
 
       if head.type in ['blockStart', 'buttonContainerStart']
@@ -2071,7 +2072,6 @@ hook 'mouseup', 0, (point, event, state) ->
     @initializeFloatingBlock record, @session.floatingBlocks.length - 1
 
     if @draggingPalette
-      console.log 'YES I AM INDEED DRAGGING PALETTE'
       @setCursor @draggingBlock.start
     else
       @setCursor @draggingBlock.start, (head) -> head.container.type isnt 'socket'
@@ -3350,8 +3350,6 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
-  console.log (new Error()).stack
-
   if destination? and destination instanceof CrossDocumentLocation
     destination = @fromCrossDocumentLocation(destination)
 
@@ -4478,8 +4476,6 @@ Editor::setValueAsync_raw = (value, cb) ->
         session._waitingForPreparse = false
         session._preparse = data.data.result
 
-        console.log 'Successfully preparsed to', data.data.result, value
-
         result = @setValue_raw value
 
         @hideLoadingGlyph()
@@ -4607,6 +4603,7 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
       @session.currentlyUsingBlocks = true
 
       if updateValue
+        console.log 'UPDATING VALUE TO', @getAceValue()
         if async
           @setValueAsync @getAceValue(), cb
         else
