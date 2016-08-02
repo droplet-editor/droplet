@@ -2279,7 +2279,7 @@ Editor::rebuildPaletteHeaders = ->
   @resizePalette()
 
 Editor::setPalette = (paletteGroups) ->
-  @session.paletteGroups = paletteGroups
+  @session.paletteGroups = helper.deepCopy paletteGroups
 
   @session.currentPaletteBlocks = []
   @session.currentPaletteMetadata = []
