@@ -31,6 +31,7 @@ SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
   buttonWidth: 15
+  lockedSocketButtonWidth: 15
   buttonHeight: 15
   extraLeft: 0
   buttonVertPadding: 6
@@ -242,6 +243,7 @@ exports.View = class View
       when 'indent' then new IndentViewNode entity, this
       when 'socket' then new SocketViewNode entity, this
       when 'buttonContainer' then new ContainerViewNode entity, this
+      when 'lockedSocket' then new ContainerViewNode entity, this # LockedSocketViewNode entity, this
       when 'document' then new DocumentViewNode entity, this
 
   # Looks up a color name, or passes through a #hex color.
@@ -460,11 +462,6 @@ exports.View = class View
 
       left = if @model.isFirstOnLine() or @lineLength > 1 then padding else 0
       right = if @model.isLastOnLine() or @lineLength > 1 then padding else 0
-
-      if @model.type is 'block' and @model.parent?.type in ['indent', 'document', undefined]
-        @extraLeft = @view.opts.extraLeft
-      else
-        @extraLeft = 0
 
       if parenttype is 'block' and @model.type is 'indent'
         @margins =
@@ -1109,13 +1106,22 @@ exports.View = class View
           @minDistanceToBase[line].above +
           @minDistanceToBase[line].below
 
-      if @model.type in ['block', 'buttonContainer']
-        @extraWidth = 0
+      # Make space for mutation buttons. In lockedSocket,
+      # these will go on the left; otherwise they will go on the right.
+      @extraLeft = 0
+      @extraWidth = 0
 
+      if @model.type in ['block', 'buttonContainer']
         if @model.buttons? then for {key} in @model.buttons
           @extraWidth += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
 
         @minDimensions[@minDimensions.length - 1].width += @extraWidth
+
+      if @model.type is 'lockedSocket'
+        if @model.buttons? then for {key} in @model.buttons
+          @extraLeft += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
+
+        @minDimensions[@minDimensions.length - 1].width += @extraLeft
 
       # Go through and adjust the width of rectangles
       # immediately after the end of an indent to
@@ -1157,6 +1163,8 @@ exports.View = class View
       if @computedVersion is @model.version and
           left is @bounds[line]?.x and not @changedBoundingBox
         return @bounds[line]
+
+      offset += @extraLeft
 
       # If the bounding box we're being asked
       # to layout is exactly the same,
@@ -1865,7 +1873,26 @@ exports.View = class View
       if @model.type is 'block'
         @path.style.fillColor = @view.getColor @model.color
 
-      if @model.buttons?
+      if @model.buttons? and @model.type is 'lockedSocket'
+        # Add the add button if necessary
+        firstRect = @bounds[0]
+
+        start = firstRect.x
+
+        top = firstRect.y + firstRect.height / 2 - @view.opts.buttonHeight / 2
+
+        for {key} in @model.buttons
+
+          @buttonGroups[key].style.transform = "translate(#{start}, #{top})"
+          @buttonGroups[key].update()
+          @buttonPaths[key].update()
+          @buttonRects[key] = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+
+          @elements.push @buttonPaths[key]
+
+          start += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
+
+      else if @model.buttons?
         # Add the add button if necessary
         lastLine = @bounds.length - 1
         lastRect = @bounds[lastLine]
@@ -1876,7 +1903,9 @@ exports.View = class View
           start = lastRect.x + lastRect.width - @extraWidth + @view.opts.buttonHorizPadding
 
         top = lastRect.y + lastRect.height / 2 - @view.opts.buttonHeight / 2
+
         for {key} in @model.buttons
+
           # Cases when last line is MULTILINE
           if @multilineChildrenData[lastLine] is MULTILINE_END
             multilineChild = @lineChildren[lastLine][0]
@@ -1884,7 +1913,7 @@ exports.View = class View
             # If it is a G-Shape
             if @lineChildren[lastLine].length > 1
               height = multilineBounds.bottom() - lastRect.y
-              top = lastRect.y + height/2 - @view.opts.buttonHeight/2
+              top = lastRect.y + height / 2 - @view.opts.buttonHeight/2
             else
               height = lastRect.bottom() - multilineBounds.bottom()
               top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
@@ -2017,9 +2046,6 @@ exports.View = class View
         size.width += @extraLeft
 
       return null
-
-    computeBoundingBoxX: (left, line, offset = 0) ->
-      super left, line, offset + @extraLeft
 
     shouldAddTab: ->
       if @model.parent? and @view.hasViewNodeFor(@model.parent) and not

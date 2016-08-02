@@ -287,18 +287,29 @@ exports.createTreewalkParser = (parse, config, root) ->
 
         for child in node.children
           @mark child, prefix, depth + 2, false
-      else if context? and @detNode(context) in ['block', 'buttonContainer']
-        if @det(node) is 'socket' and ((not config.SHOULD_SOCKET?) or config.SHOULD_SOCKET(@opts, node))
-          @addSocket
-            empty: config.EMPTY_STRINGS?[node.type] ? config.empty
-            bounds: node.bounds
-            depth: depth
-            parseContext: rules[0]
-            dropdown: config.DROPDOWNS?[rules[0]] ? null
 
-          if config.EMPTY_STRINGS? and not @opts.preserveEmpty and
-              helper.clipLines(@lines, node.bounds.start, node.bounds.end) is (config.EMPTY_STRINGS[node.type] ? config.empty)
-            @flagToRemove node.bounds, depth + 1
+      else if context? and @detNode(context) in ['block', 'buttonContainer']
+        if @det(node) is 'socket'
+          socketResult = config.SHOULD_SOCKET(@opts, node)
+          if ((not config.SHOULD_SOCKET?) or socketResult is true)
+            @addSocket
+              empty: config.EMPTY_STRINGS?[node.type] ? config.empty
+              bounds: node.bounds
+              depth: depth
+              parseContext: rules[0]
+              dropdown: config.DROPDOWNS?[rules[0]] ? null
+
+            if config.EMPTY_STRINGS? and not @opts.preserveEmpty and
+                helper.clipLines(@lines, node.bounds.start, node.bounds.end) is (config.EMPTY_STRINGS[node.type] ? config.empty)
+              @flagToRemove node.bounds, depth + 1
+
+          else if socketResult isnt false and socketResult.type is 'locked'
+            console.log 'locked socket', socketResult.dropdown
+            @addLockedSocket
+              bounds: node.bounds
+              depth: depth
+              dropdown: socketResult.dropdown
+              parseContext: rules[0]
 
   if config.droppabilityGraph?
     # DroppabilityGraph contains all the rules for what things can be
@@ -384,5 +395,6 @@ exports.createTreewalkParser = (parse, config, root) ->
   TreewalkParser.rootContext = config.rootContext
   TreewalkParser.getDefaultSelectionRange = config.getDefaultSelectionRange
   TreewalkParser.empty = config.empty
+  TreewalkParser.lockedSocketCallback = config.lockedSocketCallback
 
   return TreewalkParser

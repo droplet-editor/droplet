@@ -437,14 +437,21 @@ config.SHOULD_SOCKET = (opts, node) ->
      # Check to see whether we are the first child
      node.parent.parent is node.parent.parent.parent.children[0] and
      node.parent is node.parent.parent.children[0] and
-     node is node.parent.children[0]) and
-     # Finally, check to see if our name is a known function name
-     node.data.text of opts.functions
+     node is node.parent.children[0])
 
     # If the checks pass, do not socket.
-    return false
+    return {
+      type: 'locked'
+      dropdown: generateDropdown(opts.functions)
+    }
 
   return true
+
+generateDropdown = (knownFunctions) ->
+  result = []
+  for func, val of knownFunctions
+    result.push func
+  return result
 
 # Color and shape callbacks look up the method name
 # in the known functions list if available.
@@ -782,5 +789,7 @@ config.handleButton = (str, type, block) ->
   return str
 
 config.rootContext = 'translationUnit'
+
+config.lockedSocketCallback = (socketstr, parentstr) -> parentstr
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config

@@ -1147,6 +1147,10 @@ Editor::spliceOut = (node, container = null, preserveForReplacement = false) ->
 
   parent = node.parent
 
+  # If they haven't already been removed,
+  # remove any rememberedSocketOffsets related to this node
+  @spliceRememberedSocketOffsets node
+
   if dropletDocument?
     operation = node.getDocument().remove node, @getPreserves(dropletDocument)
     @pushUndo {operation, document: @getDocuments().indexOf(dropletDocument)}
@@ -1427,6 +1431,26 @@ hook 'mousedown', 4, (point, event, state) ->
     result = null
 
     until head is seek
+      if head.type is 'lockedSocketStart'
+        viewNode = @session.view.getViewNodeFor(head.container)
+        button = viewNode.buttonRects['unlock-socket']
+
+        if button.contains mainPoint
+          string = head.container.stringify()
+
+          newSocket = new model.Socket(string, false, head.container.dropdown, head.container.parseContext, true)
+
+          textToken = new model.TextToken string
+          helper.connect newSocket.start, textToken
+          helper.connect textToken, newSocket.end
+
+          # Replace it with an appropriate socket
+          loc = head.prev
+          @spliceOut head.container
+          @spliceIn newSocket, loc
+
+          return
+
       if head.type in ['blockStart', 'buttonContainerStart']
         viewNode = @session.view.getViewNodeFor(head.container)
         result = head.container
@@ -1595,7 +1619,7 @@ hook 'mousemove', 1, (point, event, state) ->
         if head is @draggingBlock.start
           head = @draggingBlock.end
 
-        if head instanceof model.StartToken and head.type isnt 'buttonContainerStart'
+        if head instanceof model.StartToken and head.type not in ['buttonContainerStart', 'lockedSocketStart']
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
             dropPoint = @session.view.getViewNodeFor(head.container).dropPoint
@@ -3303,12 +3327,18 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @session.cursor.is(destination)
     socket = @getCursor()
-    if '__comment__' isnt socket.parseContext
-      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else []) # TODO proper socket insertion
-      @hiddenInput.blur()
-      @dropletElement.focus()
-      if @dropdownVisible
-        @hideDropdown()
+
+    if socket.fromLocked
+      @populateBlock socket.parent, @session.mode.lockedSocketCallback(
+        socket.stringifyInPlace(), socket.parent.stringifyInPlace()
+      )
+
+    else if '__comment__' isnt socket.parseContext
+      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
+    @hiddenInput.blur()
+    @dropletElement.focus()
+    if @dropdownVisible
+      @hideDropdown()
 
   @session.cursor = destination
 

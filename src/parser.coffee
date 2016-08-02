@@ -109,8 +109,15 @@ exports.Parser = class Parser
     @addMarkup block, opts.bounds, opts.depth
 
   addButtonContainer: (opts) ->
-    container= new model.ButtonContainer opts.parseContext,
+    container = new model.ButtonContainer opts.parseContext,
       opts.buttons,
+      opts.data
+
+    @addMarkup container, opts.bounds, opts.depth
+
+  addLockedSocket: (opts) ->
+    container = new model.LockedSocket opts.parseContext,
+      opts.dropdown,
       opts.data
 
     @addMarkup container, opts.bounds, opts.depth
@@ -644,6 +651,7 @@ exports.wrapParser = (CustomParser) ->
       @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
       @getParenCandidates = CustomParser.getParenCandidates
+      @lockedSocketCallback = CustomParser.lockedSocketCallback
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
