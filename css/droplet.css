@@ -335,9 +335,6 @@ text {
 .droplet-socket-path {
   cursor: text;
 }
-.droplet-main-canvas text {
-  fill: #000;
-}
 /*
 .droplet-block-path:hover ~ text {
   fill: #000;

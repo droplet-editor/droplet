@@ -27,6 +27,7 @@ CARRIAGE_GROW_DOWN = 3
 DROPDOWN_ARROW_HEIGHT = 8
 
 DROP_TRIANGLE_COLOR = '#555'
+BUTTON_GLYPH_COLOR = '#333'
 SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
@@ -1436,7 +1437,7 @@ exports.View = class View
         @buttonTexts[key] = @view.draw.text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
           (@view.opts.buttonHeight - @view.opts.textHeight) / 2
-        ), glyph)
+        ), glyph, BUTTON_GLYPH_COLOR)
         @buttonPaths[key].setParent @buttonGroups[key]
         @buttonTexts[key].setParent @buttonGroups[key]
 

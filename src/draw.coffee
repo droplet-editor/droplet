@@ -127,7 +127,7 @@ exports.Draw = class Draw
   elementWrapper: (element) -> new ElementWrapper @, element
   group: (style) -> new Group @, style
   path: (points, bevel, style) -> new Path @, points, bevel, style
-  text: (point, value) -> new Text @, point, value
+  text: (point, value, color) -> new Text @, point, value, color
 
   refreshFontCapital:  ->
     metrics = helper.fontMetrics(@fontFamily, @fontSize)
@@ -746,7 +746,7 @@ exports.Path = class Path extends ElementWrapper
 # A Text element. Mainly this exists for computing bounding boxes, which is
 # accomplished via ctx.measureText().
 exports.Text = class Text extends ElementWrapper
-  constructor: (@draw, @point, @value) ->
+  constructor: (@draw, @point, @value, @fill = '#000') ->
     @__lastValue = @__boundsValue = @value
     @__lastPoint = @point.clone()
 
@@ -772,7 +772,7 @@ exports.Text = class Text extends ElementWrapper
 
   makeElement: ->
     element = document.createElementNS SVG_STANDARD, 'text'
-    #element.setAttribute 'fill', '#444'
+    element.setAttribute 'fill', @fill
 
     # We use the alphabetic baseline and add the distance
     # to base ourselves to avoid a chrome bug where text zooming
@@ -780,9 +780,6 @@ exports.Text = class Text extends ElementWrapper
     element.setAttribute 'x', @point.x
     element.setAttribute 'y', @point.y + @draw.fontBaseline - @draw.fontAscent / 2
     element.setAttribute 'dominant-baseline', 'alphabetic'
-
-    #element.setAttribute 'font-family', @draw.fontFamily
-    #element.setAttribute 'font-size', @draw.fontSize
 
     text = document.createTextNode @value.replace(/ /g, '\u00A0') # Preserve whitespace
     element.appendChild text

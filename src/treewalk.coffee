@@ -304,7 +304,6 @@ exports.createTreewalkParser = (parse, config, root) ->
               @flagToRemove node.bounds, depth + 1
 
           else if socketResult isnt false and socketResult.type is 'locked'
-            console.log 'locked socket', socketResult.dropdown
             @addLockedSocket
               bounds: node.bounds
               depth: depth

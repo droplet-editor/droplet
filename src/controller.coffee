@@ -1444,6 +1444,8 @@ hook 'mousedown', 4, (point, event, state) ->
           helper.connect newSocket.start, textToken
           helper.connect textToken, newSocket.end
 
+          textToken.parent = newSocket
+
           # Replace it with an appropriate socket
           loc = head.prev
           @spliceOut head.container
@@ -2423,6 +2425,7 @@ hook 'populate', 1, ->
         @hiddenInput.value[0] is @hiddenInput.value[@hiddenInput.value.length - 1] and
         @hiddenInput.value[0] in ['\'', '\"'] and @hiddenInput.selectionEnd is 1
       event.preventDefault()
+    return true
 
   # The hidden input should be set up
   # to mirror the text to which it is associated.
@@ -2436,12 +2439,13 @@ hook 'populate', 1, ->
         # the new length, if it is visible.
         if @dropdownVisible
           @formatDropdown()
+      return true
 
   deleteKeyPressed = false
-  @hiddenInput.addEventListener 'keydown', (e) => deleteKeyPressed or= e.which is BACKSPACE_KEY
-  @hiddenInput.addEventListener 'keyup', (e) => deleteKeyPressed and= e.which isnt BACKSPACE_KEY
+  @hiddenInput.addEventListener 'keydown', (e) => deleteKeyPressed or= e.which is BACKSPACE_KEY; true
+  @hiddenInput.addEventListener 'keyup', (e) => deleteKeyPressed and= e.which isnt BACKSPACE_KEY; true
   @hiddenInput.addEventListener 'input', =>
-    @filterDropdown(not deleteKeyPressed)
+    @filterDropdown(not deleteKeyPressed); true
 
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
@@ -2953,8 +2957,12 @@ Editor::getDropdownList = (socket) ->
 
 Editor::filterDropdown = (autofill) ->
   if @dropdownVisible
+    @dropdownIndex = 0
+    @_lastDropdownIndex = null
+
     searchText = @dropdownSocket.textContent()
     firstFound = null
+    @filteredDropdownList = []
 
     for {element, text} in @dropdownList
       textToSearch = if typeof text is 'string' then text else element.innerText
@@ -2966,6 +2974,7 @@ Editor::filterDropdown = (autofill) ->
         else
           element.style.backgroundColor = ''
         element.style.display = ''
+        @filteredDropdownList.push {element, text}
       else
         element.style.display = 'none'
 
@@ -2985,7 +2994,9 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
   @formatDropdown socket, if inPalette then @session.paletteView else @session.view
 
-  @dropdownList = @getDropdownList socket
+  @dropdownIndex = 0
+  @_lastDropdownIndex = null
+  @dropdownList = @filteredDropdownList = @getDropdownList socket
 
   for el, i in @dropdownList then do (el) =>
     div = document.createElement 'div'
@@ -3018,7 +3029,8 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
         @hiddenInput.value = text
         @redrawMain()
 
-      @hideDropdown()
+        @filterDropdown(true)
+        @setCursor @getCursor()
 
     div.addEventListener 'mouseup', ->
       if el.click
@@ -3059,6 +3071,21 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
         dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
       @dropdownElement.style.top = dropdownTop + 'px'
   ), 0
+
+Editor::rescrollDropdown = ->
+  # Change the background
+  if @_lastDropdownIndex?
+    @filteredDropdownList[@_lastDropdownIndex].element.style.background = ''
+  @filteredDropdownList[@dropdownIndex].element.style.background = '#CCC'
+
+  @_lastDropdownIndex = @dropdownIndex
+
+  # Update the socket
+  @hiddenInput.value = @filteredDropdownList[@dropdownIndex].text
+  @populateSocket @getCursor(), @filteredDropdownList[@dropdownIndex].text
+
+  # Scroll the div
+  @dropdownElement.scrollTop = @filteredDropdownList[@dropdownIndex].element.offsetTop
 
 Editor::hideDropdown = ->
   @dropdownVisible = false
@@ -3417,15 +3444,31 @@ hook 'keydown', 0, (event, state) ->
   if event.target is @paletteSearch
     return
   if event.which is UP_ARROW_KEY
-    @clearLassoSelection()
-    prev = @getCursor().prev ? @getCursor().start?.prev
-    @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
-    @scrollCursorIntoPosition()
+    # Scroll the dropdown
+    if @dropdownVisible
+      @dropdownIndex = Math.max 0, @dropdownIndex - 1
+      @rescrollDropdown()
+
+    # Or move the cursor
+    else
+      @clearLassoSelection()
+      prev = @getCursor().prev ? @getCursor().start?.prev
+      @setCursor prev, ((token) -> token.type isnt 'socketStart'), 'before'
+      @scrollCursorIntoPosition()
+
   else if event.which is DOWN_ARROW_KEY
-    @clearLassoSelection()
-    next = @getCursor().next ? @getCursor().end?.next
-    @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
-    @scrollCursorIntoPosition()
+    # Scroll the dropdown
+    if @dropdownVisible
+      @dropdownIndex = Math.min @filteredDropdownList.length - 1, @dropdownIndex + 1
+      @rescrollDropdown()
+
+    # Or move the cursor
+    else
+      @clearLassoSelection()
+      next = @getCursor().next ? @getCursor().end?.next
+      @setCursor next, ((token) -> token.type isnt 'socketStart'), 'after'
+      @scrollCursorIntoPosition()
+
   else if event.which is RIGHT_ARROW_KEY and
       (not @cursorAtSocket() or
       @hiddenInput.selectionStart is @hiddenInput.value.length)
@@ -4400,10 +4443,7 @@ Editor::hideLoadingGlyph = ->
 Editor::setValueAsync_raw = (value, cb) ->
   @showLoadingGlyph()
 
-  console.log 'setValueAsync_raw SETTING TO', value
-
   if @worker? and not @session._waitingForPreparse and (not @session._lastPreparseText? or value isnt @session._lastPreparseText)
-    console.log 'POSTING'
     session = @session
     session._waitingForPreparse = true
 
@@ -4415,7 +4455,6 @@ Editor::setValueAsync_raw = (value, cb) ->
     }
 
     callback = (data) =>
-      console.log 'STANDARD POST REPARSE CALLED'
       if data.data.id is session._id
         session._waitingForPreparse = false
         session._preparse = data.data.result
@@ -4436,11 +4475,9 @@ Editor::setValueAsync_raw = (value, cb) ->
     @worker.addEventListener 'message', callback
 
   else if @session._waitingForPreparse and value is @session._lastPreparseText
-    console.log 'BINDING TO EXISTING PREPARSE'
     @_afterPreparseCallback = {
       id: @session._id
       fn: =>
-        console.log 'EXISTING PREPARSE CALLBACK CALLED'
         result = @setValue_raw value
 
         @hideLoadingGlyph()
@@ -4451,16 +4488,13 @@ Editor::setValueAsync_raw = (value, cb) ->
     }
 
   else if @session._waitingForPreparse
-    console.log 'SCHEDULING ADDITIONAL PREPARSE'
     @_afterPreparseCallback = {
       id: @session._id
       fn: =>
-        console.log 'CALLBACK CALLED'
         @setValueAsync_raw value, cb
     }
 
   else
-    console.log 'NOT RECOMPUTING, because', @worker, value is @session._lastPreparseText, 'new lines', value.split('\n').length, 'old lines', @session._lastPreparseText.split('\n').length
     setTimeout (=>
       result = @setValue_raw value
       @hideLoadingGlyph()
