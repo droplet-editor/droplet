@@ -245,6 +245,7 @@ RULES = {
   'Int': 'socket'
   'Long': 'socket'
   'Short': 'socket'
+  'Float': 'socket'
   'Double': 'socket'
   'Char': 'socket'
 
@@ -790,9 +791,12 @@ config.handleButton = (str, type, block) ->
 
 config.rootContext = 'translationUnit'
 
-config.lockedSocketCallback = (opts, socketText, parentText) ->
+config.lockedSocketCallback = (opts, socketText, parentText, parseContext) ->
   if socketText of opts.functions and 'prototype' of opts.functions[socketText]
-    return opts.functions[socketText].prototype
+    if parseContext is 'expressionStatement'
+      return opts.functions[socketText].prototype
+    else
+      return opts.functions[socketText].prototype.replace /;$/, ''
   else
     return parentText
 

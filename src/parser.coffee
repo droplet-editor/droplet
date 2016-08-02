@@ -652,9 +652,9 @@ exports.wrapParser = (CustomParser) ->
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
       @getParenCandidates = CustomParser.getParenCandidates
 
-    lockedSocketCallback: (socketText, blockText) ->
+    lockedSocketCallback: (socketText, blockText, parseContext) ->
       if CustomParser.lockedSocketCallback?
-        return CustomParser.lockedSocketCallback @opts, socketText, blockText
+        return CustomParser.lockedSocketCallback @opts, socketText, blockText, parseContext
       else
         return blockText
 

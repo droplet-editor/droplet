@@ -1390,7 +1390,10 @@ hook 'mousedown', 1, (point, event, state) ->
       @clickedBlockPaletteEntry = null
 
       # Move the cursor somewhere nearby
-      @setCursor @clickedBlock.start.next
+      if @clickedBlock.parent.type is 'socket'
+        @setCursor @clickedBlock.start.next
+      else
+        @setCursor @clickedBlock.start.next, (head) -> head.container.type isnt 'socket' # TODO reconsider
 
       # Record the point at which is was clicked (for clickedBlock->draggingBlock)
       @clickedPoint = point
@@ -1524,6 +1527,8 @@ hook 'mousemove', 1, (point, event, state) ->
     # Signify that we are now dragging a block.
     @draggingBlock = @clickedBlock
     @dragReplacing = false
+
+    @hideDropdown()
 
     # Our dragging offset must be computed using the canvas on which this block
     # is rendered.
@@ -1947,11 +1952,16 @@ hook 'mouseup', 1, (point, event, state) ->
       # TODO Consider whether to add this back?
       #if @lastHighlight.type is 'socket'
       #  @reparse @draggingBlock.parent.parent
+      draggingPalette = @draggingPalette
 
       # Now that we've done that, we can annul stuff.
       @endDrag true
 
-      @setCursor(futureCursorLocation) if futureCursorLocation?
+      if futureCursorLocation?
+        if draggingPalette
+          @setCursor(futureCursorLocation)
+        else
+          @setCursor(futureCursorLocation, (token) -> token.container?.type isnt 'socket')
 
       newBeginning = futureCursorLocation.location.count
       newIndex = futureCursorLocation.document
@@ -2060,7 +2070,11 @@ hook 'mouseup', 0, (point, event, state) ->
 
     @initializeFloatingBlock record, @session.floatingBlocks.length - 1
 
-    @setCursor @draggingBlock.start
+    if @draggingPalette
+      console.log 'YES I AM INDEED DRAGGING PALETTE'
+      @setCursor @draggingBlock.start
+    else
+      @setCursor @draggingBlock.start, (head) -> head.container.type isnt 'socket'
 
     # TODO write a test for this logic
     for el, i in rememberedSocketOffsets
@@ -2391,7 +2405,7 @@ hook 'populate', 1, ->
   @hiddenInput.addEventListener 'focus', =>
     if @cursorAtSocket()
       # Always show the dropdown
-      if @getCursor().hasDropdown()
+      if @getCursor().hasDropdown() and not @draggingBlock?
         @showDropdown()
 
       # Must ensure that @hiddenInput is within the client area
@@ -3032,7 +3046,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
         @redrawMain()
 
         @filterDropdown(true)
-        @setCursor @getCursor()
+        @setCursor @getCursor().end.next
 
     div.addEventListener 'mouseup', ->
       if el.click
@@ -3336,6 +3350,8 @@ Editor::validCursorPosition = (destination) ->
 
 # A cursor is only allowed to be on a line.
 Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
+  console.log (new Error()).stack
+
   if destination? and destination instanceof CrossDocumentLocation
     destination = @fromCrossDocumentLocation(destination)
 
@@ -3359,7 +3375,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
     if socket.fromLocked
       @populateBlock socket.parent, @session.mode.lockedSocketCallback(
-        socket.stringifyInPlace(), socket.parent.stringifyInPlace()
+        socket.stringifyInPlace(), socket.parent.stringifyInPlace(), socket.parent.parseContext
       ), [destination.location]
 
     else if '__comment__' isnt socket.parseContext
@@ -4706,6 +4722,7 @@ Editor::endDrag = (successfulDrop) ->
   @draggingBlock = null
   @draggingOffset = null
   @dragReplacing = false
+  @draggingPalette = false
   @lastHighlightPath?.deactivate?()
   @lastHighlight = @lastHighlightPath = null
 
