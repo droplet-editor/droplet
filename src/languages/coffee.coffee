@@ -1175,7 +1175,7 @@ CoffeeScriptParser.drop = (block, context, pred) ->
 
 CoffeeScriptParser.parens = (leading, trailing, node, context) ->
   # Don't attempt to paren wrap comments
-  return if '__comment__' is node.parseContext
+  return node.parseContext if '__comment__' is node.parseContext
 
   trailing trailing().replace /\s*,\s*$/, ''
 
@@ -1192,7 +1192,7 @@ CoffeeScriptParser.parens = (leading, trailing, node, context) ->
     leading '(' + leading()
     trailing trailing() + ')'
 
-  return
+  return node.parseContext
 
 CoffeeScriptParser.getDefaultSelectionRange = (string) ->
   start = 0; end = string.length

@@ -311,11 +311,11 @@ asyncTest 'Controller: does not throw on reparse error', ->
   editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 15, dy: 15})
-  simulate('mouseup', '.droplet-main-canvas', {dx: 15, dy: 15})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 55, dy: 25})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 55, dy: 25})
 
-  ok(editor.getCursor(), 'Has text focus')
-  equal(editor.getCursor().stringify(), 'hello')
+  ok(editor.getCursor() and editor.cursorAtSocket(), 'Has text focus')
+  equal(editor.getCursor().stringify(), 'hello', 'Selected the correct socket')
 
   $('.droplet-hidden-input').sendkeys('18n')
 
@@ -461,15 +461,17 @@ performTextOperation = (editor, text, cb) ->
     dy: text.socket.handle.y
   })
   setTimeout (->
-    $(editor.hiddeninput).sendkeys(text.text)
+    $(editor.hiddenInput).sendkeys(text.text)
 
     # Unfocus
-    evt = document.createEvent 'Event'
-    evt.initEvent 'keydown', true, true
-    evt.keyCode = evt.which = 13
-    editor.dropletElement.dispatchEvent(evt)
+    setTimeout (->
+      evt = document.createEvent 'Event'
+      evt.initEvent 'keydown', true, true
+      evt.keyCode = evt.which = 40
+      editor.dropletElement.dispatchEvent(evt)
 
-    setTimeout cb, 0
+      setTimeout cb, 0
+    ), 0
   ), 0
 
 performDragOperation = (editor, drag, cb) ->
@@ -915,7 +917,7 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
       # unfocus
       evt = document.createEvent 'Event'
       evt.initEvent 'keydown', true, true
-      evt.keyCode = evt.which = 13
+      evt.keyCode = evt.which = 40
       editor.dropletElement.dispatchEvent(evt)
     ), (->
       equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'\n"""
@@ -1077,6 +1079,7 @@ asyncTest 'Controller: Random drag undo test', ->
       functions:
         fd: {command: true, value: false}
         bk: {command: true, value: false}
+    viewSettings: padding: 10
     palette: [
       {
         name: 'Blocks'
@@ -1143,6 +1146,7 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
   document.getElementById('test-main').innerHTML = ''
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
     mode: 'c_cpp',
+    viewSettings: padding: 10
     modeOptions:
       knownFunctions:
         printf: {color: 'blue', shape: 'block-only'}

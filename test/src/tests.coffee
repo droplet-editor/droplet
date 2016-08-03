@@ -500,15 +500,21 @@ asyncTest 'Controller: palette events', ->
         0, mx, my, mx, my, false, false, false, false, 0, null
     e.dispatchEvent ev
 
-  states = []
-  editor.on 'selectpalette', (name) ->
-    states.push 's:' + name
-  headers = document.getElementsByClassName 'droplet-palette-group-header'
-  for j in [headers.length - 1 .. 0]
-    dispatchMouse 'click', headers[j]
-  deepEqual states, ['s:Move', 's:Draw']
-  # TODO, fix layout in test environment, and test pickblock event.
-  start()
+  # Wait for the first palette to finish
+  # rendering
+  setTimeout (->
+    states = []
+    editor.on 'selectpalette', (name) ->
+      states.push 's:' + name
+    headers = document.getElementsByClassName 'droplet-palette-group-header'
+
+    for j in [headers.length - 1 .. 0]
+      dispatchMouse 'click', headers[j]
+
+    deepEqual states, ['s:Move', 's:Draw']
+    # TODO, fix layout in test environment, and test pickblock event.
+    start()
+  ), 1
 
 asyncTest 'Controller: cursor motion and rendering', ->
   states = []

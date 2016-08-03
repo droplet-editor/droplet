@@ -228,6 +228,7 @@ executeAsyncSequence = (sequence, i = 0) ->
 asyncTest 'Controller: ANTLR paren wrap rules', ->
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
     mode: 'c',
+    viewSettings: {padding: 10}
     palette: []
   })
 
@@ -356,7 +357,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
 
       equal editor.session.tree.getFromTextLocation({
         row: 4, col: 2, type: 'block'
-      }).parseContext, 'expressionStatement', 'Changed parse context when adding semicolon'
+      }).parseContext, 'specialMethodCall', 'Changed parse context when adding semicolon'
 
       start()
     )

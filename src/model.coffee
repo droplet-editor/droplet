@@ -714,7 +714,11 @@ exports.Container = class Container extends List
     else if location.type is head.container.type
       return head.container
     else
-      throw new Error "Could not retrieve location #{location}"
+      # DEBUGGING
+      error = new Error "Could not retrieve location #{location}"
+      console.log "Could not retrieve location #{location}. Error stack is as follows:"
+      console.trace()
+      throw error
 
   # ## getFromTextLocation ##
   # Given a TextLocation, find the token at that row, column, and length.

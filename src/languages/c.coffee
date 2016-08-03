@@ -429,7 +429,7 @@ config.SHOULD_SOCKET = (opts, node) ->
   #
   # We can only be such an identifier if we have the appropriate number of parents;
   # check.
-  unless opts.functions? and ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
+  unless ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
       node.parent?.type is 'specialMethodCall')
     return true
 
@@ -443,7 +443,7 @@ config.SHOULD_SOCKET = (opts, node) ->
     # If the checks pass, do not socket.
     return {
       type: 'locked'
-      dropdown: generateDropdown(opts.functions)
+      dropdown: if opts.functions? then generateDropdown(opts.functions) else null
     }
 
   return true
@@ -792,7 +792,7 @@ config.handleButton = (str, type, block) ->
 config.rootContext = 'translationUnit'
 
 config.lockedSocketCallback = (opts, socketText, parentText, parseContext) ->
-  if socketText of opts.functions and 'prototype' of opts.functions[socketText]
+  if opts.functions? and socketText of opts.functions and 'prototype' of opts.functions[socketText]
     if parseContext in ['expressionStatement', 'specialMethodCall']
       return opts.functions[socketText].prototype
     else

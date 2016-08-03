@@ -571,6 +571,7 @@ exports.Editor = class Editor
     offsetX = @session.viewports.main.x
 
     @setEditorState @session.currentlyUsingBlocks, false, true, false
+    @setEditorState @session.currentlyUsingBlocks, true, true, true
 
     @redrawMain()
 
@@ -2632,9 +2633,6 @@ hook 'mousedown', 7, ->
 
 
 Editor::reparseSocket = (socket, updates = []) ->
-  if socket.handwritten
-    return @reparse socket.parent, updates
-
   text = socket.textContent()
 
   # If our language mode has a string-fixing feature (in most languages,
@@ -2883,7 +2881,6 @@ Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
   if hitTestResult?
     unless hitTestResult is @getCursor()
       if hitTestResult.editable()
-        @undoCapture()
         @setCursor hitTestResult
         @redrawMain()
 
@@ -3045,7 +3042,6 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
           return
         @populateSocket @getCursor(), text
         @hiddenInput.value = text
-        console.log 'just set text'
         @redrawMain()
 
         @filterDropdown(true)
@@ -3381,6 +3377,9 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
     else if '__comment__' isnt socket.parseContext
       @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
+    else if socket.handwritten
+      @reparse socket.parent, (if destination.document is @session.cursor.document then [destination.location] else [])
+
     @hiddenInput.blur()
     @dropletElement.focus()
     if @dropdownVisible
@@ -3403,6 +3402,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
 
     unless @getCursor().fromLocked
       @undoCapture()
+    else
 
     @hiddenInput.value = @getCursor().textContent()
     @hiddenInput.focus()
@@ -3586,10 +3586,13 @@ hook 'keydown', 0, (event, state) ->
       context = @getCursor().parent.indentContext ? @getCursor().parseContext
 
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(null, null, context); newSocket = new model.Socket '', true, null, context
+      newBlock = new model.Block(null, null, context)
+      newSocket = new model.Socket '', true, null, '__comment__'
       newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
+
+      newBlock.nodeContext = new model.NodeContext context, newBlock.getLeadingText(), newBlock.getTrailingText()
 
       # Seek a place near the cursor we can actually
       # put a block.
@@ -4409,6 +4412,8 @@ Editor::setTrimWhitespace = (trimWhitespace) ->
   @trimWhitespace = trimWhitespace
 
 Editor::setValue_raw = (value) ->
+  @_lastSetValue = value
+
   try
     if @trimWhitespace then value = value.trim()
 
@@ -4464,6 +4469,8 @@ Editor::hideLoadingGlyph = ->
   @mainCanvas.style.cursor = ''
 
 Editor::setValueAsync_raw = (value, cb) ->
+  @_lastSetValue = value
+
   @showLoadingGlyph()
 
   if @worker? and not @session._waitingForPreparse and (not @session._lastPreparseText? or value isnt @session._lastPreparseText)
@@ -4497,7 +4504,7 @@ Editor::setValueAsync_raw = (value, cb) ->
 
     @worker.addEventListener 'message', callback
 
-  else if @session._waitingForPreparse and value is @session._lastPreparseText
+  else if @worker? and @session._waitingForPreparse and value is @session._lastPreparseText
     @_afterPreparseCallback = {
       id: @session._id
       fn: =>
@@ -4510,7 +4517,7 @@ Editor::setValueAsync_raw = (value, cb) ->
         cb?(result)
     }
 
-  else if @session._waitingForPreparse
+  else if @worker? and @session._waitingForPreparse
     @_afterPreparseCallback = {
       id: @session._id
       fn: =>
@@ -4518,7 +4525,9 @@ Editor::setValueAsync_raw = (value, cb) ->
     }
 
   else
+    @session._waitingForPreparse = true
     setTimeout (=>
+      @session._waitingForPreparse = false
       result = @setValue_raw value
       @hideLoadingGlyph()
       cb?(result)
@@ -4558,9 +4567,12 @@ Editor::addEmptyLine = (str) ->
 
 Editor::getValue = ->
   if @session?.currentlyUsingBlocks
-    return @addEmptyLine @session.tree.stringify({
-      preserveEmpty: @session.options.preserveEmpty
-    })
+    if @session._waitingForPreparse
+      return @addEmptyLine @_lastSetValue
+    else
+      return @addEmptyLine @session.tree.stringify({
+        preserveEmpty: @session.options.preserveEmpty
+      })
   else
     @getAceValue()
 
@@ -4610,7 +4622,6 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
       @session.currentlyUsingBlocks = true
 
       if updateValue
-        console.log 'UPDATING VALUE TO', @getAceValue()
         if async
           @setValueAsync @getAceValue(), cb
         else

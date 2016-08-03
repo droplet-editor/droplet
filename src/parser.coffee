@@ -237,12 +237,8 @@ exports.Parser = class Parser
   # Construct a handwritten block with the given
   # text inside
   constructHandwrittenBlock: (text) ->
-    block = new model.Block 0, 'comment', helper.ANY_DROP
+    block = new model.Block 'comment', helper.ANY_DROP, '__comment__'
     if @isComment text
-      block.socketLevel = helper.BLOCK_ONLY
-      block.shape = helper.BLOCK_ONLY
-      block.parseContext = '__comment__'
-
       head = block.start
 
       {sockets, color} = @parseComment(text)
@@ -409,9 +405,7 @@ exports.Parser = class Parser
 
         if line.length is 0 and not placedSomething and stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
-          block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
-          block.shape = helper.ANY_DROP
-          block.parseContext = '__comment__'
+          block = new model.Block @opts.emptyLineColor, helper.BLOCK_ONLY, '__comment__'
 
           head = helper.connect head, block.start
           head = helper.connect head, block.end
@@ -504,7 +498,7 @@ exports.Parser = class Parser
               line.length > 0
             if isPrefix(line[lastIndex...].trimLeft(), @startComment)
               currentlyCommented = true
-              block = new model.Block 0, 'comment', helper.ANY_DROP
+              block = new model.Block 'comment', helper.ANY_DROP, '__comment__'
               stack.push block
 
               helper.connect head, block.start
