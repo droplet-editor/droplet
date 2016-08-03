@@ -3968,6 +3968,10 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
   return unless @session?
   if not @session.currentlyUsingBlocks and not @currentlyAnimating
     beforeTime = +(new Date())
+
+    @session.currentlyUsingBlocks = true
+    @currentlyAnimating = true
+
     @copyAceEditorAsync (setValueResult) =>
       @showLoadingGlyph()
 
@@ -3984,8 +3988,6 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       else
         @mainScroller.scrollTop = @session.view.getViewNodeFor(@session.tree).bounds[@aceEditor.getFirstVisibleRow()].y
 
-      @session.currentlyUsingBlocks = true
-      @currentlyAnimating = true
       @fireEvent 'statechange', [true]
 
       setTimeout (=>
