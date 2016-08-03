@@ -523,8 +523,6 @@ exports.Editor = class Editor
     @session.viewports.main.height = @dropletElement.clientHeight
     @session.viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
 
-    @mainCanvas.setAttribute 'width', @dropletElement.clientWidth - @gutter.clientWidth
-
     @mainCanvas.style.left = "#{@gutter.clientWidth}px"
     @transitionContainer.style.left = "#{@gutter.clientWidth}px"
 
@@ -627,8 +625,8 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
   points = []
 
-  points.push new @draw.Point @mainCanvas.clientWidth, -5
-  points.push new @draw.Point @mainCanvas.clientWidth, height
+  points.push new @draw.Point @dropletElement.clientWidth - @gutter.clientWidth, -5
+  points.push new @draw.Point @dropletElement.clientWidth - @gutter.clientWidth, height
 
   points.push new @draw.Point opts.tabOffset + opts.tabWidth, height
   points.push new @draw.Point opts.tabOffset + opts.tabWidth * (1 - opts.tabSideWidth),
@@ -4270,11 +4268,20 @@ hook 'redraw_main', 1, ->
     bounds.bottom() + (@options.extraBottomHeight ? @session.fontSize),
     @dropletElement.clientHeight
   )
+  width = Math.max(
+    bounds.right()
+    @dropletElement.clientWidth - @gutter.clientWidth
+  )
 
   if height isnt @lastHeight
     @lastHeight = height
     @mainCanvas.setAttribute 'height', height
     @mainCanvas.style.height = "#{height}px"
+
+  if width isnt @lastWidth
+    @lastWidth = width
+    @mainCanvas.setAttribute 'width', width
+    @mainCanvas.style.width = "#{width}px"
 
 # MULTIPLE FONT SIZE SUPPORT
 # ================================
