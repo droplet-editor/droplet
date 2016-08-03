@@ -13,7 +13,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "#include <",
@@ -44,7 +44,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "#include <",
@@ -75,7 +75,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "#define ",
@@ -110,14 +110,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "blank",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
@@ -135,7 +135,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -496,14 +496,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "blank",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
@@ -521,7 +521,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -571,12 +571,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -1029,14 +1029,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "blank",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
@@ -1054,7 +1054,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -1115,12 +1115,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -1271,12 +1271,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -1657,7 +1657,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -1919,14 +1919,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "blank",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
@@ -1944,7 +1944,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -1994,12 +1994,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -2150,12 +2150,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -2261,7 +2261,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -2647,7 +2647,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -2831,7 +2831,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -3072,14 +3072,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "blank",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
@@ -3097,7 +3097,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -3158,12 +3158,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -3359,14 +3359,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "blank",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
@@ -3384,7 +3384,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -3445,12 +3445,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25C0",
+        "glyph": "◀",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "\u25B6",
+        "glyph": "▶",
         "key": "add-button"
       }
     ],
@@ -3599,7 +3599,7 @@ window.FREEZE_DATA.freezeTest = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   "//",
@@ -3806,7 +3806,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -3958,7 +3958,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -4169,7 +4169,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -4254,7 +4254,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -4897,7 +4897,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5060,7 +5060,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5269,7 +5269,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5492,7 +5492,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5597,7 +5597,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5735,7 +5735,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5763,14 +5763,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   " /* start",
@@ -5802,7 +5802,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5830,14 +5830,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   " /* interrupt */",
@@ -5845,14 +5845,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   " /* start",
@@ -5879,7 +5879,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "buttons": [
       {
         "border": false,
-        "glyph": "\u25BC",
+        "glyph": "▼",
         "key": "unlock-socket"
       }
     ],
@@ -5907,14 +5907,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   " /* interrupt */",
@@ -5929,7 +5929,7 @@ window.FREEZE_DATA.commentConsolidation = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   " //",
@@ -6033,7 +6033,7 @@ window.FREEZE_DATA.commentConsolidation = [
       "type": "__comment__"
     },
     "parseContext": "__comment__",
-    "shape": 1,
+    "shape": 0,
     "type": "blockStart"
   },
   " //",
