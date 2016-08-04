@@ -331,6 +331,7 @@ text {
 }
 .droplet-socket-path {
   cursor: text;
+  opacity: 0.5;
 }
 /*
 .droplet-block-path:hover ~ text {
@@ -379,9 +380,6 @@ text {
 .droplet-button-path:hover {
   fill: #FFF;
   opacity: 0.5;
-}
-.droplet-socket-path {
-  /*fill: #FFF;*/
 }
 .droplet-empty-socket-path {
   opacity: 0;

@@ -292,12 +292,10 @@ COLOR_RULES = {
 
   'jumpStatement': 'return', # e.g. `return 0;`
 
-  'postfixExpression': 'command', # e.g. `a(b, c);` OR `a++`
-  'assignmentExpression': 'command', # e.g. `a = b;` OR `a = b`
-  'specialMethodCall': 'command', # e.g. `a(b);`
-  #'initDeclarator': 'command', # e.g. `a = b` when inside `int a = b;`
-  'statement': 'command', # Any statement, like `return 0;`
-  'expressionStatement': 'command', # Statement that consists of an expression, like `a = b;`
+  'postfixExpression': 'value', # e.g. `a(b, c);` OR `a++`
+  'assignmentExpression': 'assign', # e.g. `a = b;` OR `a = b`
+  'specialMethodCall': 'functionCall', # e.g. `a(b);`
+  #'initDeclarator': 'assign', # e.g. `a = b` when inside `int a = b;`
 
   'iterationStatement': 'control', # e.g. `for (int i = 0; i < 10; i++) { }`
   'selectionStatement': 'control', # e.g. if `(a) { } else { }` OR `switch (a) { }`
@@ -460,8 +458,8 @@ config.COLOR_CALLBACK = (opts, node) ->
 
   name = getMethodName node
 
-  if name? and name of opts.functions
-    return opts.functions[name].color
+  if name?
+    return 'functionCall'
   else
     return null
 

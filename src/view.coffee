@@ -27,7 +27,7 @@ CARRIAGE_GROW_DOWN = 3
 DROPDOWN_ARROW_HEIGHT = 8
 
 DROP_TRIANGLE_COLOR = '#555'
-BUTTON_GLYPH_COLOR = '#333'
+BUTTON_GLYPH_COLOR = 'rgba(0, 0, 0, 0.3)'
 SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
@@ -1416,21 +1416,27 @@ exports.View = class View
       if @model.buttons? then for {key, glyph} in @model.buttons
         @buttonGroups[key] = @view.draw.group()
         @buttonPaths[key] = @view.draw.path([
-            new @view.draw.Point 0, @view.opts.bevelClip
-            new @view.draw.Point @view.opts.bevelClip, 0
-
-            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
-            new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
-
-            new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
-            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
-
-            new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
-            new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
+          new @view.draw.Point 0, 0
+          new @view.draw.Point @view.opts.buttonWidth, 0
+          new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight
+          new @view.draw.Point 0, @view.opts.buttonHeight
         ], false, {
           fillColor: 'none'
           cssClass: 'droplet-button-path'
         })
+        ###
+          new @view.draw.Point 0, @view.opts.bevelClip
+          new @view.draw.Point @view.opts.bevelClip, 0
+
+          new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
+          new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
+
+          new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
+          new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
+
+          new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
+          new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
+        ###
 
         @buttonGroups[key].style = {}
 

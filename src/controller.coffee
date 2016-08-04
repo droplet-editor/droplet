@@ -555,6 +555,7 @@ exports.Editor = class Editor
     @mainCanvas.style.left = "#{@gutter.clientWidth}px"
     @transitionContainer.style.left = "#{@gutter.clientWidth}px"
 
+    @paletteResizeBar.style.left = (@paletteWidth - PALETTE_RESIZE_BAR_WIDTH / 2) + 'px'
     @resizePalette()
     @resizeNubby()
     @resizeMainScroller()
@@ -4919,7 +4920,7 @@ hook 'populate', 0, ->
   @textCursorPath = @draw.path([], false, {
     'strokeColor': '#000'
     'lineWidth': '2'
-    'fillColor': 'rgba(0, 0, 256, 0.3)'
+    'fillColor': 'rgba(0, 0, 0, 0.15)'
     'cssClass': 'droplet-cursor-path'
   })
   @textCursorPath.setParent @mainCanvas
