@@ -2996,6 +2996,10 @@ Editor::filterDropdown = (autofill) ->
       @hiddenInput.setSelectionRange searchText.length, firstFound.length
       @redrawTextInput()
 
+  if @dropdownAboveSocket
+    console.log 'dropdownabovesocket!', @dropdownBottom, @dropdownElement.clientHeight
+    @dropdownElement.style.top = (@dropdownBottom - @dropdownElement.clientHeight) + 'px'
+
 Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
   @dropdownVisible = true
   @dropdownSocket = socket
@@ -3071,8 +3075,14 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.minWidth = location.width + 'px'
 
       dropdownTop = location.y + @session.fontSize - @session.viewports.palette.y + @paletteHeaderWrapper.clientHeight
+
       if dropdownTop + @dropdownElement.clientHeight > @paletteElement.clientHeight
+        @dropdownAboveSocket = true
+        @dropdownBottom = dropdownTop - @session.fontSize
         dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
+      else
+        @dropdownAboveSocket = false
+
       @dropdownElement.style.top = dropdownTop + 'px'
     else
       location = @session.view.getViewNodeFor(socket).bounds[0]
@@ -3080,8 +3090,16 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.minWidth = location.width + 'px'
 
       dropdownTop = location.y + @session.fontSize - @session.viewports.main.y
+
       if dropdownTop + @dropdownElement.clientHeight > @dropletElement.clientHeight
+        @dropdownAboveSocket = true
+        @dropdownBottom = dropdownTop - @session.fontSize
+        console.log 'showing dropdown ABOVE'
         dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
+      else
+        @dropdownAboveSocket = false
+
+      @dropdownTop = dropdownTop
       @dropdownElement.style.top = dropdownTop + 'px'
   ), 0
 
