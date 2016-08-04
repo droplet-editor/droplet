@@ -278,12 +278,25 @@ exports.createTreewalkParser = (parse, config, root) ->
 
           when 'socket'
             if context? and @detNode(context) in ['block', 'buttonContainer']
-              @addSocket
-                empty: config.EMPTY_STRINGS?[node.type] ? config.empty
-                bounds: node.bounds
-                depth: depth
-                parseContext: rules[0]
-                dropdown: config.DROPDOWNS?[rules[0]] ? null
+              socketResult = config.SHOULD_SOCKET(@opts, node)
+              if ((not config.SHOULD_SOCKET?) or socketResult is true)
+                @addSocket
+                  empty: config.EMPTY_STRINGS?[node.type] ? config.empty
+                  bounds: node.bounds
+                  depth: depth
+                  parseContext: rules[0]
+                  dropdown: config.DROPDOWNS?[rules[0]] ? null
+
+                if config.EMPTY_STRINGS? and not @opts.preserveEmpty and
+                    helper.clipLines(@lines, node.bounds.start, node.bounds.end) is (config.EMPTY_STRINGS[node.type] ? config.empty)
+                  @flagToRemove node.bounds, depth + 1
+
+              else if socketResult isnt false and socketResult.type is 'locked'
+                @addLockedSocket
+                  bounds: node.bounds
+                  depth: depth
+                  dropdown: socketResult.dropdown
+                  parseContext: rules[0]
 
         for child in node.children
           @mark child, prefix, depth + 2, false

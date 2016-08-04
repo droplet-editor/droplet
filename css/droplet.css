@@ -14,7 +14,6 @@
 }
 .droplet-palette-canvas {
   z-index: 1;
-  width: 300px;
 }
 .droplet-main-canvas {
   background-color:#FFF;
@@ -64,13 +63,11 @@
   position: absolute;
   left: 0; top: 150px; bottom: 0; right: 0;
   z-index: 300;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
 }
 .droplet-palette-wrapper {
   position: absolute;
-  top: 0; bottom: 0; width: 300px;
-  max-width: 40%;
+  top: 0; bottom: 0;
   z-index: 257;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -401,16 +398,14 @@ text {
 }
 .droplet-palette-search-wrapper {
   height: 30px;
-  width: 100%;
+  margin: 5px;
 }
 .droplet-palette-search {
   box-sizing: border-box;
   width: 100%;
   height: 30px;
-  border-right: none;
-  border-left: none;
-  border-top: 1px solid #888;
-  border-bottom: 1px solid #888;
+  border: 1px solid #888;
+  border-radius: 2px;
 }
 .droplet-loading-glyph-wrapper {
   background: #DDD;
@@ -489,4 +484,11 @@ text {
     transform: rotate(360deg);
   }
 }
-
+.droplet-palette-resize-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  cursor: ew-resize;
+  width: 10px;
+  z-index: 300;
+}

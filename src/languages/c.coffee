@@ -78,8 +78,8 @@ RULES = {
   'primaryExpression': 'parens',
   'structDeclaration': 'parens',
 
-
-  'directDeclarator': 'skip'
+  'declarator': 'skip',
+  'directDeclarator': 'skip',
   ###(node) ->
     if not node.parent? or (node.parent.type is 'declarator' and
        node.parent.parent?.type isnt 'functionDefinition' and
@@ -334,37 +334,20 @@ SHAPE_RULES = {
   'castExpression': helper.VALUE_ONLY # e.g. `(b)a`
 }
 
+NATIVE_TYPES =[
+  'int'
+  'char'
+  'double'
+  'long long'
+  'string'
+  'bool'
+  'FILE'
+  'float'
+]
 DROPDOWNS = {
-  'specifierQualifierList': [
-    'int'
-    'char'
-    'double'
-    'long long'
-    'string'
-    'bool'
-    'FILE'
-    'float'
-  ],
-  'declarationSpecifiers': [
-    'int'
-    'char'
-    'double'
-    'long long'
-    'string'
-    'bool'
-    'FILE'
-    'float'
-  ],
-  'declarationSpecifiers2': [
-    'int'
-    'char'
-    'double'
-    'long long'
-    'string'
-    'bool'
-    'FILE'
-    'float'
-  ]
+  'specifierQualifierList': NATIVE_TYPES
+  'declarationSpecifiers': NATIVE_TYPES
+  'declarationSpecifiers2': NATIVE_TYPES
 }
 
 config = {
@@ -429,16 +412,15 @@ config.SHOULD_SOCKET = (opts, node) ->
   #
   # We can only be such an identifier if we have the appropriate number of parents;
   # check.
-  unless ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
-      node.parent?.type is 'specialMethodCall')
-    return true
+  if ((node.parent? and node.parent.parent? and node.parent.parent.parent?) or
+      node.parent?.type is 'specialMethodCall') and
 
-  # Check to see whether the thing we are in is a function
-  if (node.parent?.type is 'specialMethodCall' or getMethodName(node.parent.parent.parent)? and
-     # Check to see whether we are the first child
-     node.parent.parent is node.parent.parent.parent.children[0] and
-     node.parent is node.parent.parent.children[0] and
-     node is node.parent.children[0])
+      (node.parent?.type is 'specialMethodCall' or getMethodName(node.parent.parent.parent)? and
+
+      # Check to see whether we are the first child
+      node.parent.parent is node.parent.parent.parent.children[0] and
+      node.parent is node.parent.parent.children[0] and
+      node is node.parent.children[0])
 
     # If the checks pass, do not socket.
     return {
@@ -446,7 +428,21 @@ config.SHOULD_SOCKET = (opts, node) ->
       dropdown: if opts.functions? then generateDropdown(opts.functions) else null
     }
 
-  return true
+  # We will do a locked socket for all type declarations
+  else if node.type in ['declarationSpecifiers', 'declarationSpecifiers2', 'Int', 'Long', 'Short', 'Float', 'Double', 'Char']
+    return {
+      type: 'locked'
+      dropdown: NATIVE_TYPES
+    }
+
+  else if node.type is 'Identifier' and node.parent.type is 'typedefName'
+    return {
+      type: 'locked'
+      dropdown: NATIVE_TYPES
+    }
+
+  else
+    return true
 
 generateDropdown = (knownFunctions) ->
   result = []
@@ -619,8 +615,6 @@ config.handleButton = (str, type, block) ->
     indent = indents[indents.length - 1]
     preindent = indents[indents.length - 2]
 
-    console.log indent, preindent
-
     # Determine if the last indent is a default
     # or a case
     if preindent?
@@ -643,10 +637,6 @@ config.handleButton = (str, type, block) ->
     )
 
     suffix = str[prefix.length + 1...]
-
-    console.log 'PREFIX', '\n', prefix
-    console.log 'SUFFIX', '\n', suffix
-    console.log prefix + '\n  case n:\n    break;\n' + suffix
 
     return prefix + '\n  case n:\n    break;\n' + suffix
 

@@ -12,6 +12,8 @@ QUAD = require '../vendor/quadtree.js'
 modes = require './modes.coffee'
 
 # ## Magic constants
+PALETTE_RESIZE_BAR_WIDTH = 10
+DEFAULT_PALETTE_WIDTH = 300
 PALETTE_TOP_MARGIN = 5
 PALETTE_MARGIN = 5
 MIN_DRAG_DISTANCE = 1
@@ -201,6 +203,8 @@ exports.Editor = class Editor
 
     @options = helper.deepCopy @options
 
+    @paletteWidth = @options.paletteWidth ? DEFAULT_PALETTE_WIDTH
+
     # ### Wrapper
     # Create the div that will contain all the ICE Editor graphics
 
@@ -224,6 +228,7 @@ exports.Editor = class Editor
     @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
     @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
+    # Then palette wrapper
     @paletteWrapper = document.createElement 'div'
     @paletteWrapper.className = 'droplet-palette-wrapper'
 
@@ -232,14 +237,19 @@ exports.Editor = class Editor
     @paletteWrapper.appendChild @paletteElement
 
     # Then palette canvas
-    @paletteCanvas = @paletteCtx = document.createElementNS SVG_STANDARD, 'svg'
+    @paletteCanvas = document.createElementNS SVG_STANDARD, 'svg'
     @paletteCanvas.setAttribute 'class',  'droplet-palette-canvas'
 
     @paletteWrapper.style.position = 'absolute'
     @paletteWrapper.style.left = '0px'
     @paletteWrapper.style.top = '0px'
     @paletteWrapper.style.bottom = '0px'
-    @paletteWrapper.style.width = '270px'
+    @paletteWrapper.style.width = @paletteWidth + 'px'
+
+    # Make a bar for expanding or shrinking the palette
+    @paletteResizeBar = document.createElement 'div'
+    @paletteResizeBar.className = 'droplet-palette-resize-bar'
+    @paletteResizeBar.style.left = (@paletteWidth - PALETTE_RESIZE_BAR_WIDTH / 2) + 'px'
 
     # We will also have to initialize the
     # drag canvas.
@@ -316,6 +326,7 @@ exports.Editor = class Editor
 
     # Append populated divs
     @wrapperElement.appendChild @dropletElement
+    @wrapperElement.appendChild @paletteResizeBar
     @wrapperElement.appendChild @paletteWrapper
 
     @wrapperElement.style.backgroundColor = '#FFF'
@@ -418,6 +429,24 @@ exports.Editor = class Editor
 
     @resizeBlockMode()
 
+    # Bind to the plaette resize bar to make it resize the palette for real
+    @paletteResizeBar.addEventListener 'mousedown', (downEvent) =>
+      originalWidth = @paletteWidth
+      referenceX = downEvent.clientX
+
+      mousemoveListener = (moveEvent) =>
+        @paletteWidth = originalWidth + moveEvent.clientX - referenceX
+        @resize()
+
+      mouseupListener = =>
+        document.body.removeEventListener 'mousemove', mousemoveListener
+        document.body.removeEventListener 'mouseup', mouseupListener
+
+      document.body.addEventListener 'mousemove', mousemoveListener
+      document.body.addEventListener 'mouseup', mouseupListener
+
+      event.preventDefault()
+
     # Now that we've populated everything, immediately redraw.
     @redrawMain()
     @rebuildPalette()
@@ -518,7 +547,7 @@ exports.Editor = class Editor
       @dropletElement.style.left = "0px"
       @dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
 
-    #@resizeGutter()
+    #@resizeGutter() # TODO copy ace
 
     @session.viewports.main.height = @dropletElement.clientHeight
     @session.viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
@@ -541,6 +570,8 @@ exports.Editor = class Editor
 
     unless @session?.currentlyUsingBlocks or @session?.showPaletteInTextMode and @session?.paletteEnabled
      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
+
+    @paletteWrapper.style.width = @paletteWidth + 'px'
 
     @rebuildPalette()
 
@@ -864,6 +895,7 @@ Editor::redrawPalette = (garbageCollect = false) ->
   # To do this, we will need to keep track
   # of the last bottom edge of a palette block.
   lastBottomEdge = PALETTE_TOP_MARGIN
+  rightEdge = 0
 
   for entry in @session.activePaletteBlocks
     # Layout this block
@@ -872,7 +904,7 @@ Editor::redrawPalette = (garbageCollect = false) ->
 
     # Render the block
     paletteBlockView.draw()
-    paletteBlockView.group.setParent @paletteCtx
+    paletteBlockView.group.setParent @paletteCanvas
 
     unless paletteBlockView.group.element._alreadyTooltipped
       element = document.createElementNS SVG_STANDARD, 'title'
@@ -886,11 +918,13 @@ Editor::redrawPalette = (garbageCollect = false) ->
 
     # Update lastBottomEdge
     lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
+    rightEdge = Math.max rightEdge, paletteBlockView.getBounds().right()
 
   for binding in editorBindings.redraw_palette
     binding.call this
 
   @paletteCanvas.style.height = lastBottomEdge + 'px'
+  @paletteCanvas.style.width = rightEdge + 'px'
 
   if garbageCollect
     @session.paletteView.garbageCollect()
