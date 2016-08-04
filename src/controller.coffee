@@ -3109,12 +3109,12 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.left = location.x - @session.viewports.palette.x + @paletteCanvas.clientLeft + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-      dropdownTop = location.y + @session.fontSize - @session.viewports.palette.y + @paletteHeaderWrapper.clientHeight
+      dropdownTop = location.y + @session.fontSize + 2 * @session.view.opts.textPadding - @session.viewports.palette.y + @paletteHeaderWrapper.clientHeight
 
       if dropdownTop + @dropdownElement.clientHeight > @paletteElement.clientHeight
         @dropdownAboveSocket = true
-        @dropdownBottom = dropdownTop - @session.fontSize
-        dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
+        @dropdownBottom = dropdownTop - @session.fontSize - 2 * @session.view.opts.textPadding
+        dropdownTop = @dropdownBottom - @dropdownElement.clientHeight
       else
         @dropdownAboveSocket = false
 
@@ -3124,13 +3124,12 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @gutter.clientWidth + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-      dropdownTop = location.y + @session.fontSize - @session.viewports.main.y
+      dropdownTop = location.y + @session.fontSize + 2 * @session.view.opts.textPadding - @session.viewports.main.y
 
       if dropdownTop + @dropdownElement.clientHeight > @dropletElement.clientHeight
         @dropdownAboveSocket = true
-        @dropdownBottom = dropdownTop - @session.fontSize
-        console.log 'showing dropdown ABOVE'
-        dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
+        @dropdownBottom = dropdownTop - @session.fontSize - 2 * @session.view.opts.textPadding
+        dropdownTop = @dropdownBottom - @dropdownElement.clientHeight
       else
         @dropdownAboveSocket = false
 
@@ -3425,11 +3424,10 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
       @populateBlock socket.parent, @session.mode.lockedSocketCallback(
         socket.stringifyInPlace(), socket.parent.stringifyInPlace(), socket.parent.parseContext
       ), [destination.location]
-
-    else if '__comment__' isnt socket.parseContext
-      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
     else if socket.handwritten
       @reparse socket.parent, (if destination.document is @session.cursor.document then [destination.location] else [])
+    else if '__comment__' isnt socket.parseContext
+      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
 
     @hiddenInput.blur()
     @dropletElement.focus()

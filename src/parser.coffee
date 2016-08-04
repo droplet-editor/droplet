@@ -250,7 +250,7 @@ exports.Parser = class Parser
 
       if sockets?
         for socketPosition in sockets
-          socket = new model.Socket '', true, null, '__comment__'
+          socket = new model.Socket '', false, null, '__comment__'
           socket.setParent block
 
           padText = text[lastPosition...socketPosition[0]]
