@@ -308,7 +308,7 @@ COLOR_RULES = {
 SHAPE_RULES = {
   'blockItem': helper.BLOCK_ONLY, # Any statement, like `return 0;`
   'expression': helper.VALUE_ONLY, # Any expression, like `a + b`
-  'postfixExpression': helper.BLOCK_ONLY, # e.g. `a(b, c);` OR `a++`
+  'postfixExpression': helper.VALUE_ONLY, # e.g. `a(b, c);` OR `a++`
   'equalityExpression': helper.VALUE_ONLY, # e.g. `a == b`
   'logicalAndExpression': helper.VALUE_ONLY, # e.g. `a && b`
   'logicalOrExpression': helper.VALUE_ONLY, # e.g. `a || b`
@@ -467,10 +467,13 @@ config.COLOR_CALLBACK = (opts, node) ->
 config.SHAPE_CALLBACK = (opts, node) ->
   return null unless opts.functions?
 
-  name = getMethodName node
+  if node.type is 'postfixExpression'
+    name = getMethodName node
 
-  if name? and name of opts.functions
-    return opts.functions[name].shape
+    if name?
+      return helper.BLOCK_ONLY
+    else
+      return helper.VALUE_ONLY
   else
     return null
 

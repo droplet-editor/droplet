@@ -203,7 +203,7 @@ exports.Editor = class Editor
 
     @options = helper.deepCopy @options
 
-    @paletteWidth = @options.paletteWidth ? DEFAULT_PALETTE_WIDTH
+    @paletteWidth = @options?.paletteWidth ? DEFAULT_PALETTE_WIDTH
 
     # ### Wrapper
     # Create the div that will contain all the ICE Editor graphics
@@ -4254,6 +4254,8 @@ Editor::enablePalette = (enabled) ->
 
 
 Editor::toggleBlocks = (cb) ->
+  return unless @session?
+
   if @session.currentlyUsingBlocks
     return @performMeltAnimation 500, 1000, cb
   else
