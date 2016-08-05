@@ -383,7 +383,7 @@ exports.Parser = class Parser
             placedSomething = true
             if isPrefix(line.trimLeft(), @startComment)
               currentlyCommented = true
-              block = new model.Block 0, 'comment', helper.ANY_DROP
+              block = new model.Block 'comment', helper.ANY_DROP, '__comment__'
               stack.push block
 
               helper.connect head, block.start
