@@ -78,7 +78,7 @@ RULES = {
   'primaryExpression': 'parens',
   'structDeclaration': 'parens',
 
-  'declarator': 'skip',
+  #'declarator': 'skip',
   'directDeclarator': 'skip',
   ###(node) ->
     if not node.parent? or (node.parent.type is 'declarator' and
@@ -270,6 +270,7 @@ COLOR_RULES = {
   'structDeclaration': 'struct' # e.g. `int a;` within `struct a { int a; }`
 
   'declarator': 'declaration',
+  'pointerDeclarator': 'declaration',
   'directDeclarator': 'declaration',
   'specifierQualifierList': 'declaration',# e.g `int a;` when inside `struct {}`
   'declaration': 'declaration', # e.g. `int a;`

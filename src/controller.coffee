@@ -115,6 +115,8 @@ class Session
     # Option flags
     @readOnly = false
     @paletteGroups = @options.palette
+    @paletteScrollPositions = ({x: 0, y: 0} for el, i in @paletteGroups)
+    @selectedPaletteGroup = 0
     @showPaletteInTextMode = @options.showPaletteInTextMode ? false
     @paletteEnabled = @options.enablePaletteAtStart ? true
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
@@ -2303,13 +2305,15 @@ Editor::rebuildPaletteHeaders = ->
     paletteGroup._headerElement = paletteGroupHeader
 
     # If we are the first element, make us the selected palette group.
-    if i is 0
+    if i is @session.selectedPaletteGroup
       setTimeout(updatePalette, 0)
 
   @resizePalette()
 
 Editor::setPalette = (paletteGroups) ->
   @session.paletteGroups = helper.deepCopy paletteGroups
+  @session.paletteScrollPositions = ({x: 0, y: 0} for el, i in @session.paletteGroups)
+  @session.selectedPaletteGroup = 0
 
   @session.currentPaletteBlocks = []
   @session.currentPaletteMetadata = []
@@ -2350,10 +2354,17 @@ Editor::setPalette = (paletteGroups) ->
 # group argument can be object, id (string), or name (string)
 #
 Editor::changePaletteGroup = (group) ->
+  newIndex = null
+
   for curGroup, i in @session.paletteGroups
     if group is curGroup or group is curGroup.id or group is curGroup.name
+      newIndex = i
       paletteGroup = curGroup
       break
+
+  unless newIndex is @session.selectedPaletteGroup
+    @session.paletteScrollPositions[@session.selectedPaletteGroup] = {x: @session.viewports.palette.x, y: @session.viewports.palette.y}
+    @session.selectedPaletteGroup = newIndex
 
   if not paletteGroup
     return
@@ -2382,6 +2393,15 @@ Editor::changePaletteGroup = (group) ->
 
   # Redraw the palette.
   @rebuildPalette()
+
+  # Rescroll the palette
+  setTimeout (=>
+    {x, y} = @session.paletteScrollPositions[@session.selectedPaletteGroup]
+    @paletteScroller.scrollLeft = x
+    @paletteScroller.scrollTop = y
+  ), 0
+
+  # Scroll to the desired one
 
   # Reapply the palette search box search
   @reapplySearch()

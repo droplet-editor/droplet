@@ -452,6 +452,15 @@ CListener.prototype.exitDeclarator = function(ctx) {
 };
 
 
+// Enter a parse tree produced by CParser#pointerDeclarator.
+CListener.prototype.enterPointerDeclarator = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#pointerDeclarator.
+CListener.prototype.exitPointerDeclarator = function(ctx) {
+};
+
+
 // Enter a parse tree produced by CParser#directDeclarator.
 CListener.prototype.enterDirectDeclarator = function(ctx) {
 };
