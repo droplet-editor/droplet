@@ -3424,6 +3424,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
       @populateBlock socket.parent, @session.mode.lockedSocketCallback(
         socket.stringifyInPlace(), socket.parent.stringifyInPlace(), socket.parent.parseContext
       ), [destination.location]
+
     else if socket.handwritten
       @reparse socket.parent, (if destination.document is @session.cursor.document then [destination.location] else [])
     else if '__comment__' isnt socket.parseContext
@@ -3956,10 +3957,14 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     paletteDisappearingWithMelt = @session.paletteEnabled and not @session.showPaletteInTextMode
 
+    console.log 'Palette disappearing with melt', paletteDisappearingWithMelt
+
     if paletteDisappearingWithMelt
       # Move the palette header into the background
       @paletteHeader.style.zIndex = 0
 
+      @paletteResizeBar.style.display = 'none'
+      console.log 'I did just hide the palette resize bar'
       setTimeout (=>
         @dropletElement.style.transition =
           @paletteWrapper.style.transition = "left #{translateTime}ms"
@@ -4057,6 +4062,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
           @paletteWrapper.style.top = '0px'
           @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
           @paletteHeader.style.zIndex = 0
+
+          @paletteResizeBar.style.display = ''
 
         @dropletElement.style.top = "0px"
         if @session.paletteEnabled and not paletteAppearingWithFreeze
@@ -4696,6 +4703,8 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
         @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
         @dropletElement.style.left = '0px'
 
+      @paletteResizeBar.style.display = ''
+
       @aceElement.style.top = @aceElement.style.left = '-9999px'
 
       @lineNumberWrapper.style.display = 'block'
@@ -4734,6 +4743,8 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
     else
       @paletteWrapper.style.top = '0px'
       @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
+
+    @paletteResizeBar.style.display = 'none'
 
     @aceElement.style.top = '0px'
     if paletteVisibleInNewState

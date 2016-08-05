@@ -265,7 +265,9 @@ COLOR_DEFAULTS = {
 COLOR_RULES = {
   'declarationSpecifiers': 'type'
   'declarationSpecifiers2': 'type'
-  'structOrUnionSpecifier': 'type'
+
+  'structOrUnionSpecifier': 'struct' # e.g. `struct a { }`
+  'structDeclaration': 'struct' # e.g. `int a;` within `struct a { int a; }`
 
   'declarator': 'declaration',
   'directDeclarator': 'declaration',
@@ -273,7 +275,6 @@ COLOR_RULES = {
   'declaration': 'declaration', # e.g. `int a;`
   'parameterDeclaration': 'declaration', # e.g. `int a` when in `int myMethod(int a) { }`
   'externalDeclaration': 'declaration', # e.g. `int a = b` when global
-  'structDeclaration': 'declaration', # e.g. `struct a { }`
 
   'functionDefinition': 'function', # e.g. `int myMethod() { }`
 
