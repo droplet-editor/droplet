@@ -356,9 +356,6 @@ exports.Editor = class Editor
     @aceEditor.on 'changeSession', (e) =>
       if @sessions.contains(e.session)
         @updateNewSession @sessions.get(e.session)
-      else if e.session._dropletSession?
-        @updateNewSession e.session._dropletSession
-        @sessions.set(e.session, e.session._dropletSession)
       else
         @updateNewSession null
         @setEditorState false
@@ -624,7 +621,6 @@ exports.Editor = class Editor
       session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, opts, @standardViewSettings, @worker
       @sessions.set(@aceEditor.getSession(), session)
       @session = session
-      @aceEditor.getSession()._dropletSession = @session
       @session.currentlyUsingBlocks = false
 
       unless opts.textModeAtStart
