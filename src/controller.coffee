@@ -3032,7 +3032,6 @@ Editor::filterDropdown = (autofill) ->
       @redrawTextInput()
 
   if @dropdownAboveSocket
-    console.log 'dropdownabovesocket!', @dropdownBottom, @dropdownElement.clientHeight
     @dropdownElement.style.top = (@dropdownBottom - @dropdownElement.clientHeight) + 'px'
 
 Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
@@ -3957,14 +3956,11 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     paletteDisappearingWithMelt = @session.paletteEnabled and not @session.showPaletteInTextMode
 
-    console.log 'Palette disappearing with melt', paletteDisappearingWithMelt
-
     if paletteDisappearingWithMelt
       # Move the palette header into the background
       @paletteHeader.style.zIndex = 0
 
       @paletteResizeBar.style.display = 'none'
-      console.log 'I did just hide the palette resize bar'
       setTimeout (=>
         @dropletElement.style.transition =
           @paletteWrapper.style.transition = "left #{translateTime}ms"
