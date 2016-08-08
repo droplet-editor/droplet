@@ -4046,6 +4046,11 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       unless setValueResult.success
         if setValueResult.error
           @fireEvent 'parseerror', [setValueResult.error]
+
+        # Note that we have not yet toggled
+        @currentlyAnimating = false
+        @session.currentlyUsingBlocks = false
+
         @hideLoadingGlyph()
         return setValueResult
 
