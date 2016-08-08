@@ -17,6 +17,14 @@ PYTHON_BUILTIN = ['type', 'object', 'hashCount', 'none', 'NotImplemented', 'pyCh
 PYTHON_KEYWORDS = PYTHON_KEYWORDS.concat(PYTHON_BUILTIN)
 PYTHON_KEYWORDS = PYTHON_KEYWORDS.filter((v, i) -> return PYTHON_KEYWORDS.indexOf(v) == i) # remove possible duplicates
 
+ADD_BUTTON_VERT = [
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
+
 # PARSER SECTION
 parse = (context, text) ->
   result = transform skulpt.parser.parse('file.py', text, context), text.split('\n')
@@ -50,7 +58,7 @@ getFunctionName = (node) ->
     siblingNode = node.children[0].children?[0]
 
   if siblingNode?.type in ['T_KEYWORD', 'T_NAME']
-    return siblingNode.meta.value
+    return siblingNode.data.text
 
   if node.parent? then getFunctionName(node.parent)
 
@@ -83,28 +91,6 @@ insertButton = (opts, node) ->
   else
     return null
 
-handleButton = (text, button, oldBlocks) ->
-  checkElif = (node) ->
-    res = 'init'
-    if node.type is 'if_stmt'
-      node.children?.forEach((c) -> if c.type is 'T_KEYWORD' then res = c.meta.value)
-    else
-      node.children?.forEach((c) -> res = checkElif(c))
-    return res
-
-  if button is 'add-button' and 'if_stmt' in oldBlocks.classes
-    node = parse({}, text).children[0]
-    elif = checkElif(node)
-
-    if elif is 'if' or elif is 'elif'
-      text += '''\nelse:\n  print \'hi\''''
-    else if elif is 'else'
-      text = text.replace('else:', 'elif a == b:')
-      text += '''\nelse:\n  print \'hi\''''
-
-  return text
-
-
 transform = (node, lines, parent = null) ->
   type = skulpt.tables.ParseTables.number2symbol[node.type] ? skulpt.Tokenizer.tokenNames[node.type] ? node.type
 
@@ -116,8 +102,8 @@ transform = (node, lines, parent = null) ->
     type: type
     bounds: getBounds(node, lines)
     parent: parent
-    meta: {
-      value: node.value ? null
+    data: {
+      text: node.value ? null
     } # language-specific meta-data
   }
 
@@ -156,7 +142,12 @@ config = {
     # Sockets
     'T_NAME': 'socket',
     'T_NUMBER': 'socket',
-    'T_STRING': 'socket'
+    'T_STRING': 'socket',
+
+    'if_stmt': (node) ->
+      if node.children[0].data.text is 'if'
+        return {type: 'block', buttons: ADD_BUTTON_VERT}
+      return 'block'
   }
 
   PAREN_RULES: {}
@@ -165,30 +156,55 @@ config = {
   DROPDOWN_CALLBACK: getDropdown
   COLOR_CALLBACK: getColor
   BUTTON_CALLBACK: insertButton
-  HANDLE_BUTTON_CALLBACK: handleButton
 
-  COLOR_RULES: [
-    ['term', 'value'],
-    ['funcdef', 'control'],
-    ['for_stmt', 'control'],
-    ['while_stmt', 'control'],
-    ['with_stmt', 'control'],
-    ['if_stmt', 'control'],
-    ['try_stmt', 'control'],
-    ['import_stmt', 'command'],
-    ['print_stmt', 'command'],
-    ['expr_stmt', 'command'],
-    ['return_stmt', 'return'],
-    ['testlist', 'value'],
-    ['comparison', 'value'],
-    ['test', 'value'],
-    ['expr', 'value']
-  ]
+  COLOR_RULES: {
+    'term': 'value',
+    'funcdef': 'control',
+    'for_stmt': 'control',
+    'while_stmt': 'control',
+    'with_stmt': 'control',
+    'if_stmt': 'control',
+    'try_stmt': 'control',
+    'import_stmt': 'command',
+    'print_stmt': 'command',
+    'expr_stmt': 'command',
+    'return_stmt': 'return',
+    'testlist': 'value',
+    'comparison': 'value',
+    'test': 'value',
+    'expr': 'value'
+  }
+
   SHAPE_RULES: []
 }
 
 config.SHOULD_SOCKET = (opts, node) ->
-  return node.meta.value not in Object.keys(opts.functions) or getArgNum(node) isnt null
+  return node.data.text not in Object.keys(opts.functions) or getArgNum(node) isnt null
+
+checkElif = (node) ->
+  res = 'init'
+  if node.type is 'if_stmt'
+    node.children?.forEach((c) -> if c.type is 'T_KEYWORD' then res = c.data.text)
+  else
+    node.children?.forEach((c) -> res = checkElif(c))
+  return res
+
+config.handleButton = (str, type, block) ->
+  blockType = block.nodeContext?.type ? block.parseContext
+
+  if type is 'add-button'
+    if blockType is 'if_stmt'
+      node = parse({}, str).children[0]
+      elif = checkElif(node)
+
+      if elif is 'if' or elif is 'elif'
+        str += '''\nelse:\n  print \'hi\''''
+      else if elif is 'else'
+        str = str.replace('else:', 'elif a == b:')
+        str += '''\nelse:\n  print \'hi\''''
+      return str
+  else
+    return str
 
 result = treewalk.createTreewalkParser parse, config
 result.canParse = (node) ->

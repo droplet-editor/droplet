@@ -70,6 +70,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
     getColor: (node) ->
       color = config.COLOR_CALLBACK?(@opts, node)
+
       if color?
         return color
 
@@ -263,7 +264,7 @@ exports.createTreewalkParser = (parse, config, root) ->
             bounds: node.bounds
             depth: depth
             parseContext: rules[0]
-			dropdown: config.DROPDOWN_CALLBACK?(@opts, node) ? null
+            dropdown: config.DROPDOWN_CALLBACK?(@opts, node) ? null
 
           if config.EMPTY_STRINGS? and not @opts.preserveEmpty and helper.clipLines(@lines, node.bounds.start, node.bounds.end) is config.empty
             @flagToRemove node.bounds, depth + 1
