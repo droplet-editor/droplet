@@ -4621,10 +4621,16 @@ Editor::setValueAsync_raw = (value, cb) ->
 
 Editor::setValueAsync = (value, cb) ->
   if @session?.currentlyUsingBlocks
-    @setValueAsync_raw value, cb
+    @setValueAsync_raw value, (result) =>
+      if result.success
+        cb?(result)
+      else
+        @setEditorState false
+        @aceEditor.setValue value
+        cb?(result)
   else
     @aceEditor.setValue value
-    cb?()
+    cb?(success: true)
 
 Editor::setValue = (value) ->
   if not @session?
@@ -4702,16 +4708,19 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
       throw new ArgumentError 'cannot switch to blocks if a session has not been set up.'
 
     unless @session.currentlyUsingBlocks and not force
-      cb = =>
-        @redrawMain()
+      cb = (result) =>
+        if result.success
+          @redrawMain()
+        else
+          @setEditorState false
 
       @session.currentlyUsingBlocks = true
 
       if updateValue
         if async
-          @setValueAsync @getAceValue(), cb
+          @setValueAsync_raw @getAceValue(), cb
         else
-          @setValue_raw @getAceValue()
+          cb @setValue_raw @getAceValue()
 
       @dropletElement.style.top = '0px'
       if @session.paletteEnabled
@@ -4734,7 +4743,7 @@ Editor::setEditorState = (useBlocks, async = false, force = false, updateValue =
       @resizeBlockMode()
 
       if (not async) or (not updateValue)
-        cb()
+        cb {success: true}
 
   else
     # Forbid melting if there is an empty socket. If there is,
