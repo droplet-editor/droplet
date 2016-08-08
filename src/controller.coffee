@@ -3735,7 +3735,9 @@ Editor::copyAceEditor = ->
 Editor::copyAceEditorAsync = (cb) ->
   @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
   @resizeBlockMode()
-  @setValueAsync_raw @getAceValue(), cb
+
+  value = @getAceValue()
+  @setValueAsync_raw value, cb
 
 # For animation and ace editor,
 # we will need a couple convenience functions
@@ -4022,7 +4024,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
         @_animationCallback()
         @_animationCallback = null
 
-      if cb? then do cb
+      cb?()
     ), fadeTime + translateTime
 
     return success: true
@@ -4047,12 +4049,17 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         if setValueResult.error
           @fireEvent 'parseerror', [setValueResult.error]
 
-        # Note that we have not yet toggled
+        # Note that we are done with animation
         @currentlyAnimating = false
-        @session.currentlyUsingBlocks = false
+
+        # Fall back to text mode
+        @setEditorState false, false, false, false
 
         @hideLoadingGlyph()
-        return setValueResult
+
+        cb?(setValueResult)
+
+        return
 
       if @aceEditor.getFirstVisibleRow() is 0
         @mainScroller.scrollTop = 0
@@ -4197,7 +4204,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
           @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
 
-          if cb? then do cb
+          cb?(success: true)
 
           if @_animationCallback?
             @_animationCallback()
