@@ -267,11 +267,11 @@ asyncTest 'Controller: does not throw on reparse error', ->
   editor.setEditorState(true)
   editor.setValue('var hello = function (a) {};')
 
-  simulate('mousedown', '.droplet-main-canvas', {dx: 220, dy: 30})
-  simulate('mouseup', '.droplet-main-canvas', {dx: 220, dy: 30})
+  simulate('mousedown', '.droplet-main-canvas', {dx: 15, dy: 15})
+  simulate('mouseup', '.droplet-main-canvas', {dx: 15, dy: 15})
 
   ok(editor.getCursor(), 'Has text focus')
-  equal(editor.getCursor().stringify(), 'a')
+  equal(editor.getCursor().stringify(), 'hello')
 
   $('.droplet-hidden-input').sendkeys('18n')
 
@@ -1182,9 +1182,9 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
     cb = ->
       if count is 0
         start()
-      else
+      else if count % 10 is 0
         ok editor.session.mode.parse(editor.getValue()), 'Still in a parseable state'
-        setTimeout (-> tick count - 1), 0
+      setTimeout (-> tick count - 1), 0
 
     if rng() > 0.1
       op = getRandomDragOp(editor, rng)
@@ -1193,4 +1193,4 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
       op = getRandomTextOp(editor, rng)
       performTextOperation editor, op, cb
 
-  tick 50
+  tick 100

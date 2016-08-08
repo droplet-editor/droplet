@@ -340,12 +340,12 @@ var serializedATN = ["\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd",
     "\2\2\2\u01de\u01df\3\2\2\2\u01df\r\3\2\2\2\u01e0\u01de\3\2\2\2\u01e1",
     "\u01f8\5\n\6\2\u01e2\u01e3\7J\2\2\u01e3\u01f8\5\16\b\2\u01e4\u01e5\7",
     "L\2\2\u01e5\u01f8\5\16\b\2\u01e6\u01e7\5\20\t\2\u01e7\u01e8\5\22\n\2",
-    "\u01e8\u01f8\3\2\2\2\u01e9\u01ea\7)\2\2\u01ea\u01f8\5\16\b\2\u01eb\u01ec",
-    "\7)\2\2\u01ec\u01ed\7=\2\2\u01ed\u01ee\5|?\2\u01ee\u01ef\7>\2\2\u01ef",
-    "\u01f8\3\2\2\2\u01f0\u01f1\7\64\2\2\u01f1\u01f2\7=\2\2\u01f2\u01f3\5",
-    "|?\2\u01f3\u01f4\7>\2\2\u01f4\u01f8\3\2\2\2\u01f5\u01f6\7R\2\2\u01f6",
+    "\u01e8\u01f8\3\2\2\2\u01e9\u01ea\7)\2\2\u01ea\u01eb\7=\2\2\u01eb\u01ec",
+    "\5|?\2\u01ec\u01ed\7>\2\2\u01ed\u01f8\3\2\2\2\u01ee\u01ef\7)\2\2\u01ef",
+    "\u01f8\5\16\b\2\u01f0\u01f1\7\64\2\2\u01f1\u01f2\7=\2\2\u01f2\u01f3",
+    "\5|?\2\u01f3\u01f4\7>\2\2\u01f4\u01f8\3\2\2\2\u01f5\u01f6\7R\2\2\u01f6",
     "\u01f8\7k\2\2\u01f7\u01e1\3\2\2\2\u01f7\u01e2\3\2\2\2\u01f7\u01e4\3",
-    "\2\2\2\u01f7\u01e6\3\2\2\2\u01f7\u01e9\3\2\2\2\u01f7\u01eb\3\2\2\2\u01f7",
+    "\2\2\2\u01f7\u01e6\3\2\2\2\u01f7\u01e9\3\2\2\2\u01f7\u01ee\3\2\2\2\u01f7",
     "\u01f0\3\2\2\2\u01f7\u01f5\3\2\2\2\u01f8\17\3\2\2\2\u01f9\u01fa\t\2",
     "\2\2\u01fa\21\3\2\2\2\u01fb\u0208\5\16\b\2\u01fc\u01fd\7=\2\2\u01fd",
     "\u01fe\5|?\2\u01fe\u01ff\7>\2\2\u01ff\u0200\5\22\n\2\u0200\u0208\3\2",
@@ -719,13 +719,13 @@ var serializedATN = ["\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd",
     "\u0644\5\16\b\2\u0644\u0645\7\2\2\3\u0645\u0661\3\2\2\2\u0646\u0647",
     "\7L\2\2\u0647\u0648\5\16\b\2\u0648\u0649\7\2\2\3\u0649\u0661\3\2\2\2",
     "\u064a\u064b\5\20\t\2\u064b\u064c\5\22\n\2\u064c\u064d\7\2\2\3\u064d",
-    "\u0661\3\2\2\2\u064e\u064f\7)\2\2\u064f\u0650\5\16\b\2\u0650\u0651\7",
-    "\2\2\3\u0651\u0661\3\2\2\2\u0652\u0653\7)\2\2\u0653\u0654\7=\2\2\u0654",
-    "\u0655\5|?\2\u0655\u0656\7>\2\2\u0656\u0657\7\2\2\3\u0657\u0661\3\2",
-    "\2\2\u0658\u0659\7\64\2\2\u0659\u065a\7=\2\2\u065a\u065b\5|?\2\u065b",
+    "\u0661\3\2\2\2\u064e\u064f\7)\2\2\u064f\u0650\7=\2\2\u0650\u0651\5|",
+    "?\2\u0651\u0652\7>\2\2\u0652\u0653\7\2\2\3\u0653\u0661\3\2\2\2\u0654",
+    "\u0655\7)\2\2\u0655\u0656\5\16\b\2\u0656\u0657\7\2\2\3\u0657\u0661\3",
+    "\2\2\2\u0658\u0659\7\64\2\2\u0659\u065a\7=\2\2\u065a\u065b\5|?\2\u065b",
     "\u065c\7>\2\2\u065c\u065d\7\2\2\3\u065d\u0661\3\2\2\2\u065e\u065f\7",
     "R\2\2\u065f\u0661\7k\2\2\u0660\u063f\3\2\2\2\u0660\u0642\3\2\2\2\u0660",
-    "\u0646\3\2\2\2\u0660\u064a\3\2\2\2\u0660\u064e\3\2\2\2\u0660\u0652\3",
+    "\u0646\3\2\2\2\u0660\u064a\3\2\2\2\u0660\u064e\3\2\2\2\u0660\u0654\3",
     "\2\2\2\u0660\u0658\3\2\2\2\u0660\u065e\3\2\2\2\u0661\u00bb\3\2\2\2\u0662",
     "\u066a\7P\2\2\u0663\u066a\7M\2\2\u0664\u066a\7I\2\2\u0665\u066a\7K\2",
     "\2\u0666\u066a\7V\2\2\u0667\u0668\7U\2\2\u0668\u066a\7\2\2\3\u0669\u0662",
@@ -2501,19 +2501,19 @@ CParser.prototype.unaryExpression = function() {
             this.state = 487;
             this.match(CParser.Sizeof);
             this.state = 488;
-            this.unaryExpression();
+            this.match(CParser.LeftParen);
+            this.state = 489;
+            this.typeName();
+            this.state = 490;
+            this.match(CParser.RightParen);
             break;
 
         case 6:
             this.enterOuterAlt(localctx, 6);
-            this.state = 489;
-            this.match(CParser.Sizeof);
-            this.state = 490;
-            this.match(CParser.LeftParen);
-            this.state = 491;
-            this.typeName();
             this.state = 492;
-            this.match(CParser.RightParen);
+            this.match(CParser.Sizeof);
+            this.state = 493;
+            this.unaryExpression();
             break;
 
         case 7:
@@ -11419,21 +11419,21 @@ CParser.prototype.unaryExpression_DropletFile = function() {
             this.state = 1612;
             this.match(CParser.Sizeof);
             this.state = 1613;
-            this.unaryExpression();
+            this.match(CParser.LeftParen);
             this.state = 1614;
+            this.typeName();
+            this.state = 1615;
+            this.match(CParser.RightParen);
+            this.state = 1616;
             this.match(CParser.EOF);
             break;
 
         case 6:
             this.enterOuterAlt(localctx, 6);
-            this.state = 1616;
-            this.match(CParser.Sizeof);
-            this.state = 1617;
-            this.match(CParser.LeftParen);
             this.state = 1618;
-            this.typeName();
+            this.match(CParser.Sizeof);
             this.state = 1619;
-            this.match(CParser.RightParen);
+            this.unaryExpression();
             this.state = 1620;
             this.match(CParser.EOF);
             break;

@@ -15,60 +15,211 @@ asyncTest 'Basic Document parsing', ->
       </body>
     </html>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="lightblue"
-      socketLevel="0"
-      classes="#documentType">&amp;lt;!doctype html&amp;gt;</block>
-    <block
-      precedence="1"
-      color="lightblue"
-      socketLevel="0"
-      classes="html">&amp;lt;html&amp;gt;<indent
-      prefix="  "
-      classes="html">
-    <block
-      precedence="1"
-      color="lightblue"
-      socketLevel="0"
-      classes="head">&amp;lt;head&amp;gt;<indent
-      prefix="  "
-      classes="head">
-    <block
-      precedence="1"
-      color="lightblue"
-      socketLevel="0"
-      classes="title">&amp;lt;title&amp;gt;<indent
-      prefix="  "
-      classes="title"><block
-      precedence="1"
-      color="lightgreen"
-      socketLevel="0"
-      classes="#text"><socket
-      precedence="0"
-      handwritten="false"
-      classes="#text">Hello</socket></block></indent>&amp;lt;/title&amp;gt;</block></indent>
-    &amp;lt;/head&amp;gt;</block>
-    <block
-      precedence="1"
-      color="orange"
-      socketLevel="0"
-      classes="body">&amp;lt;body&amp;gt;<indent
-      prefix="  "
-      classes="body">
-    <block
-      precedence="1"
-      color="lightgreen"
-      socketLevel="0"
-      classes="#text"><socket
-      precedence="0"
-      handwritten="false"
-      classes="#text">Welcome to my page!</socket></block></indent>
-    &amp;lt;/body&amp;gt;</block></indent>
-    &amp;lt;/html&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "lightblue",
+      "nodeContext": {
+        "prefix": "<!doctype html>",
+        "suffix": "<!doctype html>",
+        "type": "emptyTag"
+      },
+      "parseContext": "emptyTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<!doctype html>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "lightblue",
+      "nodeContext": {
+        "prefix": "<html>",
+        "suffix": "</html>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<html>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "lightblue",
+      "nodeContext": {
+        "prefix": "<head>",
+        "suffix": "</head>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<head>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "lightblue",
+      "nodeContext": {
+        "prefix": "<title>",
+        "suffix": "</title>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<title>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "color": "lightgreen",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "text"
+      },
+      "parseContext": "text",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "text",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "Hello",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    "</title>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</head>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "orange",
+      "nodeContext": {
+        "prefix": "<body>",
+        "suffix": "</body>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<body>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "lightgreen",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "text"
+      },
+      "parseContext": "text",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "text",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "Welcome to my page!",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</body>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</html>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      customSerialization,
+      expectedSerialization,
       'The parser is working in a basic sense')
   return start()
 
@@ -82,33 +233,107 @@ asyncTest 'Removal of Empty nodes', ->
       </p>
     </html>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="lightblue"
-      socketLevel="0"
-      classes="html">&amp;lt;html&amp;gt;<indent
-      prefix="  "
-      classes="html">
-    <block
-      precedence="1"
-      color="purple"
-      socketLevel="0"
-      classes="p">&amp;lt;p&amp;gt;<indent
-      prefix="  "
-      classes="p">
-    <block
-      precedence="1"
-      color="lightgreen"
-      socketLevel="0"
-      classes="#text"><socket
-      precedence="0"
-      handwritten="false"
-      classes="#text">Welcome to my world</socket></block></indent>
-    &amp;lt;/p&amp;gt;</block></indent>
-    &amp;lt;/html&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "lightblue",
+      "nodeContext": {
+        "prefix": "<html>",
+        "suffix": "</html>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<html>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "purple",
+      "nodeContext": {
+        "prefix": "<p>",
+        "suffix": "</p>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<p>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "lightgreen",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "text"
+      },
+      "parseContext": "text",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "text",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "Welcome to my world",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</p>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</html>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      (customSerialization),
+      (expectedSerialization),
       'Artificial nodes are removed')
   return start()
 
@@ -121,45 +346,151 @@ asyncTest 'Optional Closing tags', ->
       <li>Item2
     </ul>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="purple"
-      socketLevel="0"
-      classes="ul">&amp;lt;ul&amp;gt;<indent
-      prefix="  "
-      classes="ul">
-    <block
-      precedence="1"
-      color="purple"
-      socketLevel="0"
-      classes="li">&amp;lt;li&amp;gt;<indent
-      prefix="  "
-      classes="li"><block
-      precedence="1"
-      color="lightgreen"
-      socketLevel="0"
-      classes="#text"><socket
-      precedence="0"
-      handwritten="false"
-      classes="#text">Item1</socket></block></indent></block>
-    <block
-      precedence="1"
-      color="purple"
-      socketLevel="0"
-      classes="li">&amp;lt;li&amp;gt;<indent
-      prefix="  "
-      classes="li"><block
-      precedence="1"
-      color="lightgreen"
-      socketLevel="0"
-      classes="#text"><socket
-      precedence="0"
-      handwritten="false"
-      classes="#text">Item2</socket></block></indent></block></indent>
-    &amp;lt;/ul&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "purple",
+      "nodeContext": {
+        "prefix": "<ul>",
+        "suffix": "</ul>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<ul>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "purple",
+      "nodeContext": {
+        "prefix": "<li>",
+        "suffix": "",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<li>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "color": "lightgreen",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "text"
+      },
+      "parseContext": "text",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "text",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "Item1",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "purple",
+      "nodeContext": {
+        "prefix": "<li>",
+        "suffix": "",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<li>",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "color": "lightgreen",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "text"
+      },
+      "parseContext": "text",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "text",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "Item2",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</ul>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+
+  deepEqual(
+      customSerialization,
+      expectedSerialization,
       'Optional closing elements are closed properly')
   return start()
 
@@ -171,21 +502,63 @@ asyncTest 'Attribute Sockets', ->
 
     </body>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="orange"
-      socketLevel="0"
-      classes="body">&amp;lt;body <socket
-      precedence="0"
-      handwritten="false"
-      classes="#attribute">background="red"</socket>&amp;gt;<indent
-      prefix="  "
-      classes="body">
-    </indent>
-    &amp;lt;/body&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "orange",
+      "nodeContext": {
+        "prefix": "<body ",
+        "suffix": "</body>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<body ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "blockTag",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "background=\"red\"",
+    {
+      "type": "socketEnd"
+    },
+    ">",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": "",
+      "type": "newline"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</body>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+
+  deepEqual(
+      customSerialization,
+      expectedSerialization,
       'Attributes are socketed')
   return start()
 
@@ -197,21 +570,62 @@ asyncTest 'Scoket empty attribute values', ->
 
     </body>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="orange"
-      socketLevel="0"
-      classes="body">&amp;lt;body <socket
-      precedence="0"
-      handwritten="false"
-      classes="#attribute">background = ""</socket>&amp;gt;<indent
-      prefix="  "
-      classes="body">
-    </indent>
-    &amp;lt;/body&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "orange",
+      "nodeContext": {
+        "prefix": "<body ",
+        "suffix": "</body>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<body ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "blockTag",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "background = \"\"",
+    {
+      "type": "socketEnd"
+    },
+    ">",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": "",
+      "type": "newline"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</body>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+  deepEqual(
+      customSerialization,
+      expectedSerialization,
       'Empty Attribute values are part of sockets')
   return start()
 
@@ -226,21 +640,63 @@ asyncTest 'Check overrides', ->
 
     </body>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="green"
-      socketLevel="0"
-      classes="body">&amp;lt;body <socket
-      precedence="0"
-      handwritten="false"
-      classes="#attribute">background = ""</socket>&amp;gt;<indent
-      prefix="  "
-      classes="body">
-    </indent>
-    &amp;lt;/body&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "green",
+      "nodeContext": {
+        "prefix": "<body ",
+        "suffix": "</body>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<body ",
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "blockTag",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "background = \"\"",
+    {
+      "type": "socketEnd"
+    },
+    ">",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": "",
+      "type": "newline"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</body>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+
+  deepEqual(
+      customSerialization,
+      expectedSerialization,
       'Tag and category overrides work')
   return start()
 
@@ -252,24 +708,75 @@ asyncTest 'Trailing Space', ->
       Hello
     </body>
     ''').serialize()
-  expectedSerialization = '''<document><block
-      precedence="1"
-      color="orange"
-      socketLevel="0"
-      classes="body">&amp;lt;body>   <indent
-      prefix="  "
-      classes="body">
-    <block
-      precedence="1"
-      color="lightgreen"
-      socketLevel="0"
-      classes="#text"><socket
-      precedence="0"
-      handwritten="false"
-      classes="#text">Hello</socket></block></indent>
-    &amp;lt;/body&amp;gt;</block></document>'''
-  strictEqual(
-      helper.xmlPrettyPrint(customSerialization),
-      helper.xmlPrettyPrint(expectedSerialization),
+  expectedSerialization = [
+    {
+      "indentContext": undefined,
+      "type": "documentStart"
+    },
+    {
+      "color": "orange",
+      "nodeContext": {
+        "prefix": "<body>   ",
+        "suffix": "</body>",
+        "type": "blockTag"
+      },
+      "parseContext": "blockTag",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    "<body>   ",
+    {
+      "indentContext": "blockTag",
+      "prefix": "  ",
+      "type": "indentStart"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    {
+      "color": "lightgreen",
+      "nodeContext": {
+        "prefix": "",
+        "suffix": "",
+        "type": "text"
+      },
+      "parseContext": "text",
+      "shape": 0,
+      "type": "blockStart"
+    },
+    {
+      "dropdown": false,
+      "handwritten": false,
+      "parseContext": "text",
+      "type": "socketStart",
+      "emptyString": ""
+    },
+    "Hello",
+    {
+      "type": "socketEnd"
+    },
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "indentEnd"
+    },
+    {
+      "specialIndent": undefined,
+      "type": "newline"
+    },
+    "</body>",
+    {
+      "type": "blockEnd"
+    },
+    {
+      "type": "documentEnd"
+    }
+  ]
+
+  deepEqual(
+      customSerialization,
+      expectedSerialization,
       'Trailing space is part of parent block')
   return start()

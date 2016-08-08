@@ -17,26 +17,16 @@ c = new C()
 asyncTest 'Parser success', ->
   window.dumpObj = []
   for testCase in parserSuccessData
-    strictEqual(
-      helper.xmlPrettyPrint(coffee.parse(testCase.str, wrapAtRoot: true).serialize()),
-      helper.xmlPrettyPrint(testCase.expected),
+    deepEqual(
+      coffee.parse(testCase.str, wrapAtRoot: true).serialize(),
+      testCase.expected,
       testCase.message
     )
     window.dumpObj.push {
       message: testCase.message
       str: testCase.str
-      expected: helper.xmlPrettyPrint coffee.parse(testCase.str, wrapAtRoot: true).serialize()
+      expected: coffee.parse(testCase.str, wrapAtRoot: true).serialize()
     }
-  start()
-
-asyncTest 'XML parser unity', ->
-  for testCase in parserSuccessData
-    xml = coffee.parse(testCase.str, wrapAtRoot: true).serialize()
-    strictEqual(
-      helper.xmlPrettyPrint(parser.parseXML(xml).serialize()),
-      helper.xmlPrettyPrint(xml),
-      'Parser unity for: ' + testCase.message
-    )
   start()
 
 asyncTest 'View: compute children', ->
