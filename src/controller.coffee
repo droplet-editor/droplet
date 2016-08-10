@@ -1787,7 +1787,10 @@ hook 'mouseup', 1, (point, event, state) ->
       # across parenthesis insertion
       hadTextToken = @draggingBlock.start.next.type is 'text'
 
-      @spliceOut @draggingBlock
+      # Don't remove the original block if the alt key is pressed
+      # TODO: For windows, this would be the CTRL key?
+      if not event.altKey
+        @spliceOut @draggingBlock
 
       @clearHighlightCanvas()
 
@@ -1799,6 +1802,11 @@ hook 'mouseup', 1, (point, event, state) ->
       # beginning or at its end.
       #
       # We will need to log undo operations here too.
+
+      # For ALT-drag to copy the block
+      if event.altKey
+        @draggingBlock = @draggingBlock.clone()
+
       switch @lastHighlight.type
         when 'indent', 'socket'
           @spliceIn @draggingBlock, @lastHighlight.start
