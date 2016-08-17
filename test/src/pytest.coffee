@@ -2,7 +2,7 @@ helper = require '../../src/helper.coffee'
 Python = require '../../src/languages/python.coffee'
 
 asyncTest 'Python basic parsing', ->
-  customPy = new Python({
+  py = new Python({
     functions: {
       'print': {
         value: true
@@ -10,83 +10,62 @@ asyncTest 'Python basic parsing', ->
     }
   })
 
-  customSerialization = customPy.parse(
+  serialRes = py.parse(
     '''
     print 'hello'
     '''
   ).serialize()
 
-  expectedSerialization = '''
-    <document><block
-    precedence="0"
-    color="command"
-    socketLevel="0"
-    classes="__parse__small_stmt __parse__print_stmt any-drop">print <socket
-    precedence="0"
-    handwritten="false"
-    classes="__parse__test __parse__or_test __parse__and_test __parse__not_test __parse__comparison __parse__expr __parse__xor_expr __parse__and_expr __parse__shift_expr __parse__arith_expr __parse__term __parse__factor __parse__power __parse__atom __parse__T_STRING">&apos;hello&apos;</socket></block></document>'''
+  # why is "indentContext":undefined required here?
+  serialComp = [{"type":"documentStart","indentContext":undefined,
+  },
+    {"type":"blockStart","color":"command","shape":0,"parseContext":"print_stmt","nodeContext":{"type":"print_stmt","prefix":"print ","suffix":""}},
+    "print ",
+    {"type":"socketStart","emptyString":"__0_droplet__","parseContext":"test","handwritten":false,"dropdown":false},"'hello'",{"type":"socketEnd"},
+    {"type":"blockEnd"},
+    {"type":"documentEnd"}]
 
-  strictEqual(
-    helper.xmlPrettyPrint(customSerialization),
-    helper.xmlPrettyPrint(expectedSerialization),
-    'Dotted known functions work'
-  )
-
+  deepEqual serialRes, serialComp, 'Basic parsing should work'
   start()
 
 asyncTest 'Py indent', ->
-  customPy = new Python({
+  py = new Python({
     functions: {}
   })
   code = 'for i in range(0, 10):\n continue'
-  customSerialization = customPy.parse('for i in range(0, 10):\n continue')
-  stringifiedPy = customSerialization.stringify()
-  strictEqual(code, stringifiedPy)
+  result = py.parse(code)
+  stringifiedRes = result.stringify()
+  strictEqual(code, stringifiedRes)
   start()
 
 asyncTest 'Py for loop', ->
-  customPy = new Python({
+  py = new Python({
     functions: {}
   })
 
-  customSerialization = customPy.parse('for i in range(0, 10):\n continue').serialize()
+  serialRes = py.parse('for i in range(0, 10):\n continue').serialize()
+  serialComp = [{"type":"documentStart","indentContext":undefined},
+    {"type":"blockStart","color":"control","shape":0,"parseContext":"for_stmt","nodeContext":{"type":"for_stmt","prefix":"for ","suffix":""}},
+    "for ",
+    {"type":"socketStart","emptyString":"__0_droplet__","parseContext":"exprlist","handwritten":false,"dropdown":false},"i",{"type":"socketEnd"},
+    " in ",
+    {"type":"socketStart","emptyString":"__0_droplet__","parseContext":"testlist","handwritten":false,"dropdown":false},
+    {"type":"blockStart","color":"comment","shape":0,"parseContext":"power","nodeContext":{"type":"power","prefix":"range(","suffix":")"}},
+    "range(",
+    {"type":"socketStart","emptyString":"__0_droplet__","parseContext":"argument","handwritten":false,"dropdown":false},"0",{"type":"socketEnd"},
+    ", ",
+    {"type":"socketStart","emptyString":"__0_droplet__","parseContext":"argument","handwritten":false,"dropdown":false},"10",{"type":"socketEnd"}
+  ,")",
+    {"type":"blockEnd"},
+    {"type":"socketEnd"},":",
+    {"type":"indentStart","prefix":" ","indentContext":"small_stmt"},{"type":"newline","specialIndent":undefined, # ???
+    },
+    {"type":"blockStart","color":0,"shape":1,"parseContext":0,"nodeContext":{"type":"__comment__","prefix":"","suffix":""}},
+    {"type":"socketStart","emptyString":"","parseContext":null,"handwritten":true,"dropdown":false},"continue",{"type":"socketEnd"},{"type":"blockEnd"},{"type":"indentEnd"},
+    {"type":"blockEnd"},
+    {"type":"documentEnd"}]
 
-  expectedSerialization = '''<document><block
-precedence="0"
-color="control"
-socketLevel="0"
-classes="__parse__stmt \__parse__compound_stmt __parse__for_stmt any-drop">for <socket
-precedence="0"
-handwritten="false"
-classes="__parse__exprlist __parse__expr __parse__xor_expr __parse__and_expr __parse__shift_expr __parse__arith_expr __parse__term __parse__factor __parse__power __parse__atom __parse__T_NAME">i</socket> in <socket
-precedence="0"
-handwritten="false"
-classes="__parse__testlist __parse__test __parse__or_test __parse__and_test __parse__not_test __parse__comparison __parse__expr __parse__xor_expr __parse__and_expr __parse__shift_expr __parse__arith_expr __parse__term __parse__factor __parse__power"><block
-precedence="0"
-color="value"
-socketLevel="0"
-classes="__parse__testlist __parse__test __parse__or_test __parse__and_test __parse__not_test __parse__comparison __parse__expr __parse__xor_expr __parse__and_expr __parse__shift_expr __parse__arith_expr __parse__term __parse__factor __parse__power any-drop">range(<socket
-precedence="0"
-handwritten="false"
-classes="__parse__argument __parse__test __parse__or_test __parse__and_test __parse__not_test __parse__comparison __parse__expr __parse__xor_expr __parse__and_expr __parse__shift_expr __parse__arith_expr __parse__term __parse__factor __parse__power __parse__atom __parse__T_NUMBER">0</socket>, <socket
-precedence="0"
-handwritten="false"
-classes="__parse__argument __parse__test __parse__or_test __parse__and_test __parse__not_test __parse__comparison __parse__expr __parse__xor_expr __parse__and_expr __parse__shift_expr __parse__arith_expr __parse__term __parse__factor __parse__power __parse__atom __parse__T_NUMBER">10</socket>)</block></socket>:<indent
-prefix=" "
-classes="__parse__suite">
-<block
-precedence="0"
-color="comment"
-socketLevel="0"
-classes="__handwritten\__ block-only"><socket
-precedence="0"
-handwritten="true"
-classes="">continue</socket></block></indent></block></document>'''
-
-  strictEqual(
-    helper.xmlPrettyPrint(customSerialization),
-    helper.xmlPrettyPrint(expectedSerialization)
-  )
+  deepEqual serialRes, serialComp, 'For loop block and indent should work'
   start()
 
 

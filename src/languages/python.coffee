@@ -25,6 +25,19 @@ ADD_BUTTON_VERT = [
   }
 ]
 
+BOTH_BUTTON_VERT = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25B2'
+    border: false
+  }
+  {
+    key: 'add-button'
+    glyph: '\u25BC'
+    border: false
+  }
+]
+
 # PARSER SECTION
 parse = (context, text) ->
   result = transform skulpt.parser.parse('file.py', text, context), text.split('\n')
@@ -146,7 +159,7 @@ config = {
 
     'if_stmt': (node) ->
       if node.children[0].data.text is 'if'
-        return {type: 'block', buttons: ADD_BUTTON_VERT}
+        return {type: 'block', buttons: BOTH_BUTTON_VERT}
       return 'block'
   }
 
@@ -168,6 +181,7 @@ config = {
     'import_stmt': 'command',
     'print_stmt': 'command',
     'expr_stmt': 'command',
+    'pass_stmt': 'command',
     'return_stmt': 'return',
     'testlist': 'value',
     'comparison': 'value',
@@ -175,7 +189,13 @@ config = {
     'expr': 'value'
   }
 
-  SHAPE_RULES: []
+  SHAPE_RULES: [],
+
+#  empty: '__0_droplet__',
+#  EMPTY_STRINGS: ['pass_stmt'] # put "pass" equivalent token here
+  EMPTY_STRINGS: {
+    'stmt': 'pass'
+  }
 }
 
 config.SHOULD_SOCKET = (opts, node) ->
@@ -191,20 +211,29 @@ checkElif = (node) ->
 
 config.handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
+  if blockType is 'if_stmt'
+    node = parse({}, str).children[0]
+    elif = checkElif(node)
 
-  if type is 'add-button'
-    if blockType is 'if_stmt'
-      node = parse({}, str).children[0]
-      elif = checkElif(node)
+    console.log node
 
+    if type is 'add-button'
       if elif is 'if' or elif is 'elif'
-        str += '''\nelse:\n  print \'hi\''''
+        str += '''\nelse:\n  pass'''
       else if elif is 'else'
         str = str.replace('else:', 'elif a == b:')
-        str += '''\nelse:\n  print \'hi\''''
+        str += '''\nelse:\n  pass'''
       return str
-  else
-    return str
+    else if type is 'subtract-button'
+      if elif is 'if' or elif is 'elif'
+        str = str.substr(0, str.lastIndexOf('\nelif '))
+      else if elif is 'else'
+        str = str.substr(0, str.indexOf('\nelse:'))
+      return str
+    else
+      return str
+
+  return str
 
 result = treewalk.createTreewalkParser parse, config
 result.canParse = (node) ->
