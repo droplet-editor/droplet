@@ -7,16 +7,17 @@ helper = require '../helper.coffee'
 model = require '../model.coffee'
 parser = require '../parser.coffee'
 
+{fixQuotedString, looseCUnescape, quoteAndCEscape} = helper
+
 {CoffeeScript} = require '../../vendor/coffee-script.js'
 
-ANY_DROP = ['any-drop']
-BLOCK_ONLY = ['block-only']
-MOSTLY_BLOCK = ['mostly-block']
-MOSTLY_VALUE = ['mostly-value']
-VALUE_ONLY = ['value-only']
-LVALUE = ['lvalue']
-FORBID_ALL = ['forbid-all']
-PROPERTY_ACCESS = ['prop-access']
+{
+  ANY_DROP
+  BLOCK_ONLY
+  MOSTLY_BLOCK
+  MOSTLY_VALUE
+  VALUE_ONLY
+} = helper
 
 KNOWN_FUNCTIONS =
   'alert'       : {}
@@ -144,19 +145,29 @@ OPERATOR_PRECEDENCES =
   '**': 7
   '%%': 7
 
+PRECEDENCES = {
+  'Semicolon': -3
+  'Range': 100
+  'Arr': 100
+  'PropertyAccess': 100
+  'For': -4
+  'While': -4
+  'Expression' : 0
+  'Call': 0
+  'Callee': 100
+  'LastCallArg': -1
+}
+
+for operator, precedence of OPERATOR_PRECEDENCES
+  PRECEDENCES['Operator' + operator] = precedence
+
+getPrecedence = (type) ->
+  PRECEDENCES[type] ? 0
+
 YES = -> yes
 NO = -> no
 
 spacestring = (n) -> (' ' for [0...Math.max(0, n)]).join('')
-
-getClassesFor = (node) ->
-  classes = []
-
-  classes.push node.nodeType()
-  if node.nodeType() is 'Call' and (not node.do) and (not node.isNew)
-    classes.push 'works-as-method-call'
-
-  return classes
 
 annotateCsNodes = (tree) ->
   tree.eachChild (child) ->
@@ -208,7 +219,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     # Mark all the nodes
     # in the block.
     for node in nodes
-      @mark node, 3, 0, null, 0
+      @mark node, 3, null, 0
 
     # Deal with semicoloned lines
     # at the root level
@@ -216,6 +227,11 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
   isComment: (str) ->
     str.match(/^\s*#.*$/)?
+
+  parseComment: (str) ->
+    {
+      sockets: [[str.match(/^\s*#/)?[0].length, str.length]]
+    }
 
   stripComments: ->
     # Preprocess comment lines:
@@ -316,9 +332,8 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       @addSocket {
         bounds: @boundCombine @getBounds(node.params[0]), @getBounds(node.params[node.params.length - 1])
         depth,
-        precedence: 0,
         dropdown: null,
-        classes: ['forbid-all', '__function_param__']
+        parseContext: '__comment__'
         empty: ''
       }
 
@@ -339,16 +354,15 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             }
           },
           depth,
-          precedence: 0,
           dropdown: null,
-          classes: ['forbid-all', '__function_param__']
+          parseContext: '__comment__'
           empty: ''
         }
-    @mark node.body, depth, 0, null, indentDepth
+    @mark node.body, depth, null, indentDepth
 
   # ## mark ##
   # Mark a single node.  The main recursive function.
-  mark: (node, depth, precedence, wrappingParen, indentDepth) ->
+  mark: (node, depth, wrappingParen, indentDepth) ->
 
     switch node.nodeType()
 
@@ -377,7 +391,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           shouldBeOneLine = true
 
         if shouldBeOneLine
-          @csSocket node, depth, 0
+          @csSocket node, depth, 'Block'
 
         # Otherwise, wrap in an indent.
         else
@@ -408,7 +422,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
         # Mark children. We do this at depth + 3 to
         # make room for semicolon wrappers where necessary.
         for expr in node.expressions
-          @mark expr, depth + 3, 0, null, indentDepth
+          @mark expr, depth + 3, null, indentDepth
 
         # Wrap semicolons.
         @wrapSemicolons node.expressions, depth
@@ -423,18 +437,18 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       when 'Parens'
         if node.body?
           unless node.body.nodeType() is 'Block'
-            @mark node.body, depth + 1, 0, (wrappingParen ? node), indentDepth
+            @mark node.body, depth + 1, (wrappingParen ? node), indentDepth
           else
             if node.body.unwrap() is node.body
               # We are filled with some things
               # connected by semicolons; wrap them all,
-              @csBlock node, depth, -2, null, MOSTLY_BLOCK
+              @csBlock node, depth, 'Semicolon', null, MOSTLY_BLOCK
 
               for expr in node.body.expressions
-                @csSocketAndMark expr, depth + 1, -2, indentDepth
+                @csSocketAndMark expr, depth + 1, 'Expression', indentDepth
 
             else
-              @mark node.body.unwrap(), depth + 1, 0, (wrappingParen ? node), indentDepth
+              @mark node.body.unwrap(), depth + 1, (wrappingParen ? node), indentDepth
 
       # ### Op ###
       # Color VALUE, sockets @first and (sometimes) @second
@@ -462,61 +476,61 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             node.first?.base?.nodeType?() is 'Literal'
           return
 
-        @csBlock node, depth, OPERATOR_PRECEDENCES[node.operator], wrappingParen, VALUE_ONLY
+        @csBlock node, depth, 'Operator' + node.operator, wrappingParen, VALUE_ONLY
 
-        @csSocketAndMark node.first, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
+        @csSocketAndMark node.first, depth + 1, 'Operator' + node.operator, indentDepth
 
         if node.second?
-          @csSocketAndMark node.second, depth + 1, OPERATOR_PRECEDENCES[node.operator], indentDepth
+          @csSocketAndMark node.second, depth + 1, 'Operator' + node.operator, indentDepth
 
       # ### Existence ###
-      # Color VALUE, socket @expression, precedence 100
+      # Color VALUE, socket @expression
       when 'Existence'
-        @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
-        @csSocketAndMark node.expression, depth + 1, 101, indentDepth
+        @csBlock node, depth, 'Existence', wrappingParen, VALUE_ONLY
+        @csSocketAndMark node.expression, depth + 1, 'Existence', indentDepth
 
       # ### In ###
-      # Color VALUE, sockets @object and @array, precedence 100
+      # Color VALUE, sockets @object and @array
       when 'In'
-        @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
-        @csSocketAndMark node.object, depth + 1, 0, indentDepth
-        @csSocketAndMark node.array, depth + 1, 0, indentDepth
+        @csBlock node, depth, 'In', wrappingParen, VALUE_ONLY
+        @csSocketAndMark node.object, depth + 1, 'In', indentDepth
+        @csSocketAndMark node.array, depth + 1, 'In', indentDepth
 
       # ### Value ###
       # Completely pass through to @base; we do not care
       # about this node.
       when 'Value'
         if node.properties? and node.properties.length > 0
-          @csBlock node, depth, 0, wrappingParen, MOSTLY_VALUE
-          @csSocketAndMark node.base, depth + 1, 0, indentDepth
+          @csBlock node, depth, 'PropertyAccess', wrappingParen, MOSTLY_VALUE
+          @csSocketAndMark node.base, depth + 1, 'PropertyAccess', indentDepth
           for property in node.properties
             if property.nodeType() is 'Access'
-              @csSocketAndMark property.name, depth + 1, -2, indentDepth, PROPERTY_ACCESS
+              @csSocketAndMark property.name, depth + 1, 'Identifier', indentDepth
             else if property.nodeType() is 'Index'
-              @csSocketAndMark property.index, depth + 1, 0, indentDepth
+              @csSocketAndMark property.index, depth + 1, 'Expression', indentDepth
 
         # Fake-remove backticks hack
         else if node.base.nodeType() is 'Literal' and
             (node.base.value is '' or node.base.value is @empty)
           fakeBlock =
-              @csBlock node.base, depth, 0, wrappingParen, ANY_DROP
+              @csBlock node.base, depth, '__flag_to_remove__', wrappingParen, ANY_DROP
           fakeBlock.flagToRemove = true
 
         # Preserved-error backticks hack
         else if node.base.nodeType() is 'Literal' and
             /^#/.test(node.base.value)
-          @csBlock node.base, depth, 0, wrappingParen, ANY_DROP
+          @csBlock node.base, depth, '__flag_to_strip__', wrappingParen, ANY_DROP
           errorSocket = @csSocket node.base, depth + 1, -2
           errorSocket.flagToStrip = { left: 2, right: 1 }
 
         else
-          @mark node.base, depth + 1, 0, wrappingParen, indentDepth
+          @mark node.base, depth + 1, wrappingParen, indentDepth
 
       # ### Keywords ###
       when 'Literal'
         if node.value in STATEMENT_KEYWORDS
           # handle break and continue
-          @csBlock node, depth, 0, wrappingParen, BLOCK_ONLY
+          @csBlock node, depth, 'Keyword', wrappingParen, BLOCK_ONLY
         else
           # otherwise, leave it as a white block
           0
@@ -536,12 +550,12 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           known = @lookupFunctionName namenodes
           if known
             if known.fn.value
-              classes = if known.fn.command then ANY_DROP else MOSTLY_VALUE
+              shape = if known.fn.command then ANY_DROP else MOSTLY_VALUE
             else
-              classes = MOSTLY_BLOCK
+              shape = MOSTLY_BLOCK
           else
-            classes = ANY_DROP
-          @csBlock node, depth, 0, wrappingParen, classes
+            shape = ANY_DROP
+          @csBlock node, depth, 'Call', wrappingParen, shape
 
           variableBounds = @getBounds(node.variable)
           hasCallParen = (@lines[variableBounds.end.line][variableBounds.end.column] == '(')
@@ -552,11 +566,11 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           else if not known
             # In the 'advanced' case where the methodname should be
             # editable, treat the whole (x.y.fn) as an expression to socket.
-            @csSocketAndMark node.variable, depth + 1, 0, indentDepth
+            @csSocketAndMark node.variable, depth + 1, 'Callee', indentDepth
           else if known.anyobj and node.variable.properties?.length > 0
             # In the 'beginner' case of a simple method call with a
             # simple base object variable, let the variable be socketed.
-            @csSocketAndMark node.variable.base, depth + 1, 0, indentDepth
+            @csSocketAndMark node.variable.base, depth + 1, 'PropertyAccess', indentDepth
 
           if not known and node.args.length is 0 and not node.do
             # The only way we can have zero arguments in CoffeeScript
@@ -575,67 +589,67 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
             @addSocket {
               bounds: {start, end}
               depth,
-              precedence: 0,
               dropdown: null,
-              classes: ['mostly-value']
+              parseContext: 'Expression'
               empty: ''
             }
         else
-          @csBlock node, depth, 0, wrappingParen, ANY_DROP
+          @csBlock node, depth, 'Call', wrappingParen, ANY_DROP
 
         unless node.do
           for arg, index in node.args
             last = index is node.args.length - 1
             # special case: the last argument slot of a function
             # gathers anything inside it, without parens needed.
-            precedence = if last then -1 else 0
             if last and arg.nodeType() is 'Code'
               # Inline function definitions that appear as the last arg
               # of a function call will be melded into the parent block.
               @addCode arg, depth + 1, indentDepth
+            else if last
+              @csSocketAndMark arg, depth + 1, 'LastCallArg', indentDepth, known?.fn?.dropdown?[index]
             else if not known and hasCallParen and index is 0 and node.args.length is 1
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index], ''
+              @csSocketAndMark arg, depth + 1, 'Expression', indentDepth, known?.fn?.dropdown?[index], ''
             else
-              @csSocketAndMark arg, depth + 1, precedence, indentDepth, null, known?.fn?.dropdown?[index]
+              @csSocketAndMark arg, depth + 1, 'Expression', indentDepth, known?.fn?.dropdown?[index]
 
       # ### Code ###
       # Function definition. Color VALUE, sockets @params,
       # and indent @body.
       when 'Code'
-        @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
+        @csBlock node, depth, 'Function', wrappingParen, VALUE_ONLY
         @addCode node, depth + 1, indentDepth
 
       # ### Assign ###
       # Color COMMAND, sockets @variable and @value.
       when 'Assign'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK
-        @csSocketAndMark node.variable, depth + 1, 0, indentDepth, LVALUE
+        @csBlock node, depth, 'Assign', wrappingParen, MOSTLY_BLOCK
+        @csSocketAndMark node.variable, depth + 1, 'Lvalue', indentDepth
 
         if node.value.nodeType() is 'Code'
           @addCode node.value, depth + 1, indentDepth
         else
-          @csSocketAndMark node.value, depth + 1, 0, indentDepth
+          @csSocketAndMark node.value, depth + 1, 'Expression', indentDepth
 
       # ### For ###
       # Color CONTROL, options sockets @index, @source, @name, @from.
       # Indent/socket @body.
       when 'For'
-        @csBlock node, depth, -3, wrappingParen, MOSTLY_BLOCK
+        @csBlock node, depth, 'For', wrappingParen, MOSTLY_BLOCK
 
         for childName in ['source', 'from', 'guard', 'step']
-          if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth
+          if node[childName]? then @csSocketAndMark node[childName], depth + 1, 'ForModifier', indentDepth
 
         for childName in ['index', 'name']
-          if node[childName]? then @csSocketAndMark node[childName], depth + 1, 0, indentDepth, FORBID_ALL
+          if node[childName]? then @csSocketAndMark node[childName], depth + 1, 'Lvalue', indentDepth
 
-        @mark node.body, depth + 1, 0, null, indentDepth
+        @mark node.body, depth + 1, null, indentDepth
 
       # ### Range ###
       # Color VALUE, sockets @from and @to.
       when 'Range'
-        @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
-        @csSocketAndMark node.from, depth, 0, indentDepth
-        @csSocketAndMark node.to, depth, 0, indentDepth
+        @csBlock node, depth, 'Range', wrappingParen, VALUE_ONLY
+        @csSocketAndMark node.from, depth, 'Expression', indentDepth
+        @csSocketAndMark node.to, depth, 'Expression', indentDepth
 
       # ### If ###
       # Color CONTROL, socket @condition.
@@ -644,7 +658,7 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # Special case: "unless" keyword; in this case
       # we want to skip the Op that wraps the condition.
       when 'If'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK, {addButton: true}
+        @csBlock node, depth, 'If', wrappingParen, MOSTLY_BLOCK, {addButton: '+'}
 
         # Check to see if we are an "unless".
         # We will deem that we are an unless if:
@@ -668,9 +682,9 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
         else
         ###
 
-        @csSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
+        @csSocketAndMark node.rawCondition, depth + 1, 'If', indentDepth
 
-        @mark node.body, depth + 1, 0, null, indentDepth
+        @mark node.body, depth + 1, null, indentDepth
 
         currentNode = node
 
@@ -678,14 +692,14 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
           if currentNode.isChain
             currentNode = currentNode.elseBodyNode()
             @csSocketAndMark currentNode.rawCondition, depth + 1, 0, indentDepth
-            @mark currentNode.body, depth + 1, 0, null, indentDepth
+            @mark currentNode.body, depth + 1, null, indentDepth
 
           else if currentNode.elseBody?
             # Artificially "mark" the line containing the "else"
             # token, so that the following body can be single-line
             # if necessary.
             @flagLineAsMarked currentNode.elseToken.first_line
-            @mark currentNode.elseBody, depth + 1, 0, null, indentDepth
+            @mark currentNode.elseBody, depth + 1, null, indentDepth
             currentNode = null
 
           else
@@ -694,72 +708,100 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
       # ### Arr ###
       # Color VALUE, sockets @objects.
       when 'Arr'
-        @csBlock node, depth, 100, wrappingParen, VALUE_ONLY
+        @csBlock node, depth, 'Arr', wrappingParen, VALUE_ONLY
 
         if node.objects.length > 0
           @csIndentAndMark indentDepth, node.objects, depth + 1
         for object in node.objects
           if object.nodeType() is 'Value' and object.base.nodeType() is 'Literal' and
               object.properties?.length in [0, undefined]
-            @csBlock object, depth + 2, 100, null, VALUE_ONLY
+            @csBlock object, depth + 2, 'Value', null, VALUE_ONLY
 
       # ### Return ###
       # Color RETURN, optional socket @expression.
       when 'Return'
-        @csBlock node, depth, 0, wrappingParen, BLOCK_ONLY
+        @csBlock node, depth, 'Return', wrappingParen, BLOCK_ONLY
         if node.expression?
-          @csSocketAndMark node.expression, depth + 1, 0, indentDepth
+          @csSocketAndMark node.expression, depth + 1, 'Expression', indentDepth
 
       # ### While ###
       # Color CONTROL. Socket @condition, socket/indent @body.
       when 'While'
-        @csBlock node, depth, -3, wrappingParen, MOSTLY_BLOCK
-        @csSocketAndMark node.rawCondition, depth + 1, 0, indentDepth
-        if node.guard? then @csSocketAndMark node.guard, depth + 1, 0, indentDepth
-        @mark node.body, depth + 1, 0, null, indentDepth
+        @csBlock node, depth, 'While', wrappingParen, MOSTLY_BLOCK
+        @csSocketAndMark node.rawCondition, depth + 1, 'Expression', indentDepth
+        if node.guard? then @csSocketAndMark node.guard, depth + 1, 'Expression', indentDepth
+        @mark node.body, depth + 1, null, indentDepth
 
       # ### Switch ###
       # Color CONTROL. Socket @subject, optional sockets @cases[x][0],
       # indent/socket @cases[x][1]. indent/socket @otherwise.
       when 'Switch'
-        @csBlock node, depth, 0, wrappingParen, MOSTLY_BLOCK
+        @csBlock node, depth, 'Switch', wrappingParen, MOSTLY_BLOCK
 
-        if node.subject? then @csSocketAndMark node.subject, depth + 1, 0, indentDepth
+        if node.subject? then @csSocketAndMark node.subject, depth + 1, 'Expression', indentDepth
 
         for switchCase in node.cases
           if switchCase[0].constructor is Array
             for condition in switchCase[0]
-              @csSocketAndMark condition, depth + 1, 0, indentDepth # (condition)
+              @csSocketAndMark condition, depth + 1, 'Expression', indentDepth # (condition)
           else
-            @csSocketAndMark switchCase[0], depth + 1, 0, indentDepth # (condition)
-          @mark switchCase[1], depth + 1, 0, null, indentDepth # (body)
+            @csSocketAndMark switchCase[0], depth + 1, 'Expression', indentDepth # (condition)
+          @mark switchCase[1], depth + 1, null, indentDepth # (body)
 
         if node.otherwise?
-          @mark node.otherwise, depth + 1, 0, null, indentDepth
+          @mark node.otherwise, depth + 1, null, indentDepth
 
       # ### Class ###
       # Color CONTROL. Optional sockets @variable, @parent. Optional indent/socket
       # @obdy.
       when 'Class'
-        @csBlock node, depth, 0, wrappingParen, ANY_DROP
+        @csBlock node, depth, 'Class', wrappingParen, ANY_DROP
 
-        if node.variable? then @csSocketAndMark node.variable, depth + 1, 0, indentDepth, FORBID_ALL
-        if node.parent? then @csSocketAndMark node.parent, depth + 1, 0, indentDepth
+        if node.variable? then @csSocketAndMark node.variable, depth + 1, 'Identifier', indentDepth
+        if node.parent? then @csSocketAndMark node.parent, depth + 1, 'Expression', indentDepth
 
-        if node.body? then @mark node.body, depth + 1, 0, null, indentDepth
+        if node.body? then @mark node.body, depth + 1, null, indentDepth
 
       # ### Obj ###
       # Color VALUE. Optional sockets @property[x].variable, @property[x].value.
       # TODO: This doesn't quite line up with what we want it to be visually;
       # maybe our View architecture is wrong.
       when 'Obj'
-        @csBlock node, depth, 0, wrappingParen, VALUE_ONLY
+        @csBlock node, depth, 'Obj', wrappingParen, VALUE_ONLY
 
         for property in node.properties
           if property.nodeType() is 'Assign'
-            @csSocketAndMark property.variable, depth + 1, 0, indentDepth, FORBID_ALL
-            @csSocketAndMark property.value, depth + 1, 0, indentDepth
+            @csSocketAndMark property.variable, depth + 1, 'Identifier', indentDepth
+            @csSocketAndMark property.value, depth + 1, 'Expression', indentDepth
 
+
+  handleButton: (text, button, oldBlock) ->
+    if button is 'add-button' and oldBlock.nodeContext.type is 'If'
+      # Parse to find the last "else" or "else if"
+      node = CoffeeScript.nodes(text, {
+        locations: true
+        line: 0
+        allowReturnOutsideFunction: true
+      }).expressions[0]
+
+      lines = text.split '\n'
+
+      currentNode = node
+      elseLocation = null
+
+      while currentNode.isChain
+        currentNode = currentNode.elseBodyNode()
+
+      if currentNode.elseBody?
+        lines = text.split('\n')
+        elseLocation = {
+          line: currentNode.elseToken.last_line
+          column: currentNode.elseToken.last_column + 2
+        }
+        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
+        return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
+      else
+        return text + '\nelse\n  ``'
 
   locationsAreIdentical: (a, b) ->
     return a.line is b.line and a.column is b.column
@@ -914,18 +956,21 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
 
     return container
 
+  getNodeContext: (type, node, wrappingParen) ->
+    return new parser.PreNodeContext type, 0, 0 # TODO use wrappingParen properly
+
   # ## csBlock ##
-  # A general utility function for adding an ICE editor
+  # A general utility function for adding an Droplet editor
   # block around a given node.
-  csBlock: (node, depth, precedence, wrappingParen, classes = [], buttons) ->
+  csBlock: (node, depth, type, wrappingParen, shape, buttons) ->
     @addBlock {
       bounds: @getBounds (wrappingParen ? node)
       depth: depth
-      precedence: precedence
       color: @getColor(node)
-      classes: getClassesFor(node).concat classes
-      parenWrapped: wrappingParen?
       buttons: buttons
+      shape: shape
+
+      nodeContext: @getNodeContext type, node, wrappingParen
     }
 
   # Add an indent node and guess
@@ -960,22 +1005,23 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
   csIndentAndMark: (indentDepth, nodes, depth) ->
     trueDepth = @csIndent indentDepth, nodes[0], nodes[nodes.length - 1], depth
     for node in nodes
-      @mark node, depth + 1, 0, null, trueDepth
+      @mark node, depth + 1, null, trueDepth
 
   # ## csSocket ##
   # A similar utility function for adding sockets.
-  csSocket: (node, depth, precedence, classes = [], dropdown, empty) ->
+  csSocket: (node, depth, type, dropdown, empty) ->
     @addSocket {
       bounds: @getBounds node
-      depth, precedence, dropdown, empty
-      classes: getClassesFor(node).concat classes
+      depth,
+      parseContext: type
+      dropdown, empty
     }
 
   # ## csSocketAndMark ##
   # Adds a socket for a node, and recursively @marks it.
-  csSocketAndMark: (node, depth, precedence, indentDepth, classes, dropdown, empty) ->
-    socket = @csSocket node, depth, precedence, classes, dropdown, empty
-    @mark node, depth + 1, precedence, null, indentDepth
+  csSocketAndMark: (node, depth, type, indentDepth, dropdown, empty) ->
+    socket = @csSocket node, depth, type, dropdown, empty
+    @mark node, depth + 1, null, indentDepth
     return socket
 
   # ## wrapSemicolonLine ##
@@ -989,15 +1035,15 @@ exports.CoffeeScriptParser = class CoffeeScriptParser extends parser.Parser
     @addBlock {
       bounds: surroundingBounds
       depth: depth + 1
-      precedence: -2
+      parseContext: 'program'
+      nodeContext: new parser.PreNodeContext('semicolon', 0, 0), # TODO Determine parenthesis wrapping etc. for more rigorous paren-wrapping mechanics
       color: @opts.categories['command'].color
-      socketLevel: ANY_DROP
-      classes: ['semicolon']
+      shape: ANY_DROP
     }
 
     # Add sockets for each expression
     for child in expressions
-      @csSocket child, depth + 2, -2
+      @csSocket child, depth + 2, 'semicolon'
 
   # ## wrapSemicolons ##
   # If there are mutliple expressions we have on the same line,
@@ -1067,41 +1113,6 @@ fixCoffeeScriptError = (lines, e) ->
 
   return null
 
-# To fix quoting errors, we first do a lenient C-unescape, then
-# we do a string C-escaping, to add backlsashes where needed, but
-# not where we already have good ones.
-fixQuotedString = (lines) ->
-  line = lines[0]
-  quotechar = if /^"|"$/.test(line) then '"' else "'"
-  if line.charAt(0) is quotechar
-    line = line.substr(1)
-  if line.charAt(line.length - 1) is quotechar
-    line = line.substr(0, line.length - 1)
-  return lines[0] = quoteAndCEscape looseCUnescape(line), quotechar
-
-looseCUnescape = (str) ->
-  codes =
-    '\\b': '\b'
-    '\\t': '\t'
-    '\\n': '\n'
-    '\\f': '\f'
-    '\\"': '"'
-    "\\'": "'"
-    "\\\\": "\\"
-    "\\0": "\0"
-  str.replace /\\[btnf'"\\0]|\\x[0-9a-fA-F]{2}|\\u[0-9a-fA-F]{4}/g, (m) ->
-    if m.length is 2 then return codes[m]
-    return String.fromCharCode(parseInt(m.substr(1), 16))
-
-quoteAndCEscape = (str, quotechar) ->
-  result = JSON.stringify(str)
-  if quotechar is "'"
-    return quotechar +
-      result.substr(1, result.length - 2).
-             replace(/((?:^|[^\\])(?:\\\\)*)\\"/g, '$1"').
-      replace(/'/g, "\\'") + quotechar
-  return result
-
 findUnmatchedLine = (lines, above) ->
   # Not done yet
   return null
@@ -1131,49 +1142,43 @@ CoffeeScriptParser.empty = "``"
 CoffeeScriptParser.emptyIndent = "``"
 CoffeeScriptParser.startComment = '###'
 CoffeeScriptParser.endComment = '###'
+CoffeeScriptParser.startSingleLineComment = '# '
 
 CoffeeScriptParser.drop = (block, context, pred) ->
+  if context.parseContext is '__comment__'
+    return helper.FORBID
+
   if context.type is 'socket'
-    if 'forbid-all' in context.classes
-      return helper.FORBID
-
-    if 'lvalue' in context.classes
-      if 'Value' in block.classes and block.properties?.length > 0
+    # TODO forbid-all replacements
+    #
+    if context.parseContext is 'Lvalue'
+      if block.nodeContext.type is 'PropertyAccess'
         return helper.ENCOURAGE
       else
         return helper.FORBID
 
-    else if 'property-access' in context.classes
-      if 'works-as-method-call' in block.classes
-        return helper.ENCOURAGE
-      else
-        return helper.FORBID
-
-    else if 'value-only' in block.classes or
-        'mostly-value' in block.classes or
-        'any-drop' in block.classes
+    else if block.shape in [helper.VALUE_ONLY, helper.MOSTLY_VALUE, helper.ANY_DROP]
       return helper.ENCOURAGE
 
-    else if 'mostly-block' in block.classes
+    else if block.shape is helper.MOSTLY_BLOCK
       return helper.DISCOURAGE
 
   else if context.type in ['indent', 'document']
-    if 'block-only' in block.classes or
-        'mostly-block' in block.classes or
-        'any-drop' in block.classes or
+    if block.shape in [helper.BLOCK_ONLY, helper.MOSTLY_BLOCK, helper.ANY_DROP] or
         block.type is 'document'
       return helper.ENCOURAGE
 
-    else if 'mostly-value' in block.classes
+    else if block.shape is helper.MOSTLY_VALUE
       return helper.DISCOURAGE
 
   return helper.DISCOURAGE
 
 CoffeeScriptParser.parens = (leading, trailing, node, context) ->
   # Don't attempt to paren wrap comments
-  return if '__comment__' in node.classes
+  return if '__comment__' is node.parseContext
 
   trailing trailing().replace /\s*,\s*$/, ''
+
   # Remove existing parentheses
   while true
     if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
@@ -1181,9 +1186,9 @@ CoffeeScriptParser.parens = (leading, trailing, node, context) ->
       trailing trailing().replace(/\s*\)\s*$/, '')
     else
       break
-  if context is null or context.type isnt 'socket' or
-      context.precedence < node.precedence
-  else
+  unless context is null or context.type isnt 'socket' or
+      getPrecedence(context.parseContext) < getPrecedence(node.nodeContext.type)
+    console.log 'adding as the result of', context.parseContext, node.nodeContext.type, getPrecedence(context.parseContext), getPrecedence(node.nodeContext.type)
     leading '(' + leading()
     trailing trailing() + ')'
 
@@ -1197,32 +1202,10 @@ CoffeeScriptParser.getDefaultSelectionRange = (string) ->
       start += 2; end -= 2
   return {start, end}
 
-CoffeeScriptParser.handleButton = (text, button, oldBlock) ->
-  if button is 'add-button' and 'If' in oldBlock.classes
-    # Parse to find the last "else" or "else if"
-    node = CoffeeScript.nodes(text, {
-      locations: true
-      line: 0
-      allowReturnOutsideFunction: true
-    }).expressions[0]
-
-    lines = text.split '\n'
-
-    currentNode = node
-    elseLocation = null
-
-    while currentNode.isChain
-      currentNode = currentNode.elseBodyNode()
-
-    if currentNode.elseBody?
-      lines = text.split('\n')
-      elseLocation = {
-        line: currentNode.elseToken.last_line
-        column: currentNode.elseToken.last_column + 2
-      }
-      elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column
-      return text[...elseLocation].trimRight() + ' if ``' + (if text[elseLocation...].match(/^ *\n/)? then '' else ' then ') + text[elseLocation..] + '\nelse\n  ``'
-    else
-      return text + '\nelse\n  ``'
+CoffeeScriptParser.stringFixer = (string) ->
+  if /^['"]|['"]$/.test string
+    return fixQuotedString [string]
+  else
+    return string
 
 module.exports = parser.wrapParser CoffeeScriptParser

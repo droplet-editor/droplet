@@ -3,12 +3,23 @@
 # Copyright (c) 2014 Anthony Bau (dab1998@gmail.com)
 # MIT License
 helper = require './helper.coffee'
+stableStringify = require 'json-stable-stringify'
 
 YES = -> yes
 NO = -> no
 
 NORMAL = default: helper.NORMAL
 FORBID = default: helper.FORBID
+
+DEFAULT_STRINGIFY_OPTS = {preserveEmpty: true}
+
+# A NodeContext represents the default (bottom-most) paren-wrap state that a block
+# can revert to when paren-wrapping. e.g. in C, the 'blockItem' node (myfun()); would have nodeContext 'postfixExpression', 'myfun()', 'myfun()', whie
+# a++ would have nodeContext 'postfixExpression', '', '++'
+exports.NodeContext = class NodeContext
+  constructor: (@type, @prefix, @suffix) ->
+
+COMMENT_CONTEXT = new NodeContext '__comment__', '', ''
 
 _id = 0
 
@@ -108,6 +119,9 @@ class ReplaceOperation
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
+    @type = 'list'
+
+  hasParent: (x) -> false
 
   contains: (token) ->
     if token instanceof Container
@@ -174,13 +188,16 @@ exports.List = class List
     helper.connect list.end, after
     list.notifyChange()
 
-    # Make and return an undo operation
-    operation = new Operation 'insert', list
-    operation.location = location
+    if location?
+      # Make and return an undo operation
+      operation = new Operation 'insert', list
+      operation.location = location
 
-    # Preserve updates
-    updates.forEach (x, i) ->
-      x.set(updateTokens[i].getLocation())
+      # Preserve updates
+      updates.forEach (x, i) ->
+        x.set(updateTokens[i].getLocation())
+    else
+      operation = null
 
     return operation
 
@@ -362,7 +379,7 @@ exports.List = class List
     return @end.next in [@parent?.end, @parent?.parent?.end, null] or
       @end.next?.type in ['newline', 'indentStart', 'indentEnd']
 
-  getReader: -> {type: 'document', classes: []}
+  getReader: -> {type: 'document', indentContext: @indentContext}
 
   setParent: (parent) ->
     traverseOneLevel @start, ((head)->
@@ -411,13 +428,13 @@ exports.List = class List
   # Get a string representation of us,
   # using the `stringify()` method on all of
   # the tokens that we contain.
-  stringify: ->
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
     head = @start
-    str = head.stringify()
+    str = head.stringify(opts)
 
     until head is @end
       head = head.next
-      str += head.stringify()
+      str += head.stringify(opts)
 
     return str
 
@@ -448,7 +465,7 @@ exports.List = class List
 # A generic XML-style container from which
 # all other containers (Block, Indent, Socket) will extend.
 exports.Container = class Container extends List
-  constructor: ->
+  constructor: () ->
     unless @start? or @end?
       @start = new StartToken this
       @end = new EndToken this
@@ -495,8 +512,11 @@ exports.Container = class Container extends List
     {
       id: @id
       type: @type
-      precedence: @precedence
-      classes: @classes
+      shape: @shape
+      indentContext: @indentContext
+      parseContext: @parseContext
+      data: @data
+      nodeContext: @nodeContext
     }
 
   setParent: (parent) ->
@@ -609,13 +629,19 @@ exports.Container = class Container extends List
   # Simple debugging output representation
   # of the tokens in this Container. Like XML.
   serialize: ->
-    str = @_serialize_header()
+    result = [@_serialize_header()]
     @traverseOneLevel (child) ->
-      str += child.serialize()
-    str += @_serialize_footer()
+      result = result.concat child.serialize()
+    result.push @_serialize_footer()
 
-  _serialize_header: "<container>"
-  _serialize_header: "</container>"
+    return result
+
+  _serialize_header: {
+    type: 'start'
+  }
+  _serialize_header: {
+    type: 'end'
+  }
 
   # ## contents ##
   # Get a cloned version of a
@@ -693,7 +719,7 @@ exports.Container = class Container extends List
   # ## getFromTextLocation ##
   # Given a TextLocation, find the token at that row, column, and length.
   getFromTextLocation: (location) ->
-    head = @start
+    head = @start.next # Move past the DocumentStartToken
     best = head
 
     row = 0
@@ -871,6 +897,9 @@ exports.Token = class Token
     head = @
     dropletDocument = @getDocument()
 
+    if not dropletDocument?
+      return null
+
     until head is dropletDocument.start
       head = head.prev
       count += 1
@@ -960,6 +989,33 @@ exports.EndToken = class EndToken extends Token
 
   serialize: -> '</container>'
 
+exports.ButtonContainer = class ButtonContainer extends Container
+  constructor: (@parseContext, @buttons = {}, @data = {}) ->
+    @start = new ButtonContainerStartToken this
+    @end = new ButtonContainerEndToken this
+
+    @type = 'buttonContainer'
+
+    super
+
+  _serialize_header: -> {
+    type: 'buttonContainerStart'
+    parseContext: @parseContext
+    buttons: @buttons
+  }
+
+  _serialize_footer: -> {
+    type: 'buttonContainerEnd'
+  }
+
+  _cloneEmpty: -> new ButtonContainer @parseContext, @buttons, @data
+
+exports.ButtonContainerStartToken = class ButtonContainerStartToken extends StartToken
+  constructor: -> super; @type = 'buttonContainerStart'
+
+exports.ButtonContainerEndToken = class ButtonContainerEndToken extends EndToken
+  constructor: -> super; @type = 'buttonContainerEnd'
+
 # Block
 # ==================
 
@@ -971,7 +1027,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}) ->
+  constructor: (@color = 'blank', @shape = helper.ANY_DROP, @parseContext = '__comment__', @nodeContext = COMMENT_CONTEXT, @buttons = {}, @data = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -989,18 +1045,26 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons
+    clone = new Block @color, @shape, @parseContext, @nodeContext, @buttons, @data
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone
 
-  _serialize_header: -> "<block precedence=\"#{
-    @precedence}\" color=\"#{
-    @color}\" socketLevel=\"#{
-    @socketLevel}\" classes=\"#{
-    @classes?.join?(' ') ? ''}\"
-  >"
-  _serialize_footer: -> "</block>"
+  _serialize_header: -> {
+    type: 'blockStart'
+    color: @color
+    shape: @shape
+    parseContext: @parseContext
+    nodeContext: {
+      type: @nodeContext.type
+      prefix: @nodeContext.prefix
+      suffix: @nodeContext.suffix
+    }
+  }
+
+  _serialize_footer: -> {
+    type: 'blockEnd'
+  }
 
 # Socket
 # ==================
@@ -1011,14 +1075,33 @@ exports.SocketStartToken = class SocketStartToken extends StartToken
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
-  stringify: ->
-    if @prev is @container.start or
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # If preserveEmpty is turned on, substitute our placeholder string
+    # for an empty socket
+    if opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
+
+    # Otherwise, do nothing, and allow the socket to stringify to ''
     else ''
 
 exports.Socket = class Socket extends Container
-  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (
+      # @emptyString -- the string that this will stringify to when it is empty,
+      # used for round-tripping empty sockets
+      @emptyString,
+
+      # @handwritten -- whether this is a socket in a block that was created by pressing Enter in the editor.
+      # This determines whether it can be deleted again by pressing delete when the socket is empty.
+      @handwritten = false,
+
+      # @dropdown -- dropdown options, if they exist
+      @dropdown = null,
+
+      # @parseContext -- the interior node in the parse tree that this socket represents.
+      # Passed to the parser when doing live reparsing in this socket.
+      @parseContext = null) ->
+
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -1039,21 +1122,19 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @handwritten, @dropdown, @parseContext
 
-  _serialize_header: -> "<socket precedence=\"#{
-      @precedence
-    }\" handwritten=\"#{
-      @handwritten
-    }\" classes=\"#{
-      @classes?.join?(' ') ? ''
-    }\"#{
-      if @dropdown?
-        " dropdown=\"#{@dropdown?.join?(' ') ? ''}\""
-      else ''
-    }>"
+  _serialize_header: -> {
+    type: 'socketStart'
+    emptyString: @emptyString
+    parseContext: @parseContext
+    handwritten: @handwritten
+    dropdown: @dropdown?
+  }
 
-  _serialize_footer: -> "</socket>"
+  _serialize_footer: -> {
+    type: 'socketEnd'
+  }
 
 # Indent
 # ==================
@@ -1063,14 +1144,15 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: ->
-    if @prev.prev is @container.start
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # As with sockets, substitute a placeholder string if preserveEmpty
+    # is turned on.
+    if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
-  serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@emptyString, @prefix = '', @classes = []) ->
+  constructor: (@emptyString, @prefix = '', @indentContext = null) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -1080,15 +1162,18 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @indentContext
   firstChild: -> return @_firstChild()
 
-  _serialize_header: -> "<indent prefix=\"#{
-    @prefix
-  }\" classes=\"#{
-    @classes?.join?(' ') ? ''
-  }\">"
-  _serialize_footer: -> "</indent>"
+  _serialize_header: -> {
+    type: 'indentStart'
+    prefix: @prefix
+    indentContext: @indentContext
+  }
+
+  _serialize_footer: -> {
+    type: 'indentEnd'
+  }
 
 
 # Document
@@ -1096,27 +1181,30 @@ exports.Indent = class Indent extends Container
 
 exports.DocumentStartToken = class DocumentStartToken extends StartToken
   constructor: (@container) -> super; @type = 'documentStart'
-  serialize: -> "<document>"
 
 exports.DocumentEndToken = class DocumentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'documentEnd'
-  serialize: -> "</document>"
 
 exports.Document = class Document extends Container
-  constructor: (@opts = {}) ->
+  constructor: (@indentContext, @opts = {}) ->
     @start = new DocumentStartToken this
     @end = new DocumentEndToken this
-    @classes = ['__document__']
 
     @type = 'document'
 
     super
 
-  _cloneEmpty: -> new Document(@opts)
+  _cloneEmpty: -> new Document(@indentContext, @opts)
   firstChild: -> return @_firstChild()
 
-  _serialize_header: -> "<document>"
-  _serialize_footer: -> "</document>"
+  _serialize_header: -> {
+    type: 'documentStart'
+    indentContext: @indentContext
+  }
+
+  _serialize_footer: -> {
+    type: 'documentEnd'
+  }
 
 
 # Text
@@ -1133,14 +1221,19 @@ exports.TextToken = class TextToken extends Token
     @notifyChange()
 
   stringify: -> @_value
-  serialize: -> helper.escapeXMLText @_value
+  serialize: -> @_value
 
   clone: -> new TextToken @_value
 
 exports.NewlineToken = class NewlineToken extends Token
   constructor: (@specialIndent) -> super; @type = 'newline'
   stringify: -> '\n' + (@specialIndent ? @getIndent())
-  serialize: -> '\n'
+
+  serialize: -> {
+    type: 'newline'
+    specialIndent: @specialIndent
+  }
+
   clone: -> new NewlineToken @specialIndent
 
 # Utility function for traversing all
@@ -1158,3 +1251,42 @@ traverseOneLevel = (head, fn, tail) ->
       return
 
     head = head.next
+
+exports.stringThrough  = (start, terminating, backward = false) ->
+  str = ''
+
+  indent = []
+
+  head = start
+  while true
+    if terminating head
+      break
+
+    if head instanceof IndentStartToken
+      if backward
+        indent.pop()
+      else
+        indent.push head.container.prefix
+    else if head instanceof IndentEndToken
+      if backward
+        indent.push head.container.prefix
+      else
+        indent.pop()
+
+    if head instanceof NewlineToken
+      if backward
+        str = '\n' + (head.specialIndent ? indent.join('')) + str
+      else
+        str += '\n' + (head.specialIndent ? indent.join(''))
+    else
+      if backward
+        str = head.stringify() + str
+      else
+        str += head.stringify()
+
+    if backward
+      head = head.prev
+    else
+      head = head.next
+
+  return {string: str, token: head}

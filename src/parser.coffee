@@ -7,6 +7,18 @@
 helper = require './helper.coffee'
 model = require './model.coffee'
 
+exports.PreNodeContext = class PreNodeContext
+  constructor: (@type, @preParenLength, @postParenLength) ->
+
+  apply: (node) ->
+    trailingText = node.getTrailingText()
+    trailingText = trailingText[0...trailingText.length - @postParenLength]
+
+    leadingText = node.getLeadingText()
+    leadingText = leadingText[@preParenLength...leadingText.length]
+
+    return new model.NodeContext @type, leadingText, trailingText
+
 sax = require 'sax'
 
 _extend = (opts, defaults) ->
@@ -17,6 +29,8 @@ _extend = (opts, defaults) ->
   return opts
 
 YES = -> true
+
+isPrefix = (a, b) -> a[...b.length] is b
 
 exports.ParserFactory = class ParserFactory
   constructor: (@opts = {}) ->
@@ -39,6 +53,7 @@ exports.Parser = class Parser
   _parse: (opts) ->
     opts = _extend opts, {
       wrapAtRoot: true
+      preserveEmpty: true
     }
     # Generate the list of tokens
     @markRoot opts.context
@@ -49,34 +64,25 @@ exports.Parser = class Parser
     # Generate a document from the markup
     document = @applyMarkup opts
 
-    @detectParenWrap document
-
-
     # Correct parent tree
     document.correctParentTree()
 
+    # Add node context annotations from PreNodeContext
+    # annotations
+    head = document.start
+    until head is document.end
+      if head.type is 'blockStart' and head.container._preNodeContext?
+        head.container.nodeContext = head.container._preNodeContext.apply head.container
+      head = head.next
+
     # Strip away blocks flagged to be removed
     # (for `` hack and error recovery)
-    stripFlaggedBlocks document
+    if opts.preserveEmpty
+      stripFlaggedBlocks document
 
     return document
 
   markRoot: ->
-
-  isParenWrapped: (block) ->
-    (block.start.next.type is 'text' and
-      block.start.next.value[0] is '(' and
-      block.end.prev.type is 'text' and
-      block.end.prev.value[block.end.prev.value.length - 1] is ')')
-
-  detectParenWrap: (document) ->
-    head = document.start
-    until head is document.end
-      head = head.next
-      if head.type is 'blockStart' and
-          @isParenWrapped head.container
-        head.container.currentlyParenWrapped = true
-    return document
 
   # ## addBlock ##
   # addBlock takes {
@@ -87,19 +93,39 @@ exports.Parser = class Parser
   #   depth: Number
   #   precedence: Number
   #   color: String
-  #   classes: []
   #   socketLevel: Number
   #   parenWrapped: Boolean
   # }
   addBlock: (opts) ->
-    block = new model.Block opts.precedence,
-      opts.color,
-      opts.socketLevel,
-      opts.classes,
+    block = new model.Block opts.color,
+      opts.shape,
       opts.parseContext,
-      opts.buttons
+      null,
+      opts.buttons,
+      opts.data
+
+    block._preNodeContext = opts.nodeContext
 
     @addMarkup block, opts.bounds, opts.depth
+
+  addButtonContainer: (opts) ->
+    container= new model.ButtonContainer opts.parseContext,
+      opts.buttons,
+      opts.data
+
+    @addMarkup container, opts.bounds, opts.depth
+
+  # flagToRemove, used for removing the placeholders that
+  # are placed when round-tripping empty sockets, so that, e.g. in CoffeeScript mode
+  # a + (empty socket) -> a + `` -> a + (empty socket).
+  #
+  # These are done by placing blocks around that text and then removing that block from the tree.
+  flagToRemove: (bounds, depth) ->
+    block = new model.Block()
+
+    block.flagToRemove = true
+
+    @addMarkup block, bounds, depth
 
   # ## addSocket ##
   # addSocket takes {
@@ -112,10 +138,10 @@ exports.Parser = class Parser
   #   accepts: shallow_dict
   # }
   addSocket: (opts) ->
-    socket = new model.Socket opts.empty ? @empty, opts.precedence,
+    socket = new model.Socket opts.empty ? @empty,
       false,
-      opts.classes,
-      opts.dropdown
+      opts.dropdown,
+      opts.parseContext
 
     @addMarkup socket, opts.bounds, opts.depth
 
@@ -129,7 +155,7 @@ exports.Parser = class Parser
   #   prefix: String
   # }
   addIndent: (opts) ->
-    indent = new model.Indent @emptyIndent, opts.prefix, opts.classes
+    indent = new model.Indent @emptyIndent, opts.prefix, opts.indentContext
 
     @addMarkup indent, opts.bounds, opts.depth
 
@@ -204,22 +230,97 @@ exports.Parser = class Parser
   # Construct a handwritten block with the given
   # text inside
   constructHandwrittenBlock: (text) ->
-    block = new model.Block 0, 'blank', helper.ANY_DROP
-    socket = new model.Socket @empty, 0, true
-    textToken = new model.TextToken text
-
-    helper.connect block.start, socket.start
-    helper.connect socket.start, textToken
-    helper.connect textToken, socket.end
-    helper.connect socket.end, block.end
-
+    block = new model.Block 0, 'comment', helper.ANY_DROP
     if @isComment text
       block.socketLevel = helper.BLOCK_ONLY
-      block.classes = ['__comment__', 'block-only']
+      block.shape = helper.BLOCK_ONLY
+      block.parseContext = '__comment__'
+
+      head = block.start
+
+      {sockets, color} = @parseComment(text)
+
+      if color?
+        block.color = color
+
+      lastPosition = 0
+
+      if sockets?
+        for socketPosition in sockets
+          socket = new model.Socket '', true, null, '__comment__'
+          socket.setParent block
+
+          padText = text[lastPosition...socketPosition[0]]
+
+          if padText.length > 0
+            padTextToken = new model.TextToken padText
+            padTextToken.setParent block
+
+            helper.connect head, padTextToken
+
+            head = padTextToken
+
+          textToken = new model.TextToken text[socketPosition[0]...socketPosition[1]]
+          textToken.setParent block
+
+          helper.connect head, socket.start
+          helper.connect socket.start, textToken
+          helper.connect textToken, socket.end
+
+          head = socket.end
+
+          lastPosition = socketPosition[1]
+
+      finalPadText = text[lastPosition...text.length]
+
+      if finalPadText.length > 0
+        finalPadTextToken = new model.TextToken finalPadText
+        finalPadTextToken.setParent block
+
+        helper.connect head, finalPadTextToken
+
+        head = finalPadTextToken
+
+      helper.connect head, block.end
+
     else
-      block.classes = ['__handwritten__', 'block-only']
+      socket = new model.Socket '', true
+      textToken = new model.TextToken text
+      textToken.setParent socket
+
+      block.shape = helper.BLOCK_ONLY
+      helper.connect block.start, socket.start
+
+      helper.connect socket.start, textToken
+      helper.connect textToken, socket.end
+      helper.connect socket.end, block.end
+
 
     return block
+
+  handleButton: (text, command, oldblock) ->
+    return text
+
+  # applyMarkup
+  # -----------
+  #
+  # The parser adapter will throw out markup in arbitrary orders. `applyMarkup`'s job is to assemble
+  # a parse tree from this markup. `applyMarkup` also cleans up any leftover text that lies outside blocks or
+  # sockets by passing them through a comment-handling procedure.
+  #
+  # `applyMarkup` applies the generated markup by sorting it, then walking from the beginning to the end of the
+  # document, creating `TextToken`s and inserting the markup between them. It also keeps a stack
+  # of which containers it is currently in, for error detection and comment handling.
+  #
+  # Whenever the container is currently an `Indent` or a `Document` and we get some text, we handle it as a comment.
+  # If it contains block-comment tokens, like /* or */, we immediately make comment blocks around them, amalgamating multiline comments
+  # into single blocks. We do this by scanning forward and just toggling on or off a bit that says whether we're inside
+  # a block comment, refusing to put any markup while we're inside one.
+  #
+  # When outside a block-comment, we pass free text to the mode's comment parser. This comment parser
+  # will return a set of text ranges to put in sockets, usually the place where freeform text can be put in the comment.
+  # For instance, `//hello` in JavaScript should return (2, 6) to put a socket around 'hello'. In C, this is used
+  # to handle preprocessor directives.
 
   applyMarkup: (opts) ->
     # For convenience, will we
@@ -237,7 +338,9 @@ exports.Parser = class Parser
 
     indentDepth = 0
     stack = []
-    document = new model.Document(); head = document.start
+    document = new model.Document(opts.context ? @rootContext); head = document.start
+
+    currentlyCommented = false
 
     for line, i in lines
       # If there is no markup on this line,
@@ -255,19 +358,53 @@ exports.Parser = class Parser
         # If we have some text here that
         # is floating (not surrounded by a block),
         # wrap it in a generic block automatically.
-        if line.length > 0
-          if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
-            block = @constructHandwrittenBlock line
+        #
+        # We will also send it through a pass through a comment parser here,
+        # for special handling of different forms of comments (or, e.g. in C mode, directives),
+        # and amalgamate multiline comments.
+        placedSomething = false
+        while line.length > 0
+          if currentlyCommented
+            placedSomething = true
+            if line.indexOf(@endComment) > -1
+              head = helper.connect head,
+                new model.TextToken line[...line.indexOf(@endComment) + @endComment.length]
+              line = line[line.indexOf(@endComment) + @endComment.length...]
 
-            helper.connect head, block.start
-            head = block.end
+              head = helper.connect head, stack.pop().end
+              currentlyCommented = false
 
-          else
+          if not currentlyCommented and
+              ((opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent') and
+              line.length > 0
+            placedSomething = true
+            if isPrefix(line.trimLeft(), @startComment)
+              currentlyCommented = true
+              block = new model.Block 0, 'comment', helper.ANY_DROP
+              stack.push block
+
+              helper.connect head, block.start
+              head = block.start
+
+            else
+              block = @constructHandwrittenBlock line
+
+              helper.connect head, block.start
+              head = block.end
+
+              line = ''
+
+          else if line.length > 0
+            placedSomething = true
             head = helper.connect head, new model.TextToken line
 
-        else if stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
+            line = ''
+
+        if line.length is 0 and not placedSomething and stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block 0, @opts.emptyLineColor, helper.BLOCK_ONLY
+          block.shape = helper.ANY_DROP
+          block.parseContext = '__comment__'
 
           head = helper.connect head, block.start
           head = helper.connect head, block.end
@@ -284,17 +421,26 @@ exports.Parser = class Parser
           lastIndex = indentDepth
 
         for mark in markupOnLines[i]
+          # If flagToRemove is turned off, ignore markup
+          # that was generated by the flagToRemove mechanism. This will simply
+          # create text tokens instead of creating a block slated to be removed.
+          continue if mark.token.container? and mark.token.container.flagToRemove and not opts.preserveEmpty
+
           # Insert a text token for all the text up until this markup
           # (unless there is no such text
           unless lastIndex >= mark.location.column or lastIndex >= line.length
-            if (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
+            if (not currentlyCommented) and
+                (opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent'
               block = @constructHandwrittenBlock line[lastIndex...mark.location.column]
 
               helper.connect head, block.start
               head = block.end
-
             else
               head = helper.connect head, new model.TextToken(line[lastIndex...mark.location.column])
+
+            if currentlyCommented
+              head = helper.connect head, stack.pop().end
+              currentlyCommented = false
 
           # Note, if we have inserted something,
           # the new indent depth and the new stack.
@@ -302,19 +448,19 @@ exports.Parser = class Parser
             when 'indentStart'
               # An Indent is only allowed to be
               # directly inside a block; if not, then throw.
-              unless stack?[stack.length - 1]?.type is 'block'
+              unless stack?[stack.length - 1]?.type in ['block', 'buttonContainer']
                 throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
               indentDepth += mark.token.container.prefix.length
 
             when 'blockStart'
               # If the a block is embedded
               # directly in another block, throw.
-              if stack[stack.length - 1]?.type is 'block'
+              if stack[stack.length - 1]?.type in ['block', 'buttonContainer']
                 throw new Error 'Improper parser: block cannot nest immediately inside another block.'
 
             when 'socketStart'
               # A socket is only allowed to be directly inside a block.
-              unless stack[stack.length - 1]?.type is 'block'
+              unless stack[stack.length - 1]?.type in ['block', 'buttonContainer']
                 throw new Error 'Improper parser: socket must be immediately inside a block.'
 
             when 'indentEnd'
@@ -335,17 +481,41 @@ exports.Parser = class Parser
 
         # Append the rest of the string
         # (after the last piece of markup)
-        unless lastIndex >= line.length
-          if stack.length is 0 or stack[stack.length - 1].type is 'indent'
-            block = @constructHandwrittenBlock line[lastIndex...line.length]
+        until lastIndex >= line.length
+          if currentlyCommented
+            if line[lastIndex...].indexOf(@endComment) > -1
+              head = helper.connect head,
+                new model.TextToken line[lastIndex...lastIndex + line[lastIndex...].indexOf(@endComment) + @endComment.length]
 
-            helper.connect head, block.start
-            head = block.end
+              lastIndex += line[lastIndex...].indexOf(@endComment) + @endComment.length
 
-          else
-            head = helper.connect head, new model.TextToken(line[lastIndex...line.length])
+              head = helper.connect head, stack.pop().end
+              currentlyCommented = false
 
-        # Append the needed newline token
+          if not currentlyCommented and
+              ((opts.wrapAtRoot and stack.length is 0) or stack[stack.length - 1]?.type is 'indent') and
+              line.length > 0
+            if isPrefix(line[lastIndex...].trimLeft(), @startComment)
+              currentlyCommented = true
+              block = new model.Block 0, 'comment', helper.ANY_DROP
+              stack.push block
+
+              helper.connect head, block.start
+              head = block.start
+
+            else
+              block = @constructHandwrittenBlock line[lastIndex...]
+
+              helper.connect head, block.start
+              head = block.end
+
+              lastIndex = line.length
+
+          else if lastIndex < line.length
+            head = helper.connect head, new model.TextToken line[lastIndex...]
+
+            lastIndex = line.length
+
         head = helper.connect head, new model.NewlineToken()
 
     # Pop off the last newline token, which is not necessary
@@ -379,13 +549,12 @@ exports.parseXML = (xml) ->
     attributes = node.attributes
     switch node.name
       when 'block'
-        container = new model.Block attributes.precedence, attributes.color,
-          attributes.socketLevel, attributes.classes?.split?(' ')
+        container = new model.Block attributes.color,
+          attributes.shape, attributes.parseContext
       when 'socket'
-        container = new model.Socket '', attributes.precedence, attributes.handritten,
-          attributes.classes?.split?(' ')
+        container = new model.Socket '', attributes.handritten, attributes.parseContext
       when 'indent'
-        container = new model.Indent '', attributes.prefix, attributes.classes?.split?(' ')
+        container = new model.Indent '', attributes.prefix, attributes.indentContext
       when 'document'
         # Root is optional
         unless stack.length is 0
@@ -452,26 +621,12 @@ stripFlaggedBlocks = (document) ->
       head = head.next
 
 Parser.parens = (leading, trailing, node, context) ->
-  if context is null or context.type isnt 'socket' or
-      context?.precedence < node.precedence
-    while true
-      if leading().match(/^\s*\(/)? and trailing().match(/\)\s*/)?
-        leading leading().replace(/^\s*\(\s*/, '')
-        trailing trailing().replace(/^\s*\)\s*/, '')
-      else
-        break
-  else
-    leading '(' + leading()
-    trailing trailing() + ')'
 
 Parser.drop = (block, context, pred, next) ->
   if block.type is 'document' and context.type is 'socket'
     return helper.FORBID
   else
     return helper.ENCOURAGE
-
-Parser.handleButton = (text, command, oldblock) ->
-  return text
 
 Parser.empty = ''
 Parser.emptyIndent = ''
@@ -485,15 +640,27 @@ exports.wrapParser = (CustomParser) ->
       @emptyIndent = CustomParser.emptyIndent
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
+      @rootContext = CustomParser.rootContext
+      @startSingleLineComment = CustomParser.startSingleLineComment
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
+      @getParenCandidates = CustomParser.getParenCandidates
 
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
     createParser: (text) ->
       parser = new CustomParser text, @opts
+      parser.startComment = @startComment
+      parser.endComment = @endComment
       parser.empty = @empty
       parser.emptyIndent = @emptyIndent
+      parser.rootContext = @rootContext
       return parser
+
+    stringFixer: (string) ->
+      if CustomParser.stringFixer?
+        CustomParser.stringFixer.apply @, arguments
+      else
+        return string
 
     parse: (text, opts) ->
       @opts.parseOptions = opts
@@ -501,6 +668,10 @@ exports.wrapParser = (CustomParser) ->
       return @createParser(text)._parse opts
 
     parens: (leading, trailing, node, context) ->
+      # We do this function thing so that if leading and trailing are the same
+      # (i.e. there is only one text token), parser adapter functions can still treat
+      # it as if they are two different things.
+
       # leadingFn is always a getter/setter for leading
       leadingFn = (value) ->
         if value?
@@ -518,10 +689,13 @@ exports.wrapParser = (CustomParser) ->
       else
         trailingFn = leadingFn
 
-      CustomParser.parens leadingFn, trailingFn, node, context
+      context = CustomParser.parens leadingFn, trailingFn, node, context
 
-      return [leading, trailing]
+      return [leading, trailing, context]
+
 
     drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 
-    handleButton: (text, command, oldblock) -> CustomParser.handleButton text, command, oldblock
+    handleButton: (text, command, oldblock) ->
+      parser = @createParser(text)
+      parser.handleButton text, command, oldblock

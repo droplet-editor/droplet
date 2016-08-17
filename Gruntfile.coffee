@@ -2,10 +2,14 @@ browserify = require 'browserify'
 coffeeify = require 'coffeeify'
 watchify = require 'watchify'
 
+
 livereload = require 'tiny-lr'
 
 path = require 'path'
 fs = require 'fs'
+
+if process.env.LANGUAGE
+  ignoredLanguages = ["./src/languages/!(#{process.env.LANGUAGE}).coffee"]
 
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
@@ -68,13 +72,14 @@ module.exports = (grunt) ->
           reporter: 'list'
           compilers:
             'coffee': 'coffee-script/register'
-          timeout: 10000
+          timeout: 20000
 
     browserify:
       build:
         files:
           'dist/droplet-full.js': ['./src/main.coffee']
         options:
+          ignore: ignoredLanguages
           transform: ['coffeeify']
           browserifyOptions:
             standalone: 'droplet'
@@ -89,11 +94,13 @@ module.exports = (grunt) ->
           '''
       test:
         files:
+          'test/js/ctest.js': ['test/src/ctest.coffee']
           'test/js/tests.js': ['test/src/tests.coffee']
           'test/js/uitest.js': ['test/src/uitest.coffee']
           'test/js/jstest.js': ['test/src/jstest.coffee']
           'test/js/cstest.js': ['test/src/cstest.coffee']
           'test/js/htmltest.js': ['test/src/htmltest.coffee']
+          'test/js/pytest.js': ['test/src/pytest.coffee']
         options:
           transform: ['coffeeify']
           browserifyOptions:
@@ -188,7 +195,9 @@ module.exports = (grunt) ->
     b.require './src/main.coffee'
     b.transform coffeeify
 
-    w = watchify(b)
+    w = watchify(b, {
+      poll: true
+    })
 
     # Compile once through first
     stream = fs.createWriteStream 'dist/droplet-full.js'
@@ -205,17 +214,20 @@ module.exports = (grunt) ->
       w.on 'update', ->
         console.log 'File changed...'
         stream = fs.createWriteStream 'dist/droplet-full.js'
-        try
-          w.bundle().pipe stream
-          stream.once 'close', ->
-            console.log 'Rebuilt.'
-            lrserver.changed {
-              body: {
-                files: ['dist/droplet-full.js']
-              }
-            }
-        catch e
-          console.log 'BUILD FAILED.'
-          console.log e.stack
 
+        w.bundle().on('error', (e) ->
+          console.log 'ERROR'
+          console.log '-----'
+          console.log e
+        ).pipe(stream).once 'close', ->
+          console.log 'Rebuilt.'
+          lrserver.changed {
+            body: {
+              files: ['dist/droplet-full.js']
+            }
+          }
+
+
+  grunt.loadNpmTasks 'grunt-keepalive'
   grunt.registerTask 'testserver', ['connect:testserver', 'watchify']
+  grunt.registerTask 'serve', ['connect:testserver', 'keepalive']
