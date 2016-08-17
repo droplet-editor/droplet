@@ -130,8 +130,8 @@ class Session
     @dragView = new view.View _drag, helper.extend {}, standardViewSettings, @options.viewSettings ? {}
 
     # ## Document initialization
-    # We start off with an empty document
-    @tree = new model.Document(@rootContext)
+    # We start of with an empty document
+    @tree = new model.Document(@mode.rootContext)
 
     # Line markings
     @markedLines = {}
@@ -1041,6 +1041,12 @@ class CapturePoint
   constructor: (rememberedSockets) ->
     @rememberedSockets = rememberedSockets.map (x) -> x.clone()
 
+Editor::setFocusedText = (value) ->
+  if @getCursor().type is 'socket'
+    @populateSocket @getCursor(), value
+    @hiddenInput.value = value
+    @redrawMain()
+
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
@@ -1080,7 +1086,7 @@ Editor::spliceOut = (node, container = null) ->
     if parent?.type is 'socket' and node.start.type is 'blockStart'
       for socket, i in @session.rememberedSockets
         if @fromCrossDocumentLocation(socket.socket) is parent
-          @session.rememberedSockets.splice i, 0
+          @session.rememberedSockets.splice i, 1
           @populateSocket parent, socket.text
           break
 
@@ -1185,18 +1191,21 @@ Editor::correctCursor = ->
     @session.cursor = @toCrossDocumentLocation cursor
 
 Editor::prepareNode = (node, context) ->
-  if node instanceof model.Container
+  if node.type is 'block'
     leading = node.getLeadingText()
     if node.start.next is node.end.prev
       trailing = null
     else
       trailing = node.getTrailingText()
 
-    [leading, trailing, classes] = @session.mode.parens leading, trailing, node.getReader(),
-      context?.getReader?() ? null
+    [leading, trailing, parseContext] = @session.mode.parens(
+      leading, trailing,
+      node.getReader(), context?.getReader?() ? null
+    )
 
     node.setLeadingText leading; node.setTrailingText trailing
 
+    node.parseContext = parseContext
 
 # At population-time, we will
 # want to set up a few fields.
@@ -1341,26 +1350,35 @@ hook 'mousedown', 4, (point, event, state) ->
   #Buttons aren't clickable in a selection
   if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
 
-  hitTestResult = @hitTest mainPoint, @session.tree
+  head = @session.tree.start
+  seek = @session.tree.end
+  result = null
 
-  if hitTestResult?
-    hitTestBlock = @session.view.getViewNodeFor hitTestResult
-    str = hitTestResult.stringifyInPlace()
+  until head is seek
+    if head.type in ['blockStart', 'buttonContainerStart']
+      viewNode = @session.view.getViewNodeFor(head.container)
+      result = head.container
 
-    if hitTestBlock.addButtonRect? and hitTestBlock.addButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'add-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ### TODO
-    else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
-      line = @session.mode.handleButton str, 'subtract-button', hitTestResult.getReader()
-      if line?.length >= 0
-        @populateBlock hitTestResult, line
-        @redrawMain()
-      state.consumedHitTest = true
-    ###
+      for key, button of viewNode.buttonRects
+        if button.contains mainPoint
+          console.log 'HIT BUTTON', key
+          str = result.stringifyInPlace()
+          line = @session.mode.handleButton str, key, result #.getReader() # TODO getReader() that allows tree walking
+          if line?.length >= 0 and line isnt str
+            @undoCapture()
+            @populateBlock result, line
+            @redrawMain()
+          state.consumedHitTest = true
+
+          return
+
+      if viewNode.path.contains mainPoint
+        seek = head.container.end
+
+    head = head.next
+
+  # If we had a child hit, return it.
+  return result
 
 # If the user lifts the mouse
 # before they have dragged five pixels,
@@ -1428,8 +1446,7 @@ hook 'mousemove', 1, (point, event, state) ->
       if 'function' is typeof @clickedBlockPaletteEntry.expansion
         # Any block generated from an expansion function should be treated as
         # any-drop because it can change with subsequent expansion() calls.
-        if 'mostly-value' in @draggingBlock.classes
-          @draggingBlock.classes.push 'any-drop'
+        @draggingBlock.shape = helper.ANY_DROP
 
         # Attach expansion() function and lastExpansionText to @draggingBlock.
         @draggingBlock.lastExpansionText = expansion
@@ -1504,7 +1521,7 @@ hook 'mousemove', 1, (point, event, state) ->
         if head is @draggingBlock.start
           head = @draggingBlock.end
 
-        if head instanceof model.StartToken
+        if head instanceof model.StartToken and head.type isnt 'buttonContainerStart'
           acceptLevel = @getAcceptLevel @draggingBlock, head.container
           unless acceptLevel is helper.FORBID
             dropPoint = @session.view.getViewNodeFor(head.container).dropPoint
@@ -1617,8 +1634,8 @@ hook 'mousemove', 0, (point, event, state) ->
         newBlock = parseBlock(@session.mode, expansionText)
         newBlock.lastExpansionText = expansionText
         newBlock.expansion = @draggingBlock.expansion
-        if 'any-drop' in @draggingBlock.classes
-          newBlock.classes.push 'any-drop'
+        newBlock.shape = @draggingBlock.shape
+
         @draggingBlock = newBlock
         @drawDraggingBlock()
 
@@ -1824,8 +1841,10 @@ hook 'mouseup', 1, (point, event, state) ->
       #
       # TODO "reparseable" property (or absent contexts), bubble up
       # TODO performance on large programs
-      if @lastHighlight.type is 'socket'
-        @reparse @draggingBlock.parent.parent
+      #
+      # TODO Consider whether to add this back?
+      #if @lastHighlight.type is 'socket'
+      #  @reparse @draggingBlock.parent.parent
 
       # Now that we've done that, we can annul stuff.
       @endDrag()
@@ -1924,7 +1943,10 @@ hook 'mouseup', 0, (point, event, state) ->
 
     # Add the undo operation associated
     # with creating this floating block
-    newDocument = new model.Document(oldParent?.parseContext ? @session.mode.rootContext, {roundedSingletons: true})
+    newDocument = new model.Document(
+      (@draggingBlock.parent?.indentContext ? @draggingBlock.parseContext ? @session.mode.rootContext),
+      {roundedSingletons: true}
+    )
     newDocument.insert newDocument.start, @draggingBlock
     @pushUndo new FloatingOperation @session.floatingBlocks.length, newDocument, renderPoint, 'create'
 
@@ -2018,6 +2040,26 @@ parseBlock = (mode, code, context = null) =>
   block.start.prev = block.end.next = null
   block.setParent null
   return block
+
+parseSocketBlock = (mode, code, context) =>
+  contextCandidates = [context]
+
+  if mode.getParenCandidates?
+    contextCandidates = contextCandidates.concat mode.getParenCandidates context
+
+  for candidate in contextCandidates
+    try
+      block = mode.parse(code, {context: candidate, wrapAtRoot: false}).start.next.container
+
+      if block? and block.type is 'block'
+        block.start.prev = block.end.next = null
+        block.setParent null
+
+        return block
+
+      else
+        return null
+  return null
 
 Editor::setPalette = (paletteGroups) ->
   @paletteHeader.innerHTML = ''
@@ -2391,6 +2433,41 @@ hook 'mousedown', 7, ->
   @hideDropdown()
 
 
+Editor::reparseSocket = (socket, updates = []) ->
+  if socket.handwritten
+    return @reparse socket.parent, updates
+
+  text = socket.textContent()
+
+  # If our language mode has a string-fixing feature (in most languages,
+  # this will simply autoescape quoted "strings"), apply it
+  if @session.mode.stringFixer?
+    @populateSocket socket, @session.mode.stringFixer(text)
+    text = socket.textContent()
+
+    block = parseSocketBlock(@session.mode, text, socket.parseContext)
+
+    if block?
+      @prepareNode block, socket
+
+      replaceList = new model.List socket.start.next, socket.end.prev
+
+      @replace replaceList, block, updates
+
+    else
+      # First see if the string just checks out normally
+      # but doesn't have a block
+      #
+      # TODO if performance becomes an issue, reuse parse from
+      # parseSocketBlock
+      try
+        # If it checks out, we're done
+        @session.mode.parse text, {wrapAtRoot: false, context: socket.parseContext}
+        @session.view.getViewNodeFor(socket).unmark() # If it was error-marked, note that it is no longer so.
+      catch e
+        # Otherwise, try reparsing the parent.
+        @reparse socket, updates
+
 # If we can, try to reparse the focus
 # value.
 #
@@ -2416,7 +2493,7 @@ hook 'mousedown', 7, ->
 #   -> Fall back to raw reparsing the parent with unparenthesized text
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
-Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
+Editor::reparse = (list, updates = [], originalTrigger = list) ->
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -2434,12 +2511,12 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
     # Try reparsing the parent after beforetextfocus. If it fails,
     # repopulate with the original text and try again.
-    unless @reparse list.parent, recovery, updates, originalTrigger
+    unless @reparse list.parent, updates, originalTrigger
       @populateSocket list, originalText
       originalUpdates.forEach (location, i) ->
         updates[i].count = location.count
         updates[i].type = location.type
-      @reparse list.parent, recovery, updates, originalTrigger
+      @reparse list.parent, updates, originalTrigger
     return
 
   parent = list.start.parent
@@ -2450,7 +2527,7 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     context = (list.start.container ? list.start.parent).parseContext
 
   try
-    newList = @session.mode.parse list.stringifyInPlace(),{
+    newList = @session.mode.parse list.stringifyInPlace(), {
       wrapAtRoot: parent.type isnt 'socket'
       context: context
     }
@@ -2468,7 +2545,7 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
       # Attempt to bubble up to the parent
       if parent?
-        return @reparse parent, recovery, updates, originalTrigger
+        return @reparse parent, updates, originalTrigger
       else
         @session.view.getViewNodeFor(originalTrigger).mark {color: '#F00'}
         return false
@@ -2477,10 +2554,6 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
 
   # Exclude the document start and end tags
   newList = new model.List newList.start.next, newList.end.prev
-
-  # Prepare the new node for insertion
-  newList.traverseOneLevel (head) =>
-    @prepareNode head, parent
 
   @replace list, newList, updates
 
@@ -2520,10 +2593,19 @@ Editor::populateSocket = (socket, string) ->
       last = helper.connect last, new model.NewlineToken()
       last = helper.connect last, new model.TextToken line
 
-    @spliceIn (new model.List(first, last)), socket.start
+    @spliceIn new model.List(first, last), socket.start
 
 Editor::populateBlock = (block, string) ->
-  newBlock = @session.mode.parse(string, wrapAtRoot: false).start.next.container
+  if block.type is 'block'
+    context = block.parent.indentContext ? block.parent.parseContext ? block.parseContext
+  else
+    context = block.parseContext
+
+  newBlock = @session.mode.parse(string, {
+    context: context
+    wrapAtRoot: false
+  }).start.next.container
+
   if newBlock
     # Find the first token before the block
     # that will still be around after the
@@ -3036,8 +3118,8 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @session.cursor.is(destination)
     socket = @getCursor()
-    if '__comment__' not in socket.classes
-      @reparse socket, null, (if destination.document is @session.cursor.document then [destination.location] else [])
+    if '__comment__' isnt socket.parseContext
+      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else []) # TODO proper socket insertion
       @hiddenInput.blur()
       @dropletElement.focus()
 
@@ -3215,7 +3297,7 @@ hook 'keydown', 0, (event, state) ->
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
       # Construct the block; flag the socket as handwritten
-      newBlock = new model.Block(); newSocket = new model.Socket '', Infinity, true
+      newBlock = new model.Block(); newSocket = new model.Socket '', true
       newSocket.setParent newBlock
       helper.connect newBlock.start, newSocket.start
       helper.connect newSocket.end, newBlock.end
@@ -3226,7 +3308,7 @@ hook 'keydown', 0, (event, state) ->
       while head.type is 'newline'
         head = head.prev
 
-      newSocket.parseContext = head.parent.parseContext
+      newSocket.parseContext = head.container?.indentContext ? head.parent.parseContext
 
       @spliceIn newBlock, head #MUTATION
 
@@ -3240,15 +3322,15 @@ hook 'keydown', 0, (event, state) ->
       @dropletElement.focus()
       @setCursor @session.cursor, (token) -> token.type isnt 'socketStart'
       @redrawMain()
-      if '__comment__' in socket.classes and @session.mode.startSingleLineComment
+      if '__comment__' is socket.parseContext and @session.mode.startSingleLineComment
         # Create another single line comment block just below
-        newBlock = new model.Block 0, 'blank', helper.ANY_DROP
-        newBlock.classes = ['__comment__', 'block-only']
+        newBlock = new model.Block 0, 'blank', helper.BLOCK_ONLY
+        newBlock.parseContext = '__comment__'
         newBlock.socketLevel = helper.BLOCK_ONLY
         newTextMarker = new model.TextToken @session.mode.startSingleLineComment
         newTextMarker.setParent newBlock
-        newSocket = new model.Socket '', 0, true
-        newSocket.classes = ['__comment__']
+        newSocket = new model.Socket '', true
+        newSocket.parseContext = '__comment__'
         newSocket.setParent newBlock
 
         helper.connect newBlock.start, newTextMarker
@@ -4227,6 +4309,7 @@ Editor::endDrag = ->
   @clearDrag()
   @draggingBlock = null
   @draggingOffset = null
+  @dragReplacing = false
   @lastHighlightPath?.deactivate?()
   @lastHighlight = @lastHighlightPath = null
 

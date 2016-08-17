@@ -113,12 +113,24 @@ exports.clipLines = (lines, start, end) ->
     #  "'#{lines[start.line][start.column..]}'",
     #  "'#{lines[start.line + 1...end.line].join('\n')}'",
     #  "'#{lines[end.line][...end.column]}'"
-    return lines[start.line][start.column..] +
-    lines[start.line + 1...end.line].join('\n') +
+    return lines[start.line][start.column..] + '\n' +
+    lines[start.line + 1...end.line].map((x) -> x + '\n').join('') +
     lines[end.line][...end.column]
   else
     #console.log 'clipping', lines[start.line], 'from', start.column + 1, 'to', end.column
     return lines[start.line][start.column...end.column]
+
+exports.subtractBounds = (a, b) ->
+  return {
+    start: {
+      line: a.start.line - b.line
+      column: a.start.column - b.column
+    }
+    end: {
+      line: a.start.line - b.line
+      column: a.start.column - b.column
+    }
+  }
 
 exports.getFontHeight = (family, size) ->
   metrics = fontMetrics family, size
@@ -250,3 +262,17 @@ exports.PairDict = class PairDict
     @pairs.push [index, value]
     return false
 
+dfs = (graph, a, b, visited = {}) ->
+  if visited[a]
+    return false
+  visited[a] = true
+
+  if a is b
+    return true
+
+  for out_edge of graph.vertices[a]
+    if dfs(graph, out_edge, b, visited)
+      return true
+  return false
+
+exports.dfs = dfs
