@@ -588,6 +588,7 @@ exports.Editor = class Editor
       return
 
     if @session?
+      @session.paletteScrollPositions[@session.selectedPaletteGroup] = {x: @session.viewports.palette.x, y: @session.viewports.palette.y}
       @session.view.clearFromCanvas()
       @session.paletteView.clearFromCanvas()
       @session.dragView.clearFromCanvas()
@@ -1989,8 +1990,23 @@ hook 'mouseup', 1, (point, event, state) ->
       #  @reparse @draggingBlock.parent.parent
       draggingPalette = @draggingPalette
 
+      # TODO TODO TODO HOTFIX HACK
+      startPointer = @draggingBlock.start
+      # END HOTFIX HACK
+
       # Now that we've done that, we can annul stuff.
       @endDrag true
+
+      # TODO TODO TODO HOTFIX HACK
+      try
+        unless @fromCrossDocumentLocation(futureCursorLocation).getDocument() in @getDocuments()
+          throw new Error()
+      catch e
+        if startPointer.container.getDocument() in @getDocuments()
+          futureCursorLocation = @toCrossDocumentLocation startPointer
+        else
+          futureCursorLocation = @toCrossDocumentLocation @session.tree.start
+      # END HOTFIX HACK
 
       if futureCursorLocation?
         if draggingPalette
@@ -3648,7 +3664,7 @@ hook 'keydown', 0, (event, state) ->
     return
   if event.which is ENTER_KEY
     if not @cursorAtSocket() and not event.shiftKey and not event.ctrlKey and not event.metaKey
-      context = @getCursor().parent.indentContext ? @getCursor().parseContext
+      context = @getCursor().parent?.indentContext ? @getCursor().parseContext
 
       # Construct the block; flag the socket as handwritten
       newBlock = new model.Block(null, null, context)
@@ -3972,6 +3988,11 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     @mainCanvas.style.opacity = 0
 
+    @dropletElement.style.transition = "background-color #{fadeTime}ms"
+    @dropletElement.style.backgroundColor = getComputedStyle(@aceElement).backgroundColor
+    @transitionContainer.style.transition = "color #{fadeTime}ms"
+    @transitionContainer.style.color = getComputedStyle(@aceElement).color
+
     paletteDisappearingWithMelt = @session.paletteEnabled and not @session.showPaletteInTextMode
 
     if paletteDisappearingWithMelt
@@ -4080,6 +4101,9 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         @aceElement.style.top = "-9999px"
         @aceElement.style.left = "-9999px"
 
+        @dropletElement.style.backgroundColor = getComputedStyle(@aceElement).backgroundColor
+        @transitionContainer.style.color = getComputedStyle(@aceElement).color
+
         paletteAppearingWithFreeze = @session.paletteEnabled and not @session.showPaletteInTextMode
 
         if paletteAppearingWithFreeze
@@ -4173,6 +4197,10 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         setTimeout (=>
           @mainCanvas.style.transition = "opacity #{fadeTime}ms linear"
           @mainCanvas.style.opacity = 1
+          @dropletElement.style.transition = "background-color #{fadeTime}ms"
+          @transitionContainer.style.transition = "color #{fadeTime}ms"
+          @dropletElement.style.backgroundColor = '#FFF'
+          @transitionContainer.style.color = '#000'
         ), translateTime
 
         @dropletElement.style.transition = "left #{fadeTime}ms"
@@ -4633,15 +4661,15 @@ Editor::setValueAsync = (value, cb) ->
         cb?(result)
       else
         @setEditorState false
-        @aceEditor.setValue value
+        @setAceValue value
         cb?(result)
   else
-    @aceEditor.setValue value
+    @setAceValue value
     cb?(success: true)
 
 Editor::setValue = (value) ->
   if not @session?
-    return @aceEditor.setValue value
+    return @setAceValue value
 
   oldScrollTop = @aceEditor.session.getScrollTop()
 
@@ -4654,15 +4682,18 @@ Editor::setValue = (value) ->
     result = @setValue_raw value
     if result.success is false
       @setEditorState false
-      @aceEditor.setValue value
+      @setAceValue value
       if result.error
         @fireEvent 'parseerror', [result.error]
 
-Editor::addEmptyLine = (str) ->
+# Disabling this feature for CS50 purposes
+Editor::addEmptyLine = (str) -> str
+###
   if str.length is 0 or str[str.length - 1] is '\n'
     return str
   else
     return str + '\n'
+###
 
 Editor::getValue = ->
   if @session?.currentlyUsingBlocks
@@ -4680,7 +4711,7 @@ Editor::getAceValue = ->
   @lastAceSeenValue = value
 
 Editor::setAceValue = (value) ->
-  if value isnt @lastAceSeenValue
+  if value isnt @aceEditor.getValue()
     @aceEditor.setValue value, 1
     # TODO: move ace cursor to location matching droplet cursor.
     @lastAceSeenValue = value

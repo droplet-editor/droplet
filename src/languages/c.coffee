@@ -448,6 +448,7 @@ generateDropdown = (knownFunctions) ->
   result = []
   for func, val of knownFunctions
     result.push func
+  result.sort()
   return result
 
 # Color and shape callbacks look up the method name
