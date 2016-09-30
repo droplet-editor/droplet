@@ -86,17 +86,6 @@ editorBindings = {}
 
 SVG_STANDARD = helper.SVG_STANDARD
 
-EMBOSS_FILTER_SVG =  """
-<svg xlmns="#{SVG_STANDARD}">
-  <filter id="dropShadow" x="0" y="0" width="200%" height="200%">
-    <feOffset result="offOut" in="SourceAlpha" dx="5" dy="5" />
-    <feGaussianBlur result="blurOut" in="offOut" stdDeviation="1" />
-    <feBlend in="SourceGraphic" in2="blurOut" out="blendOut" mode="normal" />
-    <feComposite in="blendOut" in2="SourceGraphic" k2="0.5" k3="0.5" operator="arithmetic" />
-  </filter>
-</svg>
-"""
-
 # This hook function is for convenience,
 # for features to add events that will occur at
 # various times in the editor lifecycle.
@@ -212,8 +201,6 @@ exports.Editor = class Editor
 
     @dropletElement = document.createElement 'div'
     @dropletElement.className = 'droplet-wrapper-div'
-
-    @dropletElement.innerHTML = EMBOSS_FILTER_SVG
 
     # We give our element a tabIndex so that it can be focused and capture keypresses.
     @dropletElement.tabIndex = 0
@@ -458,6 +445,21 @@ exports.Editor = class Editor
     else
       @setEditorState useBlockMode, false, false, false
 
+    # Update session for inversion
+    if @session.options.viewSettings.invert
+      @paletteWrapper.style.backgroundColor = '#000'
+      @paletteWrapper.style.color = '#FFF'
+      @mainCanvas.style.backgroundColor = '#000'
+      @paletteCanvas.style.backgroundColor = '#000'
+      @cursorPath.element.setAttribute 'stroke', '#FFF'
+    else
+      @paletteWrapper.style.backgroundColor = '#FFF'
+      @paletteWrapper.style.color = '#FFF'
+      @mainCanvas.style.backgroundColor = '#FFF'
+      @paletteCanvas.style.backgroundColor = '#FFF'
+      @cursorPath.element.setAttribute 'stroke', '#000'
+
+
     # Preparse loop
     if @worker?
       @_lastPreparseText = null
@@ -592,6 +594,20 @@ exports.Editor = class Editor
       @session.view.clearFromCanvas()
       @session.paletteView.clearFromCanvas()
       @session.dragView.clearFromCanvas()
+
+      if @session.options.viewSettings.invert
+        @paletteWrapper.style.backgroundColor = '#000'
+        @paletteWrapper.style.color = '#FFF'
+        @mainCanvas.style.backgroundColor = '#000'
+        @paletteCanvas.style.backgroundColor = '#000'
+        @cursorPath.element.setAttribute 'stroke', '#FFF'
+      else
+        @paletteWrapper.style.backgroundColor = '#FFF'
+        @paletteWrapper.style.color = '#FFF'
+        @mainCanvas.style.backgroundColor = '#FFF'
+        @paletteCanvas.style.backgroundColor = '#FFF'
+        @cursorPath.element.setAttribute 'stroke', '#000'
+
     @session = session
 
     return unless session?
@@ -2643,7 +2659,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
     ]
 
     @textCursorPath.setPoints points
-    @textCursorPath.style.strokeColor = '#000'
+    @textCursorPath.style.strokeColor = if @session.view.opts.invert then '#FFF' else '#000'
     @textCursorPath.update()
     @qualifiedFocus @getCursor(), @textCursorPath
     @textInputHighlighted = false
@@ -2684,6 +2700,7 @@ Editor::redrawTextHighlights = (scrollIntoView = false) ->
 
     @textCursorPath.setPoints left.concat right.reverse()
     @textCursorPath.style.strokeColor = 'none'
+    @textCursorPath.style.fillColor = if @session.view.opts.invert then 'rgba(255, 255, 255, 0.15)' else 'rgba(0, 0, 0, 0.15)'
     @textCursorPath.update()
     @qualifiedFocus @getCursor(), @textCursorPath
 
@@ -4582,12 +4599,9 @@ hook 'populate', 0, ->
 
 Editor::showLoadingGlyph = (text) ->
   @loadingGlyph.style.display = ''
-  @mainCanvas.style.cursor = 'wait' # move to a css class
 
 Editor::hideLoadingGlyph = ->
   @loadingGlyph.style.display = 'none'
-  @mainCanvas.style.backgroundColor = ''
-  @mainCanvas.style.cursor = ''
 
 Editor::setValueAsync_raw = (value, cb) ->
   @_lastSetValue = value

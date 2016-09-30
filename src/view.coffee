@@ -27,7 +27,10 @@ CARRIAGE_GROW_DOWN = 3
 DROPDOWN_ARROW_HEIGHT = 8
 
 DROP_TRIANGLE_COLOR = '#555'
+DROP_DRIANGLE_INVERT_COLOR = '#CCC'
+
 BUTTON_GLYPH_COLOR = 'rgba(0, 0, 0, 0.3)'
+BUTTON_GLYPH_INVERT_COLOR = 'rgba(255, 255, 255, 0.5)'
 SVG_STANDARD = helper.SVG_STANDARD
 
 DEFAULT_OPTIONS =
@@ -1443,7 +1446,7 @@ exports.View = class View
         @buttonTexts[key] = @view.draw.text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
           (@view.opts.buttonHeight - @view.opts.textHeight) / 2
-        ), glyph, BUTTON_GLYPH_COLOR)
+        ), glyph, if @view.opts.invert then BUTTON_GLYPH_INVERT_COLOR else BUTTON_GLYPH_COLOR)
         @buttonPaths[key].setParent @buttonGroups[key]
         @buttonTexts[key].setParent @buttonGroups[key]
 
@@ -2120,7 +2123,10 @@ exports.View = class View
     constructor: ->
       super
       if @view.opts.showDropdowns and @model.dropdown?
-        @dropdownElement ?= @view.draw.path([], false, {fillColor: DROP_TRIANGLE_COLOR, cssClass: 'droplet-dropdown-arrow'})
+        @dropdownElement ?= @view.draw.path([], false, {
+          fillColor: (if @view.opts.invert then DROP_TRIANGLE_INVERT_COLOR else DROP_TRIANGLE_COLOR),
+          cssClass: 'droplet-dropdown-arrow'
+        })
         @dropdownElement.deactivate()
 
         @dropdownElement.setParent @group
@@ -2210,7 +2216,7 @@ exports.View = class View
           not @changedBoundingBox
         return @path
 
-      @path.style.fillColor = '#FFF'
+      @path.style.fillColor = if @view.opts.invert then '#333' else '#FFF'
 
       if @model.start.next.type is 'blockStart'
         @path.style.fillColor = 'none'
@@ -2419,7 +2425,8 @@ exports.View = class View
       super
       @textElement = @view.draw.text(
         new @view.draw.Point(0, 0),
-        @model.value
+        @model.value,
+        if @view.opts.invert then '#FFF' else '#000'
       )
       @textElement.destroy()
       @elements.push @textElement

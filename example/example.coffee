@@ -40,7 +40,7 @@ unless window.ALREADY_LOADED
     })
   '''
 
-  editor = null
+  window.editor = null
 
 # Droplet itself
   createEditor = (options) ->
