@@ -2201,7 +2201,7 @@ hook 'populate', 0, ->
 
   @paletteSearch = document.createElement 'input'
   @paletteSearch.className = 'droplet-palette-search'
-  @paletteSearch.setAttribute 'placeholder', 'Filter blocks'
+  @paletteSearch.setAttribute 'placeholder', 'Filter Blocks'
 
   @paletteSearch.style.paddingLeft = PALETTE_LEFT_MARGIN
   @paletteSearch.style.fontFamily = @session?.fontFamily ? 'Courier New'
