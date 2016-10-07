@@ -27,7 +27,7 @@ CARRIAGE_GROW_DOWN = 3
 DROPDOWN_ARROW_HEIGHT = 8
 
 DROP_TRIANGLE_COLOR = '#555'
-DROP_DRIANGLE_INVERT_COLOR = '#CCC'
+DROP_TRIANGLE_INVERT_COLOR = '#CCC'
 
 BUTTON_GLYPH_COLOR = 'rgba(0, 0, 0, 0.3)'
 BUTTON_GLYPH_INVERT_COLOR = 'rgba(255, 255, 255, 0.5)'
@@ -132,6 +132,9 @@ exports.View = class View
     for color of DEFAULT_OPTIONS.colors
       unless color of @opts.colors
         @opts.colors[color] = DEFAULT_OPTIONS.colors[color]
+
+    if @opts.invert
+      @opts.colors['comment'] = '#606060'
 
   # Simple method for clearing caches
   clearCache: ->

@@ -256,10 +256,6 @@ RULES = {
 }
 
 COLOR_DEFAULTS = {
-  'declaration': 'teal'
-  'function': 'indigo'
-  'logic': 'lightblue'
-  'type': '#DDD8AA' # Pale goldenrod
 }
 
 COLOR_RULES = {

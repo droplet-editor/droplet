@@ -74,6 +74,8 @@ unless window.ALREADY_LOADED
           })
       )
 
+    console.log 'assigning window.editor'
+
     window.editor = editor
 
   createEditor eval dropletConfig.getValue()

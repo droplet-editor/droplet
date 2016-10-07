@@ -131,6 +131,10 @@ class Session
     }
     @dragView = new view.View _drag, helper.extend {}, standardViewSettings, @options.viewSettings ? {}
 
+    # @views so that consumers can update flags on all views
+    # at once if they wish.
+    @views = [@view, @paletteView, @dragView]
+
     # ## Document initialization
     # We start of with an empty document
     @tree = new model.Document(@mode.rootContext)
@@ -446,7 +450,7 @@ exports.Editor = class Editor
       @setEditorState useBlockMode, false, false, false
 
     # Update session for inversion
-    if @session.options.viewSettings.invert
+    if @session.view.opts.invert
       @paletteWrapper.style.backgroundColor = '#000'
       @paletteWrapper.style.color = '#FFF'
       @mainCanvas.style.backgroundColor = '#000'
@@ -595,29 +599,33 @@ exports.Editor = class Editor
       @session.paletteView.clearFromCanvas()
       @session.dragView.clearFromCanvas()
 
-      if @session.options.viewSettings.invert
-        @paletteWrapper.style.backgroundColor = '#000'
-        @paletteWrapper.style.color = '#FFF'
-        @mainCanvas.style.backgroundColor = '#000'
-        @paletteCanvas.style.backgroundColor = '#000'
-        @cursorPath.element.setAttribute 'stroke', '#FFF'
-      else
-        @paletteWrapper.style.backgroundColor = '#FFF'
-        @paletteWrapper.style.color = '#FFF'
-        @mainCanvas.style.backgroundColor = '#FFF'
-        @paletteCanvas.style.backgroundColor = '#FFF'
-        @cursorPath.element.setAttribute 'stroke', '#000'
-
     @session = session
 
     return unless session?
+
+    if @session.view.opts.invert
+      @paletteWrapper.style.backgroundColor = '#181818'
+      @paletteWrapper.style.color = '#FFF'
+      @mainCanvas.style.backgroundColor = '#181818'
+      @paletteCanvas.style.backgroundColor = '#181818'
+      @cursorPath.element.setAttribute 'stroke', '#FFF'
+      @gutter.style.backgroundColor = '#EBEBEB'
+      @gutter.style.color = '#000'
+    else
+      @paletteWrapper.style.backgroundColor = '#FFF'
+      @paletteWrapper.style.color = '#FFF'
+      @mainCanvas.style.backgroundColor = '#FFF'
+      @paletteCanvas.style.backgroundColor = '#FFF'
+      @cursorPath.element.setAttribute 'stroke', '#000'
+      @gutter.style.backgroundColor = '#303130'
+      @gutter.style.color = '#EEE'
 
     # Force scroll into our position
     offsetY = @session.viewports.main.y
     offsetX = @session.viewports.main.x
 
     @setEditorState @session.currentlyUsingBlocks, false, true, false
-    @setEditorState @session.currentlyUsingBlocks, true, true, true
+    #@setEditorState @session.currentlyUsingBlocks, true, true, true
 
     @redrawMain()
 
