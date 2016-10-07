@@ -262,6 +262,8 @@ COLOR_RULES = {
   'declarationSpecifiers': 'type'
   'declarationSpecifiers2': 'type'
 
+  'specialFunctionDeclaration': 'function'
+
   'structOrUnionSpecifier': 'struct' # e.g. `struct a { }`
   'structDeclaration': 'struct' # e.g. `int a;` within `struct a { int a; }`
 

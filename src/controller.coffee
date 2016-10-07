@@ -451,17 +451,23 @@ exports.Editor = class Editor
 
     # Update session for inversion
     if @session.view.opts.invert
-      @paletteWrapper.style.backgroundColor = '#000'
+      @paletteWrapper.style.backgroundColor = '#181818'
       @paletteWrapper.style.color = '#FFF'
-      @mainCanvas.style.backgroundColor = '#000'
-      @paletteCanvas.style.backgroundColor = '#000'
+      @mainCanvas.style.backgroundColor = '#181818'
+      @paletteCanvas.style.backgroundColor = '#181818'
       @cursorPath.element.setAttribute 'stroke', '#FFF'
+      @gutter.style.backgroundColor = '#303130'
+      @gutter.style.color = '#EEE'
+      @setTopNubbyStyle 10, '#303130'
     else
       @paletteWrapper.style.backgroundColor = '#FFF'
       @paletteWrapper.style.color = '#FFF'
       @mainCanvas.style.backgroundColor = '#FFF'
       @paletteCanvas.style.backgroundColor = '#FFF'
       @cursorPath.element.setAttribute 'stroke', '#000'
+      @gutter.style.backgroundColor = '#EBEBEB'
+      @gutter.style.color = '#000'
+      @setTopNubbyStyle 10, '#EBEBEB'
 
 
     # Preparse loop
@@ -611,6 +617,7 @@ exports.Editor = class Editor
       @cursorPath.element.setAttribute 'stroke', '#FFF'
       @gutter.style.backgroundColor = '#303130'
       @gutter.style.color = '#EEE'
+      @setTopNubbyStyle 10, '#303130'
     else
       @paletteWrapper.style.backgroundColor = '#FFF'
       @paletteWrapper.style.color = '#FFF'
@@ -619,6 +626,7 @@ exports.Editor = class Editor
       @cursorPath.element.setAttribute 'stroke', '#000'
       @gutter.style.backgroundColor = '#EBEBEB'
       @gutter.style.color = '#000'
+      @setTopNubbyStyle 10, '#EBEBEB'
 
     # Force scroll into our position
     offsetY = @session.viewports.main.y
@@ -3988,6 +3996,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       translatingElements.push div
 
       div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
+      div.style.color = if @session.view.opts.invert then '#FFF' else '#000'
       # Add annotation
       if @annotations[line]?
         div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
@@ -4006,72 +4015,76 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
     @lineNumberWrapper.style.display = 'none'
 
-    # Kick off fade-out transition
-
-    @mainCanvas.style.transition =
-      @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
-
-    @mainCanvas.style.opacity = 0
-
-    @dropletElement.style.transition = "background-color #{fadeTime}ms"
-    @dropletElement.style.backgroundColor = getComputedStyle(@aceElement).backgroundColor
-    @transitionContainer.style.transition = "color #{fadeTime}ms"
-    @transitionContainer.style.color = getComputedStyle(@aceElement).color
-
-    paletteDisappearingWithMelt = @session.paletteEnabled and not @session.showPaletteInTextMode
-
-    if paletteDisappearingWithMelt
-      # Move the palette header into the background
-      @paletteHeader.style.zIndex = 0
-
-      @paletteResizeBar.style.display = 'none'
-      setTimeout (=>
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
-
-        @dropletElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
-      ), fadeTime
+    @transitionContainer.style.color = if @session.view.opts.invert then '#FFF' else '#000'
 
     setTimeout (=>
-      # Translate the ICE editor div out of frame.
-      @dropletElement.style.transition =
-        @paletteWrapper.style.transition = ''
+      # Kick off fade-out transition
 
-      # Translate the ACE editor div into frame.
-      @aceElement.style.top = '0px'
-      if @session.showPaletteInTextMode and @session.paletteEnabled
-        @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
-      else
-        @aceElement.style.left = '0px'
+      @mainCanvas.style.transition =
+        @highlightCanvas.style.transition = "opacity #{fadeTime}ms linear"
 
-      #if paletteDisappearingWithMelt
-      #  @paletteWrapper.style.top = '-9999px'
-      #  @paletteWrapper.style.left = '-9999px'
+      @mainCanvas.style.opacity = 0
 
-      @dropletElement.style.top = '-9999px'
-      @dropletElement.style.left = '-9999px'
+      @dropletElement.style.transition = "background-color #{fadeTime}ms"
+      @dropletElement.style.backgroundColor = getComputedStyle(@aceElement).backgroundColor
+      @transitionContainer.style.transition = "color #{fadeTime}ms"
+      @transitionContainer.style.color = getComputedStyle(@aceElement).color
 
-      # Finalize a bunch of animations
-      # that should be complete by now,
-      # but might not actually be due to
-      # floating point stuff.
-      @currentlyAnimating = false
+      paletteDisappearingWithMelt = @session.paletteEnabled and not @session.showPaletteInTextMode
 
-      # Show scrollbars again
-      @mainScroller.style.overflow = 'auto'
+      if paletteDisappearingWithMelt
+        # Move the palette header into the background
+        @paletteHeader.style.zIndex = 0
 
-      for div in translatingElements
-        div.parentNode.removeChild div
+        @paletteResizeBar.style.display = 'none'
+        setTimeout (=>
+          @dropletElement.style.transition =
+            @paletteWrapper.style.transition = "left #{translateTime}ms"
 
-      @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
+          @dropletElement.style.left = '0px'
+          @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
+        ), fadeTime
 
-      if @_animationCallback?
-        @_animationCallback()
-        @_animationCallback = null
+      setTimeout (=>
+        # Translate the ICE editor div out of frame.
+        @dropletElement.style.transition =
+          @paletteWrapper.style.transition = ''
 
-      cb?()
-    ), fadeTime + translateTime
+        # Translate the ACE editor div into frame.
+        @aceElement.style.top = '0px'
+        if @session.showPaletteInTextMode and @session.paletteEnabled
+          @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
+        else
+          @aceElement.style.left = '0px'
+
+        #if paletteDisappearingWithMelt
+        #  @paletteWrapper.style.top = '-9999px'
+        #  @paletteWrapper.style.left = '-9999px'
+
+        @dropletElement.style.top = '-9999px'
+        @dropletElement.style.left = '-9999px'
+
+        # Finalize a bunch of animations
+        # that should be complete by now,
+        # but might not actually be due to
+        # floating point stuff.
+        @currentlyAnimating = false
+
+        # Show scrollbars again
+        @mainScroller.style.overflow = 'auto'
+
+        for div in translatingElements
+          div.parentNode.removeChild div
+
+        @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
+
+        if @_animationCallback?
+          @_animationCallback()
+          @_animationCallback = null
+
+        cb?()
+      ), fadeTime + translateTime
+    ), 0
 
     return success: true
 
@@ -4202,6 +4215,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
               lineHeight - aceScrollTop}px"
 
           div.className = 'droplet-transitioning-element droplet-transitioning-gutter droplet-gutter-line'
+          div.style.color = if @session.view.opts.invert then '#FFF' else '#000'
           # Add annotation
           if @annotations[line]?
             div.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
@@ -4224,8 +4238,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
           @mainCanvas.style.opacity = 1
           @dropletElement.style.transition = "background-color #{fadeTime}ms"
           @transitionContainer.style.transition = "color #{fadeTime}ms"
-          @dropletElement.style.backgroundColor = '#FFF'
-          @transitionContainer.style.color = '#000'
+          @dropletElement.style.backgroundColor = if @session.view.opts.invert then '#181818' else '#FFF'
+          @transitionContainer.style.color = if @session.view.opts.invert then '#FFF' else '#000'
         ), translateTime
 
         @dropletElement.style.transition = "left #{fadeTime}ms"
