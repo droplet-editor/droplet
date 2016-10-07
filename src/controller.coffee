@@ -609,16 +609,16 @@ exports.Editor = class Editor
       @mainCanvas.style.backgroundColor = '#181818'
       @paletteCanvas.style.backgroundColor = '#181818'
       @cursorPath.element.setAttribute 'stroke', '#FFF'
-      @gutter.style.backgroundColor = '#EBEBEB'
-      @gutter.style.color = '#000'
+      @gutter.style.backgroundColor = '#303130'
+      @gutter.style.color = '#EEE'
     else
       @paletteWrapper.style.backgroundColor = '#FFF'
       @paletteWrapper.style.color = '#FFF'
       @mainCanvas.style.backgroundColor = '#FFF'
       @paletteCanvas.style.backgroundColor = '#FFF'
       @cursorPath.element.setAttribute 'stroke', '#000'
-      @gutter.style.backgroundColor = '#303130'
-      @gutter.style.color = '#EEE'
+      @gutter.style.backgroundColor = '#EBEBEB'
+      @gutter.style.color = '#000'
 
     # Force scroll into our position
     offsetY = @session.viewports.main.y
