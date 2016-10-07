@@ -138,8 +138,9 @@ exports.View = class View
 
   # Simple method for clearing caches
   clearCache: ->
-    @beginDraw()
-    @garbageCollect()
+    for id of @map
+      @map[id].destroy()
+      @destroy id
 
   # Remove everything from the canvas
   clearFromCanvas: ->
