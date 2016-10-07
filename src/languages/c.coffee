@@ -256,15 +256,13 @@ RULES = {
 }
 
 COLOR_DEFAULTS = {
-  'declaration': 'teal'
-  'function': 'indigo'
-  'logic': 'lightblue'
-  'type': '#DDD8AA' # Pale goldenrod
 }
 
 COLOR_RULES = {
   'declarationSpecifiers': 'type'
   'declarationSpecifiers2': 'type'
+
+  'specialFunctionDeclaration': 'function'
 
   'structOrUnionSpecifier': 'struct' # e.g. `struct a { }`
   'structDeclaration': 'struct' # e.g. `int a;` within `struct a { int a; }`

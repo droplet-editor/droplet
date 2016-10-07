@@ -40,7 +40,7 @@ unless window.ALREADY_LOADED
     })
   '''
 
-  editor = null
+  window.editor = null
 
 # Droplet itself
   createEditor = (options) ->
@@ -73,6 +73,8 @@ unless window.ALREADY_LOADED
             theme: ['tooltipster-noir', 'tooltipster-noir-customized']
           })
       )
+
+    console.log 'assigning window.editor'
 
     window.editor = editor
 

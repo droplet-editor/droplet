@@ -262,6 +262,11 @@ exports.PairDict = class PairDict
     @pairs.push [index, value]
     return false
 
+  forEach: (fn) ->
+    for pair, i in @pairs
+      fn pair[1], pair[0]
+    return
+
 dfs = (graph, a, b, visited = {}) ->
   if visited[a]
     return false
