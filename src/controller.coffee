@@ -186,6 +186,16 @@ class Session
         'modeOptions': @options.modeOptions
       }
 
+Session::addFloatingBlock = (obj) ->
+  operation = new FloatingOperation(
+    @floatingBlocks.length,
+    @mode.parse(obj.doc, {context: obj.doc_context}),
+    new @view.draw.Point(obj.pos.x, obj.pos.y),
+    'create'
+  )
+
+  @performFloatingOperation(operation, 'forward')
+  @pushUndo operation
 
 Session.id = 0
 
