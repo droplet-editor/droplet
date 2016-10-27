@@ -76,7 +76,7 @@ Contributing
 Droplet uses Grunt and npm to build. Run:
 
 ```shell
-git pull https://github.com/dabbler0/droplet.git
+git clone https://github.com/dabbler0/droplet.git
 cd droplet
 npm install
 grunt all
@@ -87,7 +87,7 @@ When developing, run:
 grunt testserver
 ```
 
-This will run the development server and watch the `src/` and `example/` directories for recompilation. Visit `localhost:8000/example/example.html` for a simple running environment. A view debugger is available at `localhost:8000/example/test.html`.
+This will run the development server and watch the `src/` and `example/` directories for recompilation. Visit `localhost:8001/example/example.html` for a simple running environment. A view debugger is available at `localhost:8001/test/test.html`.
 
 Run `grunt all` to run the tests.
 
