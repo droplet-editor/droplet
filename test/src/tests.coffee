@@ -788,7 +788,7 @@ asyncTest 'Controller: showPaletteInTextMode false', ->
     states.push usingBlocks
 
   editor.performMeltAnimation 10, 10, ->
-    strictEqual paletteWrapper.style.left, '-270px'
+    strictEqual paletteWrapper.style.left, '-300px'
     strictEqual aceEditor.style.left, '0px'
     editor.performFreezeAnimation 10, 10, ->
       strictEqual paletteWrapper.style.left, '0px'
@@ -814,7 +814,7 @@ asyncTest 'Controller: showPaletteInTextMode true', ->
 
   editor.performMeltAnimation 10, 10, ->
     strictEqual paletteWrapper.style.left, '0px'
-    strictEqual aceEditor.style.left, '270px'
+    strictEqual aceEditor.style.left, '300px'
     editor.performFreezeAnimation 10, 10, ->
       strictEqual paletteWrapper.style.left, '0px'
       strictEqual aceEditor.style.left, '-9999px'
@@ -833,10 +833,10 @@ asyncTest 'Controller: enablePalette false', ->
   dropletWrapper = document.querySelector('.droplet-wrapper-div')
 
   strictEqual paletteWrapper.style.left, '0px'
-  strictEqual dropletWrapper.style.left, '270px'
+  strictEqual dropletWrapper.style.left, '300px'
 
   verifyPaletteHidden = ->
-    strictEqual paletteWrapper.style.left, '-270px'
+    strictEqual paletteWrapper.style.left, '-300px'
     strictEqual dropletWrapper.style.left, '0px'
     start()
 

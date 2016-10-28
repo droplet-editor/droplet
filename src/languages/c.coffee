@@ -372,12 +372,17 @@ config.PAREN_RULES = {
   'postfixExpression': {
     'specialMethodCall': REMOVE_SEMICOLON
   }
+  ###
+  # These two rules seem to be wrong and I don't
+  # remember why I put them here in the first place.
+  # Commenting out for now.
   'declaration': {
     'declarationSpecifiers': ADD_SEMICOLON
   }
   'structDeclaration': {
     'specifierQualifierList': ADD_SEMICOLON
   }
+  ###
 }
 
 # Test to see if a node is a method call
