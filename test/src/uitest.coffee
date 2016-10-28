@@ -567,7 +567,7 @@ asyncTest 'Controller: remembered sockets', ->
         if i % 2 is 0
           fd [0..10]
         else
-          bk 10\n
+          bk 10
       ''')
     ), (->
       pickUpLocation editor, 0, {
@@ -598,7 +598,7 @@ asyncTest 'Controller: remembered sockets', ->
           ``
         else
           fd 10
-          bk 10\n
+          bk 10
       ''')
     ), (->
       editor.undo()
@@ -609,7 +609,7 @@ asyncTest 'Controller: remembered sockets', ->
           ``
         else
           fd [0..10]
-          bk 10\n
+          bk 10
       ''')
     ), (->
       pickUpLocation editor, 0, {
@@ -629,7 +629,7 @@ asyncTest 'Controller: remembered sockets', ->
           ``
         else
           fd 10
-          bk 10\n
+          bk 10
       ''')
       start()
     )
@@ -691,7 +691,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
     ), (->
       equal(editor.getValue(), '''
       fd 20
-      fd 30\n
+      fd 30
       ''')
 
       equal(editor.session.floatingBlocks.length, 1)
@@ -715,7 +715,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
     ), (->
       equal(editor.session.floatingBlocks.length, 2)
       equal(editor.getValue(), '''
-      fd 30\n
+      fd 30
       ''')
     ), (->
       pickUpLocation editor, 0, {
@@ -771,7 +771,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
       fd fd 30
       ''')
       equal(editor.getValue(), '''
-      fd 10\n
+      fd 10
       ''')
     ), (->
       editor.undo()
@@ -803,7 +803,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
       fd 20
       ''')
       equal(editor.getValue(), '''
-      fd 30\n
+      fd 30
       ''')
 
       start()
@@ -920,7 +920,7 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
       evt.keyCode = evt.which = 40
       editor.dropletElement.dispatchEvent(evt)
     ), (->
-      equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'\n"""
+      equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'"""
       start()
     )
   ]
@@ -1024,7 +1024,7 @@ asyncTest 'Controller: Session switch test', ->
           else {
             bk(10);
           }
-        }\n
+        }
         ''', 'Set value of new session'
 
         equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
@@ -1043,7 +1043,7 @@ asyncTest 'Controller: Session switch test', ->
           if i % 2 is 0
             fd 10
           else
-            bk 10\n
+            bk 10
         ''', 'Original text restored'
 
         equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
@@ -1061,7 +1061,7 @@ asyncTest 'Controller: Session switch test', ->
           else {
             bk(10);
           }
-        }\n
+        }
         ''', 'Set value of new session'
 
         equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'

@@ -189,6 +189,8 @@ def process(grammarSpec):
             if EMPTY in connections[rule_name]:
                 lookup_table[rule_name] = True
 
+    print(lookup_table)
+
     return connections
 
 # Raw parse tree nodes

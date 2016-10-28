@@ -260,7 +260,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int x = __0_droplet__;
         int a = 1 + 2 * 3;
         printf("Hello");
-      }\n
+      }
       ''', 'Paren-wrapped + block dropping into * block'
 
       equal editor.session.tree.getFromTextLocation({
@@ -285,7 +285,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int x = __0_droplet__;
         int a = 1 * (1 + 2) + 2 * 3;
         printf("Hello");
-      }\n
+      }
       ''', 'Did not paren-wrap * block dropping into + block'
     ), (->
       pickUpLocation editor, 0, {
@@ -305,7 +305,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int x = 1 + 2;
         int a = 1 * 2 + 2 * 3;
         printf("Hello");
-      }\n
+      }
       ''', 'Un-paren-wrapped when dropping into place where parens are unnecessary'
 
       equal editor.session.tree.getFromTextLocation({
@@ -328,7 +328,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int y = printf("Hello");
         int x = 1 + 2;
         int a = 1 * 2 + 2 * 3;
-      }\n
+      }
       ''', 'Removed semicolon'
 
       equal editor.session.tree.getFromTextLocation({
@@ -352,7 +352,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
         int x = 1 + 2;
         int a = 1 * 2 + 2 * 3;
         printf("Hello");
-      }\n
+      }
       ''', 'Added semicolon back'
 
       equal editor.session.tree.getFromTextLocation({
@@ -392,7 +392,7 @@ asyncTest 'Controller: ANTLR paren wrap rules for C semicolons', ->
       equal editor.getValue(), '''
       int main() {
         puts(puts("Hello"));
-      }\n
+      }
       ''', 'Removed semicolon dropping function into other function'
     ), (->
       pickUpLocation editor, 0, {
@@ -410,7 +410,7 @@ asyncTest 'Controller: ANTLR paren wrap rules for C semicolons', ->
       int main() {
         puts("World");
         puts("Hello");
-      }\n
+      }
       ''', 'Added semicolon dropping function into block'
 
       start()

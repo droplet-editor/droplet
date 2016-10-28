@@ -2359,6 +2359,8 @@ Editor::rebuildPaletteHeaders = ->
   @resizePalette()
 
 Editor::setPalette = (paletteGroups) ->
+  return unless @session?
+
   @session.paletteGroups = helper.deepCopy paletteGroups
   @session.paletteScrollPositions = ({x: 0, y: 0} for el, i in @session.paletteGroups)
   @session.selectedPaletteGroup = 0
@@ -2420,6 +2422,9 @@ Editor::changePaletteGroup = (group) ->
   unless group.parsedBlocks?
     group.generateParsedBlocks()
 
+  # Immediately fire selectpalette
+  @fireEvent 'selectpalette', [paletteGroup.name]
+
   # Record that we are the selected group now
   @session.currentPaletteGroup = paletteGroup.name
   @session.currentPaletteBlocks = paletteGroup.parsedBlocks
@@ -2447,15 +2452,12 @@ Editor::changePaletteGroup = (group) ->
     {x, y} = @session.paletteScrollPositions[@session.selectedPaletteGroup]
     @paletteScroller.scrollLeft = x
     @paletteScroller.scrollTop = y
-  ), 0
 
-  # Scroll to the desired one
+    @fireEvent 'palettechange'
+  ), 0
 
   # Reapply the palette search box search
   @reapplySearch()
-
-  @fireEvent 'selectpalette', [paletteGroup.name]
-  @fireEvent 'palettechange'
 
 # The next thing we need to do with the palette
 # is let people pick things up from it.
