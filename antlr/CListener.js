@@ -236,6 +236,15 @@ CListener.prototype.exitDeclaration = function(ctx) {
 };
 
 
+// Enter a parse tree produced by CParser#specialFunctionDeclaration.
+CListener.prototype.enterSpecialFunctionDeclaration = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#specialFunctionDeclaration.
+CListener.prototype.exitSpecialFunctionDeclaration = function(ctx) {
+};
+
+
 // Enter a parse tree produced by CParser#declarationSpecifiers.
 CListener.prototype.enterDeclarationSpecifiers = function(ctx) {
 };
@@ -1061,6 +1070,15 @@ CListener.prototype.enterDeclaration_DropletFile = function(ctx) {
 
 // Exit a parse tree produced by CParser#declaration_DropletFile.
 CListener.prototype.exitDeclaration_DropletFile = function(ctx) {
+};
+
+
+// Enter a parse tree produced by CParser#specialFunctionDeclaration_DropletFile.
+CListener.prototype.enterSpecialFunctionDeclaration_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#specialFunctionDeclaration_DropletFile.
+CListener.prototype.exitSpecialFunctionDeclaration_DropletFile = function(ctx) {
 };
 
 

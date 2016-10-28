@@ -20,7 +20,6 @@ onmessage = function(e) {
         });
       }
       catch (e) {
-        console.log('Parse error', e);
         postMessage({
           id: data.id,
           result: null

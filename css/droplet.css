@@ -9,8 +9,8 @@
   margin-top: -2px;
   margin-left: -1px;
   opacity: 0.85;
-  -webkit-filter: drop-shadow( 5px 5px 5px #888 );
-  filter: drop-shadow( 5px 5px 5px #888 ); /* Same syntax as box-shadow */
+  -webkit-filter: drop-shadow( 5px 5px 5px rgba(0, 0, 0, 0.5) );
+  filter: drop-shadow( 5px 5px 5px rgba(0, 0, 0, 0.5) ); /* Same syntax as box-shadow */
 }
 .droplet-palette-canvas {
   z-index: 1;
@@ -87,7 +87,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  background-color: #FFF;
+  background-color: inherit;
   border-spacing: 4px;
 }
 .droplet-palette-header {
@@ -402,8 +402,11 @@ text {
   box-sizing: border-box;
   width: 100%;
   height: 30px;
+  padding-left: 5px;
   border: 1px solid #888;
   border-radius: 2px;
+  background-color: inherit;
+  color: inherit;
 }
 .droplet-loading-glyph-wrapper {
   background: #DDD;

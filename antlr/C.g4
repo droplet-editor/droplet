@@ -175,8 +175,14 @@ constantExpression
     ;
 
 declaration
-    :   declarationSpecifiers initDeclaratorList? ';'
+    :   specialFunctionDeclaration
+    |   declarationSpecifiers initDeclaratorList ';'
+    |   declarationSpecifiers ';'
     |   staticAssertDeclaration
+    ;
+
+specialFunctionDeclaration
+    :   declarationSpecifiers directDeclarator '(' parameterTypeList? ')' ';'
     ;
 
 declarationSpecifiers
@@ -560,6 +566,7 @@ translationUnit
 
 externalDeclaration
     :   functionDefinition
+    |   initDeclaratorList ';'
     |   declaration
     |   ';' // stray ;
     ;
@@ -724,8 +731,14 @@ constantExpression_DropletFile
     ;
 
 declaration_DropletFile
-    :   declarationSpecifiers initDeclaratorList? ';' EOF
+    :   specialFunctionDeclaration EOF
+    |   declarationSpecifiers initDeclaratorList ';' EOF
+    |   declarationSpecifiers ';' EOF
     |   staticAssertDeclaration EOF
+    ;
+
+specialFunctionDeclaration_DropletFile
+    :   declarationSpecifiers directDeclarator '(' parameterTypeList? ')' ';' EOF
     ;
 
 declarationSpecifiers_DropletFile
@@ -1032,6 +1045,7 @@ blockItemList_DropletFile
 // check before we check declarations to avoid conflicts with a (b);.
 blockItem_DropletFile
     :   specialMethodCall EOF
+    |   initDeclarator EOF
     |   declaration EOF
     |   statement EOF
     |   EOF
