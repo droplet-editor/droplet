@@ -469,7 +469,7 @@ exports.Editor = class Editor
       @setEditorState useBlockMode, false, false, false
 
     # Update session for inversion
-    if @session.view.opts.invert
+    if @session? and @session.view.opts.invert
       @paletteWrapper.style.backgroundColor = '#181818'
       @paletteWrapper.style.color = '#FFF'
       @mainCanvas.style.backgroundColor = '#181818'
@@ -681,6 +681,11 @@ exports.Editor = class Editor
         @setEditorState true, true, true, true
 
       @setPalette @session.paletteGroups
+
+      # For any formatting things, like inversion,
+      # that come with this session, call:
+      @updateNewSession @session
+
       return session
 
 Editor::clearCanvas = (canvas) -> # TODO remove and remove all references to

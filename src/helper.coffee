@@ -262,6 +262,9 @@ exports.PairDict = class PairDict
     @pairs.push [index, value]
     return false
 
+  remove: (index) ->
+    @pairs = @pairs.filter (pair) -> pair[0] isnt index
+
   forEach: (fn) ->
     for pair, i in @pairs
       fn pair[1], pair[0]
