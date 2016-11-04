@@ -111,6 +111,8 @@ class Session
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
     @allowFloatingBlocks = @options.allowFloatingBlocks ? true
 
+    @locRegistry = []
+
     # By default, attempt to preserve empty sockets when round-tripping
     @options.preserveEmpty ?= true
 
@@ -1215,15 +1217,34 @@ class CapturePoint
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
-Editor::getPreserves = (dropletDocument) ->
-  if dropletDocument instanceof model.Document
-    dropletDocument = @documentIndex dropletDocument
+Editor::registerLocation = (token) ->
+  location = @toCrossDocumentLocation token
+  @session.locRegistry.push location
 
+  return location
+
+Editor::deregisterLocation = (loc) ->
+  @session.locRegistry = @session.locRegistry.filter (x) -> x isnt loc
+  return @fromCrossDocumentLocation loc
+
+Editor::getAllPreserves = (loc) ->
+  # Registered locations
   array = [@session.cursor]
+
+  # Add registered locations
+  array = array.concat @session.locRegistry
 
   array = array.concat @session.rememberedSockets.map(
     (x) -> x.socket
   )
+
+  return array
+
+Editor::getPreserves = (dropletDocument) ->
+  if dropletDocument instanceof model.Document
+    dropletDocument = @documentIndex dropletDocument
+
+  array = @getAllPreserves()
 
   return array.filter((location) ->
     location.document is dropletDocument
@@ -1271,14 +1292,11 @@ Editor::spliceOut = (node, container = null, preserveForReplacement = false, upd
           if @session.cursor.document is i + 1
             @setCursor @session.tree.start
 
-          if @session.cursor.document > i + 1
-            @session.cursor.document -= 1
-
           @session.floatingBlocks.splice i, 1
 
-          for socket in @session.rememberedSockets
-            if socket.socket.document > i
-              socket.socket.document -= 1
+          for loc in @getAllPreserves()
+            if loc.document > i
+              loc.document -= 1
 
           break
   else if container?
@@ -2037,7 +2055,7 @@ hook 'mouseup', 1, (point, event, state) ->
         rememberedSocketOffsets.forEach (x) ->
           x.offset += 1
 
-      futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
+      futureCursorLocation = @registerLocation @draggingBlock.start
 
       # Reparse the parent if we are
       # in a socket
@@ -2050,29 +2068,14 @@ hook 'mouseup', 1, (point, event, state) ->
       #  @reparse @draggingBlock.parent.parent
       draggingPalette = @draggingPalette
 
-      # TODO TODO TODO HOTFIX HACK
-      startPointer = @draggingBlock.start
-      # END HOTFIX HACK
-
       # Now that we've done that, we can annul stuff.
       @endDrag true
 
-      # TODO TODO TODO HOTFIX HACK
-      try
-        unless @fromCrossDocumentLocation(futureCursorLocation).getDocument() in @getDocuments()
-          throw new Error()
-      catch e
-        if startPointer.container.getDocument() in @getDocuments()
-          futureCursorLocation = @toCrossDocumentLocation startPointer
-        else
-          futureCursorLocation = @toCrossDocumentLocation @session.tree.start
-      # END HOTFIX HACK
-
       if futureCursorLocation?
         if draggingPalette
-          @setCursor(futureCursorLocation)
+          @setCursor @deregisterLocation futureCursorLocation
         else
-          @setCursor(futureCursorLocation, (token) -> token.container?.type isnt 'socket')
+          @setCursor(@deregisterLocation(futureCursorLocation), (token) -> token.container?.type isnt 'socket')
 
       newBeginning = futureCursorLocation.location.count
       newIndex = futureCursorLocation.document
@@ -2201,12 +2204,9 @@ hook 'mouseup', 0, (point, event, state) ->
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
-    if @session.cursor.document > op.index
-      @session.cursor.document += 1
-
-    for socket in @session.rememberedSockets
-      if socket.socket.document > op.index
-        socket.socket.document += 1
+    for loc in @getAllPreserves()
+      if loc.document > op.index
+        loc.document += 1
 
     @session.floatingBlocks.splice op.index, 0, record = new FloatingBlockRecord(
       op.block.clone()
@@ -2220,9 +2220,9 @@ Editor::performFloatingOperation = (op, direction) ->
     if @session.cursor.document is op.index + 1
       @setCursor @session.tree.start
 
-    for socket in @session.rememberedSockets
-      if socket.socket.document > op.index + 1
-        socket.socket.document -= 1
+    for loc in @getAllPreserves()
+      if loc.document > op.index + 1
+        loc.document -= 1
 
     @session.floatingBlocks.splice op.index, 1
 
@@ -3508,7 +3508,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     destination = (if direction is 'after' then destination.next else destination.prev)
     return unless destination?
 
-  destination = @toCrossDocumentLocation destination
+  destination = @registerLocation destination
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @session.cursor.is(destination)
@@ -3517,19 +3517,19 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     if socket.fromLocked
       @populateBlock socket.parent, @session.mode.lockedSocketCallback(
         socket.stringifyInPlace(), socket.parent.stringifyInPlace(), socket.parent.parseContext
-      ), [destination.location]
+      )
 
     else if socket.handwritten
-      @reparse socket.parent, (if destination.document is @session.cursor.document then [destination.location] else [])
+      @reparse socket.parent
     else if '__comment__' isnt socket.parseContext
-      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
+      @reparseSocket socket
 
     @hiddenInput.blur()
     @dropletElement.focus()
     if @dropdownVisible
       @hideDropdown()
 
-  @session.cursor = destination
+  @session.cursor = @toCrossDocumentLocation @deregisterLocation destination
 
   # If we have messed up (usually because
   # of a reparse), scramble to find a nearby
