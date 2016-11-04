@@ -4,9 +4,6 @@ runningModes = {};
 
 console.log('Worker starting up.');
 
-// Suppress all logs from ANTLR from now on.
-console.error = function() {};
-
 onmessage = function(e) {
   var data = e.data;
 

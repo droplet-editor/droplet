@@ -22,8 +22,10 @@ exports.createANTLRParser = (name, config, root) ->
     # Construct but do not execute all of the necessary ANTLR accessories
     chars = new antlr4.InputStream(text)
     lexer = new ANTLR_PARSER_COLLECTION["#{name}Lexer"]["#{name}Lexer"](chars)
+    lexer.removeErrorListeners()
     tokens = new antlr4.CommonTokenStream(lexer)
     parser = new ANTLR_PARSER_COLLECTION["#{name}Parser"]["#{name}Parser"](tokens)
+    parser.removeErrorListeners()
 
     parser._errHandler = new antlr4.error.BailErrorStrategy()
 
