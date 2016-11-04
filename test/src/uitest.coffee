@@ -368,6 +368,28 @@ asyncTest 'Controller: Can replace a block where we found it', ->
                             '}\n')
   start()
 
+asyncTest 'Controller: registry bug', ->
+  document.getElementById('test-main').innerHTML = ''
+  editor = new droplet.Editor document.getElementById('test-main'), {
+    mode: 'c'
+    palette: [
+      {
+        'context': 'blockItem'
+        'block': 'int a = 0;'
+      }
+    ]
+  }
+
+  editor.setValue '''
+  int main(void) {
+    
+  }
+  '''
+
+  # TODO TODO TODO as of FRI OCT 28
+  # Press enter inside int main(void)
+  # drag int a = 0; to below the newly-created blank block.
+
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
   head = editor.session.tree.start

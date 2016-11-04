@@ -4551,17 +4551,25 @@ Editor::getHighlightPath = (model, style, view = @session.view) ->
 
   return path
 
+Session::markLine = (line, style) ->
+  block = @tree.getBlockOnLine line
+  console.log 'marking', line, '(block is', block.stringify(), ')'
+
+  @view.getViewNodeFor(block).mark style
+
 Editor::markLine = (line, style) ->
   return unless @session?
 
-  block = @session.tree.getBlockOnLine line
+  @session.markLine line, style
 
-  @session.view.getViewNodeFor(block).mark style
+  @redrawMain()
 
 Editor::markBlock = (block, style) ->
   return unless @session?
 
   @session.view.getViewNodeFor(block).mark style
+
+  @redrawMain()
 
 # ## Mark
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
@@ -4574,12 +4582,12 @@ Editor::mark = (location, style) ->
 
   @session.view.getViewNodeFor(block).mark style
 
-  @redrawHighlights() # TODO MERGE investigate
+  @redrawMain()
 
 Editor::clearLineMarks = ->
   @session.view.clearMarks()
 
-  @redrawHighlights()
+  @redrawMain()
 
 # LINE HOVER SUPPORT
 # ================================
