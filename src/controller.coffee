@@ -1503,7 +1503,26 @@ hook 'mousedown', 1, (point, event, state) ->
       if @clickedBlock.parent.type is 'socket'
         @setCursor @clickedBlock.start.next
       else
-        @setCursor @clickedBlock.start.next, (head) -> head.container.type isnt 'socket' # TODO reconsider
+        head = @clickedBlock.start.next
+        # Determine the last newline before this block
+        for bound, i in @session.view.getViewNodeFor(hitTestResult).bounds
+          # If we have found the correct bound,
+          # set the cursor nearby and break
+          if bound.contains mainPoint
+            console.log 'Found it!', i, head
+
+            until head.parent is @clickedBlock
+              head = head.next
+
+            @setCursor head, (head) -> head.container.type isnt 'socket'
+
+            break
+
+          # Otherwise, find the next newline
+          else
+            head = head.next
+            until head.type is 'newline'
+              head = head.next
 
       # Record the point at which is was clicked (for clickedBlock->draggingBlock)
       @clickedPoint = point
