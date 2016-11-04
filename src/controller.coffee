@@ -186,6 +186,25 @@ class Session
         'modeOptions': @options.modeOptions
       }
 
+  setFloatingBlocks: (array) ->
+    # Filter out any rememberedSocket data associated with the floating blocks we are removing
+    @rememberedSockets = @rememberedSockets.filter (x) -> x.socket.document is 0
+
+    # Empty the undo stacks (TODO: possibly just filter out operations that have to do with the floating blocks we removed)
+    @undoStack.length = @redoStack.length = 0
+
+    if @cursor.document isnt 0
+      @cursor = @toCrossDocumentLocation @tree.start
+
+    # TODO after droplet/registry merge, we need to filter the registry here, too.
+    @floatingBlocks = array.map((object) =>
+      new FloatingBlockRecord(
+        @mode.parse(object.text, {context: object.context}),
+        new @view.draw.Point object.pos.x, object.pos.y
+      )
+    )
+
+    return true
 
 Session.id = 0
 
@@ -450,7 +469,7 @@ exports.Editor = class Editor
       @setEditorState useBlockMode, false, false, false
 
     # Update session for inversion
-    if @session.view.opts.invert
+    if @session? and @session.view.opts.invert
       @paletteWrapper.style.backgroundColor = '#181818'
       @paletteWrapper.style.color = '#FFF'
       @mainCanvas.style.backgroundColor = '#181818'
@@ -662,6 +681,11 @@ exports.Editor = class Editor
         @setEditorState true, true, true, true
 
       @setPalette @session.paletteGroups
+
+      # For any formatting things, like inversion,
+      # that come with this session, call:
+      @updateNewSession @session
+
       return session
 
 Editor::clearCanvas = (canvas) -> # TODO remove and remove all references to
@@ -747,6 +771,10 @@ Editor::initializeFloatingBlock = (record, i) ->
     @mainCanvas.appendChild record.renderGroup
 
 Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
+  # Initialize the block if it hasn't been
+  unless record.grayBoxPath?
+    @initializeFloatingBlock record, @session.floatingBlocks.indexOf(record)
+
   blockView = @session.view.getViewNodeFor record.block
   blockView.layout record.position.x, record.position.y
 
