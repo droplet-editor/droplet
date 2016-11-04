@@ -4584,8 +4584,11 @@ Editor::mark = (location, style) ->
 
   @redrawMain()
 
+Session::clearLineMarks = ->
+  @view.clearMarks()
+
 Editor::clearLineMarks = ->
-  @session.view.clearMarks()
+  @session.clearLineMarks()
 
   @redrawMain()
 
