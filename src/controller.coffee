@@ -1511,7 +1511,7 @@ hook 'mousedown', 1, (point, event, state) ->
           if bound.contains mainPoint
             console.log 'Found it!', i, head
 
-            until head.parent is @clickedBlock
+            until head.parent is @clickedBlock or head.container is @clickedBlock
               head = head.next
 
             @setCursor head, (head) -> head.container.type isnt 'socket'
