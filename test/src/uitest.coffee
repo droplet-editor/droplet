@@ -26,10 +26,12 @@ function simulate(type, target, options) {
     dx = Math.floor((gbcr.right - gbcr.left) / 2)
     dy = Math.floor((gbcr.bottom - gbcr.top) / 2)
   }
+
   if ('dx' in options) dx = options.dx
   if ('dy' in options) dy = options.dy
   pageX = (options.pageX == null ? pageX : options.pageX) + dx
   pageY = (options.pageY == null ? pageY : options.pageY) + dy
+
   clientX = pageX - window.pageXOffset
   clientY = pageY - window.pageYOffset
   var opts = {
@@ -372,10 +374,17 @@ asyncTest 'Controller: registry bug', ->
   document.getElementById('test-main').innerHTML = ''
   editor = new droplet.Editor document.getElementById('test-main'), {
     mode: 'c'
+    viewSettings: {padding: 10}
     palette: [
       {
-        'context': 'blockItem'
-        'block': 'int a = 0;'
+        'name': 'Test'
+        'blocks': [
+          {
+            'context': 'blockItem'
+            'block': 'int a = 0;'
+            'id': 'newblock'
+          }
+        ]
       }
     ]
   }
@@ -386,9 +395,67 @@ asyncTest 'Controller: registry bug', ->
   }
   '''
 
-  # TODO TODO TODO as of FRI OCT 28
-  # Press enter inside int main(void)
-  # drag int a = 0; to below the newly-created blank block.
+  executeAsyncSequence [
+    (->
+      # Click int main(void)
+      block = editor.session.tree.getBlockOnLine 0
+      bound = editor.session.view.getViewNodeFor(block).bounds[0]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+
+      simulate('mousedown', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+    ), (->
+      # Press "enter"
+      evt = document.createEvent 'Event'
+      evt.initEvent 'keydown', true, true
+      evt.keyCode = evt.which = 13
+      editor.dropletElement.dispatchEvent(evt)
+    ), (->
+      # Drag "int a = 0;" beneath the newly-created block
+      target = editor.session.tree.getBlockOnLine 1
+      dropPoint = editor.session.view.getViewNodeFor(target).dropPoint
+
+      # Click "int a = 0"
+      simulate('mousedown', editor.paletteCanvas, {location: '[data-id=newblock]', dx: 5, dy: 5})
+
+      simulate('mousemove', editor.dragCover
+        { location: '[data-id=newblock]', dx: 10, dy: 10})
+
+      # Move it to below the newly-created block
+      simulate('mousemove', editor.dragCover, {
+        location: editor.dropletElement,
+        dx: dropPoint.x + 5 + editor.gutter.clientWidth
+        dy: dropPoint.y + 5
+      })
+
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: dropPoint.x + 5 + editor.gutter.clientWidth
+        dy: dropPoint.y + 5
+      })
+    ), (->
+      # Affirm the contents of the editor
+      equal editor.getValue(), '''
+      int main(void) {
+        
+        int a = 0;
+      }
+      '''
+
+      # Affirm the position of the cursor
+      equal editor.fromCrossDocumentLocation(editor.session.cursor).container.stringify(), 'a'
+    ), (->
+      start()
+    )
+  ]
 
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
@@ -527,12 +594,12 @@ performDragOperation = (editor, drag, cb) ->
 
   setTimeout cb, 0
 
-executeAsyncSequence = (sequence, i = 0) ->
+executeAsyncSequence = (sequence, timeout = 0, i = 0) ->
   if i < sequence.length
     sequence[i]()
     setTimeout (->
-      executeAsyncSequence sequence, i + 1
-    ), 0
+      executeAsyncSequence sequence, timeout, i + 1
+    ), timeout
 
 asyncTest 'Controller: remembered sockets', ->
   document.getElementById('test-main').innerHTML = ''

@@ -1785,8 +1785,6 @@ hook 'mousemove', 1, (point, event, state) ->
 
         head = head.next
 
-    @dragCanvas.style.transform = "translate(#{position.x + getOffsetLeft(@dropletElement)}px,#{position.y + getOffsetTop(@dropletElement)}px)"
-
     # Now we are done with the "clickedX" suite of stuff.
     @clickedPoint = @clickedBlock = null
     @clickedBlockPaletteEntry = null
