@@ -1509,7 +1509,6 @@ hook 'mousedown', 1, (point, event, state) ->
           # If we have found the correct bound,
           # set the cursor nearby and break
           if bound.contains mainPoint
-            console.log 'Found it!', i, head
 
             until head.parent is @clickedBlock or head.container is @clickedBlock
               head = head.next

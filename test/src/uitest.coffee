@@ -370,11 +370,80 @@ asyncTest 'Controller: Can replace a block where we found it', ->
                             '}\n')
   start()
 
+asyncTest 'Controller: line-based cursor placement', ->
+  document.getElementById('test-main').innerHTML = ''
+  editor = new droplet.Editor document.getElementById('test-main'), {
+    mode: 'c'
+    viewSettings: {padding: 20}
+    palette: [
+      {
+        'name': 'Test'
+        'blocks': [
+          {
+            'context': 'blockItem'
+            'block': 'int a = 0;'
+            'id': 'newblock'
+          }
+        ]
+      }
+    ]
+  }
+
+  editor.setValue '''
+  int main(void) {
+    
+  }
+  '''
+
+  executeAsyncSequence [
+    (->
+      # Click int main(void)
+      block = editor.session.tree.getBlockOnLine 0
+      bound = editor.session.view.getViewNodeFor(block).bounds[0]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+
+      simulate('mousedown', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+    ), (->
+      # Affirm cursor placement
+      equal editor.getCursor().type, 'indentStart'
+    ), (->
+      # Click the bottom of int main(void)
+      block = editor.session.tree.getBlockOnLine 0
+      bound = editor.session.view.getViewNodeFor(block).bounds[2]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+
+      simulate('mousedown', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+    ), (->
+      # Affirm cursor placement
+      equal editor.getCursor().type, 'blockEnd'
+    ), (->
+      start()
+    )
+  ]
+
 asyncTest 'Controller: registry bug', ->
   document.getElementById('test-main').innerHTML = ''
   editor = new droplet.Editor document.getElementById('test-main'), {
     mode: 'c'
-    viewSettings: {padding: 10}
+    viewSettings: {padding: 20}
     palette: [
       {
         'name': 'Test'
@@ -424,10 +493,16 @@ asyncTest 'Controller: registry bug', ->
       dropPoint = editor.session.view.getViewNodeFor(target).dropPoint
 
       # Click "int a = 0"
-      simulate('mousedown', editor.paletteCanvas, {location: '[data-id=newblock]', dx: 5, dy: 5})
+      simulate('mousedown', '[data-id=newblock]', {
+        dx: 7,
+        dy: 7
+      })
+
 
       simulate('mousemove', editor.dragCover
         { location: '[data-id=newblock]', dx: 10, dy: 10})
+
+      equal editor.draggingBlock?.stringify?(), 'int a = 0;', 'Dragging the correct block'
 
       # Move it to below the newly-created block
       simulate('mousemove', editor.dragCover, {
@@ -435,6 +510,8 @@ asyncTest 'Controller: registry bug', ->
         dx: dropPoint.x + 5 + editor.gutter.clientWidth
         dy: dropPoint.y + 5
       })
+
+      ok editor.lastHighlight, 'Will drop somewhere'
 
       simulate('mouseup', editor.mainCanvas, {
         location: editor.dropletElement,
@@ -448,10 +525,10 @@ asyncTest 'Controller: registry bug', ->
         
         int a = 0;
       }
-      '''
+      ''', 'Dropped in the correct place'
 
       # Affirm the position of the cursor
-      equal editor.fromCrossDocumentLocation(editor.session.cursor).container.stringify(), 'a'
+      equal editor.fromCrossDocumentLocation(editor.session.cursor).container.stringify(), 'a', 'Cursor has not vanished'
     ), (->
       start()
     )
