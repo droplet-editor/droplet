@@ -678,29 +678,32 @@ asyncTest 'Controller: setValue errors', ->
 asyncTest 'Controller: setFloatingBlocks', ->
   document.getElementById('test-main').innerHTML = ''
   editor = new droplet.Editor document.getElementById('test-main'), {
-    mode: 'coffeescript'
+    mode: 'c'
     palette: []
   }
 
   editor.setEditorState true
 
   editor.setValue '''
-  for [1..10]
-    alert 10 + 10
-    prompt 10 - 10
-    alert 10 * 10
-    prompt 10 / 10
+  int main(void) {
+    return 0;
+  }
   '''
 
-  equal editor.session.tree.getFromTextLocation({row: 2, col: 9, type: 'block'}).stringify(), '10 - 10', 'Selected the right block'
+  editor.session.setFloatingBlocks([
+    {
+      context: 'blockItem'
+      text: 'puts("Hello");'
+      pos: {x: 300, y: 500}
+    },
+    {
+      context: 'structDeclaration'
+      text: 'int a;'
+      pos: {x: 20, y: 35}
+    }
+  ])
 
-  before = $('[stroke=#F00]').length
-
-  key = editor.mark {row: 2, col: 9, type: 'block'}, {color: '#F00'}
-
-  after = $('[stroke=#F00]').length
-
-  ok after > before, 'Added a red mark'
+  equal editor.session.floatingBlocks.length, 2, 'Set floating blocks'
 
   start()
 
