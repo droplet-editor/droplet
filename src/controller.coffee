@@ -111,6 +111,8 @@ class Session
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
     @allowFloatingBlocks = @options.allowFloatingBlocks ? true
 
+    @locRegistry = []
+
     # By default, attempt to preserve empty sockets when round-tripping
     @options.preserveEmpty ?= true
 
@@ -186,6 +188,25 @@ class Session
         'modeOptions': @options.modeOptions
       }
 
+  setFloatingBlocks: (array) ->
+    # Filter out any rememberedSocket data associated with the floating blocks we are removing
+    @rememberedSockets = @rememberedSockets.filter (x) -> x.socket.document is 0
+
+    # Empty the undo stacks (TODO: possibly just filter out operations that have to do with the floating blocks we removed)
+    @undoStack.length = @redoStack.length = 0
+
+    if @cursor.document isnt 0
+      @cursor = @toCrossDocumentLocation @tree.start
+
+    # TODO after droplet/registry merge, we need to filter the registry here, too.
+    @floatingBlocks = array.map((object) =>
+      new FloatingBlockRecord(
+        @mode.parse(object.text, {context: object.context}),
+        new @view.draw.Point object.pos.x, object.pos.y
+      )
+    )
+
+    return true
 
 Session.id = 0
 
@@ -450,7 +471,7 @@ exports.Editor = class Editor
       @setEditorState useBlockMode, false, false, false
 
     # Update session for inversion
-    if @session.view.opts.invert
+    if @session? and @session.view.opts.invert
       @paletteWrapper.style.backgroundColor = '#181818'
       @paletteWrapper.style.color = '#FFF'
       @mainCanvas.style.backgroundColor = '#181818'
@@ -662,6 +683,11 @@ exports.Editor = class Editor
         @setEditorState true, true, true, true
 
       @setPalette @session.paletteGroups
+
+      # For any formatting things, like inversion,
+      # that come with this session, call:
+      @updateNewSession @session
+
       return session
 
 Editor::clearCanvas = (canvas) -> # TODO remove and remove all references to
@@ -747,6 +773,10 @@ Editor::initializeFloatingBlock = (record, i) ->
     @mainCanvas.appendChild record.renderGroup
 
 Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
+  # Initialize the block if it hasn't been
+  unless record.grayBoxPath?
+    @initializeFloatingBlock record, @session.floatingBlocks.indexOf(record)
+
   blockView = @session.view.getViewNodeFor record.block
   blockView.layout record.position.x, record.position.y
 
@@ -1187,15 +1217,34 @@ class CapturePoint
 # BASIC BLOCK MOVE SUPPORT
 # ================================
 
-Editor::getPreserves = (dropletDocument) ->
-  if dropletDocument instanceof model.Document
-    dropletDocument = @documentIndex dropletDocument
+Editor::registerLocation = (token) ->
+  location = @toCrossDocumentLocation token
+  @session.locRegistry.push location
 
+  return location
+
+Editor::deregisterLocation = (loc) ->
+  @session.locRegistry = @session.locRegistry.filter (x) -> x isnt loc
+  return @fromCrossDocumentLocation loc
+
+Editor::getAllPreserves = (loc) ->
+  # Registered locations
   array = [@session.cursor]
+
+  # Add registered locations
+  array = array.concat @session.locRegistry
 
   array = array.concat @session.rememberedSockets.map(
     (x) -> x.socket
   )
+
+  return array
+
+Editor::getPreserves = (dropletDocument) ->
+  if dropletDocument instanceof model.Document
+    dropletDocument = @documentIndex dropletDocument
+
+  array = @getAllPreserves()
 
   return array.filter((location) ->
     location.document is dropletDocument
@@ -1243,14 +1292,11 @@ Editor::spliceOut = (node, container = null, preserveForReplacement = false, upd
           if @session.cursor.document is i + 1
             @setCursor @session.tree.start
 
-          if @session.cursor.document > i + 1
-            @session.cursor.document -= 1
-
           @session.floatingBlocks.splice i, 1
 
-          for socket in @session.rememberedSockets
-            if socket.socket.document > i
-              socket.socket.document -= 1
+          for loc in @getAllPreserves()
+            if loc.document > i
+              loc.document -= 1
 
           break
   else if container?
@@ -1457,7 +1503,25 @@ hook 'mousedown', 1, (point, event, state) ->
       if @clickedBlock.parent.type is 'socket'
         @setCursor @clickedBlock.start.next
       else
-        @setCursor @clickedBlock.start.next, (head) -> head.container.type isnt 'socket' # TODO reconsider
+        head = @clickedBlock.start.next
+        # Determine the last newline before this block
+        for bound, i in @session.view.getViewNodeFor(hitTestResult).bounds
+          # If we have found the correct bound,
+          # set the cursor nearby and break
+          if bound.contains mainPoint
+
+            until head.parent is @clickedBlock or head.container is @clickedBlock
+              head = head.next
+
+            @setCursor head, (head) -> head.container.type isnt 'socket'
+
+            break
+
+          # Otherwise, find the next newline
+          else
+            head = head.next
+            until head.type is 'newline'
+              head = head.next
 
       # Record the point at which is was clicked (for clickedBlock->draggingBlock)
       @clickedPoint = point
@@ -1719,8 +1783,6 @@ hook 'mousemove', 1, (point, event, state) ->
                   _droplet_node: head.container
 
         head = head.next
-
-    @dragCanvas.style.transform = "translate(#{position.x + getOffsetLeft(@dropletElement)}px,#{position.y + getOffsetTop(@dropletElement)}px)"
 
     # Now we are done with the "clickedX" suite of stuff.
     @clickedPoint = @clickedBlock = null
@@ -2009,7 +2071,7 @@ hook 'mouseup', 1, (point, event, state) ->
         rememberedSocketOffsets.forEach (x) ->
           x.offset += 1
 
-      futureCursorLocation = @toCrossDocumentLocation @draggingBlock.start
+      futureCursorLocation = @registerLocation @draggingBlock.start
 
       # Reparse the parent if we are
       # in a socket
@@ -2022,29 +2084,14 @@ hook 'mouseup', 1, (point, event, state) ->
       #  @reparse @draggingBlock.parent.parent
       draggingPalette = @draggingPalette
 
-      # TODO TODO TODO HOTFIX HACK
-      startPointer = @draggingBlock.start
-      # END HOTFIX HACK
-
       # Now that we've done that, we can annul stuff.
       @endDrag true
 
-      # TODO TODO TODO HOTFIX HACK
-      try
-        unless @fromCrossDocumentLocation(futureCursorLocation).getDocument() in @getDocuments()
-          throw new Error()
-      catch e
-        if startPointer.container.getDocument() in @getDocuments()
-          futureCursorLocation = @toCrossDocumentLocation startPointer
-        else
-          futureCursorLocation = @toCrossDocumentLocation @session.tree.start
-      # END HOTFIX HACK
-
       if futureCursorLocation?
         if draggingPalette
-          @setCursor(futureCursorLocation)
+          @setCursor @deregisterLocation futureCursorLocation
         else
-          @setCursor(futureCursorLocation, (token) -> token.container?.type isnt 'socket')
+          @setCursor(@deregisterLocation(futureCursorLocation), (token) -> token.container?.type isnt 'socket')
 
       newBeginning = futureCursorLocation.location.count
       newIndex = futureCursorLocation.document
@@ -2173,12 +2220,9 @@ hook 'mouseup', 0, (point, event, state) ->
 
 Editor::performFloatingOperation = (op, direction) ->
   if (op.type is 'create') is (direction is 'forward')
-    if @session.cursor.document > op.index
-      @session.cursor.document += 1
-
-    for socket in @session.rememberedSockets
-      if socket.socket.document > op.index
-        socket.socket.document += 1
+    for loc in @getAllPreserves()
+      if loc.document > op.index
+        loc.document += 1
 
     @session.floatingBlocks.splice op.index, 0, record = new FloatingBlockRecord(
       op.block.clone()
@@ -2192,9 +2236,9 @@ Editor::performFloatingOperation = (op, direction) ->
     if @session.cursor.document is op.index + 1
       @setCursor @session.tree.start
 
-    for socket in @session.rememberedSockets
-      if socket.socket.document > op.index + 1
-        socket.socket.document -= 1
+    for loc in @getAllPreserves()
+      if loc.document > op.index + 1
+        loc.document -= 1
 
     @session.floatingBlocks.splice op.index, 1
 
@@ -2359,6 +2403,8 @@ Editor::rebuildPaletteHeaders = ->
   @resizePalette()
 
 Editor::setPalette = (paletteGroups) ->
+  return unless @session?
+
   @session.paletteGroups = helper.deepCopy paletteGroups
   @session.paletteScrollPositions = ({x: 0, y: 0} for el, i in @session.paletteGroups)
   @session.selectedPaletteGroup = 0
@@ -2420,6 +2466,9 @@ Editor::changePaletteGroup = (group) ->
   unless group.parsedBlocks?
     group.generateParsedBlocks()
 
+  # Immediately fire selectpalette
+  @fireEvent 'selectpalette', [paletteGroup.name]
+
   # Record that we are the selected group now
   @session.currentPaletteGroup = paletteGroup.name
   @session.currentPaletteBlocks = paletteGroup.parsedBlocks
@@ -2447,15 +2496,12 @@ Editor::changePaletteGroup = (group) ->
     {x, y} = @session.paletteScrollPositions[@session.selectedPaletteGroup]
     @paletteScroller.scrollLeft = x
     @paletteScroller.scrollTop = y
-  ), 0
 
-  # Scroll to the desired one
+    @fireEvent 'palettechange'
+  ), 0
 
   # Reapply the palette search box search
   @reapplySearch()
-
-  @fireEvent 'selectpalette', [paletteGroup.name]
-  @fireEvent 'palettechange'
 
 # The next thing we need to do with the palette
 # is let people pick things up from it.
@@ -3478,7 +3524,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     destination = (if direction is 'after' then destination.next else destination.prev)
     return unless destination?
 
-  destination = @toCrossDocumentLocation destination
+  destination = @registerLocation destination
 
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @session.cursor.is(destination)
@@ -3487,19 +3533,19 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
     if socket.fromLocked
       @populateBlock socket.parent, @session.mode.lockedSocketCallback(
         socket.stringifyInPlace(), socket.parent.stringifyInPlace(), socket.parent.parseContext
-      ), [destination.location]
+      )
 
     else if socket.handwritten
-      @reparse socket.parent, (if destination.document is @session.cursor.document then [destination.location] else [])
+      @reparse socket.parent
     else if '__comment__' isnt socket.parseContext
-      @reparseSocket socket, (if destination.document is @session.cursor.document then [destination.location] else [])
+      @reparseSocket socket
 
     @hiddenInput.blur()
     @dropletElement.focus()
     if @dropdownVisible
       @hideDropdown()
 
-  @session.cursor = destination
+  @session.cursor = @toCrossDocumentLocation @deregisterLocation destination
 
   # If we have messed up (usually because
   # of a reparse), scramble to find a nearby
@@ -4502,17 +4548,25 @@ Editor::getHighlightPath = (model, style, view = @session.view) ->
 
   return path
 
+Session::markLine = (line, style) ->
+  block = @tree.getBlockOnLine line
+  console.log 'marking', line, '(block is', block.stringify(), ')'
+
+  @view.getViewNodeFor(block).mark style
+
 Editor::markLine = (line, style) ->
   return unless @session?
 
-  block = @session.tree.getBlockOnLine line
+  @session.markLine line, style
 
-  @session.view.getViewNodeFor(block).mark style
+  @redrawMain()
 
 Editor::markBlock = (block, style) ->
   return unless @session?
 
   @session.view.getViewNodeFor(block).mark style
+
+  @redrawMain()
 
 # ## Mark
 # `mark(line, col, style)` will mark the first block after the given (line, col) coordinate
@@ -4525,12 +4579,15 @@ Editor::mark = (location, style) ->
 
   @session.view.getViewNodeFor(block).mark style
 
-  @redrawHighlights() # TODO MERGE investigate
+  @redrawMain()
+
+Session::clearLineMarks = ->
+  @view.clearMarks()
 
 Editor::clearLineMarks = ->
-  @session.view.clearMarks()
+  @session.clearLineMarks()
 
-  @redrawHighlights()
+  @redrawMain()
 
 # LINE HOVER SUPPORT
 # ================================

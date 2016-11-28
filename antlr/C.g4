@@ -888,6 +888,11 @@ declarator_DropletFile
     :   pointer? directDeclarator gccDeclaratorExtension* EOF
     ;
 
+pointerDeclarator_DropletFile
+    :   pointer pointerDeclarator EOF
+    |   Identifier EOF
+    ;
+
 directDeclarator_DropletFile
     :   Identifier EOF
     |   '(' declarator ')' EOF
@@ -914,15 +919,15 @@ gccAttributeList_DropletFile
     ;
 
 gccAttribute_DropletFile
-    :   ~(',' | '(' | ')') // relaxed def for "identifier or reserved word" EOF
-        ('(' argumentExpressionList? ')')?
-    |   // empty EOF
+    :   ~(',' | '(' | ')') // relaxed def for "identifier or reserved word"
+        ('(' argumentExpressionList? ')')? EOF
+    |   EOF // empty
     ;
 
 nestedParenthesesBlock_DropletFile
-    :   (   ~('(' | ')') EOF
-        |   '(' nestedParenthesesBlock ')' EOF
-        )*
+    :   (   ~('(' | ')')
+        |   '(' nestedParenthesesBlock ')'
+        )* EOF
     ;
 
 pointer_DropletFile
@@ -1094,7 +1099,7 @@ jumpStatement_DropletFile
     |   'continue' ';' EOF
     |   'break' ';' EOF
     |   'return' expression? ';' EOF
-    |   'goto' unaryExpression ';' // GCC extension EOF
+    |   'goto' unaryExpression ';' EOF // GCC extension
     ;
 
 compilationUnit_DropletFile
@@ -1110,7 +1115,7 @@ translationUnit_DropletFile
 externalDeclaration_DropletFile
     :   functionDefinition EOF
     |   declaration EOF
-    |   ';' // stray ; EOF
+    |   ';' EOF // stray ;
     ;
 
 functionDefinition_DropletFile

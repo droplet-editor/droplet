@@ -20,7 +20,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -51,7 +51,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -82,7 +82,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -94,7 +94,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -142,7 +142,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -158,7 +158,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "#DDD8AA",
+    "color": "struct",
     "nodeContext": {
       "prefix": "struct ",
       "suffix": "}",
@@ -191,7 +191,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "teal",
+    "color": "struct",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -233,7 +233,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "teal",
+    "color": "struct",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -251,7 +251,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "#DDD8AA",
+    "color": "struct",
     "nodeContext": {
       "prefix": "struct ",
       "suffix": "",
@@ -288,13 +288,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -303,7 +303,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "next",
@@ -325,7 +325,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "teal",
+    "color": "struct",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -343,7 +343,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "#DDD8AA",
+    "color": "struct",
     "nodeContext": {
       "prefix": "struct ",
       "suffix": "",
@@ -380,13 +380,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -395,7 +395,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "prev",
@@ -428,13 +428,31 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "#DDD8AA",
+    "color": "declaration",
+    "nodeContext": {
+      "prefix": "",
+      "suffix": ";",
+      "type": "declaration"
+    },
+    "parseContext": "declaration",
+    "shape": 1,
+    "type": "blockStart"
+  },
+  {
+    "dropdown": true,
+    "emptyString": "__0_droplet__",
+    "handwritten": false,
+    "parseContext": "declarationSpecifiers",
+    "type": "socketStart"
+  },
+  {
+    "color": "type",
     "nodeContext": {
       "prefix": "typedef ",
       "suffix": "",
       "type": "declarationSpecifiers"
     },
-    "parseContext": "declaration",
+    "parseContext": "declarationSpecifiers",
     "shape": 0,
     "type": "blockStart"
   },
@@ -447,7 +465,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "#DDD8AA",
+    "color": "struct",
     "nodeContext": {
       "prefix": "struct ",
       "suffix": "",
@@ -475,12 +493,18 @@ window.FREEZE_DATA.freezeTest = [
   {
     "type": "socketEnd"
   },
+  {
+    "type": "blockEnd"
+  },
+  {
+    "type": "socketEnd"
+  },
   " ",
   {
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "declarationSpecifier",
+    "parseContext": "initDeclaratorList",
     "type": "socketStart"
   },
   "List",
@@ -528,7 +552,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -544,7 +568,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "indigo",
+    "color": "function",
     "nodeContext": {
       "prefix": "void ",
       "suffix": "}",
@@ -571,12 +595,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -591,7 +615,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -602,15 +626,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -621,13 +649,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -636,7 +664,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "a",
@@ -664,7 +692,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -675,15 +703,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -694,13 +726,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -709,7 +741,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "b",
@@ -742,7 +774,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -834,7 +866,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -926,7 +958,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -1061,7 +1093,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -1077,7 +1109,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "indigo",
+    "color": "function",
     "nodeContext": {
       "prefix": "",
       "suffix": "}",
@@ -1088,15 +1120,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -1115,12 +1151,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -1135,7 +1171,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -1146,15 +1182,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -1165,13 +1205,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -1180,7 +1220,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "head",
@@ -1208,7 +1248,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
@@ -1219,15 +1259,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " (",
   {
@@ -1238,13 +1282,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -1253,7 +1297,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "fn",
@@ -1271,12 +1315,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -1284,27 +1328,35 @@ window.FREEZE_DATA.freezeTest = [
     "type": "buttonContainerStart"
   },
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "parameterList",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   ", ",
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "parameterDeclaration",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   {
     "type": "buttonContainerEnd"
@@ -1349,7 +1401,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -1360,15 +1412,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -1379,13 +1435,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -1394,7 +1450,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "cursor",
@@ -1435,7 +1491,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "lightblue",
+    "color": "logic",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -1465,14 +1521,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -1519,7 +1575,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -1549,14 +1605,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -1643,21 +1699,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -1677,14 +1733,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -1725,14 +1781,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -1743,14 +1799,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -1951,7 +2007,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -1967,7 +2023,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "indigo",
+    "color": "function",
     "nodeContext": {
       "prefix": "void ",
       "suffix": "}",
@@ -1994,12 +2050,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -2014,7 +2070,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -2025,15 +2081,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -2044,13 +2104,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -2059,7 +2119,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "head",
@@ -2087,7 +2147,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
@@ -2098,15 +2158,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " (",
   {
@@ -2117,13 +2181,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -2132,7 +2196,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "fn",
@@ -2150,12 +2214,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -2163,27 +2227,35 @@ window.FREEZE_DATA.freezeTest = [
     "type": "buttonContainerStart"
   },
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "parameterList",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   ", ",
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "parameterDeclaration",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   {
     "type": "buttonContainerEnd"
@@ -2247,21 +2319,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -2339,7 +2411,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -2350,15 +2422,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -2369,13 +2445,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -2384,7 +2460,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "cursor",
@@ -2425,7 +2501,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "lightblue",
+    "color": "logic",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -2455,14 +2531,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2509,7 +2585,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -2539,14 +2615,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2633,21 +2709,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -2667,14 +2743,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2715,14 +2791,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2733,14 +2809,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2817,21 +2893,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "expressionStatement",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -2870,14 +2946,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2943,14 +3019,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -2961,14 +3037,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -3104,7 +3180,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -3120,7 +3196,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "indigo",
+    "color": "function",
     "nodeContext": {
       "prefix": "",
       "suffix": "}",
@@ -3131,15 +3207,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -3158,12 +3238,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -3178,7 +3258,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -3189,15 +3269,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -3226,7 +3310,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -3237,15 +3321,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "long long",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -3298,7 +3386,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "lightblue",
+    "color": "logic",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -3391,7 +3479,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -3407,7 +3495,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "indigo",
+    "color": "function",
     "nodeContext": {
       "prefix": "",
       "suffix": "}",
@@ -3418,15 +3506,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -3445,12 +3537,12 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "◀",
+        "glyph": "\u25C0",
         "key": "subtract-button"
       },
       {
         "border": false,
-        "glyph": "▶",
+        "glyph": "\u25B6",
         "key": "add-button"
       }
     ],
@@ -3465,7 +3557,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -3476,15 +3568,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -3513,10 +3609,10 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
-      "suffix": "",
+      "suffix": "[]",
       "type": "parameterDeclaration"
     },
     "parseContext": "parameterDeclaration",
@@ -3524,32 +3620,36 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "char",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "declarator",
+    "parseContext": "directDeclarator",
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
-      "suffix": "[]",
-      "type": "declarator"
+      "suffix": "",
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -3558,20 +3658,20 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "args",
   {
     "type": "socketEnd"
   },
-  "[]",
   {
     "type": "blockEnd"
   },
   {
     "type": "socketEnd"
   },
+  "[]",
   {
     "type": "blockEnd"
   },
@@ -3606,7 +3706,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -3622,7 +3722,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -3633,15 +3733,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -3750,33 +3854,37 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "#DDD8AA",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
-      "suffix": "",
-      "type": "declarationSpecifiers"
+      "suffix": ";",
+      "type": "declaration"
     },
     "parseContext": "declaration",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
-    "parseContext": "declarationSpecifier",
-    "type": "socketStart"
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
+    "parseContext": "declarationSpecifiers",
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "declarationSpecifier",
+    "parseContext": "initDeclaratorList",
     "type": "socketStart"
   },
   "length",
@@ -3792,21 +3900,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "expressionStatement",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -3894,7 +4002,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "lightblue",
+    "color": "logic",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -3944,7 +4052,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "functionCall",
     "nodeContext": {
       "prefix": "",
       "suffix": ");",
@@ -3958,7 +4066,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -4032,7 +4140,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -4043,15 +4151,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -4062,13 +4174,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -4077,7 +4189,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "head",
@@ -4129,15 +4241,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "specifierQualifierList",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   "*",
   {
@@ -4155,21 +4271,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -4201,15 +4317,19 @@ window.FREEZE_DATA.freezeTest = [
   },
   "sizeof(",
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "typeName",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   ")",
   {
@@ -4240,21 +4360,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "expressionStatement",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -4305,14 +4425,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -4359,7 +4479,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -4377,14 +4497,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -4437,7 +4557,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -4448,15 +4568,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -4467,13 +4591,13 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "*",
       "suffix": "",
-      "type": "declarator"
+      "type": "pointerDeclarator"
     },
-    "parseContext": "declarator",
+    "parseContext": "pointerDeclarator",
     "shape": 0,
     "type": "blockStart"
   },
@@ -4482,7 +4606,7 @@ window.FREEZE_DATA.freezeTest = [
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "directDeclarator",
+    "parseContext": "pointerDeclarator",
     "type": "socketStart"
   },
   "cursor",
@@ -4516,33 +4640,37 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "#DDD8AA",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
-      "suffix": "",
-      "type": "declarationSpecifiers"
+      "suffix": ";",
+      "type": "declaration"
     },
     "parseContext": "declaration",
-    "shape": 0,
+    "shape": 1,
     "type": "blockStart"
   },
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
-    "parseContext": "declarationSpecifier",
-    "type": "socketStart"
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
+    "parseContext": "declarationSpecifiers",
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
     "dropdown": false,
     "emptyString": "__0_droplet__",
     "handwritten": false,
-    "parseContext": "declarationSpecifier",
+    "parseContext": "initDeclaratorList",
     "type": "socketStart"
   },
   "temp",
@@ -4577,7 +4705,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "teal",
+    "color": "declaration",
     "nodeContext": {
       "prefix": "",
       "suffix": ";",
@@ -4588,15 +4716,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -4638,7 +4770,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "lightblue",
+    "color": "logic",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -4722,14 +4854,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "++",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -4761,7 +4893,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -4779,14 +4911,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -4857,15 +4989,19 @@ window.FREEZE_DATA.freezeTest = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "specifierQualifierList",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   "*",
   {
@@ -4883,21 +5019,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -4929,15 +5065,19 @@ window.FREEZE_DATA.freezeTest = [
   },
   "sizeof(",
   {
-    "dropdown": false,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "typeName",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "List",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   ")",
   {
@@ -4968,7 +5108,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -4998,14 +5138,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -5046,21 +5186,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "expressionStatement",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5129,7 +5269,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -5147,14 +5287,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -5255,21 +5395,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "expressionStatement",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5332,7 +5472,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -5392,7 +5532,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "assign",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
@@ -5422,14 +5562,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -5478,21 +5618,21 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": ")",
       "type": "postfixExpression"
     },
     "parseContext": "expressionStatement",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5524,14 +5664,14 @@ window.FREEZE_DATA.freezeTest = [
     "type": "socketStart"
   },
   {
-    "color": "command",
+    "color": "value",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "postfixExpression"
     },
     "parseContext": "postfixExpression",
-    "shape": 1,
+    "shape": 4,
     "type": "blockStart"
   },
   {
@@ -5583,7 +5723,7 @@ window.FREEZE_DATA.freezeTest = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "functionCall",
     "nodeContext": {
       "prefix": "",
       "suffix": ");",
@@ -5597,7 +5737,7 @@ window.FREEZE_DATA.freezeTest = [
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5669,7 +5809,7 @@ window.FREEZE_DATA.freezeTest = [
   {
     "type": "documentEnd"
   }
-];
+]
 
 window.FREEZE_DATA.commentConsolidation = [
   {
@@ -5677,7 +5817,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "documentStart"
   },
   {
-    "color": "indigo",
+    "color": "function",
     "nodeContext": {
       "prefix": "",
       "suffix": "}",
@@ -5688,15 +5828,19 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockStart"
   },
   {
-    "dropdown": true,
-    "emptyString": "__0_droplet__",
-    "handwritten": false,
+    "buttons": [
+      {
+        "border": false,
+        "glyph": "\u25BC",
+        "key": "unlock-socket"
+      }
+    ],
     "parseContext": "declarationSpecifiers",
-    "type": "socketStart"
+    "type": "lockedSocketStart"
   },
   "int",
   {
-    "type": "socketEnd"
+    "type": "lockedSocketEnd"
   },
   " ",
   {
@@ -5721,7 +5865,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "newline"
   },
   {
-    "color": "command",
+    "color": "functionCall",
     "nodeContext": {
       "prefix": "",
       "suffix": ");",
@@ -5735,7 +5879,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5788,7 +5932,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": "command",
+    "color": "functionCall",
     "nodeContext": {
       "prefix": "",
       "suffix": ");",
@@ -5802,7 +5946,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5865,7 +6009,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": "command",
+    "color": "functionCall",
     "nodeContext": {
       "prefix": "",
       "suffix": ");",
@@ -5879,7 +6023,7 @@ window.FREEZE_DATA.commentConsolidation = [
     "buttons": [
       {
         "border": false,
-        "glyph": "▼",
+        "glyph": "\u25BC",
         "key": "unlock-socket"
       }
     ],
@@ -5936,7 +6080,7 @@ window.FREEZE_DATA.commentConsolidation = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -5952,14 +6096,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   "/* start again",
@@ -5972,14 +6116,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   " /* interrupt */",
@@ -5987,14 +6131,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "blockEnd"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   " /* start",
@@ -6011,14 +6155,14 @@ window.FREEZE_DATA.commentConsolidation = [
     "type": "newline"
   },
   {
-    "color": 0,
+    "color": "comment",
     "nodeContext": {
       "prefix": "",
       "suffix": "",
       "type": "__comment__"
     },
-    "parseContext": 0,
-    "shape": "comment",
+    "parseContext": "__comment__",
+    "shape": 0,
     "type": "blockStart"
   },
   "/* interrupt */",
@@ -6040,7 +6184,7 @@ window.FREEZE_DATA.commentConsolidation = [
   {
     "dropdown": false,
     "emptyString": "",
-    "handwritten": true,
+    "handwritten": false,
     "parseContext": "__comment__",
     "type": "socketStart"
   },
@@ -6096,4 +6240,4 @@ window.FREEZE_DATA.commentConsolidation = [
   {
     "type": "documentEnd"
   }
-];
+]

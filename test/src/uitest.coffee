@@ -26,10 +26,12 @@ function simulate(type, target, options) {
     dx = Math.floor((gbcr.right - gbcr.left) / 2)
     dy = Math.floor((gbcr.bottom - gbcr.top) / 2)
   }
+
   if ('dx' in options) dx = options.dx
   if ('dy' in options) dy = options.dy
   pageX = (options.pageX == null ? pageX : options.pageX) + dx
   pageY = (options.pageY == null ? pageY : options.pageY) + dy
+
   clientX = pageX - window.pageXOffset
   clientY = pageY - window.pageYOffset
   var opts = {
@@ -368,6 +370,170 @@ asyncTest 'Controller: Can replace a block where we found it', ->
                             '}\n')
   start()
 
+asyncTest 'Controller: line-based cursor placement', ->
+  document.getElementById('test-main').innerHTML = ''
+  editor = new droplet.Editor document.getElementById('test-main'), {
+    mode: 'c'
+    viewSettings: {padding: 20}
+    palette: [
+      {
+        'name': 'Test'
+        'blocks': [
+          {
+            'context': 'blockItem'
+            'block': 'int a = 0;'
+            'id': 'newblock'
+          }
+        ]
+      }
+    ]
+  }
+
+  editor.setValue '''
+  int main(void) {
+    
+  }
+  '''
+
+  executeAsyncSequence [
+    (->
+      # Click int main(void)
+      block = editor.session.tree.getBlockOnLine 0
+      bound = editor.session.view.getViewNodeFor(block).bounds[0]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+
+      simulate('mousedown', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+    ), (->
+      # Affirm cursor placement
+      equal editor.getCursor().type, 'indentStart'
+    ), (->
+      # Click the bottom of int main(void)
+      block = editor.session.tree.getBlockOnLine 0
+      bound = editor.session.view.getViewNodeFor(block).bounds[2]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+
+      simulate('mousedown', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+    ), (->
+      # Affirm cursor placement
+      equal editor.getCursor().type, 'blockEnd'
+    ), (->
+      start()
+    )
+  ]
+
+asyncTest 'Controller: registry bug', ->
+  document.getElementById('test-main').innerHTML = ''
+  editor = new droplet.Editor document.getElementById('test-main'), {
+    mode: 'c'
+    viewSettings: {padding: 20}
+    palette: [
+      {
+        'name': 'Test'
+        'blocks': [
+          {
+            'context': 'blockItem'
+            'block': 'int a = 0;'
+            'id': 'newblock'
+          }
+        ]
+      }
+    ]
+  }
+
+  editor.setValue '''
+  int main(void) {
+    
+  }
+  '''
+
+  executeAsyncSequence [
+    (->
+      # Click int main(void)
+      block = editor.session.tree.getBlockOnLine 0
+      bound = editor.session.view.getViewNodeFor(block).bounds[0]
+      handle = {x: bound.x + 5, y: bound.y + 5}
+
+      simulate('mousedown', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: handle.x + editor.gutter.clientWidth,
+        dy: handle.y
+      })
+    ), (->
+      # Press "enter"
+      evt = document.createEvent 'Event'
+      evt.initEvent 'keydown', true, true
+      evt.keyCode = evt.which = 13
+      editor.dropletElement.dispatchEvent(evt)
+    ), (->
+      # Drag "int a = 0;" beneath the newly-created block
+      target = editor.session.tree.getBlockOnLine 1
+      dropPoint = editor.session.view.getViewNodeFor(target).dropPoint
+
+      # Click "int a = 0"
+      simulate('mousedown', '[data-id=newblock]', {
+        dx: 7,
+        dy: 7
+      })
+
+
+      simulate('mousemove', editor.dragCover
+        { location: '[data-id=newblock]', dx: 10, dy: 10})
+
+      equal editor.draggingBlock?.stringify?(), 'int a = 0;', 'Dragging the correct block'
+
+      # Move it to below the newly-created block
+      simulate('mousemove', editor.dragCover, {
+        location: editor.dropletElement,
+        dx: dropPoint.x + 5 + editor.gutter.clientWidth
+        dy: dropPoint.y + 5
+      })
+
+      ok editor.lastHighlight, 'Will drop somewhere'
+
+      simulate('mouseup', editor.mainCanvas, {
+        location: editor.dropletElement,
+        dx: dropPoint.x + 5 + editor.gutter.clientWidth
+        dy: dropPoint.y + 5
+      })
+    ), (->
+      # Affirm the contents of the editor
+      equal editor.getValue(), '''
+      int main(void) {
+        
+        int a = 0;
+      }
+      ''', 'Dropped in the correct place'
+
+      # Affirm the position of the cursor
+      equal editor.fromCrossDocumentLocation(editor.session.cursor).container.stringify(), 'a', 'Cursor has not vanished'
+    ), (->
+      start()
+    )
+  ]
+
 getRandomDragOp = (editor, rng) ->
   # Find the locations of all the blocks
   head = editor.session.tree.start
@@ -505,12 +671,12 @@ performDragOperation = (editor, drag, cb) ->
 
   setTimeout cb, 0
 
-executeAsyncSequence = (sequence, i = 0) ->
+executeAsyncSequence = (sequence, timeout = 0, i = 0) ->
   if i < sequence.length
     sequence[i]()
     setTimeout (->
-      executeAsyncSequence sequence, i + 1
-    ), 0
+      executeAsyncSequence sequence, timeout, i + 1
+    ), timeout
 
 asyncTest 'Controller: remembered sockets', ->
   document.getElementById('test-main').innerHTML = ''
@@ -567,7 +733,7 @@ asyncTest 'Controller: remembered sockets', ->
         if i % 2 is 0
           fd [0..10]
         else
-          bk 10\n
+          bk 10
       ''')
     ), (->
       pickUpLocation editor, 0, {
@@ -598,7 +764,7 @@ asyncTest 'Controller: remembered sockets', ->
           ``
         else
           fd 10
-          bk 10\n
+          bk 10
       ''')
     ), (->
       editor.undo()
@@ -609,7 +775,7 @@ asyncTest 'Controller: remembered sockets', ->
           ``
         else
           fd [0..10]
-          bk 10\n
+          bk 10
       ''')
     ), (->
       pickUpLocation editor, 0, {
@@ -629,7 +795,7 @@ asyncTest 'Controller: remembered sockets', ->
           ``
         else
           fd 10
-          bk 10\n
+          bk 10
       ''')
       start()
     )
@@ -691,7 +857,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
     ), (->
       equal(editor.getValue(), '''
       fd 20
-      fd 30\n
+      fd 30
       ''')
 
       equal(editor.session.floatingBlocks.length, 1)
@@ -715,7 +881,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
     ), (->
       equal(editor.session.floatingBlocks.length, 2)
       equal(editor.getValue(), '''
-      fd 30\n
+      fd 30
       ''')
     ), (->
       pickUpLocation editor, 0, {
@@ -771,7 +937,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
       fd fd 30
       ''')
       equal(editor.getValue(), '''
-      fd 10\n
+      fd 10
       ''')
     ), (->
       editor.undo()
@@ -803,7 +969,7 @@ asyncTest 'Controller: floating blocks with remembered sockets', ->
       fd 20
       ''')
       equal(editor.getValue(), '''
-      fd 30\n
+      fd 30
       ''')
 
       start()
@@ -920,7 +1086,7 @@ asyncTest 'Controller: Quoted string CoffeeScript autoescape', ->
       evt.keyCode = evt.which = 40
       editor.dropletElement.dispatchEvent(evt)
     ), (->
-      equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'\n"""
+      equal editor.getValue(), """fd 'h\\tel\\\\"\\'lo'"""
       start()
     )
   ]
@@ -1024,7 +1190,7 @@ asyncTest 'Controller: Session switch test', ->
           else {
             bk(10);
           }
-        }\n
+        }
         ''', 'Set value of new session'
 
         equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
@@ -1043,7 +1209,7 @@ asyncTest 'Controller: Session switch test', ->
           if i % 2 is 0
             fd 10
           else
-            bk 10\n
+            bk 10
         ''', 'Original text restored'
 
         equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
@@ -1061,7 +1227,7 @@ asyncTest 'Controller: Session switch test', ->
           else {
             bk(10);
           }
-        }\n
+        }
         ''', 'Set value of new session'
 
         equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'

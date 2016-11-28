@@ -1298,6 +1298,15 @@ CListener.prototype.exitDeclarator_DropletFile = function(ctx) {
 };
 
 
+// Enter a parse tree produced by CParser#pointerDeclarator_DropletFile.
+CListener.prototype.enterPointerDeclarator_DropletFile = function(ctx) {
+};
+
+// Exit a parse tree produced by CParser#pointerDeclarator_DropletFile.
+CListener.prototype.exitPointerDeclarator_DropletFile = function(ctx) {
+};
+
+
 // Enter a parse tree produced by CParser#directDeclarator_DropletFile.
 CListener.prototype.enterDirectDeclarator_DropletFile = function(ctx) {
 };
