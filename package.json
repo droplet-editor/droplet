@@ -12,7 +12,7 @@
     "grunt-cli": "latest",
     "grunt-contrib-coffee": "latest",
     "grunt-contrib-concat": "latest",
-    "grunt-contrib-connect": "latest",
+    "grunt-contrib-connect": "1.0.0",
     "grunt-contrib-cssmin": "latest",
     "grunt-contrib-qunit": "<=0.5.2",
     "grunt-contrib-uglify": "latest",
