@@ -506,6 +506,7 @@ exports.Container = class Container extends List
       precedence: @precedence
       classes: @classes
       parseContext: @parseContext
+      data: @data
     }
 
   setParent: (parent) ->
@@ -983,7 +984,7 @@ exports.BlockEndToken = class BlockEndToken extends EndToken
   serialize: -> "</block>"
 
 exports.Block = class Block extends Container
-  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}) ->
+  constructor: (@precedence = 0, @color = 'blank', @socketLevel = helper.ANY_DROP, @classes = [], @parseContext, @buttons = {}, @data = {}) ->
     @start = new BlockStartToken this
     @end = new BlockEndToken this
 
@@ -1001,7 +1002,7 @@ exports.Block = class Block extends Container
     return null
 
   _cloneEmpty: ->
-    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons
+    clone = new Block @precedence, @color, @socketLevel, @classes, @parseContext, @buttons, @data
     clone.currentlyParenWrapped = @currentlyParenWrapped
 
     return clone

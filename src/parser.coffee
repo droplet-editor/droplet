@@ -100,7 +100,8 @@ exports.Parser = class Parser
       opts.socketLevel,
       opts.classes,
       opts.parseContext,
-      opts.buttons
+      opts.buttons,
+      opts.data
 
     @addMarkup block, opts.bounds, opts.depth
 
