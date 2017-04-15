@@ -2233,7 +2233,7 @@ hook 'mousedown', 7, ->
 #   -> Fall back to raw reparsing the parent with unparenthesized text
 #   -> Reparses function(a, b) {} with two paremeters.
 #   -> Finsihed.
-Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
+Editor::reparse = (list, updates = [], originalTrigger = list) ->
   # Don't reparse sockets. When we reparse sockets,
   # reparse them first, then try reparsing their parent and
   # make sure everything checks out.
@@ -2243,16 +2243,16 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
     originalText = list.textContent()
     originalUpdates = updates.map (location) ->
       count: location.count, type: location.type
-    @reparse new model.List(list.start.next, list.end.prev), recovery, updates, originalTrigger
+    @reparse new model.List(list.start.next, list.end.prev), updates, originalTrigger
 
     # Try reparsing the parent again after the reparse. If it fails,
     # repopulate with the original text and try again.
-    unless @reparse list.parent, recovery, updates, originalTrigger
+    unless @reparse list.parent, updates, originalTrigger
       @populateSocket list, originalText
       originalUpdates.forEach (location, i) ->
         updates[i].count = location.count
         updates[i].type = location.type
-      @reparse list.parent, recovery, updates, originalTrigger
+      @reparse list.parent, updates, originalTrigger
     return
 
   parent = list.start.parent
@@ -2264,23 +2264,17 @@ Editor::reparse = (list, recovery, updates = [], originalTrigger = list) ->
       context: context
     }
   catch e
-    try
-      newList = @mode.parse recovery(list.stringifyInPlace()), {
-        wrapAtRoot: parent.type isnt 'socket'
-        context: context
-      }
-    catch e
-      # Seek a parent that is not a socket
-      # (since we should never reparse just a socket)
-      while parent? and parent.type is 'socket'
-        parent = parent.parent
+    # Seek a parent that is not a socket
+    # (since we should never reparse just a socket)
+    while parent? and parent.type is 'socket'
+      parent = parent.parent
 
-      # Attempt to bubble up to the parent
-      if parent?
-        return @reparse parent, recovery, updates, originalTrigger
-      else
-        @markBlock originalTrigger, {color: '#F00'}
-        return false
+    # Attempt to bubble up to the parent
+    if parent?
+      return @reparse parent, recovery, updates, originalTrigger
+    else
+      @markBlock originalTrigger, {color: '#F00'}
+      return false
 
   return if newList.start.next is newList.end
 
@@ -2871,7 +2865,7 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   if @cursorAtSocket() and not @cursor.is(destination)
     socket = @getCursor()
     if '__comment__' not in socket.classes
-      @reparse socket, null, (if destination.document is @cursor.document then [destination.location] else [])
+      @reparse socket, (if destination.document is @cursor.document then [destination.location] else [])
       @hiddenInput.blur()
       @dropletElement.focus()
 
