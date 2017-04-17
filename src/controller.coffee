@@ -2271,7 +2271,7 @@ Editor::reparse = (list, updates = [], originalTrigger = list) ->
 
     # Attempt to bubble up to the parent
     if parent?
-      return @reparse parent, recovery, updates, originalTrigger
+      return @reparse parent, updates, originalTrigger
     else
       @markBlock originalTrigger, {color: '#F00'}
       return false
