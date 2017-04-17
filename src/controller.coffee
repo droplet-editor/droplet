@@ -2260,7 +2260,7 @@ Editor::reparse = (list, updates = [], originalTrigger = list) ->
 
   try
     newList = @mode.parse list.stringifyInPlace(),{
-      wrapAtRoot: parent.type isnt 'socket'
+      wrapAtRoot: parent?.type isnt 'socket'
       context: context
     }
   catch e
