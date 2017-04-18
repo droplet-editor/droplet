@@ -139,7 +139,8 @@
   top: 0px;
   left: 0px;
   -webkit-touch-callout: none;
-  width: 1px;
+  /* Dont set width, as Chrome 57+ this makes it so that typing a space also
+   * inserts a newline */
   height: 1px;
   padding: 0;
   border: 0;
