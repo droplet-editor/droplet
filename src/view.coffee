@@ -85,6 +85,13 @@ DEFAULT_OPTIONS =
     brown: '#bcaaa4'
     grey: '#eeeeee'
     bluegrey: '#b0bec5'
+    function: '#90caf9'
+    declaration: '#e6ee9c'
+    value: '#a5d6a7'
+    logic: '#ffab91'
+    assign: '#fff59d'
+    functionCall: '#90caf9'
+    control: '#ffab91'
 
 YES = -> yes
 NO = -> no

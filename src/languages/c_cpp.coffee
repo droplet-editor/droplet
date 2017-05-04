@@ -466,9 +466,8 @@ config.COLOR_CALLBACK = (opts, node) ->
 
   if name?
     return 'functionCall'
-  if COLOR_RULES[node.type]?
-    return COLOR_RULES[node.type]
-  return null
+  else
+    return null
 
 config.SHAPE_CALLBACK = (opts, node) ->
   return null unless opts.functions?
@@ -515,7 +514,7 @@ config.parseComment = (text) ->
     return {sockets, color}
 
   # Try functional #define directive.
-  binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s*)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
+  binary = text.match(/^(#\s*define\s*)([a-zA-Z_][0-9a-zA-Z_]*\s*\((?:[a-zA-Z_][0-9a-zA-Z_]*,\s)*[a-zA-Z_][0-9a-zA-Z_]*\s*\))(\s+)(.*)$/)
   if binary?
     sockets =  [
       [binary[1].length, binary[1].length + binary[2].length]
@@ -570,11 +569,11 @@ config.stringFixer = (string) ->
   else
     return string
 
-config.empty = '_'
+config.empty = '__0_droplet__'
 config.EMPTY_STRINGS = {
-  'Identifier': '_'
-  'declaration': '_ _;'
-  'statement': '_;'
+  'Identifier': '__0_droplet__',
+  'declaration': '__0_droplet__ __0_droplet__;',
+  'statement': '__0_droplet__;'
 }
 config.emptyIndent = ''
 
@@ -798,4 +797,4 @@ config.lockedSocketCallback = (opts, socketText, parentText, parseContext) ->
   else
     return parentText
 
-module.exports = parser.wrapParser antlrHelper.createANTLRParser 'C', config
+module.exports = parser.wrapParser antlrHelper.createANTLRParser 'CPP14', config
