@@ -493,3 +493,12 @@ text {
   width: 10px;
   z-index: 300;
 }
+.droplet-breakpoint::before{
+  content: '';
+  position: absolute;
+  left: 5px;
+  width: 13px;
+  height: 13px;
+  border-radius: 13px;
+  background-color: #F06767;
+}

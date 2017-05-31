@@ -58,7 +58,7 @@ exports.createANTLRParser = (name, config, root) ->
       result.children.pop()
 
     return result
-
+    
   getBounds = (node) ->
     if node.start? and node.stop?
       return {

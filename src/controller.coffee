@@ -1166,6 +1166,10 @@ Editor::undo = ->
   return
 
 Editor::pushUndo = (operation) ->
+  # Fire a change event
+  @fireEvent 'change', []
+  @session.changeEventVersion = @session.tree.version
+
   @session.redoStack.length = 0
   @session.undoStack.push operation
 
@@ -3825,6 +3829,15 @@ containsCursor = (block) ->
 Editor::copyAceEditor = ->
   @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
   @resizeBlockMode()
+
+  # Update breakpoints
+  @breakPoints = {}
+
+  @aceEditor.getBreakPoints().forEach (line) =>
+    @breakpoints[line] = true
+
+  @updateLineGraphics()
+
   return @setValue_raw @getAceValue()
 
 Editor::copyAceEditorAsync = (cb) ->
@@ -5250,17 +5263,23 @@ Editor::setBreakpoint = (row) ->
   # Redraw gutter.
   # TODO: if this ends up being a performance issue,
   # selectively apply classes
-  @redrawGutter false
+  # @redrawGutter false
+  @updateLineGraphics()
 
 Editor::clearBreakpoint = (row) ->
+  # Delegate
   @aceEditor.session.clearBreakpoint(row)
+
+  # Add to our own records
   @breakpoints[row] = false
-  @redrawGutter false
+
+  # Redraw gutter.
+  @updateLineGraphics()
 
 Editor::clearBreakpoints = (row) ->
   @aceEditor.session.clearBreakpoints()
   @breakpoints = {}
-  @redrawGutter false
+  @updateLineGraphics()
 
 Editor::getBreakpoints = (row) ->
   @aceEditor.session.getBreakpoints()
@@ -5321,7 +5340,7 @@ Editor::addLineNumberForLine = (line) ->
 
     # Add breakpoint graphics
     if @breakpoints[line]
-      lineDiv.className += ' droplet_breakpoint'
+      lineDiv.className += ' droplet-breakpoint'
 
     lineDiv.style.top = "#{treeView.bounds[line].y}px"
 
@@ -5331,8 +5350,41 @@ Editor::addLineNumberForLine = (line) ->
     lineDiv.style.height =  treeView.bounds[line].height + 'px'
     lineDiv.style.fontSize = @session.fontSize + 'px'
 
+    lineDiv.addEventListener 'click', =>
+      if @breakpoints[line]
+        @clearBreakpoint line
+      else
+        @setBreakpoint line
+
     @lineNumberWrapper.appendChild lineDiv
     @lineNumberTags[line].lastPosition = treeView.bounds[line].y
+
+Editor::updateLineGraphics = (line) ->
+  for line of @lineNumberTags
+
+    lineDiv = @lineNumberTags[line].tag
+
+    if @breakpoints[line]
+      lineDiv.className = 'droplet-gutter-line droplet-breakpoint'
+    else
+      lineDiv.className = 'droplet-gutter-line'
+
+    if @annotations[line]?
+      lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
+
+      title = @annotations[line].map((x) -> x.text).join('\n')
+
+      lineDiv.addEventListener 'mouseover', =>
+        @tooltipElement.innerText =
+          @tooltipElement.textContent = title
+        @tooltipElement.style.display = 'block'
+      lineDiv.addEventListener 'mousemove', (event) =>
+        @tooltipElement.style.left = event.pageX + 'px'
+        @tooltipElement.style.top = event.pageY + 'px'
+      lineDiv.addEventListener 'mouseout', =>
+        @tooltipElement.style.display = 'none'
+
+  return
 
 TYPE_SEVERITY = {
   'error': 2

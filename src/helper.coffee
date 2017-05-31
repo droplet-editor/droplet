@@ -251,6 +251,11 @@ exports.PairDict = class PairDict
       if el[0] is index
         return el[1]
 
+  getReverse: (index) ->
+    for el, i in @pairs
+      if el[1] is index
+        return el[0]
+
   contains: (index) ->
     @pairs.some (x) -> x[0] is index
 
