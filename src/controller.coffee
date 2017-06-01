@@ -482,7 +482,7 @@ exports.Editor = class Editor
       @setTopNubbyStyle 10, '#303130'
     else
       @paletteWrapper.style.backgroundColor = '#FFF'
-      @paletteWrapper.style.color = '#FFF'
+      @paletteWrapper.style.color = '#000'
       @mainCanvas.style.backgroundColor = '#FFF'
       @paletteCanvas.style.backgroundColor = '#FFF'
       @cursorPath.element.setAttribute 'stroke', '#000'
