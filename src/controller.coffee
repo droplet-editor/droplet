@@ -446,8 +446,10 @@ exports.Editor = class Editor
       referenceX = downEvent.clientX
 
       mousemoveListener = (moveEvent) =>
-        @paletteWidth = originalWidth + moveEvent.clientX - referenceX
-        @resize()
+        candidateWidth = originalWidth + moveEvent.clientX - referenceX
+        if candidateWidth < @wrapperElement.offsetWidth - @gutter.offsetWidth
+            @paletteWidth = candidateWidth
+            @resize()
 
       mouseupListener = =>
         document.body.removeEventListener 'mousemove', mousemoveListener
