@@ -135,6 +135,7 @@
 .droplet-palette-group-header-selected.math { background-color: #f2a6e5; }
 
 .droplet-hidden-input {
+  white-space: nowrap;
   position: absolute;
   top: 0px;
   left: 0px;
