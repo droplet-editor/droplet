@@ -569,11 +569,11 @@ config.stringFixer = (string) ->
   else
     return string
 
-config.empty = '__0_droplet__'
+config.empty = '_'
 config.EMPTY_STRINGS = {
-  'Identifier': '__0_droplet__',
-  'declaration': '__0_droplet__ __0_droplet__;',
-  'statement': '__0_droplet__;'
+  'Identifier': '_'
+  'declaration': '_ _'
+  'statement': '_;'
 }
 config.emptyIndent = ''
 
