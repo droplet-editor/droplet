@@ -2481,7 +2481,7 @@ Editor::getDropdownList = (socket) ->
   if result.generate
     result = result.generate
   if 'function' is typeof result
-    result = socket.dropdown()
+    result = result()
   else
     result = socket.dropdown
   if result.options

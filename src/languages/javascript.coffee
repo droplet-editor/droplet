@@ -386,7 +386,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           __
         }'''
     else if 'CallExpression' in oldBlock.classes
-      # Parse to find the last "else" or "else if"
+      # Parse the call expression
       node = acorn.parse(text, {
         line: 0
         allowReturnOutsideFunction: true
@@ -416,6 +416,28 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           else
             newLastArgPosition = node.expression.arguments[argCount - 2].end
           return text[...newLastArgPosition].trimRight() + text[lastArgPosition..].trimLeft()
+    else if 'ArrayExpression' in oldBlock.classes
+      # Parse the array expression
+      node = acorn.parse(text, {
+        line: 0
+        allowReturnOutsideFunction: true
+      }).body[0]
+      elementCount = node.expression.elements.length
+      if button is 'add-button'
+        if elementCount
+          lastElPosition = node.expression.elements[elementCount - 1].end
+          return text[...lastElPosition].trimRight() + ', __' + text[lastElPosition..].trimLeft()
+        else
+          lastElPosition = node.expression.end - 1
+          return text[...lastElPosition].trimRight() + '__' + text[lastElPosition..].trimLeft()
+      else if button is 'subtract-button'
+        if elementCount > 0
+          lastElPosition = node.expression.elements[elementCount - 1].end
+          if elementCount is 1
+            newLastElPosition = node.expression.elements[0].start
+          else
+            newLastElPosition = node.expression.elements[elementCount - 2].end
+          return text[...newLastElPosition].trimRight() + text[lastElPosition..].trimLeft()
 
   mark: (indentDepth, node, depth, bounds) ->
     switch node.type
@@ -711,7 +733,12 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.finalizer?
           @jsSocketAndMark indentDepth, node.finalizer, depth + 1, null
       when 'ArrayExpression'
-        @jsBlock node, depth, bounds
+        blockOpts = {
+          addButton: '\u21A0'
+        }
+        if node.elements.length > 0
+          blockOpts.subtractButton = '\u219E'
+        @jsBlock node, depth, bounds, blockOpts
         for element in node.elements
           if element?
             @jsSocketAndMark indentDepth, element, depth + 1, null
