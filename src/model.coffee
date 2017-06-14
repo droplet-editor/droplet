@@ -10,6 +10,8 @@ NO = -> no
 NORMAL = default: helper.NORMAL
 FORBID = default: helper.FORBID
 
+DEFAULT_STRINGIFY_OPTS = {preserveEmpty: true}
+
 _id = 0
 
 # Getter/setter utility function
@@ -108,6 +110,9 @@ class ReplaceOperation
 exports.List = class List
   constructor: (@start, @end) ->
     @id = ++_id
+    @type = 'list'
+
+  hasParent: (x) -> false
 
   contains: (token) ->
     if token instanceof Container
@@ -414,13 +419,13 @@ exports.List = class List
   # Get a string representation of us,
   # using the `stringify()` method on all of
   # the tokens that we contain.
-  stringify: ->
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
     head = @start
-    str = head.stringify()
+    str = head.stringify(opts)
 
     until head is @end
       head = head.next
-      str += head.stringify()
+      str += head.stringify(opts)
 
     return str
 
@@ -500,6 +505,7 @@ exports.Container = class Container extends List
       type: @type
       precedence: @precedence
       classes: @classes
+      parseContext: @parseContext
     }
 
   setParent: (parent) ->
@@ -1017,14 +1023,40 @@ exports.SocketStartToken = class SocketStartToken extends StartToken
 exports.SocketEndToken = class SocketEndToken extends EndToken
   constructor: (@container) -> super; @type = 'socketEnd'
 
-  stringify: ->
-    if @prev is @container.start or
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # If preserveEmpty is turned on, substitute our placeholder string
+    # for an empty socket
+    if opts.preserveEmpty and @prev is @container.start or
         @prev.type is 'text' and @prev.value is ''
       return @container.emptyString
+
+    # Otherwise, do nothing, and allow the socket to stringify to ''
     else ''
 
 exports.Socket = class Socket extends Container
-  constructor: (@emptyString, @precedence = 0, @handwritten = false, @classes = [], @dropdown = null) ->
+  constructor: (
+      # @emptyString -- the string that this will stringify to when it is empty,
+      # used for round-tripping empty sockets
+      @emptyString,
+
+      # @precedence -- used to compare with `Block.precedence` to see if a block
+      # can drop in a socket or if it needs parentheses. Not used in ANTLR modes.
+      @precedence = 0,
+
+      # @handwritten -- whether this is a socket in a block that was created by pressing Enter in the editor.
+      # This determines whether it can be deleted again by pressing delete when the socket is empty.
+      @handwritten = false,
+
+      # @classes -- passed to mode callbacks for droppability and parentheses callbacks
+      @classes = [],
+
+      # @dropdown -- dropdown options, if they exist
+      @dropdown = null,
+
+      # @parseContext -- the interior node in the parse tree that this socket represents.
+      # Passed to the parser when doing live reparsing in this socket.
+      @parseContext = null) ->
+
     @start = new SocketStartToken this
     @end = new SocketEndToken this
 
@@ -1045,7 +1077,7 @@ exports.Socket = class Socket extends Container
 
   isDroppable: -> @start.next is @end or @start.next.type is 'text'
 
-  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown
+  _cloneEmpty: -> new Socket @emptyString, @precedence, @handwritten, @classes, @dropdown, @parseContext
 
   _serialize_header: -> "<socket precedence=\"#{
       @precedence
@@ -1069,14 +1101,16 @@ exports.IndentStartToken = class IndentStartToken extends StartToken
 
 exports.IndentEndToken = class IndentEndToken extends EndToken
   constructor: (@container) -> super; @type = 'indentEnd'
-  stringify: ->
-    if @prev.prev is @container.start
+  stringify: (opts = DEFAULT_STRINGIFY_OPTS) ->
+    # As with sockets, substitute a placeholder string if preserveEmpty
+    # is turned on.
+    if opts.preserveEmpty and @prev.prev is @container.start
       return @container.emptyString
     else ''
   serialize: -> "</indent>"
 
 exports.Indent = class Indent extends Container
-  constructor: (@emptyString, @prefix = '', @classes = []) ->
+  constructor: (@emptyString, @prefix = '', @classes = [], @parseContext = null) ->
     @start = new IndentStartToken this
     @end = new IndentEndToken this
 
@@ -1086,7 +1120,7 @@ exports.Indent = class Indent extends Container
 
     super
 
-  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes
+  _cloneEmpty: -> new Indent @emptyString, @prefix, @classes, @parseContext
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<indent prefix=\"#{
@@ -1109,7 +1143,7 @@ exports.DocumentEndToken = class DocumentEndToken extends EndToken
   serialize: -> "</document>"
 
 exports.Document = class Document extends Container
-  constructor: (@opts = {}) ->
+  constructor: (@parseContext, @opts = {}) ->
     @start = new DocumentStartToken this
     @end = new DocumentEndToken this
     @classes = ['__document__']
@@ -1118,7 +1152,7 @@ exports.Document = class Document extends Container
 
     super
 
-  _cloneEmpty: -> new Document(@opts)
+  _cloneEmpty: -> new Document(@parseContext, @opts)
   firstChild: -> return @_firstChild()
 
   _serialize_header: -> "<document>"

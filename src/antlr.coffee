@@ -28,9 +28,11 @@ exports.createANTLRParser = (name, config, root) ->
     tokens = new antlr4.CommonTokenStream(lexer)
     parser = new ANTLR_PARSER_COLLECTION["#{name}Parser"]["#{name}Parser"](tokens)
 
+    parser._errHandler = new antlr4.error.BailErrorStrategy()
+
     # Build the actual parse tree
     parser.buildParseTrees = true
-    return transform parser[context]()
+    return transform parser[context + '_DropletFile']()
 
   # Transform an ANTLR tree into a treewalker-type tree
   transform = (node, parent = null) ->
@@ -43,10 +45,18 @@ exports.createANTLRParser = (name, config, root) ->
       result.parent = parent
     else
       result.terminal = true
-      result.type = (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type]
       result.children = []
       result.bounds = getBounds node
       result.parent = parent
+      if node.symbol?
+        result.type = (node.parser ? node.parentCtx.parser).symbolicNames[node.symbol.type]
+        result.data = {text: node.symbol.text}
+      else
+        result.type = node.parser.ruleNames[node.ruleIndex]
+        result.data = {}
+    if result.type? and result.type[-'_DropletFile'.length...] is '_DropletFile'
+      result.type = result.type[...-'_DropletFile'.length]
+      result.children.pop()
 
     return result
 
@@ -60,6 +70,17 @@ exports.createANTLRParser = (name, config, root) ->
         end: {
           line: node.stop.line - 1
           column: node.stop.column + node.stop.stop - node.stop.start + 1
+        }
+      }
+    else if node.start? and not node.symbol?
+      return {
+        start: {
+          line: node.start.line - 1
+          column: node.start.column
+        }
+        end: {
+          line: node.start.line - 1
+          column: node.start.column
         }
       }
     else
