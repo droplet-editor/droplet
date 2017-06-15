@@ -16,6 +16,7 @@ PALETTE_TOP_MARGIN = 5
 PALETTE_MARGIN = 5
 MIN_DRAG_DISTANCE = 1
 PALETTE_LEFT_MARGIN = 5
+PALETTE_HEADER_BOTTOM_BORDER_WIDTH = 2
 DEFAULT_INDENT_DEPTH = '  '
 ANIMATION_FRAME_RATE = 60
 DISCOURAGE_DROP_TIMEOUT = 1000
@@ -3850,7 +3851,8 @@ Editor::resizeMainScroller = ->
   @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
 
 hook 'resize_palette', 0, ->
-  @paletteScroller.style.top = "#{@paletteHeader.clientHeight}px"
+  @paletteScroller.style.top =
+    "#{@paletteHeader.clientHeight + PALETTE_HEADER_BOTTOM_BORDER_WIDTH}px"
 
   @session.viewports.palette.height = @paletteScroller.clientHeight
   @session.viewports.palette.width = @paletteScroller.clientWidth
