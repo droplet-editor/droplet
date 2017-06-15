@@ -1595,6 +1595,11 @@ hook 'mouseup', 1, (point, event, state) ->
       hadTextToken = @draggingBlock.start.next.type is 'text'
 
       @spliceOut @draggingBlock
+      
+      # Remove these attributes (that are present on some blocks dragged from
+      # the palette) before splicing in
+      @draggingBlock.expansion = null
+      @draggingBlock.lastExpansionText = null
 
       @clearHighlightCanvas()
 
