@@ -1407,7 +1407,7 @@ Editor::getClosestDroppableBlockFromPosition = (position, isDebugMode) ->
 
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
-    if drag.type is 'list'
+    if drag.type is 'list' or '__comment__' in drop.classes
       return helper.FORBID
     else
       return @mode.drop drag.getReader(), drop.getReader(), null, null
