@@ -410,8 +410,6 @@ getMethodName = (node) ->
   return null
 
 config.SHOULD_SOCKET = (opts, node) ->
-  if node.type is 'Void'
-    console.log 'got a void', node.type, node.parent.type
   # We will not socket if we are the identifier
   # in a single-identifier function call like `a(b, c)`
   # and `a` is in the known functions list.
@@ -440,6 +438,8 @@ config.SHOULD_SOCKET = (opts, node) ->
       type: 'locked'
       dropdown: NATIVE_TYPES
     }
+  else if (node.type is 'Void' and node.parent.type is 'typeSpecifier' and node.parent.parent.parent.parent.type is 'parameterDeclaration')
+    return false
 
   else if (node.type is 'Identifier' and node.parent.type is 'typedefName') or (node.type is 'Void' and node.parent.type is 'typeSpecifier' and node.parent.parent.parent.parent.type isnt 'parameterDeclaration')
     return {
