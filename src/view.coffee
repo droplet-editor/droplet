@@ -954,8 +954,9 @@ exports.View = class View
           @minDistanceToBase[desiredLine].below = Math.max(
             @minDistanceToBase[desiredLine].below,
             minDistanceToBase[line].below + Math.max(bottomMargin, (
+              buttonLine = if @model.buttons?.onFirstLine then 0 else @lineLength - 1
               if (@model.buttons?.addButton or @model.buttons?.subtractButton) and
-                  desiredLine is @lineLength - 1 and
+                  desiredLine is buttonLine and
                   @multilineChildrenData[line] is MULTILINE_END and
                   @lineChildren[line].length is 1
                 @view.opts.buttonPadding + @view.opts.buttonHeight
@@ -1695,7 +1696,8 @@ exports.View = class View
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
 
-      @minDimensions[@minDimensions.length - 1].width += @extraWidth
+      buttonLine = if @model.buttons?.onFirstLine then 0 else @minDimensions.length - 1
+      @minDimensions[buttonLine].width += @extraWidth
 
       return null
 
@@ -1736,6 +1738,9 @@ exports.View = class View
 
     computePath: ->
       super
+      firstRect = @bounds[0]
+      firstStart = firstRect.x + firstRect.width - @extraWidth
+      firstTop = firstRect.y + firstRect.height/2 - @view.opts.buttonHeight/2
       lastLine = @bounds.length - 1
       lastRect = @bounds[lastLine]
       start = lastRect.x + lastRect.width - @extraWidth
@@ -1752,11 +1757,13 @@ exports.View = class View
           height = lastRect.bottom() - multilineBounds.bottom()
           top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
+      buttonStart = if @model.buttons.onFirstLine then firstStart else start
+      buttonTop = if @model.buttons.onFirstLine then firstTop else top
       if @model.buttons.subtractButton
-        @subtractButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
-        start += @view.opts.buttonWidth + @view.opts.buttonPadding
+        @subtractButtonRect = new @view.draw.Rectangle buttonStart, buttonTop, @view.opts.buttonWidth, @view.opts.buttonHeight
+        buttonStart += @view.opts.buttonWidth + @view.opts.buttonPadding
       if @model.buttons.addButton
-        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+        @addButtonRect = new @view.draw.Rectangle buttonStart, buttonTop, @view.opts.buttonWidth, @view.opts.buttonHeight
 
     computeOwnPath: ->
       super
