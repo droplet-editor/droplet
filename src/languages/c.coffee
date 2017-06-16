@@ -437,6 +437,8 @@ config.SHOULD_SOCKET = (opts, node) ->
       type: 'locked'
       dropdown: NATIVE_TYPES
     }
+  else if (node.type is 'Void' and node.parent.type is 'typeSpecifier' and node.parent.parent.parent.parent.type is 'parameterDeclaration')
+    return false
 
   else if node.type is 'Identifier' and node.parent.type is 'typedefName'
     return {
