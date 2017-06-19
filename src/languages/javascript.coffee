@@ -489,6 +489,10 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         for param in node.params
           @jsSocketAndMark indentDepth, param, depth + 1, NEVER_PAREN
       when 'FunctionExpression'
+        @jsBlock node, depth, bounds
+        @mark indentDepth, node.body, depth + 1, null
+        if node.id?
+          @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
         if node.params.length > 0
           @addSocket {
             bounds: {
