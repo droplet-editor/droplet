@@ -1354,14 +1354,12 @@ hook 'mousedown', 4, (point, event, state) ->
         @populateBlock hitTestResult, line
         @redrawMain()
       state.consumedHitTest = true
-    ### TODO
     else if hitTestBlock.subtractButtonRect? and hitTestBlock.subtractButtonRect.contains mainPoint
       line = @session.mode.handleButton str, 'subtract-button', hitTestResult.getReader()
       if line?.length >= 0
         @populateBlock hitTestResult, line
         @redrawMain()
       state.consumedHitTest = true
-    ###
 
 # If the user lifts the mouse
 # before they have dragged five pixels,

@@ -1808,8 +1808,8 @@ exports.View = class View
       if @model.type is 'block'
         @path.style.fillColor = @view.getColor @model.color
 
-      # Add the add button if necessary
-      if @model.buttons?.addButton
+      # Add the add and subtract buttons if necessary
+      if @model.buttons?.addButton or @model.buttons?.subtractButton
         lastLine = @bounds.length - 1
         lastRect = @bounds[lastLine]
         start = lastRect.x + lastRect.width - @extraWidth
@@ -1826,11 +1826,18 @@ exports.View = class View
             height = lastRect.bottom() - multilineBounds.bottom()
             top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
 
-        @addButtonPath.style.transform = "translate(#{start}, #{top})"
-        @addButtonPath.update()
-        @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
-
-        @elements.push @addButtonPath
+        if @model.buttons?.subtractButton
+          @subtractButtonPath.style.transform = "translate(#{start}, #{top})"
+          @subtractButtonPath.update()
+          @subtractButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+          @elements.push @subtractButtonPath
+          start += @view.opts.buttonWidth + @view.opts.buttonPadding
+        
+        if @model.buttons?.addButton
+          @addButtonPath.style.transform = "translate(#{start}, #{top})"
+          @addButtonPath.update()
+          @addButtonRect = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
+          @elements.push @addButtonPath
 
       # Return it.
       return @path
@@ -1934,9 +1941,9 @@ exports.View = class View
         })
 
         textElement = new @view.draw.Text(new @view.draw.Point(
-          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText('+').width)/ 2,
+          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(@model.buttons?.addButton).width)/ 2,
           @view.opts.buttonHeight - @view.opts.textHeight
-        ), '+')
+        ), @model.buttons?.addButton)
         textElement.setParent @addButtonPath
 
         @addButtonPath.setParent @group
@@ -1944,6 +1951,29 @@ exports.View = class View
 
         @activeElements.push textElement
         @activeElements.push @addButtonPath
+
+      if @model.buttons?.subtractButton
+        @subtractButtonPath = new @view.draw.Path([
+            new @view.draw.Point 0, 0
+            new @view.draw.Point 0 + @view.opts.buttonWidth, 0
+            new @view.draw.Point 0 + @view.opts.buttonWidth, 0 + @view.opts.buttonHeight
+            new @view.draw.Point 0, 0 + @view.opts.buttonHeight
+        ], true, {
+          fillColor: @view.getColor(@model.color)
+          cssClass: 'droplet-button-path'
+        })
+
+        textElement = new @view.draw.Text(new @view.draw.Point(
+          (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(@model.buttons?.subtractButton).width)/ 2,
+          @view.opts.buttonHeight - @view.opts.textHeight
+        ), @model.buttons?.subtractButton)
+        textElement.setParent @subtractButtonPath
+
+        @subtractButtonPath.setParent @group
+        @elements.push @subtractButtonPath
+
+        @activeElements.push textElement
+        @activeElements.push @subtractButtonPath
 
     computeMinDimensions: ->
       if @computedVersion is @model.version
