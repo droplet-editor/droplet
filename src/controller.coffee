@@ -2167,8 +2167,11 @@ hook 'populate', 1, ->
 
 Editor::resizePaletteHighlight = ->
   @paletteHighlightCanvas.style.top = @paletteHeader.clientHeight + 'px'
-  @paletteHighlightCanvas.style.width = "#{@paletteCanvas.clientWidth}px"
-  @paletteHighlightCanvas.style.height = "#{@paletteCanvas.clientHeight}px"
+
+  # Make sure the palette highlight canvas does not obstruct the gutter
+  # at any browser zoom level.
+  @paletteHighlightCanvas.style.width = "#{@paletteScroller.clientWidth}px"
+  @paletteHighlightCanvas.style.height = "#{@paletteScroller.clientHeight}px"
 
 hook 'redraw_palette', 0, ->
   @clearPaletteHighlightCanvas()
