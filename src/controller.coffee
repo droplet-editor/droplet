@@ -208,6 +208,13 @@ exports.Editor = class Editor
     @mainCanvas.setAttribute 'class',  'droplet-main-canvas'
     @mainCanvas.setAttribute 'shape-rendering', 'optimizeSpeed'
 
+    @sideScroller = document.createElement 'div'
+    @sideScroller.className = 'droplet-side-scroller'
+    @sideScroller.style.overflowY = 'hidden'
+    @sideScroller.style.position = 'absolute'
+    @sideScroller.style.top = 0
+    @sideScroller.style.left = 0
+
     @paletteWrapper = document.createElement 'div'
     @paletteWrapper.className = 'droplet-palette-wrapper'
 
@@ -466,8 +473,6 @@ exports.Editor = class Editor
     @session.viewports.main.height = @dropletElement.clientHeight
     @session.viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
 
-    @mainCanvas.setAttribute 'width', @dropletElement.clientWidth - @gutter.clientWidth
-
     @mainCanvas.style.left = "#{@gutter.clientWidth}px"
     @transitionContainer.style.left = "#{@gutter.clientWidth}px"
 
@@ -708,6 +713,11 @@ Editor::redrawMain = (opts = {}) ->
     layoutResult = @session.view.getViewNodeFor(@session.tree).layout 0, @nubbyHeight
     @session.view.getViewNodeFor(@session.tree).draw rect, options
     @session.view.getViewNodeFor(@session.tree).root()
+
+    @mainCanvas.setAttribute 'width', Math.max(
+      @session.view.getViewNodeFor(@session.tree).totalBounds.width,
+      @dropletElement.clientWidth - @gutter.clientWidth
+    )
 
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @session.floatingBlocks
@@ -3430,10 +3440,10 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     @redrawMain noText: true
 
     # Hide scrollbars and increase width
-    if @mainScroller.scrollWidth > @mainScroller.clientWidth
-      @mainScroller.style.overflowX = 'scroll'
+    if @sideScroller.scrollWidth > @sideScroller.clientWidth
+      @sideScroller.style.overflowX = 'scroll'
     else
-      @mainScroller.style.overflowX = 'hidden'
+      @sideScroller.style.overflowX = 'hidden'
     @mainScroller.style.overflowY = 'hidden'
     @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
@@ -3563,7 +3573,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       @currentlyAnimating = false
 
       # Show scrollbars again
-      @mainScroller.style.overflow = 'auto'
+      @showScrollbars()
 
       for div in translatingElements
         div.parentNode.removeChild div
@@ -3577,6 +3587,10 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
 Editor::aceFontSize = ->
   parseFloat(@aceEditor.getFontSize()) + 'px'
+
+Editor::showScrollbars = (show = true) ->
+  @mainScroller.style.overflowY = if show then 'auto' else 'hidden'
+  @sideScroller.style.overflowX = if show then 'auto' else 'hidden'
 
 Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)->
   return unless @session?
@@ -3601,7 +3615,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
     setTimeout (=>
       # Hide scrollbars and increase width
-      @mainScroller.style.overflow = 'hidden'
+      @showScrollbars false
       @dropletElement.style.width = @wrapperElement.clientWidth + 'px'
 
       @redrawMain noText: true
@@ -3716,7 +3730,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
           @paletteWrapper.style.transition = ''
 
         # Show scrollbars again
-        @mainScroller.style.overflow = 'auto'
+        @showScrollbars()
 
         @currentlyAnimating = false
         @lineNumberWrapper.style.display = 'block'
@@ -3807,6 +3821,7 @@ Editor::toggleBlocks = (cb) ->
 hook 'populate', 2, ->
   @mainScroller = document.createElement 'div'
   @mainScroller.className = 'droplet-main-scroller'
+  @mainScroller.style.overflowX = 'hidden'
 
   # @mainScrollerIntermediary -- this is so that we can be certain that
   # any event directly on @mainScroller is in fact on the @mainScroller scrollbar,
@@ -3817,7 +3832,8 @@ hook 'populate', 2, ->
   @mainScrollerStuffing = document.createElement 'div'
   @mainScrollerStuffing.className = 'droplet-main-scroller-stuffing'
 
-  @mainScroller.appendChild @mainCanvas
+  @mainScroller.appendChild @sideScroller
+  @sideScroller.appendChild @mainCanvas
   @dropletElement.appendChild @mainScroller
 
   # Prevent scrolling on wrapper element
@@ -3826,9 +3842,14 @@ hook 'populate', 2, ->
 
   @mainScroller.addEventListener 'scroll', =>
     @session.viewports.main.y = @mainScroller.scrollTop
-    @session.viewports.main.x = @mainScroller.scrollLeft
 
     @redrawMain()
+
+  @sideScroller.addEventListener 'scroll', =>
+    @session.viewports.main.x = @sideScroller.scrollLeft
+
+    # Resize nubby and redraw main
+    @resizeNubby()
 
   @paletteScroller = document.createElement 'div'
   @paletteScroller.className = 'droplet-palette-scroller'
@@ -3847,6 +3868,7 @@ hook 'populate', 2, ->
 Editor::resizeMainScroller = ->
   @mainScroller.style.width = "#{@dropletElement.clientWidth}px"
   @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
+  @sideScroller.style.width = "#{@dropletElement.clientWidth}px"
 
 hook 'resize_palette', 0, ->
   @paletteScroller.style.top =
@@ -3874,6 +3896,7 @@ hook 'redraw_main', 1, ->
     @lastHeight = height
     @mainCanvas.setAttribute 'height', height
     @mainCanvas.style.height = "#{height}px"
+    @sideScroller.style.height = "#{height}px"
 
 hook 'redraw_palette', 0, ->
   bounds = new @draw.NoRectangle()
