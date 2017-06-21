@@ -1582,7 +1582,7 @@ Editor::getClosestDroppableBlockFromPosition = (position, isDebugMode) ->
 
 Editor::getAcceptLevel = (drag, drop) ->
   if drop.type is 'socket'
-    if drag.type is 'list'
+    if drag.type is 'list' or '__comment__' in drop.classes
       return helper.FORBID
     else
       return @session.mode.drop drag.getReader(), drop.getReader(), null, null
@@ -1797,6 +1797,11 @@ hook 'mouseup', 1, (point, event, state) ->
       hadTextToken = @draggingBlock.start.next.type is 'text'
 
       @spliceOut @draggingBlock
+      
+      # Remove these attributes (that are present on some blocks dragged from
+      # the palette) before splicing in
+      @draggingBlock.expansion = null
+      @draggingBlock.lastExpansionText = null
 
       @clearHighlightCanvas()
 
@@ -2690,7 +2695,7 @@ Editor::getDropdownList = (socket) ->
   if result.generate
     result = result.generate
   if 'function' is typeof result
-    result = socket.dropdown()
+    result = result()
   else
     result = socket.dropdown
   if result.options
