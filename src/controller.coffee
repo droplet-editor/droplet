@@ -559,8 +559,11 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
   points = []
 
-  points.push new @draw.Point @mainCanvas.clientWidth, -5
-  points.push new @draw.Point @mainCanvas.clientWidth, height
+  # recompute the canvas width, since it isn't available via
+  # @mainCanvas.clientWidth in Firefox
+  nubbyWidth = @computeMainCanvasWidth()
+  points.push new @draw.Point nubbyWidth, -5
+  points.push new @draw.Point nubbyWidth, height
 
   points.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth, height
   points.push new @draw.Point @session.view.opts.tabOffset + @session.view.opts.tabWidth * (1 - @session.view.opts.tabSideWidth),
@@ -690,6 +693,12 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 hook 'populate', 0, ->
   @currentlyDrawnFloatingBlocks = []
 
+Editor::computeMainCanvasWidth = ->
+  Math.max(
+    @session.view.getViewNodeFor(@session.tree).totalBounds.width,
+    @dropletElement.clientWidth - @gutter.clientWidth
+  )
+
 Editor::redrawMain = (opts = {}) ->
   return unless @session?
   unless @currentlyAnimating_suprressRedraw
@@ -714,10 +723,7 @@ Editor::redrawMain = (opts = {}) ->
     @session.view.getViewNodeFor(@session.tree).draw rect, options
     @session.view.getViewNodeFor(@session.tree).root()
 
-    @mainCanvas.setAttribute 'width', Math.max(
-      @session.view.getViewNodeFor(@session.tree).totalBounds.width,
-      @dropletElement.clientWidth - @gutter.clientWidth
-    )
+    @mainCanvas.setAttribute 'width', @computeMainCanvasWidth()
 
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @session.floatingBlocks
