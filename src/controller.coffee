@@ -3891,11 +3891,8 @@ hook 'resize_palette', 0, ->
   @session.viewports.palette.height = @paletteScroller.clientHeight
   @session.viewports.palette.width = @paletteScroller.clientWidth
 
-hook 'redraw_main', 1, ->
+Editor::computeMainCanvasHeight = ->
   bounds = @session.view.getViewNodeFor(@session.tree).getBounds()
-  for record in @session.floatingBlocks
-    bounds.unite @session.view.getViewNodeFor(record.block).getBounds()
-
   # We add some extra height to the bottom
   # of the document so that the last block isn't
   # jammed up against the edge of the screen.
@@ -3906,6 +3903,12 @@ hook 'redraw_main', 1, ->
     @dropletElement.clientHeight
   )
 
+hook 'redraw_main', 1, ->
+  bounds = @session.view.getViewNodeFor(@session.tree).getBounds()
+  for record in @session.floatingBlocks
+    bounds.unite @session.view.getViewNodeFor(record.block).getBounds()
+
+  height = @computeMainCanvasHeight()
   if height isnt @lastHeight
     @lastHeight = height
     @mainCanvas.setAttribute 'height', height
@@ -4575,8 +4578,11 @@ Editor::resizeGutter = ->
     @gutter.style.width = @lastGutterWidth + 'px'
     return @resize()
 
-  unless @lastGutterHeight is Math.max(@dropletElement.clientHeight, @mainCanvas.clientHeight)
-    @lastGutterHeight = Math.max(@dropletElement.clientHeight, @mainCanvas.clientHeight)
+  # recompute the canvas height, since it isn't available via
+  # @mainCanvas.clientHeight in Firefox
+  gutterHeight = Math.max(@dropletElement.clientHeight, @computeMainCanvasHeight())
+  unless @lastGutterHeight is gutterHeight
+    @lastGutterHeight = gutterHeight
     @gutter.style.height = @lastGutterHeight + 'px'
 
 Editor::addLineNumberForLine = (line) ->
