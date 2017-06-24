@@ -1596,7 +1596,6 @@ hook 'mousedown', 4, (point, event, state) ->
           @spliceIn newSocket, loc
 
           @setCursor newSocket.start
-          console.log 'Did indeed get a button'
 
           return
 
@@ -1613,7 +1612,6 @@ hook 'mousedown', 4, (point, event, state) ->
               @populateBlock result, line
               @redrawMain()
             state.consumedHitTest = true
-            console.log 'Did indeed get a button'
 
             return
 
@@ -3241,7 +3239,10 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @gutter.clientWidth + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
-      dropdownTop = location.y + @session.fontSize + 2 * @session.view.opts.textPadding - @session.viewports.main.y
+      # TODO maybe do this for horizontal scrolling also?
+      @dropdownTopUnscrolled = location.y + @session.fontSize + 2 * @session.view.opts.textPadding
+
+      dropdownTop = @dropdownTopUnscrolled - @session.viewports.main.y
 
       if dropdownTop + @dropdownElement.clientHeight > @dropletElement.clientHeight
         @dropdownAboveSocket = true
@@ -4445,6 +4446,8 @@ hook 'populate', 2, ->
     @session.viewports.main.y = @mainScroller.scrollTop
     @session.viewports.main.x = @mainScroller.scrollLeft
 
+    @repositionDropdown()
+
     @redrawMain()
 
   @paletteScroller = document.createElement 'div'
@@ -4456,6 +4459,19 @@ hook 'populate', 2, ->
   @paletteScroller.addEventListener 'scroll', =>
     @session.viewports.palette.y = @paletteScroller.scrollTop
     @session.viewports.palette.x = @paletteScroller.scrollLeft
+
+Editor::repositionDropdown = ->
+  dropdownTop = @dropdownTopUnscrolled - @session.viewports.main.y
+
+  if dropdownTop + @dropdownElement.clientHeight > @dropletElement.clientHeight
+    @dropdownAboveSocket = true
+    @dropdownBottom = dropdownTop - @session.fontSize - 2 * @session.view.opts.textPadding
+    dropdownTop = @dropdownBottom - @dropdownElement.clientHeight
+  else
+    @dropdownAboveSocket = false
+
+  @dropdownTop = dropdownTop
+  @dropdownElement.style.top = dropdownTop + 'px'
 
 Editor::resizeMainScroller = ->
   @mainScroller.style.width = "#{@dropletElement.clientWidth}px"
@@ -4566,7 +4582,6 @@ Editor::getHighlightPath = (model, style, view = @session.view) ->
 
 Session::markLine = (line, style) ->
   block = @tree.getBlockOnLine line
-  console.log 'marking', line, '(block is', block.stringify(), ')'
 
   @view.getViewNodeFor(block).mark style
 
