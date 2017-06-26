@@ -354,7 +354,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
     }
 
   handleButton: (text, button, oldBlock) ->
-    if button is 'add-button' and 'IfStatement' in oldBlock.classes
+    if 'IfStatement' in oldBlock.classes
       # Parse to find the last "else" or "else if"
       node = acorn.parse(text, {
         locations: true
@@ -376,17 +376,24 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             break
         else
           break
-
-      if elseLocation?
-        lines = text.split('\n')
-        elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
-        return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
-          __
-        }'''
-      else
-        return text + ''' else {
-          __
-        }'''
+      lines = text.split('\n')
+      if button is 'add-button'
+        if elseLocation?
+          elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
+          return text[...elseLocation].trimRight() + ' if (__) ' + text[elseLocation..].trimLeft() + ''' else {
+            __
+          }'''
+        else
+          return text + ''' else {
+            __
+          }'''
+      else if button is 'subtract-button'
+        if elseLocation?
+          elseLocation = lines[...elseLocation.line].join('\n').length + elseLocation.column + 1
+        else if currentElif.loc.start?
+          elseLocation = lines[...currentElif.loc.start.line].join('\n').length + currentElif.loc.start.column + 1
+        if elseLocation?
+          return text[...elseLocation].trimRight().replace(/(\s*)else(\s*)+$/, '')
     else if 'CallExpression' in oldBlock.classes
       # Parse the call expression
       node = acorn.parse(text, {
@@ -542,7 +549,12 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         if node.argument?
           @jsSocketAndMark indentDepth, node.argument, depth + 1, null
       when 'IfStatement', 'ConditionalExpression'
-        @jsBlock node, depth, bounds, {addButton: '+'}
+        buttons = {
+          addButton: '+'
+        }
+        if node.alternate
+          buttons.subtractButton = '-'
+        @jsBlock node, depth, bounds, buttons
         @jsSocketAndMark indentDepth, node.test, depth + 1, NEVER_PAREN
         @jsSocketAndMark indentDepth, node.consequent, depth + 1, null
 
