@@ -346,10 +346,12 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
       return line[indentDepth...(line.length - line.trimLeft().length)]
 
   isComment: (text) ->
-    text.match(/^\s*\/\/.*$/)
+    text.match(/^\s*\/\/.*$/)?
 
-  indentAndCommentMarker: (text) ->
-    text.match(/^\s*\/\//)[0]
+  parseComment: (text) ->
+    {
+      sockets: [[text.match(/^\s*\/\//)[0].length, text.length]]
+    }
 
   handleButton: (text, button, oldBlock) ->
     if button is 'add-button' and 'IfStatement' in oldBlock.classes
