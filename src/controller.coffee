@@ -2782,6 +2782,8 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
         dropdownTop -= (@session.fontSize + @dropdownElement.clientHeight)
       @dropdownElement.style.top = dropdownTop + 'px'
     else
+      # Refresh socket after rerender
+      socket = @getCursor()
       location = @session.view.getViewNodeFor(socket).bounds[0]
       @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @gutter.clientWidth + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
