@@ -2393,6 +2393,14 @@ Editor::rebuildPaletteHeaders = ->
         if @paletteSearch.value is ''
           @paletteSearch.focus()
 
+      else
+        @paletteSearch.value = ''
+        @reapplySearch()
+
+        do updatePalette
+
+        @paletteSearch.focus()
+
     paletteGroupHeader.addEventListener 'click', clickHandler
     paletteGroupHeader.addEventListener 'touchstart', clickHandler
 
