@@ -1565,7 +1565,6 @@ hook 'mousedown', 4, (point, event, state) ->
   if @lassoSelection? and @hitTest(mainPoint, @lassoSelection)? then return
 
   for document in @getDocuments() by -1
-    console.log "Hit testing document", document
     head = document.start
     seek = document.end
     result = null
@@ -1579,8 +1578,6 @@ hook 'mousedown', 4, (point, event, state) ->
           string = head.container.stringify()
 
           newSocket = new model.Socket(string, false, head.container.dropdown, head.container.parseContext, true)
-
-          console.log 'Dropdown is', head.container.dropdown
 
           textToken = new model.TextToken string
           helper.connect newSocket.start, textToken
@@ -2395,6 +2392,14 @@ Editor::rebuildPaletteHeaders = ->
 
         if @paletteSearch.value is ''
           @paletteSearch.focus()
+
+      else
+        @paletteSearch.value = ''
+        @reapplySearch()
+
+        do updatePalette
+
+        @paletteSearch.focus()
 
     paletteGroupHeader.addEventListener 'click', clickHandler
     paletteGroupHeader.addEventListener 'touchstart', clickHandler
