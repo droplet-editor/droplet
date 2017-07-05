@@ -3061,10 +3061,9 @@ Editor::setCursor = (destination, validate = (-> true), direction = 'after') ->
   # If the cursor was at a text input, reparse the old one
   if @cursorAtSocket() and not @session.cursor.is(destination)
     socket = @getCursor()
-    if '__comment__' not in socket.classes
-      @reparse socket, null, (if destination.document is @session.cursor.document then [destination.location] else [])
-      @hiddenInput.blur()
-      @dropletElement.focus()
+    @reparse socket, null, (if destination.document is @session.cursor.document then [destination.location] else [])
+    @hiddenInput.blur()
+    @dropletElement.focus()
 
   @session.cursor = destination
 
