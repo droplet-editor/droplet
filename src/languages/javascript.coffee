@@ -489,9 +489,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           onFirstLine: true
         }
         unless @opts.lockZeroParamFunctions and node.params.length == 0
-          buttons.addButton = '\u21A0'
+          buttons.addButton = '\u2192'
         if node.params.length > 0
-          buttons.subtractButton = '\u219E'
+          buttons.subtractButton = '\u2190'
         @jsBlock node, depth, bounds, buttons
         @mark indentDepth, node.body, depth + 1, null
         @jsSocketAndMark indentDepth, node.id, depth + 1, null, null, ['no-drop']
@@ -645,9 +645,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
 
         if showButtons
           if argCount < maxArgs
-            buttons.addButton = '\u21A0'
+            buttons.addButton = '\u2192'
           if argCount > minArgs
-            buttons.subtractButton = '\u219E'
+            buttons.subtractButton = '\u2190'
         @jsBlock node, depth, bounds, buttons
 
         if not known
@@ -748,10 +748,10 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.finalizer, depth + 1, null
       when 'ArrayExpression'
         buttons = {
-          addButton: '\u21A0'
+          addButton: '\u2192'
         }
         if node.elements.length > 0
-          buttons.subtractButton = '\u219E'
+          buttons.subtractButton = '\u2190'
         @jsBlock node, depth, bounds, buttons
         for element in node.elements
           if element?

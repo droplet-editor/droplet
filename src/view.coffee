@@ -79,6 +79,14 @@ DEFAULT_OPTIONS =
     grey: '#eeeeee'
     bluegrey: '#b0bec5'
 
+# +/- look best inside buttons when moved up 1px.
+# Arrows look best inside buttons when moved up 3px.
+BUTTON_TEXT_HEIGHT_OFFSET =
+  '+': -1
+  '-': -1
+  '\u2190': -3
+  '\u2192': -3
+
 YES = -> yes
 NO = -> no
 
@@ -1948,7 +1956,7 @@ exports.View = class View
 
         textElement = new @view.draw.Text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(@model.buttons?.addButton).width)/ 2,
-          @view.opts.buttonHeight - @view.opts.textHeight
+          @view.opts.buttonHeight - @view.opts.textHeight + BUTTON_TEXT_HEIGHT_OFFSET[@model.buttons.addButton]
         ), @model.buttons?.addButton)
         textElement.setParent @addButtonPath
 
@@ -1971,7 +1979,7 @@ exports.View = class View
 
         textElement = new @view.draw.Text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(@model.buttons?.subtractButton).width)/ 2,
-          @view.opts.buttonHeight - @view.opts.textHeight
+          @view.opts.buttonHeight - @view.opts.textHeight + BUTTON_TEXT_HEIGHT_OFFSET[@model.buttons.subtractButton]
         ), @model.buttons?.subtractButton)
         textElement.setParent @subtractButtonPath
 
