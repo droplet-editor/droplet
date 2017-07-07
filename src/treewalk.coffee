@@ -42,8 +42,11 @@ exports.createTreewalkParser = (parse, config, root) ->
       @mark parseTree, '', 0
 
     guessPrefix: (bounds) ->
-      line = @lines[bounds.start.line + 1]
-      return line[0...line.length - line.trimLeft().length]
+      if bounds.start.line is bounds.end.line
+        return '  '
+      else
+        line = @lines[bounds.start.line + 1]
+        return line[0...line.length - line.trimLeft().length]
 
     applyRule: (node) ->
       if node._cachedApplication?
