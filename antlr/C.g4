@@ -78,10 +78,15 @@ unaryExpression
     |   '++' unaryExpression
     |   '--' unaryExpression
     |   unaryOperator castExpression
-    |   'sizeof' '(' typeName ')'
+    |   'sizeof' '(' typeNameOrExpression ')'
     |   'sizeof' unaryExpression
     |   '_Alignof' '(' typeName ')'
     |   '&&' Identifier // GCC extension address of label
+    ;
+
+typeNameOrExpression
+    :   typeName
+    |   expression
     ;
 
 unaryOperator
@@ -634,10 +639,16 @@ unaryExpression_DropletFile
     |   '++' unaryExpression EOF
     |   '--' unaryExpression EOF
     |   unaryOperator castExpression EOF
-    |   'sizeof' '(' typeName ')' EOF
+    |   'sizeof' '(' typeNameOrExpression ')' EOF
+    |   'sizeof' '(' expression ')' EOF
     |   'sizeof' unaryExpression EOF
     |   '_Alignof' '(' typeName ')' EOF
     |   '&&' Identifier // GCC extension address of label EOF
+    ;
+
+typeNameOrExpression_DropletFile
+    :   typeName EOF
+    |   expression EOF
     ;
 
 unaryOperator_DropletFile
