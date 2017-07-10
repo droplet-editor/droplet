@@ -827,6 +827,10 @@ Editor::redrawPalette = ->
 
     paletteBlockView.group.element.setAttribute 'data-id', entry.id
 
+    # enable tooltips
+    paletteBlockView.group.element.setAttribute('class', 'droplet-hover-div')
+    paletteBlockView.group.element.setAttribute 'title', entry.title
+
     # Update lastBottomEdge
     lastBottomEdge = paletteBlockView.getBounds().bottom() + PALETTE_MARGIN
 
