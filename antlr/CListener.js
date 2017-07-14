@@ -74,15 +74,6 @@ CListener.prototype.exitUnaryExpression = function(ctx) {
 };
 
 
-// Enter a parse tree produced by CParser#typeNameOrExpression.
-CListener.prototype.enterTypeNameOrExpression = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#typeNameOrExpression.
-CListener.prototype.exitTypeNameOrExpression = function(ctx) {
-};
-
-
 // Enter a parse tree produced by CParser#unaryOperator.
 CListener.prototype.enterUnaryOperator = function(ctx) {
 };
@@ -917,15 +908,6 @@ CListener.prototype.enterUnaryExpression_DropletFile = function(ctx) {
 
 // Exit a parse tree produced by CParser#unaryExpression_DropletFile.
 CListener.prototype.exitUnaryExpression_DropletFile = function(ctx) {
-};
-
-
-// Enter a parse tree produced by CParser#typeNameOrExpression_DropletFile.
-CListener.prototype.enterTypeNameOrExpression_DropletFile = function(ctx) {
-};
-
-// Exit a parse tree produced by CParser#typeNameOrExpression_DropletFile.
-CListener.prototype.exitTypeNameOrExpression_DropletFile = function(ctx) {
 };
 
 
