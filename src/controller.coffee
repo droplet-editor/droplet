@@ -869,14 +869,14 @@ Editor::absoluteOffset = (el) ->
 # Convert a point relative to the page into
 # a point relative to one of the two canvases.
 Editor::trackerPointToMain = (point) ->
-  if not @mainCanvas.parentElement?
+  if not @mainCanvas.parentNode?
     return new @draw.Point(NaN, NaN)
   gbr = @mainCanvas.getBoundingClientRect()
   new @draw.Point(point.x - gbr.left,
                   point.y - gbr.top)
 
 Editor::trackerPointToPalette = (point) ->
-  if not @paletteCanvas.parentElement?
+  if not @paletteCanvas.parentNode?
     return new @draw.Point(NaN, NaN)
   gbr = @paletteCanvas.getBoundingClientRect()
   new @draw.Point(point.x - gbr.left,
@@ -885,7 +885,7 @@ Editor::trackerPointToPalette = (point) ->
 Editor::trackerPointIsInElement = (point, element) ->
   if not @session? or @session.readOnly
     return false
-  if not element.parentElement?
+  if not element.parentNode?
     return false
   gbr = element.getBoundingClientRect()
   return point.x >= gbr.left and point.x < gbr.right and
