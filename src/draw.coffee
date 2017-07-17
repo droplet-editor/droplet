@@ -129,7 +129,7 @@ exports.Draw = class Draw
         if @element?
           @element.style.display = 'none'
         @active = false
-        @parent = @element?.parentElement ? self.ctx
+        @parent = @element?.parentNode ? self.ctx
 
       manifest: ->
         unless @element?
@@ -138,7 +138,7 @@ exports.Draw = class Draw
 
           unless @active
             @element.style.display = 'none'
-        else unless @element.parentElement?
+        else unless @element.parentNode?
           @getParentElement().appendChild @element
 
       deactivate: ->
@@ -168,13 +168,13 @@ exports.Draw = class Draw
 
         if @element?
           parent = @getParentElement()
-          unless parent is @element.parentElement
+          unless parent is @element.parentNode
             parent.appendChild @element
 
       destroy: ->
         if @element?
-          if @element.parentElement?
-            @element.parentElement.removeChild @element
+          if @element.parentNode?
+            @element.parentNode.removeChild @element
 
     @Group = class Group extends ElementWrapper
       constructor: ->
