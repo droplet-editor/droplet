@@ -830,7 +830,7 @@ Editor::redrawPalette = ->
     # enable tooltips, making sure not to overwrite any additional classes
     # that may have been added (e.g. by tooltipster)
     paletteBlockClass = paletteBlockView.group.element.getAttribute('class')
-    unless paletteBlockClass && paletteBlockClass.includes('droplet-hover-div')
+    unless paletteBlockClass && paletteBlockClass.indexOf('droplet-hover-div') > -1
       paletteBlockView.group.element.setAttribute('class', 'droplet-hover-div')
     paletteBlockView.group.element.setAttribute 'title', entry.title
 
