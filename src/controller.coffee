@@ -827,8 +827,11 @@ Editor::redrawPalette = ->
 
     paletteBlockView.group.element.setAttribute 'data-id', entry.id
 
-    # enable tooltips
-    paletteBlockView.group.element.setAttribute('class', 'droplet-hover-div')
+    # enable tooltips, making sure not to overwrite any additional classes
+    # that may have been added (e.g. by tooltipster)
+    paletteBlockClass = paletteBlockView.group.element.getAttribute('class') || ''
+    unless paletteBlockClass.indexOf('droplet-hover-div') > -1
+      paletteBlockView.group.element.setAttribute('class', paletteBlockClass + ' droplet-hover-div')
     paletteBlockView.group.element.setAttribute 'title', entry.title
 
     # Update lastBottomEdge
@@ -1807,7 +1810,7 @@ hook 'mouseup', 1, (point, event, state) ->
       hadTextToken = @draggingBlock.start.next.type is 'text'
 
       @spliceOut @draggingBlock
-      
+
       # Remove these attributes (that are present on some blocks dragged from
       # the palette) before splicing in
       @draggingBlock.expansion = null
