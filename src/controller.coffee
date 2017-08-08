@@ -3803,6 +3803,8 @@ Editor::enablePalette = (enabled) ->
 
         @currentlyAnimating = false
 
+        @redrawMain()
+
         @fireEvent 'palettetoggledone', [@session.paletteEnabled]
       ), 500
 
@@ -3825,6 +3827,8 @@ Editor::enablePalette = (enabled) ->
           @resize()
 
           @currentlyAnimating = false
+
+          @redrawMain()
 
           @fireEvent 'palettetoggledone', [@session.paletteEnabled]
         ), 500
