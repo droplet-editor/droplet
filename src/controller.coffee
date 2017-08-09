@@ -219,6 +219,8 @@ exports.Editor = class Editor
 
     @options = helper.deepCopy @options
 
+    @options.blockBackspaceEnabled ?= true
+
     @paletteWidth = @options?.paletteWidth ? DEFAULT_PALETTE_WIDTH
 
     # ### Wrapper
@@ -3709,7 +3711,7 @@ Editor::deleteAtCursor = ->
 hook 'keydown', 0, (event, state) ->
   if not @session? or @session.readOnly
     return
-  if event.which isnt BACKSPACE_KEY
+  if event.which isnt BACKSPACE_KEY or not @options.blockBackspaceEnabled
     return
   if event.target is @paletteSearch
     return

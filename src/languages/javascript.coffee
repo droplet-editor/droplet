@@ -654,9 +654,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         for declaration in node.declarations
           @mark indentDepth, declaration, depth + 1
       when 'VariableDeclarator'
-        @jsSocketAndMark indentDepth, node.id, depth
+        @jsSocketAndMark indentDepth, node.id, depth, 'Lvalue'
         if node.init?
-          @jsSocketAndMark indentDepth, node.init, depth, 'Lvalue'
+          @jsSocketAndMark indentDepth, node.init, depth, 'Expression'
       when 'LogicalExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.left, depth + 1, 'Operator' + node.operator
