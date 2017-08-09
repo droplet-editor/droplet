@@ -224,9 +224,13 @@ RULES = {
   #'declarationSpecifiers2': (node) -> 'skip' #if node.parent.type is 'declaration' then 'skip' else 'block'  #socket'
 
   'declarationSpecifiers': (node) ->
-    if node.children.every((child) -> child.children[0].type isnt 'typeSpecifier' or child.children[0].children[0].children.length is 0)
+    if node.children[0].children[0].type is 'storageClassSpecifier' and
+        node.children[0].children[0].children[0].type is 'Typedef'
+      'skip'
+    else if node.children.every((child) -> child.children[0].type isnt 'typeSpecifier' or child.children[0].children[0].children.length is 0)
       'socket'
     else
+      console.log node.children[0].children[0].type, node.children[0].children[0].children
       'block'
 
   'declarationSpecifiers2': (node) ->
