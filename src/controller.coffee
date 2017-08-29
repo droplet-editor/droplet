@@ -4611,40 +4611,39 @@ Editor::addLineNumberForLine = (line) ->
       lastPosition: null
     }
 
-  if treeView.bounds[line].y isnt @lineNumberTags[line].lastPosition
-    lineDiv.className = 'droplet-gutter-line'
+  lineDiv.className = 'droplet-gutter-line'
 
-    # Add annotation mouseover text
-    # and graphics
-    if @annotations[line]?
-      lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
+  # Add annotation mouseover text
+  # and graphics
+  if @annotations[line]?
+    lineDiv.className += ' droplet_' + getMostSevereAnnotationType(@annotations[line])
 
-      title = @annotations[line].map((x) -> x.text).join('\n')
+    title = @annotations[line].map((x) -> x.text).join('\n')
 
-      lineDiv.addEventListener 'mouseover', =>
-        @tooltipElement.innerText =
-          @tooltipElement.textContent = title
-        @tooltipElement.style.display = 'block'
-      lineDiv.addEventListener 'mousemove', (event) =>
-        @tooltipElement.style.left = event.pageX + 'px'
-        @tooltipElement.style.top = event.pageY + 'px'
-      lineDiv.addEventListener 'mouseout', =>
-        @tooltipElement.style.display = 'none'
+    lineDiv.addEventListener 'mouseover', =>
+      @tooltipElement.innerText =
+        @tooltipElement.textContent = title
+      @tooltipElement.style.display = 'block'
+    lineDiv.addEventListener 'mousemove', (event) =>
+      @tooltipElement.style.left = event.pageX + 'px'
+      @tooltipElement.style.top = event.pageY + 'px'
+    lineDiv.addEventListener 'mouseout', =>
+      @tooltipElement.style.display = 'none'
 
-    # Add breakpoint graphics
-    if @breakpoints[line]
-      lineDiv.className += ' droplet_breakpoint'
+  # Add breakpoint graphics
+  if @breakpoints[line]
+    lineDiv.className += ' droplet_breakpoint'
 
-    lineDiv.style.top = "#{treeView.bounds[line].y}px"
+  lineDiv.style.top = "#{treeView.bounds[line].y}px"
 
-    lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent}px"
-    lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @session.fontDescent}"
+  lineDiv.style.paddingTop = "#{treeView.distanceToBase[line].above - @session.view.opts.textHeight - @session.fontAscent}px"
+  lineDiv.style.paddingBottom = "#{treeView.distanceToBase[line].below - @session.fontDescent}"
 
-    lineDiv.style.height =  treeView.bounds[line].height + 'px'
-    lineDiv.style.fontSize = @session.fontSize + 'px'
+  lineDiv.style.height =  treeView.bounds[line].height + 'px'
+  lineDiv.style.fontSize = @session.fontSize + 'px'
 
-    @lineNumberWrapper.appendChild lineDiv
-    @lineNumberTags[line].lastPosition = treeView.bounds[line].y
+  @lineNumberWrapper.appendChild lineDiv
+  @lineNumberTags[line].lastPosition = treeView.bounds[line].y
 
 TYPE_SEVERITY = {
   'error': 2
