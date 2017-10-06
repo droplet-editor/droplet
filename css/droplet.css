@@ -386,6 +386,6 @@ text {
   opacity: 1;
 }
 .droplet-socket-selected {
-  fill: '#88F'
+  fill: '#88F';
   stroke: '#88F'
 }
