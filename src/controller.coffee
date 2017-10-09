@@ -2631,8 +2631,11 @@ Editor::handleTextInputClick = (mainPoint, dropletDocument) ->
         @undoCapture()
         @setCursor hitTestResult
         @redrawMain()
+        # Since the setCursor call may have orphaned the hitTestResult,
+        # refresh the hitTestResult before continuing to the dropdown
+        hitTestResult = @hitTestTextInput mainPoint, dropletDocument
 
-      if hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
+      if hitTestResult? and hitTestResult.hasDropdown() and ((not hitTestResult.editable()) or
           mainPoint.x - @session.view.getViewNodeFor(hitTestResult).bounds[0].x < helper.DROPDOWN_ARROW_WIDTH)
         @showDropdown hitTestResult
 
