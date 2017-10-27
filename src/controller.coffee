@@ -751,6 +751,10 @@ Editor::redrawMain = (opts = {}) ->
 
     if @session.changeEventVersion isnt @session.tree.version
       @session.changeEventVersion = @session.tree.version
+      # Ensure ace editor is aware of these changes
+      # (helpful for linting gutter warnings)
+      if @session?.currentlyUsingBlocks
+        @setAceValue @getValue()
 
       @fireEvent 'change', []
 
