@@ -214,7 +214,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           return [node.type, 'mostly-value']
         else
           return [node.type, 'mostly-block']
-      if node.type.match(/Expression$/)?
+      else if node.type is 'FunctionExpression'
+        return [node.type, 'mostly-value', 'function-value']
+      else if node.type.match(/Expression$/)?
         return [node.type, 'mostly-value']
       else if node.type.match(/Declaration$/)?
         return [node.type, 'block-only']
@@ -655,7 +657,9 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         else if known.anyobj and node.callee.type is 'MemberExpression'
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
         for argument, i in node.arguments
-          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, null, known?.fn?.dropdown?[i]
+          noFunctionDrop = @opts.lockFunctionDropIntoKnownParams and known?.fn and not known?.fn?.allowFunctionDrop?[i]
+          classes = if noFunctionDrop then ['no-function-drop'] else null
+          @jsSocketAndMark indentDepth, argument, depth + 1, NEVER_PAREN, null, classes, known?.fn?.dropdown?[i]
         if not known and argCount is 0 and not @opts.lockZeroParamFunctions
           # Create a special socket that can be used for inserting the first parameter
           # (NOTE: this socket may not be visible if the bounds start/end are the same)
@@ -816,6 +820,10 @@ JavaScriptParser.drop = (block, context, pred) ->
         return helper.FORBID
 
     else if 'no-drop' in context.classes
+      return helper.FORBID
+
+    else if 'no-function-drop' in context.classes and
+        'function-value' in block.classes
       return helper.FORBID
 
     else if 'property-access' in context.classes
