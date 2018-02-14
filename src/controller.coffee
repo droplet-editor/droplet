@@ -26,6 +26,10 @@ CURSOR_HEIGHT_DECREASE = 2
 CURSOR_UNFOCUSED_OPACITY = 0.5
 DEBUG_FLAG = false
 DROPDOWN_SCROLLBAR_PADDING = 17
+DRAG_SCROLL_REGION = 10
+DRAG_SCROLL_DISTANCE = 8
+DRAG_SCROLL_INTERVAL = 10
+DRAG_ACE_SCROLL_HORIZONTAL_PAD = 50
 
 BACKSPACE_KEY = 8
 TAB_KEY = 9
@@ -910,9 +914,36 @@ Editor::trackerPointIsInGutter = (point) ->
 Editor::trackerPointIsInPalette = (point) ->
   return this.trackerPointIsInElement point, @paletteCanvas
 
-Editor::trackerPointIsInAce = (point) ->
-  return this.trackerPointIsInElement point, @aceElement
+Editor::trackerPointIsInAceScrollRegion = (point) ->
+  if not @session? or @session.readOnly
+    return false
+  if not @aceElement.parentNode?
+    return false
+  gbr = @aceElement.getBoundingClientRect()
+  return point.x >= (gbr.left - DRAG_ACE_SCROLL_HORIZONTAL_PAD) and
+         point.x < (gbr.right + DRAG_ACE_SCROLL_HORIZONTAL_PAD)
 
+Editor::trackerPointIsInScrollRegion = (point, scrollDirection) ->
+  if not @session? or @session.readOnly
+    return false
+  if not @mainScroller.parentNode?
+    return false
+  gbr = @mainScroller.getBoundingClientRect()
+  switch scrollDirection
+    when 'down'
+      return point.x >= gbr.left and point.x < gbr.right and
+             point.y >= (gbr.bottom - DRAG_SCROLL_REGION)
+    when 'up'
+      return point.x >= gbr.left and point.x < gbr.right and
+             point.y <= (gbr.top + DRAG_SCROLL_REGION)
+    when 'left'
+      return point.x <= (gbr.left + DRAG_SCROLL_REGION) and
+             point.y >= gbr.top and point.y < gbr.bottom
+    when 'right'
+      return point.x >= (gbr.right - DRAG_SCROLL_REGION) and
+             point.y >= gbr.top and point.y < gbr.bottom
+    else
+      return false
 
 # ### hitTest
 # Simple function for going through a linked-list block
@@ -1415,6 +1446,31 @@ Editor::drawDraggingBlock = ->
 
   draggingBlockView.draw new @draw.Rectangle 0, 0, @dragCanvas.width, @dragCanvas.height
 
+Editor::checkForScrollWhileDragging = ->
+
+  if @draggingBlock? and @session?
+    setTimeout (=>
+      @checkForScrollWhileDragging()
+    ), DRAG_SCROLL_INTERVAL
+
+    if @draggingOffset
+      position = new @draw.Point(
+        @lastDraggingPoint.x + @draggingOffset.x,
+        @lastDraggingPoint.y + @draggingOffset.y
+      )
+      if @trackerPointIsInScrollRegion position, 'down'
+        @mainScroller.scrollTop = @mainScroller.scrollTop + DRAG_SCROLL_DISTANCE
+      else if @trackerPointIsInScrollRegion position, 'up'
+        @mainScroller.scrollTop = @mainScroller.scrollTop - DRAG_SCROLL_DISTANCE
+      else if @trackerPointIsInScrollRegion position, 'left'
+        @sideScroller.scrollLeft = @sideScroller.scrollLeft - DRAG_SCROLL_DISTANCE
+      else if @trackerPointIsInScrollRegion position, 'right'
+        @sideScroller.scrollLeft = @sideScroller.scrollLeft + DRAG_SCROLL_DISTANCE
+      else
+        return
+
+      @handleDragContinue @lastDraggingPoint, @lastDraggingEvent
+
 Editor::wouldDelete = (position) ->
 
   mainPoint = @trackerPointToMain position
@@ -1427,11 +1483,14 @@ Editor::wouldDelete = (position) ->
 # moved their mouse far enough.
 hook 'mousemove', 1, (point, event, state) ->
   return unless @session?
+  @lastDraggingPoint = point
+  @lastDraggingEvent = event
   if not state.capturedPickup and @clickedBlock? and point.from(@clickedPoint).magnitude() > MIN_DRAG_DISTANCE
 
     # Signify that we are now dragging a block.
     @draggingBlock = @clickedBlock
     @dragReplacing = false
+    @checkForScrollWhileDragging()
 
     # Our dragging offset must be computed using the canvas on which this block
     # is rendered.
@@ -1626,6 +1685,11 @@ Editor::getAcceptLevel = (drag, drop) ->
 # translate the drag canvas into place,
 # as well as highlighting any focused drop areas.
 hook 'mousemove', 0, (point, event, state) ->
+  @handleDragContinue point, event
+
+Editor::handleDragContinue = (point, event) ->
+  @lastDraggingPoint = point
+  @lastDraggingEvent = event
   if @draggingBlock?
     # Translate the drag canvas into position.
     position = new @draw.Point(
@@ -1649,7 +1713,7 @@ hook 'mousemove', 0, (point, event, state) ->
         @drawDraggingBlock()
 
     if not @session.currentlyUsingBlocks
-      if @trackerPointIsInAce position
+      if @trackerPointIsInAceScrollRegion position
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
 
         if @session.dropIntoAceAtLineStart
@@ -1687,7 +1751,7 @@ hook 'mousemove', 0, (point, event, state) ->
         dropBlock = null
 
       # If the user's block is outside the main pane, delete it
-      else if not @trackerPointIsInMain position
+      else if not @trackerPointIsInMainScroller position
         @dragReplacing = false
         dropBlock= null
 
@@ -1732,9 +1796,6 @@ Editor::qualifiedFocus = (node, path) ->
     path.activate()
     @mainCanvas.appendChild path.element
 
-hook 'mouseup', 0, ->
-  clearTimeout @discourageDropTimeout; @discourageDropTimeout = null
-
 hook 'mouseup', 1, (point, event, state) ->
   if @dragReplacing
     @endDrag()
@@ -1749,7 +1810,7 @@ hook 'mouseup', 1, (point, event, state) ->
         point.y + @draggingOffset.y
       )
 
-      if @trackerPointIsInAce position
+      if @trackerPointIsInAceScrollRegion position
         leadingWhitespaceRegex = /^(\s*)/
         # Get the line of text we're dropping into
         pos = @aceEditor.renderer.screenToTextCoordinates position.x, position.y
