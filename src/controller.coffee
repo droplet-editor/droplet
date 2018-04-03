@@ -2322,10 +2322,13 @@ hook 'populate', 1, ->
 
 Editor::resizeAceElement = ->
   width = @wrapperElement.clientWidth
+  left = 0
   if @session?.showPaletteInTextMode and @session?.paletteEnabled
     width -= @paletteWrapper.clientWidth
+    left = @paletteWrapper.clientWidth
 
   @aceElement.style.width = "#{width}px"
+  @aceElement.style.left = "#{left}px"
   @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
 
 last_ = (array) -> array[array.length - 1]
