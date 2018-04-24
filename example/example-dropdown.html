@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Droplet</title>
+  </head>
+
+  <body>
+    <header class="site-header"></header>
+    <div class="page-content">
+      <div class="wrapper">
+        <link rel="stylesheet" href="../css/droplet.css"/>
+
+        <div class="container">
+          <h2>Blocks and Text Together</h2>
+          <p>Droplet is a new kind of text editor.</p>
+          <div class="row">
+            <div class="col-xs-6">
+              <select class="form-control" id="language-select">
+                <option value="javascript">JavaScript</option>
+                <option value="c_cpp">ANSI C</option>
+                <option value="coffeescript">CoffeeScript</option>
+              </select>
+            </div>
+            <div class="col-xs-6">
+              <button class="btn btn-primary" id="toggle">Toggle Blocks</button>
+            </div>
+          </div><br/>
+          <div id="editor-wrapper" style="position:relative;width:100%;height:500px;border: 1px solid black;">
+            <div id="editor"></div>
+          </div>
+        </div>
+
+        <script src="lib/coffee-script.js"></script>
+        <script src="../vendor/ace/ace.js"></script>
+        <script src="../dist/droplet-full.js"></script>
+        <script src="example-dropdown.coffee" type="text/coffeescript"></script>
+      </div>
+    </div>
+
+    <footer class="site-footer"></footer>
+  </body>
+</html>
+
