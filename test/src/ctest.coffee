@@ -257,7 +257,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
       equal editor.getValue(), '''
       int main() {
         int y = 1 * (1 + 2);
-        int x = __0_droplet__;
+        int x = _;
         int a = 1 + 2 * 3;
         printf("Hello");
       }
@@ -281,8 +281,8 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
     ), (->
       equal editor.getValue(), '''
       int main() {
-        int y = __0_droplet__;
-        int x = __0_droplet__;
+        int y = _;
+        int x = _;
         int a = 1 * (1 + 2) + 2 * 3;
         printf("Hello");
       }
@@ -301,7 +301,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
     ), (->
       equal editor.getValue(), '''
       int main() {
-        int y = __0_droplet__;
+        int y = _;
         int x = 1 + 2;
         int a = 1 * 2 + 2 * 3;
         printf("Hello");
@@ -348,7 +348,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
     ), (->
       equal editor.getValue(), '''
       int main() {
-        int y = __0_droplet__;
+        int y = _;
         int x = 1 + 2;
         int a = 1 * 2 + 2 * 3;
         printf("Hello");
