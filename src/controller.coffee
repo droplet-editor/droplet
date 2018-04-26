@@ -449,7 +449,8 @@ exports.Editor = class Editor
 
       mousemoveListener = (moveEvent) =>
         candidateWidth = originalWidth + moveEvent.clientX - referenceX
-        if candidateWidth < @wrapperElement.offsetWidth - @gutter.offsetWidth
+        if candidateWidth < @wrapperElement.offsetWidth - @gutter.offsetWidth and
+             candidateWidth > 200
             @paletteWidth = candidateWidth
             @resize()
 
