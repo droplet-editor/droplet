@@ -101,6 +101,7 @@ module.exports = (grunt) ->
           'test/js/jstest.js': ['test/src/jstest.coffee']
           'test/js/cstest.js': ['test/src/cstest.coffee']
           'test/js/htmltest.js': ['test/src/htmltest.coffee']
+          'test/js/pytest.js': ['test/src/pytest.coffee']
         options:
           transform: ['coffeeify']
           browserifyOptions:

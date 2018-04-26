@@ -1,0 +1,27 @@
+<html>
+<head>
+    <link rel="stylesheet" href="lib/qunit.css"/>
+    <style>
+        #hidden {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            height: 300px;
+            width: 500px;
+        }
+    </style>
+</head>
+<div id="qunit"></div>
+<div id="qunit-fixture"></div>
+<div id="hidden">
+    <canvas id="main"></canvas>
+    <div id="test-main">
+    </div>
+    <div id="test-palette">
+    </div>
+</div>
+<script src="../vendor/ace/ace.js"></script>
+<script src="lib/jquery.min.js"></script>
+<script src="../vendor/qunit.js"></script>
+<script src="js/pytest.js"></script>
+</html>
