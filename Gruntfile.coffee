@@ -124,6 +124,7 @@ module.exports = (grunt) ->
           /* Droplet. | (c) <%=grunt.template.today('yyyy')%> Anthony Bau. | MIT License.
            */
         '''
+        sourceMapIncludeSources: true
         sourceMap: true
 
       build:

@@ -13,7 +13,7 @@
     "grunt-contrib-coffee": "latest",
     "grunt-contrib-concat": "latest",
     "grunt-contrib-connect": "latest",
-    "grunt-contrib-cssmin": "latest",
+    "grunt-contrib-cssmin": "1.0.2",
     "grunt-contrib-qunit": "<=0.5.2",
     "grunt-contrib-uglify": "latest",
     "grunt-contrib-watch": "latest",
