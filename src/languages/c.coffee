@@ -572,7 +572,7 @@ config.stringFixer = (string) ->
 config.empty = '_'
 config.EMPTY_STRINGS = {
   'Identifier': '_'
-  'declaration': '_ _'
+  'declaration': '_ _;'
   'statement': '_;'
 }
 config.emptyIndent = ''
