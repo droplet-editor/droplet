@@ -1,105 +1,31 @@
+<!DOCTYPE html>
 <html>
   <head>
-    <title>ICE Editor Demo</title>
-    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/themes/smoothness/jquery-ui.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <style>
-      body {
-        font-family: sans-serif;
-        overflow: hidden;
-        margin: 0px; padding: 0px;
-      }
-      #out {
-        height: 200px;
-        width: 500px;
-      }
-      #editor {
-        position: absolute;
-        top: 0px;
-        bottom: 0px;
-        right: 0px;
-        left: 0px;
-        background-color: #EEE;
-        z-index: 0;
-      }
-      #out_wrapper {
-        position: absolute;
-        top: 0px; left: 0; right: 900px; bottom: 0;
-      }
-      #out {
-        width: 100%; height: 100%;
-      }
-      #toolbar {
-        z-index: 9999;
-        position: absolute;
-        height: 70px;
-        width: 320px;
-        bottom: 0;
-        right: 0;
-      }
-      #message {
-        color: #F00;
-        display: none;
-        font-family: inherit;
-        font-size: 13px;
-        padding-left: 10px;
-      }
-      #which_example {
-        height: 30px;
-        line-height: 30px;
-        vertical-align: top;
-        font-size: 13px;
-        position: absolute;
-        background: #FFF;
-        top: 0;
-        width: 150px;
-        right: 160px;
-        cursor: pointer;
-      }
-      #toggle {
-        height: 30px;
-        line-height: 30px;
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: 150px;
-        cursor: pointer;
-      }
-      #palette_dialog {
-        min-height: 500px !important;
-        z-index: 1 !important;
-        padding: 0px !important;
-        width: 100%;
-        position: relative;
-      }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Droplet (C/C++)</title>
   </head>
+
   <body>
-    <div id='editor'>
+    <header class="site-header"></header>
+    <div class="page-content">
+      <div class="wrapper">
+        <link rel="stylesheet" href="../css/droplet.css">
+
+        <div class="col-xs-6">
+          <button class="btn btn-primary" id="toggle">Toggle Blocks</button>
+        </div>
+
+        <div class="container">
+          <div id="editor-wrapper" style="position:relative;width:100%;height:500px;border: 1px solid black;">
+            <div id="editor"></div>
+          </div>
+        </div>
+        <script src="lib/coffee-script.js"></script>
+        <script src="../vendor/ace/ace.js"></script>
+        <script src="../dist/droplet-full.js"></script>
+        <script src="example-c.coffee" type="text/coffeescript"></script>
+      </div>
     </div>
-    <div id='toolbar'>
-      <button id='toggle'>Toggle Blocks</button>
-      <select id='which_example'>
-        <option value='fizzbuzz'>Fizzbuzz</option>
-        <option value='quicksort'>Quicksort</option>
-        <option value='church'>Church Numerals</option>
-        <option value='controller'>ICE Editor controller</option>
-        <option value='compiler'>CoffeeScript compiler</option>
-        <option value='empty'>Empty</option>
-      </select>
-      <span id='message'></span>
-    </div>
-    <div id='logs'><div id="logsContent"></div></div>
-    <div id='closeLogs'>x</div>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js"></script>
-    <script src="../vendor/sax.js"></script>
-    <script src="../vendor/ace/ace.js"></script>
-    <script src="../vendor/quadtree.js"></script>
-    <script src="../vendor/acorn.js"></script>
-    <script src="../vendor/require.js"></script>
-    <script src="example-c.js"></script>
-    <script src="//localhost:35729/livereload.js"></script>
-    <link rel="stylesheet" type="text/css" href="../css/droplet.css"/>
   </body>
 </html>

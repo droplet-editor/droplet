@@ -873,7 +873,7 @@ typeQualifier_DropletFile
 functionSpecifier_DropletFile
     :   ('inline' EOF
     |   '_Noreturn' EOF
-    |   '__inline__' // GCC extension EOF
+    |   '__inline__' EOF // GCC extension
     |   '__stdcall') EOF
     |   gccAttributeSpecifier EOF
     |   '__declspec' '(' Identifier ')' EOF
