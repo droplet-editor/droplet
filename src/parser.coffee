@@ -642,7 +642,7 @@ exports.wrapParser = (CustomParser) ->
       @startComment = CustomParser.startComment ? '/*'
       @endComment = CustomParser.endComment ? '*/'
       @rootContext = CustomParser.rootContext
-      @startSingleLineComment = CustomParser.startSingleLineComment
+      @startSingleLineComment = CustomParser.startSingleLineComment ? '//'
       @getDefaultSelectionRange = CustomParser.getDefaultSelectionRange ? getDefaultSelectionRange
       @getParenCandidates = CustomParser.getParenCandidates
 

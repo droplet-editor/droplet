@@ -54,33 +54,108 @@ BOTH_BUTTON_VERT = [
   }
 ]
 
-#RULES = {
-  # Skips
-#  'compilationUnit': 'skip',
-#  'ordinaryCompilation': 'skip',
+############################################################
+# Rules tell Droplet what to do with different markers.
+#
+# ### Format: 'tokenName': 'type' ###
+#
+# Type		Description
+# ----		-----------
+# skip		skip this token (don't display it)
+# comment	Mark as a code comment
+#
+#
+############################################################
+
+RULES = {
+  # Indents (These elements should have indentation)
+  'block': {
+    'type': 'indent',
+    'indexContext': 'blockStatements',
+  },
+  'classBody': {
+    'type': 'indent',
+    'indexContext': 'classBodyDeclaration',
+  },
+
+  ##### Skips (no block for these elements in the tree)
+  # Parsing artifacts
+  'compilationUnit': 'skip',
+  'ordinaryCompilation': 'skip',
+
+  # Import wrappers
+  'importDeclaration': 'skip',
+  'packageOrTypeName': 'skip',
+
+  # Type wrappers
+  'typeName': 'skip',
+  'typeDeclaration': 'skip',
+  'classDeclaration': 'skip',
+  'classBodyDeclaration': 'skip',
+  'classMemberDeclaration': 'skip',
+
+  # Method wrappers
+  'methodHeader': 'skip',
+  'methodDeclarator': 'skip',
+  'formalParameterList': 'skip',
+  'lastFormalParameter': 'skip',
+  'methodBody': 'skip',
+
+  #Type wrappers
+  'unannType': 'skip',
+  'unannReferenceType': 'skip',
+  'unannClassOrInterfaceType': 'socket',
+  'unannClassType_lfno_unannClassOrInterfaceType': 'skip',
+  'dims': 'skip',
+
+  ##### Sockets (We can put or type stuff here)
+  # Import directives
+  
+  # Variables / typenames
+  'Identifier': 'socket',
+  'unannArrayType': 'socket',
+
+  # General modifiers (methods, variables, classes, etc)
+  'PRIVATE': 'socket',
+  'PROTECTED': 'socket',
+  'PUBLIC': 'socket',
+  'STATIC': 'socket',
+  'FINAL': 'socket',
+
+  # Class modifiers (classes only)
+  'ABSTRACT': 'socket',
+
+  # Interface method modifiers (interface methods only)
+  'DEFAULT': 'socket', # WARNING: TODO: this clashes with "default" for switch statements
+
+  # Method modifiers
+  'SYNCHRONIZED': 'socket',
+  'NATIVE': 'socket',
+  
+  # Field modifiers
+  #'CONST': 'socket', Not actually a keyword - just reserved?
+  'VOLATILE': 'socket',
+
+  # Primitive types
+  'BOOLEAN': 'socket',
+  'BYTE': 'socket',
+  'CHAR': 'socket',
+  'DOUBLE': 'socket',
+  'FLOAT': 'socket',
+  'INT': 'socket',
+  'LONG': 'socket',
+  'SHORT': 'socket',
+  'VOID': 'socket',
+
+  'literal': 'socket',
+  #### What about these?: ENUM, INTERFACE, EXTENDS, IMPLEMENTS
+
 #  'modularCompilation': 'skip',
 #  'variableDeclarators': 'skip',
 #  'variableDeclarator': 'skip',
-#  'classDeclaration',: 'skip',
-#  'memberDeclaration',: 'skip',
 #  'constructorDeclaration',: 'skip',
-#  'methodDeclaration',: 'skip',
 #  'formalParameters',: 'skip',
-#  'formalParameterList': 'skip' 
-#}
-
-INDENTS = ['block', 'classBody']
-
-SKIPS = ['compilationUnit',
-  'variableDeclarators'
-  'variableDeclarator'
-  'classDeclaration',
-  'memberDeclaration',
-  'constructorDeclaration',
-  'methodDeclaration',
-  'formalParameters',
-  'formalParameterList'
-]
+}
 
 PARENS = [
   'statement'
@@ -89,29 +164,79 @@ PARENS = [
   'primary'
 ]
 
-SOCKET_TOKENS = [
-  'Identifier'
-  'IntegerLiteral'
-  'StringLiteral'
+###################################################################
+# Color rules tell Droplet what color-type each token should use.
+#
+# ### Format: 'tokenName': 'tokenStyle' ###
+#
+#
+# Styles
+# ------
+#
+#
+####################################################################
+
+COLOR_RULES = {
+  # Import declarations
+  'singleTypeImportDeclaration': 'import',
+  'typeImportOnDemandDeclaration': 'import',
+  'singleStaticImportDeclaration': 'import',
+  'staticImportOnDemandDeclaration': 'import',
+
+  # Object-types and methods
+  'normalClassDeclaration': 'class',
+  'methodDeclaration': 'method',
+
+  # Variables
+  
+#   'importDeclaration': 'command',
+#  'statement': 'control'
+#  'variableDeclarator': 'command'
+#  'formalParameter': 'command'
+#  'statementExpression': 'command'
+#  'blockStatement': 'command'
+#  'expression': 'value'
+}
+
+SHAPE_RULES = { }
+
+# Use a callback function to determine the color/shape of a construct
+COLOR_CALLBACK = { }
+SHAPE_CALLBACK = { }
+
+# Default colors for various token types
+COLOR_DEFAULTS = {
+  'class': 'purple',
+  'import': 'grey',
+  'method': 'blue',
+ }
+
+# Dropdown menu setup
+CLASSMOD_TYPES = [
+  'private',
+  'protected',
+  'public',
+  'static',
+  'final',
+  'abstract',
 ]
 
-COLOR_DEFAULTS = {
-}
+# Primitive types
+PRIMITIVE_TYPES = [
+  'int',]
 
-COLORS_FORWARD = {
-  'statement': 'control'
-  'typeDeclaration': 'control'
-  'classBodyDeclaration': 'control'
-  'variableDeclarator': 'command'
-  'formalParameter': 'command'
-  'statementExpression': 'command'
-  'blockStatement': 'command'
-  'expression': 'value'
-}
-COLORS_BACKWARD = {}
+DROPDOWNS = {
+  'classModifier': CLASSMOD_TYPES
+} # Dropdown types? See C file for clues
+
+EMPTY_STRINGS = { } # Empty string representations? See other languages and code for clues
+
+SHOULD_SOCKET = (opts, node) ->
+  return true
 
 config = {
-  INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLORS_FORWARD, COLORS_BACKWARD,
+  RULES, COLOR_RULES, SHAPE_RULES, COLOR_CALLBACK, SHAPE_CALLBACK, COLOR_DEFAULTS, DROPDOWNS, EMPTY_STRINGS, SHOULD_SOCKET
+#  RULES, INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLOR_RULES, COLOR_DEFAULTS, COLOR_CALLBACK, COLORS_BACKWARD, SHAPE_RULES, SHAPE_CALLBACK
 }
 
 #config.PAREN_RULES = {
