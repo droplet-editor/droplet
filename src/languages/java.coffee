@@ -101,11 +101,22 @@ RULES = {
   'lastFormalParameter': 'skip',
   'methodBody': 'skip',
 
+  # Statement wrappers
+  'blockStatement': 'skip',
+  'blockStatements': 'skip',
+  'localVariableDeclaration': 'skip',
+#  'localVariableDeclarationStatement': 'skip',
+#  'variableDeclaratorList': 'skip',
+  'variableDeclarator': 'skip',
+  'variableDeclaratorId': 'skip',
+
   #Type wrappers
-  'unannType': 'skip',
+  'unannPrimitiveType': 'skip',
   'unannReferenceType': 'skip',
   'unannClassOrInterfaceType': 'socket',
   'unannClassType_lfno_unannClassOrInterfaceType': 'skip',
+  'numericType': 'skip',
+  'integralType': 'skip',
   'dims': 'skip',
 
   ##### Sockets (We can put or type stuff here)
@@ -114,6 +125,7 @@ RULES = {
   # Variables / typenames
   'Identifier': 'socket',
   'unannArrayType': 'socket',
+  'integralType': 'socket',
 
   # General modifiers (methods, variables, classes, etc)
   'PRIVATE': 'socket',
@@ -159,8 +171,8 @@ RULES = {
 
 PARENS = [
   'statement'
-  'blockStatement'
-  'localVariableDeclarationStatement'
+#  'blockStatement'
+#  'localVariableDeclarationStatement'
   'primary'
 ]
 
@@ -186,10 +198,11 @@ COLOR_RULES = {
   # Object-types and methods
   'normalClassDeclaration': 'class',
   'methodDeclaration': 'method',
+  'localVariableDeclarationStatement': 'statement',
 
   # Variables
   
-#   'importDeclaration': 'command',
+#  'importDeclaration': 'command',
 #  'statement': 'control'
 #  'variableDeclarator': 'command'
 #  'formalParameter': 'command'
@@ -209,6 +222,7 @@ COLOR_DEFAULTS = {
   'class': 'purple',
   'import': 'grey',
   'method': 'blue',
+  'statement': 'green',
  }
 
 # Dropdown menu setup
@@ -223,10 +237,21 @@ CLASSMOD_TYPES = [
 
 # Primitive types
 PRIMITIVE_TYPES = [
-  'int',]
+  'byte',
+  'short',
+  'int',
+  'long',
+  'float',
+  'double',
+  'char',
+  'boolean',
+  'String'
+]
 
 DROPDOWNS = {
+  'unannType': PRIMITIVE_TYPES,
   'classModifier': CLASSMOD_TYPES
+  
 } # Dropdown types? See C file for clues
 
 EMPTY_STRINGS = { } # Empty string representations? See other languages and code for clues
