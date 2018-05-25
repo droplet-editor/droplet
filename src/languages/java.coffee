@@ -99,20 +99,24 @@ RULES = {
   'methodDeclarator': 'skip',
   'formalParameterList': 'skip',
   'lastFormalParameter': 'skip',
+  'formalParameter': 'skip',
   'methodBody': 'skip',
 
   # Statement wrappers
   'blockStatement': 'skip',
   'blockStatements': 'skip',
   'localVariableDeclaration': 'skip',
-#  'localVariableDeclarationStatement': 'skip',
-#  'variableDeclaratorList': 'skip',
   'variableDeclarator': 'skip',
   'variableDeclaratorId': 'skip',
+  'statementWithoutTrailingSubstatement': 'skip',
+  'expressionStatement': 'skip',
+  'statementExpression': 'skip',
+
 
   #Type wrappers
   'unannPrimitiveType': 'skip',
   'unannReferenceType': 'skip',
+  'unannArrayType': 'skip',
   'unannClassOrInterfaceType': 'socket',
   'unannClassType_lfno_unannClassOrInterfaceType': 'skip',
   'numericType': 'skip',
@@ -169,13 +173,6 @@ RULES = {
 #  'formalParameters',: 'skip',
 }
 
-PARENS = [
-  'statement'
-#  'blockStatement'
-#  'localVariableDeclarationStatement'
-  'primary'
-]
-
 ###################################################################
 # Color rules tell Droplet what color-type each token should use.
 #
@@ -226,17 +223,25 @@ COLOR_DEFAULTS = {
  }
 
 # Dropdown menu setup
-CLASSMOD_TYPES = [
+MODIFIERS = [
   'private',
   'protected',
   'public',
   'static',
   'final',
-  'abstract',
 ]
 
-# Primitive types
-PRIMITIVE_TYPES = [
+CLASS_MODS = MODIFIERS.concat([
+  'abstract',
+])
+
+METHOD_MODS = MODIFIERS.concat([
+  'synchronized',
+  'native',
+])
+
+# Basic types
+BASIC_TYPES = [
   'byte',
   'short',
   'int',
@@ -248,9 +253,15 @@ PRIMITIVE_TYPES = [
   'String'
 ]
 
+RETURN_TYPES = BASIC_TYPES.concat([
+  'void',
+])
+
 DROPDOWNS = {
-  'unannType': PRIMITIVE_TYPES,
-  'classModifier': CLASSMOD_TYPES
+  'unannType': BASIC_TYPES,
+  'classModifier': CLASS_MODS,
+  'methodModifier': METHOD_MODS,
+  'result': RETURN_TYPES,
   
 } # Dropdown types? See C file for clues
 
@@ -259,6 +270,10 @@ EMPTY_STRINGS = { } # Empty string representations? See other languages and code
 SHOULD_SOCKET = (opts, node) ->
   return true
 
+PARENS = [
+  'statement'
+  'primary'
+]
 config = {
   RULES, COLOR_RULES, SHAPE_RULES, COLOR_CALLBACK, SHAPE_CALLBACK, COLOR_DEFAULTS, DROPDOWNS, EMPTY_STRINGS, SHOULD_SOCKET
 #  RULES, INDENTS, SKIPS, PARENS, SOCKET_TOKENS, COLOR_RULES, COLOR_DEFAULTS, COLOR_CALLBACK, COLORS_BACKWARD, SHAPE_RULES, SHAPE_CALLBACK
