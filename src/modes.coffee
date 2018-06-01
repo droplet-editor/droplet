@@ -5,6 +5,7 @@ c = require './languages/c.coffee'
 java = require './languages/java.coffee'
 python = require './languages/python.coffee'
 html = require './languages/html.coffee'
+csharp = require './languages/csharp.coffee'
 
 module.exports = {
   'javascript': javascript
@@ -15,4 +16,5 @@ module.exports = {
   'java': java
   'python': python
   'html': html
+  'csharp': csharp
 }

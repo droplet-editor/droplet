@@ -15,6 +15,8 @@ ANTLR_PARSER_COLLECTION = {
   'CLexer': require('../antlr/CLexer'),
   'CParser': require('../antlr/CParser'),
   'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),
+  'CSharpLexer': require('../antlr/CSharpLexer'),
+  'CSharpParser': require('../antlr/CSharpParser'),
 #  'CPP14Lexer': require('../antlr/CPP14Lexer'),
 #  'CPP14Parser': require('../antlr/CPP14Parser'),
 #  'jvmBasicLexer': require('../antlr/jvmBasicLexer'),
