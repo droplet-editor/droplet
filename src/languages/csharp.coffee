@@ -64,9 +64,11 @@ RULES = {
 
 # Indents: these elements should have indentation
 
-# 'using_directive': (node) ->
-#   if node.label is 'usingNamespaceDirective'
-#    return 'socket'
+ 'using_directive': (node) ->
+    sockets =  [ ]
+    color = 'purple'
+    return {sockets, color}
+
 
 # Sockets : can be used to enter inputs into a form or specify types
 #  'using_directive': (node) ->
@@ -123,10 +125,10 @@ DROPDOWNS = {
 
 EMPTY_STRINGS = { }
 
+PARENS = [ ]
+
 SHOULD_SOCKET = (opts, node) ->
   return true
-
-PARENS = [ ]
 
 config = {
   RULES, COLOR_DEFAULTS, COLOR_RULES, COLOR_CALLBACK, SHAPE_RULES, SHAPE_CALLBACK, NATIVE_TYPES, EMPTY_STRINGS,
