@@ -143,7 +143,7 @@ parser grammar CSharpParser;
 options { tokenVocab=CSharpLexer; }
 
 // entry point
-compilatioun_unit
+compilationUnit
 	: BYTE_ORDER_MARK? extern_alias_directives? using_directives?
 	  global_attribute_section* namespace_member_declarations? EOF
 	;
@@ -1297,7 +1297,7 @@ identifier
 // droplet - Duplicate grammar rules
 
 // entry point
-compilation_unit_DropletFile
+compilationUnit_DropletFile
 	: BYTE_ORDER_MARK? extern_alias_directives? using_directives?
 	  global_attribute_section* namespace_member_declarations? EOF
 	;

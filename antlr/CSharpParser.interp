@@ -389,7 +389,7 @@ TEXT
 DOUBLE_CURLY_CLOSE_INSIDE
 
 rule names:
-compilation_unit
+compilationUnit
 namespace_or_type_name
 type
 base_type
@@ -591,7 +591,7 @@ arg_declaration
 method_invocation
 object_creation_expression
 identifier
-compilation_unit_DropletFile
+compilationUnit_DropletFile
 namespace_or_type_name_DropletFile
 type_DropletFile
 base_type_DropletFile

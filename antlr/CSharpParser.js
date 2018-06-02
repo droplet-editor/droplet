@@ -4120,7 +4120,7 @@ var symbolicNames = [ null, "BYTE_ORDER_MARK", "SINGLE_LINE_DOC_COMMENT",
                       "DIRECTIVE_HIDDEN", "CONDITIONAL_SYMBOL", "DIRECTIVE_NEW_LINE", 
                       "TEXT", "DOUBLE_CURLY_CLOSE_INSIDE" ];
 
-var ruleNames =  [ "compilation_unit", "namespace_or_type_name", "type", 
+var ruleNames =  [ "compilationUnit", "namespace_or_type_name", "type", 
                    "base_type", "simple_type", "numeric_type", "integral_type", 
                    "floating_point_type", "class_type", "type_argument_list", 
                    "argument_list", "argument", "expression", "non_assignment_expression", 
@@ -4191,7 +4191,7 @@ var ruleNames =  [ "compilation_unit", "namespace_or_type_name", "type",
                    "destructor_definition", "constructor_declaration", "method_declaration", 
                    "method_member_name", "operator_declaration", "arg_declaration", 
                    "method_invocation", "object_creation_expression", "identifier", 
-                   "compilation_unit_DropletFile", "namespace_or_type_name_DropletFile", 
+                   "compilationUnit_DropletFile", "namespace_or_type_name_DropletFile", 
                    "type_DropletFile", "base_type_DropletFile", "simple_type_DropletFile", 
                    "numeric_type_DropletFile", "integral_type_DropletFile", 
                    "floating_point_type_DropletFile", "class_type_DropletFile", 
@@ -4505,7 +4505,7 @@ CSharpParser.DIRECTIVE_NEW_LINE = 190;
 CSharpParser.TEXT = 191;
 CSharpParser.DOUBLE_CURLY_CLOSE_INSIDE = 192;
 
-CSharpParser.RULE_compilation_unit = 0;
+CSharpParser.RULE_compilationUnit = 0;
 CSharpParser.RULE_namespace_or_type_name = 1;
 CSharpParser.RULE_type = 2;
 CSharpParser.RULE_base_type = 3;
@@ -4707,7 +4707,7 @@ CSharpParser.RULE_arg_declaration = 198;
 CSharpParser.RULE_method_invocation = 199;
 CSharpParser.RULE_object_creation_expression = 200;
 CSharpParser.RULE_identifier = 201;
-CSharpParser.RULE_compilation_unit_DropletFile = 202;
+CSharpParser.RULE_compilationUnit_DropletFile = 202;
 CSharpParser.RULE_namespace_or_type_name_DropletFile = 203;
 CSharpParser.RULE_type_DropletFile = 204;
 CSharpParser.RULE_base_type_DropletFile = 205;
@@ -4910,7 +4910,7 @@ CSharpParser.RULE_method_invocation_DropletFile = 401;
 CSharpParser.RULE_object_creation_expression_DropletFile = 402;
 CSharpParser.RULE_identifier_DropletFile = 403;
 
-function Compilation_unitContext(parser, parent, invokingState) {
+function CompilationUnitContext(parser, parent, invokingState) {
 	if(parent===undefined) {
 	    parent = null;
 	}
@@ -4919,30 +4919,30 @@ function Compilation_unitContext(parser, parent, invokingState) {
 	}
 	antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
-    this.ruleIndex = CSharpParser.RULE_compilation_unit;
+    this.ruleIndex = CSharpParser.RULE_compilationUnit;
     return this;
 }
 
-Compilation_unitContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-Compilation_unitContext.prototype.constructor = Compilation_unitContext;
+CompilationUnitContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+CompilationUnitContext.prototype.constructor = CompilationUnitContext;
 
-Compilation_unitContext.prototype.EOF = function() {
+CompilationUnitContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-Compilation_unitContext.prototype.BYTE_ORDER_MARK = function() {
+CompilationUnitContext.prototype.BYTE_ORDER_MARK = function() {
     return this.getToken(CSharpParser.BYTE_ORDER_MARK, 0);
 };
 
-Compilation_unitContext.prototype.extern_alias_directives = function() {
+CompilationUnitContext.prototype.extern_alias_directives = function() {
     return this.getTypedRuleContext(Extern_alias_directivesContext,0);
 };
 
-Compilation_unitContext.prototype.using_directives = function() {
+CompilationUnitContext.prototype.using_directives = function() {
     return this.getTypedRuleContext(Using_directivesContext,0);
 };
 
-Compilation_unitContext.prototype.global_attribute_section = function(i) {
+CompilationUnitContext.prototype.global_attribute_section = function(i) {
     if(i===undefined) {
         i = null;
     }
@@ -4953,31 +4953,31 @@ Compilation_unitContext.prototype.global_attribute_section = function(i) {
     }
 };
 
-Compilation_unitContext.prototype.namespace_member_declarations = function() {
+CompilationUnitContext.prototype.namespace_member_declarations = function() {
     return this.getTypedRuleContext(Namespace_member_declarationsContext,0);
 };
 
-Compilation_unitContext.prototype.enterRule = function(listener) {
+CompilationUnitContext.prototype.enterRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.enterCompilation_unit(this);
+        listener.enterCompilationUnit(this);
 	}
 };
 
-Compilation_unitContext.prototype.exitRule = function(listener) {
+CompilationUnitContext.prototype.exitRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.exitCompilation_unit(this);
+        listener.exitCompilationUnit(this);
 	}
 };
 
 
 
 
-CSharpParser.Compilation_unitContext = Compilation_unitContext;
+CSharpParser.CompilationUnitContext = CompilationUnitContext;
 
-CSharpParser.prototype.compilation_unit = function() {
+CSharpParser.prototype.compilationUnit = function() {
 
-    var localctx = new Compilation_unitContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 0, CSharpParser.RULE_compilation_unit);
+    var localctx = new CompilationUnitContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 0, CSharpParser.RULE_compilationUnit);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
@@ -27387,7 +27387,7 @@ CSharpParser.prototype.identifier = function() {
     return localctx;
 };
 
-function Compilation_unit_DropletFileContext(parser, parent, invokingState) {
+function CompilationUnit_DropletFileContext(parser, parent, invokingState) {
 	if(parent===undefined) {
 	    parent = null;
 	}
@@ -27396,30 +27396,30 @@ function Compilation_unit_DropletFileContext(parser, parent, invokingState) {
 	}
 	antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
-    this.ruleIndex = CSharpParser.RULE_compilation_unit_DropletFile;
+    this.ruleIndex = CSharpParser.RULE_compilationUnit_DropletFile;
     return this;
 }
 
-Compilation_unit_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-Compilation_unit_DropletFileContext.prototype.constructor = Compilation_unit_DropletFileContext;
+CompilationUnit_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+CompilationUnit_DropletFileContext.prototype.constructor = CompilationUnit_DropletFileContext;
 
-Compilation_unit_DropletFileContext.prototype.EOF = function() {
+CompilationUnit_DropletFileContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-Compilation_unit_DropletFileContext.prototype.BYTE_ORDER_MARK = function() {
+CompilationUnit_DropletFileContext.prototype.BYTE_ORDER_MARK = function() {
     return this.getToken(CSharpParser.BYTE_ORDER_MARK, 0);
 };
 
-Compilation_unit_DropletFileContext.prototype.extern_alias_directives = function() {
+CompilationUnit_DropletFileContext.prototype.extern_alias_directives = function() {
     return this.getTypedRuleContext(Extern_alias_directivesContext,0);
 };
 
-Compilation_unit_DropletFileContext.prototype.using_directives = function() {
+CompilationUnit_DropletFileContext.prototype.using_directives = function() {
     return this.getTypedRuleContext(Using_directivesContext,0);
 };
 
-Compilation_unit_DropletFileContext.prototype.global_attribute_section = function(i) {
+CompilationUnit_DropletFileContext.prototype.global_attribute_section = function(i) {
     if(i===undefined) {
         i = null;
     }
@@ -27430,31 +27430,31 @@ Compilation_unit_DropletFileContext.prototype.global_attribute_section = functio
     }
 };
 
-Compilation_unit_DropletFileContext.prototype.namespace_member_declarations = function() {
+CompilationUnit_DropletFileContext.prototype.namespace_member_declarations = function() {
     return this.getTypedRuleContext(Namespace_member_declarationsContext,0);
 };
 
-Compilation_unit_DropletFileContext.prototype.enterRule = function(listener) {
+CompilationUnit_DropletFileContext.prototype.enterRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.enterCompilation_unit_DropletFile(this);
+        listener.enterCompilationUnit_DropletFile(this);
 	}
 };
 
-Compilation_unit_DropletFileContext.prototype.exitRule = function(listener) {
+CompilationUnit_DropletFileContext.prototype.exitRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.exitCompilation_unit_DropletFile(this);
+        listener.exitCompilationUnit_DropletFile(this);
 	}
 };
 
 
 
 
-CSharpParser.Compilation_unit_DropletFileContext = Compilation_unit_DropletFileContext;
+CSharpParser.CompilationUnit_DropletFileContext = CompilationUnit_DropletFileContext;
 
-CSharpParser.prototype.compilation_unit_DropletFile = function() {
+CSharpParser.prototype.compilationUnit_DropletFile = function() {
 
-    var localctx = new Compilation_unit_DropletFileContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 404, CSharpParser.RULE_compilation_unit_DropletFile);
+    var localctx = new CompilationUnit_DropletFileContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 404, CSharpParser.RULE_compilationUnit_DropletFile);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);

@@ -11,12 +11,12 @@ function CSharpParserListener() {
 CSharpParserListener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
 CSharpParserListener.prototype.constructor = CSharpParserListener;
 
-// Enter a parse tree produced by CSharpParser#compilation_unit.
-CSharpParserListener.prototype.enterCompilation_unit = function(ctx) {
+// Enter a parse tree produced by CSharpParser#compilationUnit.
+CSharpParserListener.prototype.enterCompilationUnit = function(ctx) {
 };
 
-// Exit a parse tree produced by CSharpParser#compilation_unit.
-CSharpParserListener.prototype.exitCompilation_unit = function(ctx) {
+// Exit a parse tree produced by CSharpParser#compilationUnit.
+CSharpParserListener.prototype.exitCompilationUnit = function(ctx) {
 };
 
 
@@ -2171,12 +2171,12 @@ CSharpParserListener.prototype.exitIdentifier = function(ctx) {
 };
 
 
-// Enter a parse tree produced by CSharpParser#compilation_unit_DropletFile.
-CSharpParserListener.prototype.enterCompilation_unit_DropletFile = function(ctx) {
+// Enter a parse tree produced by CSharpParser#compilationUnit_DropletFile.
+CSharpParserListener.prototype.enterCompilationUnit_DropletFile = function(ctx) {
 };
 
-// Exit a parse tree produced by CSharpParser#compilation_unit_DropletFile.
-CSharpParserListener.prototype.exitCompilation_unit_DropletFile = function(ctx) {
+// Exit a parse tree produced by CSharpParser#compilationUnit_DropletFile.
+CSharpParserListener.prototype.exitCompilationUnit_DropletFile = function(ctx) {
 };
 
 
