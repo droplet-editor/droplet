@@ -57,41 +57,38 @@ BOTH_BUTTON_VERT = [
 # TODO: WIP => import statements (using...)
 
 RULES = {
+  'statements': { # defines a node to indent within this node based on that subnode's type?
+    'type': 'indent',
+    'indexContext': 'statement_list',
+  }
   # Skips : no block for these elements
+  'compilationUnit' : 'skip',
+  'using_directives' : 'skip',
+  'namespace_or_type_name' : 'skip',
 
- # 'compilation_unit' : 'skip'
-  #'using_directives' : 'skip'
+  # Indents: these elements should have indentation
 
-# Indents: these elements should have indentation
+  #'using_directive' : 'socket',
 
- 'using_directive': (node) ->
-    sockets =  [ ]
-    color = 'purple'
-    return {sockets, color}
+  # Sockets : can be used to enter inputs into a form or specify types
 
-
-# Sockets : can be used to enter inputs into a form or specify types
-#  'using_directive': (node) ->
- #   sockets =  [
- #     node.children[1].children[0].children[0]]
-  #  color = 'purple'
-
- #   return {sockets, color}
-
- # 'local_variable_declaration' : {type: 'block', buttons: BOTH_BUTTON}
+  'identifier' : 'socket'
 }
 
 COLOR_DEFAULTS = {
 
 }
 
+
+# Used to color nodes
+# See view.coffee for a list of colors
 COLOR_RULES = {
-# 'using_directive': 'declaration'
+ 'using_directive' : 'purple'
 }
 
 SHAPE_RULES = {
-#'using_directive' : helper.BLOCK_ONLY # e.g. 'using System;'
- # 'local_variable_declaration' : helper.BLOCK_ONLY
+  'using_directive' : helper.BLOCK_ONLY
+ # 'identifier' : helper.VALUE_ONLY
 }
 
 NATIVE_TYPES = [
@@ -116,16 +113,19 @@ COLOR_DEFAULTS = {
 
 MODIFIERS = {
 
-
 }
 
 DROPDOWNS = {
 
 }
 
-EMPTY_STRINGS = { }
+EMPTY_STRINGS = {
 
-PARENS = [ ]
+}
+
+PARENS = [
+
+]
 
 SHOULD_SOCKET = (opts, node) ->
   return true
@@ -134,7 +134,5 @@ config = {
   RULES, COLOR_DEFAULTS, COLOR_RULES, COLOR_CALLBACK, SHAPE_RULES, SHAPE_CALLBACK, NATIVE_TYPES, EMPTY_STRINGS,
   COLOR_DEFAULTS, MODIFIERS, DROPDOWNS, EMPTY_STRINGS, SHOULD_SOCKET, PARENS
 }
-
-config.rootContext = 'compilation_unit'
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'CSharp', config
