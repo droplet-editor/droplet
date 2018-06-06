@@ -54,25 +54,40 @@ BOTH_BUTTON_VERT = [
 ]
 
 # TODO: all the stuff below this
-# TODO: WIP => import statements (using...)
+# TODO: current focus:
+# TODO: WIP => classes [access modifiers, inheritance, constructors, constants, fields, methods.... etc.]
+
+# TODO: do later....
+# TODO: WIP => variables [sbyte, short, int, long, byte, ushort, uint, ulong, char, float, double, decimal, bool, enums, structs, null, object, string, interface, class, arrays, delegates, var, ref]
 
 RULES = {
-  'statements': { # defines a node to indent within this node based on that subnode's type?
+  #'statements': { # defines a node to indent within this node based on that subnode's type?
+  #  'type': 'indent',
+  #  'indexContext': 'statement_list',
+ # }
+
+  # tell parser to indent blocks within the main part of a namespace body (indent everything past namespace_member_declarations)
+  'namespace_body': {
     'type': 'indent',
-    'indexContext': 'statement_list',
-  }
+    'indexContext': 'namespace_member_declarations',
+  },
+
+  'class_body': {
+    'type': 'indent',
+    'indexContext': 'class_member_declarations',
+  },
+
   # Skips : no block for these elements
   'compilationUnit' : 'skip',
   'using_directives' : 'skip',
   'namespace_or_type_name' : 'skip',
-
-  # Indents: these elements should have indentation
-
-  #'using_directive' : 'socket',
+  'namespace_member_declarations' : 'skip',
+  'namespace_member_declaration' : 'skip',
+  'class_member_declaration' : 'skip',
 
   # Sockets : can be used to enter inputs into a form or specify types
-
-  'identifier' : 'socket'
+  'IDENTIFIER' : 'socket',
+  'ALIAS' : 'socket'
 }
 
 COLOR_DEFAULTS = {
@@ -83,11 +98,13 @@ COLOR_DEFAULTS = {
 # Used to color nodes
 # See view.coffee for a list of colors
 COLOR_RULES = {
- 'using_directive' : 'purple'
+ 'using_directive' : 'purple',
+ 'namespace_declaration' : 'green',
+ 'class_definition' : 'lightblue'
 }
 
 SHAPE_RULES = {
-  'using_directive' : helper.BLOCK_ONLY
+#  'using_directive' : helper.BLOCK_ONLY
  # 'identifier' : helper.VALUE_ONLY
 }
 
