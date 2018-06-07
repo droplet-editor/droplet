@@ -84,16 +84,19 @@ RULES = {
   'namespace_member_declarations' : 'skip',
   'namespace_member_declaration' : 'skip',
   'class_member_declaration' : 'skip',
+  'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
-  'ALIAS' : 'socket'
+
+  #'using_directive' : -> (node) # TODO: figure out way of adding/removing static keyword easily from using declarations
+    #type: 'block', buttons: ADD_BUTTON
+
 }
 
 COLOR_DEFAULTS = {
 
 }
-
 
 # Used to color nodes
 # See view.coffee for a list of colors
@@ -133,7 +136,7 @@ MODIFIERS = {
 }
 
 DROPDOWNS = {
-
+  'STATIC'
 }
 
 EMPTY_STRINGS = {
