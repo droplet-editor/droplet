@@ -53,19 +53,7 @@ BOTH_BUTTON_VERT = [
   }
 ]
 
-# TODO: all the stuff below this
-# TODO: current focus:
-# TODO: WIP => classes [access modifiers, inheritance, constructors, constants, fields, methods.... etc.]
-
-# TODO: do later....
-# TODO: WIP => variables [sbyte, short, int, long, byte, ushort, uint, ulong, char, float, double, decimal, bool, enums, structs, null, object, string, interface, class, arrays, delegates, var, ref]
-
 RULES = {
-  #'statements': { # defines a node to indent within this node based on that subnode's type?
-  #  'type': 'indent',
-  #  'indexContext': 'statement_list',
- # }
-
   # tell parser to indent blocks within the main part of a namespace body (indent everything past namespace_member_declarations)
   'namespace_body': {
     'type': 'indent',
@@ -83,19 +71,33 @@ RULES = {
   'namespace_or_type_name' : 'skip',
   'namespace_member_declarations' : 'skip',
   'namespace_member_declaration' : 'skip',
+  'class_member_declarations' : 'skip',
   'class_member_declaration' : 'skip',
+  'all_member_modifiers' : 'skip',
+  'type_declaration' : 'skip'
   'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
+  'NEW' : 'socket',
+  'PUBLIC' : 'socket',
+  'PROTECTED' : 'socket',
+  'INTERNAL' : 'socket',
+  'PRIVATE' : 'socket',
+  'READONLY' : 'socket',
+  'VOLATILE' : 'socket',
+  'VIRTUAL' : 'socket',
+  'SEALED' : 'socket',
+  'OVERRIDE' : 'socket',
+  'ABSTRACT' : 'socket',
+  'STATIC' : 'socket',
+  'UNSAFE' : 'socket',
+  'EXTERN' : 'socket',
+  'PARTIAL' : 'socket',
+  'ASYNC' : 'socket'
 
   #'using_directive' : -> (node) # TODO: figure out way of adding/removing static keyword easily from using declarations
     #type: 'block', buttons: ADD_BUTTON
-
-}
-
-COLOR_DEFAULTS = {
-
 }
 
 # Used to color nodes
@@ -106,14 +108,14 @@ COLOR_RULES = {
  'class_definition' : 'lightblue'
 }
 
+COLOR_DEFAULTS = {
+
+}
+
 SHAPE_RULES = {
 #  'using_directive' : helper.BLOCK_ONLY
  # 'identifier' : helper.VALUE_ONLY
 }
-
-NATIVE_TYPES = [
-#  'int' # TODO: flesh out types
-]
 
 EMPTY_STRINGS = {
 
@@ -131,13 +133,25 @@ COLOR_DEFAULTS = {
 
 }
 
-MODIFIERS = {
-
-}
-
+# defines any nodes that are to be turned into different kinds of dropdown menus;
+# the choices for those dropdowns are defined by the items to the left of the semicolon
 DROPDOWNS = {
-  'STATIC'
+  'all_member_modifier' : CLASS_MODIFIERS,
 }
+
+MODIFIERS = [
+  'public',
+  'private',
+  'protected',
+  'internal',
+]
+
+CLASS_MODIFIERS = MODIFIERS.concat([
+  'abstract',
+  'static',
+  'partial',
+  'sealed',
+])
 
 EMPTY_STRINGS = {
 
@@ -151,8 +165,20 @@ SHOULD_SOCKET = (opts, node) ->
   return true
 
 config = {
-  RULES, COLOR_DEFAULTS, COLOR_RULES, COLOR_CALLBACK, SHAPE_RULES, SHAPE_CALLBACK, NATIVE_TYPES, EMPTY_STRINGS,
-  COLOR_DEFAULTS, MODIFIERS, DROPDOWNS, EMPTY_STRINGS, SHOULD_SOCKET, PARENS
+  RULES,
+  COLOR_DEFAULTS,
+  COLOR_RULES,
+  COLOR_CALLBACK,
+  SHAPE_RULES,
+  SHAPE_CALLBACK,
+  EMPTY_STRINGS,
+  COLOR_DEFAULTS,
+  DROPDOWNS,
+  MODIFIERS,
+  CLASS_MODIFIERS,
+  EMPTY_STRINGS,
+  SHOULD_SOCKET,
+  PARENS
 }
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'CSharp', config
