@@ -591,7 +591,7 @@ primaryExpression_DropletFile
     |   StringLiteral+ EOF
     |   '(' expression ')' EOF
     |   genericSelection EOF
-    |   '__extension__'? '(' compoundStatement ')' // Blocks (GCC extension) EOF
+    |   '__extension__'? '(' compoundStatement ')' EOF // Blocks (GCC extension)
     |   '__builtin_va_arg' '(' unaryExpression ',' typeName ')' EOF
     |   '__builtin_offsetof' '(' typeName ',' unaryExpression ')' EOF
     ;
@@ -915,7 +915,7 @@ gccAttributeSpecifier_DropletFile
 
 gccAttributeList_DropletFile
     :   gccAttribute (',' gccAttribute)* EOF
-    |   // empty EOF
+    |   EOF // empty
     ;
 
 gccAttribute_DropletFile

@@ -71,7 +71,7 @@ RULES = {
   # Indents (These elements should have indentation)
   'block': {
     'type': 'indent',
-    'indexContext': 'blockStatements',
+    'indexContext': 'blockStatement',
   },
   'classBody': {
     'type': 'indent',
@@ -81,55 +81,40 @@ RULES = {
   ##### Skips (no block for these elements in the tree)
   # Parsing artifacts
   'compilationUnit': 'skip',
-  'ordinaryCompilation': 'skip',
-
-  # Import wrappers
-  'importDeclaration': 'skip',
-  'packageOrTypeName': 'skip',
 
   # Type wrappers
   'typeName': 'skip',
-  'typeDeclaration': 'skip',
+  'modifier': 'skip',
   'classDeclaration': 'skip',
-  'classBodyDeclaration': 'skip',
-  'classMemberDeclaration': 'skip',
+  'memberDeclaration': 'skip',
+  'methodDeclaration': 'skip',
+  'typeTypeOrVoid': 'skip',
 
   # Method wrappers
-  'methodHeader': 'skip',
-  'methodDeclarator': 'skip',
   'formalParameterList': 'skip',
-  'lastFormalParameter': 'skip',
+  'formalParameters': 'skip',
   'formalParameter': 'skip',
   'methodBody': 'skip',
+  'methodCall': 'skip',
+  'expressionList': 'skip',
 
   # Statement wrappers
-  'blockStatement': 'skip',
-  'blockStatements': 'skip',
+  'expression': 'skip',
   'localVariableDeclaration': 'skip',
+  'variableDeclarators': 'skip',
   'variableDeclarator': 'skip',
   'variableDeclaratorId': 'skip',
-  'statementWithoutTrailingSubstatement': 'skip',
-  'expressionStatement': 'skip',
-  'statementExpression': 'skip',
-
 
   #Type wrappers
-  'unannPrimitiveType': 'skip',
-  'unannReferenceType': 'skip',
-  'unannArrayType': 'skip',
-  'unannClassOrInterfaceType': 'socket',
-  'unannClassType_lfno_unannClassOrInterfaceType': 'skip',
-  'numericType': 'skip',
-  'integralType': 'skip',
-  'dims': 'skip',
 
   ##### Sockets (We can put or type stuff here)
   # Import directives
   
-  # Variables / typenames
-  'Identifier': 'socket',
-  'unannArrayType': 'socket',
-  'integralType': 'socket',
+  # Variables / constants / typenames / literals
+  'IDENTIFIER': 'socket',
+  'qualifiedName': 'socket',
+  'typeType': 'socket',
+  'literal': 'socket',
 
   # General modifiers (methods, variables, classes, etc)
   'PRIVATE': 'socket',
@@ -163,14 +148,8 @@ RULES = {
   'SHORT': 'socket',
   'VOID': 'socket',
 
-  'literal': 'socket',
   #### What about these?: ENUM, INTERFACE, EXTENDS, IMPLEMENTS
 
-#  'modularCompilation': 'skip',
-#  'variableDeclarators': 'skip',
-#  'variableDeclarator': 'skip',
-#  'constructorDeclaration',: 'skip',
-#  'formalParameters',: 'skip',
 }
 
 ###################################################################
@@ -187,24 +166,22 @@ RULES = {
 
 COLOR_RULES = {
   # Import declarations
-  'singleTypeImportDeclaration': 'import',
-  'typeImportOnDemandDeclaration': 'import',
-  'singleStaticImportDeclaration': 'import',
-  'staticImportOnDemandDeclaration': 'import',
+  'importDeclaration': 'import',
 
   # Object-types and methods
-  'normalClassDeclaration': 'class',
-  'methodDeclaration': 'method',
-  'localVariableDeclarationStatement': 'statement',
+  'typeDeclaration': 'type',
+  'classBodyDeclaration': 'class',
+  'methodDeclaration': 'class',
+  'fieldDeclaration': 'class',
+  'blockStatement': 'statement',
+  'statement': 'statement',
+#  'localVariableDeclarationStatement': 'statement',
 
   # Variables
   
-#  'importDeclaration': 'command',
-#  'statement': 'control'
 #  'variableDeclarator': 'command'
 #  'formalParameter': 'command'
 #  'statementExpression': 'command'
-#  'blockStatement': 'command'
 #  'expression': 'value'
 }
 
@@ -216,9 +193,9 @@ SHAPE_CALLBACK = { }
 
 # Default colors for various token types
 COLOR_DEFAULTS = {
-  'class': 'purple',
+  'type': 'purple',
   'import': 'grey',
-  'method': 'blue',
+  'class': 'blue',
   'statement': 'green',
  }
 
@@ -258,10 +235,10 @@ RETURN_TYPES = BASIC_TYPES.concat([
 ])
 
 DROPDOWNS = {
-  'unannType': BASIC_TYPES,
-  'classModifier': CLASS_MODS,
-  'methodModifier': METHOD_MODS,
-  'result': RETURN_TYPES,
+  'typeType': BASIC_TYPES,
+  'classOrInterfaceModifier': CLASS_MODS,
+  'modifier': METHOD_MODS,
+  'typeTypeOrVoid': RETURN_TYPES,
   
 } # Dropdown types? See C file for clues
 
