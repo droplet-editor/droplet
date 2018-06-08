@@ -1,0 +1,332 @@
+{
+  "variableDeclaratorId": [],
+  "catchType_DropletFile": [],
+  "annotationTypeBody": [],
+  "interfaceBody_DropletFile": [],
+  "expressionList": [
+    "expression"
+  ],
+  "forInit": [
+    "expressionList",
+    "localVariableDeclaration"
+  ],
+  "typeList_DropletFile": [],
+  "typeDeclaration_DropletFile": [],
+  "enumConstant": [],
+  "methodBody_DropletFile": [],
+  "annotation_DropletFile": [],
+  "packageDeclaration": [],
+  "typeParameter_DropletFile": [],
+  "classOrInterfaceType": [],
+  "elementValuePair": [],
+  "formalParameters": [],
+  "arrayInitializer_DropletFile": [],
+  "explicitGenericInvocationSuffix": [],
+  "forInit_DropletFile": [],
+  "lambdaBody": [
+    "expression",
+    "block"
+  ],
+  "resource": [],
+  "enumDeclaration_DropletFile": [],
+  "classCreatorRest_DropletFile": [],
+  "formalParameterList_DropletFile": [],
+  "nonWildcardTypeArgumentsOrDiamond_DropletFile": [],
+  "classBody_DropletFile": [],
+  "classBody": [],
+  "genericMethodDeclaration": [],
+  "annotationTypeElementRest_DropletFile": [],
+  "elementValuePairs_DropletFile": [],
+  "integerLiteral": [],
+  "packageDeclaration_DropletFile": [],
+  "expression": [
+    "methodCall",
+    "primary",
+    "lambdaExpression"
+  ],
+  "modifier": [
+    "classOrInterfaceModifier"
+  ],
+  "typeParameters": [],
+  "interfaceBody": [],
+  "lastFormalParameter_DropletFile": [],
+  "typeList": [
+    "typeType"
+  ],
+  "interfaceDeclaration_DropletFile": [],
+  "primary_DropletFile": [],
+  "literal_DropletFile": [],
+  "typeArgument": [
+    "typeType"
+  ],
+  "resource_DropletFile": [],
+  "typeParameters_DropletFile": [],
+  "explicitGenericInvocation_DropletFile": [],
+  "annotationTypeElementDeclaration_DropletFile": [],
+  "variableModifier_DropletFile": [],
+  "enumBodyDeclarations_DropletFile": [],
+  "floatLiteral_DropletFile": [],
+  "formalParameterList": [
+    "formalParameter",
+    "lastFormalParameter"
+  ],
+  "interfaceMemberDeclaration": [
+    "constDeclaration",
+    "annotationTypeDeclaration",
+    "classDeclaration",
+    "genericInterfaceMethodDeclaration",
+    "interfaceDeclaration",
+    "interfaceMethodDeclaration",
+    "enumDeclaration"
+  ],
+  "innerCreator_DropletFile": [],
+  "constantDeclarator_DropletFile": [],
+  "expression_DropletFile": [],
+  "typeType": [
+    "classOrInterfaceType",
+    "primitiveType"
+  ],
+  "elementValuePair_DropletFile": [],
+  "variableDeclarator_DropletFile": [],
+  "lambdaParameters_DropletFile": [],
+  "parExpression": [],
+  "resources": [
+    "resource"
+  ],
+  "arguments": [],
+  "variableDeclarator": [
+    "variableDeclaratorId"
+  ],
+  "classDeclaration_DropletFile": [],
+  "variableInitializer": [
+    "arrayInitializer",
+    "expression"
+  ],
+  "literal": [
+    "integerLiteral",
+    "floatLiteral"
+  ],
+  "variableDeclarators": [
+    "variableDeclarator"
+  ],
+  "nonWildcardTypeArgumentsOrDiamond": [
+    "nonWildcardTypeArguments"
+  ],
+  "genericMethodDeclaration_DropletFile": [],
+  "interfaceMemberDeclaration_DropletFile": [],
+  "constantDeclarator": [],
+  "typeArgumentsOrDiamond_DropletFile": [],
+  "formalParameters_DropletFile": [],
+  "blockStatement": [
+    "localTypeDeclaration",
+    "statement"
+  ],
+  "lambdaExpression": [],
+  "catchType": [
+    "qualifiedName"
+  ],
+  "creator": [],
+  "enumConstant_DropletFile": [],
+  "importDeclaration_DropletFile": [],
+  "statement_DropletFile": [],
+  "variableInitializer_DropletFile": [],
+  "localTypeDeclaration_DropletFile": [],
+  "arrayCreatorRest_DropletFile": [],
+  "memberDeclaration_DropletFile": [],
+  "fieldDeclaration_DropletFile": [],
+  "classType_DropletFile": [],
+  "superSuffix": [
+    "arguments"
+  ],
+  "methodCall": [],
+  "typeDeclaration": [
+    "annotationTypeDeclaration",
+    "interfaceDeclaration",
+    "classDeclaration",
+    "enumDeclaration"
+  ],
+  "variableDeclaratorId_DropletFile": [],
+  "catchClause": [],
+  "switchLabel": [],
+  "typeTypeOrVoid": [
+    "typeType"
+  ],
+  "localVariableDeclaration_DropletFile": [],
+  "explicitGenericInvocationSuffix_DropletFile": [],
+  "parExpression_DropletFile": [],
+  "methodCall_DropletFile": [],
+  "methodBody": [
+    "block"
+  ],
+  "interfaceMethodModifier": [
+    "annotation"
+  ],
+  "qualifiedName": [],
+  "annotationConstantRest_DropletFile": [],
+  "creator_DropletFile": [],
+  "memberDeclaration": [
+    "constructorDeclaration",
+    "annotationTypeDeclaration",
+    "interfaceDeclaration",
+    "methodDeclaration",
+    "genericConstructorDeclaration",
+    "classDeclaration",
+    "fieldDeclaration",
+    "genericMethodDeclaration",
+    "enumDeclaration"
+  ],
+  "annotationConstantRest": [
+    "variableDeclarators"
+  ],
+  "finallyBlock_DropletFile": [],
+  "innerCreator": [],
+  "classOrInterfaceType_DropletFile": [],
+  "elementValue_DropletFile": [],
+  "typeArguments_DropletFile": [],
+  "resourceSpecification": [],
+  "explicitGenericInvocation": [],
+  "typeParameter": [],
+  "elementValueArrayInitializer": [],
+  "typeArgumentsOrDiamond": [
+    "typeArguments"
+  ],
+  "elementValue": [
+    "annotation",
+    "elementValueArrayInitializer",
+    "expression"
+  ],
+  "statement": [
+    "block"
+  ],
+  "annotationTypeElementRest": [
+    "annotationTypeDeclaration",
+    "interfaceDeclaration",
+    "classDeclaration",
+    "enumDeclaration"
+  ],
+  "localTypeDeclaration": [
+    "interfaceDeclaration",
+    "classDeclaration"
+  ],
+  "lambdaBody_DropletFile": [],
+  "fieldDeclaration": [],
+  "methodDeclaration_DropletFile": [],
+  "annotationTypeBody_DropletFile": [],
+  "qualifiedName_DropletFile": [],
+  "typeBound_DropletFile": [],
+  "classBodyDeclaration": [
+    "memberDeclaration",
+    "block"
+  ],
+  "switchBlockStatementGroup": [],
+  "constDeclaration": [],
+  "annotationTypeDeclaration_DropletFile": [],
+  "createdName": [
+    "primitiveType"
+  ],
+  "classOrInterfaceModifier_DropletFile": [],
+  "forControl_DropletFile": [],
+  "finallyBlock": [],
+  "enumConstants_DropletFile": [],
+  "defaultValue_DropletFile": [],
+  "resources_DropletFile": [],
+  "annotationMethodRest": [],
+  "interfaceBodyDeclaration": [
+    "interfaceMemberDeclaration"
+  ],
+  "createdName_DropletFile": [],
+  "annotationMethodOrConstantRest": [
+    "annotationConstantRest",
+    "annotationMethodRest"
+  ],
+  "constructorDeclaration_DropletFile": [],
+  "variableModifier": [
+    "annotation"
+  ],
+  "primary": [
+    "literal"
+  ],
+  "typeType_DropletFile": [],
+  "genericInterfaceMethodDeclaration_DropletFile": [],
+  "switchLabel_DropletFile": [],
+  "lambdaParameters": [],
+  "nonWildcardTypeArguments": [],
+  "integerLiteral_DropletFile": [],
+  "enumConstants": [
+    "enumConstant"
+  ],
+  "arrayInitializer": [],
+  "interfaceMethodDeclaration": [],
+  "block_DropletFile": [],
+  "nonWildcardTypeArguments_DropletFile": [],
+  "annotation": [],
+  "qualifiedNameList": [
+    "qualifiedName"
+  ],
+  "typeBound": [
+    "typeType"
+  ],
+  "lastFormalParameter": [],
+  "enumDeclaration": [],
+  "classCreatorRest": [
+    "arguments"
+  ],
+  "classOrInterfaceModifier": [
+    "annotation"
+  ],
+  "interfaceDeclaration": [],
+  "floatLiteral": [],
+  "interfaceBodyDeclaration_DropletFile": [],
+  "primitiveType_DropletFile": [],
+  "blockStatement_DropletFile": [],
+  "methodDeclaration": [],
+  "formalParameter": [],
+  "switchBlockStatementGroup_DropletFile": [],
+  "arrayCreatorRest": [],
+  "primitiveType": [],
+  "genericConstructorDeclaration": [],
+  "enhancedForControl": [],
+  "compilationUnit_DropletFile": [],
+  "interfaceMethodModifier_DropletFile": [],
+  "interfaceMethodDeclaration_DropletFile": [],
+  "typeArgument_DropletFile": [],
+  "defaultValue": [],
+  "importDeclaration": [],
+  "constDeclaration_DropletFile": [],
+  "formalParameter_DropletFile": [],
+  "genericConstructorDeclaration_DropletFile": [],
+  "enhancedForControl_DropletFile": [],
+  "classType": [],
+  "elementValuePairs": [
+    "elementValuePair"
+  ],
+  "classDeclaration": [],
+  "constructorDeclaration": [],
+  "annotationTypeElementDeclaration": [
+    "annotationTypeElementRest"
+  ],
+  "compilationUnit": [],
+  "annotationTypeDeclaration": [],
+  "typeArguments": [],
+  "modifier_DropletFile": [],
+  "enumBodyDeclarations": [],
+  "annotationMethodOrConstantRest_DropletFile": [],
+  "arguments_DropletFile": [],
+  "localVariableDeclaration": [],
+  "block": [],
+  "resourceSpecification_DropletFile": [],
+  "typeTypeOrVoid_DropletFile": [],
+  "superSuffix_DropletFile": [],
+  "qualifiedNameList_DropletFile": [],
+  "lambdaExpression_DropletFile": [],
+  "variableDeclarators_DropletFile": [],
+  "catchClause_DropletFile": [],
+  "expressionList_DropletFile": [],
+  "annotationMethodRest_DropletFile": [],
+  "elementValueArrayInitializer_DropletFile": [],
+  "genericInterfaceMethodDeclaration": [],
+  "forControl": [
+    "enhancedForControl"
+  ],
+  "classBodyDeclaration_DropletFile": []
+}

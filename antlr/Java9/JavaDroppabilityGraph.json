@@ -1,0 +1,845 @@
+{
+  "statementExpression": [
+    "methodInvocation",
+    "postIncrementExpression",
+    "preIncrementExpression",
+    "postDecrementExpression",
+    "preDecrementExpression",
+    "assignment",
+    "classInstanceCreationExpression"
+  ],
+  "inclusiveOrExpression_DropletFile": [],
+  "classDeclaration": [
+    "normalClassDeclaration",
+    "enumDeclaration"
+  ],
+  "primaryNoNewArray_lfno_primary": [
+    "methodInvocation_lfno_primary",
+    "literal",
+    "arrayAccess_lfno_primary",
+    "methodReference_lfno_primary",
+    "classInstanceCreationExpression_lfno_primary",
+    "fieldAccess_lfno_primary"
+  ],
+  "primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary_DropletFile": [],
+  "typeVariable": [
+    "identifier"
+  ],
+  "classBody": [],
+  "unaryExpression": [
+    "unaryExpressionNotPlusMinus",
+    "preDecrementExpression",
+    "preIncrementExpression"
+  ],
+  "interfaceMemberDeclaration": [
+    "constantDeclaration",
+    "classDeclaration",
+    "interfaceDeclaration",
+    "interfaceMethodDeclaration"
+  ],
+  "variableDeclarator_DropletFile": [],
+  "literal_DropletFile": [],
+  "arrayCreationExpression": [],
+  "constantDeclaration_DropletFile": [],
+  "dimExpr": [],
+  "preDecrementExpression": [],
+  "switchStatement_DropletFile": [],
+  "explicitConstructorInvocation_DropletFile": [],
+  "typeParameterModifier_DropletFile": [],
+  "typeArgumentsOrDiamond": [
+    "typeArguments"
+  ],
+  "normalAnnotation_DropletFile": [],
+  "exclusiveOrExpression_DropletFile": [],
+  "unannInterfaceType_lfno_unannClassOrInterfaceType_DropletFile": [],
+  "methodReference_DropletFile": [],
+  "constantModifier": [
+    "annotation"
+  ],
+  "unannReferenceType": [
+    "unannArrayType",
+    "unannClassOrInterfaceType",
+    "unannTypeVariable"
+  ],
+  "packageModifier": [
+    "annotation"
+  ],
+  "ifThenElseStatementNoShortIf_DropletFile": [],
+  "enumConstant": [
+    "identifier"
+  ],
+  "classModifier": [
+    "annotation"
+  ],
+  "primaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary": [],
+  "annotationTypeMemberDeclaration_DropletFile": [],
+  "interfaceMemberDeclaration_DropletFile": [],
+  "statementExpressionList_DropletFile": [],
+  "switchBlockStatementGroup": [],
+  "receiverParameter": [],
+  "classInstanceCreationExpression_lf_primary_DropletFile": [],
+  "forStatement_DropletFile": [],
+  "statementWithoutTrailingSubstatement_DropletFile": [],
+  "ordinaryCompilation_DropletFile": [],
+  "variableDeclarator": [
+    "variableDeclaratorId"
+  ],
+  "interfaceMethodDeclaration_DropletFile": [],
+  "ifThenElseStatement_DropletFile": [],
+  "methodModifier": [
+    "annotation"
+  ],
+  "superclass_DropletFile": [],
+  "dims_DropletFile": [],
+  "constructorBody": [],
+  "resourceSpecification_DropletFile": [],
+  "identifier": [],
+  "elementValueList_DropletFile": [],
+  "enumDeclaration": [],
+  "methodInvocation_lfno_primary_DropletFile": [],
+  "explicitConstructorInvocation": [],
+  "primitiveType_DropletFile": [],
+  "catchType_DropletFile": [],
+  "formalParameters": [
+    "receiverParameter",
+    "formalParameter"
+  ],
+  "elementValueArrayInitializer_DropletFile": [],
+  "primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary": [],
+  "fieldDeclaration": [],
+  "markerAnnotation_DropletFile": [],
+  "elementValue_DropletFile": [],
+  "arrayAccess_lfno_primary": [],
+  "classOrInterfaceType": [
+    "interfaceType_lfno_classOrInterfaceType",
+    "classType_lfno_classOrInterfaceType"
+  ],
+  "primary": [
+    "arrayCreationExpression",
+    "primaryNoNewArray_lfno_primary"
+  ],
+  "preIncrementExpression": [],
+  "markerAnnotation": [],
+  "methodModifier_DropletFile": [],
+  "integralType_DropletFile": [],
+  "labeledStatementNoShortIf": [],
+  "postIncrementExpression_DropletFile": [],
+  "lastFormalParameter": [
+    "formalParameter"
+  ],
+  "lambdaBody": [
+    "block",
+    "expression"
+  ],
+  "defaultValue_DropletFile": [],
+  "synchronizedStatement": [],
+  "breakStatement": [],
+  "staticInitializer_DropletFile": [],
+  "shiftExpression_DropletFile": [],
+  "whileStatementNoShortIf": [],
+  "catchClause_DropletFile": [],
+  "simpleTypeName_DropletFile": [],
+  "typeArgumentList_DropletFile": [],
+  "classModifier_DropletFile": [],
+  "typeParameterModifier": [
+    "annotation"
+  ],
+  "multiplicativeExpression_DropletFile": [],
+  "preIncrementExpression_DropletFile": [],
+  "block_DropletFile": [],
+  "normalClassDeclaration_DropletFile": [],
+  "throws__DropletFile": [],
+  "moduleDeclaration": [],
+  "normalAnnotation": [],
+  "unannArrayType": [],
+  "fieldAccess_lfno_primary_DropletFile": [],
+  "instanceInitializer": [
+    "block"
+  ],
+  "fieldModifier": [
+    "annotation"
+  ],
+  "enumConstantName_DropletFile": [],
+  "throws_": [],
+  "preDecrementExpression_DropletFile": [],
+  "wildcard_DropletFile": [],
+  "packageOrTypeName": [
+    "identifier"
+  ],
+  "enumConstantName": [
+    "identifier"
+  ],
+  "elementValueArrayInitializer": [],
+  "methodReference": [],
+  "labeledStatementNoShortIf_DropletFile": [],
+  "enumBody_DropletFile": [],
+  "enumBodyDeclarations": [],
+  "primaryNoNewArray_lfno_primary_DropletFile": [],
+  "result_DropletFile": [],
+  "variableInitializer": [
+    "arrayInitializer",
+    "expression"
+  ],
+  "typeArgumentsOrDiamond_DropletFile": [],
+  "literal": [],
+  "elementValuePairList_DropletFile": [],
+  "throwStatement_DropletFile": [],
+  "andExpression": [
+    "equalityExpression"
+  ],
+  "additiveExpression_DropletFile": [],
+  "primaryNoNewArray_lf_primary_lf_arrayAccess_lf_primary_DropletFile": [],
+  "unannArrayType_DropletFile": [],
+  "annotationTypeDeclaration_DropletFile": [],
+  "classOrInterfaceType_DropletFile": [],
+  "methodReference_lf_primary_DropletFile": [],
+  "superinterfaces_DropletFile": [],
+  "packageModifier_DropletFile": [],
+  "shiftExpression": [
+    "additiveExpression"
+  ],
+  "typeParameter_DropletFile": [
+    "identifier"
+  ],
+  "blockStatement_DropletFile": [],
+  "classMemberDeclaration_DropletFile": [],
+  "wildcard": [],
+  "requiresModifier": [],
+  "conditionalAndExpression": [
+    "inclusiveOrExpression"
+  ],
+  "fieldAccess_lfno_primary": [],
+  "resourceSpecification": [],
+  "variableModifier_DropletFile": [],
+  "emptyStatement_DropletFile": [],
+  "arrayCreationExpression_DropletFile": [],
+  "unannReferenceType_DropletFile": [],
+  "variableAccess": [
+    "expressionName",
+    "fieldAccess"
+  ],
+  "arrayAccess_lfno_primary_DropletFile": [],
+  "exceptionTypeList_DropletFile": [],
+  "packageDeclaration": [],
+  "arrayType_DropletFile": [],
+  "singleStaticImportDeclaration_DropletFile": [],
+  "moduleName": [
+    "identifier"
+  ],
+  "switchLabel": [],
+  "classInstanceCreationExpression_lfno_primary_DropletFile": [],
+  "extendsInterfaces": [],
+  "interfaceType_lf_classOrInterfaceType": [
+    "classType_lf_classOrInterfaceType"
+  ],
+  "constantExpression_DropletFile": [],
+  "numericType": [
+    "integralType",
+    "floatingPointType"
+  ],
+  "typeBound": [],
+  "primaryNoNewArray_lf_arrayAccess_DropletFile": [],
+  "constantModifier_DropletFile": [],
+  "typeVariable_DropletFile": [],
+  "wildcardBounds": [],
+  "classInstanceCreationExpression": [],
+  "forInit_DropletFile": [],
+  "unannInterfaceType_DropletFile": [],
+  "forInit": [
+    "localVariableDeclaration",
+    "statementExpressionList"
+  ],
+  "typeName_DropletFile": [],
+  "methodReference_lfno_primary": [],
+  "packageDeclaration_DropletFile": [],
+  "exclusiveOrExpression": [
+    "andExpression"
+  ],
+  "methodName_DropletFile": [],
+  "resourceList": [
+    "resource"
+  ],
+  "blockStatement": [
+    "statement",
+    "localVariableDeclarationStatement",
+    "classDeclaration"
+  ],
+  "enumConstantModifier": [
+    "annotation"
+  ],
+  "switchBlock_DropletFile": [],
+  "methodInvocation_DropletFile": [],
+  "whileStatement_DropletFile": [],
+  "castExpression_DropletFile": [],
+  "continueStatement_DropletFile": [],
+  "normalInterfaceDeclaration": [],
+  "typeArgument": [
+    "wildcard",
+    "referenceType"
+  ],
+  "methodDeclaration": [],
+  "primaryNoNewArray_lfno_primary_lf_arrayAccess_lfno_primary_DropletFile": [],
+  "unannClassOrInterfaceType": [
+    "unannInterfaceType_lfno_unannClassOrInterfaceType",
+    "unannClassType_lfno_unannClassOrInterfaceType"
+  ],
+  "forStatementNoShortIf": [
+    "basicForStatementNoShortIf",
+    "enhancedForStatementNoShortIf"
+  ],
+  "forStatement": [
+    "basicForStatement",
+    "enhancedForStatement"
+  ],
+  "singleElementAnnotation_DropletFile": [],
+  "postDecrementExpression_DropletFile": [],
+  "primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary": [
+    "fieldAccess_lf_primary",
+    "methodReference_lf_primary",
+    "methodInvocation_lf_primary",
+    "classInstanceCreationExpression_lf_primary"
+  ],
+  "interfaceType_lfno_classOrInterfaceType": [
+    "classType_lfno_classOrInterfaceType"
+  ],
+  "expression_DropletFile": [],
+  "variableDeclaratorId_DropletFile": [],
+  "modularCompilation_DropletFile": [],
+  "methodInvocation_lf_primary_DropletFile": [],
+  "inferredFormalParameterList_DropletFile": [],
+  "arrayAccess_lf_primary": [],
+  "expressionName": [
+    "identifier"
+  ],
+  "conditionalOrExpression": [
+    "conditionalAndExpression"
+  ],
+  "equalityExpression_DropletFile": [],
+  "elementValue": [
+    "annotation",
+    "elementValueArrayInitializer",
+    "conditionalExpression"
+  ],
+  "postfixExpression_DropletFile": [],
+  "normalClassDeclaration": [],
+  "variableAccess_DropletFile": [],
+  "variableDeclaratorList": [
+    "variableDeclarator"
+  ],
+  "extendsInterfaces_DropletFile": [],
+  "staticInitializer": [],
+  "primaryNoNewArray": [
+    "literal",
+    "methodInvocation",
+    "methodReference",
+    "arrayAccess",
+    "classLiteral",
+    "classInstanceCreationExpression",
+    "fieldAccess"
+  ],
+  "catchFormalParameter": [],
+  "equalityExpression": [
+    "relationalExpression"
+  ],
+  "annotationTypeDeclaration": [],
+  "primaryNoNewArray_lfno_primary_lfno_arrayAccess_lfno_primary": [
+    "methodReference_lfno_primary",
+    "methodInvocation_lfno_primary",
+    "literal",
+    "classInstanceCreationExpression_lfno_primary",
+    "fieldAccess_lfno_primary"
+  ],
+  "conditionalOrExpression_DropletFile": [],
+  "blockStatements": [
+    "blockStatement"
+  ],
+  "expressionName_DropletFile": [],
+  "packageName_DropletFile": [],
+  "unannType": [
+    "unannReferenceType",
+    "unannPrimitiveType"
+  ],
+  "annotationTypeElementDeclaration": [],
+  "moduleDirective": [],
+  "enumConstantList": [
+    "enumConstant"
+  ],
+  "formalParameter": [],
+  "tryStatement": [
+    "tryWithResourcesStatement"
+  ],
+  "basicForStatement": [],
+  "methodInvocation": [],
+  "assertStatement_DropletFile": [],
+  "singleTypeImportDeclaration_DropletFile": [],
+  "modularCompilation": [
+    "moduleDeclaration"
+  ],
+  "primaryNoNewArray_lf_primary_lfno_arrayAccess_lf_primary_DropletFile": [],
+  "interfaceType_lf_classOrInterfaceType_DropletFile": [],
+  "relationalExpression": [
+    "shiftExpression"
+  ],
+  "leftHandSide": [
+    "arrayAccess",
+    "expressionName",
+    "fieldAccess"
+  ],
+  "methodDeclarator": [],
+  "classType_DropletFile": [],
+  "constructorModifier_DropletFile": [],
+  "requiresModifier_DropletFile": [],
+  "breakStatement_DropletFile": [],
+  "conditionalExpression": [
+    "conditionalOrExpression"
+  ],
+  "enhancedForStatementNoShortIf": [],
+  "constructorBody_DropletFile": [],
+  "classBody_DropletFile": [],
+  "typeParameterList": [
+    "typeParameter"
+  ],
+  "postDecrementExpression_lf_postfixExpression_DropletFile": [],
+  "lambdaParameters": [
+    "identifier"
+  ],
+  "forUpdate_DropletFile": [],
+  "catches": [
+    "catchClause"
+  ],
+  "switchLabels": [
+    "switchLabel"
+  ],
+  "methodReference_lf_primary": [],
+  "postIncrementExpression_lf_postfixExpression_DropletFile": [],
+  "classInstanceCreationExpression_lf_primary": [],
+  "enumConstant_DropletFile": [],
+  "annotationTypeBody_DropletFile": [],
+  "basicForStatement_DropletFile": [],
+  "primary_DropletFile": [],
+  "returnStatement": [],
+  "annotationTypeElementModifier_DropletFile": [],
+  "additionalBound_DropletFile": [],
+  "catchClause": [],
+  "annotationTypeElementDeclaration_DropletFile": [],
+  "wildcardBounds_DropletFile": [],
+  "statementWithoutTrailingSubstatement": [
+    "assertStatement",
+    "continueStatement",
+    "returnStatement",
+    "throwStatement",
+    "tryStatement",
+    "switchStatement",
+    "emptyStatement",
+    "doStatement",
+    "synchronizedStatement",
+    "expressionStatement",
+    "breakStatement",
+    "block"
+  ],
+  "enhancedForStatementNoShortIf_DropletFile": [],
+  "numericType_DropletFile": [],
+  "integralType": [],
+  "synchronizedStatement_DropletFile": [],
+  "moduleDeclaration_DropletFile": [],
+  "unannClassType": [
+    "identifier"
+  ],
+  "typeArguments_DropletFile": [],
+  "lambdaParameters_DropletFile": [],
+  "switchStatement": [],
+  "variableDeclaratorList_DropletFile": [],
+  "lambdaBody_DropletFile": [],
+  "assignmentExpression": [
+    "assignment",
+    "conditionalExpression"
+  ],
+  "arrayAccess": [],
+  "catchType": [
+    "unannClassType"
+  ],
+  "argumentList_DropletFile": [],
+  "block": [],
+  "variableInitializer_DropletFile": [],
+  "exceptionType": [
+    "typeVariable",
+    "classType"
+  ],
+  "fieldAccess_lf_primary": [],
+  "continueStatement": [],
+  "moduleName_DropletFile": [],
+  "ifThenStatement_DropletFile": [],
+  "resource_DropletFile": [],
+  "elementValuePair_DropletFile": [],
+  "interfaceMethodModifier_DropletFile": [],
+  "typeParameterList_DropletFile": [],
+  "fieldAccess": [],
+  "statement_DropletFile": [],
+  "unannClassType_lfno_unannClassOrInterfaceType_DropletFile": [],
+  "interfaceDeclaration_DropletFile": [],
+  "interfaceTypeList": [
+    "interfaceType"
+  ],
+  "methodHeader_DropletFile": [],
+  "dimExprs": [
+    "dimExpr"
+  ],
+  "assignmentOperator": [],
+  "typeArguments": [],
+  "enumConstantModifier_DropletFile": [],
+  "enhancedForStatement_DropletFile": [],
+  "arrayType": [],
+  "switchLabels_DropletFile": [],
+  "result": [
+    "unannType"
+  ],
+  "constantExpression": [
+    "expression"
+  ],
+  "andExpression_DropletFile": [],
+  "normalInterfaceDeclaration_DropletFile": [],
+  "classType_lfno_classOrInterfaceType": [
+    "identifier"
+  ],
+  "typeBound_DropletFile": [],
+  "classDeclaration_DropletFile": [],
+  "classType_lf_classOrInterfaceType": [],
+  "finally__DropletFile": [],
+  "statementNoShortIf_DropletFile": [],
+  "expressionStatement": [],
+  "unannClassOrInterfaceType_DropletFile": [],
+  "expression": [
+    "assignmentExpression",
+    "lambdaExpression"
+  ],
+  "classType": [
+    "identifier"
+  ],
+  "singleStaticImportDeclaration": [],
+  "annotationTypeElementModifier": [
+    "annotation"
+  ],
+  "conditionalExpression_DropletFile": [],
+  "arrayAccess_DropletFile": [],
+  "unannPrimitiveType_DropletFile": [],
+  "primitiveType": [
+    "numericType"
+  ],
+  "ambiguousName": [
+    "identifier"
+  ],
+  "typeParameter": [
+    "identifier"
+  ],
+  "typeParameters_DropletFile": [],
+  "enumDeclaration_DropletFile": [],
+  "localVariableDeclarationStatement": [],
+  "variableDeclaratorId": [
+    "identifier"
+  ],
+  "interfaceMethodModifier": [
+    "annotation"
+  ],
+  "unaryExpressionNotPlusMinus": [
+    "postfixExpression",
+    "castExpression"
+  ],
+  "assignmentExpression_DropletFile": [],
+  "formalParameters_DropletFile": [],
+  "variableInitializerList": [
+    "variableInitializer"
+  ],
+  "blockStatements_DropletFile": [],
+  "primaryNoNewArray_lf_arrayAccess": [],
+  "elementValuePair": [],
+  "elementValueList": [
+    "elementValue"
+  ],
+  "elementValuePairList": [
+    "elementValuePair"
+  ],
+  "fieldModifier_DropletFile": [],
+  "localVariableDeclaration": [],
+  "packageOrTypeName_DropletFile": [],
+  "floatingPointType": [],
+  "interfaceType_DropletFile": [],
+  "assignment": [],
+  "instanceInitializer_DropletFile": [],
+  "primaryNoNewArray_lfno_arrayAccess": [
+    "methodReference",
+    "methodInvocation",
+    "literal",
+    "classInstanceCreationExpression",
+    "fieldAccess"
+  ],
+  "conditionalAndExpression_DropletFile": [],
+  "dims": [],
+  "forStatementNoShortIf_DropletFile": [],
+  "formalParameterList_DropletFile": [],
+  "whileStatementNoShortIf_DropletFile": [],
+  "throwStatement": [],
+  "annotationTypeMemberDeclaration": [
+    "constantDeclaration",
+    "classDeclaration",
+    "annotationTypeElementDeclaration",
+    "interfaceDeclaration"
+  ],
+  "annotation_DropletFile": [],
+  "arrayInitializer_DropletFile": [],
+  "methodReference_lfno_primary_DropletFile": [],
+  "interfaceBody_DropletFile": [],
+  "dimExprs_DropletFile": [],
+  "classMemberDeclaration": [
+    "classDeclaration",
+    "methodDeclaration",
+    "interfaceDeclaration",
+    "fieldDeclaration"
+  ],
+  "statementExpressionList": [
+    "statementExpression"
+  ],
+  "staticImportOnDemandDeclaration": [],
+  "postIncrementExpression": [],
+  "typeArgumentList": [
+    "typeArgument"
+  ],
+  "switchBlockStatementGroup_DropletFile": [],
+  "primaryNoNewArray_lf_primary_DropletFile": [],
+  "castExpression": [],
+  "unannInterfaceType_lf_unannClassOrInterfaceType": [
+    "unannClassType_lf_unannClassOrInterfaceType"
+  ],
+  "primaryNoNewArray_DropletFile": [],
+  "catchFormalParameter_DropletFile": [],
+  "returnStatement_DropletFile": [],
+  "enumConstantList_DropletFile": [],
+  "argumentList": [
+    "expression"
+  ],
+  "tryWithResourcesStatement_DropletFile": [],
+  "doStatement": [],
+  "unannPrimitiveType": [
+    "numericType"
+  ],
+  "ifThenElseStatement": [],
+  "floatingPointType_DropletFile": [],
+  "whileStatement": [],
+  "typeParameters": [],
+  "constructorDeclarator": [],
+  "constructorDeclaration_DropletFile": [],
+  "packageName": [
+    "identifier"
+  ],
+  "unannTypeVariable": [
+    "identifier"
+  ],
+  "ambiguousName_DropletFile": [],
+  "typeName": [
+    "identifier"
+  ],
+  "switchBlock": [],
+  "tryWithResourcesStatement": [],
+  "constructorDeclarator_DropletFile": [],
+  "enhancedForStatement": [],
+  "enumBody": [],
+  "classLiteral_DropletFile": [],
+  "typeDeclaration_DropletFile": [],
+  "lastFormalParameter_DropletFile": [],
+  "methodInvocation_lfno_primary": [],
+  "inferredFormalParameterList": [
+    "identifier"
+  ],
+  "enumBodyDeclarations_DropletFile": [],
+  "fieldDeclaration_DropletFile": [],
+  "singleTypeImportDeclaration": [],
+  "interfaceTypeList_DropletFile": [],
+  "finally_": [],
+  "superinterfaces": [],
+  "primaryNoNewArray_lfno_arrayAccess_DropletFile": [],
+  "annotationTypeBody": [],
+  "fieldAccess_DropletFile": [],
+  "primaryNoNewArray_lf_primary": [
+    "fieldAccess_lf_primary",
+    "methodReference_lf_primary",
+    "arrayAccess_lf_primary",
+    "methodInvocation_lf_primary",
+    "classInstanceCreationExpression_lf_primary"
+  ],
+  "formalParameterList": [
+    "lastFormalParameter",
+    "receiverParameter"
+  ],
+  "unannType_DropletFile": [],
+  "unannClassType_lfno_unannClassOrInterfaceType": [
+    "identifier"
+  ],
+  "fieldAccess_lf_primary_DropletFile": [],
+  "classType_lfno_classOrInterfaceType_DropletFile": [],
+  "unannInterfaceType_lfno_unannClassOrInterfaceType": [
+    "unannClassType_lfno_unannClassOrInterfaceType"
+  ],
+  "unannClassType_lf_unannClassOrInterfaceType": [],
+  "typeDeclaration": [
+    "classDeclaration",
+    "interfaceDeclaration"
+  ],
+  "methodHeader": [],
+  "interfaceType_lfno_classOrInterfaceType_DropletFile": [],
+  "postDecrementExpression": [],
+  "referenceType": [
+    "typeVariable",
+    "classOrInterfaceType",
+    "arrayType"
+  ],
+  "interfaceType": [
+    "classType"
+  ],
+  "annotation": [
+    "normalAnnotation",
+    "singleElementAnnotation",
+    "markerAnnotation"
+  ],
+  "assignmentOperator_DropletFile": [],
+  "interfaceDeclaration": [
+    "normalInterfaceDeclaration",
+    "annotationTypeDeclaration"
+  ],
+  "compilationUnit": [
+    "ordinaryCompilation",
+    "modularCompilation"
+  ],
+  "lambdaExpression_DropletFile": [],
+  "emptyStatement": [],
+  "statementExpression_DropletFile": [],
+  "unannClassType_DropletFile": [],
+  "interfaceMethodDeclaration": [],
+  "classBodyDeclaration": [
+    "staticInitializer",
+    "constructorDeclaration",
+    "classMemberDeclaration",
+    "instanceInitializer"
+  ],
+  "interfaceModifier": [
+    "annotation"
+  ],
+  "interfaceModifier_DropletFile": [],
+  "receiverParameter_DropletFile": [],
+  "methodDeclaration_DropletFile": [],
+  "labeledStatement_DropletFile": [],
+  "constantDeclaration": [],
+  "moduleDirective_DropletFile": [],
+  "defaultValue": [],
+  "staticImportOnDemandDeclaration_DropletFile": [],
+  "additionalBound": [],
+  "dimExpr_DropletFile": [],
+  "ifThenElseStatementNoShortIf": [],
+  "superclass": [],
+  "methodBody": [
+    "block"
+  ],
+  "ordinaryCompilation": [],
+  "variableInitializerList_DropletFile": [],
+  "assertStatement": [],
+  "singleElementAnnotation": [],
+  "basicForStatementNoShortIf_DropletFile": [],
+  "classInstanceCreationExpression_DropletFile": [],
+  "resourceList_DropletFile": [],
+  "importDeclaration": [
+    "singleTypeImportDeclaration",
+    "typeImportOnDemandDeclaration",
+    "singleStaticImportDeclaration",
+    "staticImportOnDemandDeclaration"
+  ],
+  "expressionStatement_DropletFile": [],
+  "classBodyDeclaration_DropletFile": [],
+  "referenceType_DropletFile": [],
+  "tryStatement_DropletFile": [],
+  "formalParameter_DropletFile": [],
+  "postDecrementExpression_lf_postfixExpression": [],
+  "simpleTypeName": [
+    "identifier"
+  ],
+  "doStatement_DropletFile": [],
+  "forUpdate": [
+    "statementExpressionList"
+  ],
+  "statement": [
+    "ifThenStatement",
+    "labeledStatement",
+    "ifThenElseStatement",
+    "statementWithoutTrailingSubstatement",
+    "whileStatement",
+    "forStatement"
+  ],
+  "statementNoShortIf": [
+    "whileStatementNoShortIf",
+    "statementWithoutTrailingSubstatement",
+    "forStatementNoShortIf",
+    "ifThenElseStatementNoShortIf",
+    "labeledStatementNoShortIf"
+  ],
+  "unannInterfaceType": [
+    "unannClassType"
+  ],
+  "switchLabel_DropletFile": [],
+  "typeImportOnDemandDeclaration_DropletFile": [],
+  "localVariableDeclaration_DropletFile": [],
+  "relationalExpression_DropletFile": [],
+  "assignment_DropletFile": [],
+  "classLiteral": [],
+  "unannTypeVariable_DropletFile": [],
+  "basicForStatementNoShortIf": [],
+  "unaryExpressionNotPlusMinus_DropletFile": [],
+  "typeArgument_DropletFile": [],
+  "arrayAccess_lf_primary_DropletFile": [],
+  "resource": [
+    "variableAccess"
+  ],
+  "labeledStatement": [],
+  "interfaceBody": [],
+  "localVariableDeclarationStatement_DropletFile": [],
+  "methodDeclarator_DropletFile": [],
+  "compilationUnit_DropletFile": [],
+  "unannClassType_lf_unannClassOrInterfaceType_DropletFile": [],
+  "classType_lf_classOrInterfaceType_DropletFile": [],
+  "leftHandSide_DropletFile": [],
+  "postfixExpression": [
+    "expressionName",
+    "primary"
+  ],
+  "variableModifier": [
+    "annotation"
+  ],
+  "methodInvocation_lf_primary": [],
+  "constructorModifier": [
+    "annotation"
+  ],
+  "unannInterfaceType_lf_unannClassOrInterfaceType_DropletFile": [],
+  "importDeclaration_DropletFile": [],
+  "additiveExpression": [
+    "multiplicativeExpression"
+  ],
+  "lambdaExpression": [],
+  "postIncrementExpression_lf_postfixExpression": [],
+  "classInstanceCreationExpression_lfno_primary": [],
+  "ifThenStatement": [],
+  "multiplicativeExpression": [
+    "unaryExpression"
+  ],
+  "arrayInitializer": [],
+  "methodBody_DropletFile": [],
+  "constructorDeclaration": [],
+  "unaryExpression_DropletFile": [],
+  "exceptionTypeList": [
+    "exceptionType"
+  ],
+  "typeImportOnDemandDeclaration": [],
+  "catches_DropletFile": [],
+  "methodName": [
+    "identifier"
+  ],
+  "exceptionType_DropletFile": [],
+  "inclusiveOrExpression": [
+    "exclusiveOrExpression"
+  ]
+}

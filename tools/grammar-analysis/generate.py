@@ -239,7 +239,7 @@ def format(tree):
 
 # Main runtime
 def main(argv):
-    input = FileStream(argv[1])
+    input = FileStream(argv[1], encoding='utf-8')
     lexer = ANTLRv4Lexer(input)
     stream = CommonTokenStream(lexer)
     parser = ANTLRv4Parser(stream)

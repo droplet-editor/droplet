@@ -12,6 +12,7 @@ antlr4 = require 'antlr4'
 ANTLR_PARSER_COLLECTION = {
   'JavaLexer': require('../antlr/JavaLexer'),
   'JavaParser': require('../antlr/JavaParser'),
+  'JavaDroppabilityGraph': require('../antlr/JavaDroppabilityGraph.json'),
   'CLexer': require('../antlr/CLexer'),
   'CParser': require('../antlr/CParser'),
   'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),

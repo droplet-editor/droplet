@@ -1449,12 +1449,12 @@ referenceType_DropletFile
 	;
 */
 classOrInterfaceType_DropletFile
-	:	(	classType_lfno_classOrInterfaceType EOF
-		|	interfaceType_lfno_classOrInterfaceType EOF
+	:	(	classType_lfno_classOrInterfaceType
+		|	interfaceType_lfno_classOrInterfaceType
 		)
-		(	classType_lf_classOrInterfaceType EOF
-		|	interfaceType_lf_classOrInterfaceType EOF
-		)*
+		(	classType_lf_classOrInterfaceType
+		|	interfaceType_lf_classOrInterfaceType
+		)* EOF
 	;
 
 classType_DropletFile
