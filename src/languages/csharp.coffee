@@ -57,12 +57,12 @@ RULES = {
   # tell parser to indent blocks within the main part of a namespace body (indent everything past namespace_member_declarations)
   'namespace_body': {
     'type': 'indent',
-    'indexContext': 'namespace_member_declarations',
+    'indexContext': 'namespace_member_declaration',
   },
 
   'class_body': {
     'type': 'indent',
-    'indexContext': 'class_member_declarations',
+    'indexContext': 'class_member_declaration',
   },
 
   # Skips : no block for these elements
@@ -74,7 +74,6 @@ RULES = {
   'class_member_declarations' : 'skip',
   'class_member_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
-  'type_declaration' : 'skip'
   'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
 
   # Sockets : can be used to enter inputs into a form or specify types
@@ -94,27 +93,41 @@ RULES = {
   'UNSAFE' : 'socket',
   'EXTERN' : 'socket',
   'PARTIAL' : 'socket',
-  'ASYNC' : 'socket'
+  'ASYNC' : 'socket',
 
-  #'using_directive' : -> (node) # TODO: figure out way of adding/removing static keyword easily from using declarations
-    #type: 'block', buttons: ADD_BUTTON
+
+  # special: require functions to process blocks based on context/position in AST
+
+  # need to skip the block that defines a class if there are access modifiers for the class
+  # (will not detect a class with no modifiers otherwise)
+  'class_definition' : (node) ->
+    if (node.parent?) and (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
+      return 'skip'
+    else if (node.parent?) and (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
+      return {type : 'block'}
+    else
+      return 'skip'
+
 }
 
 # Used to color nodes
 # See view.coffee for a list of colors
 COLOR_RULES = {
- 'using_directive' : 'purple',
- 'namespace_declaration' : 'green',
- 'class_definition' : 'lightblue'
+  'using_directive' : 'using',
+  'namespace_declaration' : 'namespace',
+  'type_declaration' : 'type',
+  'class_definition' : 'type',
 }
 
+# defines categories for different colors, for better reusability
 COLOR_DEFAULTS = {
-
+  'using' : 'purple'
+  'namespace' : 'green'
+  'type' : 'lightblue'
 }
 
 SHAPE_RULES = {
-#  'using_directive' : helper.BLOCK_ONLY
- # 'identifier' : helper.VALUE_ONLY
+
 }
 
 EMPTY_STRINGS = {
@@ -126,10 +139,6 @@ COLOR_CALLBACK = {
 }
 
 SHAPE_CALLBACK = {
-
-}
-
-COLOR_DEFAULTS = {
 
 }
 
@@ -162,6 +171,16 @@ PARENS = [
 ]
 
 SHOULD_SOCKET = (opts, node) ->
+  # defines behavior for adding a locked socket + dropdown menu for class modifiers
+  # NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
+  # like in the "rules" section
+  if (node.parent?) and (node.parent.type is 'all_member_modifier')
+    return {
+      type: 'locked'
+      dropdown: CLASS_MODIFIERS
+    }
+
+  # return true by default (don't know why we do this)
   return true
 
 config = {
@@ -174,11 +193,9 @@ config = {
   EMPTY_STRINGS,
   COLOR_DEFAULTS,
   DROPDOWNS,
-  MODIFIERS,
-  CLASS_MODIFIERS,
   EMPTY_STRINGS,
-  SHOULD_SOCKET,
-  PARENS
+  PARENS,
+  SHOULD_SOCKET
 }
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'CSharp', config
