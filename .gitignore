@@ -6,3 +6,8 @@ example/*.js
 example/*.map
 test/*.js
 test/*.map
+antlr/*.class
+antlr/java-test/*.class
+tools/grammar-analysis/__pycache__/
+*.tokens
+*.interp
