@@ -73,19 +73,21 @@ RULES = {
   'namespace_member_declaration' : 'skip',
   'class_member_declarations' : 'skip',
   'class_member_declaration' : 'skip',
+  'common_member_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
   'all_member_modifier' : 'skip',
   'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
   'field_declaration' : 'skip',
   'variable_declarators' : 'skip',
   'variable_declarator' : 'skip',
-  'type' : 'skip',
+  'var_type' : 'skip',
   'base_type' : 'skip',
   'class_type' : 'skip',
   'simple_type' : 'skip',
   'numeric_type' : 'skip',
   'integral_type' : 'skip',
   'floating_point_type' : 'skip',
+  'typed_member_declaration' : 'block',
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
@@ -155,7 +157,7 @@ COLOR_DEFAULTS = {
 }
 
 SHAPE_RULES = {
-
+  'typed_member_declaration': helper.BLOCK_ONLY,
 }
 
 EMPTY_STRINGS = {
@@ -220,10 +222,13 @@ SHOULD_SOCKET = (opts, node) ->
   # NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
   # like in the "rules" section
   if(node.type in ['PUBLIC', 'PRIVATE', 'PROTECTED', 'INTERNAL', 'ABSTRACT', 'STATIC', 'PARTIAL', 'SEALED'])
-    return {
-      type: 'locked',
-      dropdown: CLASS_MODIFIERS
-    }
+    if (node.parent.type is 'using_directive') # skip the static keyword for static using directives
+      return 'skip'
+    else
+      return {
+        type: 'locked',
+        dropdown: CLASS_MODIFIERS
+      }
 
   # adds a locked socket for variable type specifiers (for simple types)
   else if(node.type in ['SBYTE', 'BYTE', 'SHORT', 'USHORT', 'INT', 'UINT', 'LONG', 'ULONG', 'CHAR', 'FLOAT', 'DOUBLE', 'DECIMAL', 'BOOL'])

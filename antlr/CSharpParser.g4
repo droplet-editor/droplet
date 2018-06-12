@@ -157,7 +157,7 @@ namespace_or_type_name
 	;
 
 //B.2.2 Types
-type
+var_type
 	: base_type ('?' | rank_specifier | '*')*
 	;
 
@@ -204,7 +204,7 @@ class_type
 	;
 
 type_argument_list
-	: '<' type ( ',' type)* '>'
+	: '<' var_type ( ',' var_type)* '>'
 	;
 
 //B.2.4 Expressions
@@ -213,7 +213,7 @@ argument_list
 	;
 
 argument
-	: (identifier ':')? refout=(REF | OUT)? (VAR | type)? expression
+	: (identifier ':')? refout=(REF | OUT)? (VAR | var_type)? expression
 	;
 
 expression
@@ -268,7 +268,7 @@ equality_expression
 	;
 
 relational_expression
-	: shift_expression (('<' | '>' | '<=' | '>=') shift_expression | IS isType | AS type)*
+	: shift_expression (('<' | '>' | '<=' | '>=') shift_expression | IS isType | AS var_type)*
 	;
 
 shift_expression
@@ -292,7 +292,7 @@ unary_expression
 	| '~' unary_expression
 	| '++' unary_expression
 	| '--' unary_expression
-	| OPEN_PARENS type CLOSE_PARENS unary_expression
+	| OPEN_PARENS var_type CLOSE_PARENS unary_expression
 	| AWAIT unary_expression // C# 5
 	| '&' unary_expression
 	| '*' unary_expression
@@ -312,18 +312,18 @@ primary_expression_start
 	| LITERAL_ACCESS                            #literalAccessExpression
 	| THIS                                      #thisReferenceExpression
 	| BASE ('.' identifier type_argument_list? | '[' expression_list ']') #baseAccessExpression
-	| NEW (type (object_creation_expression
+	| NEW (var_type (object_creation_expression
 	             | object_or_collection_initializer
 	             | '[' expression_list ']' rank_specifier* array_initializer?
 	             | rank_specifier+ array_initializer)
 	      | anonymous_object_initializer
 	      | rank_specifier array_initializer)                       #objectCreationExpression
-	| TYPEOF OPEN_PARENS (unbound_type_name | type | VOID) CLOSE_PARENS   #typeofExpression
+	| TYPEOF OPEN_PARENS (unbound_type_name | var_type | VOID) CLOSE_PARENS   #typeofExpression
 	| CHECKED OPEN_PARENS expression CLOSE_PARENS                   #checkedExpression
 	| UNCHECKED OPEN_PARENS expression CLOSE_PARENS                 #uncheckedExpression
-	| DEFAULT OPEN_PARENS type CLOSE_PARENS                         #defaultValueExpression
+	| DEFAULT OPEN_PARENS var_type CLOSE_PARENS                         #defaultValueExpression
 	| ASYNC? DELEGATE (OPEN_PARENS explicit_anonymous_function_parameter_list? CLOSE_PARENS)? block #anonymousMethodExpression
-	| SIZEOF OPEN_PARENS type CLOSE_PARENS                          #sizeofExpression
+	| SIZEOF OPEN_PARENS var_type CLOSE_PARENS                          #sizeofExpression
 	// C# 6: https://msdn.microsoft.com/en-us/library/dn986596.aspx
 	| NAMEOF OPEN_PARENS (identifier '.')* identifier CLOSE_PARENS  #nameofExpression
 	;
@@ -422,7 +422,7 @@ explicit_anonymous_function_parameter_list
 	;
 
 explicit_anonymous_function_parameter
-	: refout=(REF | OUT)? type identifier
+	: refout=(REF | OUT)? var_type identifier
 	;
 
 implicit_anonymous_function_parameter_list
@@ -439,7 +439,7 @@ query_expression
 	;
 
 from_clause
-	: FROM type? identifier IN expression
+	: FROM var_type? identifier IN expression
 	;
 
 query_body
@@ -463,7 +463,7 @@ where_clause
 	;
 
 combined_join_clause
-	: JOIN type? identifier IN expression ON expression EQUALS expression (INTO identifier)?
+	: JOIN var_type? identifier IN expression ON expression EQUALS expression (INTO identifier)?
 	;
 
 orderby_clause
@@ -541,7 +541,7 @@ local_variable_declaration
 
 local_variable_type
 	: VAR
-	| type
+	| var_type
 ;
 
 local_variable_declarator
@@ -555,7 +555,7 @@ local_variable_initializer
 	;
 
 local_constant_declaration
-	: CONST type constant_declarators
+	: CONST var_type constant_declarators
 	;
 
 if_body
@@ -757,7 +757,7 @@ common_member_declaration
 	;
 
 typed_member_declaration
-	: type
+	: var_type
 	  ( namespace_or_type_name '.' indexer_declaration
 	  | method_declaration
 	  | property_declaration
@@ -789,7 +789,7 @@ variable_initializer
 	;
 
 return_type
-	: type
+	: var_type
 	| VOID
 	;
 
@@ -890,7 +890,7 @@ overloadable_operator
 	;
 
 conversion_operator_declarator
-	: (IMPLICIT | EXPLICIT) OPERATOR type OPEN_PARENS arg_declaration CLOSE_PARENS
+	: (IMPLICIT | EXPLICIT) OPERATOR var_type OPEN_PARENS arg_declaration CLOSE_PARENS
 	;
 
 constructor_initializer
@@ -913,7 +913,7 @@ struct_body
 
 struct_member_declaration
 	: attributes? all_member_modifiers?
-	  (common_member_declaration | FIXED type fixed_size_buffer_declarator+ ';')
+	  (common_member_declaration | FIXED var_type fixed_size_buffer_declarator+ ';')
 	;
 
 //B.2.9 Arrays
@@ -952,12 +952,12 @@ interface_body
 
 interface_member_declaration
 	: attributes? NEW?
-	  (UNSAFE? type
+	  (UNSAFE? var_type
 	    ( identifier type_parameter_list? OPEN_PARENS formal_parameter_list? CLOSE_PARENS type_parameter_constraints_clauses? ';'
 	    | identifier OPEN_BRACE interface_accessors CLOSE_BRACE
 	    | THIS '[' formal_parameter_list ']' OPEN_BRACE interface_accessors CLOSE_BRACE)
 	  | UNSAFE? VOID identifier type_parameter_list? OPEN_PARENS formal_parameter_list? CLOSE_PARENS type_parameter_constraints_clauses? ';'
-	  | EVENT type identifier ';')
+	  | EVENT var_type identifier ';')
 	;
 
 interface_accessors
@@ -966,7 +966,7 @@ interface_accessors
 
 //B.2.11 Enums
 enum_base
-	: ':' type
+	: ':' var_type
 	;
 
 enum_body
@@ -1038,7 +1038,7 @@ fixed_size_buffer_declarator
 	;
 
 local_variable_initializer_unsafe
-	: STACKALLOC type '[' expression ']'
+	: STACKALLOC var_type '[' expression ']'
 	;
 
 right_arrow
@@ -1210,7 +1210,7 @@ delegate_definition
 	;
 
 event_declaration
-	: EVENT type (variable_declarators ';' | member_name OPEN_BRACE event_accessor_declarations CLOSE_BRACE)
+	: EVENT var_type (variable_declarators ';' | member_name OPEN_BRACE event_accessor_declarations CLOSE_BRACE)
 	;
 
 field_declaration
@@ -1222,7 +1222,7 @@ property_declaration // Property initializer & lambda in properties C# 6
 	;
 
 constant_declaration
-	: CONST type constant_declarators ';'
+	: CONST var_type constant_declarators ';'
 	;
 
 indexer_declaration // lamdas from C# 6
@@ -1252,7 +1252,7 @@ operator_declaration // lamdas form C# 6
 	;
 
 arg_declaration
-	: type identifier ('=' expression)?
+	: var_type identifier ('=' expression)?
 	;
 
 method_invocation
@@ -1311,7 +1311,7 @@ namespace_or_type_name_DropletFile
 	;
 
 //B.2.2 Types
-type_DropletFile
+var_type_DropletFile
 	: base_type ('?' | rank_specifier | '*')* EOF
 	;
 
@@ -1358,7 +1358,7 @@ class_type_DropletFile
 	;
 
 type_argument_list_DropletFile
-	: '<' type ( ',' type)* '>' EOF
+	: '<' var_type ( ',' var_type)* '>' EOF
 	;
 
 //B.2.4 Expressions
@@ -1367,7 +1367,7 @@ argument_list_DropletFile
 	;
 
 argument_DropletFile
-	: (identifier ':')? refout=(REF | OUT)? (VAR | type)? expression EOF
+	: (identifier ':')? refout=(REF | OUT)? (VAR | var_type)? expression EOF
 	;
 
 expression_DropletFile
@@ -1422,7 +1422,7 @@ equality_expression_DropletFile
 	;
 
 relational_expression_DropletFile
-	: shift_expression (('<' | '>' | '<=' | '>=') shift_expression | IS isType | AS type)* EOF
+	: shift_expression (('<' | '>' | '<=' | '>=') shift_expression | IS isType | AS var_type)* EOF
 	;
 
 shift_expression_DropletFile
@@ -1446,7 +1446,7 @@ unary_expression_DropletFile
 	| '~' unary_expression EOF
 	| '++' unary_expression EOF
 	| '--' unary_expression EOF
-	| OPEN_PARENS type CLOSE_PARENS unary_expression EOF
+	| OPEN_PARENS var_type CLOSE_PARENS unary_expression EOF
 	| AWAIT unary_expression EOF // C# 5
 	| '&' unary_expression EOF
 	| '*' unary_expression EOF
@@ -1466,18 +1466,18 @@ primary_expression_start_DropletFile
 	| LITERAL_ACCESS EOF                           #literalAccessExpression_DropletFile
 	| THIS EOF                                     #thisReferenceExpression_DropletFile
 	| BASE ('.' identifier type_argument_list? | '[' expression_list ']') EOF #baseAccessExpression_DropletFile
-	| NEW (type (object_creation_expression
+	| NEW (var_type (object_creation_expression
 	             | object_or_collection_initializer
 	             | '[' expression_list ']' rank_specifier* array_initializer?
 	             | rank_specifier+ array_initializer)
 	      | anonymous_object_initializer
 	      | rank_specifier array_initializer) EOF                       #objectCreationExpression_DropletFile
-	| TYPEOF OPEN_PARENS (unbound_type_name | type | VOID) CLOSE_PARENS EOF   #typeofExpression_DropletFile
+	| TYPEOF OPEN_PARENS (unbound_type_name | var_type | VOID) CLOSE_PARENS EOF   #typeofExpression_DropletFile
 	| CHECKED OPEN_PARENS expression CLOSE_PARENS EOF                   #checkedExpression_DropletFile
 	| UNCHECKED OPEN_PARENS expression CLOSE_PARENS EOF                 #uncheckedExpression_DropletFile
-	| DEFAULT OPEN_PARENS type CLOSE_PARENS EOF                         #defaultValueExpression_DropletFile
+	| DEFAULT OPEN_PARENS var_type CLOSE_PARENS EOF                         #defaultValueExpression_DropletFile
 	| ASYNC? DELEGATE (OPEN_PARENS explicit_anonymous_function_parameter_list? CLOSE_PARENS)? block EOF #anonymousMethodExpression_DropletFile
-	| SIZEOF OPEN_PARENS type CLOSE_PARENS EOF                          #sizeofExpression_DropletFile
+	| SIZEOF OPEN_PARENS var_type CLOSE_PARENS EOF                          #sizeofExpression_DropletFile
 	// C# 6: https://msdn.microsoft.com/en-us/library/dn986596.aspx
 	| NAMEOF OPEN_PARENS (identifier '.')* identifier CLOSE_PARENS EOF  #nameofExpression_DropletFile
 	;
@@ -1589,7 +1589,7 @@ explicit_anonymous_function_parameter_list_DropletFile
 	;
 
 explicit_anonymous_function_parameter_DropletFile
-	: refout=(REF | OUT)? type identifier EOF
+	: refout=(REF | OUT)? var_type identifier EOF
 	;
 
 implicit_anonymous_function_parameter_list_DropletFile
@@ -1606,7 +1606,7 @@ query_expression_DropletFile
 	;
 
 from_clause_DropletFile
-	: FROM type? identifier IN expression EOF
+	: FROM var_type? identifier IN expression EOF
 	;
 
 query_body_DropletFile
@@ -1630,7 +1630,7 @@ where_clause_DropletFile
 	;
 
 combined_join_clause_DropletFile
-	: JOIN type? identifier IN expression ON expression EQUALS expression (INTO identifier)? EOF
+	: JOIN var_type? identifier IN expression ON expression EQUALS expression (INTO identifier)? EOF
 	;
 
 orderby_clause_DropletFile
@@ -1708,7 +1708,7 @@ local_variable_declaration_DropletFile
 
 local_variable_type_DropletFile
 	: VAR EOF
-	| type EOF
+	| var_type EOF
 ;
 
 local_variable_declarator_DropletFile
@@ -1722,7 +1722,7 @@ local_variable_initializer_DropletFile
 	;
 
 local_constant_declaration_DropletFile
-	: CONST type constant_declarators EOF
+	: CONST var_type constant_declarators EOF
 	;
 
 if_body_DropletFile
@@ -1924,7 +1924,7 @@ common_member_declaration_DropletFile
 	;
 
 typed_member_declaration_DropletFile
-	: type
+	: var_type
 	  ( namespace_or_type_name '.' indexer_declaration
 	  | method_declaration
 	  | property_declaration
@@ -1956,7 +1956,7 @@ variable_initializer_DropletFile
 	;
 
 return_type_DropletFile
-	: type EOF
+	: var_type EOF
 	| VOID EOF
 	;
 
@@ -2057,7 +2057,7 @@ overloadable_operator_DropletFile
 	;
 
 conversion_operator_declarator_DropletFile
-	: (IMPLICIT | EXPLICIT) OPERATOR type OPEN_PARENS arg_declaration CLOSE_PARENS EOF
+	: (IMPLICIT | EXPLICIT) OPERATOR var_type OPEN_PARENS arg_declaration CLOSE_PARENS EOF
 	;
 
 constructor_initializer_DropletFile
@@ -2080,7 +2080,7 @@ struct_body_DropletFile
 
 struct_member_declaration_DropletFile
 	: attributes? all_member_modifiers?
-	  (common_member_declaration | FIXED type fixed_size_buffer_declarator+ ';') EOF
+	  (common_member_declaration | FIXED var_type fixed_size_buffer_declarator+ ';') EOF
 	;
 
 //B.2.9 Arrays
@@ -2119,12 +2119,12 @@ interface_body_DropletFile
 
 interface_member_declaration_DropletFile
 	: attributes? NEW?
-	  (UNSAFE? type
+	  (UNSAFE? var_type
 	    ( identifier type_parameter_list? OPEN_PARENS formal_parameter_list? CLOSE_PARENS type_parameter_constraints_clauses? ';'
 	    | identifier OPEN_BRACE interface_accessors CLOSE_BRACE
 	    | THIS '[' formal_parameter_list ']' OPEN_BRACE interface_accessors CLOSE_BRACE) EOF
 	  | UNSAFE? VOID identifier type_parameter_list? OPEN_PARENS formal_parameter_list? CLOSE_PARENS type_parameter_constraints_clauses? ';' EOF
-	  | EVENT type identifier ';') EOF
+	  | EVENT var_type identifier ';') EOF
 	;
 
 interface_accessors_DropletFile
@@ -2133,7 +2133,7 @@ interface_accessors_DropletFile
 
 //B.2.11 Enums
 enum_base_DropletFile
-	: ':' type EOF
+	: ':' var_type EOF
 	;
 
 enum_body_DropletFile
@@ -2205,7 +2205,7 @@ fixed_size_buffer_declarator_DropletFile
 	;
 
 local_variable_initializer_unsafe_DropletFile
-	: STACKALLOC type '[' expression ']' EOF
+	: STACKALLOC var_type '[' expression ']' EOF
 	;
 
 right_arrow_DropletFile
@@ -2377,7 +2377,7 @@ delegate_definition_DropletFile
 	;
 
 event_declaration_DropletFile
-	: EVENT type (variable_declarators ';' | member_name OPEN_BRACE event_accessor_declarations CLOSE_BRACE) EOF
+	: EVENT var_type (variable_declarators ';' | member_name OPEN_BRACE event_accessor_declarations CLOSE_BRACE) EOF
 	;
 
 field_declaration_DropletFile
@@ -2389,7 +2389,7 @@ property_declaration_DropletFile // Property initializer & lambda in properties 
 	;
 
 constant_declaration_DropletFile
-	: CONST type constant_declarators ';' EOF
+	: CONST var_type constant_declarators ';' EOF
 	;
 
 indexer_declaration_DropletFile // lamdas from C# 6
@@ -2419,7 +2419,7 @@ operator_declaration_DropletFile // lamdas form C# 6
 	;
 
 arg_declaration_DropletFile
-	: type identifier ('=' expression)? EOF
+	: var_type identifier ('=' expression)? EOF
 	;
 
 method_invocation_DropletFile

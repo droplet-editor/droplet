@@ -4120,7 +4120,7 @@ var symbolicNames = [ null, "BYTE_ORDER_MARK", "SINGLE_LINE_DOC_COMMENT",
                       "DIRECTIVE_HIDDEN", "CONDITIONAL_SYMBOL", "DIRECTIVE_NEW_LINE", 
                       "TEXT", "DOUBLE_CURLY_CLOSE_INSIDE" ];
 
-var ruleNames =  [ "compilationUnit", "namespace_or_type_name", "type", 
+var ruleNames =  [ "compilationUnit", "namespace_or_type_name", "var_type", 
                    "base_type", "simple_type", "numeric_type", "integral_type", 
                    "floating_point_type", "class_type", "type_argument_list", 
                    "argument_list", "argument", "expression", "non_assignment_expression", 
@@ -4192,7 +4192,7 @@ var ruleNames =  [ "compilationUnit", "namespace_or_type_name", "type",
                    "method_member_name", "operator_declaration", "arg_declaration", 
                    "method_invocation", "object_creation_expression", "identifier", 
                    "compilationUnit_DropletFile", "namespace_or_type_name_DropletFile", 
-                   "type_DropletFile", "base_type_DropletFile", "simple_type_DropletFile", 
+                   "var_type_DropletFile", "base_type_DropletFile", "simple_type_DropletFile", 
                    "numeric_type_DropletFile", "integral_type_DropletFile", 
                    "floating_point_type_DropletFile", "class_type_DropletFile", 
                    "type_argument_list_DropletFile", "argument_list_DropletFile", 
@@ -4507,7 +4507,7 @@ CSharpParser.DOUBLE_CURLY_CLOSE_INSIDE = 192;
 
 CSharpParser.RULE_compilationUnit = 0;
 CSharpParser.RULE_namespace_or_type_name = 1;
-CSharpParser.RULE_type = 2;
+CSharpParser.RULE_var_type = 2;
 CSharpParser.RULE_base_type = 3;
 CSharpParser.RULE_simple_type = 4;
 CSharpParser.RULE_numeric_type = 5;
@@ -4709,7 +4709,7 @@ CSharpParser.RULE_object_creation_expression = 200;
 CSharpParser.RULE_identifier = 201;
 CSharpParser.RULE_compilationUnit_DropletFile = 202;
 CSharpParser.RULE_namespace_or_type_name_DropletFile = 203;
-CSharpParser.RULE_type_DropletFile = 204;
+CSharpParser.RULE_var_type_DropletFile = 204;
 CSharpParser.RULE_base_type_DropletFile = 205;
 CSharpParser.RULE_simple_type_DropletFile = 206;
 CSharpParser.RULE_numeric_type_DropletFile = 207;
@@ -5167,7 +5167,7 @@ CSharpParser.prototype.namespace_or_type_name = function() {
     return localctx;
 };
 
-function TypeContext(parser, parent, invokingState) {
+function Var_typeContext(parser, parent, invokingState) {
 	if(parent===undefined) {
 	    parent = null;
 	}
@@ -5176,18 +5176,18 @@ function TypeContext(parser, parent, invokingState) {
 	}
 	antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
-    this.ruleIndex = CSharpParser.RULE_type;
+    this.ruleIndex = CSharpParser.RULE_var_type;
     return this;
 }
 
-TypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypeContext.prototype.constructor = TypeContext;
+Var_typeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+Var_typeContext.prototype.constructor = Var_typeContext;
 
-TypeContext.prototype.base_type = function() {
+Var_typeContext.prototype.base_type = function() {
     return this.getTypedRuleContext(Base_typeContext,0);
 };
 
-TypeContext.prototype.rank_specifier = function(i) {
+Var_typeContext.prototype.rank_specifier = function(i) {
     if(i===undefined) {
         i = null;
     }
@@ -5198,27 +5198,27 @@ TypeContext.prototype.rank_specifier = function(i) {
     }
 };
 
-TypeContext.prototype.enterRule = function(listener) {
+Var_typeContext.prototype.enterRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.enterType(this);
+        listener.enterVar_type(this);
 	}
 };
 
-TypeContext.prototype.exitRule = function(listener) {
+Var_typeContext.prototype.exitRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.exitType(this);
+        listener.exitVar_type(this);
 	}
 };
 
 
 
 
-CSharpParser.TypeContext = TypeContext;
+CSharpParser.Var_typeContext = Var_typeContext;
 
-CSharpParser.prototype.type = function() {
+CSharpParser.prototype.var_type = function() {
 
-    var localctx = new TypeContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 4, CSharpParser.RULE_type);
+    var localctx = new Var_typeContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 4, CSharpParser.RULE_var_type);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 845;
@@ -5858,14 +5858,14 @@ function Type_argument_listContext(parser, parent, invokingState) {
 Type_argument_listContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Type_argument_listContext.prototype.constructor = Type_argument_listContext;
 
-Type_argument_listContext.prototype.type = function(i) {
+Type_argument_listContext.prototype.var_type = function(i) {
     if(i===undefined) {
         i = null;
     }
     if(i===null) {
-        return this.getTypedRuleContexts(TypeContext);
+        return this.getTypedRuleContexts(Var_typeContext);
     } else {
-        return this.getTypedRuleContext(TypeContext,i);
+        return this.getTypedRuleContext(Var_typeContext,i);
     }
 };
 
@@ -5896,7 +5896,7 @@ CSharpParser.prototype.type_argument_list = function() {
         this.state = 879;
         this.match(CSharpParser.LT);
         this.state = 880;
-        this.type();
+        this.var_type();
         this.state = 885;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
@@ -5904,7 +5904,7 @@ CSharpParser.prototype.type_argument_list = function() {
             this.state = 881;
             this.match(CSharpParser.COMMA);
             this.state = 882;
-            this.type();
+            this.var_type();
             this.state = 887;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
@@ -6033,8 +6033,8 @@ ArgumentContext.prototype.VAR = function() {
     return this.getToken(CSharpParser.VAR, 0);
 };
 
-ArgumentContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+ArgumentContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 ArgumentContext.prototype.REF = function() {
@@ -6104,7 +6104,7 @@ CSharpParser.prototype.argument = function() {
 
         } else if(la_===2) {
             this.state = 907;
-            this.type();
+            this.var_type();
 
         }
         this.state = 910;
@@ -7227,14 +7227,14 @@ Relational_expressionContext.prototype.AS = function(i) {
 };
 
 
-Relational_expressionContext.prototype.type = function(i) {
+Relational_expressionContext.prototype.var_type = function(i) {
     if(i===undefined) {
         i = null;
     }
     if(i===null) {
-        return this.getTypedRuleContexts(TypeContext);
+        return this.getTypedRuleContexts(Var_typeContext);
     } else {
-        return this.getTypedRuleContext(TypeContext,i);
+        return this.getTypedRuleContext(Var_typeContext,i);
     }
 };
 
@@ -7297,7 +7297,7 @@ CSharpParser.prototype.relational_expression = function() {
                 this.state = 1004;
                 this.match(CSharpParser.AS);
                 this.state = 1005;
-                this.type();
+                this.var_type();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
@@ -7634,8 +7634,8 @@ Unary_expressionContext.prototype.OPEN_PARENS = function() {
     return this.getToken(CSharpParser.OPEN_PARENS, 0);
 };
 
-Unary_expressionContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Unary_expressionContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Unary_expressionContext.prototype.CLOSE_PARENS = function() {
@@ -7731,7 +7731,7 @@ CSharpParser.prototype.unary_expression = function() {
             this.state = 1051;
             this.match(CSharpParser.OPEN_PARENS);
             this.state = 1052;
-            this.type();
+            this.var_type();
             this.state = 1053;
             this.match(CSharpParser.CLOSE_PARENS);
             this.state = 1054;
@@ -8016,8 +8016,8 @@ DefaultValueExpressionContext.prototype.OPEN_PARENS = function() {
     return this.getToken(CSharpParser.OPEN_PARENS, 0);
 };
 
-DefaultValueExpressionContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+DefaultValueExpressionContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 DefaultValueExpressionContext.prototype.CLOSE_PARENS = function() {
@@ -8094,8 +8094,8 @@ SizeofExpressionContext.prototype.OPEN_PARENS = function() {
     return this.getToken(CSharpParser.OPEN_PARENS, 0);
 };
 
-SizeofExpressionContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+SizeofExpressionContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 SizeofExpressionContext.prototype.CLOSE_PARENS = function() {
@@ -8191,8 +8191,8 @@ ObjectCreationExpressionContext.prototype.NEW = function() {
     return this.getToken(CSharpParser.NEW, 0);
 };
 
-ObjectCreationExpressionContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+ObjectCreationExpressionContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 ObjectCreationExpressionContext.prototype.anonymous_object_initializer = function() {
@@ -8312,8 +8312,8 @@ TypeofExpressionContext.prototype.unbound_type_name = function() {
     return this.getTypedRuleContext(Unbound_type_nameContext,0);
 };
 
-TypeofExpressionContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+TypeofExpressionContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 TypeofExpressionContext.prototype.VOID = function() {
@@ -8707,7 +8707,7 @@ CSharpParser.prototype.primary_expression_start = function() {
             case CSharpParser.YIELD:
             case CSharpParser.IDENTIFIER:
                 this.state = 1116;
-                this.type();
+                this.var_type();
                 this.state = 1138;
                 this._errHandler.sync(this);
                 var la_ = this._interp.adaptivePredict(this._input,48,this._ctx);
@@ -8802,7 +8802,7 @@ CSharpParser.prototype.primary_expression_start = function() {
 
             case 2:
                 this.state = 1149;
-                this.type();
+                this.var_type();
                 break;
 
             case 3:
@@ -8849,7 +8849,7 @@ CSharpParser.prototype.primary_expression_start = function() {
             this.state = 1165;
             this.match(CSharpParser.OPEN_PARENS);
             this.state = 1166;
-            this.type();
+            this.var_type();
             this.state = 1167;
             this.match(CSharpParser.CLOSE_PARENS);
             break;
@@ -8897,7 +8897,7 @@ CSharpParser.prototype.primary_expression_start = function() {
             this.state = 1182;
             this.match(CSharpParser.OPEN_PARENS);
             this.state = 1183;
-            this.type();
+            this.var_type();
             this.state = 1184;
             this.match(CSharpParser.CLOSE_PARENS);
             break;
@@ -11005,8 +11005,8 @@ function Explicit_anonymous_function_parameterContext(parser, parent, invokingSt
 Explicit_anonymous_function_parameterContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Explicit_anonymous_function_parameterContext.prototype.constructor = Explicit_anonymous_function_parameterContext;
 
-Explicit_anonymous_function_parameterContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Explicit_anonymous_function_parameterContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Explicit_anonymous_function_parameterContext.prototype.identifier = function() {
@@ -11062,7 +11062,7 @@ CSharpParser.prototype.explicit_anonymous_function_parameter = function() {
         }
 
         this.state = 1392;
-        this.type();
+        this.var_type();
         this.state = 1393;
         this.identifier();
     } catch (re) {
@@ -11403,8 +11403,8 @@ From_clauseContext.prototype.expression = function() {
     return this.getTypedRuleContext(ExpressionContext,0);
 };
 
-From_clauseContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+From_clauseContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 From_clauseContext.prototype.enterRule = function(listener) {
@@ -11437,7 +11437,7 @@ CSharpParser.prototype.from_clause = function() {
         var la_ = this._interp.adaptivePredict(this._input,90,this._ctx);
         if(la_===1) {
             this.state = 1411;
-            this.type();
+            this.var_type();
 
         }
         this.state = 1414;
@@ -11848,8 +11848,8 @@ Combined_join_clauseContext.prototype.EQUALS = function() {
     return this.getToken(CSharpParser.EQUALS, 0);
 };
 
-Combined_join_clauseContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Combined_join_clauseContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Combined_join_clauseContext.prototype.INTO = function() {
@@ -11887,7 +11887,7 @@ CSharpParser.prototype.combined_join_clause = function() {
         var la_ = this._interp.adaptivePredict(this._input,94,this._ctx);
         if(la_===1) {
             this.state = 1444;
-            this.type();
+            this.var_type();
 
         }
         this.state = 1447;
@@ -14171,8 +14171,8 @@ Local_variable_typeContext.prototype.VAR = function() {
     return this.getToken(CSharpParser.VAR, 0);
 };
 
-Local_variable_typeContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Local_variable_typeContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Local_variable_typeContext.prototype.enterRule = function(listener) {
@@ -14210,7 +14210,7 @@ CSharpParser.prototype.local_variable_type = function() {
         case 2:
             this.enterOuterAlt(localctx, 2);
             this.state = 1647;
-            this.type();
+            this.var_type();
             break;
 
         }
@@ -14479,8 +14479,8 @@ Local_constant_declarationContext.prototype.CONST = function() {
     return this.getToken(CSharpParser.CONST, 0);
 };
 
-Local_constant_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Local_constant_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Local_constant_declarationContext.prototype.constant_declarators = function() {
@@ -14513,7 +14513,7 @@ CSharpParser.prototype.local_constant_declaration = function() {
         this.state = 1660;
         this.match(CSharpParser.CONST);
         this.state = 1661;
-        this.type();
+        this.var_type();
         this.state = 1662;
         this.constant_declarators();
     } catch (re) {
@@ -18289,8 +18289,8 @@ function Typed_member_declarationContext(parser, parent, invokingState) {
 Typed_member_declarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Typed_member_declarationContext.prototype.constructor = Typed_member_declarationContext;
 
-Typed_member_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Typed_member_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Typed_member_declarationContext.prototype.namespace_or_type_name = function() {
@@ -18341,7 +18341,7 @@ CSharpParser.prototype.typed_member_declaration = function() {
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 1957;
-        this.type();
+        this.var_type();
         this.state = 1967;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input,165,this._ctx);
@@ -18858,8 +18858,8 @@ function Return_typeContext(parser, parent, invokingState) {
 Return_typeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Return_typeContext.prototype.constructor = Return_typeContext;
 
-Return_typeContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Return_typeContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Return_typeContext.prototype.VOID = function() {
@@ -18895,7 +18895,7 @@ CSharpParser.prototype.return_type = function() {
         case 1:
             this.enterOuterAlt(localctx, 1);
             this.state = 1998;
-            this.type();
+            this.var_type();
             break;
 
         case 2:
@@ -20466,8 +20466,8 @@ Conversion_operator_declaratorContext.prototype.OPERATOR = function() {
     return this.getToken(CSharpParser.OPERATOR, 0);
 };
 
-Conversion_operator_declaratorContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Conversion_operator_declaratorContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Conversion_operator_declaratorContext.prototype.OPEN_PARENS = function() {
@@ -20526,7 +20526,7 @@ CSharpParser.prototype.conversion_operator_declarator = function() {
         this.state = 2142;
         this.match(CSharpParser.OPERATOR);
         this.state = 2143;
-        this.type();
+        this.var_type();
         this.state = 2144;
         this.match(CSharpParser.OPEN_PARENS);
         this.state = 2145;
@@ -20888,8 +20888,8 @@ Struct_member_declarationContext.prototype.FIXED = function() {
     return this.getToken(CSharpParser.FIXED, 0);
 };
 
-Struct_member_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Struct_member_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Struct_member_declarationContext.prototype.attributes = function() {
@@ -21014,7 +21014,7 @@ CSharpParser.prototype.struct_member_declaration = function() {
             this.state = 2179;
             this.match(CSharpParser.FIXED);
             this.state = 2180;
-            this.type();
+            this.var_type();
             this.state = 2182; 
             this._errHandler.sync(this);
             _la = this._input.LA(1);
@@ -21722,8 +21722,8 @@ function Interface_member_declarationContext(parser, parent, invokingState) {
 Interface_member_declarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Interface_member_declarationContext.prototype.constructor = Interface_member_declarationContext;
 
-Interface_member_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Interface_member_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Interface_member_declarationContext.prototype.VOID = function() {
@@ -21840,7 +21840,7 @@ CSharpParser.prototype.interface_member_declaration = function() {
             }
 
             this.state = 2269;
-            this.type();
+            this.var_type();
             this.state = 2297;
             this._errHandler.sync(this);
             var la_ = this._interp.adaptivePredict(this._input,218,this._ctx);
@@ -21960,7 +21960,7 @@ CSharpParser.prototype.interface_member_declaration = function() {
             this.state = 2317;
             this.match(CSharpParser.EVENT);
             this.state = 2318;
-            this.type();
+            this.var_type();
             this.state = 2319;
             this.identifier();
             this.state = 2320;
@@ -22133,8 +22133,8 @@ function Enum_baseContext(parser, parent, invokingState) {
 Enum_baseContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Enum_baseContext.prototype.constructor = Enum_baseContext;
 
-Enum_baseContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Enum_baseContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Enum_baseContext.prototype.enterRule = function(listener) {
@@ -22163,7 +22163,7 @@ CSharpParser.prototype.enum_base = function() {
         this.state = 2347;
         this.match(CSharpParser.COLON);
         this.state = 2348;
-        this.type();
+        this.var_type();
     } catch (re) {
     	if(re instanceof antlr4.error.RecognitionException) {
 	        localctx.exception = re;
@@ -23838,8 +23838,8 @@ Local_variable_initializer_unsafeContext.prototype.STACKALLOC = function() {
     return this.getToken(CSharpParser.STACKALLOC, 0);
 };
 
-Local_variable_initializer_unsafeContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Local_variable_initializer_unsafeContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Local_variable_initializer_unsafeContext.prototype.expression = function() {
@@ -23872,7 +23872,7 @@ CSharpParser.prototype.local_variable_initializer_unsafe = function() {
         this.state = 2479;
         this.match(CSharpParser.STACKALLOC);
         this.state = 2480;
-        this.type();
+        this.var_type();
         this.state = 2481;
         this.match(CSharpParser.OPEN_BRACKET);
         this.state = 2482;
@@ -25943,8 +25943,8 @@ Event_declarationContext.prototype.EVENT = function() {
     return this.getToken(CSharpParser.EVENT, 0);
 };
 
-Event_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Event_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Event_declarationContext.prototype.variable_declarators = function() {
@@ -25993,7 +25993,7 @@ CSharpParser.prototype.event_declaration = function() {
         this.state = 2632;
         this.match(CSharpParser.EVENT);
         this.state = 2633;
-        this.type();
+        this.var_type();
         this.state = 2642;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input,279,this._ctx);
@@ -26230,8 +26230,8 @@ Constant_declarationContext.prototype.CONST = function() {
     return this.getToken(CSharpParser.CONST, 0);
 };
 
-Constant_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Constant_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Constant_declarationContext.prototype.constant_declarators = function() {
@@ -26264,7 +26264,7 @@ CSharpParser.prototype.constant_declaration = function() {
         this.state = 2663;
         this.match(CSharpParser.CONST);
         this.state = 2664;
-        this.type();
+        this.var_type();
         this.state = 2665;
         this.constant_declarators();
         this.state = 2666;
@@ -26980,8 +26980,8 @@ function Arg_declarationContext(parser, parent, invokingState) {
 Arg_declarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Arg_declarationContext.prototype.constructor = Arg_declarationContext;
 
-Arg_declarationContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Arg_declarationContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Arg_declarationContext.prototype.identifier = function() {
@@ -27017,7 +27017,7 @@ CSharpParser.prototype.arg_declaration = function() {
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 2751;
-        this.type();
+        this.var_type();
         this.state = 2752;
         this.identifier();
         this.state = 2755;
@@ -27648,7 +27648,7 @@ CSharpParser.prototype.namespace_or_type_name_DropletFile = function() {
     return localctx;
 };
 
-function Type_DropletFileContext(parser, parent, invokingState) {
+function Var_type_DropletFileContext(parser, parent, invokingState) {
 	if(parent===undefined) {
 	    parent = null;
 	}
@@ -27657,22 +27657,22 @@ function Type_DropletFileContext(parser, parent, invokingState) {
 	}
 	antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
-    this.ruleIndex = CSharpParser.RULE_type_DropletFile;
+    this.ruleIndex = CSharpParser.RULE_var_type_DropletFile;
     return this;
 }
 
-Type_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-Type_DropletFileContext.prototype.constructor = Type_DropletFileContext;
+Var_type_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+Var_type_DropletFileContext.prototype.constructor = Var_type_DropletFileContext;
 
-Type_DropletFileContext.prototype.base_type = function() {
+Var_type_DropletFileContext.prototype.base_type = function() {
     return this.getTypedRuleContext(Base_typeContext,0);
 };
 
-Type_DropletFileContext.prototype.EOF = function() {
+Var_type_DropletFileContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-Type_DropletFileContext.prototype.rank_specifier = function(i) {
+Var_type_DropletFileContext.prototype.rank_specifier = function(i) {
     if(i===undefined) {
         i = null;
     }
@@ -27683,27 +27683,27 @@ Type_DropletFileContext.prototype.rank_specifier = function(i) {
     }
 };
 
-Type_DropletFileContext.prototype.enterRule = function(listener) {
+Var_type_DropletFileContext.prototype.enterRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.enterType_DropletFile(this);
+        listener.enterVar_type_DropletFile(this);
 	}
 };
 
-Type_DropletFileContext.prototype.exitRule = function(listener) {
+Var_type_DropletFileContext.prototype.exitRule = function(listener) {
     if(listener instanceof CSharpParserListener ) {
-        listener.exitType_DropletFile(this);
+        listener.exitVar_type_DropletFile(this);
 	}
 };
 
 
 
 
-CSharpParser.Type_DropletFileContext = Type_DropletFileContext;
+CSharpParser.Var_type_DropletFileContext = Var_type_DropletFileContext;
 
-CSharpParser.prototype.type_DropletFile = function() {
+CSharpParser.prototype.var_type_DropletFile = function() {
 
-    var localctx = new Type_DropletFileContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 408, CSharpParser.RULE_type_DropletFile);
+    var localctx = new Var_type_DropletFileContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 408, CSharpParser.RULE_var_type_DropletFile);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
@@ -28458,14 +28458,14 @@ function Type_argument_list_DropletFileContext(parser, parent, invokingState) {
 Type_argument_list_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Type_argument_list_DropletFileContext.prototype.constructor = Type_argument_list_DropletFileContext;
 
-Type_argument_list_DropletFileContext.prototype.type = function(i) {
+Type_argument_list_DropletFileContext.prototype.var_type = function(i) {
     if(i===undefined) {
         i = null;
     }
     if(i===null) {
-        return this.getTypedRuleContexts(TypeContext);
+        return this.getTypedRuleContexts(Var_typeContext);
     } else {
-        return this.getTypedRuleContext(TypeContext,i);
+        return this.getTypedRuleContext(Var_typeContext,i);
     }
 };
 
@@ -28500,7 +28500,7 @@ CSharpParser.prototype.type_argument_list_DropletFile = function() {
         this.state = 2888;
         this.match(CSharpParser.LT);
         this.state = 2889;
-        this.type();
+        this.var_type();
         this.state = 2894;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
@@ -28508,7 +28508,7 @@ CSharpParser.prototype.type_argument_list_DropletFile = function() {
             this.state = 2890;
             this.match(CSharpParser.COMMA);
             this.state = 2891;
-            this.type();
+            this.var_type();
             this.state = 2896;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
@@ -28649,8 +28649,8 @@ Argument_DropletFileContext.prototype.VAR = function() {
     return this.getToken(CSharpParser.VAR, 0);
 };
 
-Argument_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Argument_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Argument_DropletFileContext.prototype.REF = function() {
@@ -28720,7 +28720,7 @@ CSharpParser.prototype.argument_DropletFile = function() {
 
         } else if(la_===2) {
             this.state = 2919;
-            this.type();
+            this.var_type();
 
         }
         this.state = 2922;
@@ -29945,14 +29945,14 @@ Relational_expression_DropletFileContext.prototype.AS = function(i) {
 };
 
 
-Relational_expression_DropletFileContext.prototype.type = function(i) {
+Relational_expression_DropletFileContext.prototype.var_type = function(i) {
     if(i===undefined) {
         i = null;
     }
     if(i===null) {
-        return this.getTypedRuleContexts(TypeContext);
+        return this.getTypedRuleContexts(Var_typeContext);
     } else {
-        return this.getTypedRuleContext(TypeContext,i);
+        return this.getTypedRuleContext(Var_typeContext,i);
     }
 };
 
@@ -30015,7 +30015,7 @@ CSharpParser.prototype.relational_expression_DropletFile = function() {
                 this.state = 3056;
                 this.match(CSharpParser.AS);
                 this.state = 3057;
-                this.type();
+                this.var_type();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
@@ -30368,8 +30368,8 @@ Unary_expression_DropletFileContext.prototype.OPEN_PARENS = function() {
     return this.getToken(CSharpParser.OPEN_PARENS, 0);
 };
 
-Unary_expression_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Unary_expression_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Unary_expression_DropletFileContext.prototype.CLOSE_PARENS = function() {
@@ -30479,7 +30479,7 @@ CSharpParser.prototype.unary_expression_DropletFile = function() {
             this.state = 3125;
             this.match(CSharpParser.OPEN_PARENS);
             this.state = 3126;
-            this.type();
+            this.var_type();
             this.state = 3127;
             this.match(CSharpParser.CLOSE_PARENS);
             this.state = 3128;
@@ -30959,8 +30959,8 @@ ObjectCreationExpression_DropletFileContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-ObjectCreationExpression_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+ObjectCreationExpression_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 ObjectCreationExpression_DropletFileContext.prototype.anonymous_object_initializer = function() {
@@ -31025,8 +31025,8 @@ DefaultValueExpression_DropletFileContext.prototype.OPEN_PARENS = function() {
     return this.getToken(CSharpParser.OPEN_PARENS, 0);
 };
 
-DefaultValueExpression_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+DefaultValueExpression_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 DefaultValueExpression_DropletFileContext.prototype.CLOSE_PARENS = function() {
@@ -31146,8 +31146,8 @@ SizeofExpression_DropletFileContext.prototype.OPEN_PARENS = function() {
     return this.getToken(CSharpParser.OPEN_PARENS, 0);
 };
 
-SizeofExpression_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+SizeofExpression_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 SizeofExpression_DropletFileContext.prototype.CLOSE_PARENS = function() {
@@ -31345,8 +31345,8 @@ TypeofExpression_DropletFileContext.prototype.unbound_type_name = function() {
     return this.getTypedRuleContext(Unbound_type_nameContext,0);
 };
 
-TypeofExpression_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+TypeofExpression_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 TypeofExpression_DropletFileContext.prototype.VOID = function() {
@@ -31543,7 +31543,7 @@ CSharpParser.prototype.primary_expression_start_DropletFile = function() {
             case CSharpParser.YIELD:
             case CSharpParser.IDENTIFIER:
                 this.state = 3212;
-                this.type();
+                this.var_type();
                 this.state = 3234;
                 this._errHandler.sync(this);
                 var la_ = this._interp.adaptivePredict(this._input,348,this._ctx);
@@ -31637,7 +31637,7 @@ CSharpParser.prototype.primary_expression_start_DropletFile = function() {
 
             case 2:
                 this.state = 3247;
-                this.type();
+                this.var_type();
                 break;
 
             case 3:
@@ -31690,7 +31690,7 @@ CSharpParser.prototype.primary_expression_start_DropletFile = function() {
             this.state = 3266;
             this.match(CSharpParser.OPEN_PARENS);
             this.state = 3267;
-            this.type();
+            this.var_type();
             this.state = 3268;
             this.match(CSharpParser.CLOSE_PARENS);
             this.state = 3269;
@@ -31742,7 +31742,7 @@ CSharpParser.prototype.primary_expression_start_DropletFile = function() {
             this.state = 3286;
             this.match(CSharpParser.OPEN_PARENS);
             this.state = 3287;
-            this.type();
+            this.var_type();
             this.state = 3288;
             this.match(CSharpParser.CLOSE_PARENS);
             this.state = 3289;
@@ -34085,8 +34085,8 @@ function Explicit_anonymous_function_parameter_DropletFileContext(parser, parent
 Explicit_anonymous_function_parameter_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Explicit_anonymous_function_parameter_DropletFileContext.prototype.constructor = Explicit_anonymous_function_parameter_DropletFileContext;
 
-Explicit_anonymous_function_parameter_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Explicit_anonymous_function_parameter_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Explicit_anonymous_function_parameter_DropletFileContext.prototype.identifier = function() {
@@ -34146,7 +34146,7 @@ CSharpParser.prototype.explicit_anonymous_function_parameter_DropletFile = funct
         }
 
         this.state = 3569;
-        this.type();
+        this.var_type();
         this.state = 3570;
         this.identifier();
         this.state = 3571;
@@ -34513,8 +34513,8 @@ From_clause_DropletFileContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-From_clause_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+From_clause_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 From_clause_DropletFileContext.prototype.enterRule = function(listener) {
@@ -34547,7 +34547,7 @@ CSharpParser.prototype.from_clause_DropletFile = function() {
         var la_ = this._interp.adaptivePredict(this._input,391,this._ctx);
         if(la_===1) {
             this.state = 3596;
-            this.type();
+            this.var_type();
 
         }
         this.state = 3599;
@@ -34996,8 +34996,8 @@ Combined_join_clause_DropletFileContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-Combined_join_clause_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Combined_join_clause_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Combined_join_clause_DropletFileContext.prototype.INTO = function() {
@@ -35035,7 +35035,7 @@ CSharpParser.prototype.combined_join_clause_DropletFile = function() {
         var la_ = this._interp.adaptivePredict(this._input,395,this._ctx);
         if(la_===1) {
             this.state = 3644;
-            this.type();
+            this.var_type();
 
         }
         this.state = 3647;
@@ -37520,8 +37520,8 @@ Local_variable_type_DropletFileContext.prototype.EOF = function() {
     return this.getToken(CSharpParser.EOF, 0);
 };
 
-Local_variable_type_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Local_variable_type_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Local_variable_type_DropletFileContext.prototype.enterRule = function(listener) {
@@ -37561,7 +37561,7 @@ CSharpParser.prototype.local_variable_type_DropletFile = function() {
         case 2:
             this.enterOuterAlt(localctx, 2);
             this.state = 3898;
-            this.type();
+            this.var_type();
             this.state = 3899;
             this.match(CSharpParser.EOF);
             break;
@@ -37848,8 +37848,8 @@ Local_constant_declaration_DropletFileContext.prototype.CONST = function() {
     return this.getToken(CSharpParser.CONST, 0);
 };
 
-Local_constant_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Local_constant_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Local_constant_declaration_DropletFileContext.prototype.constant_declarators = function() {
@@ -37886,7 +37886,7 @@ CSharpParser.prototype.local_constant_declaration_DropletFile = function() {
         this.state = 3921;
         this.match(CSharpParser.CONST);
         this.state = 3922;
-        this.type();
+        this.var_type();
         this.state = 3923;
         this.constant_declarators();
         this.state = 3924;
@@ -42037,8 +42037,8 @@ function Typed_member_declaration_DropletFileContext(parser, parent, invokingSta
 Typed_member_declaration_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Typed_member_declaration_DropletFileContext.prototype.constructor = Typed_member_declaration_DropletFileContext;
 
-Typed_member_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Typed_member_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Typed_member_declaration_DropletFileContext.prototype.EOF = function() {
@@ -42093,7 +42093,7 @@ CSharpParser.prototype.typed_member_declaration_DropletFile = function() {
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 4350;
-        this.type();
+        this.var_type();
         this.state = 4360;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input,467,this._ctx);
@@ -42644,8 +42644,8 @@ function Return_type_DropletFileContext(parser, parent, invokingState) {
 Return_type_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Return_type_DropletFileContext.prototype.constructor = Return_type_DropletFileContext;
 
-Return_type_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Return_type_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Return_type_DropletFileContext.prototype.EOF = function() {
@@ -42685,7 +42685,7 @@ CSharpParser.prototype.return_type_DropletFile = function() {
         case 1:
             this.enterOuterAlt(localctx, 1);
             this.state = 4404;
-            this.type();
+            this.var_type();
             this.state = 4405;
             this.match(CSharpParser.EOF);
             break;
@@ -44426,8 +44426,8 @@ Conversion_operator_declarator_DropletFileContext.prototype.OPERATOR = function(
     return this.getToken(CSharpParser.OPERATOR, 0);
 };
 
-Conversion_operator_declarator_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Conversion_operator_declarator_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Conversion_operator_declarator_DropletFileContext.prototype.OPEN_PARENS = function() {
@@ -44490,7 +44490,7 @@ CSharpParser.prototype.conversion_operator_declarator_DropletFile = function() {
         this.state = 4610;
         this.match(CSharpParser.OPERATOR);
         this.state = 4611;
-        this.type();
+        this.var_type();
         this.state = 4612;
         this.match(CSharpParser.OPEN_PARENS);
         this.state = 4613;
@@ -44884,8 +44884,8 @@ Struct_member_declaration_DropletFileContext.prototype.FIXED = function() {
     return this.getToken(CSharpParser.FIXED, 0);
 };
 
-Struct_member_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Struct_member_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Struct_member_declaration_DropletFileContext.prototype.attributes = function() {
@@ -45010,7 +45010,7 @@ CSharpParser.prototype.struct_member_declaration_DropletFile = function() {
             this.state = 4654;
             this.match(CSharpParser.FIXED);
             this.state = 4655;
-            this.type();
+            this.var_type();
             this.state = 4657; 
             this._errHandler.sync(this);
             _la = this._input.LA(1);
@@ -45786,8 +45786,8 @@ Interface_member_declaration_DropletFileContext.prototype.EOF = function(i) {
 };
 
 
-Interface_member_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Interface_member_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Interface_member_declaration_DropletFileContext.prototype.VOID = function() {
@@ -45904,7 +45904,7 @@ CSharpParser.prototype.interface_member_declaration_DropletFile = function() {
             }
 
             this.state = 4758;
-            this.type();
+            this.var_type();
             this.state = 4786;
             this._errHandler.sync(this);
             var la_ = this._interp.adaptivePredict(this._input,522,this._ctx);
@@ -46028,7 +46028,7 @@ CSharpParser.prototype.interface_member_declaration_DropletFile = function() {
             this.state = 4809;
             this.match(CSharpParser.EVENT);
             this.state = 4810;
-            this.type();
+            this.var_type();
             this.state = 4811;
             this.identifier();
             this.state = 4812;
@@ -46209,8 +46209,8 @@ function Enum_base_DropletFileContext(parser, parent, invokingState) {
 Enum_base_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Enum_base_DropletFileContext.prototype.constructor = Enum_base_DropletFileContext;
 
-Enum_base_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Enum_base_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Enum_base_DropletFileContext.prototype.EOF = function() {
@@ -46243,7 +46243,7 @@ CSharpParser.prototype.enum_base_DropletFile = function() {
         this.state = 4843;
         this.match(CSharpParser.COLON);
         this.state = 4844;
-        this.type();
+        this.var_type();
         this.state = 4845;
         this.match(CSharpParser.EOF);
     } catch (re) {
@@ -48016,8 +48016,8 @@ Local_variable_initializer_unsafe_DropletFileContext.prototype.STACKALLOC = func
     return this.getToken(CSharpParser.STACKALLOC, 0);
 };
 
-Local_variable_initializer_unsafe_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Local_variable_initializer_unsafe_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Local_variable_initializer_unsafe_DropletFileContext.prototype.expression = function() {
@@ -48054,7 +48054,7 @@ CSharpParser.prototype.local_variable_initializer_unsafe_DropletFile = function(
         this.state = 5006;
         this.match(CSharpParser.STACKALLOC);
         this.state = 5007;
-        this.type();
+        this.var_type();
         this.state = 5008;
         this.match(CSharpParser.OPEN_BRACKET);
         this.state = 5009;
@@ -50795,8 +50795,8 @@ Event_declaration_DropletFileContext.prototype.EVENT = function() {
     return this.getToken(CSharpParser.EVENT, 0);
 };
 
-Event_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Event_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Event_declaration_DropletFileContext.prototype.EOF = function() {
@@ -50849,7 +50849,7 @@ CSharpParser.prototype.event_declaration_DropletFile = function() {
         this.state = 5359;
         this.match(CSharpParser.EVENT);
         this.state = 5360;
-        this.type();
+        this.var_type();
         this.state = 5369;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input,585,this._ctx);
@@ -51100,8 +51100,8 @@ Constant_declaration_DropletFileContext.prototype.CONST = function() {
     return this.getToken(CSharpParser.CONST, 0);
 };
 
-Constant_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Constant_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Constant_declaration_DropletFileContext.prototype.constant_declarators = function() {
@@ -51138,7 +51138,7 @@ CSharpParser.prototype.constant_declaration_DropletFile = function() {
         this.state = 5395;
         this.match(CSharpParser.CONST);
         this.state = 5396;
-        this.type();
+        this.var_type();
         this.state = 5397;
         this.constant_declarators();
         this.state = 5398;
@@ -51889,8 +51889,8 @@ function Arg_declaration_DropletFileContext(parser, parent, invokingState) {
 Arg_declaration_DropletFileContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 Arg_declaration_DropletFileContext.prototype.constructor = Arg_declaration_DropletFileContext;
 
-Arg_declaration_DropletFileContext.prototype.type = function() {
-    return this.getTypedRuleContext(TypeContext,0);
+Arg_declaration_DropletFileContext.prototype.var_type = function() {
+    return this.getTypedRuleContext(Var_typeContext,0);
 };
 
 Arg_declaration_DropletFileContext.prototype.identifier = function() {
@@ -51930,7 +51930,7 @@ CSharpParser.prototype.arg_declaration_DropletFile = function() {
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 5494;
-        this.type();
+        this.var_type();
         this.state = 5495;
         this.identifier();
         this.state = 5498;

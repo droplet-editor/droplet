@@ -29,12 +29,12 @@ CSharpParserListener.prototype.exitNamespace_or_type_name = function(ctx) {
 };
 
 
-// Enter a parse tree produced by CSharpParser#type.
-CSharpParserListener.prototype.enterType = function(ctx) {
+// Enter a parse tree produced by CSharpParser#var_type.
+CSharpParserListener.prototype.enterVar_type = function(ctx) {
 };
 
-// Exit a parse tree produced by CSharpParser#type.
-CSharpParserListener.prototype.exitType = function(ctx) {
+// Exit a parse tree produced by CSharpParser#var_type.
+CSharpParserListener.prototype.exitVar_type = function(ctx) {
 };
 
 
@@ -2189,12 +2189,12 @@ CSharpParserListener.prototype.exitNamespace_or_type_name_DropletFile = function
 };
 
 
-// Enter a parse tree produced by CSharpParser#type_DropletFile.
-CSharpParserListener.prototype.enterType_DropletFile = function(ctx) {
+// Enter a parse tree produced by CSharpParser#var_type_DropletFile.
+CSharpParserListener.prototype.enterVar_type_DropletFile = function(ctx) {
 };
 
-// Exit a parse tree produced by CSharpParser#type_DropletFile.
-CSharpParserListener.prototype.exitType_DropletFile = function(ctx) {
+// Exit a parse tree produced by CSharpParser#var_type_DropletFile.
+CSharpParserListener.prototype.exitVar_type_DropletFile = function(ctx) {
 };
 
 
