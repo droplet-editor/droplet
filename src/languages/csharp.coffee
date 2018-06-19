@@ -71,6 +71,7 @@ RULES = {
   'namespace_or_type_name' : 'skip',
   'namespace_member_declarations' : 'skip',
   'namespace_member_declaration' : 'skip',
+  'class_definition' : 'skip', # TODO: maybe have to get rid if we need to have separate logic for class defs vs. enums, for example
   'class_member_declarations' : 'skip',
   'class_member_declaration' : 'skip',
   'common_member_declaration' : 'skip',
@@ -87,7 +88,6 @@ RULES = {
   'numeric_type' : 'skip',
   'integral_type' : 'skip',
   'floating_point_type' : 'skip',
-  'typed_member_declaration' : 'block',
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
@@ -128,14 +128,14 @@ RULES = {
 
   # need to skip the block that defines a class if there are class modifiers for the class
   # (will not detect a class with no modifiers otherwise)
-  'class_definition' : (node) ->
-    if (node.parent?)
-      if (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
-        return 'skip'
-      else if (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
-        return {type : 'block'}
-    else
-      return 'skip'
+ # 'class_definition' : (node) ->
+  #  if (node.parent?)
+   #   if (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
+    #    return 'skip'
+   #   else if (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
+   #     return {type : 'block'}
+   # else
+    #  return 'skip'
 }
 
 # Used to color nodes
@@ -144,7 +144,6 @@ COLOR_RULES = {
   'using_directive' : 'using',
   'namespace_declaration' : 'namespace',
   'type_declaration' : 'type',
-  'class_definition' : 'type',
   'typed_member_declaration' : 'variable'
 }
 
@@ -157,7 +156,7 @@ COLOR_DEFAULTS = {
 }
 
 SHAPE_RULES = {
-  'typed_member_declaration': helper.BLOCK_ONLY,
+
 }
 
 EMPTY_STRINGS = {
@@ -174,7 +173,7 @@ SHAPE_CALLBACK = {
 
 # defines any nodes that are to be turned into different kinds of dropdown menus;
 # the choices for those dropdowns are defined by the items to the left of the semicolon
-# these are used ONLY if you aren't using the SHOULD_SOCKET function it seems
+# these are used ONLY if you aren't using the SHOULD_SOCKET function it seems?
 DROPDOWNS = {
 
 }
@@ -208,10 +207,6 @@ SIMPLE_TYPES = [
   'decimal',
   'bool',
 ]
-
-EMPTY_STRINGS = {
-
-}
 
 PARENS = [
 

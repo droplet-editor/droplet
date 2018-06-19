@@ -2955,7 +2955,8 @@ Editor::populateSocket = (socket, string) ->
 
 Editor::populateBlock = (block, string, updates = []) ->
   if block.type is 'block'
-    context = block.parent.indentContext ? block.parent.parseContext ? block.parseContext
+    #context = block.parent.indentContext ? block.parent.parseContext
+    context = block.parent.indentContext ? block.parent.parseContext ? block.parseContext ? block.nodeContext.type # Kevin Jessup - (marker in case my change to this line didn't work, or breaks in the future)
   else
     context = block.parseContext
 
