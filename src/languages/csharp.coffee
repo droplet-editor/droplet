@@ -88,6 +88,7 @@ RULES = {
   'numeric_type' : 'skip',
   'integral_type' : 'skip',
   'floating_point_type' : 'skip',
+  '=' : 'skip',
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
@@ -146,6 +147,18 @@ RULES = {
         return {type : 'block'}
     else
       return 'skip'
+
+  # need to process class variable declarations so these blocks can have the arrow buttons that
+  # lets one add or remove variable names/declarations by clicking on those arrows
+  # NOTE: the handleButton function in this file determines the behavior for what
+  # happens when either the ADD_BUTTON or BOTH_BUTTON is pressed
+  'typed_member_declaration' : (node) ->
+    if (node.children[1].children[0].children.length == 1)
+      return {type: 'block', buttons: ADD_BUTTON}
+    else if (node.children[1].children[0].children.length > 1)
+      return {type: 'block', buttons: BOTH_BUTTON}
+    else
+      return 'block'
 }
 
 # Used to color nodes
@@ -167,11 +180,31 @@ COLOR_DEFAULTS = {
 }
 
 SHAPE_RULES = {
-
+  'typed_member_declaration' : helper.BLOCK_ONLY,
 }
 
+# defines what string one should put in an empty socket when going
+# from blocks to text (these can be any string, it seems)
+# also allows any of the below nodes with these strings to be transformed
+# into empty sockets when going from text to blocks (I think)
 EMPTY_STRINGS = {
+  'IDENTIFIER' : '_',
+  'INTEGER_LITERAL' : '_',
+  'HEX_INTEGER_LITERAL' : '_',
+  'REAL_LITERAL' : '_',
+  'CHARACTER_LITERAL' : '_',
+  'NULL' : '_',
+  'REGULAR_STRING' : '_',
+  'VERBATIUM_STRING' : '_',
+  'TRUE' : '_',
+  'FALSE' : '_',
+}
 
+# defines an empty character to be used
+# in various functions in this language file (like handleButton)
+# done for reusability's sake
+EMPTY = {
+  '_'
 }
 
 COLOR_CALLBACK = {
@@ -184,7 +217,7 @@ SHAPE_CALLBACK = {
 
 # defines any nodes that are to be turned into different kinds of dropdown menus;
 # the choices for those dropdowns are defined by the items to the left of the semicolon
-# these are used ONLY if you aren't using the SHOULD_SOCKET function it seems?
+# these are used only if you aren't using the SHOULD_SOCKET function it seems?
 DROPDOWNS = {
 
 }
@@ -245,6 +278,23 @@ SHOULD_SOCKET = (opts, node) ->
   # return true by default (don't know why we do this)
   return true
 
+# defines behavior for what happens if we click a button in a block (like for
+# clicking the arrow buttons in a variable assignment block)
+handleButton = (str, type, block) ->
+  blockType = block.nodeContext?.type ? block.parseContext
+
+  if (type is 'add-button')
+    if (blockType is 'typed_member_declaration')
+
+      return str
+
+  else if (type is 'subtract-button')
+    if (blockType is 'typed_member_declaration')
+
+      return str
+
+  return str
+
 config = {
   RULES,
   COLOR_DEFAULTS,
@@ -257,7 +307,8 @@ config = {
   DROPDOWNS,
   EMPTY_STRINGS,
   PARENS,
-  SHOULD_SOCKET
+  SHOULD_SOCKET,
+  handleButton
 }
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'CSharp', config
