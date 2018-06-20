@@ -89,6 +89,25 @@ RULES = {
   'integral_type' : 'skip',
   'floating_point_type' : 'skip',
   '=' : 'skip',
+  'assignment' : 'skip',
+  'non_assignment_expression' : 'skip',
+  'lambda_expression' : 'skip',
+  'query_expression' : 'skip',
+  'conditional_expression' : 'skip',
+  'null_coalescing_expression' : 'skip',
+  'conditional_or_expression' : 'skip',
+  'conditional_and_expression' : 'skip',
+  'inclusive_or_expression' : 'skip',
+  'exclusive_or_expression' : 'skip',
+  'and_expression' : 'skip',
+  'equality_expression' : 'skip',
+  'relational_expression' : 'skip',
+  'shift_expression' : 'skip',
+  'additive_expression' : 'skip',
+  'multiplicative_expression' : 'skip',
+  'unary_expression' : 'skip',
+  'primary_expression' : 'skip',
+  'primary_expression_start' : 'skip',
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
@@ -169,6 +188,7 @@ COLOR_RULES = {
   'type_declaration' : 'type',
   'class_definition' : 'type',
   'typed_member_declaration' : 'variable'
+  'expression' : 'expression'
 }
 
 # defines categories for different colors, for better reusability
@@ -177,10 +197,12 @@ COLOR_DEFAULTS = {
   'namespace' : 'green'
   'type' : 'lightblue'
   'variable' : 'yellow'
+  'expression' : 'deeporange'
 }
 
 SHAPE_RULES = {
   'typed_member_declaration' : helper.BLOCK_ONLY,
+  'expression' : helper.VALUE_ONLY,
 }
 
 # defines what string one should put in an empty socket when going
@@ -291,7 +313,6 @@ handleButton = (str, type, block) ->
 
   else if (type is 'subtract-button')
     if (blockType is 'typed_member_declaration')
-
       newStr = str.slice(0, str.lastIndexOf(",")) + ";"
 
       return newStr
