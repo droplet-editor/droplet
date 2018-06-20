@@ -122,20 +122,30 @@ RULES = {
   'DECIMAL' : 'socket',
   'BOOL' : 'socket',
 
+  'INTEGER_LITERAL' : 'socket',
+  'HEX_INTEGER_LITERAL' : 'socket',
+  'REAL_LITERAL' : 'socket',
+  'CHARACTER_LITERAL' : 'socket',
+  'NULL' : 'socket',
+  'REGULAR_STRING' : 'socket',
+  'VERBATIUM_STRING' : 'socket',
+  'TRUE' : 'socket',
+  'FALSE' : 'socket',
+
   #'VAR' : 'socket', # TODO: add vars
 
   #### special: require functions to process blocks based on context/position in AST ####
 
   # need to skip the block that defines a class if there are class modifiers for the class
   # (will not detect a class with no modifiers otherwise)
- # 'class_definition' : (node) ->
-  #  if (node.parent?)
-   #   if (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
-    #    return 'skip'
-   #   else if (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
-   #     return {type : 'block'}
-   # else
-    #  return 'skip'
+  'class_definition' : (node) ->
+    if (node.parent?)
+      if (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
+        return 'skip'
+      else if (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
+        return {type : 'block'}
+    else
+      return 'skip'
 }
 
 # Used to color nodes
@@ -144,6 +154,7 @@ COLOR_RULES = {
   'using_directive' : 'using',
   'namespace_declaration' : 'namespace',
   'type_declaration' : 'type',
+  'class_definition' : 'type',
   'typed_member_declaration' : 'variable'
 }
 
