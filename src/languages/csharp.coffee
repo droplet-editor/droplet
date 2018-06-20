@@ -285,13 +285,16 @@ handleButton = (str, type, block) ->
 
   if (type is 'add-button')
     if (blockType is 'typed_member_declaration')
+      newStr = str.replace(";", ", _ = _;")
 
-      return str
+      return newStr
 
   else if (type is 'subtract-button')
     if (blockType is 'typed_member_declaration')
 
-      return str
+      newStr = str.slice(0, str.lastIndexOf(",")) + ";"
+
+      return newStr
 
   return str
 
