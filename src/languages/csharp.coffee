@@ -216,30 +216,30 @@ COLOR_DEFAULTS = {
 
 # still not exactly sure what this section does, or what the helper does
 SHAPE_RULES = {
-  'typed_member_declaration' : helper.BLOCK_ONLY,
-  'class_body' : helper.BLOCK_ONLY,
-  'namespace_body' : helper.BLOCK_ONLY,
+  'initializer' : helper.BLOCK_ONLY,
 
-  'expression' : helper.VALUE_ONLY,
-  'assignment' : helper.VALUE_ONLY,
-  'non_assignment_expression' : helper.VALUE_ONLY,
-  'lambda_expression' : helper.VALUE_ONLY,
-  'query_expression' : helper.VALUE_ONLY,
-  'conditional_expression' : helper.VALUE_ONLY,
-  'null_coalescing_expression' : helper.VALUE_ONLY,
-  'conditional_or_expression' : helper.VALUE_ONLY,
-  'conditional_and_expression' : helper.VALUE_ONLY,
-  'inclusive_or_expression' : helper.VALUE_ONLY,
-  'exclusive_or_expression' : helper.VALUE_ONLY,
-  'and_expression' : helper.VALUE_ONLY,
-  'equality_expression' : helper.VALUE_ONLY,
-  'relational_expression' : helper.VALUE_ONLY,
-  'shift_expression' : helper.VALUE_ONLY,
-  'additive_expression' : helper.VALUE_ONLY,
-  'multiplicative_expression' : helper.VALUE_ONLY,
-  'unary_expression' : helper.VALUE_ONLY,
-  'primary_expression' : helper.VALUE_ONLY,
-  'primary_expression_start' : helper.VALUE_ONLY,
+  #'expression' : helper.VALUE_ONLY,
+  #'assignment' : helper.VALUE_ONLY,
+  #'non_assignment_expression' : helper.VALUE_ONLY,
+  #'lambda_expression' : helper.VALUE_ONLY,
+  #'query_expression' : helper.VALUE_ONLY,
+  #'conditional_expression' : helper.VALUE_ONLY,
+  #'null_coalescing_expression' : helper.VALUE_ONLY,
+  #'conditional_or_expression' : helper.VALUE_ONLY,
+  #'conditional_and_expression' : helper.VALUE_ONLY,
+  #'inclusive_or_expression' : helper.VALUE_ONLY,
+  #'exclusive_or_expression' : helper.VALUE_ONLY,
+  #'and_expression' : helper.VALUE_ONLY,
+  #'equality_expression' : helper.VALUE_ONLY,
+  #'relational_expression' : helper.VALUE_ONLY,
+  #'shift_expression' : helper.VALUE_ONLY,
+  #'additive_expression' : helper.VALUE_ONLY,
+  #'multiplicative_expression' : helper.VALUE_ONLY,
+  #'unary_expression' : helper.VALUE_ONLY,
+  #'primary_expression' : helper.VALUE_ONLY,
+  #'primary_expression_start' : helper.VALUE_ONLY,
+
+
 }
 
 # defines what string one should put in an empty socket when going
@@ -311,10 +311,6 @@ SIMPLE_TYPES = [
   'bool',
 ]
 
-PARENS = [
-
-]
-
 SHOULD_SOCKET = (opts, node) ->
   # defines behavior for adding a locked socket + dropdown menu for class modifiers
   # NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
@@ -334,6 +330,7 @@ SHOULD_SOCKET = (opts, node) ->
       type: 'locked',
       dropdown: SIMPLE_TYPES
     }
+
   # return true by default (don't know why we do this)
   return true
 
@@ -367,7 +364,6 @@ config = {
   COLOR_DEFAULTS,
   DROPDOWNS,
   EMPTY_STRINGS,
-  PARENS,
   SHOULD_SOCKET,
   handleButton
 }
