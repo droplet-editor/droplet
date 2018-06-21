@@ -89,25 +89,16 @@ RULES = {
   'integral_type' : 'skip',
   'floating_point_type' : 'skip',
   '=' : 'skip',
-  'assignment' : 'skip',
-  'non_assignment_expression' : 'skip',
-  'lambda_expression' : 'skip',
-  'query_expression' : 'skip',
-  'conditional_expression' : 'skip',
-  'null_coalescing_expression' : 'skip',
-  'conditional_or_expression' : 'skip',
-  'conditional_and_expression' : 'skip',
-  'inclusive_or_expression' : 'skip',
-  'exclusive_or_expression' : 'skip',
-  'and_expression' : 'skip',
-  'equality_expression' : 'skip',
-  'relational_expression' : 'skip',
-  'shift_expression' : 'skip',
-  'additive_expression' : 'skip',
-  'multiplicative_expression' : 'skip',
-  'unary_expression' : 'skip',
-  'primary_expression' : 'skip',
-  'primary_expression_start' : 'skip',
+  'OPEN_PARENS' : 'skip',
+  'CLOSE_PARENS' : 'skip',
+
+
+  # Parens : defines nodes that can have parenthesis in them
+  # (used to wrap parenthesis in a block with the
+  # expression that is inside them, instead
+  # of having the parenthesis be a block with a
+  # socket that holds an expression)
+  'primary_expression_start' : 'parens',
 
   # Sockets : can be used to enter inputs into a form or specify types
   'IDENTIFIER' : 'socket',
@@ -184,11 +175,34 @@ RULES = {
 # See view.coffee for a list of colors
 COLOR_RULES = {
   'using_directive' : 'using',
+
   'namespace_declaration' : 'namespace',
+
   'type_declaration' : 'type',
   'class_definition' : 'type',
-  'typed_member_declaration' : 'variable'
-  'expression' : 'expression'
+
+  'typed_member_declaration' : 'variable',
+
+  'expression' : 'expression',
+  'assignment' : 'expression',
+  'non_assignment_expression' : 'expression',
+  'lambda_expression' : 'expression',
+  'query_expression' : 'expression',
+  'conditional_expression' : 'expression',
+  'null_coalescing_expression' : 'expression',
+  'conditional_or_expression' : 'expression',
+  'conditional_and_expression' : 'expression',
+  'inclusive_or_expression' : 'expression',
+  'exclusive_or_expression' : 'expression',
+  'and_expression' : 'expression',
+  'equality_expression' : 'expression',
+  'relational_expression' : 'expression',
+  'shift_expression' : 'expression',
+  'additive_expression' : 'expression',
+  'multiplicative_expression' : 'expression',
+  'unary_expression' : 'expression',
+  'primary_expression' : 'expression',
+  'primary_expression_start' : 'expression',
 }
 
 # defines categories for different colors, for better reusability
@@ -200,9 +214,32 @@ COLOR_DEFAULTS = {
   'expression' : 'deeporange'
 }
 
+# still not exactly sure what this section does, or what the helper does
 SHAPE_RULES = {
   'typed_member_declaration' : helper.BLOCK_ONLY,
+  'class_body' : helper.BLOCK_ONLY,
+  'namespace_body' : helper.BLOCK_ONLY,
+
   'expression' : helper.VALUE_ONLY,
+  'assignment' : helper.VALUE_ONLY,
+  'non_assignment_expression' : helper.VALUE_ONLY,
+  'lambda_expression' : helper.VALUE_ONLY,
+  'query_expression' : helper.VALUE_ONLY,
+  'conditional_expression' : helper.VALUE_ONLY,
+  'null_coalescing_expression' : helper.VALUE_ONLY,
+  'conditional_or_expression' : helper.VALUE_ONLY,
+  'conditional_and_expression' : helper.VALUE_ONLY,
+  'inclusive_or_expression' : helper.VALUE_ONLY,
+  'exclusive_or_expression' : helper.VALUE_ONLY,
+  'and_expression' : helper.VALUE_ONLY,
+  'equality_expression' : helper.VALUE_ONLY,
+  'relational_expression' : helper.VALUE_ONLY,
+  'shift_expression' : helper.VALUE_ONLY,
+  'additive_expression' : helper.VALUE_ONLY,
+  'multiplicative_expression' : helper.VALUE_ONLY,
+  'unary_expression' : helper.VALUE_ONLY,
+  'primary_expression' : helper.VALUE_ONLY,
+  'primary_expression_start' : helper.VALUE_ONLY,
 }
 
 # defines what string one should put in an empty socket when going
@@ -307,7 +344,7 @@ handleButton = (str, type, block) ->
 
   if (type is 'add-button')
     if (blockType is 'typed_member_declaration')
-      newStr = str.replace(";", ", _ = _;")
+      newStr = str.slice(0, str.length-1) + ", _ = _;"
 
       return newStr
 
