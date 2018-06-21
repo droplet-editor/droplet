@@ -91,6 +91,7 @@ RULES = {
   '=' : 'skip',
   'OPEN_PARENS' : 'skip',
   'CLOSE_PARENS' : 'skip',
+  ';' : 'skip',
 
 
   # Parens : defines nodes that can have parenthesis in them
@@ -218,28 +219,26 @@ COLOR_DEFAULTS = {
 SHAPE_RULES = {
   'initializer' : helper.BLOCK_ONLY,
 
-  #'expression' : helper.VALUE_ONLY,
-  #'assignment' : helper.VALUE_ONLY,
-  #'non_assignment_expression' : helper.VALUE_ONLY,
-  #'lambda_expression' : helper.VALUE_ONLY,
-  #'query_expression' : helper.VALUE_ONLY,
-  #'conditional_expression' : helper.VALUE_ONLY,
-  #'null_coalescing_expression' : helper.VALUE_ONLY,
-  #'conditional_or_expression' : helper.VALUE_ONLY,
-  #'conditional_and_expression' : helper.VALUE_ONLY,
-  #'inclusive_or_expression' : helper.VALUE_ONLY,
-  #'exclusive_or_expression' : helper.VALUE_ONLY,
-  #'and_expression' : helper.VALUE_ONLY,
-  #'equality_expression' : helper.VALUE_ONLY,
-  #'relational_expression' : helper.VALUE_ONLY,
-  #'shift_expression' : helper.VALUE_ONLY,
-  #'additive_expression' : helper.VALUE_ONLY,
-  #'multiplicative_expression' : helper.VALUE_ONLY,
-  #'unary_expression' : helper.VALUE_ONLY,
-  #'primary_expression' : helper.VALUE_ONLY,
-  #'primary_expression_start' : helper.VALUE_ONLY,
-
-
+  'expression' : helper.VALUE_ONLY,
+  'assignment' : helper.VALUE_ONLY,
+  'non_assignment_expression' : helper.VALUE_ONLY,
+  'lambda_expression' : helper.VALUE_ONLY,
+  'query_expression' : helper.VALUE_ONLY,
+  'conditional_expression' : helper.VALUE_ONLY,
+  'null_coalescing_expression' : helper.VALUE_ONLY,
+  'conditional_or_expression' : helper.VALUE_ONLY,
+  'conditional_and_expression' : helper.VALUE_ONLY,
+  'inclusive_or_expression' : helper.VALUE_ONLY,
+  'exclusive_or_expression' : helper.VALUE_ONLY,
+  'and_expression' : helper.VALUE_ONLY,
+  'equality_expression' : helper.VALUE_ONLY,
+  'relational_expression' : helper.VALUE_ONLY,
+  'shift_expression' : helper.VALUE_ONLY,
+  'additive_expression' : helper.VALUE_ONLY,
+  'multiplicative_expression' : helper.VALUE_ONLY,
+  'unary_expression' : helper.VALUE_ONLY,
+  'primary_expression' : helper.VALUE_ONLY,
+  'primary_expression_start' : helper.VALUE_ONLY,
 }
 
 # defines what string one should put in an empty socket when going
@@ -259,11 +258,32 @@ EMPTY_STRINGS = {
   'FALSE' : '_',
 }
 
-# defines an empty character to be used
-# in various functions in this language file (like handleButton)
-# done for reusability's sake
-EMPTY = {
-  '_'
+# defines an empty character that is created when a block is dragged out of a socket
+empty = '_'
+
+emptyIndent = ''
+
+ADD_PARENS = (leading, trailing, node, context) ->
+  leading '(' + leading()
+  trailing trailing() + ')'
+
+ADD_SEMICOLON = (leading, trailing, node, context) ->
+  trailing trailing() + ';'
+
+REMOVE_SEMICOLON = (leading, trailing, node, context) ->
+  trailing trailing().replace /\s*;\s*$/, ''
+
+# helps control what can and cannot go into a socket?
+PAREN_RULES = {
+#  'primary_expression': {
+#    'expression': ADD_PARENS
+#  },
+#  'primary_expression': {
+#    'literal': ADD_SEMICOLON
+#  }
+#  'postfixExpression': {
+#    'specialMethodCall': REMOVE_SEMICOLON
+#  }
 }
 
 COLOR_CALLBACK = {
@@ -364,6 +384,9 @@ config = {
   COLOR_DEFAULTS,
   DROPDOWNS,
   EMPTY_STRINGS,
+  empty,
+  emptyIndent,
+  PAREN_RULES,
   SHOULD_SOCKET,
   handleButton
 }
