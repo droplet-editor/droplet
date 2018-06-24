@@ -65,6 +65,11 @@ RULES = {
     'indexContext': 'class_member_declaration',
   },
 
+  'body': {
+    'type' : 'indent',
+    'indexContext': 'statement',
+  },
+
   # Skips : no block for these elements
   'compilationUnit' : 'skip',
   'using_directives' : 'skip',
@@ -73,8 +78,9 @@ RULES = {
   'namespace_member_declaration' : 'skip',
   'class_definition' : 'skip', # TODO: maybe have to get rid if we need to have separate logic for class defs vs. enums, for example
   'class_member_declarations' : 'skip',
-  'class_member_declaration' : 'skip',
   'common_member_declaration' : 'skip',
+  'typed_member_declaration' : 'skip',
+  'constructor_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
   'all_member_modifier' : 'skip',
   'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
@@ -92,7 +98,7 @@ RULES = {
   'OPEN_PARENS' : 'skip',
   'CLOSE_PARENS' : 'skip',
   ';' : 'skip',
-
+  'statement_list' : 'skip',
 
   # Parens : defines nodes that can have parenthesis in them
   # (used to wrap parenthesis in a block with the
@@ -159,17 +165,29 @@ RULES = {
     else
       return 'skip'
 
-  # need to process class variable declarations so these blocks can have the arrow buttons that
-  # lets one add or remove variable names/declarations by clicking on those arrows
+  # need to process class variable/method declarations so these blocks can have the arrow buttons that
+  # lets one add or remove variable declarations/input parameters/ by clicking on those arrows
   # NOTE: the handleButton function in this file determines the behavior for what
   # happens when either the ADD_BUTTON or BOTH_BUTTON is pressed
-  'typed_member_declaration' : (node) ->
-    if (node.children[1].children[0].children.length == 1)
-      return {type: 'block', buttons: ADD_BUTTON}
-    else if (node.children[1].children[0].children.length > 1)
-      return {type: 'block', buttons: BOTH_BUTTON}
+  'class_member_delcaration' : (node) ->
+    # class variable declarations
+    if (node.children[0].children[0].type is 'typed_member_declaration')
+      if (node.children[1].children[0].children.length == 1)
+        return {type: 'block', buttons: ADD_BUTTON}
+      else if (node.children[1].children[0].children.length > 1)
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return 'block'
+
+    # class methods
+    else if (node.children[1].children[0].type is 'constructor_declaration')
+      if (node.children[1].children[0].children[3]?.type is 'formal_parameter_list')
+        return {type: 'block', buttons: BOTH_BUTTON}
+      else
+        return {type: 'block', buttons: ADD_BUTTON}
+
     else
-      return 'block'
+      return 'skip'
 }
 
 # Used to color nodes
@@ -182,7 +200,17 @@ COLOR_RULES = {
   'type_declaration' : 'type',
   'class_definition' : 'type',
 
-  'typed_member_declaration' : 'variable',
+  'class_member_delcaration' : (node) ->
+    # class variable declarations
+    if (node.children[0].children[0].type is 'typed_member_declaration')
+      return 'variable'
+
+    # class methods
+    else if (node.children[1].children[0].type is 'constructor_declaration')
+      return 'method'
+
+    else
+      return 'comment'
 
   'expression' : 'expression',
   'assignment' : 'expression',
@@ -213,6 +241,8 @@ COLOR_DEFAULTS = {
   'type' : 'lightblue'
   'variable' : 'yellow'
   'expression' : 'deeporange'
+  'method' : 'indigo'
+  'comment' : 'grey'
 }
 
 # still not exactly sure what this section does, or what the helper does
@@ -359,17 +389,20 @@ SHOULD_SOCKET = (opts, node) ->
 handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
 
-  if (type is 'add-button')
-    if (blockType is 'typed_member_declaration')
-      newStr = str.slice(0, str.length-1) + ", _ = _;"
+ # if (type is 'add-button')
+    #if (block.children)
 
-      return newStr
+   # else if ()
+#    if (blockType is 'typed_member_declaration') # TODO: modify to support refactoring for method params for using class_member_declaration
+#      newStr = str.slice(0, str.length-1) + ", _ = _;"
 
-  else if (type is 'subtract-button')
-    if (blockType is 'typed_member_declaration')
-      newStr = str.slice(0, str.lastIndexOf(",")) + ";"
+#      return newStr
 
-      return newStr
+  #else if (type is 'subtract-button')
+#    if (blockType is 'typed_member_declaration')
+#      newStr = str.slice(0, str.lastIndexOf(",")) + ";"
+
+#      return newStr
 
   return str
 
