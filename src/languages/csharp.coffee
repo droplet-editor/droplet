@@ -57,7 +57,7 @@ RULES = {
   # tell parser to indent blocks within the main part of a namespace body (indent everything past namespace_member_declarations)
   'namespace_body': {
     'type': 'indent',
-    'indexContext': 'namespace_member_declaration',
+    'indexContext': 'namespace_member_declarations',
   },
 
   'class_body': {
@@ -65,7 +65,7 @@ RULES = {
     'indexContext': 'class_member_declaration',
   },
 
-  'body': {
+  'block': {
     'type' : 'indent',
     'indexContext': 'statement',
   },
@@ -78,13 +78,17 @@ RULES = {
   'namespace_member_declaration' : 'skip',
   'class_definition' : 'skip', # TODO: maybe have to get rid if we need to have separate logic for class defs vs. enums, for example
   'class_member_declarations' : 'skip',
+  'class_member_declaration' : 'skip',
   'common_member_declaration' : 'skip',
-  'typed_member_declaration' : 'skip',
   'constructor_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
   'all_member_modifier' : 'skip',
   'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
   'field_declaration' : 'skip',
+  'method_declaration' : 'skip',
+  'method_body' : 'skip',
+  'method_member_name' : 'skip',
+  'formal_parameter_list' : 'skip',
   'variable_declarators' : 'skip',
   'variable_declarator' : 'skip',
   'var_type' : 'skip',
@@ -107,7 +111,7 @@ RULES = {
   # socket that holds an expression)
   'primary_expression_start' : 'parens',
 
-  # Sockets : can be used to enter inputs into a form or specify types
+  # Sockets : can be used to enter inputs into a form or specify dropdowns
   'IDENTIFIER' : 'socket',
   'NEW' : 'socket',
   'PUBLIC' : 'socket',
@@ -140,6 +144,8 @@ RULES = {
   'DECIMAL' : 'socket',
   'BOOL' : 'socket',
 
+  'VOID' : 'socket',
+
   'INTEGER_LITERAL' : 'socket',
   'HEX_INTEGER_LITERAL' : 'socket',
   'REAL_LITERAL' : 'socket',
@@ -149,8 +155,6 @@ RULES = {
   'VERBATIUM_STRING' : 'socket',
   'TRUE' : 'socket',
   'FALSE' : 'socket',
-
-  #'VAR' : 'socket', # TODO: add vars
 
   #### special: require functions to process blocks based on context/position in AST ####
 
@@ -166,25 +170,29 @@ RULES = {
       return 'skip'
 
   # need to process class variable/method declarations so these blocks can have the arrow buttons that
-  # lets one add or remove variable declarations/input parameters/ by clicking on those arrows
+  # lets one add or remove variable declarations/input parameters by clicking on those arrows
   # NOTE: the handleButton function in this file determines the behavior for what
-  # happens when either the ADD_BUTTON or BOTH_BUTTON is pressed
-  'class_member_delcaration' : (node) ->
-    # class variable declarations
-    if (node.children[0].children[0].type is 'typed_member_declaration')
-      if (node.children[1].children[0].children.length == 1)
-        return {type: 'block', buttons: ADD_BUTTON}
-      else if (node.children[1].children[0].children.length > 1)
-        return {type: 'block', buttons: BOTH_BUTTON}
-      else
-        return 'block'
+  # happens when a button is pressed
+  'typed_member_declaration' : (node) ->
+    # variable declaration
+    if (node.children[1].type is 'field_declaration')
+      field_decl_node = node.children[1]
 
-    # class methods
-    else if (node.children[1].children[0].type is 'constructor_declaration')
-      if (node.children[1].children[0].children[3]?.type is 'formal_parameter_list')
-        return {type: 'block', buttons: BOTH_BUTTON}
-      else
-        return {type: 'block', buttons: ADD_BUTTON}
+      if (field_decl_node.children[0].children.length == 1)
+        return {type : 'block', buttons : ADD_BUTTON}
+      else if (field_decl_node.children[0].children.length > 1)
+        return {type : 'block', buttons : BOTH_BUTTON}
+
+    # method declaration
+    else if (node.children[1].type is 'method_declaration')
+      method_decl_node = node.children[1]
+
+      return 'block'
+
+     # if (method_decl_node.children[2].type is 'formal_parameter_list')
+     #  return {type : 'block', buttons : BOTH_BUTTON}
+     # else
+     #  return {type : 'block', buttons : ADD_BUTTON}
 
     else
       return 'skip'
@@ -194,23 +202,10 @@ RULES = {
 # See view.coffee for a list of colors
 COLOR_RULES = {
   'using_directive' : 'using',
-
   'namespace_declaration' : 'namespace',
 
   'type_declaration' : 'type',
   'class_definition' : 'type',
-
-  'class_member_delcaration' : (node) ->
-    # class variable declarations
-    if (node.children[0].children[0].type is 'typed_member_declaration')
-      return 'variable'
-
-    # class methods
-    else if (node.children[1].children[0].type is 'constructor_declaration')
-      return 'method'
-
-    else
-      return 'comment'
 
   'expression' : 'expression',
   'assignment' : 'expression',
@@ -316,10 +311,6 @@ PAREN_RULES = {
 #  }
 }
 
-COLOR_CALLBACK = {
-
-}
-
 SHAPE_CALLBACK = {
 
 }
@@ -361,10 +352,10 @@ SIMPLE_TYPES = [
   'bool',
 ]
 
+# defines behavior for adding a locked socket + dropdown menu for class modifiers
+# NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
+# like in the "rules" section
 SHOULD_SOCKET = (opts, node) ->
-  # defines behavior for adding a locked socket + dropdown menu for class modifiers
-  # NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
-  # like in the "rules" section
   if(node.type in ['PUBLIC', 'PRIVATE', 'PROTECTED', 'INTERNAL', 'ABSTRACT', 'STATIC', 'PARTIAL', 'SEALED'])
     if (node.parent.type is 'using_directive') # skip the static keyword for static using directives
       return 'skip'
@@ -389,28 +380,37 @@ SHOULD_SOCKET = (opts, node) ->
 handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
 
- # if (type is 'add-button')
-    #if (block.children)
+  if (type is 'add-button')
+# TODO: refactor to support method params list
+    if (blockType is 'typed_member_declaration')
+      newStr = str.slice(0, str.length-1) + ", _ = _;"
 
-   # else if ()
-#    if (blockType is 'typed_member_declaration') # TODO: modify to support refactoring for method params for using class_member_declaration
-#      newStr = str.slice(0, str.length-1) + ", _ = _;"
+      return newStr
 
-#      return newStr
+  else if (type is 'subtract-button')
+    if (blockType is 'typed_member_declaration')
+      newStr = str.slice(0, str.lastIndexOf(",")) + ";"
 
-  #else if (type is 'subtract-button')
-#    if (blockType is 'typed_member_declaration')
-#      newStr = str.slice(0, str.lastIndexOf(",")) + ";"
-
-#      return newStr
+      return newStr
 
   return str
+
+# allows us to color the same node in different ways given different
+# contexts for it in the AST
+COLOR_CALLBACK = (opts, node) ->
+  if (node.type is 'typed_member_declaration')
+    if (node.children[1].type is 'field_declaration')
+      return 'variable'
+    else if (node.children[1].type is 'method_declaration')
+      return 'method'
+    else return 'comment'
+
+  return null
 
 config = {
   RULES,
   COLOR_DEFAULTS,
   COLOR_RULES,
-  COLOR_CALLBACK,
   SHAPE_RULES,
   SHAPE_CALLBACK,
   EMPTY_STRINGS,
@@ -421,7 +421,8 @@ config = {
   emptyIndent,
   PAREN_RULES,
   SHOULD_SOCKET,
-  handleButton
+  handleButton,
+  COLOR_CALLBACK
 }
 
 module.exports = parser.wrapParser antlrHelper.createANTLRParser 'CSharp', config
