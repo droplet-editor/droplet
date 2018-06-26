@@ -71,7 +71,7 @@ RULES = {
 
   'class_body': {
     'type': 'indent',
-    'indexContext': 'class_member_declaration',
+    'indexContext': 'class_member_declarations',
   },
 
   'block': {
@@ -87,8 +87,8 @@ RULES = {
   'namespace_member_declaration' : 'skip',
   'class_definition' : 'skip',
   'class_member_declarations' : 'skip',
-  'class_member_declaration' : 'skip',
   'common_member_declaration' : 'skip',
+  'typed_member_declaration' : 'skip',
   'constructor_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
   'all_member_modifier' : 'skip',
@@ -116,6 +116,7 @@ RULES = {
   'rank_specifier' : 'skip',
   'fixed_parameters' : 'skip',
   'fixed_parameter' : 'skip',
+  'class_base' : 'skip',
 
   # Parens : defines nodes that can have parenthesis in them
   # (used to wrap parenthesis in a block with the
@@ -158,6 +159,7 @@ RULES = {
   'BOOL' : 'socket',
 
   'VOID' : 'socket',
+  'VIRTUAL' : 'socket',
 
   'INTEGER_LITERAL' : 'socket',
   'HEX_INTEGER_LITERAL' : 'socket',
@@ -194,14 +196,14 @@ RULES = {
     else
       return 'skip'
 
-  # need to process class variable/method declarations so these blocks can have the arrow buttons that
+  # need to process class variable/method declarations differently so these blocks can be composed with the arrow buttons that
   # lets one add or remove variable declarations/input parameters by clicking on those arrows
   # NOTE: the handleButton function in this file determines the behavior for what
-  # happens when a button is pressed
-  'typed_member_declaration' : (node) ->
+  # happens when one of these arrows is pressed
+  'class_member_declaration' : (node) ->
     # variable declaration
-    if (node.children[1].type is 'field_declaration')
-      field_decl_node = node.children[1]
+    if (node.children[node.children.length-1].children[0].children[1].type is 'field_declaration')
+      field_decl_node = node.children[node.children.length-1].children[0].children[1]
 
       if (field_decl_node.children[0].children.length == 1)
         return {type : 'block', buttons : ADD_BUTTON}
@@ -209,7 +211,8 @@ RULES = {
         return {type : 'block', buttons : BOTH_BUTTON}
 
     # method declaration
-    else if (node.children[1].type is 'method_declaration')
+    else if (node.children[node.children.length-1].children[0].children[1].type is 'method_declaration') or
+            (node.children[node.children.length-1].children[1].type is 'method_declaration')
       return 'block'
 
     else
@@ -358,6 +361,12 @@ CLASS_MODIFIERS = MODIFIERS.concat([
   'sealed',
 ])
 
+MEMBER_MODIFIERS = MODIFIERS.concat([
+  'virtual',
+  'abstract',
+  'sealed',
+])
+
 SIMPLE_TYPES = [
   'sbyte',
   'byte',
@@ -378,13 +387,18 @@ SIMPLE_TYPES = [
 # NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
 # like in the "rules" section
 SHOULD_SOCKET = (opts, node) ->
-  if(node.type in ['PUBLIC', 'PRIVATE', 'PROTECTED', 'INTERNAL', 'ABSTRACT', 'STATIC', 'PARTIAL', 'SEALED'])
+  if(node.type in ['PUBLIC', 'PRIVATE', 'PROTECTED', 'INTERNAL', 'ABSTRACT', 'STATIC', 'PARTIAL', 'SEALED', 'VIRTUAL'])
     if (node.parent.type is 'using_directive') # skip the static keyword for static using directives
       return 'skip'
-    else
+    else if (node.parent.type is 'class_definition')
       return {
         type: 'locked',
         dropdown: CLASS_MODIFIERS
+      }
+    else if (node.parent.type is 'all_member_modifier')
+      return {
+        type: 'locked',
+        dropdown: MEMBER_MODIFIERS
       }
 
   # adds a locked socket for variable type specifiers (for simple types)
@@ -403,7 +417,7 @@ handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
 
   if (type is 'add-button')
-    if (blockType is 'typed_member_declaration')
+    if (blockType is 'class_member_declaration')
       newStr = str.slice(0, str.length-1) + ", _ = _;"
 
       return newStr
@@ -415,16 +429,13 @@ handleButton = (str, type, block) ->
       return newStr
 
   else if (type is 'subtract-button')
-    if (blockType is 'typed_member_declaration')
+    if (blockType is 'class_member_declaration')
       newStr = str.slice(0, str.lastIndexOf(",")) + ";"
 
       return newStr
 
     else if (blockType is 'formal_parameter_list')
       lastCommaIndex = str.lastIndexOf(",")
-
-      if (lastCommaIndex == -1)
-        return "_"
 
       newStr = str.substring(0, lastCommaIndex)
 
@@ -435,11 +446,17 @@ handleButton = (str, type, block) ->
 # allows us to color the same node in different ways given different
 # contexts for it in the AST
 COLOR_CALLBACK = (opts, node) ->
-  if (node.type is 'typed_member_declaration')
-    if (node.children[1].type is 'field_declaration')
-      return 'variable'
-    else if (node.children[1].type is 'method_declaration')
-      return 'method'
+  if (node.type is 'class_member_declaration')
+    if (node.children.length > 1)
+      if (node.children[1].children[0].children[1].type is 'field_declaration')
+        return 'variable'
+      else if (node.children[1].children[0].children[1].type is 'method_declaration')
+        return 'method'
+    else if (node.children.length == 1)
+      if (node.children[0].children[0].children[1].type is 'field_declaration')
+        return 'variable'
+      else if (node.children[0].children[0].children[1].type is 'method_declaration')
+        return 'method'
     else return 'comment'
 
   return null
