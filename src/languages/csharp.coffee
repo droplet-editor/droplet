@@ -19,6 +19,14 @@ ADD_BUTTON = [
   }
 ]
 
+SUBTRACT_BUTTON = [
+  {
+    key: 'subtract-button'
+    glyph: '\u25C0'
+    border: false
+  }
+]
+
 BOTH_BUTTON = [
   {
     key: 'subtract-button'
@@ -54,7 +62,8 @@ BOTH_BUTTON_VERT = [
 ]
 
 RULES = {
-  # tell parser to indent blocks within the main part of a namespace body (indent everything past namespace_member_declarations)
+  # tell model to indent blocks within the main part of a n
+  # namespace body (indent everything past namespace_member_declarations)
   'namespace_body': {
     'type': 'indent',
     'indexContext': 'namespace_member_declarations',
@@ -76,19 +85,18 @@ RULES = {
   'namespace_or_type_name' : 'skip',
   'namespace_member_declarations' : 'skip',
   'namespace_member_declaration' : 'skip',
-  'class_definition' : 'skip', # TODO: maybe have to get rid if we need to have separate logic for class defs vs. enums, for example
+  'class_definition' : 'skip',
   'class_member_declarations' : 'skip',
   'class_member_declaration' : 'skip',
   'common_member_declaration' : 'skip',
   'constructor_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
   'all_member_modifier' : 'skip',
-  'qualified_identifier' : 'skip', # TODO: this may cause conflicts later (originally done for namespace names like "foo.bar")
+  'qualified_identifier' : 'skip',
   'field_declaration' : 'skip',
   'method_declaration' : 'skip',
   'method_body' : 'skip',
   'method_member_name' : 'skip',
-  'formal_parameter_list' : 'skip',
   'variable_declarators' : 'skip',
   'variable_declarator' : 'skip',
   'var_type' : 'skip',
@@ -103,6 +111,11 @@ RULES = {
   'CLOSE_PARENS' : 'skip',
   ';' : 'skip',
   'statement_list' : 'skip',
+  'PARAMS' : 'skip',
+  'array_type' : 'skip',
+  'rank_specifier' : 'skip',
+  'fixed_parameters' : 'skip',
+  'arg_declaration' : 'skip',
 
   # Parens : defines nodes that can have parenthesis in them
   # (used to wrap parenthesis in a block with the
@@ -156,6 +169,18 @@ RULES = {
   'TRUE' : 'socket',
   'FALSE' : 'socket',
 
+  # buttonContainer: defines a node that acts as
+  # a "button" that can be placed inside of another block (these nodes generally should not
+  # be able to be "by themselves", and wont be blocks if they are by themselves)
+  'formal_parameter_list' : (node) ->
+    if (node.children[node.children.length-1].type is 'parameter_array')
+      return {type : 'buttonContainer', buttons : SUBTRACT_BUTTON}
+    else if (node.children[0].children.length == 1)
+      return {type : 'buttonContainer', buttons : ADD_BUTTON}
+    else
+      return {type : 'buttonContainer', buttons : BOTH_BUTTON}
+
+
   #### special: require functions to process blocks based on context/position in AST ####
 
   # need to skip the block that defines a class if there are class modifiers for the class
@@ -165,7 +190,7 @@ RULES = {
       if (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
         return 'skip'
       else if (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
-        return {type : 'block'}
+        return 'block'
     else
       return 'skip'
 
@@ -185,14 +210,7 @@ RULES = {
 
     # method declaration
     else if (node.children[1].type is 'method_declaration')
-      method_decl_node = node.children[1]
-
       return 'block'
-
-     # if (method_decl_node.children[2].type is 'formal_parameter_list')
-     #  return {type : 'block', buttons : BOTH_BUTTON}
-     # else
-     #  return {type : 'block', buttons : ADD_BUTTON}
 
     else
       return 'skip'
@@ -206,6 +224,9 @@ COLOR_RULES = {
 
   'type_declaration' : 'type',
   'class_definition' : 'type',
+
+  'parameter_array' : 'variable',
+  'fixed_parameter' : 'variable',
 
   'expression' : 'expression',
   'assignment' : 'expression',
@@ -381,11 +402,15 @@ handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
 
   if (type is 'add-button')
-# TODO: refactor to support method params list
     if (blockType is 'typed_member_declaration')
       newStr = str.slice(0, str.length-1) + ", _ = _;"
 
       return newStr
+
+    else if (blockType is 'formal_parameter_list')
+      str.replace(")", ", int param1)")
+    # TODO: finish implementing me
+      return str
 
   else if (type is 'subtract-button')
     if (blockType is 'typed_member_declaration')
@@ -393,6 +418,15 @@ handleButton = (str, type, block) ->
 
       return newStr
 
+    else if (blockType is 'formal_parameter_list')
+      #closingParenIndex = str.lastIndexOf(")")
+
+      #lastCommaIndex = str.lastIndexOf(",")
+
+      #newStr = str.replace(")", ", int param1)")
+# TODO: finish implementing me
+      #return newStr
+      return str # TODO placeholder
   return str
 
 # allows us to color the same node in different ways given different
