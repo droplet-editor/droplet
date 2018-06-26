@@ -115,7 +115,7 @@ RULES = {
   'array_type' : 'skip',
   'rank_specifier' : 'skip',
   'fixed_parameters' : 'skip',
-  'arg_declaration' : 'skip',
+  'fixed_parameter' : 'skip',
 
   # Parens : defines nodes that can have parenthesis in them
   # (used to wrap parenthesis in a block with the
@@ -175,11 +175,11 @@ RULES = {
   'formal_parameter_list' : (node) ->
     if (node.children[node.children.length-1].type is 'parameter_array')
       return {type : 'buttonContainer', buttons : SUBTRACT_BUTTON}
-    else if (node.children[0].children.length == 1)
-      return {type : 'buttonContainer', buttons : ADD_BUTTON}
     else
-      return {type : 'buttonContainer', buttons : BOTH_BUTTON}
-
+      if (node.children[0].children.length == 1)
+        return {type : 'buttonContainer', buttons : ADD_BUTTON}
+      else
+        return {type : 'buttonContainer', buttons : BOTH_BUTTON}
 
   #### special: require functions to process blocks based on context/position in AST ####
 
@@ -226,7 +226,7 @@ COLOR_RULES = {
   'class_definition' : 'type',
 
   'parameter_array' : 'variable',
-  'fixed_parameter' : 'variable',
+  'arg_declaration' : 'variable',
 
   'expression' : 'expression',
   'assignment' : 'expression',
@@ -302,6 +302,7 @@ EMPTY_STRINGS = {
   'VERBATIUM_STRING' : '_',
   'TRUE' : '_',
   'FALSE' : '_',
+  'arg_declaration' : '_',
 }
 
 # defines an empty character that is created when a block is dragged out of a socket
@@ -408,9 +409,10 @@ handleButton = (str, type, block) ->
       return newStr
 
     else if (blockType is 'formal_parameter_list')
-      str.replace(")", ", int param1)")
-    # TODO: finish implementing me
-      return str
+
+      newStr = str + ", int param1"
+
+      return newStr
 
   else if (type is 'subtract-button')
     if (blockType is 'typed_member_declaration')
@@ -419,14 +421,15 @@ handleButton = (str, type, block) ->
       return newStr
 
     else if (blockType is 'formal_parameter_list')
-      #closingParenIndex = str.lastIndexOf(")")
+      lastCommaIndex = str.lastIndexOf(",")
 
-      #lastCommaIndex = str.lastIndexOf(",")
+      if (lastCommaIndex == -1)
+        return "_"
 
-      #newStr = str.replace(")", ", int param1)")
-# TODO: finish implementing me
-      #return newStr
-      return str # TODO placeholder
+      newStr = str.substring(0, lastCommaIndex)
+
+      return newStr
+
   return str
 
 # allows us to color the same node in different ways given different
