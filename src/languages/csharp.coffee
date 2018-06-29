@@ -76,7 +76,7 @@ RULES = {
 
   'block': {
     'type' : 'indent',
-    'indexContext': 'statement',
+    'indexContext': 'statement_list',
   },
 
   # Skips : no block for these elements
@@ -115,6 +115,8 @@ RULES = {
   'fixed_parameters' : 'skip',
   'fixed_parameter' : 'skip',
   'class_base' : 'skip',
+  'local_variable_declarator' : 'skip',
+  'embedded_statement' : 'skip',
 
   # Parens : defines nodes that can have parenthesis in them
   # (used to wrap parenthesis in a block with the
@@ -175,18 +177,24 @@ RULES = {
   # NOTE: the handleButton function in this file determines the behavior for what
   # happens when one of these buttons is pressed
   'formal_parameter_list' : (node) ->
-    if (node.children[node.children.length-1].type is 'parameter_array')
+    if (node.children[node.children?.length-1]?.type is 'parameter_array')
       return {type : 'buttonContainer', buttons : SUBTRACT_BUTTON}
     else
-      if (node.children[0].children.length == 1)
+      if (node.children[0]?.children?.length == 1)
         return {type : 'buttonContainer', buttons : ADD_BUTTON}
       else
         return {type : 'buttonContainer', buttons : BOTH_BUTTON}
 
   'field_declaration' : (node) ->
-    if (node.children[0].children.length == 1)
+    if (node.children[0]?.children?.length == 1)
       return {type : 'buttonContainer', buttons : ADD_BUTTON}
     else
+      return {type : 'buttonContainer', buttons : BOTH_BUTTON}
+
+  'local_variable_declaration' : (node) ->
+    if (node.children?.length == 2)
+      return {type : 'buttonContainer', buttons : ADD_BUTTON}
+    else if (node.children?.length > 2)
       return {type : 'buttonContainer', buttons : BOTH_BUTTON}
 
   #### special: require functions to process blocks based on context/position in AST ####
@@ -195,9 +203,9 @@ RULES = {
   # (will not detect a class with no modifiers otherwise)
   'class_definition' : (node) ->
     if (node.parent?)
-      if (node.parent.type is 'type_declaration') and (node.parent.children.length > 1)
+      if (node.parent.type is 'type_declaration') and (node.parent.children?.length > 1)
         return 'skip'
-      else if (node.parent.type is 'type_declaration') and (node.parent.children.length == 1)
+      else if (node.parent.type is 'type_declaration') and (node.parent.children?.length == 1)
         return 'block'
     else
       return 'skip'
@@ -207,16 +215,25 @@ RULES = {
   # way that I was able to get method member modifiers working alongside variables/methods that don't
   # have method modifiers
   'class_member_declaration' : (node) ->
-    if (node.children.length == 1)
+    if (node.children?.length == 1)
       return 'skip'
     else
       return 'block'
 
   'typed_member_declaration' : (node) ->
-    if (node.parent.parent.children.length > 1)
+    if (node.parent?.parent?.children?.length > 1)
       return 'skip'
     else
       return 'block'
+
+  'simple_embedded_statement' : (node) ->
+    if (node.parent?.type is 'if_body')
+      return 'skip'
+    else
+      if (node.children[node.children?.length-2]?.type is 'ELSE')
+        return {type : 'block', buttons : BOTH_BUTTON_VERT}
+      else
+        return {type : 'block', buttons : ADD_BUTTON_VERT}
 }
 
 # Used to color nodes
@@ -262,6 +279,7 @@ COLOR_DEFAULTS = {
   'expression' : 'deeporange'
   'method' : 'indigo'
   'comment' : 'grey'
+  'conditional' : 'lightgreen'
 }
 
 # still not exactly sure what this section does, or what the helper does
@@ -383,30 +401,42 @@ SIMPLE_TYPES = [
   'bool',
 ]
 
+RETURN_TYPES = SIMPLE_TYPES.concat ([
+  'void',
+])
+
 # defines behavior for adding a locked socket + dropdown menu for class modifiers
 # NOTE: any node/token that can/should be turned into a dropdown must be defined as a socket,
 # like in the "rules" section
 SHOULD_SOCKET = (opts, node) ->
   if(node.type in ['PUBLIC', 'PRIVATE', 'PROTECTED', 'INTERNAL', 'ABSTRACT', 'STATIC', 'PARTIAL', 'SEALED', 'VIRTUAL'])
-    if (node.parent.type is 'using_directive') # skip the static keyword for static using directives
+    if (node.parent?.type is 'using_directive') # skip the static keyword for static using directives
       return 'skip'
-    else if (node.parent.type is 'class_definition')
+    else if (node.parent?.type is 'class_definition')
       return {
-        type: 'locked',
-        dropdown: CLASS_MODIFIERS
+        type : 'locked',
+        dropdown : CLASS_MODIFIERS
       }
-    else if (node.parent.type is 'all_member_modifier')
+    else if (node.parent?.type is 'all_member_modifier')
       return {
-        type: 'locked',
-        dropdown: MEMBER_MODIFIERS
+        type : 'locked',
+        dropdown : MEMBER_MODIFIERS
       }
 
   # adds a locked socket for variable type specifiers (for simple types)
-  else if(node.type in ['SBYTE', 'BYTE', 'SHORT', 'USHORT', 'INT', 'UINT', 'LONG', 'ULONG', 'CHAR', 'FLOAT', 'DOUBLE', 'DECIMAL', 'BOOL'])
-    return {
-      type: 'locked',
-      dropdown: SIMPLE_TYPES
-    }
+  else if(node.type in ['SBYTE', 'BYTE', 'SHORT', 'USHORT', 'INT', 'UINT', 'LONG', 'ULONG', 'CHAR', 'FLOAT', 'DOUBLE', 'DECIMAL', 'BOOL', 'VOID'])
+    if (node.parent?.parent?.parent?.parent?.parent?.parent?.children[1]?.type is 'method_declaration') or
+        (node.parent?.parent?.parent?.parent?.children[1]?.type is 'method_declaration') or
+        (node.parent?.children[1]?.type is 'method_declaration')
+      return {
+        type : 'locked',
+        dropdown : RETURN_TYPES
+      }
+    else
+      return {
+        type : 'locked',
+        dropdown : SIMPLE_TYPES
+      }
 
   # return true by default (don't know why we do this)
   return true
@@ -427,6 +457,17 @@ handleButton = (str, type, block) ->
       newStr = str + ", int param1"
 
       return newStr
+# TODO: button handlers for if-elseif-else statements
+   # else if (blockType is 'local_variable_declaration')
+    #  newStr = str + ", _ = _"
+
+     # return newStr
+
+    else if (blocktype is 'simple_embedded_statement')
+      if (block.children[0]?.type is 'IF')
+        newStr = str + "else { \n \n }"
+
+        return newStr
 
   else if (type is 'subtract-button')
     if (blockType is 'field_declaration')
@@ -441,24 +482,42 @@ handleButton = (str, type, block) ->
 
       return newStr
 
+    else if (blockType is 'local_variable_declaration')
+      newStr = str.slice(0, str.lastIndexOf(","))
+
+      return newStr
+
   return str
 
 # allows us to color the same node in different ways given different
 # contexts for it in the AST
 COLOR_CALLBACK = (opts, node) ->
   if (node.type is 'class_member_declaration')
-    if (node.children[node.children.length-1].children[0].children[1].type is 'field_declaration')
+    if (node.children[node.children.length-1]?.children[0]?.children[1]?.type is 'field_declaration')
       return 'variable'
-    else if (node.children[node.children.length-1].children[0].children[1].type is 'method_declaration')
+    else if (node.children[node.children?.length-1]?.children[0]?.children[1]?.type is 'method_declaration') or
+            (node.children[node.children?.length-1]?.children[1]?.type is 'method_declaration')
       return 'method'
     else return 'comment'
 
   else if (node.type is 'typed_member_declaration')
-    if (node.children[1].type is 'field_declaration')
+    if (node.children[1]?.type is 'field_declaration')
       return 'variable'
-    else if (node.children[1].type is 'method_declaration')
+    else if (node.children[1]?.type is 'method_declaration')
       return 'method'
     else return 'comment'
+
+  else if (node.type is 'statement')
+    if (node.children[0]?.type is 'local_variable_declaration')
+      return 'variable'
+    else
+      return 'comment'
+
+  else if (node.type is 'simple_embedded_statement')
+    if (node.children[0]?.type is 'IF')
+      return 'conditional'
+    else
+      return 'comment'
 
   return null
 
