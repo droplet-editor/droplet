@@ -88,17 +88,15 @@ RULES = {
   'class_definition' : 'skip',
   'class_member_declarations' : 'skip',
   'common_member_declaration' : 'skip',
-  'typed_member_declaration' : 'skip',
   'constructor_declaration' : 'skip',
   'all_member_modifiers' : 'skip',
   'all_member_modifier' : 'skip',
   'qualified_identifier' : 'skip',
-  'field_declaration' : 'skip',
   'method_declaration' : 'skip',
   'method_body' : 'skip',
   'method_member_name' : 'skip',
-  'variable_declarators' : 'skip',
   'variable_declarator' : 'skip',
+  'variable_declarators' : 'skip',
   'var_type' : 'skip',
   'base_type' : 'skip',
   'class_type' : 'skip',
@@ -174,6 +172,8 @@ RULES = {
   # buttonContainer: defines a node that acts as
   # a "button" that can be placed inside of another block (these nodes generally should not
   # be able to be "by themselves", and wont be blocks if they are by themselves)
+  # NOTE: the handleButton function in this file determines the behavior for what
+  # happens when one of these buttons is pressed
   'formal_parameter_list' : (node) ->
     if (node.children[node.children.length-1].type is 'parameter_array')
       return {type : 'buttonContainer', buttons : SUBTRACT_BUTTON}
@@ -182,6 +182,12 @@ RULES = {
         return {type : 'buttonContainer', buttons : ADD_BUTTON}
       else
         return {type : 'buttonContainer', buttons : BOTH_BUTTON}
+
+  'field_declaration' : (node) ->
+    if (node.children[0].children.length == 1)
+      return {type : 'buttonContainer', buttons : ADD_BUTTON}
+    else
+      return {type : 'buttonContainer', buttons : BOTH_BUTTON}
 
   #### special: require functions to process blocks based on context/position in AST ####
 
@@ -196,27 +202,21 @@ RULES = {
     else
       return 'skip'
 
-  # need to process class variable/method declarations differently so these blocks can be composed with the arrow buttons that
-  # lets one add or remove variable declarations/input parameters by clicking on those arrows
-  # NOTE: the handleButton function in this file determines the behavior for what
-  # happens when one of these arrows is pressed
+  # need to process class variable/method declarations differently if they have or do not have
+  # member modifiers. I don't know why exactly it must be done this way, but this configuration is the only
+  # way that I was able to get method member modifiers working alongside variables/methods that don't
+  # have method modifiers
   'class_member_declaration' : (node) ->
-    # variable declaration
-    if (node.children[node.children.length-1].children[0].children[1].type is 'field_declaration')
-      field_decl_node = node.children[node.children.length-1].children[0].children[1]
-
-      if (field_decl_node.children[0].children.length == 1)
-        return {type : 'block', buttons : ADD_BUTTON}
-      else if (field_decl_node.children[0].children.length > 1)
-        return {type : 'block', buttons : BOTH_BUTTON}
-
-    # method declaration
-    else if (node.children[node.children.length-1].children[0].children[1].type is 'method_declaration') or
-            (node.children[node.children.length-1].children[1].type is 'method_declaration')
+    if (node.children.length == 1)
+      return 'skip'
+    else
       return 'block'
 
-    else
+  'typed_member_declaration' : (node) ->
+    if (node.parent.parent.children.length > 1)
       return 'skip'
+    else
+      return 'block'
 }
 
 # Used to color nodes
@@ -417,7 +417,7 @@ handleButton = (str, type, block) ->
   blockType = block.nodeContext?.type ? block.parseContext
 
   if (type is 'add-button')
-    if (blockType is 'class_member_declaration')
+    if (blockType is 'field_declaration')
       newStr = str.slice(0, str.length-1) + ", _ = _;"
 
       return newStr
@@ -429,7 +429,7 @@ handleButton = (str, type, block) ->
       return newStr
 
   else if (type is 'subtract-button')
-    if (blockType is 'class_member_declaration')
+    if (blockType is 'field_declaration')
       newStr = str.slice(0, str.lastIndexOf(",")) + ";"
 
       return newStr
@@ -447,16 +447,17 @@ handleButton = (str, type, block) ->
 # contexts for it in the AST
 COLOR_CALLBACK = (opts, node) ->
   if (node.type is 'class_member_declaration')
-    if (node.children.length > 1)
-      if (node.children[1].children[0].children[1].type is 'field_declaration')
-        return 'variable'
-      else if (node.children[1].children[0].children[1].type is 'method_declaration')
-        return 'method'
-    else if (node.children.length == 1)
-      if (node.children[0].children[0].children[1].type is 'field_declaration')
-        return 'variable'
-      else if (node.children[0].children[0].children[1].type is 'method_declaration')
-        return 'method'
+    if (node.children[node.children.length-1].children[0].children[1].type is 'field_declaration')
+      return 'variable'
+    else if (node.children[node.children.length-1].children[0].children[1].type is 'method_declaration')
+      return 'method'
+    else return 'comment'
+
+  else if (node.type is 'typed_member_declaration')
+    if (node.children[1].type is 'field_declaration')
+      return 'variable'
+    else if (node.children[1].type is 'method_declaration')
+      return 'method'
     else return 'comment'
 
   return null
