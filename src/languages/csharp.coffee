@@ -117,6 +117,9 @@ RULES = {
   'class_base' : 'skip',
   'local_variable_declarator' : 'skip',
   'embedded_statement' : 'skip',
+  'member_access' : 'skip',
+  'method_invocation' : 'skip',
+  'argument_list' : 'skip',
 
   # Parens : defines nodes that can have parenthesis in them
   # (used to wrap parenthesis in a block with the
@@ -229,11 +232,29 @@ RULES = {
   'simple_embedded_statement' : (node) ->
     if (node.parent?.type is 'if_body')
       return 'skip'
+    else if (node.children[0]?.type is 'FOR') or
+            (node.children[0]?.type is 'WHILE')
+      return 'block'
+    else if (node.children[0]?.type is 'expression')
+      if (node.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[2]?.type is 'method_invocation')
+        params_list_node = node.children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[2]
+        if (params_list_node.children?.length == 2)
+          return {type : 'block', buttons : ADD_BUTTON}
+        else
+          return {type : 'block', buttons : BOTH_BUTTON}
+    else if (node.children[0]?.type is 'RETURN')
+      return 'block'
     else
       if (node.children[node.children?.length-2]?.type is 'ELSE')
         return {type : 'block', buttons : BOTH_BUTTON_VERT}
       else
         return {type : 'block', buttons : ADD_BUTTON_VERT}
+
+  'primary_expression' : (node) ->
+    if (node.children[2]?.type is 'method_invocation')
+      return 'skip'
+    else
+      return 'block'
 }
 
 # Used to color nodes
@@ -278,8 +299,10 @@ COLOR_DEFAULTS = {
   'variable' : 'yellow'
   'expression' : 'deeporange'
   'method' : 'indigo'
+  'functionCall' : 'pink'
   'comment' : 'grey'
   'conditional' : 'lightgreen'
+  'loop' : 'cyan'
 }
 
 # still not exactly sure what this section does, or what the helper does
@@ -457,17 +480,53 @@ handleButton = (str, type, block) ->
       newStr = str + ", int param1"
 
       return newStr
-# TODO: button handlers for if-elseif-else statements
-   # else if (blockType is 'local_variable_declaration')
-    #  newStr = str + ", _ = _"
 
-     # return newStr
+    else if (blockType is 'local_variable_declaration')
+      newStr = str + ", _ = _"
 
-    else if (blocktype is 'simple_embedded_statement')
-      if (block.children[0]?.type is 'IF')
-        newStr = str + "else { \n \n }"
+      return newStr
+
+    else if (blockType is 'simple_embedded_statement')
+
+      if (str.substring(0, 2) != 'if') # method invocation
+        if (str.substring(str.length-3, str.length-1) == "()")
+          newStr = str.substring(0, str.length-2) + "_);"
+
+          return newStr
+        else
+          newStr = str.substring(0, str.length-2) + ",_);"
+
+          return newStr
+
+# TODO: add button for if-else-elseif statements (for nested statements)
+      lastElseIndex = str.lastIndexOf("else")
+
+      if (lastElseIndex == -1)
+        newStr = str + " else {\n\t\n}"
 
         return newStr
+      else
+        lastElseIfIndex = str.lastIndexOf("else if")
+
+        if (lastElseIfIndex == -1)
+          trailingIfIndex = str.substring(lastElseIndex, str.length).lastIndexOf("if")
+
+          if (trailingIfIndex == -1)
+            newStr = str.substring(0, lastElseIndex) + "else if (a == b)" + str.substring(lastElseIndex + 4, str.length) + " else {\n\t\n}"
+
+            return newStr
+          else
+            newStr = str + " else {\n\t\n}"
+
+            return newStr
+        else
+
+          if ((str.match(/else/g) || []).length > 1)
+            newStr = str.substring(0, lastElseIndex) + "else if (a == b)" + str.substring(lastElseIndex + 4, str.length) + " else {\n\t\n}"
+          else
+            newStr = str + " else {\n\t\n}"
+
+          return newStr
 
   else if (type is 'subtract-button')
     if (blockType is 'field_declaration')
@@ -477,7 +536,6 @@ handleButton = (str, type, block) ->
 
     else if (blockType is 'formal_parameter_list')
       lastCommaIndex = str.lastIndexOf(",")
-
       newStr = str.substring(0, lastCommaIndex)
 
       return newStr
@@ -486,6 +544,30 @@ handleButton = (str, type, block) ->
       newStr = str.slice(0, str.lastIndexOf(","))
 
       return newStr
+# TODO: subtract button for if-else-elseif statements
+    else if (blockType is 'simple_embedded_statement')
+
+      if (str.substring(0, 2) != 'if') # method invocation
+
+        lastCommaIndex = str.lastIndexOf(",")
+
+        if (lastCommaIndex != -1)
+          newStr = str.substring(0, lastCommaIndex) + ");"
+        else
+          newStr = str.substring(0, str.length-3) + ");"
+
+        return newStr
+
+      elseCount = (str.match(/else/g) || []).length
+
+      if (elseCount == 1)
+        newStr = str.substring(0, str.lastIndexOf("else"))
+
+        return newStr
+      else
+        lastIfIndex = str.lastIndexOf("if")
+
+        return str;
 
   return str
 
@@ -516,8 +598,20 @@ COLOR_CALLBACK = (opts, node) ->
   else if (node.type is 'simple_embedded_statement')
     if (node.children[0]?.type is 'IF')
       return 'conditional'
+    else if (node.children[0]?.type is 'expression')
+    # Forgive me, God
+      if (node.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[0]?.children[2]?.type is 'method_invocation')
+        return 'functionCall'
+      else
+        return 'expression'
+    else if (node.children[0]?.type is 'FOR') or
+            (node.children[0]?.type is 'WHILE')
+      return 'loop'
+    else if (node.children[0]?.type is 'RETURN')
+      return 'variable'
     else
       return 'comment'
+
 
   return null
 
