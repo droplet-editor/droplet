@@ -183,6 +183,15 @@ exports.deepCopy = deepCopy = (a) ->
   else
     return a
 
+exports.noCycleStringify = (obj)->
+  seen = []
+  JSON.stringify obj, (key, val) ->
+    if val != null and typeof val == 'object'
+      if seen.indexOf(val) >= 0
+        return
+      seen.push val
+    val
+
 exports.deepEquals = deepEquals = (a, b) ->
   if a instanceof Object and b instanceof Object
     for own key, val of a

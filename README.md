@@ -91,6 +91,27 @@ This will run the development server and watch the `src/` and `example/` directo
 
 Run `grunt all` to run the tests.
 
+
+Installing
+==========
+
+On Ubuntu xenial, you can install the latest version of nodejs as follows:
+
+1. Create a new file "/etc/apt/sources.list.d/nodesource.list" with these contents:
+
+```deb https://deb.nodesource.com/node_6.x xenial main
+deb-src https://deb.nodesource.com/node_6.x xenial main
+```
+
+2. Get the Nodesource GPG signing key:
+```curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+```
+
+3. Update and upgrade:
+```sudo apt-get update
+sudo apt-get install nodejs
+```
+
 Adding a Language
 -----------------
 Make a CoffeeScript (or JavaScript) file that looks like this:

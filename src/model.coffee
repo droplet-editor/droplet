@@ -16,7 +16,7 @@ DEFAULT_STRINGIFY_OPTS = {preserveEmpty: true}
 # A NodeContext represents the default (bottom-most) paren-wrap state that a block
 # can revert to when paren-wrapping. e.g. in C, the 'blockItem' node (myfun()); would have nodeContext 'postfixExpression', 'myfun()', 'myfun()', whie
 # a++ would have nodeContext 'postfixExpression', '', '++'
-exports.NodeContext = class NodeContext
+class NodeContext
   constructor: (@type, @prefix, @suffix) ->
 
 COMMENT_CONTEXT = new NodeContext '__comment__', '', ''
@@ -1338,3 +1338,5 @@ exports.stringThrough  = (start, terminating, backward = false) ->
       head = head.next
 
   return {string: str, token: head}
+
+exports.NodeContext = NodeContext

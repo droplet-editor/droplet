@@ -4340,7 +4340,9 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
             div.parentNode.removeChild div
 
           @resizeBlockMode()
-
+          #myData = helper.noCycleStringify(@session.view.getViewNodeFor(@session.tree))
+          myData = helper.noCycleStringify(@session.view.map)
+          console.log(myData)
           @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
 
           cb?(success: true)

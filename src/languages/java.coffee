@@ -59,11 +59,17 @@ BOTH_BUTTON_VERT = [
 #
 # ### Format: 'tokenName': 'type' ###
 #
-# Type		Description
-# ----		-----------
-# skip		skip this token (don't display it)
-# comment	Mark as a code comment
-#
+# Type			Description
+# ----			-----------
+# skip			skip this token (don't display it)
+# comment		Mark as a code comment
+# parens		????
+# block			????
+# indent		????
+# socket
+# buttonContainer
+# lockedSocket
+# document
 #
 ############################################################
 
@@ -88,6 +94,7 @@ RULES = {
   'classDeclaration': 'skip',
   'memberDeclaration': 'skip',
   'methodDeclaration': 'skip',
+  'fieldDeclaration': 'skip',
   'typeTypeOrVoid': 'skip',
 
   # Method wrappers
@@ -114,7 +121,7 @@ RULES = {
   'IDENTIFIER': 'socket',
   'qualifiedName': 'socket',
   'typeType': 'socket',
-  'literal': 'socket',
+  'literal': 'text',
 
   # General modifiers (methods, variables, classes, etc)
   'PRIVATE': 'socket',
