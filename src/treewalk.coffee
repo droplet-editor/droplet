@@ -27,16 +27,24 @@ exports.createTreewalkParser = (parse, config, root) ->
       if config.handleButton?
         config.handleButton.apply @, arguments
 
+    handleAcceptance: ->
+      if config.handleAcceptance?
+        config.handleAcceptance.apply @, arguments
+      else
+        null
+
     parseComment: (text) ->
       return config.parseComment text
 
     preparse: (context = root) -> parse(context, @text)
 
+    # Parse text into tree if necessary, then apply markup starting at the root.
     markRoot: (context = root, cachedParse = null) ->
       if cachedParse?
         parseTree = cachedParse
       else
         parseTree = parse(context, @text)
+        # console.log("UNMARKED DATA: " + helper.noCycleStringify(parseTree))
 
       # Parse
       @mark parseTree, '', 0
@@ -48,6 +56,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         line = @lines[bounds.start.line + 1]
         return line[0...line.length - line.trimLeft().length]
 
+    # Format rule to {type: rule} format; includes calling customized functions in configurations.
     applyRule: (node) ->
       if node._cachedApplication?
         return node._cachedApplication
@@ -64,6 +73,7 @@ exports.createTreewalkParser = (parse, config, root) ->
 
       return rule
 
+    # Detect the type of a node and return it.
     det: (node) ->
       if node.type of config.RULES
         return @applyRule(node).type
@@ -74,6 +84,7 @@ exports.createTreewalkParser = (parse, config, root) ->
         return @applyRule(node).buttons ? EMPTY_OBJECT
       return EMPTY_OBJECT
 
+    # Detect type type of a node and return it, but override "blockified" nodes to type "block"
     detNode: (node) -> if node.blockified then 'block' else @det(node)
 
     getColor: (node) ->
@@ -114,6 +125,7 @@ exports.createTreewalkParser = (parse, config, root) ->
       else
         return new parser.PreNodeContext node.type, 0, 0
 
+    # Mark-up a node and its children as appropriate.
     mark: (node, prefix, depth, pass, rules, context, wrap) ->
       unless pass
         context = node.parent
