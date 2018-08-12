@@ -672,6 +672,7 @@ exports.wrapParser = (CustomParser) ->
     preparse: (text, context) ->
       return @createParser(text).preparse context
 
+    # Prepares text for use by Droplet - includes loading parser, parsing, reformatting tree, and marking.
     parse: (text, opts, cachedParse = null) ->
       @opts.parseOptions = opts
       opts ?= wrapAtRoot: true
@@ -704,7 +705,14 @@ exports.wrapParser = (CustomParser) ->
       return [leading, trailing, context]
 
 
-    drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
+    drop: (block, context, pred, next) ->
+      parser = @createParser("")
+      acceptLevel = parser.handleAcceptance block, context, pred, next
+
+      if acceptLevel == null
+        return CustomParser.drop block, context, pred, next
+
+      return acceptLevel
 
     handleButton: (text, command, oldblock) ->
       parser = @createParser(text)

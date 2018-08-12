@@ -4341,6 +4341,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
           @resizeBlockMode()
 
+          # console.log("ACE DATA:\n" + @getAceValue() + "\nVIEW DATA:\n" + helper.noCycleStringify(@session.view.map)) # DEBUGGING: Logs view data.
           @fireEvent 'toggledone', [@session.currentlyUsingBlocks]
 
           cb?(success: true)
@@ -4685,6 +4686,7 @@ Editor::setValue_raw = (value) ->
         preserveEmpty: @session.options.preserveEmpty
       }
 
+    # console.log("ACE DATA:\n" + @getAceValue() + "\nPARSE DATA:\n" + helper.noCycleStringify(newParse)) # DEBUGGING: Logs parse data
     unless @session.tree.start.next is @session.tree.end
       removal = new model.List @session.tree.start.next, @session.tree.end.prev
       @spliceOut removal

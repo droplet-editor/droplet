@@ -12,7 +12,7 @@ antlr4 = require 'antlr4'
 ANTLR_PARSER_COLLECTION = {
   'JavaLexer': require('../antlr/JavaLexer'),
   'JavaParser': require('../antlr/JavaParser'),
-  'JavaDroppabilityGraph': require('../antlr/JavaDroppabilityGraph.json'),
+#  'JavaDroppabilityGraph': require('../antlr/JavaDroppabilityGraph.json'),
   'CLexer': require('../antlr/CLexer'),
   'CParser': require('../antlr/CParser'),
   'CDroppabilityGraph': require('../antlr/CDroppabilityGraph.json'),
@@ -27,6 +27,7 @@ ANTLR_PARSER_COLLECTION = {
 exports.createANTLRParser = (name, config, root) ->
   root ?= 'compilationUnit'
 
+  # Parse via ANTLR, then reformat tree (no markup) and return
   parse = (context, text) ->
     # Construct but do not execute all of the necessary ANTLR accessories
     chars = new antlr4.InputStream(text)
@@ -38,7 +39,7 @@ exports.createANTLRParser = (name, config, root) ->
 
     parser._errHandler = new antlr4.error.BailErrorStrategy()
 
-    # Build the actual parse tree
+    # Build the actual parse tree and return
     parser.buildParseTrees = true
     return transform parser[context + '_DropletFile']()
 

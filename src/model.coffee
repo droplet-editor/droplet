@@ -515,6 +515,7 @@ exports.Container = class Container extends List
       shape: @shape
       indentContext: @indentContext
       parseContext: @parseContext
+      parentParseContext: if @parent then @parent.parseContext else null
       data: @data
       nodeContext: @nodeContext
     }
