@@ -326,8 +326,6 @@
 text {
   white-space: pre;
   pointer-events: none;
-  font-size: .95em;
-
 }
 .droplet-block-path {
   cursor: -webkit-grab;

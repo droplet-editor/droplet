@@ -2088,6 +2088,7 @@ hook 'mouseup', 1, (point, event, state) ->
       #if @lastHighlight.type is 'socket'
       #  @reparse @draggingBlock.parent.parent
       draggingPalette = @draggingPalette
+      # Don't know if this will actually work...
 
       # Now that we've done that, we can annul stuff.
       @endDrag true
@@ -3245,6 +3246,9 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
       @dropdownElement.style.top = dropdownTop + 'px'
     else
       location = @session.view.getViewNodeFor(socket).bounds[0]
+      if !location?
+        return
+
       @dropdownElement.style.left = location.x - @session.viewports.main.x + @dropletElement.offsetLeft + @gutter.clientWidth + 'px'
       @dropdownElement.style.minWidth = location.width + 'px'
 
@@ -5013,7 +5017,10 @@ Editor::endDrag = (successfulDrop) ->
   @lastHighlightPath?.deactivate?()
   @lastHighlight = @lastHighlightPath = null
 
+  @setValue @getValue()
   @redrawMain()
+
+
   return
 
 # PALETTE EVENT

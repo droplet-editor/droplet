@@ -77,6 +77,7 @@ DEFAULT_OPTIONS =
     teal: '#80cbc4'
     green: '#a5d6a7'
     lightgreen: '#c5e1a5'
+    darkgreen: '#008000'
     lime: '#e6ee9c'
     yellow: '#fff59d'
     amber: '#ffe082'
@@ -262,7 +263,14 @@ exports.View = class View
       when 'document' then new DocumentViewNode entity, this
 
   # Looks up a color name, or passes through a #hex color.
-  getColor: (color) ->
+  getColor: (model) ->
+    if model?.color instanceof Function
+      color = model.color(model)
+    else if model?
+      color = model.color
+    else
+      color = ""
+
     if color and '#' is color.charAt(0)
       color
     else
@@ -1892,7 +1900,7 @@ exports.View = class View
       # Make a Path object out of these points
       @path.setPoints newPath
       if @model.type is 'block'
-        @path.style.fillColor = @view.getColor @model.color
+        @path.style.fillColor = @view.getColor @model
 
       if @model.buttons? and @model.type is 'lockedSocket'
         # Add the add button if necessary

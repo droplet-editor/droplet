@@ -298,3 +298,21 @@ dfs = (graph, a, b, visited = {}) ->
   return false
 
 exports.dfs = dfs
+
+exports.trimIdentifierToken = (target) ->
+  if !target?
+    return null
+
+  index = 0
+
+  while index < target.length
+    char1 = target.charAt(index)
+    cc = char1.charCodeAt(0)
+    if cc > 47 and cc < 58 or cc > 64 and cc < 91 or cc > 96 and cc < 123
+      index++
+      continue
+    else
+      break
+    index++
+  return target.substring(0, index)
+

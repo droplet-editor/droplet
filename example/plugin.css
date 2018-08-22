@@ -1,0 +1,28 @@
+#site-header
+{
+}
+
+#wrapper
+{
+}
+
+#container
+{
+  height: 100%;
+}
+
+#droplet-editor-wrapper
+{
+  position: absolute;
+  top: 25;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+#droplet-editor
+{
+}
+
