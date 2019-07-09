@@ -796,7 +796,7 @@ asyncTest 'Controller: showPaletteInTextMode false', ->
     strictEqual aceEditor.style.left, '0px'
     editor.performFreezeAnimation 10, 10, ->
       strictEqual paletteWrapper.style.left, '0px'
-      strictEqual aceEditor.style.left, '-9999px'
+      strictEqual aceEditor.style.left, '0px'
       start()
 
 asyncTest 'Controller: showPaletteInTextMode true', ->
@@ -821,7 +821,7 @@ asyncTest 'Controller: showPaletteInTextMode true', ->
     strictEqual aceEditor.style.left, '270px'
     editor.performFreezeAnimation 10, 10, ->
       strictEqual paletteWrapper.style.left, '0px'
-      strictEqual aceEditor.style.left, '-9999px'
+      strictEqual aceEditor.style.left, '270px'
       start()
 
 asyncTest 'Controller: enablePalette false', ->
