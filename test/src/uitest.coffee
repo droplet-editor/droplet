@@ -978,7 +978,7 @@ asyncTest 'Controller: Session switch test', ->
       equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks'
       editor.setEditorState(false)
 
-      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+      equal editor.paletteWrapper.style.left is '0px', true, 'No longer using blocks'
     ),
     (->
       editor.aceEditor.setSession originalSession
@@ -1010,7 +1010,7 @@ asyncTest 'Controller: Session switch test', ->
       }\n
       ''', 'Set value of new session'
 
-      equal editor.paletteWrapper.style.left is '0px', false, 'No longer using blocks'
+      equal editor.paletteWrapper.style.left is '0px', true, 'No longer using blocks'
       equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
 
       start()
