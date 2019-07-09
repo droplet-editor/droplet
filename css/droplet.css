@@ -71,7 +71,7 @@
   position: absolute;
   top: 0; bottom: 0; width: 300px;
   max-width: 40%;
-  z-index: 257;
+  z-index:0;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
@@ -263,7 +263,7 @@
   max-height: 150px;
   position: absolute;
   background-color: #FFF;
-  z-index: 10000;
+  z-index: 500;
   border: 1px solid #DDD;
   border-radius: 2px;
   overflow-y: auto;
