@@ -1,6 +1,10 @@
 {
   "name": "droplet-editor",
   "version": "0.0.2",
+  "engines": {
+    "node": ">=8.15",
+    "npm": ">=3.10.8"
+  },
   "devDependencies": {
     "browserify": "10.2.6",
     "browserify-shim": "3.8.14",
