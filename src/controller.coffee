@@ -248,6 +248,7 @@ exports.Editor = class Editor
     @draw = new draw.Draw(@mainCanvas)
 
     @dropletElement.style.left = @paletteWrapper.clientWidth + 'px'
+    @dropletElement.style.zIndex = 1
 
     do @draw.refreshFontCapital
 
@@ -306,6 +307,8 @@ exports.Editor = class Editor
 
       @aceEditor.container.parentElement.appendChild @wrapperElement
       @wrapperElement.appendChild @aceEditor.container
+
+    @aceElement.style.zIndex = 1
 
     # Append populated divs
     @wrapperElement.appendChild @dropletElement
