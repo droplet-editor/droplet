@@ -976,9 +976,16 @@ asyncTest 'Controller: Session switch test', ->
       equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
 
       equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks'
+      equal editor.dropletElement.style.top is '0px', true, 'droplet visible'
+      equal editor.dropletElement.style.left is '270px', true, 'droplet next to palette'
+      equal editor.aceElement.style.top is '-9999px', true, 'ace element offscreen'
+
       editor.setEditorState(false)
 
       equal editor.paletteWrapper.style.left is '0px', true, 'No longer using blocks'
+      equal editor.dropletElement.style.top is '-9999px', true, 'droplet offscreen'
+      equal editor.aceElement.style.top is '0px', true, 'ace element visible'
+      equal editor.aceElement.style.left is '0px', true, 'palette covered by ace element'
     ),
     (->
       editor.aceEditor.setSession originalSession
@@ -993,6 +1000,9 @@ asyncTest 'Controller: Session switch test', ->
       ''', 'Original text restored'
 
       equal editor.paletteWrapper.style.left is '0px', true, 'Using blocks again'
+      equal editor.dropletElement.style.top is '0px', true, 'droplet visible'
+      equal editor.dropletElement.style.left is '270px', true, 'droplet next to palette'
+      equal editor.aceElement.style.top is '-9999px', true, 'ace element offscreen'
       equal editor.paletteHeader.childElementCount, 3, 'Original palette header size restored'
     ),
     (->
@@ -1012,6 +1022,9 @@ asyncTest 'Controller: Session switch test', ->
 
       equal editor.paletteWrapper.style.left is '0px', true, 'No longer using blocks'
       equal editor.paletteHeader.childElementCount, 0, 'Palette header now empty'
+      equal editor.aceElement.style.left is '0px', true, 'ace on top of palette'
+      equal editor.aceElement.style.top is '0px', true, 'ace element visible'
+      equal editor.dropletElement.style.top is '-9999px', true, 'droplet offscreen'
 
       start()
     )
