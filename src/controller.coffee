@@ -248,6 +248,7 @@ exports.Editor = class Editor
     @draw = new draw.Draw(@mainCanvas)
 
     @dropletElement.style.left = @paletteWrapper.clientWidth + 'px'
+    @dropletElement.style.zIndex = 1
 
     do @draw.refreshFontCapital
 
@@ -278,7 +279,6 @@ exports.Editor = class Editor
         @wrapperElement.style.left =
         @wrapperElement.style.top =
         @wrapperElement.style.bottom = '0px'
-      @wrapperElement.style.overflow = 'hidden'
 
       @aceElement = document.createElement 'div'
       @aceElement.className = 'droplet-ace'
@@ -301,13 +301,14 @@ exports.Editor = class Editor
         @wrapperElement.style.left =
         @wrapperElement.style.top =
         @wrapperElement.style.bottom = '0px'
-      @wrapperElement.style.overflow = 'hidden'
 
       @aceElement = @aceEditor.container
       @aceElement.className += ' droplet-ace'
 
       @aceEditor.container.parentElement.appendChild @wrapperElement
       @wrapperElement.appendChild @aceEditor.container
+
+    @aceElement.style.zIndex = 1
 
     # Append populated divs
     @wrapperElement.appendChild @dropletElement
@@ -493,9 +494,6 @@ exports.Editor = class Editor
   resizePalette: ->
     for binding in editorBindings.resize_palette
       binding.call this
-
-    unless @session?.currentlyUsingBlocks or @session?.showPaletteInTextMode and @session?.paletteEnabled
-     @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
 
     @rebuildPalette()
 
@@ -3633,17 +3631,13 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       @paletteHeader.style.zIndex = 0
 
       setTimeout (=>
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = "left #{translateTime}ms"
-
+        @dropletElement.style.transition = "left #{translateTime}ms"
         @dropletElement.style.left = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
       ), fadeTime
 
     setTimeout (=>
       # Translate the ICE editor div out of frame.
-      @dropletElement.style.transition =
-        @paletteWrapper.style.transition = ''
+      @dropletElement.style.transition = ''
 
       # Translate the ACE editor div into frame.
       @aceElement.style.top = '0px'
@@ -3722,7 +3716,6 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
       if paletteAppearingWithFreeze
         @paletteWrapper.style.top = '0px'
-        @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
         @paletteHeader.style.zIndex = 0
 
       @dropletElement.style.top = "0px"
@@ -3814,13 +3807,11 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       @dropletElement.style.transition = "left #{fadeTime}ms"
 
       if paletteAppearingWithFreeze
-        @paletteWrapper.style.transition = @dropletElement.style.transition
         @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
         @paletteWrapper.style.left = '0px'
 
       setTimeout (=>
-        @dropletElement.style.transition =
-          @paletteWrapper.style.transition = ''
+        @dropletElement.style.transition = ''
 
         # Show scrollbars again
         @showScrollbars()
@@ -3855,19 +3846,16 @@ Editor::enablePalette = (enabled) ->
       activeElement = @aceElement
 
     if not @session.paletteEnabled
-      activeElement.style.transition =
-        @paletteWrapper.style.transition = "left 500ms"
+      activeElement.style.transition = "left 500ms"
 
       activeElement.style.left = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
 
       @paletteHeader.style.zIndex = 0
 
       @resize()
 
       setTimeout (=>
-        activeElement.style.transition =
-          @paletteWrapper.style.transition = ''
+        activeElement.style.transition = ''
 
         #@paletteWrapper.style.top = '-9999px'
         #@paletteWrapper.style.left = '-9999px'
@@ -3881,19 +3869,16 @@ Editor::enablePalette = (enabled) ->
 
     else
       @paletteWrapper.style.top = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
       @paletteHeader.style.zIndex = 257
 
       setTimeout (=>
-        activeElement.style.transition =
-          @paletteWrapper.style.transition = "left 500ms"
+        activeElement.style.transition = "left 500ms"
 
         activeElement.style.left = "#{@paletteWrapper.clientWidth}px"
         @paletteWrapper.style.left = '0px'
 
         setTimeout (=>
-          activeElement.style.transition =
-            @paletteWrapper.style.transition = ''
+          activeElement.style.transition = ''
 
           @resize()
 
@@ -4241,8 +4226,7 @@ Editor::hasEvent = (event) -> event of @bindings and @bindings[event]?
 # ================================
 
 Editor::setEditorState = (useBlocks) ->
-  @mainCanvas.style.transition = @paletteWrapper.style.transition =
-    @highlightCanvas.style.transition = ''
+  @mainCanvas.style.transition = @highlightCanvas.style.transition = ''
 
   if useBlocks
     if not @session?
@@ -4257,7 +4241,6 @@ Editor::setEditorState = (useBlocks) ->
       @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
       @paletteWrapper.style.top = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
       @dropletElement.style.left = '0px'
 
     @aceElement.style.top = @aceElement.style.left = '-9999px'
@@ -4291,11 +4274,7 @@ Editor::setEditorState = (useBlocks) ->
     @aceEditor.session.setScrollTop oldScrollTop
 
     @dropletElement.style.top = @dropletElement.style.left = '-9999px'
-    if paletteVisibleInNewState
-      @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
-    else
-      @paletteWrapper.style.top = '0px'
-      @paletteWrapper.style.left = "#{-@paletteWrapper.clientWidth}px"
+    @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
 
     @aceElement.style.top = '0px'
     if paletteVisibleInNewState

@@ -792,7 +792,7 @@ asyncTest 'Controller: showPaletteInTextMode false', ->
     states.push usingBlocks
 
   editor.performMeltAnimation 10, 10, ->
-    strictEqual paletteWrapper.style.left, '-270px'
+    strictEqual paletteWrapper.style.left, '0px'
     strictEqual aceEditor.style.left, '0px'
     editor.performFreezeAnimation 10, 10, ->
       strictEqual paletteWrapper.style.left, '0px'
@@ -840,7 +840,7 @@ asyncTest 'Controller: enablePalette false', ->
   strictEqual dropletWrapper.style.left, '270px'
 
   verifyPaletteHidden = ->
-    strictEqual paletteWrapper.style.left, '-270px'
+    strictEqual paletteWrapper.style.left, '0px'
     strictEqual dropletWrapper.style.left, '0px'
     start()
 
