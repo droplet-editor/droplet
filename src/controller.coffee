@@ -566,7 +566,6 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB', addedWidth = 0) ->
 
   # recompute the canvas width, since it isn't available via
   # @mainCanvas.clientWidth in Firefox
-  # Possibly Fix Here
   nubbyWidth = @computeMainCanvasWidth(addedWidth)
   points.push new @draw.Point nubbyWidth, -5
   points.push new @draw.Point nubbyWidth, height
@@ -2331,7 +2330,6 @@ Editor::resizeAceElement = ->
 
   @aceElement.style.left = "#{left}px"
   @aceElement.style.right = "0px"
-  #@aceElement.style.height = "#{@wrapperElement.clientHeight}px"
   if @session?.currentlyUsingBlocks
     @aceElement.style.bottom = "9999px"
   else
@@ -3964,7 +3962,6 @@ hook 'populate', 2, ->
 
 Editor::resizeMainScroller = ->
   @mainScroller.style.right = "0px"
-  #@mainScroller.style.height = "#{@dropletElement.clientHeight}px"
   @sideScroller.style.right = "0px"
 
 hook 'resize_palette', 0, ->
