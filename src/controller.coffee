@@ -501,6 +501,7 @@ exports.Editor = class Editor
 
     @rebuildPalette()
 
+  #HERE
   resize: ->
     if @session?.currentlyUsingBlocks #TODO session
       @resizeBlockMode()
@@ -556,7 +557,7 @@ Editor::clearCanvas = (canvas) -> # TODO remove and remove all references to
 
 Editor::clearMain = (opts) -> # TODO remove and remove all references to
 
-Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
+Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB', addedWidth = 0) ->
   @nubbyHeight = Math.max(0, height); @nubbyColor = color
 
   @topNubbyPath ?= new @draw.Path([], true)
@@ -568,7 +569,7 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
   # recompute the canvas width, since it isn't available via
   # @mainCanvas.clientWidth in Firefox
   # Possibly Fix Here
-  nubbyWidth = @computeMainCanvasWidth()
+  nubbyWidth = @computeMainCanvasWidth(addedWidth)
   points.push new @draw.Point nubbyWidth, -5
   points.push new @draw.Point nubbyWidth, height
 
@@ -588,10 +589,10 @@ Editor::setTopNubbyStyle = (height = 10, color = '#EBEBEB') ->
 
   @topNubbyPath.style.fillColor = color
 
-  @redrawMain()
+  @redrawMain addedWidth: addedWidth
 
-Editor::resizeNubby = ->
-  @setTopNubbyStyle @nubbyHeight, @nubbyColor
+Editor::resizeNubby = (addedWidth) ->
+  @setTopNubbyStyle @nubbyHeight, @nubbyColor, addedWidth
 
 Editor::initializeFloatingBlock = (record, i) ->
   record.renderGroup = new @session.view.draw.Group()
@@ -700,10 +701,10 @@ Editor::drawFloatingBlock = (record, startWidth, endWidth, rect, opts) ->
 hook 'populate', 0, ->
   @currentlyDrawnFloatingBlocks = []
 
-Editor::computeMainCanvasWidth = ->
+Editor::computeMainCanvasWidth = (addedWidth = 0) ->
   Math.max(
     @session.view.getViewNodeFor(@session.tree).totalBounds.width,
-    @dropletElement.clientWidth - @gutter.clientWidth
+    @dropletElement.clientWidth + addedWidth - @gutter.clientWidth
   )
 
 Editor::redrawMain = (opts = {}) ->
@@ -730,8 +731,8 @@ Editor::redrawMain = (opts = {}) ->
     @session.view.getViewNodeFor(@session.tree).draw rect, options
     @session.view.getViewNodeFor(@session.tree).root()
 
-    @mainCanvas.setAttribute 'width', @computeMainCanvasWidth()
-    #@mainCanvas.setAttribute 'right', "0px"
+    @mainCanvas.setAttribute 'width', @computeMainCanvasWidth(opts.addedWidth ? 0)
+    #@mainCanvas.setAttribute 'right', "0px" <- this doesn't work
 
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @session.floatingBlocks
@@ -3861,7 +3862,9 @@ Editor::enablePalette = (enabled) ->
 
       @paletteHeader.style.zIndex = 0
 
+#HERE
       @resize()
+      @resizeNubby(@paletteWrapper.clientWidth)
 
       setTimeout (=>
         activeElement.style.transition = ''
