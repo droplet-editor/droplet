@@ -465,7 +465,11 @@ exports.Editor = class Editor
 
     @resizeTextMode()
 
-    @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
+    if @session?.currentlyUsingBlocks
+      @dropletElement.style.bottom = "0px"
+    else
+      @dropletElement.style.bottom = "9999px"
+
     if @session.paletteEnabled
       @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
@@ -2327,7 +2331,11 @@ Editor::resizeAceElement = ->
 
   @aceElement.style.left = "#{left}px"
   @aceElement.style.right = "0px"
-  @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
+  #@aceElement.style.height = "#{@wrapperElement.clientHeight}px"
+  if @session?.currentlyUsingBlocks
+    @aceElement.style.bottom = "9999px"
+  else
+    @aceElement.style.bottom = "0px"
 
 last_ = (array) -> array[array.length - 1]
 
@@ -3641,6 +3649,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
 
       # Translate the ACE editor div into frame.
       @aceElement.style.top = '0px'
+      @aceElement.style.bottom = '0px'
       if @session.showPaletteInTextMode and @session.paletteEnabled
         @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
@@ -3651,6 +3660,7 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       #  @paletteWrapper.style.left = '-9999px'
 
       @dropletElement.style.top = '-9999px'
+      @dropletElement.style.bottom = '9999px'
       @dropletElement.style.left = '-9999px'
 
       # Finalize a bunch of animations
@@ -3710,6 +3720,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
       @currentlyAnimating_suppressRedraw = true
 
       @aceElement.style.top = "-9999px"
+      @aceElement.style.bottom = "9999px"
       @aceElement.style.left = "-9999px"
 
       paletteAppearingWithFreeze = @session.paletteEnabled and not @session.showPaletteInTextMode
@@ -3719,6 +3730,7 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         @paletteHeader.style.zIndex = 0
 
       @dropletElement.style.top = "0px"
+      @dropletElement.style.bottom = "0px"
       if @session.paletteEnabled and not paletteAppearingWithFreeze
         @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
@@ -3952,7 +3964,7 @@ hook 'populate', 2, ->
 
 Editor::resizeMainScroller = ->
   @mainScroller.style.right = "0px"
-  @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
+  #@mainScroller.style.height = "#{@dropletElement.clientHeight}px"
   @sideScroller.style.right = "0px"
 
 hook 'resize_palette', 0, ->
@@ -4239,6 +4251,7 @@ Editor::setEditorState = (useBlocks) ->
       @setValue_raw @getAceValue()
 
     @dropletElement.style.top = '0px'
+    @dropletElement.style.bottom = '0px'
     if @session.paletteEnabled
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
       @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
@@ -4247,6 +4260,7 @@ Editor::setEditorState = (useBlocks) ->
       @dropletElement.style.left = '0px'
 
     @aceElement.style.top = @aceElement.style.left = '-9999px'
+    @aceElement.style.bottom = '9999px'
     @session.currentlyUsingBlocks = true
 
     @lineNumberWrapper.style.display = 'block'
@@ -4277,9 +4291,11 @@ Editor::setEditorState = (useBlocks) ->
     @aceEditor.session.setScrollTop oldScrollTop
 
     @dropletElement.style.top = @dropletElement.style.left = '-9999px'
+    @dropletElement.style.bottom = '9999px'
     @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
 
     @aceElement.style.top = '0px'
+    @aceElement.style.bottom = '0px'
     if paletteVisibleInNewState
       @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
