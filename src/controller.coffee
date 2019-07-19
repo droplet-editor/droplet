@@ -468,17 +468,13 @@ exports.Editor = class Editor
     @dropletElement.style.height = "#{@wrapperElement.clientHeight}px"
     if @session.paletteEnabled
       @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
-      #@dropletElement.style.width = "#{@wrapperElement.clientWidth - @paletteWrapper.clientWidth}px"
-      @dropletElement.style.right = "0px"
     else
       @dropletElement.style.left = "0px"
-      #@dropletElement.style.width = "#{@wrapperElement.clientWidth}px"
-      @dropletElement.style.right = "0px"
 
+    @dropletElement.style.right = "0px"
     #@resizeGutter()
 
     @session.viewports.main.height = @dropletElement.clientHeight
-    # Possibly Fix Here
     @session.viewports.main.width = @dropletElement.clientWidth - @gutter.clientWidth
 
     @mainCanvas.style.left = "#{@gutter.clientWidth}px"
@@ -486,7 +482,6 @@ exports.Editor = class Editor
 
     @resizePalette()
     @resizePaletteHighlight()
-    debugger
     @resizeNubby()
     @resizeMainScroller()
     @resizeDragCanvas()
@@ -501,7 +496,6 @@ exports.Editor = class Editor
 
     @rebuildPalette()
 
-  #HERE
   resize: ->
     if @session?.currentlyUsingBlocks #TODO session
       @resizeBlockMode()
@@ -732,7 +726,6 @@ Editor::redrawMain = (opts = {}) ->
     @session.view.getViewNodeFor(@session.tree).root()
 
     @mainCanvas.setAttribute 'width', @computeMainCanvasWidth(opts.addedWidth ? 0)
-    #@mainCanvas.setAttribute 'right', "0px" <- this doesn't work
 
     for el, i in @currentlyDrawnFloatingBlocks
       unless el.record in @session.floatingBlocks
@@ -2332,7 +2325,6 @@ Editor::resizeAceElement = ->
     width -= @paletteWrapper.clientWidth
     left = @paletteWrapper.clientWidth
 
-  #@aceElement.style.width = "#{width}px"
   @aceElement.style.left = "#{left}px"
   @aceElement.style.right = "0px"
   @aceElement.style.height = "#{@wrapperElement.clientHeight}px"
@@ -3544,7 +3536,6 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
     else
       @sideScroller.style.overflowX = 'hidden'
     @mainScroller.style.overflowY = 'hidden'
-    #@dropletElement.style.width = @wrapperElement.clientWidth + 'px'
     @dropletElement.style.right = "0px"
 
     @session.currentlyUsingBlocks = false; @currentlyAnimating = @currentlyAnimating_suppressRedraw = true
@@ -3712,7 +3703,6 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
     setTimeout (=>
       # Hide scrollbars and increase width
       @showScrollbars false
-      #@dropletElement.style.width = @wrapperElement.clientWidth + 'px'
       @dropletElement.style.right = "0px"
 
       @redrawMain noText: true
@@ -3862,7 +3852,6 @@ Editor::enablePalette = (enabled) ->
 
       @paletteHeader.style.zIndex = 0
 
-#HERE
       @resize()
       @resizeNubby(@paletteWrapper.clientWidth)
 
@@ -3873,13 +3862,15 @@ Editor::enablePalette = (enabled) ->
         #@paletteWrapper.style.left = '-9999px'
 
         @currentlyAnimating = false
-
+        @resize()
         @resizeNubby()
+        @paletteWrapper.style.visibility = "hidden"
 
         @fireEvent 'palettetoggledone', [@session.paletteEnabled]
       ), 500
 
     else
+      @paletteWrapper.style.visibility = "visible"
       @paletteWrapper.style.top = '0px'
       @paletteHeader.style.zIndex = 257
 
@@ -3896,7 +3887,7 @@ Editor::enablePalette = (enabled) ->
 
           @currentlyAnimating = false
 
-          @redrawMain()
+          @resizeNubby()
 
           @fireEvent 'palettetoggledone', [@session.paletteEnabled]
         ), 500
@@ -3960,10 +3951,8 @@ hook 'populate', 2, ->
     @session.viewports.palette.x = @paletteScroller.scrollLeft
 
 Editor::resizeMainScroller = ->
-  #@mainScroller.style.width = "#{@dropletElement.clientWidth}px"
   @mainScroller.style.right = "0px"
   @mainScroller.style.height = "#{@dropletElement.clientHeight}px"
-  #@sideScroller.style.width = "#{@dropletElement.clientWidth}px"
   @sideScroller.style.right = "0px"
 
 hook 'resize_palette', 0, ->
