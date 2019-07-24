@@ -3646,8 +3646,9 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       @dropletElement.style.transition = ''
 
       # Translate the ACE editor div into frame.
-      @aceElement.style.top = '0px'
-      @aceElement.style.bottom = '0px'
+      @aceElement.style.top =
+        @aceElement.style.right =
+        @aceElement.style.bottom = '0px'
       if @session.showPaletteInTextMode and @session.paletteEnabled
         @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
@@ -3657,9 +3658,8 @@ Editor::performMeltAnimation = (fadeTime = 500, translateTime = 1000, cb = ->) -
       #  @paletteWrapper.style.top = '-9999px'
       #  @paletteWrapper.style.left = '-9999px'
 
-      @dropletElement.style.top = '-9999px'
-      @dropletElement.style.bottom = '9999px'
-      @dropletElement.style.left = '-9999px'
+      @dropletElement.style.top = @dropletElement.style.left = '-9999px'
+      @dropletElement.style.bottom = @dropletElement.style.right = '9999px'
 
       # Finalize a bunch of animations
       # that should be complete by now,
@@ -3717,9 +3717,8 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
 
       @currentlyAnimating_suppressRedraw = true
 
-      @aceElement.style.top = "-9999px"
-      @aceElement.style.bottom = "9999px"
-      @aceElement.style.left = "-9999px"
+      @aceElement.style.top = @aceElement.style.left = "-9999px"
+      @aceElement.style.bottom = @aceElement.style.right = "9999px"
 
       paletteAppearingWithFreeze = @session.paletteEnabled and not @session.showPaletteInTextMode
 
@@ -3727,8 +3726,9 @@ Editor::performFreezeAnimation = (fadeTime = 500, translateTime = 500, cb = ->)-
         @paletteWrapper.style.top = '0px'
         @paletteHeader.style.zIndex = 0
 
-      @dropletElement.style.top = "0px"
-      @dropletElement.style.bottom = "0px"
+      @dropletElement.style.top =
+        @dropletElement.style.right =
+        @dropletElement.style.bottom = "0px"
       if @session.paletteEnabled and not paletteAppearingWithFreeze
         @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
       else
@@ -3874,13 +3874,11 @@ Editor::enablePalette = (enabled) ->
         @currentlyAnimating = false
         @resize()
         @resizeNubby()
-        @paletteWrapper.style.visibility = "hidden"
 
         @fireEvent 'palettetoggledone', [@session.paletteEnabled]
       ), 500
 
     else
-      @paletteWrapper.style.visibility = "visible"
       @paletteWrapper.style.top = '0px'
       @paletteHeader.style.zIndex = 257
 
@@ -4247,8 +4245,9 @@ Editor::setEditorState = (useBlocks) ->
     unless @session.currentlyUsingBlocks
       @setValue_raw @getAceValue()
 
-    @dropletElement.style.top = '0px'
-    @dropletElement.style.bottom = '0px'
+    @dropletElement.style.top =
+      @dropletElement.style.right =
+      @dropletElement.style.bottom = '0px'
     if @session.paletteEnabled
       @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
       @dropletElement.style.left = "#{@paletteWrapper.clientWidth}px"
@@ -4257,7 +4256,7 @@ Editor::setEditorState = (useBlocks) ->
       @dropletElement.style.left = '0px'
 
     @aceElement.style.top = @aceElement.style.left = '-9999px'
-    @aceElement.style.bottom = '9999px'
+    @aceElement.style.bottom = @aceElement.style.right = '9999px'
     @session.currentlyUsingBlocks = true
 
     @lineNumberWrapper.style.display = 'block'
@@ -4288,11 +4287,12 @@ Editor::setEditorState = (useBlocks) ->
     @aceEditor.session.setScrollTop oldScrollTop
 
     @dropletElement.style.top = @dropletElement.style.left = '-9999px'
-    @dropletElement.style.bottom = '9999px'
+    @dropletElement.style.bottom = @dropletElement.style.right = '9999px'
     @paletteWrapper.style.top = @paletteWrapper.style.left = '0px'
 
-    @aceElement.style.top = '0px'
-    @aceElement.style.bottom = '0px'
+    @aceElement.style.top =
+      @aceElement.style.right =
+      @aceElement.style.bottom = '0px'
     if paletteVisibleInNewState
       @aceElement.style.left = "#{@paletteWrapper.clientWidth}px"
     else
