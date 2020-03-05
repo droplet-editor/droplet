@@ -77,7 +77,6 @@ DEFAULT_OPTIONS =
     teal: '#80cbc4'
     green: '#a5d6a7'
     lightgreen: '#c5e1a5'
-    darkgreen: '#008000'
     lime: '#e6ee9c'
     yellow: '#fff59d'
     amber: '#ffe082'
@@ -93,6 +92,12 @@ DEFAULT_OPTIONS =
     assign: '#fff59d'
     functionCall: '#90caf9'
     control: '#ffab91'
+    'import': '#c0c0c0'
+    type: '#90caf9'
+    'class': '#ce93d8'
+    statement: '#ffe082'
+    control_special: '#80cbc4'
+
 
 YES = -> yes
 NO = -> no
@@ -141,14 +146,10 @@ exports.View = class View
       unless color of @opts.colors
         @opts.colors[color] = DEFAULT_OPTIONS.colors[color]
 
-    if @opts.invert
-      @opts.colors['comment'] = '#606060'
-
   # Simple method for clearing caches
   clearCache: ->
-    for id of @map
-      @map[id].destroy()
-      @destroy id
+    @beginDraw()
+    @garbageCollect()
 
   # Remove everything from the canvas
   clearFromCanvas: ->
@@ -218,8 +219,6 @@ exports.View = class View
     for id, el of @flaggedToDelete when id of @map
       @map[id].hide()
 
-    @oldRoots = @newRoots
-
   flag: (auxiliaryNode) ->
     @flaggedToDelete[auxiliaryNode.model.id] = auxiliaryNode
 
@@ -235,6 +234,8 @@ exports.View = class View
 
     for id, el of @newRoots
       el.update()
+
+    @oldRoots = @newRoots
 
   destroy: (id) ->
     for child in @map[id].children
@@ -259,18 +260,11 @@ exports.View = class View
       when 'indent' then new IndentViewNode entity, this
       when 'socket' then new SocketViewNode entity, this
       when 'buttonContainer' then new ContainerViewNode entity, this
-      when 'lockedSocket' then new ContainerViewNode entity, this # LockedSocketViewNode entity, this
       when 'document' then new DocumentViewNode entity, this
 
   # Looks up a color name, or passes through a #hex color.
-  getColor: (model) ->
-    if model?.color instanceof Function
-      color = model.color(model)
-    else if model?
-      color = model.color
-    else
-      color = ""
-
+  getColor: (color) ->
+    console.log(color)
     if color and '#' is color.charAt(0)
       color
     else
@@ -1129,22 +1123,13 @@ exports.View = class View
           @minDistanceToBase[line].above +
           @minDistanceToBase[line].below
 
-      # Make space for mutation buttons. In lockedSocket,
-      # these will go on the left; otherwise they will go on the right.
-      @extraLeft = 0
-      @extraWidth = 0
-
       if @model.type in ['block', 'buttonContainer']
+        @extraWidth = 0
+
         if @model.buttons? then for {key} in @model.buttons
           @extraWidth += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
 
         @minDimensions[@minDimensions.length - 1].width += @extraWidth
-
-      if @model.type is 'lockedSocket'
-        if @model.buttons? then for {key} in @model.buttons
-          @extraLeft += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
-
-        @minDimensions[@minDimensions.length - 1].width += @extraLeft
 
       # Go through and adjust the width of rectangles
       # immediately after the end of an indent to
@@ -1186,8 +1171,6 @@ exports.View = class View
       if @computedVersion is @model.version and
           left is @bounds[line]?.x and not @changedBoundingBox
         return @bounds[line]
-
-      offset += @extraLeft
 
       # If the bounding box we're being asked
       # to layout is exactly the same,
@@ -1405,14 +1388,14 @@ exports.View = class View
 
       # *Sixth pass variables*
       # computePath
-      @group = @view.draw.group('droplet-container-group')
+      @group = new @view.draw.Group('droplet-container-group')
 
       if @model.type is 'block'
-        @path = @view.draw.path([], true, {
+        @path = new @view.draw.Path([], true, {
           cssClass: 'droplet-block-path'
         })
       else
-        @path = @view.draw.path([], false, {
+        @path = new @view.draw.Path([], false, {
           cssClass: "droplet-#{@model.type}-path"
         })
       @totalBounds = new @view.draw.NoRectangle()
@@ -1423,7 +1406,7 @@ exports.View = class View
       # computeDropAreas
       # each one is a @view.draw.Path (or null)
       @dropPoint = null
-      @highlightArea = @view.draw.path([], false, {
+      @highlightArea = new @view.draw.Path([], false, {
         fillColor: '#FF0'
         strokeColor: '#FF0'
         lineWidth: 1
@@ -1436,36 +1419,30 @@ exports.View = class View
       @buttonRects = {}
 
       if @model.buttons? then for {key, glyph} in @model.buttons
-        @buttonGroups[key] = @view.draw.group()
-        @buttonPaths[key] = @view.draw.path([
-          new @view.draw.Point 0, 0
-          new @view.draw.Point @view.opts.buttonWidth, 0
-          new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight
-          new @view.draw.Point 0, @view.opts.buttonHeight
+        @buttonGroups[key] = new @view.draw.Group()
+        @buttonPaths[key] = new @view.draw.Path([
+            new @view.draw.Point 0, @view.opts.bevelClip
+            new @view.draw.Point @view.opts.bevelClip, 0
+
+            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
+            new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
+
+            new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
+            new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
+
+            new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
+            new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
         ], false, {
           fillColor: 'none'
           cssClass: 'droplet-button-path'
         })
-        ###
-          new @view.draw.Point 0, @view.opts.bevelClip
-          new @view.draw.Point @view.opts.bevelClip, 0
-
-          new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, 0
-          new @view.draw.Point @view.opts.buttonWidth, @view.opts.bevelClip
-
-          new @view.draw.Point @view.opts.buttonWidth, @view.opts.buttonHeight - @view.opts.bevelClip
-          new @view.draw.Point @view.opts.buttonWidth - @view.opts.bevelClip, @view.opts.buttonHeight
-
-          new @view.draw.Point @view.opts.bevelClip, @view.opts.buttonHeight
-          new @view.draw.Point 0, @view.opts.buttonHeight - @view.opts.bevelClip
-        ###
 
         @buttonGroups[key].style = {}
 
-        @buttonTexts[key] = @view.draw.text(new @view.draw.Point(
+        @buttonTexts[key] = new @view.draw.Text(new @view.draw.Point(
           (@view.opts.buttonWidth - @view.draw.measureCtx.measureText(glyph).width)/ 2,
           (@view.opts.buttonHeight - @view.opts.textHeight) / 2
-        ), glyph, if @view.opts.invert then BUTTON_GLYPH_INVERT_COLOR else BUTTON_GLYPH_COLOR)
+        ), glyph)
         @buttonPaths[key].setParent @buttonGroups[key]
         @buttonTexts[key].setParent @buttonGroups[key]
 
@@ -1852,7 +1829,6 @@ exports.View = class View
 
               @addTab right, new @view.draw.Point(@bounds[line + 1].x +
                 @view.opts.indentWidth +
-                @extraLeft +
                 @view.opts.tabOffset, glueTop), true
           else
             right.push new @view.draw.Point multilineBounds.x, glueTop
@@ -1900,28 +1876,9 @@ exports.View = class View
       # Make a Path object out of these points
       @path.setPoints newPath
       if @model.type is 'block'
-        @path.style.fillColor = @view.getColor @model
+        @path.style.fillColor = @view.getColor @model.color
 
-      if @model.buttons? and @model.type is 'lockedSocket'
-        # Add the add button if necessary
-        firstRect = @bounds[0]
-
-        start = firstRect.x
-
-        top = firstRect.y + firstRect.height / 2 - @view.opts.buttonHeight / 2
-
-        for {key} in @model.buttons
-
-          @buttonGroups[key].style.transform = "translate(#{start}, #{top})"
-          @buttonGroups[key].update()
-          @buttonPaths[key].update()
-          @buttonRects[key] = new @view.draw.Rectangle start, top, @view.opts.buttonWidth, @view.opts.buttonHeight
-
-          @elements.push @buttonPaths[key]
-
-          start += @view.opts.buttonWidth + @view.opts.buttonHorizPadding
-
-      else if @model.buttons?
+      if @model.buttons?
         # Add the add button if necessary
         lastLine = @bounds.length - 1
         lastRect = @bounds[lastLine]
@@ -1932,9 +1889,7 @@ exports.View = class View
           start = lastRect.x + lastRect.width - @extraWidth + @view.opts.buttonHorizPadding
 
         top = lastRect.y + lastRect.height / 2 - @view.opts.buttonHeight / 2
-
         for {key} in @model.buttons
-
           # Cases when last line is MULTILINE
           if @multilineChildrenData[lastLine] is MULTILINE_END
             multilineChild = @lineChildren[lastLine][0]
@@ -1942,7 +1897,7 @@ exports.View = class View
             # If it is a G-Shape
             if @lineChildren[lastLine].length > 1
               height = multilineBounds.bottom() - lastRect.y
-              top = lastRect.y + height / 2 - @view.opts.buttonHeight/2
+              top = lastRect.y + height/2 - @view.opts.buttonHeight/2
             else
               height = lastRect.bottom() - multilineBounds.bottom()
               top = multilineBounds.bottom() + height/2 - @view.opts.buttonHeight/2
@@ -2072,7 +2027,6 @@ exports.View = class View
       for size, i in @minDimensions
         size.width = Math.max size.width,
             @view.opts.tabWidth + @view.opts.tabOffset
-        size.width += @extraLeft
 
       return null
 
@@ -2142,16 +2096,12 @@ exports.View = class View
     constructor: ->
       super
       if @view.opts.showDropdowns and @model.dropdown?
-        @dropdownElement ?= @view.draw.path([], false, {
-          fillColor: (if @view.opts.invert then DROP_TRIANGLE_INVERT_COLOR else DROP_TRIANGLE_COLOR),
-          cssClass: 'droplet-dropdown-arrow'
-        })
+        @dropdownElement ?= new @view.draw.Path([], false, {fillColor: DROP_TRIANGLE_COLOR, cssClass: 'droplet-dropdown-arrow'})
         @dropdownElement.deactivate()
 
         @dropdownElement.setParent @group
 
         @elements.push @dropdownElement
-        @activeElements.push @dropdownElement
 
     shouldAddTab: NO
 
@@ -2235,7 +2185,7 @@ exports.View = class View
           not @changedBoundingBox
         return @path
 
-      @path.style.fillColor = if @view.opts.invert then '#333' else '#FFF'
+      @path.style.fillColor = '#FFF'
 
       if @model.start.next.type is 'blockStart'
         @path.style.fillColor = 'none'
@@ -2268,8 +2218,7 @@ exports.View = class View
         ])
         @dropdownElement.update()
 
-        unless @dropdownElement in @activeElements
-          @activeElements.push @dropdownElement
+        @activeElements.push @dropdownElement
 
       else if @dropdownElement?
         @activeElements = @activeElements.filter (x) -> x isnt @dropdownElement
@@ -2442,10 +2391,9 @@ exports.View = class View
   class TextViewNode extends GenericViewNode
     constructor: (@model, @view) ->
       super
-      @textElement = @view.draw.text(
+      @textElement = new @view.draw.Text(
         new @view.draw.Point(0, 0),
-        @model.value,
-        if @view.opts.invert then '#FFF' else '#000'
+        @model.value
       )
       @textElement.destroy()
       @elements.push @textElement

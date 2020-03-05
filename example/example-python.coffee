@@ -168,7 +168,7 @@ createEditor = (options) ->
   editor.aceEditor.getSession().setUseWrapMode true
 
   # Initialize to starting text
-  editor.setValue localStorage.getItem('text') ? ''
+  #editor.setValue localStorage.getItem('text') ? ''
 
   editor.on 'change', ->
     localStorage.setItem 'text', editor.getValue()

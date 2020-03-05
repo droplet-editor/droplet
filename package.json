@@ -5,7 +5,7 @@
     "browserify": "^10.2.4",
     "browserify-shim": "^3.8.8",
     "coffeeify": "^1.1.0",
-    "grunt": "0.4.5",
+    "grunt": "^0.4.5",
     "grunt-banner": "latest",
     "grunt-bowercopy": "latest",
     "grunt-browserify": "^3.8.0",

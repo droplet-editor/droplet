@@ -109,15 +109,8 @@ exports.Parser = class Parser
     @addMarkup block, opts.bounds, opts.depth
 
   addButtonContainer: (opts) ->
-    container = new model.ButtonContainer opts.parseContext,
+    container= new model.ButtonContainer opts.parseContext,
       opts.buttons,
-      opts.data
-
-    @addMarkup container, opts.bounds, opts.depth
-
-  addLockedSocket: (opts) ->
-    container = new model.LockedSocket opts.parseContext,
-      opts.dropdown,
       opts.data
 
     @addMarkup container, opts.bounds, opts.depth
@@ -239,6 +232,8 @@ exports.Parser = class Parser
   constructHandwrittenBlock: (text) ->
     block = new model.Block 'comment', helper.ANY_DROP, '__comment__'
     if @isComment text
+
+
       head = block.start
 
       {sockets, color} = @parseComment(text)
@@ -406,6 +401,8 @@ exports.Parser = class Parser
         if line.length is 0 and not placedSomething and stack[stack.length - 1]?.type in ['indent', 'document', undefined] and
             hasSomeTextAfter(lines, i)
           block = new model.Block @opts.emptyLineColor, helper.BLOCK_ONLY, '__comment__'
+          block.shape = helper.ANY_DROP
+          block.parseContext = '__comment__'
 
           head = helper.connect head, block.start
           head = helper.connect head, block.end
@@ -651,7 +648,6 @@ exports.wrapParser = (CustomParser) ->
         return CustomParser.lockedSocketCallback @opts, socketText, blockText, parseContext
       else
         return blockText
-
     # TODO kind of hacky assignation of @empty,
     # maybe change the api?
     createParser: (text) ->
@@ -672,11 +668,11 @@ exports.wrapParser = (CustomParser) ->
     preparse: (text, context) ->
       return @createParser(text).preparse context
 
-    # Prepares text for use by Droplet - includes loading parser, parsing, reformatting tree, and marking.
-    parse: (text, opts, cachedParse = null) ->
+# Prepares text for use by Droplet - includes loading parser, parsing, reformatting tree, and marking.
+    parse: (text, opts) ->
       @opts.parseOptions = opts
       opts ?= wrapAtRoot: true
-      return @createParser(text)._parse opts, cachedParse
+      return @createParser(text)._parse opts
 
     parens: (leading, trailing, node, context) ->
       # We do this function thing so that if leading and trailing are the same
@@ -705,14 +701,7 @@ exports.wrapParser = (CustomParser) ->
       return [leading, trailing, context]
 
 
-    drop: (block, context, pred, next) ->
-      parser = @createParser("")
-      acceptLevel = parser.handleAcceptance block, context, pred, next
-
-      if acceptLevel == null
-        return CustomParser.drop block, context, pred, next
-
-      return acceptLevel
+    drop: (block, context, pred, next) -> CustomParser.drop block, context, pred, next
 
     handleButton: (text, command, oldblock) ->
       parser = @createParser(text)
