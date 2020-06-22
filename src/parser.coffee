@@ -439,19 +439,22 @@ exports.Parser = class Parser
               # An Indent is only allowed to be
               # directly inside a block; if not, then throw.
               unless stack?[stack.length - 1]?.type is 'block'
-                throw new Error 'Improper parser: indent must be inside block, but is inside ' + stack?[stack.length - 1]?.type
+                # Include line numbers for upstream error handling.
+                throw new Error "Line #{mark.location.line}. Improper parser: indent must be inside block, but is inside #{stack?[stack.length - 1]?.type}"
               indentDepth += mark.token.container.prefix.length
 
             when 'blockStart'
               # If the a block is embedded
               # directly in another block, throw.
               if stack[stack.length - 1]?.type is 'block'
-                throw new Error 'Improper parser: block cannot nest immediately inside another block.'
+                # Include line numbers for upstream error handling.
+                throw new Error "Line #{mark.location.line}. Improper parser: block cannot nest immediately inside another block."
 
             when 'socketStart'
               # A socket is only allowed to be directly inside a block.
               unless stack[stack.length - 1]?.type is 'block'
-                throw new Error 'Improper parser: socket must be immediately inside a block.'
+                # Include line numbers for upstream error handling.
+                throw new Error "Line #{mark.location.line}. Improper parser: socket must be immediately inside a block."
 
             when 'indentEnd'
               indentDepth -= mark.token.container.prefix.length
@@ -461,7 +464,8 @@ exports.Parser = class Parser
             stack.push mark.token.container
           else if mark.token instanceof model.EndToken
             unless mark.token.container is stack[stack.length - 1]
-              throw new Error "Improper parser: #{head.container.type} ended too early."
+              # Include line numbers for upstream error handling.
+              throw new Error "Line #{mark.location.line}. Improper parser: #{head.container.type} ended too early."
             stack.pop()
 
           # Append the token
