@@ -3394,14 +3394,6 @@ containsCursor = (block) ->
 # ANIMATION AND ACE EDITOR SUPPORT
 # ================================
 
-# Checks whether the current code is possible to parse. If yes, returns the
-# parsed code. Else will throw an error.
-Editor::parse = ->
-  return @session.mode.parse @getAceValue(), {
-    wrapAtRoot: true
-    preserveEmpty: @session.options.preserveEmpty
-  }
-
 Editor::copyAceEditor = ->
   @gutter.style.width = @aceEditor.renderer.$gutterLayer.gutterWidth + 'px'
   @resizeBlockMode()
