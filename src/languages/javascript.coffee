@@ -82,7 +82,7 @@ NODE_CATEGORIES = {
   'FunctionExpression': 'functions'
   'FunctionDeclaration': 'functions'
   'AssignmentExpression': 'assignments'
-  'UpdateExpression': 'assignments'
+  'UpdateExpression': 'arithmetic'
   'VariableDeclaration': 'assignments'
   'ReturnStatement': 'returns'
   'IfStatement': 'conditionals'
@@ -216,6 +216,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           return [node.type, 'mostly-block']
       else if node.type is 'FunctionExpression'
         return [node.type, 'mostly-value', 'function-value']
+      else if node.type is 'UpdateExpression'
+        return [node.type, 'any-drop']
       else if node.type.match(/Expression$/)?
         return [node.type, 'mostly-value']
       else if node.type.match(/Declaration$/)?
