@@ -226,10 +226,10 @@ executeAsyncSequence = (sequence, i = 0) ->
     ), 0
 
 asyncTest 'Controller: ANTLR paren wrap rules', ->
-  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+  window.editor = editor = new droplet.Editor document.getElementById('test-main'), {
     mode: 'c',
     palette: []
-  })
+  }
 
   editor.setValue '''
     int main() {
