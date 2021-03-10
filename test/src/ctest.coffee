@@ -226,11 +226,12 @@ executeAsyncSequence = (sequence, i = 0) ->
     ), 0
 
 asyncTest 'Controller: ANTLR paren wrap rules', ->
+console.log 'line 229'
   window.editor = editor = new droplet.Editor document.getElementById('test-main'), {
     mode: 'c',
     palette: []
   }
-
+  console.log 'line 234'
   editor.setValue '''
     int main() {
       int y = 1 * 2;
@@ -238,7 +239,7 @@ asyncTest 'Controller: ANTLR paren wrap rules', ->
       int a = 1 + 2 * 3;
     }
   '''
-
+  console.log 'line 242'
   executeAsyncSequence [
     (->
       pickUpLocation editor, 0, {
