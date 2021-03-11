@@ -178,6 +178,7 @@ class Session
 # ## The Editor Class
 exports.Editor = class Editor
   constructor: (@aceEditor, @options) ->
+    console.log "in constructor"
     # ## DOM Population
     # This stage of ICE Editor construction populates the given wrapper
     # element with all the necessary ICE editor components.
@@ -195,6 +196,7 @@ exports.Editor = class Editor
 
     # We give our element a tabIndex so that it can be focused and capture keypresses.
     @dropletElement.tabIndex = 0
+    console.log 'line 199'
 
     # ### Canvases
     # Create the palette and main canvases
@@ -225,6 +227,7 @@ exports.Editor = class Editor
     @paletteElement = document.createElement 'div'
     @paletteElement.className = 'droplet-palette-element'
     @paletteWrapper.appendChild @paletteElement
+    console.log 'line 230'
 
     # Then palette canvas
     @paletteCanvas = @paletteCtx = document.createElementNS SVG_STANDARD, 'svg'
@@ -235,6 +238,7 @@ exports.Editor = class Editor
     @paletteWrapper.style.top = '0px'
     @paletteWrapper.style.bottom = '0px'
     @paletteWrapper.style.width = '270px'
+    console.log 'line 241'
 
     # We will also have to initialize the
     # drag canvas.
@@ -251,6 +255,7 @@ exports.Editor = class Editor
     @dropletElement.style.zIndex = 1
 
     do @draw.refreshFontCapital
+    console.log 'line 258'
 
     @standardViewSettings =
       padding: 5
@@ -322,7 +327,7 @@ exports.Editor = class Editor
     @transitionContainer.className = 'droplet-transition-container'
 
     @dropletElement.appendChild @transitionContainer
-
+    console.log 'line 330'
     if @options?
       @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
       @sessions = new helper.PairDict([
@@ -335,7 +340,7 @@ exports.Editor = class Editor
       @options = {
         extraBottomHeight: 10
       }
-
+    console.log 'line 343'
     # Sessions are bound to other ace sessions;
     # on ace session change Droplet will also change sessions.
     @aceEditor.on 'changeSession', (e) =>
@@ -357,7 +362,7 @@ exports.Editor = class Editor
     # to happen now.
     for binding in editorBindings.populate
       binding.call this
-
+    console.log 'line 365'
     # ## Resize
     # This stage of ICE editor construction, which is repeated
     # whenever the editor is resized, should adjust the sizes
