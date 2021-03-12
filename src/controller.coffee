@@ -118,7 +118,7 @@ class Session
     @allowFloatingBlocks = @options.allowFloatingBlocks ? true
     
     console.log "anjali debug"
-    console.log @options
+    console.log JSON.stringify(@options)
 
     # By default, attempt to preserve empty sockets when round-tripping
     @options.preserveEmpty ?= true
@@ -127,10 +127,10 @@ class Session
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
     console.log "anjali debug start"
-    console.log modes
+    console.log JSON.stringify(modes)
     console.log @options.mode
     console.log @options.modeOptions
-    console.log modes[@options.mode]
+    console.log JSON.stringify(modes[@options.mode])
     console.log "anjali debug end"
     if @options.mode of modes
       @mode = new modes[@options.mode] @options.modeOptions
@@ -195,7 +195,7 @@ exports.Editor = class Editor
 
     @options = helper.deepCopy @options # {mode: 'c', palette: []}
     console.log "anjali debug"
-    console.log @options
+    console.log JSON.stringify(@options)
 
     # ### Wrapper
     # Create the div that will contain all the ICE Editor graphics
