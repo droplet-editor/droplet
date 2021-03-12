@@ -107,6 +107,7 @@ hook = (event, priority, fn) ->
   }
 
 class Session
+  
   constructor: (_main, _palette, _drag, @options, standardViewSettings) -> # TODO rearchitecture so that a session is independent of elements again
     # Option flags
     @readOnly = false
@@ -115,6 +116,9 @@ class Session
     @paletteEnabled = @options.enablePaletteAtStart ? true
     @dropIntoAceAtLineStart = @options.dropIntoAceAtLineStart ? false
     @allowFloatingBlocks = @options.allowFloatingBlocks ? true
+    
+    console.log "anjali debug"
+    console.log @options
 
     # By default, attempt to preserve empty sockets when round-tripping
     @options.preserveEmpty ?= true
@@ -122,6 +126,12 @@ class Session
     # Mode
     @options.mode = @options.mode.replace /$\/ace\/mode\//, ''
 
+    console.log "anjali debug start"
+    console.log modes
+    console.log @options.mode
+    console.log @options.modeOptions
+    console.log modes[@options.mode]
+    console.log "anjali debug end"
     if @options.mode of modes
       @mode = new modes[@options.mode] @options.modeOptions
     else
@@ -183,7 +193,9 @@ exports.Editor = class Editor
     # element with all the necessary ICE editor components.
     @debugging = true
 
-    @options = helper.deepCopy @options
+    @options = helper.deepCopy @options # {mode: 'c', palette: []}
+    console.log "anjali debug"
+    console.log @options
 
     # ### Wrapper
     # Create the div that will contain all the ICE Editor graphics
@@ -272,6 +284,7 @@ exports.Editor = class Editor
 
     # We can be passed a div
     if @aceEditor instanceof Node
+      console.log "anjali debug aceEditor instance of Node"
       @wrapperElement = @aceEditor
 
       @wrapperElement.style.position = 'absolute'
@@ -295,6 +308,7 @@ exports.Editor = class Editor
       @aceEditor.getSession().setTabSize 2
 
     else
+      console.log "anjali debug aceEditor not instance of Node"
       @wrapperElement = document.createElement 'div'
       @wrapperElement.style.position = 'absolute'
       @wrapperElement.style.right =
@@ -324,11 +338,13 @@ exports.Editor = class Editor
     @dropletElement.appendChild @transitionContainer
 
     if @options?
+      console.log "anjali debug @options is true"
       @session = new Session @mainCanvas, @paletteCanvas, @dragCanvas, @options, @standardViewSettings
       @sessions = new helper.PairDict([
         [@aceEditor.getSession(), @session]
       ])
     else
+      console.log "anjali debug @options is false"
       @session = null
       @sessions = new helper.PairDict []
 
