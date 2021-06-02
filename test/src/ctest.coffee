@@ -225,64 +225,64 @@ executeAsyncSequence = (sequence, i = 0) ->
       executeAsyncSequence sequence, i + 1
     ), 0
 
-asyncTest 'Controller: ANTLR paren wrap rules', ->
-  window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
-    mode: 'c',
-    palette: []
-  })
+# asyncTest 'Controller: ANTLR paren wrap rules', ->
+#   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
+#     mode: 'c',
+#     palette: []
+#   })
 
-  editor.setValue '''
-    int main() {
-      int y = 1 * 2;
-      int x = 1 + 2;
-      int a = 1 + 2 * 3;
-    }
-  '''
+#   editor.setValue '''
+#     int main() {
+#       int y = 1 * 2;
+#       int x = 1 + 2;
+#       int a = 1 + 2 * 3;
+#     }
+#   '''
 
-  executeAsyncSequence [
-    (->
-      pickUpLocation editor, 0, {
-        row: 2
-        col: 10
-        type: 'block'
-      }
-      dropLocation editor, 0, {
-        row: 1
-        col: 14
-        type: 'socket'
-      }
-    ), (->
-      equal editor.getValue(), '''
-      int main() {
-        int y = 1 * (1 + 2);
-        int x = __0_droplet__;
-        int a = 1 + 2 * 3;
-      }\n
-      ''', 'Paren-wrapped + block dropping into * block'
-    ), (->
-      pickUpLocation editor, 0, {
-        row: 1
-        col: 10
-        type: 'block'
-      }
-      dropLocation editor, 0, {
-        row: 3
-        col: 10
-        type: 'socket'
-        length: 1
-      }
-    ), (->
-      equal editor.getValue(), '''
-      int main() {
-        int y = __0_droplet__;
-        int x = __0_droplet__;
-        int a = 1 * (1 + 2) + 2 * 3;
-      }\n
-      ''', 'Did not paren-wrap * block dropping into + block'
+#   executeAsyncSequence [
+#     (->
+#       pickUpLocation editor, 0, {
+#         row: 2
+#         col: 10
+#         type: 'block'
+#       }
+#       dropLocation editor, 0, {
+#         row: 1
+#         col: 14
+#         type: 'socket'
+#       }
+#     ), (->
+#       equal editor.getValue(), '''
+#       int main() {
+#         int y = 1 * (1 + 2);
+#         int x = __0_droplet__;
+#         int a = 1 + 2 * 3;
+#       }\n
+#       ''', 'Paren-wrapped + block dropping into * block'
+#     ), (->
+#       pickUpLocation editor, 0, {
+#         row: 1
+#         col: 10
+#         type: 'block'
+#       }
+#       dropLocation editor, 0, {
+#         row: 3
+#         col: 10
+#         type: 'socket'
+#         length: 1
+#       }
+#     ), (->
+#       equal editor.getValue(), '''
+#       int main() {
+#         int y = __0_droplet__;
+#         int x = __0_droplet__;
+#         int a = 1 * (1 + 2) + 2 * 3;
+#       }\n
+#       ''', 'Did not paren-wrap * block dropping into + block'
 
-      start()
-    )
-  ]
+#       start()
+#     )
+#   ]
 
 asyncTest 'Controller: ANTLR paren wrap rules for C semicolons', ->
   window.editor = editor = new droplet.Editor(document.getElementById('test-main'), {
