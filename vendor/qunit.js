@@ -102,7 +102,7 @@ QUnit = {
 			callback = expected;
 			expected = null;
 		}
-
+		console.log('*** Qunit asyncTest', testName, expected, callback);
 		QUnit.test( testName, expected, callback, true );
 	},
 
