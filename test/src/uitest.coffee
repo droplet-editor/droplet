@@ -1165,6 +1165,7 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
         int arbitraryArray[] = {1, 2, 3, 4, 5};
         int length;
         scanf("%d", &length);
+
         if (length > MAXLEN) {
             puts("Error: list is too large");
             return 1;
@@ -1199,7 +1200,7 @@ asyncTest 'Controller: ANTLR random drag reparse test', ->
         ok editor.session.mode.parse(editor.getValue()), 'Still in a parseable state'
         setTimeout (-> tick count - 1), 0
 
-    if rng() > 0.1
+    if rng() > 0.5
       op = getRandomDragOp(editor, rng)
       performDragOperation editor, op, cb
     else

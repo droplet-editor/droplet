@@ -7,8 +7,8 @@ livereload = require 'tiny-lr'
 path = require 'path'
 fs = require 'fs'
 
-if process.env.LANGUAGE
-  ignoredLanguages = ["./src/languages/!(#{process.env.LANGUAGE}).coffee"]
+if process.env.DROPLET_LANGUAGE
+  ignoredLanguages = ["./src/languages/!(#{process.env.DROPLET_LANGUAGE}).coffee"]
 
 serveNoDottedFiles = (connect, options, middlewares) ->
   # Avoid leaking .git/.svn or other dotted files from test servers.
