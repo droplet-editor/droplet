@@ -696,6 +696,10 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.property, depth + 1
         if not known or known.anyobj
           @jsSocketAndMark indentDepth, node.object, depth + 1
+        else if known and @opts.createSlotForKnownBlock
+          # We have a known block, and while we will not create a socket for the property
+          # (e.g. ".length") we would like a slot for the object (e.g. "getText()").
+          @jsSocketAndMark indentDepth, node.object, depth + 1, NEVER_PAREN
       when 'UpdateExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1
