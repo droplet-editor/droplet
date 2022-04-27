@@ -658,6 +658,8 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
+        else if known and node.callee.type is 'MemberExpression' and @opts.createSocketForKnownBlock
+          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
         for argument, i in node.arguments
           noFunctionDrop = @opts.lockFunctionDropIntoKnownParams and known?.fn and not known?.fn?.allowFunctionDrop?[i]
           classes = if noFunctionDrop then ['no-function-drop'] else null
