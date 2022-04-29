@@ -659,7 +659,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         else if known.anyobj and node.callee.type is 'MemberExpression'
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
         else if known and node.callee.type is 'MemberExpression' and @opts.createSocketForKnownBlock
-          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
+          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, null, null, null, known?.fn?.objectDropdown
         for argument, i in node.arguments
           noFunctionDrop = @opts.lockFunctionDropIntoKnownParams and known?.fn and not known?.fn?.allowFunctionDrop?[i]
           classes = if noFunctionDrop then ['no-function-drop'] else null
@@ -701,7 +701,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
         else if known and @opts.createSocketForKnownBlock
           # We have a known block, and while we will not create a socket for the property
           # (e.g. ".length") we would like a socket for the object (e.g. "getText()").
-          @jsSocketAndMark indentDepth, node.object, depth + 1, NEVER_PAREN
+          @jsSocketAndMark indentDepth, node.object, depth + 1
       when 'UpdateExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1
