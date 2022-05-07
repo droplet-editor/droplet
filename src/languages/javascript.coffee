@@ -658,6 +658,12 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.callee, depth + 1, NEVER_PAREN
         else if known.anyobj and node.callee.type is 'MemberExpression'
           @jsSocketAndMark indentDepth, node.callee.object, depth + 1, NEVER_PAREN, null, null, known?.fn?.objectDropdown
+        else if known and node.callee.type is 'MemberExpression' and @opts.createSocketForKnownBlock
+          # We have a known block, and while we will not create a socket for the callee.property
+          # (e.g. ".toUpperCase()") we would like a socket for the callee.object (e.g. "getText()").
+          # A precedence of 3 seems to preserve the parens around the socket content in "('text' + getText()).toUpperCase()" while
+          # not adding them in "getText().length".
+          @jsSocketAndMark indentDepth, node.callee.object, depth + 1, 3, null, null, known?.fn?.objectDropdown
         for argument, i in node.arguments
           noFunctionDrop = @opts.lockFunctionDropIntoKnownParams and known?.fn and not known?.fn?.allowFunctionDrop?[i]
           classes = if noFunctionDrop then ['no-function-drop'] else null
@@ -696,6 +702,12 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           @jsSocketAndMark indentDepth, node.property, depth + 1
         if not known or known.anyobj
           @jsSocketAndMark indentDepth, node.object, depth + 1
+        else if known and @opts.createSocketForKnownBlock
+          # We have a known block, and while we will not create a socket for the property
+          # (e.g. ".length") we would like a socket for the object (e.g. "getText()").
+          # A precedence of 3 seems to preserve the parens around the socket content in "('text' + getText()).length" while
+          # not adding them in "getText().length".
+          @jsSocketAndMark indentDepth, node.object, depth + 1, 3
       when 'UpdateExpression'
         @jsBlock node, depth, bounds
         @jsSocketAndMark indentDepth, node.argument, depth + 1
