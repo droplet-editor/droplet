@@ -160,7 +160,7 @@ exports.View = class View
 
   clearMarks: ->
     for key, val of @marks
-      @map[key].unmark()
+      @map[key]?.unmark()
     @marks = {}
 
   beginDraw: ->
