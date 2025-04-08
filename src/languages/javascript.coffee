@@ -605,7 +605,15 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
           if node.update?
             @jsSocketAndMark indentDepth, node.update, depth + 1, 10, null, ['for-statement-update']
 
-        @mark indentDepth, node.body, depth + 1
+        # Check if body is already a block, i.e., the body is wrapped by curly braces.
+        if node.body.type is 'BlockStatement'
+          @mark indentDepth, node.body, depth + 1
+        else
+          @addIndent
+            bounds: @getBounds node.body
+            depth: depth + 1
+            prefix: @getIndentPrefix @getBounds(node.body), indentDepth
+          @mark indentDepth + DEFAULT_INDENT_DEPTH.length, node.body, depth + 1
       when 'BlockStatement'
         prefix = @getIndentPrefix(@getBounds(node), indentDepth)
         indentDepth += prefix.length
