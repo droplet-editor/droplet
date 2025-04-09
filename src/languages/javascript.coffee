@@ -604,7 +604,7 @@ exports.JavaScriptParser = class JavaScriptParser extends parser.Parser
             @jsSocketAndMark indentDepth, node.test, depth + 1, 10
           if node.update?
             @jsSocketAndMark indentDepth, node.update, depth + 1, 10, null, ['for-statement-update']
-
+        # Test change
         @mark indentDepth, node.body, depth + 1
       when 'BlockStatement'
         prefix = @getIndentPrefix(@getBounds(node), indentDepth)
