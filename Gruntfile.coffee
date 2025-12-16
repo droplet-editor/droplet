@@ -56,6 +56,8 @@ module.exports = (grunt) ->
           viewportSize:
             width: 1000
             height: 1000
+        puppeteer:
+          args: ['--no-sandbox']
       all:
         urls:
           (for x in grunt.file.expand('test/*.html')
