@@ -4197,7 +4197,7 @@ Editor::addEmptyLine = (str) ->
     return str + '\n'
 
 Editor::getValue = ->
-  if @session?.currentlyUsingBlocks
+  if @session?.currentlyUsingBlocks and @session?.tree
     return @addEmptyLine @session.tree.stringify({
       preserveEmpty: @session.options.preserveEmpty
     })
