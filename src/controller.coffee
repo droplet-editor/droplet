@@ -2805,7 +2805,7 @@ Editor::showDropdown = (socket = @getCursor(), inPalette = false) ->
 
   for el, i in @getDropdownList(socket) then do (el) =>
     div = document.createElement 'div'
-    div.innerHTML = el.display
+    div.textContent = el.display
     div.className = 'droplet-dropdown-item'
 
     dropdownItems.push div
